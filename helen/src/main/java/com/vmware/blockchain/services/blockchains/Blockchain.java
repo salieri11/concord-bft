@@ -66,11 +66,11 @@ public class Blockchain extends AbstractEntity {
     }
 
     /**
-     * Enum to determine blockchain state.
+     * Enum to denote current blockchain state.
      */
     public static enum BlockchainState {
-        INACTIVE,   //for blockchains that need to be visible
-        ACTIVE      //for de-registered blockchains
+        INACTIVE,
+        ACTIVE
     }
 
 

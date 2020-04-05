@@ -78,6 +78,10 @@ public class BlockchainServiceTest {
         List<String> actualUrls = b.getNodeList().stream().map(n -> n.getUrl()).collect(Collectors.toList());
         List<String> actualCerts = b.getNodeList().stream().map(n -> n.getCert().strip()).collect(Collectors.toList());
 
+        Blockchain.BlockchainState expectedBlockchainState = Blockchain.BlockchainState.ACTIVE;
+        Blockchain.BlockchainState actualBlockchainState = b.getState();
+
+        Assertions.assertEquals(expectedBlockchainState, actualBlockchainState);
         Assertions.assertEquals(expectedIps, actualIps);
         Assertions.assertEquals(expectedUrls, actualUrls);
         Assertions.assertEquals(expectedCerts, actualCerts);

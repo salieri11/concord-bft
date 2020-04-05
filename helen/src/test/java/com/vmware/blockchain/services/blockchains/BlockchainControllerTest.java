@@ -123,6 +123,9 @@ public class BlockchainControllerTest {
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
     static final UUID BC_DAML_GET_CLIENT = UUID.fromString("ded15efc-33e3-11ea-978f-2e728ce88125");
+    static final UUID BC_INACTIVE = UUID.fromString("0cf023a5-ef8b-48ed-8cd3-ea47f8986073");
+    static final UUID BC_DEREGISTER = UUID.fromString("691f2038-7545-11ea-bc55-0242ac130003");
+    static final UUID BC_DEREGISTER_INACTIVE = UUID.fromString("8a304abc-4964-488e-a3c6-1379e6a67229");
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
@@ -329,6 +332,14 @@ public class BlockchainControllerTest {
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", SITE_2))
                         .collect(Collectors.toList()))
                 .build();
+        final Blockchain bcInactive = Blockchain.builder()
+                .consortium(consortium.getId())
+                .nodeList(Stream.of("one", "two", "three")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                        .collect(Collectors.toList()))
+                .state(Blockchain.BlockchainState.INACTIVE)
+                .type(BlockchainType.ETHEREUM)
+                .build();
         final Blockchain bn = Blockchain.builder()
                 .consortium(UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3"))
                 .nodeList(Stream.of("one", "two", "three")
@@ -341,6 +352,23 @@ public class BlockchainControllerTest {
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
                         .collect(Collectors.toList()))
                 .type(BlockchainType.DAML)
+                .build();
+
+        final Blockchain bcDeregister = Blockchain.builder()
+                .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
+                .nodeList(Stream.of("one", "two", "three")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                        .collect(Collectors.toList()))
+                .type(BlockchainType.ETHEREUM)
+                .build();
+
+        final Blockchain bcDeregisterInactive = Blockchain.builder()
+                .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
+                .nodeList(Stream.of("one", "two", "three")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                        .collect(Collectors.toList()))
+                .state(Blockchain.BlockchainState.INACTIVE)
+                .type(BlockchainType.ETHEREUM)
                 .build();
 
         final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1,
@@ -363,15 +391,24 @@ public class BlockchainControllerTest {
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
         when(blockchainService.listByConsortium(c3)).thenReturn(Collections.emptyList());
-        when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2));
+        when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2, bcInactive));
+        when(blockchainService.put(any(Blockchain.class)))
+                .thenAnswer(invocation -> {
+                    Blockchain blockchain = invocation.getArgument(0);
+                    return blockchain;
+                });
         b.setId(BC_ID);
         b2.setId(BC2_ID);
         bn.setId(BC_NEW);
         bcdaml.setId(BC_DAML);
+        bcDeregister.setId(BC_DEREGISTER);
+        bcDeregisterInactive.setId(BC_DEREGISTER_INACTIVE);
         when(blockchainService.get(BC_ID)).thenReturn(b);
         when(blockchainService.get(BC2_ID)).thenReturn(b2);
         when(blockchainService.get(BC_NEW)).thenReturn(bn);
         when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
+        when(blockchainService.get(BC_DEREGISTER)).thenReturn(bcDeregister);
+        when(blockchainService.get(BC_DEREGISTER_INACTIVE)).thenReturn(bcDeregisterInactive);
         when(blockchainService.get(C2_ID)).thenThrow(new NotFoundException("Not found"));
         when(blockchainService.listByIds(any(List.class))).thenAnswer(i -> {
             return ((List<UUID>) i.getArgument(0)).stream().map(blockchainService::get).collect(Collectors.toList());
@@ -470,7 +507,7 @@ public class BlockchainControllerTest {
     }
 
     @Test
-    void getBlockchainOperatorList() throws Exception {
+    void getBlockchainOperatorListActiveOnly() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/blockchains/").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
@@ -482,6 +519,25 @@ public class BlockchainControllerTest {
         // Now check that the lists are equivalent
         assertEquivalentLists(res.get(0).getNodeList(), res.get(0).getReplicaList());
         assertEquivalentLists(res.get(1).getNodeList(), res.get(1).getReplicaList());
+    }
+
+    @Test
+    void getBlockchainOperatorListAllBlockchains() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/blockchains?all=true").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        List<BlockchainController.BlockchainGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<BlockchainController.BlockchainGetResponse>>() {});
+        // As an operator, we should see both blockchains.
+        Assertions.assertEquals(3, res.size());
+        // Now check that the lists are equivalent
+        assertEquivalentLists(res.get(0).getNodeList(), res.get(0).getReplicaList());
+        assertEquivalentLists(res.get(1).getNodeList(), res.get(1).getReplicaList());
+        // Check if the third blockchain is inactive
+        Assertions.assertEquals(Blockchain.BlockchainState.ACTIVE, res.get(0).getBlockchainState());
+        Assertions.assertEquals(Blockchain.BlockchainState.ACTIVE, res.get(1).getBlockchainState());
+        Assertions.assertEquals(Blockchain.BlockchainState.INACTIVE, res.get(2).getBlockchainState());
     }
 
     @Test
@@ -861,6 +917,32 @@ public class BlockchainControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BODY_MISSING_DEPLOYMENT_TYPE).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deregisterBlockchain() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_DEREGISTER.toString())
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isAccepted()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        BlockchainController.BlockchainGetResponse res = objectMapper
+                .readValue(body, BlockchainController.BlockchainGetResponse.class);
+        // As a user in this consortium, we should only see one blockchain
+        Assertions.assertEquals(Blockchain.BlockchainState.INACTIVE, res.getBlockchainState());
+    }
+
+    @Test
+    void deregisterInactiveBlockchain() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_DEREGISTER_INACTIVE.toString())
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest()).andReturn();
+
+        Assertions.assertEquals(String.format("Blockchain %s is already de-registered.", BC_DEREGISTER_INACTIVE
+                        .toString()),
+                result.getResolvedException().getMessage());
     }
 
 
