@@ -49,7 +49,7 @@ class KVBClient {
   ~KVBClient() { client_->stop(); }
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly, std::chrono::milliseconds timeout,
+                         uint8_t flags, std::chrono::milliseconds timeout,
                          opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp,
                          const std::string &correlation_id = "");
@@ -107,12 +107,12 @@ class KVBClientPool {
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly, opentracing::Span &parent_span,
+                         uint8_t flags, opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp,
                          const std::string &correlation_id = "");
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly, std::chrono::milliseconds timeout,
+                         uint8_t flags, std::chrono::milliseconds timeout,
                          opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp,
                          const std::string &correlation_id = "");

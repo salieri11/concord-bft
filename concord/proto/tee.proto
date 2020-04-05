@@ -13,6 +13,7 @@ service TeeService {
 
 message TestInput {
   string test_input = 1;
+  uint32 flags = 2;
 }
 
 message TestOutput {
@@ -21,6 +22,7 @@ message TestOutput {
 
 message RawSkvbcRequest {
   bytes content = 1;
+  uint32 flags = 2;
 }
 
 message RawSkvbcResponse {

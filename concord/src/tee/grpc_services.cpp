@@ -32,7 +32,7 @@ grpc::Status TeeServiceImpl::RunTest(grpc::ServerContext* context,
 
   tee_request->set_tee_input(test_input->test_input());
 
-  if (!pool_.send_request_sync(conc_request, false, *span.get(),
+  if (!pool_.send_request_sync(conc_request, test_input->flags(), *span.get(),
                                conc_response)) {
     LOG4CPLUS_ERROR(logger_, "RunTest transaction failed");
     log4cplus::getMDC().clear();
@@ -57,8 +57,8 @@ grpc::Status TeeServiceImpl::SkvbcRead(
       conc_request.mutable_tee_request()->mutable_skvbc_request();
   skvbc_request->set_request_content(request->content());
 
-  if (!pool_.send_request_sync(conc_request, true, *span.get(),
-                               conc_response)) {
+  if (!pool_.send_request_sync(conc_request, bftEngine::READ_ONLY_REQ,
+                               *span.get(), conc_response)) {
     LOG4CPLUS_ERROR(logger_, "SKVBC read failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
@@ -82,7 +82,7 @@ grpc::Status TeeServiceImpl::SkvbcWrite(
       conc_request.mutable_tee_request()->mutable_skvbc_request();
   skvbc_request->set_request_content(request->content());
 
-  if (!pool_.send_request_sync(conc_request, false, *span.get(),
+  if (!pool_.send_request_sync(conc_request, request->flags(), *span.get(),
                                conc_response)) {
     LOG4CPLUS_ERROR(logger_, "SKVBC write failed");
     log4cplus::getMDC().clear();

@@ -50,7 +50,7 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());
-  if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp,
+  if (!pool.send_request_sync(req, request->flags(), *span.get(), resp,
                               request->correlation_id())) {
     LOG4CPLUS_ERROR(logger_, "DAML commit transaction failed");
     return grpc::Status::CANCELLED;
