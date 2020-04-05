@@ -22,14 +22,6 @@ public class SimpleConfig {
     this.blockchain = blockchain;
   }
 
-  public String getEnvironment() {
-    return environment;
-  }
-
-  public void setEnvironment(String environment) {
-    this.environment = environment;
-  }
-
   public int getNodeCount() {
     return nodeCount;
   }
