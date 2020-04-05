@@ -2,15 +2,17 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.ipam.server;
+package com.vmware.blockchain.ipam.services;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.deployment.v1.AddressBlockSpecification;
+import com.vmware.blockchain.ipam.services.dao.AddressBlock;
 
-import kotlin.ranges.IntProgression;
 
 /**
  * Utility.
@@ -35,7 +37,6 @@ public class IpAllocationUtil {
     }
     }
      */
-
     BlockSpecification convertToBlockSpecification(AddressBlockSpecification request) {
         return new BlockSpecification(request.getPrefix(), request.getSubnet());
 
@@ -51,7 +52,7 @@ public class IpAllocationUtil {
      *   resource name as a [ResourceName].
      */
     ResourceName blockName(String block) {
-        return new ResourceName("blocks/$block");
+        return new ResourceName("blocks/" + block);
     }
 
     /**
@@ -66,7 +67,7 @@ public class IpAllocationUtil {
      *   resource name as a [ResourceName].
      */
     ResourceName segmentName(String blockResource, int segment) {
-        return new ResourceName("$blockResource/segments/${segment.toString(16).padStart(8, '0')}");
+        return new ResourceName(blockResource + "/segments/"); // + ${segment.toString(16).padStart(8, '0')});
     }
 
     /**
@@ -96,7 +97,7 @@ public class IpAllocationUtil {
      *   resource name as a [String].
      */
     ResourceName addressName(String segmentResource, int address) {
-        return new ResourceName("$segmentResource/addresses/${address.toString(16).padStart(8, '0')}");
+        return new ResourceName(segmentResource + "/addresses/"); //${address.toString(16).padStart(8, '0')}");
     }
 
     /**
@@ -123,11 +124,17 @@ public class IpAllocationUtil {
      * @return
      *   a range of all segment addresses within the address block.
      */
-    IntProgression segmentRangeOf(AddressBlock block) {
-        final int start = block.specification.prefix;
-        final int subnetMask = (1 << (32 - block.specification.subnet)) - 1;
+    List<Integer> segmentRangeOf(AddressBlock block) {
+        final int start = block.getSpecification().prefix;
+        final int subnetMask = (1 << (32 - block.getSpecification().subnet)) - 1;
         final int end = start + subnetMask;
-        return new IntProgression(start, end, 256);
+
+        List<Integer> response = new ArrayList<>();
+        for (int i = start; i <= end;) {
+            response.add(i);
+            i = i + 256;
+        }
+        return response;
     }
 
 

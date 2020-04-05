@@ -2,28 +2,31 @@
  * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.ipam.server;
+package com.vmware.blockchain.ipam.services.dao;
 
 import com.google.protobuf.ByteString;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
 
+import lombok.AllArgsConstructor;
+
+/**
+ * Entity class to store segments.
+ */
 @EntityColumnName("persephone.addressblocksegment")
-class AddressBlockSegment extends AbstractEntity {
+@AllArgsConstructor
+public class AddressBlockSegment extends AbstractEntity {
     String name;
     int segment;
     ByteString allocations;
 
+    /**
+     * Default.
+     */
     public AddressBlockSegment() {
         this.name = "";
         this.segment = 0;
         this.allocations = ByteString.EMPTY;
-    }
-
-    public AddressBlockSegment(String name, int segment, ByteString allocations) {
-        this.name = name;
-        this.segment = segment;
-        this.allocations = allocations;
     }
 
     public String getName() {

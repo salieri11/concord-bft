@@ -10,87 +10,74 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>persephone-ip-allocation-service</artifactId>
+    <artifactId>ip-allocation-service</artifactId>
     <packaging>jar</packaging>
     <name>Blockchain - Fleet Management IP Allocation Service</name>
-    <version>1.0.0-SNAPSHOT</version>
-
     <properties>
+        <!-- Project properties. -->
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
-        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
-        <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
         <kotlin.version>1.3.61</kotlin.version>
-        <java.version>11</java.version>
+        <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
+        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
+        <mockito.inline.version>2.28.2</mockito.inline.version>
+        <kr.motd.maven.version>1.6.2</kr.motd.maven.version>
+        <springframework.security.version>5.1.8.RELEASE</springframework.security.version>
+        <com.github.tomakehurst.version>2.20.0</com.github.tomakehurst.version>
+        <io.zonky.test.version>1.4.1</io.zonky.test.version>
+        <io.zonky.test.postgres.version>10.6.0</io.zonky.test.postgres.version>
         <spring.boot.mainclass>com.vmware.blockchain.ipam.server.Application</spring.boot.mainclass>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-reflect</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-serialization-runtime</artifactId>
-            <version>0.14.0</version>
-        </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.vmware.blockchain</groupId>-->
-<!--            <artifactId>persephone-core</artifactId>-->
-<!--            <version>1.0.0-SNAPSHOT</version>-->
-<!--        </dependency>-->
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-jdk8</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-reactive</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
             <artifactId>vmbc-base</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-               ~ External dependencies.~
+        ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-            <version>2.10.2</version>
-        </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.11.4</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
-            <version>3.11.4</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-database-spring-test</artifactId>
+            <version>${io.zonky.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.zonky.test.postgres</groupId>
+            <artifactId>embedded-postgres-binaries-bom</artifactId>
+            <!--  This is the postgres version supported by Aurora DB 2.2.0 -->
+            <version>${io.zonky.test.postgres.version}</version>
+            <type>pom</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+        </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ Special dependencies. (Custom order)                      ~
-        ~ Note: Despite Maven's declarative build manifest that     ~
-        ~ should be agnostic to declaration ordering. Due to        ~
-        ~ exclusions declared in Spring's main dependency, ordering ~
-        ~ matters for classpath determination.                      ~
-        ~ Ordering here adheres to lexicographical ordering as much ~
-        ~ as can be done to avoid runtime classpath issues.         ~
+        ~ Internal dependencies.                                    ~
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+        <dependency>
+            <groupId>com.vmware.blockchain</groupId>
+            <artifactId>persephone-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
             <!-- Main Spring Boot dependency. -->
@@ -113,9 +100,8 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -125,6 +111,11 @@
             <!-- Spring Boot logging with log4j2. -->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -146,21 +137,25 @@
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-protobuf</artifactId>
-            <version>${grpc.runtime.java.version}</version>
+            <artifactId>grpc-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
+            <artifactId>grpc-protobuf</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -172,117 +167,44 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.inline.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>${com.github.tomakehurst.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Make method-based security testing easier. -->
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <version>${springframework.security.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
         </dependency>
-    </dependencies>
 
+    </dependencies>
     <build>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.2</version>
+                <version>${kr.motd.maven.version}</version>
             </extension>
         </extensions>
-
         <plugins>
-            <plugin>
-                <!-- Kotlin compile plugin must be specified before Java.
-                     (Supports polyglot projects. -->
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <configuration>
-                    <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
-                    <args>
-                        <!-- Multi-platform project to allow "expect"/"actual" declarations. -->
-                        <arg>-Xmulti-platform</arg>
-                        <!-- Remove wrapper object abstraction cost. -->
-                        <!--<arg>-XXLanguage:+InlineClasses</arg>-->
-                        <arg>-Xuse-experimental=kotlin.ExperimentalUnsignedTypes</arg>
-                        <arg>-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi</arg>
-                    </args>
-                    <compilerPlugins>
-                        <plugin>kotlinx-serialization</plugin>
-                    </compilerPlugins>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-maven-serialization</artifactId>
-                        <version>${kotlin.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>kapt</id>
-                        <goals>
-                            <goal>kapt</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-kapt</id>
-                        <goals>
-                            <goal>test-kapt</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/test/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>kotlin-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kapt/compile</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/compile</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                            <output>${project.build.directory}/classes</output>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>kotlin-test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/test/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kapt/test</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/test</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -290,59 +212,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <release>${java.version}</release>
-                    <fork>true</fork>
-                    <meminitial>1024m</meminitial>
-                    <maxmem>4048m</maxmem>
-                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
-                    <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <compilerArgs>
-                        <arg>-Xlint:all</arg>
-                    </compilerArgs>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
-                            <version>2.2.2.RELEASE</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-                <executions>
-                    <!-- Disable default-compile (treated specially by Maven). -->
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <!-- Disable default-testCompile (treated specially by Maven). -->
-                    <execution>
-                        <id>default-testCompile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <execution>
-                        <id>java-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>java-test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

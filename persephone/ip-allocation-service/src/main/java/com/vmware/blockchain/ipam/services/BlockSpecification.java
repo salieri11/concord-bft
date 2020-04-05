@@ -2,7 +2,7 @@
  * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.ipam.server;
+package com.vmware.blockchain.ipam.services;
 
 /**
  * Class representing BlockSpecification.
