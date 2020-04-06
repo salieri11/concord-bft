@@ -254,11 +254,17 @@ def deploy_daml_participants(con_admin_request, blockchain_id, site_ids, credent
                 public_ip = participant_entry["public_ip"]
                 helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
                 log.info("Participant node {} running successfully".format(public_ip))
-                helper.add_ethrpc_port_forwarding(public_ip, username, password, dest_port=6865)
-                log.info("Starting DAR upload test on participant {}".format(public_ip))
-                daml_helper.upload_test_tool_dars(host=public_ip, port='443')
+
+                # Use port 80 for DAML instead of 443. LedgerApiServer is listening on 6865 over plain text
+                # Setting up port forwarding from 443 to 6865 results in the following exception
+                # INFO: Transport failed
+                # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
+                src_port = 80
+                helper.add_ethrpc_port_forwarding(public_ip, username, password, src_port=src_port, dest_port=6865)
+                log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
+                daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
                 log.info("Starting DAR upload verification test on participant {}".format(public_ip))
-                daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
+                daml_helper.verify_ledger_api_test_tool(host=public_ip, port=str(src_port))
                 log.info("DAR upload and verification successful on participant {}".format(public_ip))
 
         except Exception as e:
