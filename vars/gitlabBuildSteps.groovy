@@ -163,16 +163,17 @@ def call(){
   def genericTests = true
   def additional_components_to_build = ""
   def deployment_support_bundle_job_name = "Get Deployment support bundle"
-  def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
+  def ext_long_tests_job_name = "Blockchain Extensive Long Tests"
+  def helen_role_test_job_name = "Helen Role Tests on GitLab"
+  def log_insight_test_job_name = "Log Insight Integration Test"
+  def long_tests_job_name = "Blockchain Long Tests"
+  def main_mr_run_job_name = "Main Blockchain Run on GitLab"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def monitor_replicas_job_name = "Monitor Blockchain replica health and status"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
-  def helen_role_test_job_name = "Helen Role Tests on GitLab"
-  def log_insight_test_job_name = "Log Insight Integration Test"
-  def main_mr_run_job_name = "Main Blockchain Run on GitLab"
-  def long_tests_job_name = "Blockchain Long Tests"
+  def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
 
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -190,28 +191,29 @@ def call(){
   // These runs will never run Persehpone tests. Persephone tests have special criteria,
   // and these runs can end up running them unintentionally.
   def runs_excluding_persephone_tests = [
-    log_insight_test_job_name,
-    ui_e2e_daml_on_prem_job_name,
-    monitor_replicas_job_name,
-    memory_leak_job_name,
-    performance_test_job_name,
+    ext_long_tests_job_name,
     helen_role_test_job_name,
-    long_tests_job_name
+    log_insight_test_job_name,
+    long_tests_job_name,
+    memory_leak_job_name,
+    monitor_replicas_job_name,
+    performance_test_job_name,
+    ui_e2e_daml_on_prem_job_name
   ]
 
   // These job names are just substrings of the actual job names.
   specialized_tests = [
-    ui_e2e_daml_on_prem_job_name,
+    deployment_support_bundle_job_name,
+    ext_long_tests_job_name,
+    long_tests_job_name,
+    log_insight_test_job_name,
     memory_leak_job_name,
+    monitor_replicas_job_name,
     performance_test_job_name,
     persephone_test_job_name,
     persephone_test_on_demand_job_name,
-    log_insight_test_job_name,
-    ui_e2e_daml_on_prem_job_name,
-    deployment_support_bundle_job_name,
-    monitor_replicas_job_name,
     helen_role_test_job_name,
-    long_tests_job_name
+    ui_e2e_daml_on_prem_job_name
   ]
 
   for (specialized_test in specialized_tests){
@@ -226,10 +228,12 @@ def call(){
     echo "**** Jenkins job for Generic Test Run"
   }
 
-  if (env.JOB_NAME.contains(memory_leak_job_name)) {
-    agentLabel = "MemoryLeakTesting"
+  if (env.JOB_NAME.contains(ext_long_tests_job_name)) {
+    agentLabel = "ExtLongRunTest"
   } else if (env.JOB_NAME.contains(long_tests_job_name)) {
     agentLabel = "LongRunTest"
+  } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
+    agentLabel = "MemoryLeakTesting"
   }
 
   pipeline {
