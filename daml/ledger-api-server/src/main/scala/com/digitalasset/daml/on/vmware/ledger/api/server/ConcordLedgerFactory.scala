@@ -3,20 +3,13 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 import java.util.UUID
 
 import akka.stream.Materializer
-import com.daml.ledger.participant.state.kvutils.app.{
-  LedgerFactory,
-  ParticipantConfig,
-  ReadWriteService,
-  Config => KVUtilsConfig
-}
+import com.daml.ledger.participant.state.kvutils.app.{LedgerFactory, ParticipantConfig, ReadWriteService, Config => KVUtilsConfig}
 import com.daml.ledger.participant.state.pkvutils.api.PrivacyAwareKeyValueParticipantState
 import com.daml.ledger.participant.state.v1.SeedService.Seeding
 import com.digitalasset.daml.lf.data.Ref
 import com.digitalasset.daml.lf.data.Ref.ParticipantId
-import com.digitalasset.daml.on.vmware.participant.state.{
-  ConcordKeyValueLedgerReader,
-  ConcordLedgerWriter
-}
+import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCPrometheusMetricsEndpoint}
+import com.digitalasset.daml.on.vmware.participant.state.{ConcordKeyValueLedgerReader, ConcordLedgerWriter}
 import com.digitalasset.daml.on.vmware.write.service.{KVBCClient, TRClient}
 import com.digitalasset.ledger.api.auth.AuthService
 import com.digitalasset.logging.LoggingContext
@@ -64,8 +57,17 @@ object ConcordLedgerFactory
                                          participantConfig.participantId,
                                          concordClient.commitTransaction,
                                          () => concordClient.currentHealth)
-    val participantState = PrivacyAwareKeyValueParticipantState(reader, writer)
-    ResourceOwner.successful(participantState)
+    for {
+      closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
+      closeableEndpoint = {
+        val endPoint = KVBCPrometheusMetricsEndpoint.createEndpoint(
+          metricRegistry(participantConfig, config),
+          closeableHttpServer.context)
+        closeableHttpServer.start()
+        endPoint
+      }
+      _ <- ResourceOwner.forCloseable(() => closeableEndpoint)
+    } yield PrivacyAwareKeyValueParticipantState(reader, writer)
   }
 
   override def apiServerConfig(
