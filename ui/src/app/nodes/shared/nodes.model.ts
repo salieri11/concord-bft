@@ -23,6 +23,13 @@ export interface NodeInfo {
   zone_type?: ZoneType;
 }
 
+export interface ClientNodeDeployParams {
+  name?: string;
+  high_availability?: boolean;
+  zone_ids: string[];
+  client_jwt: string;
+}
+
 export interface ClientNode {
   id: string;
   hostname: string;

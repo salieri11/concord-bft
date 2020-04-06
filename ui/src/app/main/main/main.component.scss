@@ -68,8 +68,10 @@
   border-color: #adbbc4;
 }
 
-:host ::ng-deep .clr-select-wrapper::after {
-  top: .491666rem;
+:host ::ng-deep div[name="consortiums-select-wrapper"] {
+  .clr-select-wrapper::after {
+    top: .491666rem;
+  }
 }
 
 .nav-overlay-container {

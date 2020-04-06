@@ -9,6 +9,9 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { NodesService } from '../shared/nodes.service';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 
+// Works for domains and ips
+const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+
 @Component({
   selector: 'concord-deploy-client',
   templateUrl: './deploy-client.component.html',
@@ -18,7 +21,10 @@ export class DeployClientComponent implements OnInit {
   isOpen: boolean;
   zones: Zone[];
   deployClient = new FormGroup({
-    zone: new FormControl('', Validators.required)
+    name: new FormControl('', Validators.required),
+    zone: new FormControl('', Validators.required),
+    high_availability: new FormControl('', Validators.required), // high availability
+    auth_url: new FormControl('', [Validators.pattern(urlValidateRegex)]),
   });
 
   constructor(
@@ -32,9 +38,13 @@ export class DeployClientComponent implements OnInit {
 
   deploy() {
     const selectedZoneId = this.deployClient.controls['zone'].value;
-    const selectedZone = this.zones.find(zone => zone.id === selectedZoneId);
+    // const selectedZone = this.zones.find(zone => zone.id === selectedZoneId);
+    const clientJwt = this.deployClient.get('auth_url').value;
 
-    this.nodesService.deployClients([selectedZoneId], selectedZone.name);
+    this.nodesService.deployClients({
+      zone_ids: [selectedZoneId],
+      client_jwt: clientJwt
+    });
 
     this.deployClient.reset();
     this.closeModal();

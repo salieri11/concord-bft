@@ -10,7 +10,7 @@ import { Observable, from, timer, of, Subject } from 'rxjs';
 import { map, concatMap, filter, take, delay } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
-import { NodeProperties, NodeInfo, ClientNode } from './nodes.model';
+import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -146,11 +146,9 @@ export class NodesService {
     );
   }
 
-  deployClients(zoneIds: string[], name: string) {
-    this.http.post<any>(
-      Apis.clients(this.blockchainService.blockchainId),
-      {zone_ids: zoneIds}
-    ).subscribe(response => {
+  deployClients(params: ClientNodeDeployParams) {
+    this.http.post<any>(Apis.clients(this.blockchainService.blockchainId), params)
+    .subscribe(response => {
       this.pollUntilDeployFinished(response['task_id'], name);
     });
   }

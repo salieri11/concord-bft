@@ -47,12 +47,14 @@
       <label class="nav-header">
         {{ 'nav.consortium' | translate }}
       </label>
-      <select clrSelect name="consortiums" [(ngModel)]="selectedConsortium" class="consortium-select"
-        (change)="consortiumChange()">
-        <option *ngFor="let consortium of blockchains" [value]="consortium.id">
-          {{ consortium.consortium_name }}
-        </option>
-      </select>
+      <div name="consortiums-select-wrapper">
+        <select clrSelect name="consortiums" [(ngModel)]="selectedConsortium" class="consortium-select"
+          (change)="consortiumChange()">
+          <option *ngFor="let consortium of blockchains" [value]="consortium.id">
+            {{ consortium.consortium_name }}
+          </option>
+        </select>
+      </div>
       <ng-container>
         <div class="nav-overlay-container">
           <div class="nav-overlay" *ngIf="!selectedConsortium"></div>
