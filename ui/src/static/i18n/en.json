@@ -241,6 +241,14 @@
       "confirm": "REPLICA STOP",
       "body": "Please type REPLICA STOP to confirm committer stoppage.",
       "placeholder": "Type confirmation here"
+    },
+    "deployClientModal": {
+      "highAvailability": "High Availability",
+      "highAvailabilityDesc": "Two clients nodes to ensure high availability",
+      "clientNodeNamePlaceholder": "Client Node 1",
+      "authUrl": "Auth URL",
+      "authUrlDesc": "URL that returns JWT public key",
+      "authUrlError": "The supplied URL is not valid"
     }
   },
   "blocks": {

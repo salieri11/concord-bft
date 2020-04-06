@@ -1,0 +1,21 @@
+:host ::ng-deep form {
+  label {
+    white-space: nowrap;
+    padding-right: 150px !important; 
+  }
+  .clr-form-control{
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .clr-col-md-10 {
+    flex: 0 0 50%;
+    max-width: 50%
+  }
+  .select-width {
+    min-width: 200px; 
+  }
+  .input-width {
+    min-width: 200px; 
+  }
+
+}
