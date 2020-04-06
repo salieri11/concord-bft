@@ -70,6 +70,10 @@ KEEP_BLOCKCHAINS_NEVER = "never"
 ZONE_TYPE_ON_PREM = "ON_PREM"
 ZONE_TYPE_SDDC = "VMC_AWS"
 
+# Credential type
+CREDENTIAL_BEARER = "BEARER"
+CREDENTIAL_PASSWORD = "PASSWORD"
+
 # When creating a logging destination, its type can
 # be one of these:
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"

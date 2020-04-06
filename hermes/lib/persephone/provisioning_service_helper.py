@@ -112,6 +112,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
             url=zone["wavefront"]["url"],
             token=zone["wavefront"]["token"]
          )
+         log_managements = self.get_log_managements(zone)
 
          if zone_type == self.ZONE_TYPE_VMC:
             type = orchestration_pb2.OrchestrationSiteInfo.VMC
@@ -129,7 +130,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                organization=zone["organization"],
                datacenter=zone["datacenter"],
                vsphere=vsphere_datacenter_info,
-               wavefront=wavefront
+               wavefront=wavefront,
+               log_managements=log_managements
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vmc=site_info)
@@ -153,7 +155,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                   )
                ),
                vsphere=vsphere_datacenter_info,
-               wavefront=wavefront
+               wavefront=wavefront,
+               log_managements=log_managements
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vsphere=site_info)
@@ -354,3 +357,43 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       except Exception as e:
          self.handle_exception(e)
       return response
+
+   def get_log_managements(self, zone):
+      '''
+      Gets logManagements section from the provided zone configuration
+      :param zone: Zone information
+      :return: List of logManagements
+      '''
+      log_managements = []
+      for lm in zone["logManagements"]:
+         if lm["endpoint"]["credential"]["type"] == util.helper.CREDENTIAL_BEARER:
+            log_management = core_pb2.LogManagement(
+               destination=lm["destination"],
+               endpoint=core_pb2.Endpoint(
+                  address=lm["endpoint"]["address"],
+                  credential=core_pb2.Credential(
+                     token_credential=core_pb2.BearerTokenCredential(
+                        token=lm["endpoint"]["credential"]["tokenCredential"]["token"]
+                     )
+                  )
+               )
+            )
+         elif lm["endpoint"]["credential"]["type"] == util.helper.CREDENTIAL_PASSWORD:
+            log_management = core_pb2.LogManagement(
+               destination=lm["destination"],
+               endpoint=core_pb2.Endpoint(
+                  address=lm["endpoint"]["address"],
+                  credential=core_pb2.Credential(
+                     password_credential=core_pb2.PasswordCredential(
+                        username=lm["endpoint"]["credential"]["passwordCredential"]["username"],
+                        password=lm["endpoint"]["credential"]["passwordCredential"]["password"]
+                     )
+                  )
+               )
+            )
+         else:
+            log_management = core_pb2.LogManagement()
+
+         log_managements.append(log_management)
+
+      return log_managements
