@@ -2,6 +2,7 @@
 
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
+#include <google/protobuf/util/time_util.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <daml/daml_kvb_commands_handler.hpp>
@@ -33,6 +34,9 @@ using com::vmware::concord::PreExecutionResult;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
+
 namespace {
 
 constexpr size_t OUT_BUFFER_SIZE = 512000;
@@ -42,9 +46,11 @@ const auto NEVER = Exactly(0);
 ConcordRequest build_commit_request();
 std::shared_ptr<MockPrometheusRegistry> build_mock_prometheus_registry();
 std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
-    bool expect_never = false);
+    bool expect_never = false,
+    const std::optional<Timestamp>& max_record_time = std::nullopt);
 ConcordResponse build_pre_execution_response(
     BlockId pre_execution_block_id,
+    const std::optional<Timestamp>& max_record_time = std::nullopt,
     const std::vector<std::string>& reads = {"read-key"},
     const std::map<std::string, std::string>& writes = {
         {"write-key", "write-value"}});
@@ -135,7 +141,8 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
       TestConfiguration(replicas, client_proxies, 0, 0, false, false);
 
   auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client();
+  auto daml_validator_client =
+      build_mock_daml_validator_client(false, TimeUtil::GetCurrentTime());
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -164,6 +171,7 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   ASSERT_EQ(result, 0);
   ASSERT_FALSE(concord_response.has_daml_response());
   ASSERT_TRUE(concord_response.has_pre_execution_result());
+  ASSERT_TRUE(concord_response.pre_execution_result().has_max_record_time());
   ASSERT_EQ(
       concord_response.pre_execution_result().write_set().kv_writes_size(), 2);
   ASSERT_EQ(concord_response.pre_execution_result().read_set().keys_size(), 3);
@@ -273,6 +281,59 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
   ASSERT_EQ(result, 1);
 }
 
+TEST(daml_test, timed_out_pre_execution_no_block) {
+  const BlockId last_block_id = 100;
+
+  MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+
+  MockLocalKeyValueStorageReadOnly ro_storage{};
+  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+
+  EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
+      .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
+
+  SubBufferList subscriber_list{};
+
+  const auto replicas = 4;
+  const auto client_proxies = 4;
+  const auto config =
+      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+
+  auto prometheus_registry = build_mock_prometheus_registry();
+  auto daml_validator_client = build_mock_daml_validator_client(true);
+
+  DamlKvbCommandsHandler daml_commands_handler{config,
+                                               GetNodeConfig(config, 1),
+                                               ro_storage,
+                                               blocks_appender,
+                                               subscriber_list,
+                                               std::move(daml_validator_client),
+                                               prometheus_registry};
+
+  Timestamp long_expired_max_record_time;
+  TimeUtil::FromString("2019-01-01T10:00:20.021Z",
+                       &long_expired_max_record_time);
+  ConcordResponse pre_execution_response =
+      build_pre_execution_response(50, long_expired_max_record_time);
+
+  std::string req_string;
+  pre_execution_response.SerializeToString(&req_string);
+
+  uint32_t reply_size = 0;
+  char reply_buffer[OUT_BUFFER_SIZE];
+  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+
+  int result = daml_commands_handler.execute(
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+
+  ConcordResponse concord_response;
+  concord_response.ParseFromArray(reply_buffer, reply_size);
+
+  ASSERT_EQ(result, 1);
+}
+
 TEST(daml_test, conflicting_write_set) {
   const BlockId last_block_id = 100;
 
@@ -353,9 +414,9 @@ TEST(daml_test, conflicting_write_of_new_key) {
                                                prometheus_registry};
 
   ConcordResponse pre_execution_response_1 =
-      build_pre_execution_response(90, {}, {{"k", "v1"}});
+      build_pre_execution_response(90, std::nullopt, {}, {{"k", "v1"}});
   ConcordResponse pre_execution_response_2 =
-      build_pre_execution_response(91, {}, {{"k", "v2"}});
+      build_pre_execution_response(91, std::nullopt, {}, {{"k", "v2"}});
 
   const Sliver k{std::string{"k"}};
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 90 + 1, _, _))
@@ -396,7 +457,7 @@ TEST(daml_test, conflicting_write_of_new_key) {
 }
 
 std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
-    bool expect_never) {
+    bool expect_never, const std::optional<Timestamp>& max_record_time) {
   std::unique_ptr<MockDamlValidatorClient> daml_validator_client =
       std::make_unique<MockDamlValidatorClient>();
 
@@ -421,6 +482,9 @@ std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
     mock_response2->mutable_result()->MergeFrom(*result2);
 
     auto* result = mock_response2->mutable_result();
+    if (max_record_time) {
+      result->mutable_max_record_time()->CopyFrom(max_record_time.value());
+    }
     da_kvbc::ProtectedKeyValuePair* u1 = result->add_updates();
     u1->set_key("wk1");
     u1->set_value("wk1");
@@ -475,7 +539,9 @@ ConcordRequest build_commit_request() {
 }
 
 ConcordResponse build_pre_execution_response(
-    BlockId pre_execution_block_id, const std::vector<std::string>& reads,
+    BlockId pre_execution_block_id,
+    const std::optional<Timestamp>& max_record_time,
+    const std::vector<std::string>& reads,
     const std::map<std::string, std::string>& writes) {
   ConcordResponse pre_execution_response;
   PreExecutionResult pre_execution_result;
@@ -483,6 +549,10 @@ ConcordResponse build_pre_execution_response(
   pre_execution_result.set_request_correlation_id("correlation_id");
   pre_execution_result.set_read_set_version(pre_execution_block_id);
 
+  if (max_record_time) {
+    pre_execution_result.mutable_max_record_time()->CopyFrom(
+        max_record_time.value());
+  }
   auto* read_set = pre_execution_result.mutable_read_set();
   for (const auto& r_key : reads) {
     read_set->add_keys(r_key.c_str(), r_key.size());

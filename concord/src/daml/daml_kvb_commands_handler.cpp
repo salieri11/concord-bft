@@ -134,15 +134,16 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     record_time = time->GetTime();
     LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
   } else {
-    record_time = google::protobuf::util::TimeUtil::GetEpoch();
-    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
+    record_time = google::protobuf::util::TimeUtil::GetCurrentTime();
+    LOG4CPLUS_DEBUG(logger_, "Using current time " << record_time);
   }
 
   std::string correlation_id = commit_req.correlation_id();
 
   if (has_pre_executed && request_.has_pre_execution_result()) {
-    return CommitPreExecutionResult(current_block_id, entryId, correlation_id,
-                                    *daml_execute_commit, concord_response);
+    return CommitPreExecutionResult(current_block_id, entryId, record_time,
+                                    correlation_id, *daml_execute_commit,
+                                    concord_response);
   }
 
   da_kvbc::ValidateResponse response;
@@ -256,6 +257,11 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
       {opentracing::ChildOf(&parent_span.context())});
   auto* pre_execution_result = concord_response.mutable_pre_execution_result();
 
+  if (result.has_max_record_time()) {
+    pre_execution_result->mutable_max_record_time()->CopyFrom(
+        result.max_record_time());
+  }
+
   pre_execution_result->set_read_set_version(current_block_id);
 
   auto* write_set = pre_execution_result->mutable_write_set();
@@ -285,22 +291,27 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
 }
 
 bool DamlKvbCommandsHandler::CommitPreExecutionResult(
-    BlockId current_block_id, const string& entryId, string& correlation_id,
+    BlockId current_block_id, const string& entryId,
+    google::protobuf::Timestamp& record_time, string& correlation_id,
     opentracing::Span& parent_span, ConcordResponse& concord_response) {
   auto commit_pre_execution_result_span =
       opentracing::Tracer::Global()->StartSpan(
           "commit_pre_execution_result_span",
           {opentracing::ChildOf(&parent_span.context())});
-  bool commit_pre_execution_result;
+  bool commit_pre_execution_result = false;
   SetOfKeyValuePairs updates;
   auto* pre_execution_result = request_.mutable_pre_execution_result();
-  if (HasPreExecutionConflicts(request_.pre_execution_result())) {
-    // TODO in the future, we should create a block based on a
-    // write set specific for the case of conflicts
-    commit_pre_execution_result = false;
+  auto max_record_time = GetPreExecutionMaxRecordTime();
+  correlation_id = pre_execution_result->request_correlation_id();
+  if (max_record_time.has_value() && record_time > max_record_time.value()) {
+    // TODO commit a block using the timeout_writeset (future)
+    LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
+                                 << correlation_id << " due to timeout.");
+  } else if (HasPreExecutionConflicts(request_.pre_execution_result())) {
+    // TODO commit a block using the conflict_writeset (future)
+    LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
+                                 << correlation_id << " due to conflicts.");
   } else {
-    correlation_id = pre_execution_result->request_correlation_id();
-
     auto* write_set = pre_execution_result->mutable_write_set();
     auto& kv_writes = *write_set->mutable_kv_writes();
     for (auto& kv : kv_writes) {
@@ -360,6 +371,17 @@ std::optional<std::string> DamlKvbCommandsHandler::GetCorrelationId(
     return std::optional<std::string>(original_commit_req.correlation_id());
   }
   return std::nullopt;
+}
+
+std::optional<google::protobuf::Timestamp>
+DamlKvbCommandsHandler::GetPreExecutionMaxRecordTime() {
+  const auto& pre_execution_result = request_.pre_execution_result();
+  if (pre_execution_result.has_max_record_time()) {
+    return std::optional<google::protobuf::Timestamp>(
+        pre_execution_result.max_record_time());
+  } else {
+    return std::nullopt;
+  }
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
