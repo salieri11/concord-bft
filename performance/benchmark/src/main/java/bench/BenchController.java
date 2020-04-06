@@ -6,6 +6,8 @@ import ballotapp.BallotAppManager;
 import com.wavefront.sdk.common.WavefrontSender;
 import com.wavefront.sdk.proxy.WavefrontProxyClient;
 import dappbench.DAMLManager;
+import dappbench.WorkloadManager;
+import tee.TeeManager;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +29,6 @@ public class BenchController {
       advancedConfig = benchmark.getAdvancedConfig();
       workloads = simpleConfig.getWorkloads();
 
-      logger.info("workloads size: " + workloads.size());
-
       nodes = benchmark.getSimpleConfig().getNodes();
       this.wavefront = advancedConfig.getWavefront();
 
@@ -41,16 +41,20 @@ public class BenchController {
   }
 
   void startBenchMark() throws Exception {
-    if (workloads.get(0).getDapp().equals("IOU")) {
-      logger.info("Running DAML workloads");
-      Workload workload = workloads.get(0);
-      DAMLManager damlManager =
-          new DAMLManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
-      damlManager.processDAMLTransactions(simpleConfig.getNodes(), simpleConfig.getPort());
-      optionalWavefrontSender.ifPresent(this::close);
+    String workloadName = workloads.get(0).getDapp();
+    logger.info("Running {} workload", workloadName);
 
-    } else if (workloads.get(0).getDapp().equals("Ballot")) {
-      logger.info("Starting BallotApp");
+    if (workloadName.equals("IOU")) {
+      Workload workload = workloads.get(0);
+      WorkloadManager damlManager = new DAMLManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
+      damlManager.executeWorkload();
+      optionalWavefrontSender.ifPresent(this::close);
+    } else if (workloadName.equals("TEE")) {
+      Workload workload = workloads.get(0);
+      WorkloadManager teeManager = new TeeManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
+      teeManager.executeWorkload();
+      optionalWavefrontSender.ifPresent(this::close);
+    } else if (workloadName.equals("Ballot")) {
       BallotAppManager ballotAppManager = new BallotAppManager(simpleConfig, advancedConfig, nodes);
       ballotAppManager.distributeTransaction();
       ballotAppManager.processTransaction();

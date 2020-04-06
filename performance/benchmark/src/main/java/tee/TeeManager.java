@@ -1,9 +1,11 @@
-package dappbench;
+package tee;
 
 import bench.AdvancedConfig;
 import bench.SimpleConfig;
 import bench.Workload;
 import com.wavefront.sdk.common.WavefrontSender;
+import dappbench.WorkloadClient;
+import dappbench.WorkloadManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,24 +13,21 @@ import java.util.Optional;
 import static java.lang.Integer.parseInt;
 
 /**
- * Factory for DAML client
+ * Factory for TEE client
  */
-public class DAMLManager extends WorkloadManager {
+public class TeeManager extends WorkloadManager {
 
-    private final String party;
+    private final String operationName;
     private final int numOfRequests;
-    private final int noOfCommandsPerTransaction;
-    private final boolean logging;
+    private final int sizeOfRequest;
 
-    public DAMLManager(Workload workload, SimpleConfig simpleconfig, AdvancedConfig advancedConfig, Optional<WavefrontSender> optionalWavefrontSender) {
+    public TeeManager(Workload workload, SimpleConfig simpleconfig, AdvancedConfig advancedConfig, Optional<WavefrontSender> optionalWavefrontSender) {
         super(workload, simpleconfig, advancedConfig, optionalWavefrontSender);
 
         List<String> params = workload.getParams();
-        this.party = params.get(0);
+        this.operationName = params.get(0);
         this.numOfRequests = parseInt(params.get(1));
-        this.noOfCommandsPerTransaction = parseInt(params.get(2));
-
-        this.logging = workload.getLogging();
+        this.sizeOfRequest = parseInt(params.get(2));
     }
 
     @Override
@@ -38,10 +37,8 @@ public class DAMLManager extends WorkloadManager {
 
     @Override
     protected WorkloadClient createClient(String host, int port) {
-        DamlClient client = new DamlClient(host, port, party, noOfCommandsPerTransaction, logging);
+        TeeClient client = new TeeClient(host, port, operationName, sizeOfRequest);
         client.init();
         return client;
     }
-
-
 }

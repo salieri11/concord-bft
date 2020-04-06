@@ -25,7 +25,7 @@ public class BenchMaster {
       controller.startBenchMark();
 
     } catch (Exception e) {
-      logger.info(e.getMessage());
+      logger.error("Fatal error!", e);
       System.exit(-1);
     }
     logger.info("Finished benchmark!");

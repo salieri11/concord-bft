@@ -33,7 +33,7 @@ public class BallotAppManager {
     BallotDApp.PORT = simpleConfig.getPort();
     // advanced configuration
     BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
-    BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+    BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordPassword();
     BallotDApp.http = simpleConfig.isHttp();
     if (simpleConfig.getNumberThreads() != 0) {
       BallotDApp.NUMBER_THREADS = simpleConfig.getNumberThreads();

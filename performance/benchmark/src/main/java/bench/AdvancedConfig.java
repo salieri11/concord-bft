@@ -35,6 +35,7 @@ public class AdvancedConfig {
     private String proxyHost;
     private int metricsPort;
     private String source;
+    private String metricName;
 
     public boolean isEnabled() {
       return enabled;
@@ -66,6 +67,14 @@ public class AdvancedConfig {
 
     public void setSource(String source) {
       this.source = source;
+    }
+
+    public String getMetricName() {
+      return metricName;
+    }
+
+    public void setMetricName(String metricName) {
+      this.metricName = metricName;
     }
   }
 }
