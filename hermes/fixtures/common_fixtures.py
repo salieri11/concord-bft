@@ -259,7 +259,7 @@ def deploy_daml_participants(con_admin_request, blockchain_id, site_ids, credent
                 # Setting up port forwarding from 443 to 6865 results in the following exception
                 # INFO: Transport failed
                 # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
-                src_port = 80
+                src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
                 helper.add_ethrpc_port_forwarding(public_ip, username, password, src_port=src_port, dest_port=6865)
                 log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
                 daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))

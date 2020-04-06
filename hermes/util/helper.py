@@ -61,6 +61,9 @@ TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 
+# Port forwarding for testing under VMware firewall
+FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT = 80
+
 # These are command line options for --keepBlockchains.
 KEEP_BLOCKCHAINS_ALWAYS = "always"
 KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
@@ -619,7 +622,7 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                for endpoint_node in replica_ips:
                   log.info("{}...".format(endpoint_node))
                   if blockchain_location.lower() == LOCATION_SDDC:
-                     endpoint_port = '443'
+                     endpoint_port = str(FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
                      log.info("Using overridden port: {}".format(endpoint_port))
                   else:
                      endpoint_port = '6865'

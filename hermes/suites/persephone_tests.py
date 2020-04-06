@@ -715,7 +715,7 @@ class PersephoneTests(test_suite.TestSuite):
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
                   if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
-                     src_port = 80
+                     src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
                      self.add_ethrpc_port_forwarding(concord_ip, concord_username, concord_password,
                                                      src_port=src_port, dest_port=6865)
 
