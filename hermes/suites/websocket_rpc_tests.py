@@ -16,7 +16,7 @@ import os
 import traceback
 import websocket
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -43,10 +43,11 @@ class WebSocketRPCTests(test_suite.TestSuite):
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
-            result, info = testFun()
+            result, info, stackInfo = testFun()
          except Exception as e:
             result = False
             info = str(e) + "\n" + traceback.format_exc()
+            stackInfo = getStackInfo()
             log.error(
                "Exception running RPC Websocket test: '{}'".format(info))
 
@@ -58,7 +59,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                               testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       self._close
       log.info("Websocket Tests are done.")
@@ -107,16 +108,16 @@ class WebSocketRPCTests(test_suite.TestSuite):
       expectedAddrToBalance = addrToBalance + transferAmount
 
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       if not expectedAddrFromBalance == int(
             getBalance(addrFrom, currentBlockNumber), 16):
-         return (False, "sender balance does not match expected value")
+         return failed("sender balance does not match expected value")
       if not expectedAddrToBalance == int(
             getBalance(addrTo, currentBlockNumber), 16):
-         return (False, "receiver balance does not match expected value")
+         return failed("receiver balance does not match expected value")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_estimateGas(self):
@@ -127,7 +128,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
       result = _ws.recv()
       resutl_dict = json.loads(result)
       if int(resutl_dict['result'], 16) == 0:
-         return (True, None)
+         return passed()
 
    @describe()
    def _test_eth_getBlockByNumber(self):
@@ -135,17 +136,17 @@ class WebSocketRPCTests(test_suite.TestSuite):
       latestBlock = getBlockByNumber()
 
       if not int(latestBlock["number"], 16) >= int(currentBlockNumber, 16):
-         return (False, "Latest block is before current block number")
+         return failed("Latest block is before current block number")
 
       currentBlock = getBlockByNumber(currentBlockNumber)
 
       if not currentBlock["number"] == currentBlockNumber:
-         return (False, "Current block does not have current block number")
+         return failed("Current block does not have current block number")
 
       # this gasLimit value is exactly as specified by --gas_limit param
       # of concord CLI
       if not currentBlock["gasLimit"] == "0x989680":
-         return (False, "Gas limit isn't 0x989680")
+         return failed("Gas limit isn't 0x989680")
 
       # Reminder that if time service is running, new blocks might be
       # added at any time, so predict something semi-far future to
@@ -153,7 +154,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
       futureBlockNumber = 1000 + int(currentBlockNumber, 16)
       try:
          futureBlock = getBlockByNumber(futureBlockNumber)
-         return (False,
+         return failed(
                "Expected an error for future block {}, "
                "but received block {}".format(futureBlockNumber,
                                        futureBlock["number"]))
@@ -161,7 +162,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
          # requesting an uncommitted block should return an error
          pass
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getCode(self):
@@ -174,18 +175,18 @@ class WebSocketRPCTests(test_suite.TestSuite):
       try:
          txResult = getCode(address, startBlockNumber)
          if txResult:
-            return (False, "getCode at the block before the contract deployed "
+            return failed("getCode at the block before the contract deployed "
                            "should fail")
       except:
          pass
       txResult = getCode(address, endingBlockNumber)
       txResultLatest = getCode(address, "latest")
       if not txResult == expectedCode:
-         return (False, "code does not match expected")
+         return failed("code does not match expected")
       if not txResultLatest == expectedCode:
-         return (False, "code does not match expected")
+         return failed("code does not match expected")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_gasPrice(self):
@@ -195,9 +196,9 @@ class WebSocketRPCTests(test_suite.TestSuite):
       result = gasPrice()
       if not result == "0x0":
          # "0x0" is the default GasPrice in Helen's application.properties
-         return (False, "Expected product to have zero gas price, "
+         return failed("Expected product to have zero gas price, "
                         "but found '{}'".format(result))
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getTransactionByHash(self):
@@ -209,15 +210,15 @@ class WebSocketRPCTests(test_suite.TestSuite):
       tx = getTransactionByHash(txHash)
 
       if tx is None:
-         return (False, "Failed to get transaction {}".format(txHash))
+         return failed("Failed to get transaction {}".format(txHash))
       if block["hash"] != tx["blockHash"]:
-         return (False, "Block hash is wrong in getTransactionByHash: {}:{}"
+         return failed("Block hash is wrong in getTransactionByHash: {}:{}"
                         .format(block["hash"], tx["blockHash"]))
       if txHash != tx["hash"]:
-         return (False, "Transaction hash is wrong in getTransactionByHash: {}:{}"
+         return failed("Transaction hash is wrong in getTransactionByHash: {}:{}"
                         .format(txHash, tx["hash"]))
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -232,21 +233,21 @@ class WebSocketRPCTests(test_suite.TestSuite):
       startNonce = getTransactionCount(caller, previousBlockNumber)
 
       if not startNonce:
-         return (False, "Unable to get starting nonce")
+         return failed("Unable to get starting nonce")
 
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       endNonce = getTransactionCount(caller)
 
       if not endNonce:
-         return (False, "Unable to get ending nonce")
+         return failed("Unable to get ending nonce")
 
       if not int(endNonce, 16) - int(startNonce, 16) == 1:
-         return (False, "End nonce '{}' should be exactly one greater than start "
+         return failed("End nonce '{}' should be exactly one greater than start "
                         "nonce {})".format(endNonce, startNonce))
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -263,12 +264,12 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       tx = getTransactionReceipt(txHash)
       if tx is None:
-         return (False, "Failed to get transaction {}".format(txHash))
+         return failed("Failed to get transaction {}".format(txHash))
 
       if not isinstance(tx["logs"], list):
-         return (False, 'Array expected for field "logs"')
+         return failed('Array expected for field "logs"')
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -278,9 +279,9 @@ class WebSocketRPCTests(test_suite.TestSuite):
       '''
       result = mining()
       if result == True:
-         return (False, "code does not match expected")
+         return failed("code does not match expected")
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -296,20 +297,20 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       txResult = sendRawTransaction(rawTransaction)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       if not txResult == expectedHash:
-         return (False, "Receipt hash != expected hash.")
+         return failed("Receipt hash != expected hash.")
 
       tx = _getTransactionReceipt(txResult)
 
       if not tx["from"] == expectedFrom:
-         return (False, "Found from does not match expected from")
+         return failed("Found from does not match expected from")
 
       if not tx["to"] == expectedTo:
-         return (False, "Found to does not match expectd to")
+         return failed("Found to does not match expectd to")
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -319,10 +320,10 @@ class WebSocketRPCTests(test_suite.TestSuite):
       '''
       result = syncing()
       if result:
-         return (False, "Expected node to not be syncing, "
+         return failed("Expected node to not be syncing, "
                         "but found '{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_rpc_modules(self):
@@ -332,7 +333,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
       result = modules()
 
       if not isinstance(result, dict):
-         return (False, "Reply should have been a dict.")
+         return failed("Reply should have been a dict.")
 
       if len(result) == 0:
          log.warn("No RPC modules returned from rpc request.")
@@ -341,14 +342,14 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       for k, v in result.items():
          if not k in ["admin", "eth", "miner", "net", "personal", "rpc", "web3"]:
-            return (False,
+            return failed(
                   "Response included unknown RPC module '{}'".format(k))
          if not version_re.match(v):
-            return (False,
+            return failed(
                   "Module version should be version like, "
                   "but was '{}'".format(v))
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -363,11 +364,11 @@ class WebSocketRPCTests(test_suite.TestSuite):
       for (d, h) in datahashes:
          result = sha3(d)
          if not result == h:
-            return (False,
+            return failed(
                   "Hash of '{}' did not match"
                   "expected '{}': actual: '{}'".format(d, h, result))
 
-      return (True, None)
+      return passed()
 
 
    @describe()
@@ -377,7 +378,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
       '''
       result = clientVersion()
       if not type(result) is str:
-         return (False, "Client version should have been a string, "
+         return failed("Client version should have been a string, "
                         "but was '{}'".format(result))
 
       # Insisting version is
@@ -386,10 +387,10 @@ class WebSocketRPCTests(test_suite.TestSuite):
       version_re = re.compile("\\w+/v\\d+\\.\\d+\\.\\d+[^/]*/"
                               "[-a-zA-Z0-9]+/\\w+\\d\\.\\d\\.\\d")
       if not version_re.match(result):
-         return (False, "Client version doesn't match expected format: "
+         return failed("Client version doesn't match expected format: "
                         "'{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    def sendTransaction(caller, data, gas=None, to=None, value=None):
       method = "eth_sendTransaction"

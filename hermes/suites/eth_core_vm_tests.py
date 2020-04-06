@@ -17,12 +17,13 @@ from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSett
 # source code file.
 from fixtures.common_fixtures import fxProduct
 
+from util import helper
 from rpc.rpc_call import RPC
 from util.numbers_strings import trimHexIndicator, stringOnlyContains
 import util
 import util.blockchain.eth
 import util.json_helper
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -46,10 +47,13 @@ def dynamicReportOverride_for_test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesR
     caseFullName = testFileName[2:] + "_" + testName
     # [camelCase => spaced] description based on testName
     description = re.sub(r'((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))', r' \1', testName)
-    return {
+    suiteName = helper.CURRENT_SUITE_NAME
+    if helper.CURRENT_SUITE_NAME == "EthCoreVmTests":
       # EthCoreVMTests have over 500+ cases; hard to scroll down.
       # prepend 'Z_' for Racetrack to show this suite last on the table
-      "suiteName": "Z_EthCoreVmTests",
+      suiteName = "Z_EthCoreVmTests"
+    return {
+      "suiteName": suiteName,
       "caseName": caseFullName,
       "description": description
     }
@@ -88,7 +92,7 @@ def test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesRunSettings, fxConnection, 
       testName = os.path.basename(os.path.dirname(fxEthCoreVmTests)) + "_" + \
                  os.path.splitext(os.path.basename(fxEthCoreVmTests))[0]
       testLogDir = os.path.join(fxHermesRunSettings["hermesCmdlineArgs"].resultsDir, "test_logs", testName)
-      result, info = runRpcTest(fxEthCoreVmTests,
+      result, info, stackInfo = runRpcTest(fxEthCoreVmTests,
                                 testSource,
                                 testCompiled,
                                 testLogDir,
@@ -148,6 +152,7 @@ def runRpcTest(testPath, testSource, testCompiled, testLogDir,
    ''' Runs one test. '''
    success = None
    info = None
+   stackInfo = getStackInfo()
    testName = list(testSource.keys())[0]
    testExecutionCode = testCompiled[testName]["exec"]["code"]
    expectTxSuccess = getExpectTxSuccess(testCompiled)
@@ -176,7 +181,7 @@ def runRpcTest(testPath, testSource, testCompiled, testLogDir,
 
       if txReceipt:
          contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
-         success, info = checkResult(user,
+         success, info, stackInfo = checkResult(user,
                                      rpc,
                                      contractAddress,
                                      testData,
@@ -194,9 +199,9 @@ def runRpcTest(testPath, testSource, testCompiled, testLogDir,
       # contract, and in that situation we can't get the status of the thing
       # that got called; we just get the status of the ability to make a call.
       txReceipt = util.blockchain.eth.createContract(user, rpc, testExecutionCode, gas)
-      success, info = checkTxStatus(rpc, txReceipt, expectTxSuccess)
+      success, info, stackInfo = checkTxStatus(rpc, txReceipt, expectTxSuccess)
 
-   return (success, info)
+   return (success, info, stackInfo)
 
 def getExpectedOutResults(testCompiled):
    '''
@@ -357,6 +362,7 @@ def checkResult(user,
    '''
    success = None
    info = None
+   stackInfo = getStackInfo()
    callerReceipt = callContractFromContract(user,
                                              rpc,
                                              contractAddress,
@@ -365,13 +371,13 @@ def checkResult(user,
 
    # This Tx status indicates whether we could make the contract-to-contract
    # call.  It does not indicate whether the callee experienced an error.
-   success, info = checkTxStatus(rpc, callerReceipt, True)
+   success, info, stackInfo = checkTxStatus(rpc, callerReceipt, True)
    testVerified = False
 
    if success and expectedOut:
       callerAddress = RPC.searchResponse(callerReceipt,
                                          ["contractAddress"])
-      success, info = checkExpectedOut(rpc,
+      success, info, stackInfo = checkExpectedOut(rpc,
                                         callerAddress,
                                         expectedOut)
       testVerified = True
@@ -381,7 +387,7 @@ def checkResult(user,
       # storage used is the caller contract, not the callee
       # contract, so callerAddress is passed instead of
       # contractAddress here.
-      success, info = checkExpectedStorage(rpc,
+      success, info, stackInfo = checkExpectedStorage(rpc,
                                             callerAddress,
                                             expectedStorage)
       testVerified = True
@@ -389,7 +395,7 @@ def checkResult(user,
    if success and expectedLogs:
       logs = RPC.searchResponse(callerReceipt,
                                 ["logs"])
-      success, info = checkExpectedLogs(rpc,
+      success, info, stackInfo = checkExpectedLogs(rpc,
                                          logs,
                                          expectedLogs,
                                          expectedAddress,
@@ -404,8 +410,9 @@ def checkResult(user,
       info = "No expected storage or logs found, and the test was " \
              "expected to be successful. Test needs verification by some " \
              "other method. Test will be marked skipped."
+      stackInfo = getStackInfo()
 
-   return success, info
+   return success, info, stackInfo
 
 def callContractFromContract(user, rpc, contractAddress, testData,
                               fullExpectedOut):
@@ -436,7 +443,7 @@ def callContractFromContract(user, rpc, contractAddress, testData,
       txReceipt = rpc.getTransactionReceipt(txHash)
       return txReceipt
    else:
-      Log.error("No transaction hash returned when creating the contract " \
+      log.error("No transaction hash returned when creating the contract " \
                 "to call another contract.")
 
 def checkExpectedOut(rpc, callerAddress, fullExpectedOut):
@@ -450,6 +457,7 @@ def checkExpectedOut(rpc, callerAddress, fullExpectedOut):
    lengthRetBytes = max(1, int(len(trimHexIndicator(fullExpectedOut))/2))
    success = False
    info = None
+   stackInfo = getStackInfo()
    storageSlots = util.blockchain.eth.countStorageSlotsForBytes(lengthRetBytes)
    expectedOutRemaining = fullExpectedOut
 
@@ -468,15 +476,15 @@ def checkExpectedOut(rpc, callerAddress, fullExpectedOut):
          expected = expectedOutRemaining
 
       if not len(actual) == len(expected):
-         actual, info = trimActualForExpected(actual, expected)
+         actual, info, stackInfo = trimActualForExpected(actual, expected)
 
       if actual:
-         success, info = compareActAndExpValues(actual, expected)
+         success, info, stackInfo = compareActAndExpValues(actual, expected)
 
       if not success:
          break
 
-   return success, info
+   return success, info, stackInfo
 
 def trimActualForExpected(actual, expected):
    '''
@@ -493,14 +501,15 @@ def trimActualForExpected(actual, expected):
              format(actual, newActual, expected))
 
    if stringOnlyContains(removed, "0"):
-      return newActual, ""
+      return newActual, "", getStackInfo()
    else:
       info = "The actual output, '{}', could not safely " \
              "be truncated to compare to the expected output, " \
              "'{}'. This is considered a mismatch and " \
              "test failure.".format(actual, expected)
+      stackInfo = getStackInfo()
       log.info(info)
-      return False, info
+      return False, info, stackInfo
 
 def checkExpectedStorage(rpc, contractAddress, expectedStorage):
    '''
@@ -510,12 +519,13 @@ def checkExpectedStorage(rpc, contractAddress, expectedStorage):
    log.debug("Checking expected storage.")
    success = False
    info = None
+   stackInfo = getStackInfo()
    keys = sorted(expectedStorage)
 
    for storageLoc in keys:
       rawVal = rpc.getStorageAt(contractAddress, storageLoc)
       expectedVal = expectedStorage[storageLoc]
-      success, info = compareActAndExpValues(rawVal, expectedVal)
+      success, info, stackInfo = compareActAndExpValues(rawVal, expectedVal)
 
       if not success:
          log.debug("Expected storage:")
@@ -524,7 +534,7 @@ def checkExpectedStorage(rpc, contractAddress, expectedStorage):
                                          expectedStorage[storageLoc]))
          break
 
-   return success, info
+   return success, info, stackInfo
 
 def compareActAndExpValues(actualRawValue, expectedRawValue):
    '''
@@ -535,6 +545,7 @@ def compareActAndExpValues(actualRawValue, expectedRawValue):
    '''
    success = False
    info = None
+   stackInfo = getStackInfo()
 
    log.debug("actualRawValue: '{}'".format(actualRawValue))
    log.debug("expectedRawValue: '{}'".format(expectedRawValue))
@@ -552,12 +563,14 @@ def compareActAndExpValues(actualRawValue, expectedRawValue):
    if expectedValue == actualValue:
       log.debug("Match")
       success = True
+      stackInfo = getStackInfo()
    else:
       success = False
       info = "Expected value does not match actual value."
+      stackInfo = getStackInfo()
       log.info(info)
 
-   return success, info
+   return success, info, stackInfo
 
 def checkExpectedLogs(rpc, logs, expectedLogs, expectedAddress, actualAddress):
    '''
@@ -671,11 +684,13 @@ def checkTxStatus(rpc, txReceipt, expectTxSuccess):
    txStatus = rpc.getTransactionReceiptStatus(txReceipt)
    success = None
    info = None
+   stackInfo = getStackInfo()
 
    if not txStatus in ["0x0", "0x1"]:
       # Unexpected. We cannot evaluate this test's results.
       success = None
       info = "Unrecognized transaction status: '{}'".format(txStatus)
+      stackInfo = getStackInfo()
    else:
       if (expectTxSuccess and txStatus == "0x1") or \
          (not expectTxSuccess and txStatus == "0x0"):
@@ -684,5 +699,6 @@ def checkTxStatus(rpc, txReceipt, expectTxSuccess):
          success = False
          info = "Expected Tx success: '{}', but transaction status was: " \
                 "'{}'".format(expectTxSuccess, txStatus)
+         stackInfo = getStackInfo()
 
-   return success, info
+   return success, info, stackInfo

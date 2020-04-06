@@ -12,7 +12,7 @@ import traceback
 import util.json_helper
 import util.helper
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, getStackInfo
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -90,25 +90,28 @@ class PytestSuite(test_suite.TestSuite):
       to parse later.
       '''
       results = util.json_helper.readJsonFile(self._reportFile)
+      stackInfo = getStackInfo()
       for testResult in results["report"]["tests"]:
-         passed = None
+         testPassed = None
 
          if testResult["outcome"] == "passed" or testResult["outcome"] == "xfailed":
-            passed = True
+            testPassed = True
          elif testResult["outcome"] == "skipped":
-            passed = "skipped"
+            testPassed = "skipped"
          else:
-            passed = False
+            testPassed = False
 
-         info = "" if passed else json.dumps(testResult, indent=2)
+         info = "" if testPassed else json.dumps(testResult, indent=2, default=str)
+         stackInfo = getStackInfo()
          testName = self.parsePytestTestName(testResult["name"])
          testLogDir = os.path.join(self._testLogDir, testName)
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "\nLog: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
          self.writeResult(testResult["name"],
-                          passed,
-                          info)
+                          testPassed,
+                          info,
+                          stackInfo)
 
 
    def parsePytestTestName(self, parseMe):

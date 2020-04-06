@@ -35,13 +35,8 @@ def racetrackSetBegin(args, secret):
     f.write(json.dumps({"setId": setId}, indent = 4))
 
 def racetrackSetEnd(args, secret):
-  idFilePath = racetrack.getIdFilePath()
-  if not os.path.exists(idFilePath): 
-    print("Racetrack set cannot finalize; the set did not start and save the setId to file.")
-    return
-  with open(idFilePath, "r") as f:
-    setId = json.loads(f.read())["setId"]
-    racetrack.setEnd(setId)
+  a = prepareArgs(args)
+  racetrack.finalize(a[0]) # a[0] = SUCCESS | FAILURE | ABORTED
 
 def publishRuns(args, secret):
   a = prepareArgs(args)

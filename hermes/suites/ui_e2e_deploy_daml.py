@@ -8,7 +8,7 @@ import os
 import pathlib
 import traceback
 import subprocess
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 
 from xvfbwrapper import Xvfb
 
@@ -45,13 +45,14 @@ class DeployDamlTests(test_suite.TestSuite):
             pathlib.Path(self._testCaseDir).mkdir(parents=True, exist_ok=True)
 
             try:
-                result, info = getattr(self, "_test_{}".format(testName))()
+                result, info, stackInfo = getattr(self, "_test_{}".format(testName))()
             except Exception as e:
                 result = False
                 info = str(e) + "\n" + traceback.format_exc()
+                stackInfo = getStackInfo()
                 log.error("Exception running UI test: '{}'".format(info))
 
-            self.writeResult(testName, result, info)
+            self.writeResult(testName, result, info, stackInfo)
 
         log.info("UI tests are done.")
 
@@ -98,7 +99,7 @@ class DeployDamlTests(test_suite.TestSuite):
                                          cwd=self.ui_path, )
 
         if proc_output.returncode != 0:
-            return False, "UI Integration E2E tests failed, please see {}".format(
-                logFilePath)
+            return failed("UI Integration E2E tests failed, please see {}".format(
+                logFilePath))
 
-        return True, "UI Integration E2E passed"
+        return passed("UI Integration E2E passed")

@@ -25,7 +25,7 @@ import requests
 
 from . import test_suite
 from util.auth import tokens
-from suites.cases import describe
+from suites.case import describe, passed, failed
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -87,12 +87,13 @@ class SampleDAppTests(test_suite.TestSuite):
       for (testName, testFun) in tests:
          testLogDir = os.path.join(self._testLogDir, testName)
          try:
-            result, info = self._runTest(testName,
+            result, info, stackInfo = self._runTest(testName,
                                          testFun,
                                          testLogDir)
          except Exception as e:
             result = False
             info = str(e)
+            stackInfo = getStackInfo()
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 
@@ -104,7 +105,7 @@ class SampleDAppTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       log.info("Tests are done.")
       self._cleanUp()
@@ -159,7 +160,7 @@ class SampleDAppTests(test_suite.TestSuite):
       cmd = "docker run --rm --name asset_transfer-test --network docker_default -td {0}:{1}".format(asset_transfer_repo, asset_transfer_tag)
       out, err = self._executeInContainer(cmd)
       if err != None:
-         return (False, err)
+         return failed(err)
 
       if self._apiServerUrl != '':
          pass_endpoint = self._apiServerUrl.replace('/','\/');
@@ -169,34 +170,34 @@ class SampleDAppTests(test_suite.TestSuite):
          comm = 'docker exec asset_transfer-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_AssetTransfer.js'
          out1, err1 = self._executeInContainer(comm)
          if err1 != None:
-            return (False, err1)
+            return failed(err1)
 
          log.debug("Replacing USER_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(self._user))
          out2, err2 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/USER_PLACEHOLDER/" + self._user + "/g' test/test_AssetTransfer.js")
          if err2 != None:
-            return (False, err2)
+            return failed(err2)
 
          log.debug("Replacing PASSWORD_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(self._password))
          out3, err3 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + self._password + "/g' test/test_AssetTransfer.js")
          if err3 != None:
-            return (False, err3)
+            return failed(err3)
 
       # Run the test script(s)
       log.debug("Running 'docker exec asset_transfer-test mocha'")
       out, err = self._executeInContainer("docker exec asset_transfer-test mocha")
       log.debug("Done running 'docker exec asset_transfer-test mocha'.  err: '{}', out: '{}'".format(err, out))
       if err != None or out == "":
-         return (False, err)
+         return failed(err)
 
       contracts_after = requests.get(url = "http://" + self._user + ":" + self._password + "@localhost/api/concord/contracts").content
 
       if contracts_after == contracts_before:
-         return (False, "Contracts have not changed after asset transfer deployment.")
+         return failed("Contracts have not changed after asset transfer deployment.")
 
       log.debug("Contracts changed after asset transfer deployment, as expected.")
       log.info(out)
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_supply_chain_and_verify_contracts(self, fileRoot):
@@ -246,11 +247,11 @@ class SampleDAppTests(test_suite.TestSuite):
       contracts_after = requests.get(url = "http://" + self._user + ":" + self._password + "@localhost/api/concord/contracts").content
 
       if output.split("\n")[-4:-1] != ["statusCode: 200"] * 3:
-         return (False, "Failure in npm run deploy_and_verify:vmware")
+         return failed("Failure in npm run deploy_and_verify:vmware")
 
       if contracts_before == contracts_after:
-         return (False, "Contracts haven't changed after supply chain deployment.")
+         return failed("Contracts haven't changed after supply chain deployment.")
 
       log.info(output)
 
-      return (True, None)
+      return passed()

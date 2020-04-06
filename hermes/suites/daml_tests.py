@@ -19,7 +19,7 @@ import util.helper as helper
 import util.daml.daml_helper as daml_helper
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 
 import util.hermes_logging

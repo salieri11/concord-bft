@@ -15,7 +15,7 @@ import subprocess
 import time
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 from util.product import Product
 from random import randrange
 
@@ -72,7 +72,7 @@ class HlfTests(test_suite.TestSuite):
             self.product.launchProduct()
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.")
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
             raise
 
    def run(self):
@@ -93,10 +93,11 @@ class HlfTests(test_suite.TestSuite):
          testLogDir = os.path.join(self._testLogDir, testName)
          log.info("Starting test '{}'".format(testName))
          try:
-            result, info = testFun()
+            result, info, stackInfo = testFun()
          except Exception as e:
             result = False
             info = str(e)
+            stackInfo = getStackInfo()
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 
@@ -108,7 +109,7 @@ class HlfTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
          if result == False: 
             break 
 
@@ -179,17 +180,17 @@ class HlfTests(test_suite.TestSuite):
              c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
           except subprocess.TimeoutExpired as e:
              log.error("Chaincode install timeout: %s", str(e))
-             return (False, str(e))
+             return failed(str(e))
           except subprocess.CalledProcessError as e:
              log.error("Chaincode install returned error code: %s", str(e))
-             return (False, str(e))
+             return failed(str(e))
 
           result = str(c.stdout)
           log.debug(result)
           if StatusOk not in result:
-             return (False, "Concord returned Non-zero status.")
+             return failed("Concord returned Non-zero status.")
 
-       return (True, None)
+       return passed()
 
    @describe()
    def _test_consensus_ping_pong(self):
@@ -210,20 +211,20 @@ class HlfTests(test_suite.TestSuite):
              c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
           except subprocess.TimeoutExpired as e:
              log.error("HLF Ping timeout: %s", str(e))
-             return (False, str(e))
+             return failed(str(e))
           except subprocess.CalledProcessError as e:
              log.error("HLF Ping returned error code: %s", str(e))
-             return (False, str(e))
+             return failed(str(e))
 
           result = str(c.stdout)
           log.debug(result)
           if StatusOk not in result:
-             return (False, "HLF Ping Concord returned Non-zero status.")
+             return failed("HLF Ping Concord returned Non-zero status.")
             
           if "data: \"Pong\"" not in result: 
-            return (False, "HLF Ping Sent - Expected Pong.")
+            return failed("HLF Ping Sent - Expected Pong.")
 
-       return (True, None)
+       return passed()
 
    @describe()
    def _test_chaincode_fabcar_upgrade(self):
@@ -246,17 +247,17 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=10000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode upgrade timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode upgrade returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
 
        result = str(c.stdout)
        log.debug(result)
        if StatusOk in result:
-          return (True, None)
+          return passed()
        else:
-          return (False, "Concord upgrade returned Non-zero status.")
+          return failed("Concord upgrade returned Non-zero status.")
 
    @describe()
    def _test_chaincode_fabcar_invoke_init_ledger(self):
@@ -286,10 +287,10 @@ class HlfTests(test_suite.TestSuite):
             c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
          except subprocess.TimeoutExpired as e:
             log.error("Chaincode invoke timeout: %s", str(e))
-            return (False, str(e))
+            return failed(str(e))
          except subprocess.CalledProcessError as e:
             log.error("Chaincode invoke returned error code: %s", str(e))
-            return (False, str(e))
+            return failed(str(e))
 
          result = str(c.stdout)
          log.debug(result)
@@ -300,7 +301,7 @@ class HlfTests(test_suite.TestSuite):
          elif i < loop-1:
             log.warning("Concord invoke returned Non-zero status. try again " + str(i) )
          else:
-            return (False, "Concord invoke returned Non-zero status.")
+            return failed("Concord invoke returned Non-zero status.")
 
    @describe()
    def _test_chaincode_fabcar_invoke_change_car_owner(self):
@@ -321,10 +322,10 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode invoke timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode invoke returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
 
        result = str(c.stdout)
        log.debug(result)
@@ -333,8 +334,8 @@ class HlfTests(test_suite.TestSuite):
                   "{\"function\":\"queryCar\",\"Args\":[\"CAR0\"]}",
                   "\"owner\":\"Luke\"")
        else:
-          return (False, "Concord invoke returned Non-zero status.")
-       return (True, None)
+          return failed("Concord invoke returned Non-zero status.")
+       return passed()
 
    @describe()
    def _test_chaincode_fabcar_invoke_create_car(self):
@@ -357,10 +358,10 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode invoke timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode invoke returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
 
        result = str(c.stdout)
        log.debug(result)
@@ -369,8 +370,8 @@ class HlfTests(test_suite.TestSuite):
                   "{\"function\":\"queryCar\",\"Args\":[\"CAR99\"]}",
                   "\"owner\":\"Owner99\"")
        else:
-          return (False, "Concord invoke returned Non-zero status.")
-       return (True, None)
+          return failed("Concord invoke returned Non-zero status.")
+       return passed()
 
    @describe()
    def _test_chaincode_query(self, query_input, expected_result=StatusOk):
@@ -387,17 +388,17 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode query timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode query returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
 
        result = str(c.stdout)
        log.debug(result)
        if expected_result in result:
-          return (True, None)
+          return passed()
        else:
-          return (False, "Concord query returned Non-zero status.")
+          return failed("Concord query returned Non-zero status.")
 
    @describe()
    def _test_chaincode_fabcar_query_history(self):
@@ -413,17 +414,17 @@ class HlfTests(test_suite.TestSuite):
        c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
     except subprocess.TimeoutExpired as e:
        log.error("Chaincode query timeout: %s", str(e))
-       return (False, str(e))
+       return failed(str(e))
     except subprocess.CalledProcessError as e:
        log.error("Chaincode query returned error code: %s", str(e))
-       return (False, str(e))
+       return failed(str(e))
 
     result = str(c.stdout)
     log.debug(result)
     if "Tomoko" in result and "Luke" in result:
-       return (True, None)
+       return passed()
     else:
-       return (False, "Concord query history returned Non-zero status.")
+       return failed("Concord query history returned Non-zero status.")
 
    @describe()
    def _test_chaincode_fabcar_initial(self):
@@ -439,17 +440,17 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode initial timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode initial returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
 
        result = str(c.stdout)
        log.debug(result)
        if StatusFailed not in result:
-          return (True, None)
+          return passed()
        else:
-          return (False, "Concord returned Non-zero status.")
+          return failed("Concord returned Non-zero status.")
 
    @describe()
    def _test_chaincode_fabcar_query_range_state(self):
@@ -465,10 +466,10 @@ class HlfTests(test_suite.TestSuite):
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
           log.error("Chaincode query timeout: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
        except subprocess.CalledProcessError as e:
           log.error("Chaincode query returned error code: %s", str(e))
-          return (False, str(e))
+          return failed(str(e))
     
        result = str(c.stdout)
        log.debug(result)
@@ -477,6 +478,6 @@ class HlfTests(test_suite.TestSuite):
            if "CAR" + str(i) in result:
                continue
            else:
-               return (False, "Unable to Pass the GetStateByRange test")
+               return failed("Unable to Pass the GetStateByRange test")
 
-       return (True, None)
+       return passed()

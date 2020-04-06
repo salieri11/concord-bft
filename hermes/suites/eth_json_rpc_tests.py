@@ -18,7 +18,7 @@ import time
 import traceback
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 from rpc.rpc_call import RPC
 from rest.request import Request
 from util.debug import pp as pp
@@ -82,12 +82,13 @@ class EthJsonRpcTests(test_suite.TestSuite):
          self.setEthrpcNode(request, blockchainId)
 
          try:
-            result, info = self._runRpcTest(testName,
+            result, info, stackInfo = self._runRpcTest(testName,
                                             testFun,
                                             testLogDir)
          except Exception as e:
             result = False
             info = str(e) + "\n" + traceback.format_exc()
+            stackInfo = getStackInfo()
             log.error("Exception running RPC test: '{}'".format(info))
 
          if info:
@@ -98,7 +99,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       log.info("Tests are done.")
       return super().run()
@@ -162,11 +163,11 @@ class EthJsonRpcTests(test_suite.TestSuite):
       for (d, h) in datahashes:
          result = rpc.sha3(d)
          if not result == h:
-            return (False,
+            return failed(
                     "Hash of '{}' did not match" \
                     "expected '{}': actual: '{}'".format(d, h, result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_web3_clientVersion(self, rpc, request):
@@ -175,7 +176,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       '''
       result = rpc.clientVersion()
       if not type(result) is str:
-         return (False, "Client version should have been a string, " \
+         return failed("Client version should have been a string, " \
                  "but was '{}'".format(result))
 
       # Insisting version is
@@ -184,10 +185,10 @@ class EthJsonRpcTests(test_suite.TestSuite):
       version_re = re.compile("\\w+/v\\d+\\.\\d+\\.\\d+[^/]*/"\
                               "[-a-zA-Z0-9]+/\\w+\\d\\.\\d\\.\\d")
       if not version_re.match(result):
-         return (False, "Client version doesn't match expected format: " \
+         return failed("Client version doesn't match expected format: " \
                  "'{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_mining(self, rpc, request):
@@ -196,13 +197,13 @@ class EthJsonRpcTests(test_suite.TestSuite):
       '''
       result = rpc.mining()
       if self._ethereumMode and (not result == True):
-         return (False, "Expected ethereumMode to be mining, " \
+         return failed("Expected ethereumMode to be mining, " \
                  "but found '{}'".format(result))
       elif self._productMode and (not result == False):
-         return (False, "Expected product to not be mining, " \
+         return failed("Expected product to not be mining, " \
                  "buf found '{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_rpc_modules(self, rpc, request):
@@ -212,7 +213,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       result = rpc.modules()
 
       if not type(result) is collections.OrderedDict:
-         return (False, "Reply should have been a dict.")
+         return failed("Reply should have been a dict.")
 
       # This means the test is invalid, but let's not blow up because of it
       if len(result) == 0:
@@ -223,14 +224,14 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       for k, v in result.items():
          if not k in ["admin", "eth", "miner", "net", "personal", "rpc", "web3"]:
-            return (False,
+            return failed(
                     "Response included unknown RPC module '{}'".format(k))
          if not version_re.match(v):
-            return (False,
+            return failed(
                     "Module version should be version like, " \
                     "but was '{}'".format(v))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_gasPrice(self, rpc, request):
@@ -239,14 +240,14 @@ class EthJsonRpcTests(test_suite.TestSuite):
       '''
       result = rpc.gasPrice()
       if self._ethereumMode and (not len(result) > 2):
-         return (False, "Expected ethereumMode to have 0x... gas price, " \
+         return failed("Expected ethereumMode to have 0x... gas price, " \
                  "but found '{}'".format(result))
       elif self._productMode and (not result == "0x0"):
          # "0x0" is the default GasPrice in Helen's application.properties
-         return (False, "Expected product to have zero gas price, " \
+         return failed("Expected product to have zero gas price, " \
                  "but found '{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_estimateGas(self, rpc, request):
@@ -255,14 +256,14 @@ class EthJsonRpcTests(test_suite.TestSuite):
       '''
       result = rpc.estimateGas()
       if self._ethereumMode and (not len(result) > 2):
-         return (False, "Expected ethereumMode to have 0x... gas price, " \
+         return failed("Expected ethereumMode to have 0x... gas price, " \
                  "but found '{}'".format(result))
       elif self._productMode and (not result == "0x0"):
          # "0x0" is the default GasPrice in Helen's application.properties
-         return (False, "Expected product to have zero gas price, " \
+         return failed("Expected product to have zero gas price, " \
                  "but found '{}'".format(result))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_syncing(self, rpc, request):
@@ -271,14 +272,14 @@ class EthJsonRpcTests(test_suite.TestSuite):
       '''
       result = rpc.syncing()
       if result:
-         return (False, "Expected node to not be syncing, " \
+         return failed("Expected node to not be syncing, " \
                  "but found '{}'".format(result))
 
       # TODO: non-false result is also allowed, and indicates that the
       # node knows that it is behind. We don't expect nodes to be
       # running behind in this test right now.
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getTransactionByHash(self, rpc, request):
@@ -295,7 +296,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       tx = rpc.getTransactionByHash(txHash)
       if tx is None:
-         return (False, "Failed to get transaction {}".format(txHash))
+         return failed("Failed to get transaction {}".format(txHash))
 
       dataFields = ["blockHash", "from", "hash", "input", "to", "r", "s"]
       quantityFields = ["blockNumber", "gas", "gasPrice", "nonce",
@@ -304,27 +305,27 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       (success, field) = util.helper.requireFields(tx, expectedFields)
       if not success:
-         return (False, 'Field "{}" not found in getTransactionByHash'
+         return failed('Field "{}" not found in getTransactionByHash'
                         .format(field))
 
       (success, field) = self.requireDATAFields(tx, dataFields)
       if not success:
-         return (False, 'DATA expected for field "{}"'.format(field))
+         return failed('DATA expected for field "{}"'.format(field))
 
       (success, field) = self.requireQUANTITYFields(tx, quantityFields)
       if not success:
-         return (False, 'QUANTITY expected for field "{}"'.format(field))
+         return failed('QUANTITY expected for field "{}"'.format(field))
 
       # TODO: Better end-to-end test for semantic evaluation of transactions
       if block["hash"] != tx["blockHash"]:
-         return (False, "Block hash is wrong in getTransactionByHash: {}:{}"
+         return failed("Block hash is wrong in getTransactionByHash: {}:{}"
                         .format(block["hash"], tx["blockHash"]))
 
       if txHash != tx["hash"]:
-         return (False, "Transaction hash is wrong in getTransactionByHash: {}:{}"
+         return failed("Transaction hash is wrong in getTransactionByHash: {}:{}"
                         .format(txHash, tx["hash"]))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getTransactionCount(self, rpc, request):
@@ -341,21 +342,21 @@ class EthJsonRpcTests(test_suite.TestSuite):
       startNonce = rpc.getTransactionCount(caller, previousBlockNumber)
 
       if not startNonce:
-         return (False, "Unable to get starting nonce")
+         return failed("Unable to get starting nonce")
 
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       endNonce = rpc.getTransactionCount(caller)
 
       if not endNonce:
-         return (False, "Unable to get ending nonce")
+         return failed("Unable to get ending nonce")
 
       if not int(endNonce, 16) - int(startNonce, 16) == 1:
-         return (False, "End nonce '{}' should be exactly one greater than start "
+         return failed("End nonce '{}' should be exactly one greater than start "
                  "nonce {})".format(endNonce, startNonce))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getTransactionReceipt(self, rpc, request):
@@ -371,7 +372,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       tx = rpc.getTransactionReceipt(txHash)
       if tx is None:
-         return (False, "Failed to get transaction {}".format(txHash))
+         return failed("Failed to get transaction {}".format(txHash))
 
       dataFields = ["transactionHash", "blockHash", "from", "to",
                     "contractAddress", "logsBloom"]
@@ -381,23 +382,23 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       (success, field) = util.helper.requireFields(tx, expectedFields)
       if not success:
-         return (False, 'Field "{}" not found in getTransactionByHash'
+         return failed('Field "{}" not found in getTransactionByHash'
                         .format(field))
 
       (success, field) = self.requireDATAFields(tx, dataFields)
       if not success:
          # 'null' is allowed if the tx didn't create a contract
          if field != "contractAddress" or tx["contractAddress"] is not None:
-            return (False, 'DATA expected for field "{}"'.format(field))
+            return failed('DATA expected for field "{}"'.format(field))
 
       (success, field) = self.requireQUANTITYFields(tx, quantityFields)
       if not success:
-         return (False, 'QUANTITY expected for field "{}"'.format(field))
+         return failed('QUANTITY expected for field "{}"'.format(field))
 
       if not isinstance(tx["logs"], list):
-         return (False, 'Array expected for field "logs"')
+         return failed('Array expected for field "logs"')
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_sendRawTransaction(self, rpc, request):
@@ -415,13 +416,13 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       txResult = rpc.sendRawTransaction(rawTransaction)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       # if this test is re-run on a cluster, we'll see a different
       # hash (or an error once nonce tracking works); don't consider
       # it an error for now
       if not txResult == expectedHash:
-         return (False, "Receipt hash != expected hash.")
+         return failed("Receipt hash != expected hash.")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
@@ -429,20 +430,20 @@ class EthJsonRpcTests(test_suite.TestSuite):
          blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          # This is the important one: it tells whether signature address
          # recovery works.
          if not tx["from"] == expectedFrom:
-            return (False, "Found from does not match expected from")
+            return failed("Found from does not match expected from")
 
          # The rest of these are just checking parsing.
          if not tx["to"] == expectedTo:
-            return (False, "Found to does not match expectd to")
+            return failed("Found to does not match expectd to")
          if not tx["value"] == expectedValue:
-            return (False, "Found value does not match expected value")
+            return failed("Found value does not match expected value")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_sendRawContract(self, rpc, request):
@@ -496,7 +497,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       signed = web3.eth.account.signTransaction(contract_tx, private_key)
       txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
@@ -504,10 +505,10 @@ class EthJsonRpcTests(test_suite.TestSuite):
          hexstring = txResult.hex()
          tx = web3.eth.getTransactionReceipt(hexstring)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          if not "contractAddress" in tx:
-            return (False, "Contract deployment failed.")
+            return failed("Contract deployment failed.")
 
          # Test function in the contract, as incrementCounter is payable,
          # we could pass ether to it
@@ -519,12 +520,12 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
          count = counter.functions.getCount().call()
          if not count == expectedCount:
-            return (False, "incrementCounter does not work, which means contract did not get deployed properly")
+            return failed("incrementCounter does not work, which means contract did not get deployed properly")
 
          balance = web3.eth.getBalance(tx.contractAddress)
          if not balance == expectedBalance:
-            return (False, "Ether balance is incorrect, which means contract did not get deployed properly")
-      return (True, None)
+            return failed("Ether balance is incorrect, which means contract did not get deployed properly")
+      return passed()
 
    @describe()
    def _test_eth_getBlockByNumber(self, rpc, request):
@@ -541,28 +542,28 @@ class EthJsonRpcTests(test_suite.TestSuite):
       expectedFields = dataFields + quantityFields
       (present, missing) = util.helper.requireFields(latestBlock, expectedFields)
       if not present:
-         return (False, "No '{}' field in block response.".format(missing))
+         return failed("No '{}' field in block response.".format(missing))
 
       (success, field) = self.requireDATAFields(latestBlock, dataFields)
       if not success:
-         return (False, 'DATA expected for field "{}"'.format(field))
+         return failed('DATA expected for field "{}"'.format(field))
 
       (success, field) = self.requireQUANTITYFields(latestBlock, quantityFields)
       if not success:
-         return (False, 'QUANTITY expected for field "{}"'.format(field))
+         return failed('QUANTITY expected for field "{}"'.format(field))
 
       if not int(latestBlock["number"], 16) >= int(currentBlockNumber, 16):
-         return (False, "Latest block is before current block number")
+         return failed("Latest block is before current block number")
 
       currentBlock = rpc.getBlockByNumber(currentBlockNumber)
 
       if not currentBlock["number"] == currentBlockNumber:
-         return (False, "Current block does not have current block number")
+         return failed("Current block does not have current block number")
 
       # this gasLimit value is exactly as specified by --gas_limit param
       # of concord CLI
       if not currentBlock["gasLimit"] == "0x989680":
-         return (False, "Gas limit isn't 0x989680")
+         return failed("Gas limit isn't 0x989680")
 
       # Reminder that if time service is running, new blocks might be
       # added at any time, so predict something semi-far future to
@@ -571,7 +572,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       try:
          futureBlock = rpc.getBlockByNumber(futureBlockNumber)
-         return (False,
+         return failed(
                  "Expected an error for future block {}, " \
                  "but received block {}".format(futureBlockNumber,
                                                 futureBlock["number"]))
@@ -579,7 +580,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
          # requesting an uncommitted block should return an error
          pass
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getStorageAt(self, rpc, request):
@@ -597,7 +598,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       txResult = rpc.sendRawTransaction(contractTransaction)
       startBlockNumber = rpc.getBlockNumber()
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
@@ -605,30 +606,30 @@ class EthJsonRpcTests(test_suite.TestSuite):
          blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          if not "contract_address" in tx:
-            return (False,
+            return failed(
                     "No contract_address found. Was this run on an empty " \
                     "cluster?")
 
       contractAddress = tx["contract_address"]
       txResult = rpc.sendRawTransaction(decrementTx)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       endBlockNumber = rpc.getBlockNumber()
       startStorage = rpc.getStorageAt(contractAddress, storageLocation,
                                       startBlockNumber)
       if not startStorage == expectedStartStorage:
-         return (False, "start storage does not match expected")
+         return failed("start storage does not match expected")
 
       endStorage = rpc.getStorageAt(contractAddress, storageLocation,
                                     endBlockNumber)
       if not endStorage == expectedEndStorage:
-         return (False, "end storage does not match expected")
+         return failed("end storage does not match expected")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getCode(self, rpc, request):
@@ -641,7 +642,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       try:
          txResult = rpc.getCode(address, startBlockNumber)
-         return (False, "getCode at the block before the contract deployed " \
+         return failed("getCode at the block before the contract deployed " \
                         "should fail")
       except:
          pass
@@ -650,11 +651,11 @@ class EthJsonRpcTests(test_suite.TestSuite):
       txResultLatest = rpc.getCode(address, "latest")
 
       if not txResult == expectedCode:
-         return (False, "code does not match expected")
+         return failed("code does not match expected")
       if not txResultLatest == expectedCode:
-         return (False, "code does not match expected")
+         return failed("code does not match expected")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getLogs(self, rpc, request):
@@ -685,15 +686,15 @@ class EthJsonRpcTests(test_suite.TestSuite):
       # be the block that our transaction is in. If that's the case,
       # the logs will be empty, so skip this check.
       if logsLatest != [] and logsLatest != logs:
-         return (False, "getLogs() != getLogs(blockHash)")
+         return failed("getLogs() != getLogs(blockHash)")
 
       for l in logs:
          # The first element is the event signature
          # The second is the first argument of the event
          if int(l["topics"][1], 16) == 0xdeadbeef:
-            return (True, None)
+            return passed()
 
-      return (False, "Couldn't find log in block #" + str(func_txr.blockNumber))
+      return failed("Couldn't find log in block #" + str(func_txr.blockNumber))
 
    @describe()
    def _test_eth_getLogs_addr(self, rpc, request):
@@ -732,24 +733,24 @@ class EthJsonRpcTests(test_suite.TestSuite):
       # Get all logs for caddr1
       logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr1})
       if len(logs) != 2:
-         return (False, "Expected two log entries for addr " + caddr1)
+         return failed("Expected two log entries for addr " + caddr1)
       filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr1, logs))
       if not filter_out:
-         return (False, "Couldn't find logs for addr " + caddr1)
+         return failed("Couldn't find logs for addr " + caddr1)
       if len(filter_out) != len(logs):
-         return (False, "Unexpected logs - only logs from {} expected".format(caddr1))
+         return failed("Unexpected logs - only logs from {} expected".format(caddr1))
 
       # Get all logs for caddr2
       logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr2})
       if len(logs) != 1:
-         return (False, "Expected one log entries for addr " + caddr1)
+         return failed("Expected one log entries for addr " + caddr1)
       filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
       if not filter_out:
-         return (False, "Couldn't find logs for addr " + caddr2)
+         return failed("Couldn't find logs for addr " + caddr2)
       if len(filter_out) != len(logs):
-         return (False, "Unexpected logs - only logs from {} expected".format(caddr2))
+         return failed("Unexpected logs - only logs from {} expected".format(caddr2))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getLogs_block_range(self, rpc, request):
@@ -780,7 +781,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       if logs_all != logs_range:
          # Specifying "toBlock" is optional
-         return (False, "getLogs(0) != getLogs(earliest, latest)")
+         return failed("getLogs(0) != getLogs(earliest, latest)")
 
       expected = [0xdeadbeef, 0xc0ffee, 0x0ddba11]
       for l in logs_all:
@@ -792,7 +793,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
                expected.remove(val)
 
       if expected:
-         return (False, "From all logs: Couldn't find " + str(expected))
+         return failed("From all logs: Couldn't find " + str(expected))
 
       # Let's omit the "0x0ddba11" and don't get everything
       from_block = int(foo_func_txr["blockNumber"])
@@ -803,16 +804,16 @@ class EthJsonRpcTests(test_suite.TestSuite):
       for l in logs:
          if int(l["blockNumber"], 16) < from_block \
             or int(l["blockNumber"], 16) > to_block:
-            return (False, "Unexpected block")
+            return failed("Unexpected block")
          if len(l["topics"]) == 2:
             val = int(l["topics"][1], 16)
             if val in expected:
                expected.remove(val)
 
       if expected:
-         return (False, "From log range: Couldn't find " + str(expected))
+         return failed("From log range: Couldn't find " + str(expected))
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getLogs_topics(self, rpc, request):
@@ -848,16 +849,16 @@ class EthJsonRpcTests(test_suite.TestSuite):
       if len(logs) != 2 \
          or logs[0]["topics"][0] != event_signature \
          or logs[1]["topics"][0] != event_signature:
-         return (False, "Expected two logs in the transaction block with event sig " + event_signature)
+         return failed("Expected two logs in the transaction block with event sig " + event_signature)
 
       # Let's get only one event from the two
       # The "twoEvents" function emits two events one with x+1 and the other with x+2
       param = "0x" + 29 * "00" + "c0ffef"
       logs = rpc.getLogs({"fromBlock": hex(func_txr["blockNumber"]), "topics":[event_signature, param]})
       if len(logs) != 1 or logs[0]["topics"][1] != param:
-         return (False, "Expected one log in the transaction block with 124")
+         return failed("Expected one log in the transaction block with 124")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_eth_getBalance(self, rpc, request):
@@ -879,7 +880,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       expectedAddrToBalance = addrToBalance + transferAmount
 
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
@@ -887,26 +888,26 @@ class EthJsonRpcTests(test_suite.TestSuite):
          blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          # This is the important one: it tells whether signature address
          # recovery works.
          if not tx["from"] == addrFrom:
-            return (False, "Found from does not match expected from")
+            return failed("Found from does not match expected from")
 
          # The rest of these are just checking parsing.
          if not tx["to"] == addrTo:
-            return (False, "Found to does not match expectd to")
+            return failed("Found to does not match expectd to")
          if not tx["value"] == hex(transferAmount):
-            return (False, "Found value does not match expected value")
+            return failed("Found value does not match expected value")
          if not expectedAddrFromBalance == int(
                rpc.getBalance(addrFrom, currentBlockNumber), 16):
-            return (False, "sender balance does not match expected value")
+            return failed("sender balance does not match expected value")
          if not expectedAddrToBalance == int(
                rpc.getBalance(addrTo, currentBlockNumber), 16):
-            return (False, "receiver balance does not match expected value")
+            return failed("receiver balance does not match expected value")
 
-      return (True, None)
+      return passed()
 
    def _createBlockFilterAndSendTransactions(self, rpc, txCount):
       '''
@@ -1026,9 +1027,9 @@ class EthJsonRpcTests(test_suite.TestSuite):
       (filter, transactions) = self._createBlockFilterAndSendTransactions(rpc, testCount)
       blocksCaught = self._readBlockFilterToEnd(rpc, filter)
       if self._allTransactionBlocksCaught(request, transactions, blocksCaught):
-         return (True, None)
+         return passed()
       else:
-         return (False, "Expected %d blocks, but read %d from filter" %
+         return failed("Expected %d blocks, but read %d from filter" %
                  (testCount, len(blocksCaught)))
 
    @describe()
@@ -1045,15 +1046,15 @@ class EthJsonRpcTests(test_suite.TestSuite):
       blocksCaught1 = self._readBlockFilterToEnd(rpc, filter1)
       if not (self._allTransactionBlocksCaught(request, transactions1, blocksCaught1) and
               self._allTransactionBlocksCaught(request, transactions2, blocksCaught1)):
-         return (False, "Expected %d blocks, but read %d from filter1" %
+         return failed("Expected %d blocks, but read %d from filter1" %
                  (testCount1 + testCount2, len(blocksCaught1)))
 
       blocksCaught2 = self._readBlockFilterToEnd(rpc, filter2)
       if (self._allTransactionBlocksCaught(request, transactions2, blocksCaught2) and
           not self._allTransactionBlocksCaught(request, transactions1, blocksCaught2)):
-         return (True, None)
+         return passed()
       else:
-         return (False, "Expected %d blocks, but read %d from filter2" %
+         return failed("Expected %d blocks, but read %d from filter2" %
                  (testCount2, len(blocksCaught2)))
 
    @describe()
@@ -1066,9 +1067,9 @@ class EthJsonRpcTests(test_suite.TestSuite):
       success = rpc.uninstallFilter(filter)
       try:
          rpc.getFilterChanges(filter)
-         return (False, "Deleted filter should not be found")
+         return failed("Deleted filter should not be found")
       except:
-         return (True, None)
+         return passed()
 
    @describe()
    def _test_replay_protection(self, rpc, request):
@@ -1099,7 +1100,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
          signed = web3.eth.account.signTransaction(transaction, private_key)
          txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
          log.debug("**** txResult: {}".format(txResult))
-         return (False, "Transaction with incorrect chain ID was replayed")
+         return failed("Transaction with incorrect chain ID was replayed")
       except:
          pass
 
@@ -1115,9 +1116,9 @@ class EthJsonRpcTests(test_suite.TestSuite):
          signed = web3.eth.account.signTransaction(transaction, private_key)
          txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
       except:
-         return (False, "Unsuccessful transaction with correct chain ID")
+         return failed("Unsuccessful transaction with correct chain ID")
 
-      return (True, "Tests successful")
+      return passed("Tests successful")
 
    @describe()
    def _test_personal_newAccount(self, rpc, request):
@@ -1143,7 +1144,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       signed = web3.eth.account.signTransaction(transaction, private_key)
       txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
 
       if not self._productMode:
@@ -1153,13 +1154,13 @@ class EthJsonRpcTests(test_suite.TestSuite):
          blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, hexstring)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          # Note that the there is no leading '0x' for address in wallet
          if not tx["from"][2:] == wallet['address']:
-            return (False, "Found from does not match expected from")
+            return failed("Found from does not match expected from")
 
-      return (True, None)
+      return passed()
 
    @describe()
    def _test_fallback(self, rpc, request):
@@ -1210,7 +1211,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       signed = web3.eth.account.signTransaction(contract_tx, private_key)
       txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
       if not txResult:
-         return (False, "Transaction was not accepted")
+         return failed("Transaction was not accepted")
 
 
       if not self._productMode:
@@ -1219,10 +1220,10 @@ class EthJsonRpcTests(test_suite.TestSuite):
          hexstring = txResult.hex()
          tx = web3.eth.getTransactionReceipt(hexstring)
          if not tx:
-            return (False, "No transaction receipt found")
+            return failed("No transaction receipt found")
 
          if not "contractAddress" in tx:
-            return (False, "Contract deployment failed.")
+            return failed("Contract deployment failed.")
 
          # Trigger the fallback function, the passed 'data' does not match any
          # function in the contract
@@ -1238,10 +1239,10 @@ class EthJsonRpcTests(test_suite.TestSuite):
          signed = web3.eth.account.signTransaction(transaction, private_key)
          txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
          if not txResult:
-            return (False, "Transaction was not accepted")
+            return failed("Transaction was not accepted")
 
          count = counter.functions.getCount().call()
          if not count == expectedCount:
-            return (False, "Did not trigger fallback function")
+            return failed("Did not trigger fallback function")
 
-      return (True, None)
+      return passed()

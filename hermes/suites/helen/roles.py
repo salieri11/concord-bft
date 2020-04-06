@@ -7,7 +7,7 @@ import pytest
 import rest.test_methods
 import util.auth
 
-from suites.cases import describe
+from suites.case import describe, passed, failed
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxHermesRunSettings, fxProduct
 
 import util.hermes_logging

@@ -39,7 +39,7 @@ from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
-from suites.cases import describe
+from suites.case import describe
 import hermes_util.helper as helper
 from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient
 import hermes_util.hermes_logging as logging

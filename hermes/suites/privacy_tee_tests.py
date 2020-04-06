@@ -31,7 +31,7 @@ import subprocess
 import os
 import pytest
 import itertools
-from suites.cases import describe
+from suites.case import describe
 
 import util.helper as helper
 from util.tee.tutil import Tee

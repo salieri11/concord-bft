@@ -9,7 +9,7 @@ import os
 import traceback
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 from rest.request import Request
 
 import util.hermes_logging
@@ -72,7 +72,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         if self._ethereumMode:
             info = "ContractCompilerTests are not applicable to ethereumMode."
             log.warn(info)
-            self.writeResult("All tests", None, info)
+            self.writeResult("All tests", None, info, getStackInfo())
             return self._resultFile
 
         tests = self._getTests()
@@ -81,12 +81,13 @@ class ContractCompilerTests(test_suite.TestSuite):
             testLogDir = os.path.join(self._testLogDir, testName)
 
             try:
-                result, info = self._runRestTest(testName,
+                result, info, stackInfo = self._runRestTest(testName,
                                                  testFun,
                                                  testLogDir)
             except Exception as e:
                 result = False
                 info = str(e)
+                stackInfo = getStackInfo()
                 traceback.print_tb(e.__traceback__)
                 log.error("Exception running test: '{}'".format(info))
 
@@ -98,7 +99,7 @@ class ContractCompilerTests(test_suite.TestSuite):
             relativeLogDir = self.makeRelativeTestPath(testLogDir)
             info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                         testLogDir)
-            self.writeResult(testName, result, info)
+            self.writeResult(testName, result, info, stackInfo)
 
         log.info("Tests are done.")
         return super().run()
@@ -197,9 +198,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.compile_mock_contract(request)
 
         if "metadata" in result[0]:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Contract failed to compile")
+            return failed("Contract failed to compile")
 
     @describe()
     def _test_contractCompilation040(self, request):
@@ -212,9 +213,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.compile_mock_contract(request, compilerVersion, sourceCode)
 
         if result[0].get("metadata", {}).get("output", {}).get("abi", False):
-            return (True, None)
+            return passed()
         else:
-            return (False, "Contract failed to compile")
+            return failed("Contract failed to compile")
 
     @describe()
     def _test_contractCompilationFailed(self, request):
@@ -224,21 +225,21 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.compile_mock_contract(request, compilerVersion)
         except Exception as e:
             if "Source file requires different compiler version" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when compiling contract")
+                return failed("Unexpected error when compiling contract")
         else:
-            return (False, "Failure when compiling contract with invalid compiler version")
+            return failed("Failure when compiling contract with invalid compiler version")
 
     @describe()
     def _test_contractVerification(self, request):
         result = self.verify_mock_contract(request)
 
         if result["verified"] == True:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode failed to verify")
+            return failed("Bytecode failed to verify")
 
     @describe()
     def _test_contractVerification0419(self, request):
@@ -248,9 +249,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.verify_mock_contract(request, compilerVersion, None, None, contractBytecode_0_4_19)
 
         if result["verified"] == True:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode failed to verify")
+            return failed("Bytecode failed to verify")
 
     @describe()
     def _test_contractVerification040(self, request):
@@ -263,9 +264,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.verify_mock_contract(request, compilerVersion, selectedContract, sourceCode, contractBytecode_0_4_0)
 
         if result["verified"] == True:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode failed to verify")
+            return failed("Bytecode failed to verify")
 
     @describe()
     def _test_contractVerificationFailedMismatchedContract(self, request):
@@ -273,9 +274,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.verify_mock_contract(request, None, selectedContract)
 
         if result["verified"] == False:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode verified with mismatched contract")
+            return failed("Bytecode verified with mismatched contract")
 
     @describe()
     def _test_contractVerificationFailedMismatchedCompiler(self, request):
@@ -283,9 +284,9 @@ class ContractCompilerTests(test_suite.TestSuite):
         result = self.verify_mock_contract(request, compilerVersion)
 
         if result["verified"] == False:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode verified with mismatched compiler version")
+            return failed("Bytecode verified with mismatched compiler version")
 
     @describe()
     def _test_contractVerificationFailedToCompile(self, request):
@@ -295,12 +296,12 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.verify_mock_contract(request, compilerVersion)
         except Exception as e:
             if "Source file requires different compiler version" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when verifying contract")
+                return failed("Unexpected error when verifying contract")
         else:
-            return (False, "Failure when validating contract with invalid compiler version")
+            return failed("Failure when validating contract with invalid compiler version")
 
     @describe()
     def _test_contractCompilationFailedInvalidFile(self, request):
@@ -308,12 +309,12 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.compile_mock_contract(request, None, "")
         except Exception as e:
             if "Source file does not specify required compiler version" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when compiling contract")
+                return failed("Unexpected error when compiling contract")
         else:
-            return (False, "Failure when compiling invalid source code")
+            return failed("Failure when compiling invalid source code")
 
     @describe()
     def _test_contractCompilationFailedInvalidCompilerVersion(self, request):
@@ -321,12 +322,12 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.compile_mock_contract(request, "test")
         except Exception as e:
             if "Error retrieving binary" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when compiling contract")
+                return failed("Unexpected error when compiling contract")
         else:
-            return (False, "Failure when compiling with invalid compiler version")
+            return failed("Failure when compiling with invalid compiler version")
 
     @describe()
     def _test_contractVerificationFailedInvalidFile(self, request):
@@ -334,21 +335,21 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.verify_mock_contract(request, None, None, "")
         except Exception as e:
             if "Source file does not specify required compiler version" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when verifying contract")
+                return failed("Unexpected error when verifying contract")
         else:
-            return (False, "Failure when validating invalid source code")
+            return failed("Failure when validating invalid source code")
 
     @describe()
     def _test_contractVerificationFailedInvalidBytecode(self, request):
         result = self.verify_mock_contract(request, None, None, None, "")
 
         if result["verified"] == False:
-            return (True, None)
+            return passed()
         else:
-            return (False, "Bytecode verified with invalid existing bytecode")
+            return failed("Bytecode verified with invalid existing bytecode")
 
     @describe()
     def _test_contractVerificationFailedInvalidCompilerVersion(self, request):
@@ -356,9 +357,9 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.verify_mock_contract(request, "test")
         except Exception as e:
             if "Error retrieving binary" in str(e):
-                return (True, None)
+                return passed()
             else:
                 print(e)
-                return (False, "Unexpected error when verifying contract")
+                return failed("Unexpected error when verifying contract")
         else:
-            return (False, "Failure when validating with invalid compiler version")
+            return failed("Failure when validating with invalid compiler version")
