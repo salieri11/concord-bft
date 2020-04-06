@@ -11,7 +11,9 @@
 
 #include <exception>
 #include <fstream>
+#include <future>
 #include <string>
+#include <thread>
 #include <utility>
 
 namespace concord {
@@ -33,6 +35,20 @@ using config::ConfigurationResourceNotFoundException;
 using config::YAMLConfigurationInput;
 
 namespace {
+
+ConcordConfiguration::ParameterStatus ValidateNumClients(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state) {
+  if (const auto res = config::validateUInt(
+          value, config, path, failure_message,
+          const_cast<void*>(
+              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
+      res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
 
 ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     const std::string& value, const ConcordConfiguration& config,
@@ -70,6 +86,9 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
 }
 
 void SpecifyClientConfiguration(ConcordConfiguration& config) {
+  config.declareParameter("num_clients_proxies",
+                          "Total number of BFT clients in this deployment.");
+  config.addValidator("num_clients_proxies", ValidateNumClients, nullptr);
   // Validation of f_val is based on c_val and num_replicas .
   config.declareParameter(
       "f_val",
@@ -83,13 +102,6 @@ void SpecifyClientConfiguration(ConcordConfiguration& config) {
       "C parameter to the SBFT algorithm, that is, the number of slow, "
       "crashed, or otherwise non-responsive replicas that can be tolerated "
       "before having to fall back on a slow path for consensus.");
-
-  config.declareParameter(
-      "self_principal_id",
-      "Unique ID number for this Concord-BFT client. Concord-BFT considers "
-      "replicas, clients and client proxies to be principals, each of which "
-      "must have a "
-      "unique ID.");
 
   // Validation is based on f_val and c_val .
   config.declareParameter(
@@ -117,17 +129,39 @@ void SpecifyClientConfiguration(ConcordConfiguration& config) {
                       const_cast<void*>(reinterpret_cast<const void*>(
                           &config::kConcordBFTCommunicationBufferSizeLimits)));
 
-  config.declareParameter("bind_ip", "IP used by this client.");
-
-  config.declareParameter("bind_port", "Port number used by this client.");
-  config.addValidator(
-      "bind_port", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
-
   config.declareScope("node",
                       "Concord nodes that form the distributed system that "
                       "maintains a blockchain in Concord.",
                       config::sizeNodes, nullptr);
+
+  config.declareParameter("client_min_retry_timeout_milli",
+                          "Min retry timeout configuration");
+  config.addValidator(
+      "client_min_retry_timeout_milli", config::ValidateTimeOutMilli,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_max_retry_timeout_milli",
+                          "Max retry timeout configuration");
+  config.declareParameter("client_initial_retry_timeout_milli",
+                          "The initial retry timeout configuration");
+  config.declareParameter("client_sends_request_to_all_replicas_first_thresh",
+                          "The first thresh configuration for client sends "
+                          "requests to all replicas");
+  config.addValidator(
+      "client_sends_request_to_all_replicas_first_thresh", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_sends_request_to_all_replicas_period_thresh",
+                          "The period thresh configuration for client sends "
+                          "requests to all replicas");
+  config.addValidator(
+      "client_sends_request_to_all_replicas_period_thresh",
+      config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_periodic_reset_thresh",
+                          "The client periodic reset thresh configuration");
+  config.addValidator(
+      "client_periodic_reset_thresh", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
   auto& node = config.subscope("node");
 
   node.declareScope(
@@ -152,6 +186,26 @@ void SpecifyClientConfiguration(ConcordConfiguration& config) {
   replica.addValidator(
       "replica_port", config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareScope("client_proxies", "External client pool params replicas",
+                      config::sizeExternalClients, nullptr);
+  auto& client_proxies = config.subscope("client_proxies");
+  client_proxies.declareScope("client", "One external client params",
+                              config::sizeReplicas, nullptr);
+  auto& client = client_proxies.subscope("client");
+  client.declareParameter(
+      "principal_id",
+      "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
+      "replicas, clients and client proxies to be principals, each of which "
+      "must have a unique ID.");
+
+  client.declareParameter(
+      "client_host", "IP address or host name this replica can be reached at.");
+
+  client.declareParameter("client_port",
+                          "Port number this replica can be reached at.");
+  client.addValidator(
+      "client_port", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
 void ParseConfig(std::istream& config_stream,
@@ -170,6 +224,8 @@ void ParseConfig(std::istream& config_stream,
   // Instantiate the replica scope before node scope.
   config.subscope("node").instantiateScope("replica");
   config.instantiateScope("node");
+  config.subscope("client_proxies").instantiateScope("client");
+  config.instantiateScope("client_proxies");
 
   // Next, load all features.
   yaml.loadConfiguration(config,
@@ -209,6 +265,11 @@ std::unique_ptr<ICommunication> ToCommunication(const CommConfig& comm_config) {
 
 }  // namespace
 
+ConcordClient::ConcordClient(ConcordConfiguration config, int client_num,
+                             UPDATE_CONNECTIVITY_FN status_callback) {
+  CreateClient(config, client_num, status_callback);
+}
+
 ConcordClient::ConcordClient(std::istream& config_stream,
                              UPDATE_CONNECTIVITY_FN status_callback) {
   Initialize(config_stream, status_callback);
@@ -235,14 +296,33 @@ ConcordClient::~ConcordClient() noexcept {
   }
 }
 
-void ConcordClient::SendRequestSync(const void* request,
-                                    std::uint32_t request_size,
-                                    ClientMsgFlag flags,
-                                    std::chrono::milliseconds timeout_ms,
-                                    std::uint32_t reply_size, void* out_reply,
-                                    std::uint32_t* out_actual_reply_size) {
-  SendRequestSync(request, request_size, flags, timeout_ms, reply_size,
-                  out_reply, out_actual_reply_size, std::string{});
+SubmitResult ConcordClientPool::SendRequest(
+    const void* request, std::uint32_t request_size, ClientMsgFlag flags,
+    std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
+    void* out_reply, std::uint32_t* out_actual_reply_size) {
+  return SendARequest(request, request_size, flags, timeout_ms, reply_size,
+                      out_reply, out_actual_reply_size, std::string{});
+}
+
+SubmitResult ConcordClientPool::SendARequest(
+    const void* request, std::uint32_t request_size,
+    bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
+    std::uint32_t reply_size, void* out_reply,
+    std::uint32_t* out_actual_reply_size, const std::string& correlation_id) {
+  ConcordClientPool::LockClientsQueue();
+  if (!clients_.empty()) {
+    // start thread with client
+    auto client = clients_.front();
+    clients_.pop();
+    std::unique_ptr<ConcordClientProcessingJob> job =
+        std::make_unique<ConcordClientProcessingJob>(
+            this, client, request, request_size, flags, timeout_ms, reply_size,
+            out_reply, out_actual_reply_size, correlation_id);
+    ConcordClientPool::UnlockClientsQueue();
+    jobs_thread_pool_.add(job.get());
+    return SubmitResult::Acknowledged;
+  }
+  return SubmitResult::Overloaded;
 }
 
 void ConcordClient::SendRequestSync(const void* request,
@@ -250,8 +330,18 @@ void ConcordClient::SendRequestSync(const void* request,
                                     ClientMsgFlag flags,
                                     std::chrono::milliseconds timeout_ms,
                                     std::uint32_t reply_size, void* out_reply,
-                                    std::uint32_t* out_actual_reply_size,
-                                    const std::string& correlation_id) {
+                                    std::uint32_t* out_actual_reply_size) {
+  SendRequestASync(request, request_size, flags, timeout_ms, reply_size,
+                   out_reply, out_actual_reply_size, std::string{});
+}
+
+void ConcordClient::SendRequestASync(const void* request,
+                                     std::uint32_t request_size,
+                                     ClientMsgFlag flags,
+                                     std::chrono::milliseconds timeout_ms,
+                                     std::uint32_t reply_size, void* out_reply,
+                                     std::uint32_t* out_actual_reply_size,
+                                     const std::string& correlation_id) {
   const auto status = client_->invokeCommandSynch(
       static_cast<const char*>(request), request_size, flags, timeout_ms,
       reply_size, static_cast<char*>(out_reply), out_actual_reply_size,
@@ -261,6 +351,94 @@ void ConcordClient::SendRequestSync(const void* request,
     throw ClientRequestException{
         status, "ConcordClient failed to send a synchronous request"};
   }
+}
+
+void ConcordClient::CreateClient(const ConcordConfiguration& config,
+                                 int client_num,
+                                 UPDATE_CONNECTIVITY_FN status_callback) {
+  const auto num_replicas = config.getValue<std::uint16_t>("num_replicas");
+
+  ClientConfig client_config;
+  const auto& client_proxies_conf =
+      config.subscope("client_proxies", client_num);
+  const auto client_conf = client_proxies_conf.subscope("client", 0);
+
+  client_config.fVal = config.getValue<decltype(client_config.fVal)>("f_val");
+  client_config.cVal = config.getValue<decltype(client_config.cVal)>("c_val");
+  client_config.clientId =
+      client_conf.getValue<decltype(client_config.clientId)>("principal_id");
+
+  CommConfig comm_config;
+  comm_config.commType =
+      config.getValue<decltype(comm_config.commType)>("comm_to_use");
+  comm_config.listenIp =
+      client_conf.getValue<decltype(comm_config.listenIp)>("client_host");
+  comm_config.listenPort =
+      client_conf.getValue<decltype(comm_config.listenPort)>("client_port");
+  comm_config.bufferLength =
+      config.getValue<decltype(comm_config.bufferLength)>(
+          "concord-bft_communication_buffer_length");
+  comm_config.selfId =
+      client_conf.getValue<decltype(comm_config.selfId)>("principal_id");
+
+  if (comm_config.commType == "tcp" || comm_config.commType == "tls") {
+    comm_config.maxServerId = num_replicas - 1;
+  }
+
+  if (comm_config.commType == "tls") {
+    comm_config.certificatesRootPath =
+        config.getValue<decltype(comm_config.certificatesRootPath)>(
+            "tls_certificates_folder_path");
+    comm_config.cipherSuite =
+        config.getValue<decltype(comm_config.cipherSuite)>(
+            "tls_cipher_suite_list");
+  }
+
+  for (auto i = 0u; i < num_replicas; ++i) {
+    const auto& node_conf = config.subscope("node", i);
+    const auto replica_conf = node_conf.subscope("replica", 0);
+
+    const auto replica_id =
+        replica_conf.getValue<decltype(comm_config.nodes)::key_type>(
+            "principal_id");
+
+    NodeInfo node_info;
+    node_info.host =
+        replica_conf.getValue<decltype(node_info.host)>("replica_host");
+    node_info.port =
+        replica_conf.getValue<decltype(node_info.port)>("replica_port");
+    node_info.isReplica = true;
+    comm_config.nodes[replica_id] = node_info;
+  }
+
+  comm_config.statusCallback = status_callback;
+
+  // Ensure exception safety by creating local pointers and only moving to
+  // object members if construction and startup haven't thrown.
+  auto comm = ToCommunication(comm_config);
+  /*bftEngine::SimpleClientParams p;
+  p.clientInitialRetryTimeoutMilli =
+      config.getValue<std::uint16_t>("client_initial_retry_timeout_milli");
+  p.clientMinRetryTimeoutMilli =
+      config.getValue<std::uint16_t>("client_min_retry_timeout_milli");
+  p.clientMaxRetryTimeoutMilli =
+      config.getValue<std::uint16_t>("client_max_retry_timeout_milli");
+  p.clientSendsRequestToAllReplicasFirstThresh = config.getValue<std::uint16_t>(
+      "client_sends_request_to_all_replicas_first_thresh");
+  p.clientSendsRequestToAllReplicasPeriodThresh =
+      config.getValue<std::uint16_t>(
+          "client_sends_request_to_all_replicas_period_thresh");
+  p.clientPeriodicResetThresh =
+      config.getValue<std::uint16_t>("client_periodic_reset_thresh");
+  auto client = std::unique_ptr<IClient>{
+      concord::kvbc::createClient(client_config, comm.get(), p)};*/
+  auto client = std::unique_ptr<IClient>{
+      concord::kvbc::createClient(client_config, comm.get())};
+
+  client->start();
+
+  comm_ = std::move(comm);
+  client_ = std::move(client);
 }
 
 void ConcordClient::CreateClient(const ConcordConfiguration& config,
@@ -334,6 +512,36 @@ void ConcordClient::Initialize(std::istream& config_stream,
   ConcordConfiguration config;
   ParseConfig(config_stream, config);
   CreateClient(config, status_callback);
+}
+
+ConcordClientPool::ConcordClientPool(std::istream& config_stream,
+                                     UPDATE_CONNECTIVITY_FN status_callback) {
+  ConcordConfiguration config;
+  ParseConfig(config_stream, config);
+  uint16_t num_clients = config.getValue<std::uint16_t>("num_clients_proxies");
+  for (int i = 0; i < num_clients; i++) {
+    auto client = std::make_shared<ConcordClient>(config, i, status_callback);
+    clients_.push(std::move(client));
+  }
+  jobs_thread_pool_.start(num_clients);
+}
+
+ConcordClientPool::ConcordClientPool(std::string_view config_file_path,
+                                     UPDATE_CONNECTIVITY_FN status_callback) {
+  std::ifstream config_file;
+  config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
+  config_file.open(config_file_path.data());
+  ConcordClientPool(config_file, status_callback);
+}
+
+ConcordClientPool::~ConcordClientPool() {
+  jobs_thread_pool_.stop();
+  LockClientsQueue();
+  while (!clients_.empty()) {
+    auto client = clients_.front();
+    clients_.pop();
+  }
+  UnlockClientsQueue();
 }
 
 }  // namespace external_client
