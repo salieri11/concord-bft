@@ -125,12 +125,6 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py UiTests'
   ],
-  "HelenDeployEthereumToSDDC": [
-    "enabled": true,
-    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json"'
-  ],
   "LoggingTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
@@ -146,35 +140,75 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
   ],
+  "HelenDeployEthereumToSDDC": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
+      --tests="-k vmArithmeticTest/add0.json" --suitesRealname=HelenDeployEthereumToSDDC'
+  ],
   "HelenDeployDAMLToSDDC" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc --tests="-m deployment_only"'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml  \
+      --blockchainLocation=sddc --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc \
+      --tests="-m deployment_only" --suitesRealname=HelenDeployDAMLToSDDC'
   ],
   "HelenDeployToSDDCTemplate" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only"'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only" \
+      --suitesRealname=HelenDeployToSDDCTemplate'
   ]
 ]
 
-def call(){
-  def agentLabel = "genericVM"
-  def genericTests = true
-  def additional_components_to_build = ""
-  def deployment_support_bundle_job_name = "Get Deployment support bundle"
-  def ext_long_tests_job_name = "Blockchain Extensive Long Tests"
-  def helen_role_test_job_name = "Helen Role Tests on GitLab"
-  def log_insight_test_job_name = "Log Insight Integration Test"
-  def long_tests_job_name = "Blockchain Long Tests"
-  def main_mr_run_job_name = "Main Blockchain Run on GitLab"
-  def memory_leak_job_name = "BlockchainMemoryLeakTesting"
-  def monitor_replicas_job_name = "Monitor Blockchain replica health and status"
-  def performance_test_job_name = "Blockchain Performance Test"
-  def persephone_test_job_name = "Blockchain Persephone Tests"
-  def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
-  def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
+// Pipline env
+@Field String agentLabel = "genericVM"
+@Field Boolean genericTests = true
+@Field String additional_components_to_build = ""
 
+// Job Names List
+@Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
+@Field String ext_long_tests_job_name = "Blockchain Extensive Long Tests"
+@Field String helen_role_test_job_name = "Helen Role Tests on GitLab"
+@Field String log_insight_test_job_name = "Log Insight Integration Test"
+@Field String long_tests_job_name = "Blockchain Long Tests"
+@Field String main_mr_run_job_name = "Main Blockchain Run on GitLab"
+@Field String memory_leak_job_name = "BlockchainMemoryLeakTesting"
+@Field String monitor_replicas_job_name = "Monitor Blockchain replica health and status"
+@Field String performance_test_job_name = "Blockchain Performance Test"
+@Field String persephone_test_job_name = "Blockchain Persephone Tests"
+@Field String persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
+@Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
+
+// These runs will never run Persehpone tests. Persephone tests have special criteria,
+// and these runs can end up running them unintentionally.
+@Field List runs_excluding_persephone_tests = [
+  ext_long_tests_job_name,
+  helen_role_test_job_name,
+  log_insight_test_job_name,
+  long_tests_job_name,
+  memory_leak_job_name,
+  monitor_replicas_job_name,
+  performance_test_job_name,
+  ui_e2e_daml_on_prem_job_name,
+]
+
+// These job names are just substrings of the actual job names.
+@Field List specialized_tests = [
+  deployment_support_bundle_job_name,
+  ext_long_tests_job_name,
+  helen_role_test_job_name,
+  log_insight_test_job_name,
+  long_tests_job_name,
+  memory_leak_job_name,
+  monitor_replicas_job_name,
+  performance_test_job_name,
+  persephone_test_job_name,
+  persephone_test_on_demand_job_name,
+  ui_e2e_daml_on_prem_job_name,
+]
+
+def call(){
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
   // Change this when creating a release branch.
@@ -187,34 +221,6 @@ def call(){
   // instead of hard coding, but I don't see it in the env.
   // Change this when creating a release branch.
   env.tot_branch = "master"
-
-  // These runs will never run Persehpone tests. Persephone tests have special criteria,
-  // and these runs can end up running them unintentionally.
-  def runs_excluding_persephone_tests = [
-    ext_long_tests_job_name,
-    helen_role_test_job_name,
-    log_insight_test_job_name,
-    long_tests_job_name,
-    memory_leak_job_name,
-    monitor_replicas_job_name,
-    performance_test_job_name,
-    ui_e2e_daml_on_prem_job_name
-  ]
-
-  // These job names are just substrings of the actual job names.
-  specialized_tests = [
-    deployment_support_bundle_job_name,
-    ext_long_tests_job_name,
-    long_tests_job_name,
-    log_insight_test_job_name,
-    memory_leak_job_name,
-    monitor_replicas_job_name,
-    performance_test_job_name,
-    persephone_test_job_name,
-    persephone_test_on_demand_job_name,
-    helen_role_test_job_name,
-    ui_e2e_daml_on_prem_job_name
-  ]
 
   for (specialized_test in specialized_tests){
     if (env.JOB_NAME.contains(specialized_test)){
@@ -500,21 +506,7 @@ def call(){
               '''
 
               if (env.JOB_NAME.contains(main_mr_run_job_name)) {
-                // Figure out which components have changed based on git diff
-                // From this information, you can:
-                //    1) choose to pull pre-built images, instead of building everything
-                //    2) skip component-internal unit tests of components that didn't change
-                // Output the changed components map to `blockchain/vars/affected_components.json`
-                // Also, extract effective commits and authors affecting this MR
-                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                  script {
-                    dir('blockchain/vars') {
-                      env.python = "/var/jenkins/workspace/venv_py37/bin/python"
-                      sh 'echo "${PASSWORD}" | sudo -SE "${python}" getChangedPaths.py'
-                      sh 'echo "${PASSWORD}" | sudo -SE "${python}" getCommitsBlame.py'
-                    }
-                  }
-                }
+                preprocessForMainMR()
               }
 
               if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
@@ -537,149 +529,16 @@ def call(){
 
               setUpRepoVariables()
 
-              // Docker-compose picks up values from the .env file in the directory from which
-              // docker-compose is run.
-              withCredentials([
-                string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
-                string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
-                string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
-                string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
-                string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
-                string(credentialsId: 'WAVEFRONT_API_TOKEN', variable: 'WAVEFRONT_API_TOKEN'),
-                string(credentialsId: 'DASHBOARD_WAVEFRONT_TOKEN', variable: 'DASHBOARD_WAVEFRONT_TOKEN'),
-                string(credentialsId: 'SLACK_BOT_API_TOKEN', variable: 'SLACK_BOT_API_TOKEN'),
-                string(credentialsId: 'VMW_DA_SLACK_BOT_API_TOKEN', variable: 'VMW_DA_SLACK_BOT_API_TOKEN'),
-                string(credentialsId: 'DASHBOARD_WAVEFRONT_TOKEN', variable: 'DASHBOARD_WAVEFRONT_TOKEN'),
-                usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
-                usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
-                usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
-                usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
-                ]) {
-                sh '''
-                  echo "${PASSWORD}" | sudo -S ls
-                  sudo cat >blockchain/docker/.env <<EOF
-asset_transfer_repo=${internal_asset_transfer_repo}
-asset_transfer_tag=${docker_tag}
-concord_repo=${internal_concord_repo}
-concord_tag=${docker_tag}
-ethrpc_repo=${internal_ethrpc_repo}
-ethrpc_tag=${docker_tag}
-fluentd_repo=${internal_fluentd_repo}
-fluentd_tag=${docker_tag}
-helen_repo=${internal_helen_repo}
-helen_tag=${docker_tag}
-memleak_concord_repo=${internal_memleak_concord_repo}
-memleak_concord_tag=${docker_tag}
-persephone_agent_repo=${internal_persephone_agent_repo}
-persephone_agent_tag=${docker_tag}
-persephone_configuration_repo=${internal_persephone_configuration_repo}
-persephone_configuration_tag=${docker_tag}
-persephone_ipam_repo=${internal_persephone_ipam_repo}
-persephone_ipam_tag=${docker_tag}
-persephone_provisioning_repo=${internal_persephone_provisioning_repo}
-persephone_provisioning_tag=${docker_tag}
-ui_repo=${internal_ui_repo}
-ui_tag=${docker_tag}
-contract_compiler_repo=${internal_contract_compiler_repo}
-contract_compiler_tag=${docker_tag}
-hlf_tools_repo=${internal_hlf_tools_repo}
-hlf_tools_tag=${docker_tag}
-hlf_peer_repo=${internal_hlf_peer_repo}
-hlf_peer_tag=${docker_tag}
-hlf_orderer_repo=${internal_hlf_orderer_repo}
-hlf_orderer_tag=${docker_tag}
-hlf_tools_base_repo=${internal_hlf_tools_base_repo}
-hlf_tools_base_tag=${docker_tag}
-hlf_peer_base_repo=${internal_hlf_peer_base_repo}
-hlf_peer_base_tag=${docker_tag}
-hlf_orderer_base_repo=${internal_hlf_orderer_base_repo}
-hlf_orderer_base_tag=${docker_tag}
-daml_ledger_api_repo=${internal_daml_ledger_api_repo}
-daml_ledger_api_tag=${docker_tag}
-daml_execution_engine_repo=${internal_daml_execution_engine_repo}
-daml_execution_engine_tag=${docker_tag}
-daml_index_db_repo=${internal_daml_index_db_repo}
-daml_index_db_tag=${docker_tag}
-trc_lib_repo=${internal_trc_lib_repo}
-trc_lib_tag=${docker_tag}
-commit_hash=${commit}
-LINT_API_KEY=${LINT_API_KEY}
-LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
-EOF
+              setEnvFileAndUserConfig()
 
-                  cp blockchain/docker/.env blockchain/hermes/
-                '''
+              saveTimeEvent("Setup", "Set up python")
+              initializePython()
+              saveTimeEvent("Setup", "Finished setting up python")
 
-                script {
-                  env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
-                  sh '''
-                    # Update provisioning service application-test.properties
-                    sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                    sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
-                    sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
-                    sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<ONPREM_VCENTER_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                  '''
-
-                  if (env.JOB_NAME.contains(long_tests_job_name)) {
-                    sh '''
-                      sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
-                    '''
-                  } else {
-                    sh '''
-                      sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
-                    '''
-                  }
-
-                  if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                    sh '''
-                      # Update provisioning service application-test.properties with bintray registry for nightly runs
-                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                    '''
-                  } else {
-                    sh '''
-                      # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
-                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-                    '''
-                  }
-                }
-              }
-
-              // Set up python.
-              script{
-                saveTimeEvent("Setup", "Set up python")
-                initializePython()
-                saveTimeEvent("Setup", "Finished setting up python")
-              }
-
-              // Open the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
-              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                script {
-                  dir('blockchain/hermes') { // user_config.json already set; no neeed to pass jobName and buildNumber, etc.
-                    sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
-                  }
-                }
-              }
+              racetrackSet("begin")
 
             }catch(Exception ex){
+              println("Unable to set up environment: ${ex}")
               failRun()
               throw ex
             }
@@ -1231,96 +1090,21 @@ EOF
           pruneImages()
           saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
-          // Just in case pipline failed before python init
-          if (!env.python) {
-            echo("Python was not initialized for this run. Initializing python...")
-            initializePython()
-          }
-        }
+          if (!env.python) initializePython()
 
-        // End the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
-        withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-          script {
-            dir('blockchain/hermes') {
-              sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd'
-            }
-          }
-        }
+          racetrackSet("end")
 
-        // Files created by the docker run belong to root because they were created by the docker process.
-        // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
-        // belong to builder to catch any future files.
-        dir(env.WORKSPACE){
-          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-            sh '''
-              echo "${PASSWORD}" | sudo -S chown -R builder:builder .
-            '''
-          }
-        }
+          // Files created by the docker run belong to root because they were created by the docker process.
+          // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
+          // belong to builder to catch any future files.
+          ownWorkspace()
 
-        script{
-          saveTimeEvent("Gather artifacts", "Start")
+          // Needs to trigger after owning workspace
+          collectArtifacts()
 
-          def logMap = [
-            "tests": [
-              "base": "**/testLogs/**/*.",
-              "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
-            ],
-            "builds": [
-              "base": "**/blockchain/**/*.",
-              "types": ["log", "json", "properties", "sql"]
-            ]
-          ]
+          sendNotifications()
 
-          // Exclude 3rd party stuff; See BC-1858
-          // node_modules; avoid bundling 3000+ package.json files
-          def excludeMap = [
-            "node_modules": [
-              "pattern": "**/node_modules/**",
-            ]
-          ]
-
-          excludedPaths = ""
-          for (k in excludeMap.keySet()){
-            if (excludedPaths != "") excludedPaths += ","
-            excludedPaths += excludeMap[k]["pattern"]
-          }
-
-          // Iterate through the keys, *not* the map, because of Jenkins.
-          for (k in logMap.keySet()){
-            paths = ""
-            for (logType in logMap[k]["types"]){
-              if (paths != "") paths += ","
-              paths += logMap[k]["base"] + logType
-            }
-            archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
-          }
-        }
-
-        saveTimeEvent("Gather artifacts", "End")
-
-        // And grab the time file one more time so we can know how long gathering artifacts takes.
-        archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
-
-        sendNotifications()
-
-        script{
-          try{
-            saveTimeEvent("Clean up SDDCs", "Start")
-            sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-            // LongTests Clean up older than 168 hours (7 days)
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-            saveTimeEvent("Clean up SDDCs", "End")
-          }catch(Exception ex){
-            echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
-          }
+          cleanUpSDDC()
         }
       }
     }
@@ -2340,5 +2124,240 @@ void announceToTFailure(){
       python3 invoke.py slackPost --param blockchain-build-fail "${run_fail_msg}"
       deactivate
     '''
+  }
+}
+
+void collectArtifacts(){
+  saveTimeEvent("Gather artifacts", "Start")
+
+  def logMap = [
+    "tests": [
+      "base": "**/testLogs/**/*.",
+      "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
+    ],
+    "builds": [
+      "base": "**/blockchain/**/*.",
+      "types": ["log", "json", "properties", "sql"]
+    ]
+  ]
+
+  // Exclude 3rd party stuff; See BC-1858
+  // node_modules; avoid bundling 3000+ package.json files
+  def excludeMap = [
+    "node_modules": [
+      "pattern": "**/node_modules/**",
+    ]
+  ]
+
+  excludedPaths = ""
+  for (k in excludeMap.keySet()){
+    if (excludedPaths != "") excludedPaths += ","
+    excludedPaths += excludeMap[k]["pattern"]
+  }
+
+  // Iterate through the keys, *not* the map, because of Jenkins.
+  for (k in logMap.keySet()){
+    paths = ""
+    for (logType in logMap[k]["types"]){
+      if (paths != "") paths += ","
+      paths += logMap[k]["base"] + logType
+    }
+    archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
+  }
+
+  saveTimeEvent("Gather artifacts", "End")
+
+  // And grab the time file one more time so we can know how long gathering artifacts takes.
+  archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
+  archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true
+  archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
+}
+
+void cleanUpSDDC(){
+  try{
+    saveTimeEvent("Clean up SDDCs", "Start")
+    sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+    // LongTests Clean up older than 168 hours (7 days)
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+    saveTimeEvent("Clean up SDDCs", "End")
+  }catch(Exception ex){
+    echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
+  }
+}
+
+void racetrackSet(action){
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    script {
+      dir('blockchain/hermes') {
+        if(action == "begin") {
+          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
+        } else if(action == "end"){
+          env.run_result = currentBuild.currentResult
+          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"' 
+        }
+      }
+    }
+  }
+}
+
+void ownWorkspace(){
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    script {
+      sh '''
+        echo "${PASSWORD}" | sudo -S chown -R builder:builder .
+      '''
+    }
+  }
+}
+
+void preprocessForMainMR(){
+  // Figure out which components have changed based on git diff
+  // From this information, you can:
+  //    1) choose to pull pre-built images, instead of building everything
+  //    2) skip component-internal unit tests of components that didn't change
+  // Output the changed components map to `blockchain/vars/affected_components.json`
+  // Also, extract effective commits and authors affecting this MR
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    script {
+      dir('blockchain/vars') {
+        env.python = "/var/jenkins/workspace/venv_py37/bin/python"
+        sh 'echo "${PASSWORD}" | sudo -SE "${python}" getChangedPaths.py'
+        sh 'echo "${PASSWORD}" | sudo -SE "${python}" getCommitsBlame.py'
+      }
+    }
+  }
+}
+
+void setEnvFileAndUserConfig(){
+  withCredentials([
+    string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+    string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
+    string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
+    string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
+    string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
+    string(credentialsId: 'WAVEFRONT_API_TOKEN', variable: 'WAVEFRONT_API_TOKEN'),
+    string(credentialsId: 'DASHBOARD_WAVEFRONT_TOKEN', variable: 'DASHBOARD_WAVEFRONT_TOKEN'),
+    string(credentialsId: 'SLACK_BOT_API_TOKEN', variable: 'SLACK_BOT_API_TOKEN'),
+    string(credentialsId: 'VMW_DA_SLACK_BOT_API_TOKEN', variable: 'VMW_DA_SLACK_BOT_API_TOKEN'),
+    usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
+    usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
+    usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
+    usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
+  ]) {
+    sh '''
+      echo "${PASSWORD}" | sudo -S ls
+      sudo cat >blockchain/docker/.env <<EOF
+asset_transfer_repo=${internal_asset_transfer_repo}
+asset_transfer_tag=${docker_tag}
+concord_repo=${internal_concord_repo}
+concord_tag=${docker_tag}
+ethrpc_repo=${internal_ethrpc_repo}
+ethrpc_tag=${docker_tag}
+fluentd_repo=${internal_fluentd_repo}
+fluentd_tag=${docker_tag}
+helen_repo=${internal_helen_repo}
+helen_tag=${docker_tag}
+memleak_concord_repo=${internal_memleak_concord_repo}
+memleak_concord_tag=${docker_tag}
+persephone_agent_repo=${internal_persephone_agent_repo}
+persephone_agent_tag=${docker_tag}
+persephone_configuration_repo=${internal_persephone_configuration_repo}
+persephone_configuration_tag=${docker_tag}
+persephone_ipam_repo=${internal_persephone_ipam_repo}
+persephone_ipam_tag=${docker_tag}
+persephone_provisioning_repo=${internal_persephone_provisioning_repo}
+persephone_provisioning_tag=${docker_tag}
+ui_repo=${internal_ui_repo}
+ui_tag=${docker_tag}
+contract_compiler_repo=${internal_contract_compiler_repo}
+contract_compiler_tag=${docker_tag}
+hlf_tools_repo=${internal_hlf_tools_repo}
+hlf_tools_tag=${docker_tag}
+hlf_peer_repo=${internal_hlf_peer_repo}
+hlf_peer_tag=${docker_tag}
+hlf_orderer_repo=${internal_hlf_orderer_repo}
+hlf_orderer_tag=${docker_tag}
+hlf_tools_base_repo=${internal_hlf_tools_base_repo}
+hlf_tools_base_tag=${docker_tag}
+hlf_peer_base_repo=${internal_hlf_peer_base_repo}
+hlf_peer_base_tag=${docker_tag}
+hlf_orderer_base_repo=${internal_hlf_orderer_base_repo}
+hlf_orderer_base_tag=${docker_tag}
+daml_ledger_api_repo=${internal_daml_ledger_api_repo}
+daml_ledger_api_tag=${docker_tag}
+daml_execution_engine_repo=${internal_daml_execution_engine_repo}
+daml_execution_engine_tag=${docker_tag}
+daml_index_db_repo=${internal_daml_index_db_repo}
+daml_index_db_tag=${docker_tag}
+trc_lib_repo=${internal_trc_lib_repo}
+trc_lib_tag=${docker_tag}
+commit_hash=${commit}
+LINT_API_KEY=${LINT_API_KEY}
+LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
+EOF
+
+      cp blockchain/docker/.env blockchain/hermes/
+      cp blockchain/docker/.env blockchain/vars/env.log
+    '''
+    script {
+      env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
+      env.WORKSPACE_ESCAPED = env.WORKSPACE.replaceAll('/', '___')
+      sh '''
+        # Update provisioning service application-test.properties
+        sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
+        sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
+        sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<ONPREM_VCENTER_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<METAINF_ENV_WORKSPACE>"'/'"${WORKSPACE_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      '''
+
+      if (env.JOB_NAME.contains(long_tests_job_name)) {
+        sh '''
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
+        '''
+      } else {
+        sh '''
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
+        '''
+      }
+
+      if (env.JOB_NAME.contains(persephone_test_job_name)) {
+        sh '''
+          # Update provisioning service application-test.properties with bintray registry for nightly runs
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      } else {
+        sh '''
+          # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      }
+    }
   }
 }

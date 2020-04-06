@@ -209,7 +209,7 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
                 runCommand,
                 otherMetadata
               )
-        log.info("Annotating VM ({}) for better tracking & life-cycle management...\n{}\n\n".format(replicaInfo["ip"], notes))
+        log.info("Annotating VM ({}) for better tracking & life-cycle management...".format(replicaInfo["ip"]))
         # edit VM Notes with detailed deployment context
         sddc.vmAnnotate(vm, notes)
         # Add custom attributes

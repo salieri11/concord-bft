@@ -32,7 +32,7 @@ import subprocess
 from threading import Thread
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed
 from rpc.rpc_call import RPC
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
@@ -220,7 +220,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       transactions = 1000
       contractInfo = self.deploy_test_contract()
       if "address" not in contractInfo:
-         return (False, "Failed to deploy contract")
+         return failed("Failed to deploy contract")
       contractAddress = contractInfo["address"]
 
       log.info(f"start sending {transactions} transactions")
@@ -236,7 +236,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       log.info(f"done sending {transactions} transactions")
       # there were containers start/stop problems
       if self._error:
-         return(False, "Test didn't complete")
+         return failed("Test didn't complete")
 
       log.info("wait for 180 seconds for replica to get synchronized")
       time.sleep(180) #give replica2 enough time to sync state
@@ -244,27 +244,27 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       res = self.check_data(0,transactions, [1,2,3,4])
 
       if not res:
-          return(False, "Data check failed")
-      return (True, "Data checked")
+          return failed("Data check failed")
+      return passed("Data checked")
       
       
    def clean(self):
       for i in range(1,5):
          res = self.product.kill_concord_replica(i)
          if not res:
-            return (False, f"Failed to kill replica {i}")
+            return failed(f"Failed to kill replica {i}")
       
       res = ""
       for i in range(1,5):
          res = self.product.cleanConcordDb(i)
          if not res:
-            return (False, "Failed to clean RocksDb")
+            return failed("Failed to clean RocksDb")
       path = res
 
       for i in range(1,5):
          res = self.product.start_concord_replica(i)
          if not res:
-            return (False, f"Failed to start replica {i}")
+            return failed(f"Failed to start replica {i}")
 
       count = 0
       while count < 6:
@@ -277,7 +277,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
             break
 
       if count > 0:
-         return (False, "Failed to deploy contract")
+         return failed("Failed to deploy contract")
       else:      
          contractAddress = contractInfo["address"]
                  
@@ -289,7 +289,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       transactions = 1000
       contractInfo = self.deploy_test_contract()
       if "address" not in contractInfo:
-         return (False, "Failed to deploy contract")
+         return failed("Failed to deploy contract")
       contractAddress = contractInfo["address"]
 
       log.info(f"start sending {transactions} transactions")
@@ -300,7 +300,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       
       res = self.product.kill_concord_replica(1)
       if self._error:
-         return(False, "Failed to kill replica 1")
+         return failed("Failed to kill replica 1")
                
       log.info(f"start sending {transactions} transactions")           
       self._send_async(transactions, contractAddress, transactions, 4)      
@@ -310,7 +310,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       
       res = self.product.start_concord_replica(1)
       if self._error:
-         return(False, "Failed to start replica 1")
+         return failed("Failed to start replica 1")
          
       log.info(f"start sending {transactions} transactions")     
       self._send_async(transactions, contractAddress, transactions, 4)
@@ -325,8 +325,8 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       res = self.check_data(0,transactions * 3, [1,2,3,4])
 
       if not res:
-          return(False, "Data check failed")
-      return (True, "Data checked")         
+          return failed("Data check failed")
+      return passed("Data checked")         
 
 
    def _get_tests(self):
@@ -351,8 +351,8 @@ class MetadataPersistencyTests(test_suite.TestSuite):
                            util.auth.internal_admin)
          blockchainId = request.getBlockchains()[0]["id"]
          self.setEthrpcNode(request, blockchainId)
-         res,info = testFunc()
-         self.writeResult(testName, res, info)
+         res, info, stackInfo = testFunc()
+         self.writeResult(testName, res, info, stackInfo)
 
       log.info("Tests are done")
       return super().run()

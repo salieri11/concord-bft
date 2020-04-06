@@ -16,7 +16,7 @@ import traceback
 import subprocess
 
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 from rest.request import Request
 import util.json_helper
 
@@ -62,12 +62,13 @@ class PerformanceTests(test_suite.TestSuite):
                               util.auth.internal_admin)
             blockchainId = request.getBlockchains()[0]["id"]
             self.setEthrpcNode(request, blockchainId)
-            result, info = self._runTest(testName,
+            result, info, stackInfo = self._runTest(testName,
                                          testFun,
                                          testLogDir)
          except Exception as e:
             result = False
             info = str(e)
+            stackInfo = getStackInfo()
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 
@@ -79,7 +80,7 @@ class PerformanceTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       log.info("Tests are done.")
       return super().run()
@@ -92,14 +93,14 @@ class PerformanceTests(test_suite.TestSuite):
    @describe()
    def _test_performance(self, fileRoot):
       if not os.path.isdir(self._performance_submodule):
-         return (False, "Performance repo {} does not Exist"
+         return failed("Performance repo {} does not Exist"
                  .format(self._performance_submodule))
 
       performance_jar = os.path.join(self._performance_submodule,
                                      "ballotApp", "target",
                                      "performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
       if not os.path.isfile(performance_jar):
-         return (False, "Performance jar file {} does not Exist".
+         return failed("Performance jar file {} does not Exist".
                  format(performance_jar))
 
       concord_ip = self.ethrpcApiUrl.split("/")[2].split(":")[0]
@@ -119,6 +120,6 @@ class PerformanceTests(test_suite.TestSuite):
       psOutput = completedProcess.stdout.decode("UTF-8")
       log.info(psOutput)
       if 'Throughput: ' not in psOutput:
-         return (False, "Failed to run Performance Test")
+         return failed("Failed to run Performance Test")
 
-      return (True, None)
+      return passed()

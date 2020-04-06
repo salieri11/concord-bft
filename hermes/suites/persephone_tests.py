@@ -20,7 +20,7 @@ from util import auth, helper, infra, hermes_logging
 from util.daml import daml_helper
 from util.product import Product as Product
 from . import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 sys.path.append('lib')
 
 
@@ -43,8 +43,33 @@ class PersephoneTests(test_suite.TestSuite):
       self.concord_ips = []
       self.session_ids_to_retain = []
 
+
+   def _get_tests(self):
+      if self.args.tests is None or self.args.tests.lower() == "smoke":
+         return [
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
+         ]
+      elif self.args.tests.lower() == "all_tests":
+         return [
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
+            ("4_Node_DAML_committer_participant_CLOUD",
+             self._test_daml_committer_participant_deployment),
+            ("4_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_4_node_fixed_site),
+            ("7_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_7_node_fixed_site),
+            ("concurrent_deployments_fixed_site",
+             self._test_concurrent_deployments_fixed_site),
+            # ("concurrent_DAML_deployments_fixed_site",
+            #  self._test_concurrent_daml_deployments_fixed_site),
+         ] 
+
+
    def getName(self):
       return "PersephoneTests"
+
 
    def run(self):
       ''' Runs all of the tests. '''
@@ -89,11 +114,12 @@ class PersephoneTests(test_suite.TestSuite):
       for (testName, testFun) in tests:
          testLogDir = os.path.join(self._testLogDir, testName)
          try:
-            result, info = self._runTest(testName,
+            result, info, stackInfo = self._runTest(testName,
                                          testFun)
          except Exception as e:
             result = False
             info = str(e)
+            stackInfo = getStackInfo()
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 
@@ -105,7 +131,7 @@ class PersephoneTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       # Deploy a blockchain and verify IPAM
       fileRoot = os.path.join(self._testLogDir, "ethereum_deployment")
@@ -129,6 +155,28 @@ class PersephoneTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
       return super().run()
+
+
+   def _runTest(self, testName, testFun):
+      log.info("****************************************")
+      log.info("**** Starting test '{}' ****".format(testName))
+      fileRoot = os.path.join(self._testLogDir, testName)
+      os.makedirs(fileRoot, exist_ok=True)
+      self.args.fileRoot = fileRoot
+      if self.args.externalProvisioningServiceEndpoint:
+         log.info("**** Using External Provisioning Service Endpoint: {}".format(
+            self.args.externalProvisioningServiceEndpoint))
+
+      return testFun()
+
+
+
+
+   #=============================================================================================
+   #
+   #  Helper Functions
+   #
+   #=============================================================================================
 
    def update_provisioning_config_file(self, mode="UPDATE"):
       '''
@@ -208,96 +256,6 @@ class PersephoneTests(test_suite.TestSuite):
          log.error(traceback.format_exc())
          raise
 
-   def undeploy_blockchain_cluster(self):
-      '''
-      Undeploy all deployed blockchain clusters in PersephoneTests run
-      '''
-      log.info("****************************************")
-      log.info("**** Undeploy all created blockchain clusters ****")
-
-      undeployed_status = None
-      for deployment_info in self.rpc_test_helper.deployment_info:
-         session_id = deployment_info["deployment_session_id"]
-         stub = deployment_info["stub"]
-
-         cleaned_up = False
-         if session_id[0] not in self.session_ids_to_retain:
-            # gRPC call to Undeploy resources
-            log.info("Undeploying Session ID:\n{}".format(session_id[0]))
-            response = self.rpc_test_helper.rpc_update_deployment_session(
-               session_id[0],
-               action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
-               stub=stub)
-
-            max_timeout = 120 # seconds
-            sleep_time = 15 # seconds
-            start_time = time.time()
-            while ((time.time() - start_time) < max_timeout) and not cleaned_up:
-               events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-                  session_id[0], stub=stub)
-               response_events_json = helper.protobuf_message_to_json(events)
-               for event in response_events_json:
-                  if "RESOURCE_DEPROVISIONING" in event["type"]:
-                     # TODO: Add more validation to API response
-                     cleaned_up = True
-               log.info("Sleep for {} seconds and retry".format(sleep_time))
-               time.sleep(sleep_time)
-
-            if cleaned_up:
-               log.info("**** Deprovisioned Successfully")
-               if undeployed_status is None:
-                  undeployed_status = True
-            if not cleaned_up:
-               undeployed_status = False
-               log.info("**** Deprovisioning Failed!")
-            log.info("")
-         else:
-            log.info("Preserving Session ID:\n{}".format(session_id[0]))
-
-      if undeployed_status is None:
-         status_message = "No Session IDs to undeploy"
-         log.info(status_message)
-      elif undeployed_status:
-         status_message = "Undeployed all sessions Successfully!"
-         log.info(status_message)
-      else:
-         status_message = "Failed to Undeploy all Sessions"
-         log.error(status_message)
-      self.writeResult("Undeploy", undeployed_status, status_message)
-
-   def _runTest(self, testName, testFun):
-      log.info("****************************************")
-      log.info("**** Starting test '{}' ****".format(testName))
-      fileRoot = os.path.join(self._testLogDir, testName)
-      os.makedirs(fileRoot, exist_ok=True)
-      self.args.fileRoot = fileRoot
-      if self.args.externalProvisioningServiceEndpoint:
-         log.info("**** Using External Provisioning Service Endpoint: {}".format(
-            self.args.externalProvisioningServiceEndpoint))
-
-      return testFun()
-
-   def _get_tests(self):
-      if self.args.tests is None or self.args.tests.lower() == "smoke":
-         return [
-            ("7_Node_DAML_committer_participant_ON-PREM",
-             self._test_daml_committer_participant_7_node_onprem),
-         ]
-      elif self.args.tests.lower() == "all_tests":
-         return [
-            ("7_Node_DAML_committer_participant_ON-PREM",
-             self._test_daml_committer_participant_7_node_onprem),
-            ("4_Node_DAML_committer_participant_CLOUD",
-             self._test_daml_committer_participant_deployment),
-            ("4_Node_Blockchain_FIXED_Site",
-             self._test_create_blockchain_4_node_fixed_site),
-            ("7_Node_Blockchain_FIXED_Site",
-             self._test_create_blockchain_7_node_fixed_site),
-            ("concurrent_deployments_fixed_site",
-             self._test_concurrent_deployments_fixed_site),
-            # ("concurrent_DAML_deployments_fixed_site",
-            #  self._test_concurrent_daml_deployments_fixed_site),
-         ]
 
    def verify_ethrpc_block_0(self, concord_ip, ethrpc_port=443):
       '''
@@ -339,6 +297,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return False
 
+
    def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):
       '''
@@ -379,6 +338,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return True
 
+
    def add_ethrpc_port_forwarding(self, concord_ip, concord_username,
                                      concord_password, src_port=443, dest_port=8545):
       '''
@@ -400,77 +360,6 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.warning("Port 443 forwarding to {}:8545 - Failed".format(concord_ip))
 
-   def deploy_and_verify_ipam_on_4_node_fixed_site(self, cluster_size=4):
-      '''
-      Start another instance of provisioning service on a non-default port, and
-      perform a new deployment. After a successful deployment, SSH into all
-      concord nodes deployed via both instances of provisioning services and
-      check for the marker file (/tmp/<publicIP>)
-      :param cluster_size: Cluster size
-      :return: Status of IPAM verification
-      '''
-      log.info("****************************************")
-      log.info("**** Deploy & Verify concord nodes for IPAM ****")
-
-      status = False
-      msg = "Test Failed"
-      response_deployment_session_id = None
-      if self.concord_ips:
-         try:
-            import grpc
-            from vmware.blockchain.deployment.v1 import provisioning_service_pb2
-            from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
-
-            service_name = Product.PERSEPHONE_SERVICE_PROVISIONING_2
-            ports = helper.get_docker_compose_value(
-               self.args.dockerComposeFile, service_name, "ports")
-            port = ports[0].split(':')[0]
-            grpc_server = "localhost:{}".format(port)
-            channel = grpc.insecure_channel(grpc_server)
-            stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
-            log.info("Created gRPC channel/stub for 2nd instance of provisioning "
-                     "service: {}".format(grpc_server))
-
-            start_time = time.time()
-            log.info("Deployment Start Time: {}".format(start_time))
-            response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size, stub=stub)
-            if response:
-               response_session_id_json = helper.protobuf_message_to_json(response[0])
-               if "low" in response_session_id_json:
-                  response_deployment_session_id = response[0]
-
-                  events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-                     response_deployment_session_id, stub=stub)
-                  end_time = time.time()
-                  log.info("Deployment End Time: {}".format(end_time))
-                  log.info("**** Time taken for this deployment: {} mins".format(
-                     (end_time - start_time) / 60))
-
-                  if events:
-                     deployment_status, msg = self.perform_post_deployment_validations(
-                        events, cluster_size, response_deployment_session_id)
-                     if deployment_status:
-                        status, msg = self.verify_IPAM_configuration()
-                  else:
-                     msg = "Failed to fetch Deployment Events"
-                     log.error(msg)
-            else:
-               msg = "Failed to get a valid deployment session ID"
-               log.error(msg)
-         except Exception as e:
-            log.info("Error: {}".format(e))
-            msg = e
-      else:
-         msg = "No Deployments found from default provisioning service"
-         log.error(
-            "No Deployments found from default provisioning service. To verify "
-            "IPAM, enable one of the deployment tests hitting default "
-            "provisioning service (9001)")
-
-      self.parse_test_status(status, msg,
-                             deployment_session_id=response_deployment_session_id)
-      self.writeResult("ethereum_deployment", status, msg)
-      return
 
    def mark_node_as_logged_in(self, concord_ip, concord_username,
                                  concord_password, mode=None):
@@ -516,6 +405,236 @@ class PersephoneTests(test_suite.TestSuite):
       log.error(validation_message_fail)
       return False
 
+
+   def get_ethrpc_endpoints(self, response_events_json, concord_type):
+      '''
+      Get ethrpc endpoints from deployment events response
+      :param response_events_json: deployment events (JSON)
+      :param concord_type: Concord type (ethereum, DAML, etc)
+      :return: ethrpc endpoints (list)
+      '''
+
+      endpoint_id = "ethereum-rpc"
+      if concord_type == self.rpc_test_helper.CONCORD_TYPE_DAML:
+         endpoint_id = "daml-ledger-api"
+
+      ethrpc_endpoints = []
+      private_ips = []
+      try:
+         for event in response_events_json:
+            if event["type"] == "CLUSTER_DEPLOYED":
+               for member in event["cluster"]["info"]["members"]:
+                  # TODO: Add another validation to check "blockchainType"
+                  ethrpc_endpoints.append(
+                     member["hostInfo"]["endpoints"][endpoint_id]["url"])
+
+                  private_ip_in_decimal = list(member["hostInfo"]["ipv4AddressMap"].values())[0]
+                  private_ip = socket.inet_ntoa(struct.pack('!L', private_ip_in_decimal))
+                  private_ips.append(private_ip)
+      except KeyError as e:
+         log.error("ERROR fetching ethrpc endpoint: {}".format(e))
+
+      log.debug("ethrpc Endpoints: {}".format(ethrpc_endpoints))
+      return ethrpc_endpoints, private_ips
+
+   
+   def _stream_all_deployment_events(self):
+      '''
+      Stream all deployment events on a background thread
+      :return:
+      '''
+      log.info("****************************************")
+      log.info("**** Starting StreamAllDeploymentEvents Thread ****")
+
+      self.background_thread = threading.Thread(
+         target=self._thread_stream_all_deployment_events,
+         name="StreamAllDeploymentEvents")
+      self.background_thread.start()
+   
+
+
+
+
+   #=============================================================================================
+   #
+   #  Advanced Helper Functions
+   #
+   #=============================================================================================
+
+   def parse_test_status(self, status, msg, stackInfo, deployment_session_id=None):
+      '''
+      Parse the test status to determine Blockchain node/replica's retention policy
+      :param status: test status
+      :param msg: test status description
+      :param deployment_session_id: deployment session ID (if exists)
+      :return: test status, test status description
+      '''
+      if deployment_session_id:
+         if (self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ALWAYS) or (
+               self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ON_FAILURE
+               and (not status)):
+            log.info("Adding Session ID to preserve list: \n{}".format(
+               deployment_session_id))
+            self.session_ids_to_retain.append(deployment_session_id)
+
+         # Create support bundle
+         if not status:
+            for deployment_info in self.rpc_test_helper.deployment_info:
+               if deployment_info["deployment_session_id"][0] == deployment_session_id:
+                  if "replicas" in deployment_info and deployment_info["replicas"]:
+                     log.debug(
+                        "Call to create support-bundle for session ID: {}".format(
+                           deployment_session_id))
+                     helper.create_concord_support_bundle(
+                                             deployment_info["replicas"],
+                                             deployment_info["concord_type"],
+                                             deployment_info["log_dir"])
+                  else:
+                     log.info("No replicas found to get support logs")
+
+      return (status, msg, stackInfo)
+
+
+   def undeploy_blockchain_cluster(self):
+      '''
+      Undeploy all deployed blockchain clusters in PersephoneTests run
+      '''
+      log.info("****************************************")
+      log.info("**** Undeploy all created blockchain clusters ****")
+
+      undeployed_status = None
+      stackInfo = getStackInfo()
+      for deployment_info in self.rpc_test_helper.deployment_info:
+         session_id = deployment_info["deployment_session_id"]
+         stub = deployment_info["stub"]
+
+         cleaned_up = False
+         if session_id[0] not in self.session_ids_to_retain:
+            # gRPC call to Undeploy resources
+            log.info("Undeploying Session ID:\n{}".format(session_id[0]))
+            response = self.rpc_test_helper.rpc_update_deployment_session(
+               session_id[0],
+               action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
+               stub=stub)
+
+            max_timeout = 120 # seconds
+            sleep_time = 15 # seconds
+            start_time = time.time()
+            while ((time.time() - start_time) < max_timeout) and not cleaned_up:
+               events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+                  session_id[0], stub=stub)
+               response_events_json = helper.protobuf_message_to_json(events)
+               for event in response_events_json:
+                  if "RESOURCE_DEPROVISIONING" in event["type"]:
+                     # TODO: Add more validation to API response
+                     cleaned_up = True
+               log.info("Sleep for {} seconds and retry".format(sleep_time))
+               time.sleep(sleep_time)
+
+            if cleaned_up:
+               log.info("**** Deprovisioned Successfully")
+               if undeployed_status is None:
+                  undeployed_status = True
+            if not cleaned_up:
+               undeployed_status = False
+               log.info("**** Deprovisioning Failed!")
+            log.info("")
+         else:
+            log.info("Preserving Session ID:\n{}".format(session_id[0]))
+
+      if undeployed_status is None:
+         status_message = "No Session IDs to undeploy"
+         stackInfo = getStackInfo()
+         log.info(status_message)
+      elif undeployed_status:
+         status_message = "Undeployed all sessions Successfully!"
+         stackInfo = getStackInfo()
+         log.info(status_message)
+      else:
+         status_message = "Failed to Undeploy all Sessions"
+         stackInfo = getStackInfo()
+         log.error(status_message)
+      self.writeResult("Undeploy", undeployed_status, status_message, stackInfo)
+
+
+   def deploy_and_verify_ipam_on_4_node_fixed_site(self, cluster_size=4):
+      '''
+      Start another instance of provisioning service on a non-default port, and
+      perform a new deployment. After a successful deployment, SSH into all
+      concord nodes deployed via both instances of provisioning services and
+      check for the marker file (/tmp/<publicIP>)
+      :param cluster_size: Cluster size
+      :return: Status of IPAM verification
+      '''
+      log.info("****************************************")
+      log.info("**** Deploy & Verify concord nodes for IPAM ****")
+
+      status = False
+      msg = "Test Failed"
+      stackInfo = getStackInfo()
+      response_deployment_session_id = None
+      if self.concord_ips:
+         try:
+            import grpc
+            from vmware.blockchain.deployment.v1 import provisioning_service_pb2
+            from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
+
+            service_name = Product.PERSEPHONE_SERVICE_PROVISIONING_2
+            ports = helper.get_docker_compose_value(
+               self.args.dockerComposeFile, service_name, "ports")
+            port = ports[0].split(':')[0]
+            grpc_server = "localhost:{}".format(port)
+            channel = grpc.insecure_channel(grpc_server)
+            stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
+            log.info("Created gRPC channel/stub for 2nd instance of provisioning "
+                     "service: {}".format(grpc_server))
+
+            start_time = time.time()
+            log.info("Deployment Start Time: {}".format(start_time))
+            response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size, stub=stub)
+            if response:
+               response_session_id_json = helper.protobuf_message_to_json(response[0])
+               if "low" in response_session_id_json:
+                  response_deployment_session_id = response[0]
+
+                  events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+                     response_deployment_session_id, stub=stub)
+                  end_time = time.time()
+                  log.info("Deployment End Time: {}".format(end_time))
+                  log.info("**** Time taken for this deployment: {} mins".format(
+                     (end_time - start_time) / 60))
+
+                  if events:
+                     deployment_status, msg, stackInfo = self.perform_post_deployment_validations(
+                        events, cluster_size, response_deployment_session_id)
+                     if deployment_status:
+                        status, msg, stackInfo = self.verify_IPAM_configuration()
+                  else:
+                     msg = "Failed to fetch Deployment Events"
+                     stackInfo = getStackInfo()
+                     log.error(msg)
+            else:
+               msg = "Failed to get a valid deployment session ID"
+               stackInfo = getStackInfo()
+               log.error(msg)
+         except Exception as e:
+            log.info("Error: {}".format(e))
+            stackInfo = getStackInfo()
+            msg = e
+      else:
+         msg = "No Deployments found from default provisioning service"
+         stackInfo = getStackInfo()
+         log.error(
+            "No Deployments found from default provisioning service. To verify "
+            "IPAM, enable one of the deployment tests hitting default "
+            "provisioning service (9001)")
+
+      self.parse_test_status(status, msg, stackInfo,
+                             deployment_session_id=response_deployment_session_id)
+      self.writeResult("ethereum_deployment", status, msg, stackInfo)
+      return
+
+
    def verify_IPAM_configuration(self):
       '''
       Helper method to verify IPAM configuration by doing SSH into all concord
@@ -537,11 +656,12 @@ class PersephoneTests(test_suite.TestSuite):
                                             mode="VERIFY_IPAM"):
             status_message = "IPAM test - Failed"
             log.error(status_message)
-            return False, status_message
+            return failed(status_message)
 
       status_message = "IPAM test - PASS"
       log.info(status_message)
-      return True, status_message
+      return passed(status_message)
+
 
    def perform_post_deployment_validations(self, events, cluster_size,
                                            session_id=None,
@@ -646,13 +766,13 @@ class PersephoneTests(test_suite.TestSuite):
                if not verify_ssh_connection:
                   log.error(
                      "SSH not enabled within {} mins".format(max_timeout / 60))
-                  return (False, "SSH not enabled within {} mins".format(
+                  return failed("SSH not enabled within {} mins".format(
                      max_timeout / 60))
 
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
                else:
-                  return (False,
+                  return failed(
                           "Failed creating marker file on node '{}'".format(
                              concord_ip))
 
@@ -682,7 +802,7 @@ class PersephoneTests(test_suite.TestSuite):
                            log.error(
                               "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
-                           return (False,
+                           return failed(
                                    "Not all containers are up and running on node")
                         else:
                            log.warning(
@@ -711,7 +831,7 @@ class PersephoneTests(test_suite.TestSuite):
                      log.error(
                         "Ethrpc (get Block 0) Validation ({})- FAIL".format(
                            concord_ip))
-                     return (False, "Ethrpc (get Block 0) Validation - FAILED")
+                     return failed("Ethrpc (get Block 0) Validation - FAILED")
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
                   if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
@@ -729,188 +849,19 @@ class PersephoneTests(test_suite.TestSuite):
                            log.info("dar upload/verification passed.")
                         except Exception as e:
                            log.error(e)
-                           return (False, "dar upload/verification failed")
+                           return failed("dar upload/verification failed")
                      else:
                         log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
-                        return (False, "DAML Connectivity - FAILED")
+                        return failed("DAML Connectivity - FAILED")
 
             log.info("All post deployment sanity checks are successful")
-            return (True, None)
+            return passed()
          else:
             log.error("{} ethrpc endpoint not fetched".format(cluster_size))
-            return (False, "ethrpc endpoint not fetched")
+            return failed("ethrpc endpoint not fetched")
       else:
-         return (False, "Deployment Event validation Failed")
+         return failed("Deployment Event validation Failed")
 
-   def get_ethrpc_endpoints(self, response_events_json, concord_type):
-      '''
-      Get ethrpc endpoints from deployment events response
-      :param response_events_json: deployment events (JSON)
-      :param concord_type: Concord type (ethereum, DAML, etc)
-      :return: ethrpc endpoints (list)
-      '''
-
-      endpoint_id = "ethereum-rpc"
-      if concord_type == self.rpc_test_helper.CONCORD_TYPE_DAML:
-         endpoint_id = "daml-ledger-api"
-
-      ethrpc_endpoints = []
-      private_ips = []
-      try:
-         for event in response_events_json:
-            if event["type"] == "CLUSTER_DEPLOYED":
-               for member in event["cluster"]["info"]["members"]:
-                  # TODO: Add another validation to check "blockchainType"
-                  ethrpc_endpoints.append(
-                     member["hostInfo"]["endpoints"][endpoint_id]["url"])
-
-                  private_ip_in_decimal = list(member["hostInfo"]["ipv4AddressMap"].values())[0]
-                  private_ip = socket.inet_ntoa(struct.pack('!L', private_ip_in_decimal))
-                  private_ips.append(private_ip)
-      except KeyError as e:
-         log.error("ERROR fetching ethrpc endpoint: {}".format(e))
-
-      log.debug("ethrpc Endpoints: {}".format(ethrpc_endpoints))
-      return ethrpc_endpoints, private_ips
-
-   def parse_test_status(self, status, msg, deployment_session_id=None):
-      '''
-      Parse the test status to determine Blockchain node/replica's retention policy
-      :param status: test status
-      :param msg: test status description
-      :param deployment_session_id: deployment session ID (if exists)
-      :return: test status, test status description
-      '''
-      if deployment_session_id:
-         if (self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ALWAYS) or (
-               self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ON_FAILURE
-               and (not status)):
-            log.info("Adding Session ID to preserve list: \n{}".format(
-               deployment_session_id))
-            self.session_ids_to_retain.append(deployment_session_id)
-
-         # Create support bundle
-         if not status:
-            for deployment_info in self.rpc_test_helper.deployment_info:
-               if deployment_info["deployment_session_id"][0] == deployment_session_id:
-                  if "replicas" in deployment_info and deployment_info["replicas"]:
-                     log.debug(
-                        "Call to create support-bundle for session ID: {}".format(
-                           deployment_session_id))
-                     helper.create_concord_support_bundle(
-                                             deployment_info["replicas"],
-                                             deployment_info["concord_type"],
-                                             deployment_info["log_dir"])
-                  else:
-                     log.info("No replicas found to get support logs")
-
-      return (status, msg)
-
-
-   @describe()
-   def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
-      '''
-      Test to create a blockchain cluster with 4 nodes on FIXED sites
-      :param cluster_size: No. of concord nodes on the cluster
-      '''
-
-      start_time = time.time()
-      log.info("Deployment Start Time: {}".format(start_time))
-      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
-      if response:
-         response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
-            response_deployment_session_id = response[0]
-
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               response_deployment_session_id)
-            end_time = time.time()
-            log.info("Deployment End Time: {}".format(end_time))
-            log.info("**** Time taken for this deployment: {} mins".format(
-               (end_time - start_time) / 60))
-
-            if events:
-               status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size,
-                                                                      response_deployment_session_id)
-               return self.parse_test_status(status, msg,
-                                             deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False,
-                                          "Failed to fetch Deployment Events",
-                                          deployment_session_id=response_deployment_session_id)
-
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
-
-   @describe()
-   def _test_create_daml_blockchain_7_node_fixed_site(self, cluster_size=7):
-      '''
-      Test to create a blockchain cluster with 7 DAML nodes on FIXED sites
-      :param cluster_size: No. of concord nodes on the cluster
-      '''
-      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
-
-      start_time = time.time()
-      log.info("Deployment Start Time: {}".format(start_time))
-      response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=cluster_size,
-         concord_type=concord_type)
-      if response:
-         response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
-            response_deployment_session_id = response[0]
-
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               response_deployment_session_id)
-            end_time = time.time()
-            log.info("Deployment End Time: {}".format(end_time))
-            log.info("**** Time taken for this deployment: {} mins".format(
-               (end_time - start_time) / 60))
-
-            if events:
-               status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size,
-                                                                      response_deployment_session_id,
-                                                                      concord_type=concord_type)
-               return self.parse_test_status(status, msg,
-                                             deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False, "Failed to fetch Deployment Events",
-                                          deployment_session_id=response_deployment_session_id)
-
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
-
-   @describe()
-   def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):
-      '''
-      Test to create a blockchain cluster with 7 nodes on FIXED sites
-      :param cluster_size: No. of concord nodes on the cluster
-      '''
-
-      start_time = time.time()
-      log.info("Deployment Start Time: {}".format(start_time))
-      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
-      if response:
-         response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
-            response_deployment_session_id = response[0]
-
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               response_deployment_session_id)
-            end_time = time.time()
-            log.info("Deployment End Time: {}".format(end_time))
-            log.info("**** Time taken for this deployment: {} mins".format(
-               (end_time - start_time) / 60))
-
-            if events:
-               status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size,
-                                                                      response_deployment_session_id)
-               return self.parse_test_status(status, msg,
-                                             deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False,
-                                          "Failed to fetch Deployment Events",
-                                          deployment_session_id=response_deployment_session_id)
-
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    def _thread_deploy_blockchain_cluster(self, cluster_size, placement_type,
                                          result_queue, concord_type=None):
@@ -943,7 +894,7 @@ class PersephoneTests(test_suite.TestSuite):
                "**** Thread '{}' Time taken for this deployment: {} mins".format(
                   thread_name, (end_time - start_time) / 60))
             if events:
-               status, msg = self.perform_post_deployment_validations(events,
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id,
                                                                       concord_type=concord_type)
@@ -955,19 +906,287 @@ class PersephoneTests(test_suite.TestSuite):
                   log.info(
                      "Thread {}: Post Deployment Failed".format(thread_name))
 
-               self.parse_test_status(status, msg,
+               self.parse_test_status(status, msg, stackInfo,
                                       deployment_session_id=response_deployment_session_id)
                result_queue.put([status, msg])
             else:
-               self.parse_test_status(status, msg,
+               self.parse_test_status(status, msg, getStackInfo(),
                                       deployment_session_id=response_deployment_session_id)
-               result_queue.put([False, "Failed to fetch Deployment Events"])
+               result_queue.put([False, "Failed to fetch Deployment Events", getStackInfo()])
 
       else:
-         result_queue.put([False, "Failed to get a valid deployment session ID"])
+         result_queue.put([False, "Failed to get a valid deployment session ID", getStackInfo()])
 
       log.info("Thread {}: Deployment Status '{}' put in request queue".format(
          thread_name, status))
+
+
+   def _thread_stream_all_deployment_events(self):
+      '''
+      Call gRPC to stream all deployment events since the start of provisioning
+      service
+      '''
+      status = None
+      status_message = "Skipped"
+      stackInfo = getStackInfo()
+      all_events = self.rpc_test_helper.rpc_stream_all_cluster_deployment_session_events()
+      # sleep before parsing the stream
+      time.sleep(2)
+
+      if all_events:
+         all_deployment_session_ids_from_stream = []
+         all_events = helper.protobuf_message_to_json(all_events)
+         for event in all_events:
+            if "COMPLETED" in event["type"]:
+               all_deployment_session_ids_from_stream.append(event["session"])
+         log.info("List of all session IDs from stream: {}".format(
+            all_deployment_session_ids_from_stream))
+
+         status = False
+         for deployment_info in self.rpc_test_helper.deployment_info:
+            session_id = deployment_info["deployment_session_id"]
+            stub = deployment_info["stub"]
+
+            if stub is None: # check for default channel/stub only
+               if helper.protobuf_message_to_json(
+                     session_id[0]) in all_deployment_session_ids_from_stream:
+                  status = True
+                  status_message = "Fetched all deployment Events Successfully!"
+                  stackInfo = getStackInfo()
+               else:
+                  status = False
+                  status_message = "Failed to fetch All Deployment Events"
+                  stackInfo = getStackInfo()
+                  break
+      self.writeResult("StreamAllDeploymentEvents", status, status_message, stackInfo)
+
+
+   def deploy_daml_committer_node(self, cluster_size=4, zone_type=helper.LOCATION_SDDC):
+      '''
+      Deploy DAML committer nodes
+      :param cluster_size: No. of nodes on the cluster
+      '''
+      log.info("")
+      log.info("**** Deploying committer node(s)...")
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+      node_type = self.rpc_test_helper.NODE_TYPE_COMMITTER
+      replicas = None
+      stackInfo = getStackInfo()
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type,
+         node_type=node_type,
+         zone_type=zone_type)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type,
+                                                                      node_type=node_type)
+               if status:
+                  for deployment_info in self.rpc_test_helper.deployment_info:
+                     if deployment_info["deployment_session_id"][
+                        0] == response_deployment_session_id:
+                        if "private_ips" in deployment_info and deployment_info[
+                           "private_ips"]:
+                           replicas = deployment_info["private_ips"]
+
+               status, msg, stackInfo = self.parse_test_status(status, msg, stackInfo,
+                                             deployment_session_id=response_deployment_session_id)
+               return (status, msg, stackInfo, replicas, response_deployment_session_id)
+            status, msg, stackInfo = self.parse_test_status(False, "Failed to fetch Deployment Events", getStackInfo(),
+                                          deployment_session_id=response_deployment_session_id)
+            return (status, msg, stackInfo, replicas, None)
+
+      status, msg, stackInfo = self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
+      return (status, msg, stackInfo, replicas, None)
+
+
+   def deploy_daml_participant_node(self, cluster_size=1, committers_session_id=None,
+                                    replicas=None, zone_type=helper.LOCATION_SDDC):
+      '''
+      Deploy DAML participant node
+      :param cluster_size: No. of nodes on the cluster
+      :param replicas: List of replicas (committers)
+      '''
+      log.info("")
+      log.info("**** Deploying participant node...")
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+      node_type = self.rpc_test_helper.NODE_TYPE_PARTICIPANT
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type,
+         node_type=node_type,
+         zone_type=zone_type,
+         replicas=replicas)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type,
+                                                                      node_type=node_type)
+               if not status:
+                  log.info(
+                     "Collecting support logs from committer nodes : {}".format(
+                        replicas))
+                  self.parse_test_status(status, "Support logs from committers", stackInfo,
+                                      deployment_session_id=committers_session_id)
+               return self.parse_test_status(status, msg, getStackInfo(),
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False, "Failed to fetch Deployment Events", getStackInfo(),
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
+
+
+
+   
+
+   #=============================================================================================
+   #
+   #  Actual Test Functions
+   #
+   #=============================================================================================
+
+   @describe()
+   def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
+      '''
+      Test to create a blockchain cluster with 4 nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
+               return self.parse_test_status(status, msg, stackInfo,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False,
+                                          "Failed to fetch Deployment Events",
+                                          getStackInfo(),
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
+
+
+   @describe()
+   def _test_create_daml_blockchain_7_node_fixed_site(self, cluster_size=7):
+      '''
+      Test to create a blockchain cluster with 7 DAML nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type)
+               return self.parse_test_status(status, msg, stackInfo,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False, "Failed to fetch Deployment Events", getStackInfo(),
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
+
+
+   @describe()
+   def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):
+      '''
+      Test to create a blockchain cluster with 7 nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
+               return self.parse_test_status(status, msg, stackInfo,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False,
+                                          "Failed to fetch Deployment Events",
+                                          getStackInfo(),
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
+
 
    @describe()
    def _test_concurrent_deployments_fixed_site(self, cluster_1_size=4,
@@ -1013,60 +1232,11 @@ class PersephoneTests(test_suite.TestSuite):
 
       if overall_status:
          log.info("Concurrent Deployments: Completed Successfully")
-         return (True, None)
+         return passed()
       else:
          log.error("Concurrent Deployments: Failed")
-         return (False, "Failed to deploy concurrent Clusters")
+         return failed("Failed to deploy concurrent Clusters")
 
-
-   def _thread_stream_all_deployment_events(self):
-      '''
-      Call gRPC to stream all deployment events since the start of provisioning
-      service
-      '''
-      status = None
-      status_message = "Skipped"
-      all_events = self.rpc_test_helper.rpc_stream_all_cluster_deployment_session_events()
-      # sleep before parsing the stream
-      time.sleep(2)
-
-      if all_events:
-         all_deployment_session_ids_from_stream = []
-         all_events = helper.protobuf_message_to_json(all_events)
-         for event in all_events:
-            if "COMPLETED" in event["type"]:
-               all_deployment_session_ids_from_stream.append(event["session"])
-         log.info("List of all session IDs from stream: {}".format(
-            all_deployment_session_ids_from_stream))
-
-         status = False
-         for deployment_info in self.rpc_test_helper.deployment_info:
-            session_id = deployment_info["deployment_session_id"]
-            stub = deployment_info["stub"]
-
-            if stub is None: # check for default channel/stub only
-               if helper.protobuf_message_to_json(
-                     session_id[0]) in all_deployment_session_ids_from_stream:
-                  status = True
-                  status_message = "Fetched all deployment Events Successfully!"
-               else:
-                  status = False
-                  status_message = "Failed to fetch All Deployment Events"
-                  break
-      self.writeResult("StreamAllDeploymentEvents", status, status_message)
-
-   def _stream_all_deployment_events(self):
-      '''
-      Stream all deployment events on a background thread
-      :return:
-      '''
-      log.info("****************************************")
-      log.info("**** Starting StreamAllDeploymentEvents Thread ****")
-
-      self.background_thread = threading.Thread(
-         target=self._thread_stream_all_deployment_events,
-         name="StreamAllDeploymentEvents")
-      self.background_thread.start()
 
    @describe()
    def _test_concurrent_daml_deployments_fixed_site(self, cluster_1_size=4,
@@ -1113,10 +1283,11 @@ class PersephoneTests(test_suite.TestSuite):
 
       if overall_status:
          log.info("Concurrent Deployments: Completed Successfully")
-         return (True, None)
+         return passed()
       else:
          log.error("Concurrent Deployments: Failed")
-         return (False, "Failed to deploy concurrent Clusters")
+         return failed("Failed to deploy concurrent Clusters")
+
 
    @describe()
    def _test_create_daml_blockchain_7_node_onprem(self, cluster_size=7):
@@ -1145,121 +1316,17 @@ class PersephoneTests(test_suite.TestSuite):
                (end_time - start_time) / 60))
 
             if events:
-               status, msg = self.perform_post_deployment_validations(events,
+               status, msg, stackInfo = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id,
                                                                       concord_type=concord_type)
-               return self.parse_test_status(status, msg,
+               return self.parse_test_status(status, msg, stackInfo,
                                              deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False, "Failed to fetch Deployment Events",
+            return self.parse_test_status(False, "Failed to fetch Deployment Events", getStackInfo(),
                                           deployment_session_id=response_deployment_session_id)
 
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID", getStackInfo())
 
-   def deploy_daml_committer_node(self, cluster_size=4, zone_type=helper.LOCATION_SDDC):
-      '''
-      Deploy DAML committer nodes
-      :param cluster_size: No. of nodes on the cluster
-      '''
-      log.info("")
-      log.info("**** Deploying committer node(s)...")
-      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
-      node_type = self.rpc_test_helper.NODE_TYPE_COMMITTER
-      replicas = None
-
-      start_time = time.time()
-      log.info("Deployment Start Time: {}".format(start_time))
-      response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=cluster_size,
-         concord_type=concord_type,
-         node_type=node_type,
-         zone_type=zone_type)
-      if response:
-         response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
-            response_deployment_session_id = response[0]
-
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               response_deployment_session_id)
-            end_time = time.time()
-            log.info("Deployment End Time: {}".format(end_time))
-            log.info("**** Time taken for this deployment: {} mins".format(
-               (end_time - start_time) / 60))
-
-            if events:
-               status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size,
-                                                                      response_deployment_session_id,
-                                                                      concord_type=concord_type,
-                                                                      node_type=node_type)
-               if status:
-                  for deployment_info in self.rpc_test_helper.deployment_info:
-                     if deployment_info["deployment_session_id"][
-                        0] == response_deployment_session_id:
-                        if "private_ips" in deployment_info and deployment_info[
-                           "private_ips"]:
-                           replicas = deployment_info["private_ips"]
-
-               status, msg = self.parse_test_status(status, msg,
-                                             deployment_session_id=response_deployment_session_id)
-               return status, msg, replicas, response_deployment_session_id
-            status, msg = self.parse_test_status(False, "Failed to fetch Deployment Events",
-                                          deployment_session_id=response_deployment_session_id)
-            return status, msg, replicas, None
-
-      status, msg = self.parse_test_status(False, "Failed to get a valid deployment session ID")
-      return status, msg, replicas, None
-
-   def deploy_daml_participant_node(self, cluster_size=1, committers_session_id=None,
-                                    replicas=None, zone_type=helper.LOCATION_SDDC):
-      '''
-      Deploy DAML participant node
-      :param cluster_size: No. of nodes on the cluster
-      :param replicas: List of replicas (committers)
-      '''
-      log.info("")
-      log.info("**** Deploying participant node...")
-      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
-      node_type = self.rpc_test_helper.NODE_TYPE_PARTICIPANT
-
-      start_time = time.time()
-      log.info("Deployment Start Time: {}".format(start_time))
-      response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=cluster_size,
-         concord_type=concord_type,
-         node_type=node_type,
-         zone_type=zone_type,
-         replicas=replicas)
-      if response:
-         response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
-            response_deployment_session_id = response[0]
-
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               response_deployment_session_id)
-            end_time = time.time()
-            log.info("Deployment End Time: {}".format(end_time))
-            log.info("**** Time taken for this deployment: {} mins".format(
-               (end_time - start_time) / 60))
-
-            if events:
-               status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size,
-                                                                      response_deployment_session_id,
-                                                                      concord_type=concord_type,
-                                                                      node_type=node_type)
-               if not status:
-                  log.info(
-                     "Collecting support logs from committer nodes : {}".format(
-                        replicas))
-                  self.parse_test_status(status, "Support logs from committers",
-                                      deployment_session_id=committers_session_id)
-               return self.parse_test_status(status, msg,
-                                             deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False, "Failed to fetch Deployment Events",
-                                          deployment_session_id=response_deployment_session_id)
-
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    @describe()
    def _test_daml_committer_participant_4_node_onprem(self,
@@ -1270,11 +1337,11 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
+      status, msg, stackInfo, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
-         status, msg = self.deploy_daml_participant_node(
+         status, msg, stackInfo = self.deploy_daml_participant_node(
             cluster_size=participant_nodes,
             committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
@@ -1285,7 +1352,8 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.error("Failed to deploy committer nodes")
 
-      return status,msg
+      return (status, msg, stackInfo)
+
 
    @describe()
    def _test_daml_committer_participant_7_node_onprem(self,
@@ -1296,11 +1364,11 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
+      status, msg, stackInfo, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
-         status, msg = self.deploy_daml_participant_node(
+         status, msg, stackInfo = self.deploy_daml_participant_node(
             cluster_size=participant_nodes,
             committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
@@ -1311,7 +1379,8 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.error("Failed to deploy committer nodes")
 
-      return status,msg
+      return (status, msg, stackInfo)
+
 
    @describe()
    def _test_daml_committer_participant_deployment(self, committer_nodes=7,
@@ -1321,11 +1390,11 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
+      status, msg, stackInfo, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
-         status, msg = self.deploy_daml_participant_node(
+         status, msg, stackInfo = self.deploy_daml_participant_node(
             cluster_size=participant_nodes,
             committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
@@ -1336,4 +1405,5 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.error("Failed to deploy committer nodes")
 
-      return status,msg
+      return (status, msg, stackInfo)
+

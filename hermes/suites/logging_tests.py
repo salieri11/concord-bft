@@ -14,7 +14,7 @@ import requests
 import json
 import time
 
-from suites.cases import describe
+from suites.case import describe
 from uuid import UUID
 from datetime import datetime, timedelta
 from util.daml import daml_helper

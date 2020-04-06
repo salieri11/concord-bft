@@ -38,6 +38,9 @@ else:
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
 
+# Command line args in dictionary format, set by `main.py` after argparse
+CMDLINE_ARGS = {}
+
 # The config file contains information about how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
@@ -109,8 +112,14 @@ JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchai
 }
 JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
 
-# Current suite name set by main.py
+# Current suite name and log path set by `main.py`
 CURRENT_SUITE_NAME = ""
+CURRENT_SUITE_LOG_FILE = ""
+
+# Hermes-specific traces for NON-CRITICAL exceptions (avoiding log file contamination)
+# e.g. exceptions that are good to know but does not belong in product & test logs
+# e.g. Racetrack/wavefront report failure: doesn't affect test, but should be logged somewhere else
+NON_CRITICAL_HERMES_EXCEPTIONS = []
 
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
@@ -846,11 +855,12 @@ def loadConfigFile(args=None, filepath=None):
       configObject["ethereum"]["testRoot"] = \
          os.path.expanduser(configObject["ethereum"]["testRoot"])
 
-   # Jenkins JOB_NAME containing slashes were replaced with ___; bring slashes back.
+   # Jenkins JOB_NAME & WORKSPACE containing slashes were replaced with ___; bring slashes back.
    #    More info: see MR !1324
    if "metainf" in configObject:
-      configObject["metainf"]["env"]["jobName"] = \
-          configObject["metainf"]["env"]["jobName"].replace("___", "/")
+      envObject = configObject["metainf"]["env"]
+      envObject["jobName"] = envObject["jobName"].replace("___", "/")
+      envObject["workspace"] = envObject["workspace"].replace("___", "/")
 
    CONFIG_CACHED['data'] = configObject
 
@@ -1082,8 +1092,27 @@ def jenkinsRunTypeIs(runTypeInfoA):
   return runTypeInfoA["type"] == runTypeInfoB["type"]
 
 
+def getJenkinsWorkspace():
+  try:
+    if os.getenv("WORKSPACE"): return os.getenv("WORKSPACE")
+    else:
+      workspaceFromUserConfig = getUserConfig()["metainf"]["env"]["workspace"]
+      if not workspaceFromUserConfig.startswith("<"):
+        return workspaceFromUserConfig
+    return ""
+  except Exception as e:
+    return ""
+
+
 def thisHermesIsFromJenkins():
   return getJenkinsJobNameAndBuildNumber()["jobName"] != "None"
+
+
+def hermesNonCriticalTrace(e, message=None):
+  NON_CRITICAL_HERMES_EXCEPTIONS.append({
+    "error": e,
+    "message": message
+  })
 
 
 def installHealthDaemon(replicas):

@@ -14,6 +14,7 @@ from abc import abstractmethod
 from enum import Enum
 from web3 import Web3, HTTPProvider
 from requests.auth import HTTPBasicAuth
+from suites.case import describe, passed, failed, getStackInfo
 
 from util import helper
 from util.blockchain import eth as eth_helper
@@ -104,7 +105,7 @@ class TestSuite(ABC):
       '''
       return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
 
-   def writeResult(self, testName, result, info):
+   def writeResult(self, testName, result, info, stackInfo=None):
       '''
       We're going to write the full result or skipped test set to json for each
       test so that we have a valid result structure even if things die partway
@@ -112,6 +113,8 @@ class TestSuite(ABC):
       '''
       tempFile = self._resultFile + "_temp"
       realFile = self._resultFile
+      if stackInfo is None:
+        stackInfo = getStackInfo()
 
       if result == True:
          result = "PASS"
@@ -144,7 +147,7 @@ class TestSuite(ABC):
          }
 
       with open(tempFile, "w") as f:
-         f.write(json.dumps(self._results, indent=4))
+         f.write(json.dumps(self._results, indent=4, default=str))
 
       os.rename(tempFile, realFile)
 
@@ -175,7 +178,7 @@ class TestSuite(ABC):
             return True
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.")
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
             raise ProductLaunchException(str(e), self._resultFile)
 
 
@@ -225,7 +228,7 @@ class TestSuite(ABC):
             self.product.launchPersephone()
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.")
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
             raise(e)
 
    def getWeb3Instance(self):

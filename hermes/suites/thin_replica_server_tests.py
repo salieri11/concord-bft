@@ -18,7 +18,7 @@ import subprocess
 import os
 import pytest
 import itertools
-from suites.cases import describe
+from suites.case import describe
 
 import util.daml.upload_dar as darutil
 import util.helper as helper

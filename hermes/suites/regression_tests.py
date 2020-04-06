@@ -26,7 +26,7 @@ import util.json_helper
 from rest.request import Request
 from datetime import datetime
 from web3 import Web3
-from suites.cases import describe
+from suites.case import describe, passed, failed, getStackInfo
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -90,12 +90,13 @@ class RegressionTests(test_suite.TestSuite):
          self.setEthrpcNode(request, blockchainId)
 
          try:
-            result, info = self._runRpcTest(testName,
+            result, info, stackInfo = self._runRpcTest(testName,
                                             testFun,
                                             testLogDir)
          except Exception as e:
             result = False
             info = str(e) + "\n" + traceback.format_exc()
+            stackInfo = getStackInfo()
             log.error("Exception running RPC test: '{}'".format(info))
 
          if info:
@@ -106,7 +107,7 @@ class RegressionTests(test_suite.TestSuite):
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+         self.writeResult(testName, result, info, stackInfo)
 
       log.info("Tests are done.")
       return super().run()
@@ -176,10 +177,10 @@ class RegressionTests(test_suite.TestSuite):
          if txHash:
             txReceipt = rpc.getTransactionReceipt(txHash)
             if (txReceipt['status'] == '0x1' and txReceipt['contractAddress']):
-               return (True, None)
+               return passed()
             else:
-               return (False, "Transaction was not successful")
-         return (False, "Transaction hash not received")
+               return failed("Transaction was not successful")
+         return failed("Transaction hash not received")
 
 
       else:
@@ -212,7 +213,7 @@ class RegressionTests(test_suite.TestSuite):
 
                # This call should fail. If it gets here, we probably
                # silently discarded address bytes.
-               return (False, "Invalid address allowed from=%s, to=%s" % (f, s))
+               return failed("Invalid address allowed from=%s, to=%s" % (f, s))
             except:
                # Receiving an error message will arrive here. An error is
                # fine - we just need to make sure that concord is still up
@@ -224,9 +225,9 @@ class RegressionTests(test_suite.TestSuite):
          if txHash:
             # we don't actually care if that transaction worked - just
             # that concord was alive to give us the hash for it
-            return (True, None)
+            return passed()
 
-         return (False, "No transaction hash was returned")
+         return failed("No transaction hash was returned")
 
       else:
          #Skip the test if running in Ethereum mode
@@ -257,7 +258,7 @@ class RegressionTests(test_suite.TestSuite):
                                                 callData)
                   # this call should actually fail, because the
                   # contract tried to write data
-                  return (False, "Contract call was allowed to write data")
+                  return failed("Contract call was allowed to write data")
                except:
                   pass
 
@@ -274,16 +275,16 @@ class RegressionTests(test_suite.TestSuite):
                      value = rpc.getStorageAt(txReceipt['contractAddress'], "0x00")
                      # "2" == length of sendData
                      if (value == "0x0000000000000000000000000000000000000000000000000000000000000002"):
-                        return (True, None)
+                        return passed()
                      else:
-                        return (False, "Contract did not store correct data")
+                        return failed("Contract did not store correct data")
                   else:
-                     return (False, "Contract send transaction failed")
+                     return failed("Contract send transaction failed")
                else:
-                  return (False, "Contract send transaction failed")
+                  return failed("Contract send transaction failed")
             else:
-               return (False, "Contract creation failed")
-         return (False, "Contract transaction hash not received")
+               return failed("Contract creation failed")
+         return failed("Contract transaction hash not received")
 
       else:
          #Skip the test if running in Ethereum mode
@@ -337,7 +338,7 @@ class RegressionTests(test_suite.TestSuite):
          storedString = contract.functions.storedString().call()
 
          if (storedString != "Example string."):
-           return (False, "String storage contract failed to store a string.")
+           return failed("String storage contract failed to store a string.")
 
          # Search for the maximum size of transaction that EthRPC will allow
          # to go through to Concord.
@@ -367,7 +368,7 @@ class RegressionTests(test_suite.TestSuite):
                if (re.search("[Tt]oo.*(([Ll]arge)|([Bb]ig))", str(e))):
                   confirmedRejection = True
                else:
-                  return (False, \
+                  return failed( \
                         "Unexpected exception when sending transaction with"
                         " parameter of size " + str(minimumRejectedSize) + ": "
                         + str(e))
@@ -405,7 +406,7 @@ class RegressionTests(test_suite.TestSuite):
                if (re.search("[Tt]oo.*(([Ll]arge)|([Bb]ig))", str(e))):
                   rejected = True
                else:
-                  return (False, \
+                  return failed( \
                         "Unexpected exception when sending transaction with"
                         " parameter of size " + str(minimumRejectedSize) + ": "
                         + str(e))
@@ -432,10 +433,10 @@ class RegressionTests(test_suite.TestSuite):
          storedString = contract.functions.storedString().call()
 
          if (storedString != "Final string."):
-           return (False, "Concord cluster does not seem to work any more after"
+           return failed("Concord cluster does not seem to work any more after"
                  + " sending a number of large transactions.")
 
-         return (True, None)
+         return passed()
 
       else:
          # We skip this test if running in Ethereum mode.
@@ -459,17 +460,17 @@ class RegressionTests(test_suite.TestSuite):
       # this is run out of order.
       containerName = util.blockchain.eth.get_concord_container_name(4)
       if len(containerName) == 0:
-         return (False, "Concord4 was not found")
+         return failed("Concord4 was not found")
 
       if not self.product.action_on_concord_container(containerName, "stop"):
-         return (False, "Stop action failed")
+         return failed("Stop action failed")
 
       inspect = self.product.inspect_container(containerName)
       state = inspect[0]['State']
       if state['Status'] == 'exited':
          if state['ExitCode'] == 0:
-            return (True, None)
+            return passed()
          else:
-            return (False, "Exit code was non-zero ({})".format(state['ExitCode']))
+            return failed("Exit code was non-zero ({})".format(state['ExitCode']))
       else:
-         return (False, "Container did not exit (Status: {})".format(state['Status']))
+         return failed("Container did not exit (Status: {})".format(state['Status']))

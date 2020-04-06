@@ -68,6 +68,27 @@ def getTestingEnvironmentInfo():
     }
 
 
+def finalize(result):
+  try:
+    idFilePath = getIdFilePath()
+    if not os.path.exists(idFilePath):
+      print("Racetrack set cannot finalize; the set did not start and save the setId to file.")
+      return
+    with open(idFilePath, "r") as f:
+      setId = json.loads(f.read())["setId"]
+      if result == "ABORTED": setUpdate(setId, status="Aborted")
+      if result == "FAILURE":
+        setUpdate(setId, status="Waiting for Triage")
+        if not os.path.exists(helper.getJenkinsWorkspace() + "/failure_summary.log"):
+          # Failed but none of the cases reported as failed == likely pipeline error
+          # Report this case to Racetrack so that failed runs are ALWAYS marked as failed.
+          caseId = caseStart("Pipeline", "check_pipeline_result", "The run has failed.")
+          caseEnd(caseId, 'FAIL')
+      setEnd(setId)
+  except Exception as e:
+    helper.hermesNonCriticalTrace(e)
+
+
 def setStart(testSetType="Smoke"):
   '''
     Starts a stage or a set of tests
@@ -87,6 +108,26 @@ def setStart(testSetType="Smoke"):
     "TestType": testSetType
   })
   return setId
+
+
+def setUpdate(setId, buildId=None, user=None, description=None, hostOS=None,
+              branch=None, buildType=None, testType=None, status=None, language=None):
+  '''
+    Update a racetrack test set
+    https://wiki.eng.vmware.com/RacetrackWebServices#TestSetUpdate
+  '''
+  updateObj = { "ID" : setId }
+  if buildId: updateObj["BuildID"] = buildId
+  if user: updateObj["User"] = user
+  if description: updateObj["Description"] = description
+  if hostOS: updateObj["HostOS"] = hostOS
+  if branch: updateObj["Branch"] = branch
+  if buildType: updateObj["BuildType"] = buildType
+  if testType: updateObj["TestType"] = testType
+  if status: updateObj["Status"] = status
+  if language: updateObj["Language"] = language
+
+  requestWithPathAndParams("/TestSetUpdate.php", updateObj)
   
 
 def setEnd(setId):
@@ -217,5 +258,8 @@ def requestWithPathAndParams(requestPath, params):
     log.info(e); traceback.print_exc()
     return None
 
+
 def getIdFilePath():
-  return os.getenv("WORKSPACE") + helper.RACETRACK_SET_ID_FILE
+  if helper.getJenkinsWorkspace():
+    return helper.getJenkinsWorkspace() + helper.RACETRACK_SET_ID_FILE
+  return ""

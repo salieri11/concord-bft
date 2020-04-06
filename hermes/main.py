@@ -18,6 +18,7 @@ from suites import (contract_compiler_tests, eth_core_vm_tests,
                     eth_json_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
+from suites.case import saveException
 from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
 
@@ -64,6 +65,7 @@ def initialize():
       sys.path.append(path)
 
 
+@saveException
 def main():
    suite = None
 
@@ -167,6 +169,9 @@ def main():
    parser.add_argument("--contractCompilerApiBaseUrl",
                        default="http://localhost:3000/api/v1",
                        help="Base URL for the contract compiler microservice")
+   parser.add_argument("--suitesRealname",
+                       default="",
+                       help="Comma-separated list of real names for supplied suites argument")
 
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
@@ -232,18 +237,18 @@ def main():
    log = util.hermes_logging.getMainLogger()
    args.logLevel = hermes_logging.logStringToInt(args.logLevel)
    hermes_logging.setUpLogging(args)
+   helper.CMDLINE_ARGS = vars(args)
    log.info("Args: {}".format(args))
    product = None
    resultFile = None
    totalSuccess = True
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
+   suitesRealname = args.suitesRealname.split(",") if args.suites else []
 
-   for suiteName in args.suites.split(","):
+   for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:
          event_recorder.record_event(suiteName, "Start", args.eventsFile)
-
-      helper.CURRENT_SUITE_NAME = suiteName
 
       for run_count in range(1, args.repeatSuiteRun+1):
          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
@@ -254,6 +259,10 @@ def main():
          if suite is None:
             log.error("Unknown test suite")
             exit(3)
+
+         helper.CURRENT_SUITE_NAME = suiteName
+         if i < len(suitesRealname) and suitesRealname[i]: helper.CURRENT_SUITE_NAME = suitesRealname[i]
+         helper.CURRENT_SUITE_LOG_FILE = suite._testLogFile
 
          try:
             log.info("Running {}".format(suiteName))
@@ -470,4 +479,6 @@ def tallyResults(results):
 
    return totalCount, passCount, failCount, skippedCount
 
+
 main()
+

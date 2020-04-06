@@ -2,7 +2,7 @@
 # Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #################################################################################
 import pytest
-from suites.cases import describe
+from suites.case import describe
 
 
 @pytest.fixture

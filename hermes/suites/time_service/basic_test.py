@@ -21,7 +21,7 @@ from uuid import UUID
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
 from suites import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed
 from rest.request import Request
 from rpc.rpc_call import RPC
 import util.blockchain.eth

@@ -41,7 +41,7 @@ import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
-from suites.cases import describe
+from suites.case import describe, passed, failed
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -99,6 +99,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
          blockData = util.blockchain.eth.exec_in_concord_container(container, cmd)
 
          blocksData.append(blockData)
+         log.info(json.dumps({"data":blockData}, indent=4, default=str))
          length = int(str(blockData).split(":")[1].replace("\\n", "").replace("'", ""))
          if length == 0:
             log.error("Blocks length 0")
@@ -158,19 +159,19 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       contractInfo = self.deploy_test_contract()
       if "address" not in contractInfo:
-         return (False, "Failed to deploy contract")
+         return failed("Failed to deploy contract")
       contractAddress = contractInfo["address"]
 
       self._send_async(transactions, contractAddress, 1)
 
       res = self.product.kill_concord_replica(2)
       if not res:
-         return (False, "Failed to kill replica 2")
+         return failed("Failed to kill replica 2")
 
       path = self.product.cleanConcordDb(2)
       res = self.product.start_concord_replica(2)
       if not res:
-         return (False, "Failed to start replica 2")
+         return failed("Failed to start replica 2")
 
       sleepTime = int(180)
       log.info(
@@ -181,9 +182,9 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       res = self.check_data(path, 0,transactions + self.existing_transactions)
 
       if not res:
-         return (False, "Data check failed")
+         return failed("Data check failed")
 
-      return (True, "Data checked")
+      return passed("Data checked")
 
 
    @describe(dontReport=True)
@@ -192,43 +193,43 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       res = self.product.kill_concord_replica(1)
       if not res:
-         return (False, "Failed to kill replica 1")
+         return failed("Failed to kill replica 1")
       res = self.product.kill_concord_replica(2)
       if not res:
-         return (False, "Failed to kill replica 2")
+         return failed("Failed to kill replica 2")
       res = self.product.kill_concord_replica(3)
       if not res:
-         return (False, "Failed to kill replica 3")
+         return failed("Failed to kill replica 3")
       res = self.product.kill_concord_replica(4)
       if not res:
-         return (False, "Failed to kill replica 4")
+         return failed("Failed to kill replica 4")
 
       p1 = self.product.cleanConcordDb(1)
       p2 = self.product.cleanConcordDb(2)
       p3 = self.product.cleanConcordDb(3)
       p4 = self.product.cleanConcordDb(4)
       if not p1 or not p2 or not p3 or not p4:
-         return (False, "Failed to clean RocksDb")
+         return failed("Failed to clean RocksDb")
       path = p1
 
       res = self.product.start_concord_replica(1)
       if not res:
-         return (False, "Failed to start replica 1")
+         return failed("Failed to start replica 1")
       res = self.product.start_concord_replica(2)
       if not res:
-         return (False, "Failed to start replica 2")
+         return failed("Failed to start replica 2")
       res = self.product.start_concord_replica(3)
       if not res:
-         return (False, "Failed to start replica 3")
+         return failed("Failed to start replica 3")
       res = self.product.start_concord_replica(4)
       if not res:
-         return (False, "Failed to start replica 4")
+         return failed("Failed to start replica 4")
 
       time.sleep(20)
 
       contractInfo = self.deploy_test_contract()
       if "address" not in contractInfo:
-         return (False, "Failed to deploy contract")
+         return failed("Failed to deploy contract")
       contractAddress = contractInfo["address"]
 
       transactions_1 = 1000
@@ -236,7 +237,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       res = self.product.pause_concord_replica(3)
       if not res:
-         return (False, "Failed to suspend replica")
+         return failed("Failed to suspend replica")
 
       transactions_2 = 400
       #this batch will go slower since only 3 replicas are up
@@ -244,7 +245,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       res = self.product.resume_concord_replica(3)
       if not res:
-         return (False, "Failed to resume replica")
+         return failed("Failed to resume replica")
 
       # wait for ST to complete
       sleepTime = int(120)
@@ -256,9 +257,9 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       res = self.check_data(path, 0, transactions_1 + transactions_2 + self.existing_transactions)
 
       if not res:
-         return (False, "Data check failed")
+         return failed("Data check failed")
 
-      return (True, "Data checked")
+      return passed("Data checked")
 
    def _get_tests(self):
       return [("kill_replica", self._test_kill_replica), \
@@ -282,8 +283,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                            util.auth.internal_admin)
          blockchainId = request.getBlockchains()[0]["id"]
          self.setEthrpcNode(request, blockchainId)
-         res,info = testFunc()
-         self.writeResult(testName, res, info)
+         res, info, stackInfo = testFunc()
+         self.writeResult(testName, res, info, stackInfo)
 
       log.info("Tests are done")
       return super().run()

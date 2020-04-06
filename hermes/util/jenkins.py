@@ -312,7 +312,7 @@ def normalizeTimesData(timesData):
     normalized["total"] = getSecondsFromTimeStr(timesData["total"])
   return normalized
 
-def getJenkinsApiBaseUrl(jobName, buildNumber=''):
+def getJenkinRunBaseUrl(jobName, buildNumber='', authenticated=False):
   configObject = helper.getUserConfig()
   username = configObject["jenkins"]["username"]
   token = configObject["jenkins"]["token"]
@@ -322,11 +322,14 @@ def getJenkinsApiBaseUrl(jobName, buildNumber=''):
     jobNameEscaped = jobNameEscaped.replace(pattern, JOB_NAME_REPLACE_WITH[pattern])
   jobsPath = '/job/'.join(jobNameEscaped.split('/'))
   if buildNumber: jobsPath = jobsPath + '/' + str(buildNumber)
-  baseUrl = 'https://{}@{}/job/{}'.format(accessor, MAIN_JENKINS_URL, jobsPath)
+  if authenticated:
+    baseUrl = 'https://{}@{}/job/{}'.format(accessor, MAIN_JENKINS_URL, jobsPath)
+  else:
+    baseUrl = 'https://{}/job/{}'.format(MAIN_JENKINS_URL, jobsPath)
   return baseUrl
 
 def getArtifact(jobName, buildNumber, path, isJSON=True):
-  baseUrl = getJenkinsApiBaseUrl(jobName, buildNumber)
+  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
   artifactsPath = baseUrl + '/artifact/'
   response = REQ_SESSION.get(artifactsPath + path)
   if response.status_code == 200:
@@ -339,7 +342,7 @@ def getArtifact(jobName, buildNumber, path, isJSON=True):
     return None
 
 def treeQuery(jobName, buildNumber='', query='', params={}):
-  baseUrl = getJenkinsApiBaseUrl(jobName, buildNumber)
+  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
   jsonApiPath = baseUrl + '/api/json?'
   otherParams = []
   for paramName in params: otherParams.append("{}={}")

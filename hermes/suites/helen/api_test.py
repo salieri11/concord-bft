@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from suites import test_suite
-from suites.cases import describe
+from suites.case import describe, passed, failed
 from rest.request import Request
 from rpc.rpc_call import RPC
 
