@@ -104,7 +104,7 @@ public class LoggingUtil {
                 try {
                     Integer portInt = Integer.parseInt(addresses[addresses.length - 1]);
                     port = portInt.toString();
-                    hostName = String.join(":", Arrays.copyOfRange(addresses, 0, addresses.length - 2));
+                    hostName = String.join(":", Arrays.copyOfRange(addresses, 0, addresses.length - 1));
                 } catch (NumberFormatException ex) {
                     hostName = logManagement.getEndpoint().getAddress();
                 }
