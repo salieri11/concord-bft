@@ -122,7 +122,6 @@
 
         <!-- Maven plugin properties. -->
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
-        <maven.plugin.ktlint.version>1.0.2</maven.plugin.ktlint.version>
         <maven.plugin.checkstyle.version>3.0.0</maven.plugin.checkstyle.version>
         <maven.plugin.compiler.version>3.8.1</maven.plugin.compiler.version>
         <maven.plugin.failsafe.version>2.22.1</maven.plugin.failsafe.version>
@@ -281,13 +280,6 @@
                 <artifactId>h2</artifactId>
                 <version>${h2.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <!-- Scope is provided to not propagate dependency. -->
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>atomicfu</artifactId>
-                <scope>provided</scope>
-                 <version>${atomicfu.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.tomakehurst</groupId>
