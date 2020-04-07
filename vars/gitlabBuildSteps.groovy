@@ -509,19 +509,18 @@ def call(){
                 preprocessForMainMR()
               }
 
-              if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
-                  env.JOB_NAME.contains(persephone_test_job_name) ||
-                  env.JOB_NAME.contains(performance_test_job_name) ||
+              if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                def latest_docker_tag = updateOneCloudProvisioningBintrayAndGetLatestTag()
+                setDockerTag(latest_docker_tag)
+              } else if(
+                  env.JOB_NAME.contains(ext_long_tests_job_name) ||
+                  env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
-                  env.JOB_NAME.contains(long_tests_job_name)) {
-                saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
-                echo "For nightly runs (other than MR/ToT/Manual Run/ON DEMAND), fetching latest build number"
-                def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
-                env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
-                echo "Most recent build/tag: " + env.recent_published_docker_tag
-                echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
-                env.docker_tag = env.recent_published_docker_tag
-                saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+                  env.JOB_NAME.contains(monitor_replicas_job_name) ||
+                  env.JOB_NAME.contains(performance_test_job_name)
+                ) {
+                def latest_docker_tag = getLatestTag()
+                setDockerTag(latest_docker_tag)
               } else {
                 echo "This run requires building components"
                 env.docker_tag = env.product_version
@@ -531,9 +530,7 @@ def call(){
 
               setEnvFileAndUserConfig()
 
-              saveTimeEvent("Setup", "Set up python")
               initializePython()
-              saveTimeEvent("Setup", "Finished setting up python")
 
               racetrackSet("begin")
 
@@ -1530,6 +1527,7 @@ void handleKnownHosts(host){
 Boolean initializePython() {
   if (env.python_bin) { return false } // Already initialized
 
+  saveTimeEvent("Setup", "Set up python")
   env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
   env.python = env.python_bin + "/python"
   sh '''
@@ -1539,6 +1537,7 @@ Boolean initializePython() {
       pip3 install -r blockchain/hermes/requirements.txt
       deactivate
   '''
+  saveTimeEvent("Setup", "Finished setting up python")
   return true
 }
 
@@ -2068,6 +2067,40 @@ void setProductVersion(){
   env.product_version = env.major_minor_patch + "." + env.BUILD_NUMBER
 }
 
+
+String updateOneCloudProvisioningBintrayAndGetLatestTag(){
+  saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
+  echo "For nightly runs (other than MR/ToT/Manual Run/ON DEMAND), fetching latest build number"
+  def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
+  saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+  return build.buildVariables.concord_tag
+}
+
+void setDockerTag(latest_docker_tag){
+  env.recent_published_docker_tag = latest_docker_tag
+  echo "Most recent build/tag: " + env.recent_published_docker_tag
+  echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
+  env.docker_tag = env.recent_published_docker_tag
+}
+
+String getLatestTag(){
+  if (env.latest_tag) { return env.latest_tag }
+  initializePython()
+  withCredentials([
+    string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+    string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')
+  ]) {
+    script {
+      dir('blockchain/vars') {
+        sh 'echo "${PASSWORD}" | sudo -SE "${python}" ../docker/get-build-info.py --artifactoryKey "${ARTIFACTORY_API_KEY}"'
+        latestTagJsonText = readFile('latest_tag.json')
+        latestTagJson = new JsonSlurperClassic().parseText(latestTagJsonText)
+        env.latest_tag = latestTagJson.latest_tag
+        return env.latest_tag
+      }
+    }
+  }
+}
 
 // Takes care of sending all post-run notifications.
 void sendNotifications(){

@@ -7,6 +7,7 @@ ARTIFACTORY_BASE_URL = "https://build-artifactory.eng.vmware.com/api/storage/ath
 ARTIFACTORY_MANIFEST_URL = ARTIFACTORY_BASE_URL + "{}/{}/manifest.json?properties"
 ARTIFACTORY_LASTMOD_URL = ARTIFACTORY_BASE_URL + "{}?lastModified"
 KEY_HEADER = "X-JFrog-Art-Api"
+LATEST_TAG_FILE_PATH = os.getenv("WORKSPACE") + '/blockchain/vars/latest_tag.json' if os.getenv("WORKSPACE") else None
 
 def main():
     parser = argparse.ArgumentParser()
@@ -55,6 +56,9 @@ def get_build(cmdlineArgs, api_key):
         uri = content["uri"]
         s = uri.split(cmdlineArgs.component + "/")[1]
         buildNumber = s.split("/")[0]
+        if LATEST_TAG_FILE_PATH:
+          with open(LATEST_TAG_FILE_PATH, "w+") as f:
+            f.write(json.dumps({"latest_tag":buildNumber}, indent = 4))
         return buildNumber
     else:
         return cmdlineArgs.build
