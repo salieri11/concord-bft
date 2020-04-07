@@ -23,6 +23,7 @@ CONFIG = {
   # Output files, and reporting intervals
   "logFile": "",
   "crashReportFile": "",
+  "recentReportFile": "",
   "sleepTime": DEFAULT_REPORTING_INTERVAL,
   "announceInterval": DEFAULT_ANNOUNCE_INTERVAL,
 
@@ -324,6 +325,7 @@ def main():
   # Configuration information
   CONFIG["logFile"] = config["logFile"] if "logFile" in config else ""
   CONFIG["crashReportFile"] = config["crashReportFile"] if "crashReportFile" in config else ""
+  CONFIG["recentReportFile"] = config["recentReportFile"] if "recentReportFile" in config else ""
   CONFIG["sleepTime"] = int(config["reportingInterval"]) if "reportingInterval" in config else DEFAULT_REPORTING_INTERVAL
   if CONFIG["sleepTime"] < 3: CONFIG["sleepTime"] = 3 # if less than 3 seconds, it would start affecting CPU time
   CONFIG["announceInterval"] = int(config["announceInterval"]) if "announceInterval" in config else DEFAULT_ANNOUNCE_INTERVAL
@@ -506,6 +508,11 @@ def main():
     }
     if thisIsThePointOfFailure: loggedData["thisIsThePointOfFailure"] = True
 
+    # save concise format to file
+    if CONFIG["recentReportFile"]:
+      with open(CONFIG["recentReportFile"], "w+") as f:
+        f.write(json.dumps(loggedData, default=str))
+
     # Announce relatively static information once in a while (reports when daemon starts, and interval'ed)
     if now - lastAnnounced >= CONFIG["announceInterval"]:
       daemonLogSize = int(os.path.getsize(CONFIG["logFile"]) / 1024.0) # in KB
@@ -513,6 +520,7 @@ def main():
       if daemonLogSize > 30 * 1024: truncateDaemonLogs() # truncate when more than 30 MB; ~ 5-days-worth (20s interval)
       daemonProcessUsage = getDaemonProcessUsage()
       announceData = {
+        "time": now,
         "log_size": daemonLogSize, # log output size caused by deamon 
         "log_rate": daemonLogRate if lastAnnounced > 0 else 0, # this daemon log output rate (kB/s)
         "daemon": daemonProcessUsage,
@@ -527,6 +535,8 @@ def main():
       reportData["announce"] = announceData
       prevDaemonLogSize = daemonLogSize
       lastAnnounced = now
+      with open("healthd_announce.json", "w+") as f:
+        f.write(json.dumps(announceData, indent=4, default=str))
 
     # Output metric to log file
     log.info(json.dumps(loggedData))

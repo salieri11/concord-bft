@@ -88,6 +88,8 @@ LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 # Health Reporting Daemon path
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
+HEALTHD_RECENT_REPORT_PATH = "/var/log/healthd_recent_report.json"
+HEALTHD_SLACK_NOTIFICATION_INTERVAL = 86400 # 24 hours
 
 # Migration related constants
 MIGRATION_FILE = "../docker/config-helen/app/db/migration/R__zone_entities.sql"
@@ -612,7 +614,7 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    :param save_support_logs_to: Support logs archiving location in case of a failure
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
-
+   from . import slack
    configObject = getUserConfig()
    credentials = configObject["persephoneTests"]["provisioningService"][
       "concordNode"]
@@ -622,6 +624,10 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    failed_validation_test_count = 0
    max_failed_validation_test_attempts = run_duration/24 #tolerate 1 failed validation test every 24 hrs
    start_time = time.time()
+   end_time = start_time + run_duration * 3600
+   slack_last_reported = 0
+   slack.reportLongRunningTest(kickOff=True)
+
    while ((time.time() - start_time)/3600 < run_duration):
       replica_status = None
       if not check_replica_health(replicas, username, password):
@@ -673,7 +679,15 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                      else:
                         log.info("Continuing to monitor...")
 
-
+      # report to Slack in predefined interval
+      if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
+        stats = get_replicas_stats(replicas)
+        remaining_time = format((end_time - time.time()) / 3600, ".2g")
+        slack.reportLongRunningTest("<RUN> has {} hour remaining. Status:\n{}".format(
+          remaining_time, "\n".join(stats["message_format"])
+        ))
+        slack_last_reported = time.time()
+              
       # Collect support logs incase of a failed replica
       if not replica_status:
          for blockchain_type, replica_ips in replicas.items():
@@ -681,6 +695,11 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                replica_ips))
             create_concord_support_bundle(replica_ips, blockchain_type,
                                           save_support_logs_to)
+         duration = format((time.time() - start_time) / 3600, ".2g")
+         remaining_time = format((end_time - time.time()) / 3600, ".2g")
+         slack.reportLongRunningTest("<RUN> has failed after {} hours ({} had remained)".format(
+            duration, remaining_time
+         ))
          return False
 
       log.info("")
@@ -696,8 +715,39 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
          create_concord_support_bundle(replica_ips, blockchain_type,
                                        save_support_logs_to)
       return False
-
+   slack.reportLongRunningTest("<RUN> successfully passed. (total {} hours)".format(run_duration))
    return True
+
+
+def get_replicas_stats(replicas):
+  '''
+    Given replicas with health daemon installed, get the latest
+    stats report from each replica with sftp_client function
+    returns json and Slack message_format of the stats
+  '''
+  credentials = getUserConfig()["persephoneTests"]["provisioningService"]["concordNode"]
+  username = credentials["username"]
+  password = credentials["password"]
+  temp_json_path = "/tmp/healthd_recent.json"
+  all_reports = { "json": {}, "message_format": [] }
+  for blockchain_type, replica_ips in replicas.items():
+    typeName = "Committer"
+    if blockchain_type == TYPE_DAML_PARTICIPANT: typeName = "Participant"
+    for i, replica_ip in enumerate(replica_ips):
+      try:
+        if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
+                      temp_json_path, action="download"):
+          with open(temp_json_path, "r", encoding="utf-8") as f:
+            stat = json.load(f)
+            stat["type"] = blockchain_type
+            all_reports["json"][replica_ip] = stat
+            status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
+            all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
+              status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+            ))
+      except Exception as e:
+        hermesNonCriticalTrace(e)
+  return all_reports
 
 
 def create_concord_support_bundle(replicas, concord_type, test_log_dir):
@@ -1169,6 +1219,7 @@ def installHealthDaemon(replicas):
                   'logFile={}\n'.format(HEALTHD_LOG_PATH) + 
                   'crashReportFile={}\n'.format(HEALTHD_CRASH_FILE) +
                   'reportingInterval={}\n'.format(reportingInterval) +
+                  'recentReportFile={}\n'.format(HEALTHD_RECENT_REPORT_PATH) + 
                   'announceInterval={}\n'.format(announceInterval) +
                   'componentsWatchList={}\n'.format(componentsWatchList) +
                   'wavefrontUrl={}\n'.format(wavefrontUrl) +
