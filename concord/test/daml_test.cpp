@@ -10,6 +10,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
+#include "time/time_contract.hpp"
 
 using ::testing::_;
 using ::testing::AtLeast;
@@ -298,10 +299,13 @@ TEST(daml_test, timed_out_pre_execution_no_block) {
   const auto replicas = 4;
   const auto client_proxies = 4;
   const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+      TestConfiguration(replicas, client_proxies, 0, 0, false, true);
 
   auto prometheus_registry = build_mock_prometheus_registry();
   auto daml_validator_client = build_mock_daml_validator_client(true);
+
+  auto* time_contract =
+      new MockTimeContract{ro_storage, config, TimeUtil::GetCurrentTime()};
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -309,7 +313,8 @@ TEST(daml_test, timed_out_pre_execution_no_block) {
                                                blocks_appender,
                                                subscriber_list,
                                                std::move(daml_validator_client),
-                                               prometheus_registry};
+                                               prometheus_registry,
+                                               time_contract};
 
   Timestamp long_expired_max_record_time;
   TimeUtil::FromString("2019-01-01T10:00:20.021Z",

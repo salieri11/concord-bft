@@ -32,7 +32,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
     concord::kvbc::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list,
-    std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
+    std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry,
+    concord::time::TimeContract *time_contract)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
       subscriber_list_(subscriber_list),
@@ -46,8 +47,12 @@ ConcordCommandsHandler::ConcordCommandsHandler(
                                       {"operation", "written_blocks"}})},
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
-    time_ = std::unique_ptr<concord::time::TimeContract>(
-        new concord::time::TimeContract(storage_, config));
+    if (time_contract) {
+      time_ = std::unique_ptr<concord::time::TimeContract>(time_contract);
+    } else {
+      time_ = std::unique_ptr<concord::time::TimeContract>(
+          new concord::time::TimeContract(storage_, config));
+    }
   }
 
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(

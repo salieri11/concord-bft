@@ -5,6 +5,7 @@
 
 #include <grpcpp/grpcpp.h>
 #include <opentracing/span.h>
+#include <time/time_contract.hpp>
 
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
@@ -39,9 +40,10 @@ class DamlKvbCommandsHandler
       concord::kvbc::IBlocksAppender& ba,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<IDamlValidatorClient> validator,
-      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
+      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry,
+      concord::time::TimeContract* time_contract = nullptr)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
-                               prometheus_registry),
+                               prometheus_registry, time_contract),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         validator_client_(std::move(validator)),
         write_ops_{prometheus_registry->createCounter(
