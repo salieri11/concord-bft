@@ -7,6 +7,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "time/time_contract.hpp"
+
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
 #include <log4cplus/configurator.h>
@@ -86,6 +88,19 @@ class MockPrometheusRegistry : public IPrometheusRegistry {
   MOCK_METHOD3(createGauge,
                prometheus::Gauge&(const std::string&, const std::string&,
                                   const std::map<std::string, std::string>&));
+};
+
+class MockTimeContract : public concord::time::TimeContract {
+ public:
+  MockTimeContract(const concord::kvbc::ILocalKeyValueStorageReadOnly& storage,
+                   const concord::config::ConcordConfiguration& config,
+                   const google::protobuf::Timestamp& time)
+      : TimeContract(storage, config), time_(time){};
+
+  google::protobuf::Timestamp GetTime() override { return time_; };
+
+ private:
+  google::protobuf::Timestamp time_;
 };
 
 ConcordConfiguration::ParameterStatus NodeScopeSizer(

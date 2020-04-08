@@ -98,11 +98,7 @@ class TimeContract {
     }
   }
 
-  ~TimeContract() {
-    if (samples_) {
-      delete samples_;
-    }
-  }
+  virtual ~TimeContract() { delete samples_; }
 
   // Update the latest time reading from a given source. Any invalid update is
   // simply ignored, though the time contract may also choose to log
@@ -139,7 +135,7 @@ class TimeContract {
   // samples it currently has. Throws a TimeException if this operation causes
   // the TimeContract to load state from its persistent storage but the data
   // loaded is corrupted or otherwise invalid.
-  google::protobuf::Timestamp GetTime();
+  virtual google::protobuf::Timestamp GetTime();
 
   // Get the time at the passed block ID based on the summarized time saved in
   // storage. The summarized time is the time as returned by GetTime() at the

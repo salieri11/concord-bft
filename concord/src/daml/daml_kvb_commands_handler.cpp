@@ -134,8 +134,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     record_time = time->GetTime();
     LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
   } else {
-    record_time = google::protobuf::util::TimeUtil::GetCurrentTime();
-    LOG4CPLUS_DEBUG(logger_, "Using current time " << record_time);
+    record_time = google::protobuf::util::TimeUtil::GetEpoch();
+    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
   }
 
   std::string correlation_id = commit_req.correlation_id();
