@@ -76,9 +76,6 @@ public class ConsortiumControllerTest {
     Jackson2ObjectMapperBuilder jacksonBuilder;
 
     @MockBean
-    UserService userService;
-
-    @MockBean
     ConsortiumService consortiumService;
 
     @MockBean
@@ -86,9 +83,6 @@ public class ConsortiumControllerTest {
 
     @MockBean
     ProfilesService profilesService;
-
-    @MockBean
-    UserAuthenticator userAuthenticator;
 
     @Autowired
     AuthHelper authHelper;

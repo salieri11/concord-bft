@@ -46,7 +46,6 @@ import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.ProfilesService;
-import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.TaskService;
 
 import io.grpc.ManagedChannel;
@@ -74,9 +73,6 @@ public class ZoneServiceTest {
 
     @Autowired
     TestMapper testMapper;
-
-    @MockBean
-    private UserService userService;
 
     @MockBean
     OrganizationService organizationService;
