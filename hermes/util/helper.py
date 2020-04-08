@@ -13,6 +13,7 @@ import logging
 import paramiko
 import warnings
 import cryptography
+import re
 import traceback
 import socket
 import subprocess
@@ -113,7 +114,7 @@ JENKINS_NAMESPACE_MAIN = "JENKINS_VMWARE_BC_MAIN"
 # CI/CD Major Run Types
 JENKINS_RUN_MAIN_MR = { "type": "MAIN_MR", "exactly": "Main Blockchain Run on GitLab" }
 JENKINS_RUN_MASTER = { "type": "MASTER", "exactly": "Master Branch Blockchain Run on GitLab/master" }
-JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchain Run on GitLab/releases"], 
+JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchain Run on GitLab/releases"],
   # For example, "0.5 Branch Blockchain Run on GitLab/releases/0.5" is a release branch job name
   # Extract meaningful variable (.e.g "0.5") as releases progress to different versions
   "variables":[{"name": "releaseVersion", "after":"/releases/"}],
@@ -165,6 +166,24 @@ def get_docker_env(key=None):
          return None
    else:
       return env
+
+
+def service_defined(docker_compose_files, service_name):
+   '''
+   Returns whether the service service_name is defined in docker_compose_files.
+   '''
+   for docker_compose_file in docker_compose_files:
+      log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
+
+      with open(docker_compose_file, "r") as yaml_file:
+         compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+
+      services = list(compose_data["services"])
+
+      if service_name in services:
+         return True
+
+   return False
 
 
 def get_docker_compose_value(docker_compose_files, service_name, key):
@@ -226,9 +245,9 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
    return config_file
 
 
-def replace_key(filename, key, value):
+def set_props_file_value(filename, key, value):
    '''
-   method to replace value in a properties file
+   Method to replace value in a properties file or add a new one if not present.
    :param filename: properties file name
    :param key: key to look for
    :param value: new value for the key
@@ -237,11 +256,22 @@ def replace_key(filename, key, value):
       with open(filename, 'r') as f_in, \
          tempfile.NamedTemporaryFile('w', dir=os.path.dirname(filename),
                                      delete=False) as f_out:
+         found = False
+
          for line in f_in.readlines():
             if line.startswith("{}=".format(key)):
                line = '='.join((line.split('=')[0], '{}\n'.format(value)))
+               found = True
             f_out.write(line)
+
+         if not found:
+            f_out.write("{}={}\n".format(key, value))
+
       os.replace(f_out.name, filename)
+
+      # Make read/write for other users so subsequent Hermes runs which
+      # do not use sudo (e.g. UI tests) won't fail.
+      os.chmod(filename, 0o664)
    except Exception as e:
       log.error("Unable to update properties file: {}".format(filename))
       raise
@@ -468,7 +498,7 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
          dest_port)
       docker_ethrpc_ip = ssh_connect(host, username, password,
                                      cmd_get_docker_ethrpc_ip)
-      
+
       log.debug("Extracted IP to port forward: {}".format(docker_ethrpc_ip))
 
       if docker_ethrpc_ip:
@@ -1053,7 +1083,7 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=600):
 
 
 def getJenkinsBuildId(jobName=None, buildNumber=None):
-  try: 
+  try:
     configObject = getUserConfig()
     jobName = jobName if jobName else configObject["metainf"]["env"]["jobName"]
     buildNumber = str(buildNumber) if buildNumber else configObject["metainf"]["env"]["buildNumber"]
@@ -1068,8 +1098,8 @@ def getJenkinsBuildId(jobName=None, buildNumber=None):
 def getJenkinsBuildTraceId(jobName=None, buildNumber=None):
   '''
     Get trace_id (UUID) from HASH(jenkinsSource + jobName + buildNumber)
-    User for metrics reporting for CI/CD Dashboard. Hash-based 
-    uuid generation guarantees, regardless of where in groovy 
+    User for metrics reporting for CI/CD Dashboard. Hash-based
+    uuid generation guarantees, regardless of where in groovy
     this function was invoked from, the same traceId within the run.
   '''
   ingested = JENKINS_NAMESPACE_MAIN + '/' + getJenkinsBuildId(jobName, buildNumber)
@@ -1081,10 +1111,10 @@ def getJenkinsBuildTraceId(jobName=None, buildNumber=None):
 
 def getJenkinsBuildSpanId(traceId, setName, caseName):
   '''
-    Get spanId (UUID) from HASH(traceId + stageId + eventId). This uses same parameters 
+    Get spanId (UUID) from HASH(traceId + stageId + eventId). This uses same parameters
     as the function in `event_recorder.py`, `record_event(stage_name, event_name)`
     and will be used to publish events/metrics to CI/CD dashboard
-    e.g. 
+    e.g.
       saveTimeEvent("Gather artifacts", "Start")
       saveTimeEvent("Gather artifacts", "End")
       `setName` is stage or test suite name; "Gather artifacts"
@@ -1192,7 +1222,7 @@ def installHealthDaemon(replicas):
     username = credentials["username"]; password = credentials["password"]
     wavefrontUrl = configObject["dashboard"]["devops"]["wavefront"]["url"]
     wavefrontToken = configObject["dashboard"]["devops"]["wavefront"]["token"]
-    
+
     # Daemon behavior config
     reportingInterval = 20 # seconds
     announceInterval = 21600 # 6-hours, relatively static info (e.g. CPU spec, total RAM, total disk size)
@@ -1216,7 +1246,7 @@ def installHealthDaemon(replicas):
                   'blockchainType={}\n'.format(blockchainType) +
                   'nodeType={}\n'.format(nodeType) +
                   'buildId={}\n'.format(jenkinsBuildId) +
-                  'logFile={}\n'.format(HEALTHD_LOG_PATH) + 
+                  'logFile={}\n'.format(HEALTHD_LOG_PATH) +
                   'crashReportFile={}\n'.format(HEALTHD_CRASH_FILE) +
                   'reportingInterval={}\n'.format(reportingInterval) +
                   'recentReportFile={}\n'.format(HEALTHD_RECENT_REPORT_PATH) + 
@@ -1250,7 +1280,7 @@ def installHealthDaemon(replicas):
         )
         threads.append(thr)
         thr.start()
-    
+
     for thd in threads: thd.join() # wait for all installations to return
     for result in results: log.info(result)
     return True
@@ -1287,3 +1317,64 @@ def fetch_default_zone_ids(properties_file=PROPERTIES_TEST_FILE):
    """
    zone_ids = read_key(key=PROPERTIES_VMBC_ENABLED_VMC_ZONES, properties_file=properties_file)
    return zone_ids.split(',')
+
+
+def getDefaultDeploymentComponents():
+   '''
+   Make a list of all deployment components from user_config.json and fetch
+   the repo:tag for each from the various places we define them.
+   '''
+   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
+   cfg_model_service = user_config["persephoneTests"]["modelService"]
+   cfg_components_to_find = cfg_model_service["deployment_component_ids"].values()
+   cfg_deployment_components = cfg_model_service["defaults"]["deployment_components"]
+   ret = ""
+
+   with open(docker_env_file, "r") as f:
+      for component_to_find in cfg_components_to_find:
+         # Will contain vmwblockchain/agent:12345,vmwblockchain/concord-core:12345,...
+         high_level_repo = ""
+         repo_and_tag = ""
+
+         # First, get the high level repo, like "vmwblockchain".
+         found_high_level_repo = False
+         for dep_type in cfg_deployment_components:
+            for k in cfg_deployment_components[dep_type]:
+               if component_to_find in k:
+                  high_level_repo = k.split("/")[0]
+                  found_high_level_repo = True
+                  break
+            if found_high_level_repo:
+               break
+
+         # Look for the docker tag in the .env file.
+         f.seek(0)
+         for line in f:
+            if "/{}".format(component_to_find) in line:
+               repo_key = line.split("=")[0]
+               tag_key = repo_key.replace("_repo", "") + "_tag"
+               tag = get_docker_env(tag_key)
+               repo_and_tag = "{}/{}:{}".format(high_level_repo, component_to_find, tag)
+               break
+
+         # If not found, it's probably something like wavefront-proxy,
+         # which is defined in user_config.
+         if not repo_and_tag:
+            for deployment_type in cfg_deployment_components:
+               for k in cfg_deployment_components[deployment_type]:
+                  if cfg_deployment_components[deployment_type][k] == component_to_find:
+                     repo_and_tag = k
+                     found = True
+                     break
+               if repo_and_tag:
+                  break
+
+         if repo_and_tag:
+            if ret:
+               ret += ","
+
+            ret += repo_and_tag
+         else:
+            raise Exception("Could not find deployment component {}".format(component_to_find))
+
+   return ret

@@ -179,7 +179,8 @@ import hudson.util.Secret
 @Field String persephone_test_job_name = "Blockchain Persephone Tests"
 @Field String persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
 @Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
-
+@Field String manual_with_params_job_name = "Blockchain Manual Run"
+  
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
@@ -608,6 +609,31 @@ def call(){
         }
       }
 
+      stage("Push Concord components to DockerHub"){
+        when {
+          expression {
+            // Skip this step for nightly or other random runs.
+            // Nightly runs use what is in artifactory, which has already been pushed
+            // to GitHub.
+            env.JOB_NAME.contains(env.tot_job_name) ||
+            env.JOB_NAME.contains(main_mr_run_job_name) ||
+            env.JOB_NAME.contains(manual_with_params_job_name)
+          }
+        }
+        steps{
+          script {
+            try{
+              saveTimeEvent("Push Concord components to DockerHub", "Start")
+              pushConcordComponentsToDockerHub()
+              saveTimeEvent("Push Concord components to DockerHub", "End")
+            }catch(Exception ex){
+              failRun()
+              throw ex
+            }
+          }
+        }
+      }
+
       stage("Run tests in containers") {
         when {
           expression {
@@ -778,34 +804,25 @@ def call(){
                   string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
                 ]) {
                   script {
-                    // Set docker tag to "latest", unless overridden for ToT run or nightly with recent pushed images
-                    env.dep_comp_docker_tag = "latest"
-
                     // For nightly run, deployment components are recent builds already published to bintray
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       echo "For Persephone nightly run, push recent builds to bintray..."
 
                       saveTimeEvent("Build", "Push recent builds to bintray using Job Setup-SAAS-Artifacts")
-                      build job: 'Setup-SAAS-Artifacts', parameters: [[$class: 'StringParameterValue', name: 'INTERNALTAG', value: env.recent_published_docker_tag], [$class: 'StringParameterValue', name: 'EXTERNALTAG', value: env.recent_published_docker_tag]]
+                      build job: 'Setup-SAAS-Artifacts',
+                                 parameters: [[$class: 'StringParameterValue',
+                                                name: 'INTERNALTAG',
+                                                value: env.recent_published_docker_tag],
+                                              [$class: 'StringParameterValue',
+                                                name: 'EXTERNALTAG',
+                                                value: env.recent_published_docker_tag]
+                                             ]
                       saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
 
                       env.dep_comp_docker_tag = env.recent_published_docker_tag
-                      env.agent_docker_tag = env.recent_published_docker_tag
                     } else {
-                      pullTagPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag, false)
-                      env.agent_docker_tag = env.docker_tag
-
-                      // Only for ToT runs, deployment components are ToT
-                      if (env.JOB_NAME.contains(env.tot_job_name)) {
-                        pullTagPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag, false)
-
-                        env.dep_comp_docker_tag = env.docker_tag
-                      }
+                      // For everything else, use what we pushed to DockerHub earlier.
+                      env.dep_comp_docker_tag = env.docker_tag
                     }
 
                     sh(script: 'mkdir -p "${persephone_test_logs}"')
@@ -814,22 +831,13 @@ def call(){
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                       '''
                     } else {
-                      if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
-                        sh '''
-                          echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
-                        '''
-                      } else {
-                        // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
-                        // remove --useLocalConfigService for MR/ToT runs, and retain for ON DEMAND Job
-                        sh '''
-                          echo "Running Persephone SMOKE Tests..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
-                        '''
-                      }
+                      // MR runs and Persephone on-demand runs use the local config service.
+                      sh '''
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
+                      '''
                     }
                   }
                 }
@@ -1280,14 +1288,10 @@ void createAndPushGitTag(tag){
   )
 }
 
-// For persephone tests, tag and push images to dockerhub
-// And if boolean parameter pull_from_artifactory is true, pull images from artifactory before tagging/pushing
-void pullTagPushDockerImage(internal_repo, release_repo, docker_tag, pull_from_artifactory) {
-  if (pull_from_artifactory) {
-    retryCommand("docker pull ${internal_repo}:${docker_tag}", true)
-  }
-  retryCommand("docker tag ${internal_repo}:${docker_tag} ${release_repo}:${docker_tag}", true)
-  pushDockerImage(release_repo, docker_tag, false)
+// Tag orig_repo:docker_tag as new_repo:docker_tag and push new_repo:docker_tag to dockerhub.
+void tagAndPushDockerImage(orig_repo, new_repo, docker_tag) {
+  retryCommand("docker tag ${orig_repo}:${docker_tag} ${new_repo}:${docker_tag}", true)
+  pushDockerImage(new_repo, docker_tag, false)
 }
 
 // Returns all changes since the last git tag.
@@ -2174,6 +2178,7 @@ void announceToTFailure(){
   }
 }
 
+
 void collectArtifacts(){
   saveTimeEvent("Gather artifacts", "Start")
 
@@ -2450,3 +2455,17 @@ void startOfficialPerformanceRun(){
     echo("A failure to launch the performance run will not fail a build.")
   }
 }
+
+// Re-tag athena-docker-local.artifactory.eng.vmware.com:foo to vmwblockchain:foo.
+// "vmwblockchain" is what we call it on DockerHub.
+// This is needed for deployment testing, as SDDCs are located outside the firewall.
+void pushConcordComponentsToDockerHub(){
+  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag)
+}
+

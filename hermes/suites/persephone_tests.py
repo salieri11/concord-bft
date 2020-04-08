@@ -229,12 +229,12 @@ class PersephoneTests(test_suite.TestSuite):
 
                provisioning_config_service_address = "{}:{}".format(host_ip,
                                                                     config_service_port)
-               helper.replace_key(persephone_config_file,
-                                  'provisioning.config.service.address',
-                                  provisioning_config_service_address)
-               helper.replace_key(persephone_config_file,
-                                  'provisioning.config.service.transportSecurity.type',
-                                  "NONE")
+               helper.set_props_file_value(persephone_config_file,
+                                           'provisioning.config.service.address',
+                                           provisioning_config_service_address)
+               helper.set_props_file_value(persephone_config_file,
+                                           'provisioning.config.service.transportSecurity.type',
+                                           "NONE")
 
                log.info("Update completed!")
                log.info("****************************************")

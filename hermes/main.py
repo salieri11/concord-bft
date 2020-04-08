@@ -135,7 +135,12 @@ def main():
                             "defined in user_config.json "
                             "e.g. vmwblockchain/concord-core:e7cb6c3,"
                             "vmwblockchain/ethrpc:e7cb6c3,"
-                            "vmwblockchain/agent:e7cb6c3, etc...")
+                            "vmwblockchain/agent:e7cb6c3, etc...",
+                       default=helper.getDefaultDeploymentComponents())
+   parser.add_argument("--helenDeploymentComponentsVersion",
+                       help="Optional version number of components to deploy.  e.g. 0.0.0.123" \
+                       "Defaults to concord_tag in .env>",
+                       default=None)
    parser.add_argument("--useLocalConfigService",
                        default=False,
                        action='store_true',
