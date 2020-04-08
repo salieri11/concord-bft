@@ -268,8 +268,14 @@ def delete_ipam_resources(vms, dc_dict, metadata):
         data = get_nat_rule(dc_dict["nsx_mgr"],
             DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
         if data is None:
-            continue
-        ipaddr = data["source_network"]
+            logger.info("Nat rule does not exist, checking for guest ip")
+            if vm.runtime.powerState == "poweredOn":
+                ipaddr = vm.guest.ipAddress
+            else:
+                logger.info("Vm not powered on, skipping ipam cleanup")
+                continue
+        else:
+            ipaddr = data["source_network"]
         logger.info("Deleting ipam for %s with address %s" %
                     (vm.name, ipaddr))
         ipaddr_hex = nwaddress_to_hex(ipaddr)
