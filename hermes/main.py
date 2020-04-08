@@ -222,12 +222,15 @@ def main():
                                                                       helper.KEEP_BLOCKCHAINS_NEVER),
                        default=helper.KEEP_BLOCKCHAINS_NEVER)
    nonLocalDeployConfig.add_argument("--numParticipants",
-                       help="The number of participant/client nodes to deploy.",
-                       default=1)
-   nonLocalDeployConfig.add_argument(
-                       "--migrationFile",
-                       default=helper.MIGRATION_FILE,
-                       help="Migration file to write into")
+                                     help="The number of participant/client nodes to deploy.",
+                                     default=1)
+   nonLocalDeployConfig.add_argument("--migrationFile",
+                                     help="Helen Flyway migration file to write generated configurations into, "
+                                          "before launching Helen",
+                                     default=helper.MIGRATION_FILE)
+   nonLocalDeployConfig.add_argument("--damlParticipantIp",
+                                     help="Public IP of the DAML participant to upload DAR and run tests",
+                                     default='localhost')
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir

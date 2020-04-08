@@ -330,21 +330,20 @@ def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_rep
         replica_dict[helper.TYPE_DAML_COMMITTER] = daml_committer_replicas
         replica_dict[helper.TYPE_DAML_PARTICIPANT] = daml_participant_replicas
 
-    replica_file_path = "/tmp/replicas.json"
-    replica_log_dir_path = os.path.join(log_dir, 'replicas.json')
+    replica_log_dir_path = os.path.join(log_dir, helper.REPLICAS_JSON_FILE)
     try:
-        os.remove(replica_file_path)
+        os.remove(helper.REPLICAS_JSON_PATH)
         os.remove(replica_log_dir_path)
     except OSError:
         pass
 
-    with open(replica_file_path, 'w') as fp:
+    with open(helper.REPLICAS_JSON_PATH, 'w') as fp:
         json.dump(replica_dict, fp, indent=2)
 
     with open(replica_log_dir_path, 'w') as fp:
         json.dump(replica_dict, fp, indent=2)
 
-    log.info("Saved replicas information in {} and {}".format(replica_file_path, replica_log_dir_path))
+    log.info("Saved replicas information in {} and {}".format(helper.REPLICAS_JSON_PATH, replica_log_dir_path))
     return replica_dict
 
 

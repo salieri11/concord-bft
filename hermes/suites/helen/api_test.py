@@ -3140,28 +3140,28 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
    if blockchain_type == util.helper.TYPE_DAML and blockchain_location == util.helper.LOCATION_SDDC:
       blockchain_response = fxConnection.request.getBlockchainDetails(fxBlockchain.blockchainId)
       participants_response = fxConnection.request.get_participant_details(fxBlockchain.blockchainId)
-      replicas_file_name = "/tmp/replicas.json"
-      with open(replicas_file_name, "r") as replicas_fp:
+      with open(util.helper.REPLICAS_JSON_PATH, "r") as replicas_fp:
          replicas_file_contents = json.load(replicas_fp)
 
          # Basic assertions
          assert util.helper.TYPE_DAML_COMMITTER in replicas_file_contents, "{} entry not present in {}" \
-                  .format(util.helper.TYPE_DAML_COMMITTER, replicas_file_name)
+                  .format(util.helper.TYPE_DAML_COMMITTER, util.helper.REPLICAS_JSON_PATH)
          assert util.helper.TYPE_DAML_PARTICIPANT in replicas_file_contents, "{} entry not present in {}" \
-                  .format(util.helper.TYPE_DAML_PARTICIPANT, replicas_file_name)
+                  .format(util.helper.TYPE_DAML_PARTICIPANT, util.helper.REPLICAS_JSON_PATH)
 
          # Committer verifications
          committer_ips = [c["ip"] for c in replicas_file_contents[util.helper.TYPE_DAML_COMMITTER]]
          for committer in blockchain_response["replica_list"]:
             if committer["ip"] not in committer_ips:
-               raise Exception("Committer {} not found in {}".format(committer["ip"], replicas_file_name))
+               raise Exception("Committer {} not found in {}".format(committer["ip"], util.helper.REPLICAS_JSON_PATH))
          log.info("Committers verifications successful")
 
          # Participant verifications
          participant_ips = [p["public_ip"] for p in replicas_file_contents[util.helper.TYPE_DAML_PARTICIPANT]]
          for participant in participants_response:
             if participant["public_ip"] not in participant_ips:
-               raise Exception("Participant {} not found in {}".format(participant["public_ip"], replicas_file_name))
+               raise Exception("Participant {} not found in {}".format(participant["public_ip"],
+                                                                       util.helper.REPLICAS_JSON_PATH))
          log.info("Participants verifications successful")
 
          log.info("DAML deployment on SDDC is successful")
