@@ -76,8 +76,6 @@ import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -138,9 +136,6 @@ public class ClientControllerTest extends RuntimeException {
     Jackson2ObjectMapperBuilder jacksonBuilder;
 
     @MockBean
-    UserService userService;
-
-    @MockBean
     ConsortiumService consortiumService;
 
     @MockBean
@@ -190,12 +185,10 @@ public class ClientControllerTest extends RuntimeException {
                 .webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
-        User user = SecurityTestUtils.getUser();
         Consortium consortium = SecurityTestUtils.getConsortium();
 
         when(operationContext.getId()).thenReturn(UUID.randomUUID().toString());
         UUID c1Id = consortium.getId();
-        when(userService.getByEmail(user.getEmail())).thenReturn(user);
         when(consortiumService.get(c1Id)).thenReturn(consortium);
 
 

@@ -55,9 +55,6 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @ContextConfiguration(classes = {MvcConfig.class, DbConfig.class, TestDaoConfig.class })
 public class ConsortiumServiceTest {
     @MockBean
-    private UserService userService;
-
-    @MockBean
     private ProfilesService prm;
 
     @MockBean

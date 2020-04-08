@@ -55,8 +55,6 @@ import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TestTaskService;
 import com.vmware.concord.Concord.Peer;
@@ -86,9 +84,6 @@ class ReplicaControllerTest {
     Jackson2ObjectMapperBuilder jacksonBuilder;
 
     @MockBean
-    UserService userService;
-
-    @MockBean
     ConsortiumService consortiumService;
 
     @MockBean
@@ -108,13 +103,11 @@ class ReplicaControllerTest {
     @Autowired
     ReplicaController replicaController;
 
-    private User user;
     private Consortium consortium;
     private ObjectMapper objectMapper;
 
     private AuthenticationContext adminAuth;
     private AuthenticationContext userAuth;
-    private AuthenticationContext user2Auth;
 
     private void setCallbacks(Answer answer) {
 
@@ -126,10 +119,8 @@ class ReplicaControllerTest {
                 .webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
-        user = SecurityTestUtils.getUser();
         consortium = SecurityTestUtils.getConsortium();
         UUID c1Id = consortium.getId();
-        when(userService.getByEmail(user.getEmail())).thenReturn(user);
         when(consortiumService.get(c1Id)).thenReturn(consortium);
 
         Blockchain b = Blockchain.builder()

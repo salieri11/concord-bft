@@ -68,9 +68,6 @@ public class OrganizationContollerTest {
     OrganizationService organizationService;
 
     @MockBean
-    private UserService userService;
-
-    @MockBean
     private ProfilesService prm;
 
     @MockBean

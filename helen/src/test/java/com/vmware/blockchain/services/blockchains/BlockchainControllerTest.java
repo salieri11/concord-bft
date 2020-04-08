@@ -98,8 +98,6 @@ import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskController;
@@ -184,9 +182,6 @@ public class BlockchainControllerTest {
     Jackson2ObjectMapperBuilder jacksonBuilder;
 
     @MockBean
-    UserService userService;
-
-    @MockBean
     ConsortiumService consortiumService;
 
     @MockBean
@@ -216,7 +211,6 @@ public class BlockchainControllerTest {
     @Autowired
     AuthHelper authHelper;
 
-    private User user;
     private Consortium consortium;
     private ObjectMapper objectMapper;
 
@@ -272,7 +266,6 @@ public class BlockchainControllerTest {
                 .webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
-        user = SecurityTestUtils.getUser();
         consortium = SecurityTestUtils.getConsortium();
         when(operationContext.getId()).thenReturn(UUID.randomUUID().toString());
         Consortium c2 = new Consortium();
@@ -280,7 +273,6 @@ public class BlockchainControllerTest {
         Consortium c3 = new Consortium();
         c3.setId(C3_ID);
         UUID c1Id = consortium.getId();
-        when(userService.getByEmail(user.getEmail())).thenReturn(user);
         when(consortiumService.get(c1Id)).thenReturn(consortium);
         when(consortiumService.get(C2_ID)).thenReturn(c2);
         when(consortiumService.get(C3_ID)).thenReturn(c3);
