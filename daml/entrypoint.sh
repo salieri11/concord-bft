@@ -37,5 +37,6 @@ $API_SERVER \
   --replicas $REPLICAS \
   --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
   --maxInboundMessageSize=67108864 \
+  --ledger-id KVBC \
   $THIN_REPLICA_SETTINGS \
   $AUTH_SETTINGS
