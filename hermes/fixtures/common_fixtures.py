@@ -1,5 +1,5 @@
 #################################################################################
-# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #################################################################################
 import collections
 import json
@@ -98,7 +98,7 @@ def getExistingBlockchainDetails(logDir, hermesData):
                                                          conAdminRequest))
 
 
-def deployToSddc(logDir, hermesData):
+def deployToSddc(logDir, hermesData, blockchainLocation):
    tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                   True,
                                                   auth.default_con_admin)
@@ -115,11 +115,17 @@ def deployToSddc(logDir, hermesData):
    conId = conResponse["consortium_id"]
    zoneIds = []
 
-   for zone in conAdminRequest.getZones():
-       log.info(zone)
-       zoneIds.append(zone["id"])
+   if blockchainLocation == helper.LOCATION_SDDC:
+      # There is no Helen API for adding SDDC zones, so use the ones loaded
+      # via the backdoor sql approach.
+      for zone in conAdminRequest.getZones():
+         log.info(zone)
+         zoneIds.append(zone["id"])
+   else:
+      # Use the Helen API to add on prem zones.
+      zoneIds = conAdminRequest.addUserConfigZones(blockchainLocation)
 
-   log.info(zoneIds)
+   log.info("Zone IDs: {}".format(zoneIds))
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
    f = (numNodes - 1) / 3
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
@@ -459,11 +465,11 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    if auth.CUSTOM_BLOCKCHAIN in hermesData["hermesUserConfig"]["product"] and \
       hermesData["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]:
       blockchainId, conId = getExistingBlockchainDetails(logDir, hermesData)
-   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
-      raise Exception("On prem deployments not supported yet.")
-   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-      log.warning("Some test suites do not work with SDDC deployments yet.")
-      blockchainId, conId, replicas = deployToSddc(logDir, hermesData)
+   elif hermesData["hermesCmdlineArgs"].blockchainLocation in \
+        [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
+      log.warning("Some test suites do not work with remote deployments yet.")
+      blockchainId, conId, replicas = deployToSddc(logDir, hermesData,
+                                                   hermesData["hermesCmdlineArgs"].blockchainLocation)
    elif len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
       # we are using the default built in test blockchain.
@@ -528,16 +534,15 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    # (Today, that is only done in certain Helen API tests.)
    tokenDescriptor = None
 
-   if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
-      raise Exception("On prem deployments not supported yet.")
-   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-       tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
-                                                      True,
-                                                      auth.default_con_admin)
+   if hermesData["hermesCmdlineArgs"].blockchainLocation in \
+      [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
+      tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
+                                                True,
+                                                auth.default_con_admin)
    else:
-       tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
-                                                      True,
-                                                      auth.internal_admin)
+      tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
+                                                True,
+                                                auth.internal_admin)
 
    request = Request(hermesData["hermesTestLogDir"],
                      shortName,

@@ -3137,7 +3137,8 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
    blockchain_location = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()
 
-   if blockchain_type == util.helper.TYPE_DAML and blockchain_location == util.helper.LOCATION_SDDC:
+   if blockchain_type == util.helper.TYPE_DAML and \
+      blockchain_location in [util.helper.LOCATION_SDDC, util.helper.LOCATION_ONPREM]:
       blockchain_response = fxConnection.request.getBlockchainDetails(fxBlockchain.blockchainId)
       participants_response = fxConnection.request.get_participant_details(fxBlockchain.blockchainId)
       with open(util.helper.REPLICAS_JSON_PATH, "r") as replicas_fp:
@@ -3166,5 +3167,5 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
 
          log.info("DAML deployment on SDDC is successful")
    else:
-      log.warning("blockchainType must be {} and blockchainLocation must be {} - Test skipped"
+      log.warning("blockchainType must be {} and blockchainLocation must be onprem or sddc - Test skipped"
                .format(blockchain_type, blockchain_location))

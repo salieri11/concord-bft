@@ -168,9 +168,10 @@ def caseStart(suiteName, caseName, description=None, setId=None, startTime=None,
       setId = DEFAULT_SET_ID["setId"] # cached setId in this Jenkins run
     elif "errored" not in DEFAULT_SET_ID:
       try:
-        with open(getIdFilePath(), "r") as f:
-          setId = json.loads(f.read())["setId"]
-          DEFAULT_SET_ID["setId"] = setId
+        if os.path.isfile(getIdFilePath()):
+          with open(getIdFilePath(), "r") as f:
+            setId = json.loads(f.read())["setId"]
+            DEFAULT_SET_ID["setId"] = setId
       except Exception as e:
         DEFAULT_SET_ID["errored"] = True
         log.info(e); traceback.print_exc()

@@ -56,6 +56,16 @@ LOCATION_LOCAL = "local"
 LOCATION_SDDC = "sddc"
 LOCATION_ONPREM = "onprem"
 
+# When creating a zone, it can be one of these.
+ZONE_TYPE_ON_PREM = "ON_PREM"
+ZONE_TYPE_SDDC = "VMC_AWS"
+
+# Map --blockchainLocation to values for the Helen zone "type" parameter:
+LOCATION_TO_ZONE_TYPES = {
+   LOCATION_ONPREM: ZONE_TYPE_ON_PREM,
+   LOCATION_SDDC: ZONE_TYPE_SDDC
+}
+
 # These are command line options for --blockchainType.
 # These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
 TYPE_ETHEREUM = "ethereum"
@@ -72,10 +82,6 @@ FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT = 80
 KEEP_BLOCKCHAINS_ALWAYS = "always"
 KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
 KEEP_BLOCKCHAINS_NEVER = "never"
-
-# When creating a zone, it can be one of these.
-ZONE_TYPE_ON_PREM = "ON_PREM"
-ZONE_TYPE_SDDC = "VMC_AWS"
 
 # Credential type
 CREDENTIAL_BEARER = "BEARER"
@@ -952,8 +958,12 @@ def loadConfigFile(args=None, filepath=None):
    #    More info: see MR !1324
    if "metainf" in configObject:
       envObject = configObject["metainf"]["env"]
-      envObject["jobName"] = envObject["jobName"].replace("___", "/")
-      envObject["workspace"] = envObject["workspace"].replace("___", "/")
+
+      if "jobName" in envObject:
+         envObject["jobName"] = envObject["jobName"].replace("___", "/")
+
+      if "workspace" in envObject:
+         envObject["workspace"] = envObject["workspace"].replace("___", "/")
 
    CONFIG_CACHED['data'] = configObject
 
