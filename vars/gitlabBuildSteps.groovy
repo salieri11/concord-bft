@@ -1756,7 +1756,8 @@ void pushToArtifactory(){
     env.internal_hlf_orderer_repo,
     env.internal_hlf_peer_repo,
     env.internal_hlf_tools_repo,
-    env.internal_trc_lib_repo
+    env.internal_trc_lib_repo,
+    env.internal_trc_test_app_repo
   ]
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
@@ -2054,6 +2055,7 @@ void setUpRepoVariables(){
   // deliverable part of our product, but tagged builds of it may be used as
   // input to other product components.
   env.internal_trc_lib_repo = env.internal_repo + "/trc-lib"
+  env.internal_trc_test_app_repo = env.internal_repo + "/trc-test-app"
 }
 
 // Carry out any special activities related to analysis or reporting
@@ -2387,6 +2389,8 @@ daml_index_db_repo=${internal_daml_index_db_repo}
 daml_index_db_tag=${docker_tag}
 trc_lib_repo=${internal_trc_lib_repo}
 trc_lib_tag=${docker_tag}
+trc_test_app_repo=${internal_trc_test_app_repo}
+trc_test_app_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}

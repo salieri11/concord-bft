@@ -38,3 +38,7 @@ class Tee:
         result = self.stub.SkvbcRead(raw_skvbc_read, metadata=self.meta)
 
         return result.content
+
+    def write_block(self, raw_kv_data):
+        result = self.stub.WriteBlock(raw_kv_data, metadata=self.meta) 
+    

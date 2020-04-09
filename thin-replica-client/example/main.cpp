@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
   } catch (const exception& e) {
     has_max_faulty = false;
   }
-  if (!has_num_servers) {
+  if (!has_max_faulty) {
     LOG4CPLUS_FATAL(
         logger, "Invalid maximum number of faulty servers: \""
                     << argv[kMaxFaultyIndex]

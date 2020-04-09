@@ -161,6 +161,10 @@ std::unique_ptr<Update> ThinReplicaClientFacade::TryPop() {
   return impl->update_queue->TryPop();
 }
 
+void ThinReplicaClientFacade::ReleaseConsumers() {
+  impl->update_queue->ReleaseConsumers();
+}
+
 void ThinReplicaClientFacade::AcknowledgeBlockID(uint64_t block_id) {
   impl->trc->AcknowledgeBlockID(block_id);
 }

@@ -13,6 +13,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import thin_replica_pb2_grpc as trgrpc
 import thin_replica_pb2 as trproto
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 class ThinReplica:
     def __init__(self, host="localhost", port="50051",
@@ -39,3 +40,7 @@ class ThinReplica:
     def subscribe_to_update_hashes(self, block_id=1, key_prefix=b""):
         request = trproto.SubscriptionRequest(block_id=block_id, key_prefix=key_prefix)
         return self.stub.SubscribeToUpdateHashes(request, metadata=self.meta)
+
+    def unsubscribe(self):
+        request = google_dot_protobuf_dot_empty__pb2.Empty()
+        return self.stub.Unsubscribe(request)

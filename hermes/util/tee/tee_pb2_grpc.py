@@ -29,6 +29,11 @@ class TeeServiceStub(object):
         request_serializer=tee__pb2.RawSkvbcRequest.SerializeToString,
         response_deserializer=tee__pb2.RawSkvbcResponse.FromString,
         )
+    self.WriteBlock = channel.unary_unary(
+        '/com.vmware.concord.tee.TeeService/WriteBlock',
+        request_serializer=tee__pb2.KVData.SerializeToString,
+        response_deserializer=tee__pb2.TestOutput.FromString,
+        )
 
 
 class TeeServiceServicer(object):
@@ -56,6 +61,13 @@ class TeeServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def WriteBlock(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_TeeServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -73,6 +85,11 @@ def add_TeeServiceServicer_to_server(servicer, server):
           servicer.SkvbcWrite,
           request_deserializer=tee__pb2.RawSkvbcRequest.FromString,
           response_serializer=tee__pb2.RawSkvbcResponse.SerializeToString,
+      ),
+      'WriteBlock': grpc.unary_unary_rpc_method_handler(
+          servicer.WriteBlock,
+          request_deserializer=tee__pb2.KVData.FromString,
+          response_serializer=tee__pb2.TestOutput.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
