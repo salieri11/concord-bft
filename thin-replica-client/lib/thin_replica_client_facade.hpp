@@ -39,6 +39,7 @@ class ThinReplicaClientFacade final {
   void Subscribe(const std::string& prefix);
   void Subscribe(const std::string& prefix, uint64_t block_id);
   void Unsubscribe();
+  void ReleaseConsumers();
 
   std::unique_ptr<Update> Pop();
   std::unique_ptr<Update> TryPop();

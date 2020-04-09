@@ -108,12 +108,17 @@ message DamlResponse {
 message TeeRequest {
    optional string tee_input = 1;
    optional SkvbcRequest skvbc_request = 2;
+   optional WriteBlockRequest wb_request = 3;
 }
 
 message TeeResponse {
    optional string tee_output = 1;
    optional SkvbcResponse skvbc_response = 2;
 }
+
+message WriteBlockRequest {
+   optional bytes kvdata_content = 1;
+} 
 
 message SkvbcRequest {
    optional bytes request_content = 1;

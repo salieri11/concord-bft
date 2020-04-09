@@ -551,6 +551,7 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    '''
    log.info("Verifying connectivity ({}:{})".format(ip, port))
    attempt = 0
+   first_sleep_time = 5
    sleep_time = 10
    socket_timeout = 5
    receive_buffer_size = 256
@@ -560,6 +561,7 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    if success_bytes and min_bytes:
       raise Exception("Only pass success_bytes or min_bytes to verify_connectivity()")
 
+   time.sleep(first_sleep_time)
    while attempt < max_tries:
       with socket.socket() as s:
          s.settimeout(socket_timeout)

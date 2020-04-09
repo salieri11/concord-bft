@@ -9,9 +9,13 @@
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 
+#include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
 #include "tee.grpc.pb.h"
 
+using com::vmware::concord::TeeRequest;
+using com::vmware::concord::TeeResponse;
+using com::vmware::concord::tee::KVData;
 using com::vmware::concord::tee::RawSkvbcRequest;
 using com::vmware::concord::tee::RawSkvbcResponse;
 using com::vmware::concord::tee::TestInput;
@@ -43,6 +47,9 @@ class TeeServiceImpl final
       ::grpc::ServerContext* context,
       const ::com::vmware::concord::tee::RawSkvbcRequest* request,
       ::com::vmware::concord::tee::RawSkvbcResponse* response) override;
+
+  grpc::Status WriteBlock(::grpc::ServerContext* context, const KVData*,
+                          TestOutput*) override;
 };
 
 }  // namespace tee

@@ -65,8 +65,9 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   bool ExecuteSkvbcRequest(const com::vmware::concord::TeeRequest& tee_request,
                            uint8_t flags,
                            com::vmware::concord::TeeResponse* tee_response);
-  void RecordTransaction(const kvbc::SetOfKeyValuePairs& updates,
-                         com::vmware::concord::TeeResponse* tee_response);
+  bool WriteKVData(const com::vmware::concord::WriteBlockRequest& wbr,
+                   string& outstr);
+  kvbc::BlockId RecordTransaction(const kvbc::SetOfKeyValuePairs& updates);
 };
 
 }  // namespace tee

@@ -248,6 +248,11 @@ trc-lib() {
     docker_build . thin-replica-client/Dockerfile ${trc_lib_repo} ${trc_lib_tag}
 }
 
+trc-test-app() {
+    info "Build Thin Replica Client Test Application..."
+    docker_build . thin-replica-client/DockerfileTestApp ${trc_test_app_repo} ${trc_test_app_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
+}
+
 PerformanceTests() {
     pushd .
     cd performance/benchmark
@@ -319,6 +324,7 @@ then
     persephone
     hlf_submodules
     daml
+    trc-test-app
     waitForProcesses
 
     cockroachDB # Do we still need this?

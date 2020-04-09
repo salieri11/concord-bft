@@ -9,6 +9,7 @@
 
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
+#include "tee.pb.h"
 #include "time/time_contract.hpp"
 
 using std::map;
@@ -32,6 +33,7 @@ using com::vmware::concord::SkvbcResponse;
 using com::vmware::concord::TeeRequest;
 using com::vmware::concord::TeeResponse;
 using com::vmware::concord::kvb::ValueWithTrids;
+using com::vmware::concord::tee::KVData;
 
 using google::protobuf::util::TimeUtil;
 
@@ -88,6 +90,10 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
     return ExecuteSkvbcRequest(tee_request, flags, tee_response);
   }
 
+  if (tee_request.has_wb_request()) {
+    string* out = tee_response->mutable_tee_output();
+    return WriteKVData(tee_request.wb_request(), *out);
+  }
   if (!tee_request.has_tee_input()) {
     tee_response->set_tee_output("TeeCommandsHandler received no input");
   } else if (tee_request.tee_input() != "PrivacySanityTest") {
@@ -147,7 +153,7 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
     updates.insert(KeyValuePair(CreateTeeKvbKey("key-all"),
                                 CreateTeeKvbValue("value-all", {})));
 
-    RecordTransaction(updates, tee_response);
+    RecordTransaction(updates);
   }
 
   return true;
@@ -185,12 +191,35 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
   return true;
 }
 
-void TeeCommandsHandler::RecordTransaction(const SetOfKeyValuePairs& updates,
-                                           TeeResponse* tee_response) {
+bool TeeCommandsHandler::WriteKVData(
+    const com::vmware::concord::WriteBlockRequest& wbr, string& outstr) {
+  SetOfKeyValuePairs updates;
+
+  KVData kvdata;
+  kvdata.ParseFromString(wbr.kvdata_content());
+
+  for (auto tridkv : kvdata.trid_kvs()) {
+    vector<string> vtrid;
+    for (auto trid : tridkv.trids()) {
+      vtrid.push_back(trid);
+    }
+
+    updates.insert(KeyValuePair(CreateTeeKvbKey(tridkv.key()),
+                                CreateTeeKvbValue(tridkv.value(), vtrid)));
+  }
+
+  BlockId newBlock = RecordTransaction(updates);
+  outstr = "tee: new block " + std::to_string(newBlock);
+  return true;
+}
+
+BlockId TeeCommandsHandler::RecordTransaction(
+    const SetOfKeyValuePairs& updates) {
   BlockId new_block_id = 0;
   concordUtils::Status res = addBlock(updates, new_block_id);
   assert(res.isOK());
   write_ops_.Increment();
+  return new_block_id;
 }
 
 void TeeCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
