@@ -31,10 +31,11 @@ done
 
 >&2 echo "Postgres is up - starting ledger api server"
 
+INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
+
 $API_SERVER \
   --replicas $REPLICAS \
-  --participant-id $PARTICIPANT_ID --port 6865\
-  --jdbc-url="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER" \
+  --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
   --maxInboundMessageSize=67108864 \
   $THIN_REPLICA_SETTINGS \
   $AUTH_SETTINGS

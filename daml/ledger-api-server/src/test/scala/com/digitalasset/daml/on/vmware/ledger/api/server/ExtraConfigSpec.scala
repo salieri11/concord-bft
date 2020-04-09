@@ -6,17 +6,13 @@ import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.security.KeyPairGenerator
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 
+import com.daml.ledger.participant.state.kvutils.app.Config
 import com.digitalasset.jwt.domain.DecodedJwt
 import com.digitalasset.jwt.{JwtSigner, KeyUtils, domain}
-import com.digitalasset.ledger.api.auth.{
-  AuthService,
-  AuthServiceJWT,
-  ClaimPublic
-}
+import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceJWT, ClaimPublic}
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import io.grpc.Metadata
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
-
 import scalaz.syntax.show._
 import scalaz.\/
 
@@ -49,17 +45,11 @@ private object SimpleHttpServer {
   }
 }
 
-class CliSpec extends AsyncWordSpec with Matchers {
-  "Cli" should {
-
-    "return the default Config when no arguments are specified" in {
-      val config = Cli.parse(Array.empty)
-      config shouldEqual Some(Config.default)
-    }
+class ExtraConfigSpec extends AsyncWordSpec with Matchers {
+  "ExtraConfig" should {
 
     "parse and configure the authorisation mechanism correctly when `--auth-jwt-hs256-unsafe someSecret` is passed" in {
-      val config = Cli.parse(Array("--auth-jwt-hs256-unsafe", "someSecret"))
-      config shouldBe defined
+      val config = parseExtraConfig(Array("--auth-jwt-hs256-unsafe", "someSecret"))
       val authService = getAuthService(config)
       val metadata = getAuthMetadata(
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.kNA5SrV4HUR3BwligGSMcpOG9bPOyHVwpNYb3Ha5dPY")
@@ -68,8 +58,7 @@ class CliSpec extends AsyncWordSpec with Matchers {
 
     "parse and configure the authorisation mechanism correctly when `--auth-jwt-rs256-crt <PK.crt>` is passed" in {
       val tmpCrtFile = getTmpCrtFileAbsolutePath("/test.pubk.rsa.crt")
-      val config = Cli.parse(Array("--auth-jwt-rs256-crt", tmpCrtFile))
-      config shouldBe defined
+      val config = parseExtraConfig(Array("--auth-jwt-rs256-crt", tmpCrtFile))
       val authService = getAuthService(config)
       val metadata = getAuthMetadata(
         "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.MQye4OsqFKnDZArhNpS8uhSPaAF7NfjXFevZFPolPvUWfzYNLvhHOwX05QeA2jJfL12QWpam7nGeSxb1nIdnK1Qas95_ep04YLk1wS7M0OE9wdnvopJHaHanvDWttnybA12dCfA79vwU6bD0IwVI7Hjsm3740Y_BzlyAfX8Lye8dWI3-slcFa8_XNt16sZ3FA9oDI6T99tHkoMJeuAvHs4kQhv5UIqUWfbbxbSw_gTNM3AaeQ5vLrTlqjU6TQrogQjPzEuz83zOX-X-xUrvHloYd7Pwn2XDAWHWhHHLuXtsCbfnGestXkrMBdscNne5jlNPU16_GxfLglWdq1Mllhg")
@@ -78,8 +67,7 @@ class CliSpec extends AsyncWordSpec with Matchers {
 
     "parse and configure the authorisation mechanism correctly when `--auth-jwt-es256-crt <PK.crt>` is passed" in {
       val tmpCrtFile = getTmpCrtFileAbsolutePath("/test.pubk.ecdsa256.crt")
-      val config = Cli.parse(Array("--auth-jwt-es256-crt", tmpCrtFile))
-      config shouldBe defined
+      val config = parseExtraConfig(Array("--auth-jwt-es256-crt", tmpCrtFile))
       val authService = getAuthService(config)
       val metadata = getAuthMetadata(
         "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.mLwYV8-2nNEXUcwhp4m3HpIkyomJRPLwJc1hH8g56UYfjxACqXHTQngt-2mvWwPPyvrVZXd7nU3Q-JdxFrPBYA")
@@ -88,8 +76,7 @@ class CliSpec extends AsyncWordSpec with Matchers {
 
     "parse and configure the authorisation mechanism correctly when `--auth-jwt-es512-crt <PK.crt>` is passed" in {
       val tmpCrtFile = getTmpCrtFileAbsolutePath("/test.pubk.ecdsa512.crt")
-      val config = Cli.parse(Array("--auth-jwt-es512-crt", tmpCrtFile))
-      config shouldBe defined
+      val config = parseExtraConfig(Array("--auth-jwt-es512-crt", tmpCrtFile))
       val authService = getAuthService(config)
       val metadata = getAuthMetadata(
         "eyJhbGciOiJFUzUxMiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.AXL5BqqeEfiu-kkY_A3mBLHAa2rQtHeygITSSfhUYubcooJlvtknZtkYlTkqA-IyKGRkly29LCk395BkTXug3vbgAeTEv7DB9mXDrCU1I1Z5YTrs64lXVKii58jqhWWWSezIAZkWhkv5aHZHyy_Y7DJFecWME2qhSfBAdoPlFMs0O4FO")
@@ -119,8 +106,7 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val server = SimpleHttpServer.start(jwks)
 
       val url = SimpleHttpServer.responseUrl(server)
-      val config = Cli.parse(Array("--auth-jwt-rs256-jwks", url))
-      config shouldBe defined
+      val config = parseExtraConfig(Array("--auth-jwt-rs256-jwks", url))
       val authService = getAuthService(config)
       val metadata = getAuthMetadata(token.value)
       val assertion = decodeAndCheckMetadata(authService, metadata)
@@ -128,12 +114,18 @@ class CliSpec extends AsyncWordSpec with Matchers {
       assertion
     }
   }
-
-  private[this] def getAuthService(config: Option[Config]) = {
-    val kvUtilsAppConfig = ConcordLedgerFactory.toKVUtilsAppConfig(config.get)
-    val authService = ConcordLedgerFactory.authService(kvUtilsAppConfig)
-    authService
+  
+  private[this] def parseExtraConfig(args: Array[String]): Config[ExtraConfig] = {
+    val defaultArgs = Array(
+      "--participant",
+      "participant-id=test_id,port=1234"
+    )
+    Config.parse("config-test", ExtraConfig.addCommandLineArguments, ExtraConfig.Default, defaultArgs ++ args)
+      .getOrElse(fail())
   }
+
+  private[this] def getAuthService(config: Config[ExtraConfig]) =
+   ConcordLedgerFactory.authService(config)
 
   private[this] def getAuthMetadata(token: String) = {
     val metadata = new Metadata()
