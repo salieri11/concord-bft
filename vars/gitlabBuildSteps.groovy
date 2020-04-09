@@ -181,7 +181,7 @@ import hudson.util.Secret
 @Field String persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
 @Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
 @Field String manual_with_params_job_name = "Blockchain Manual Run"
-  
+
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
@@ -527,7 +527,8 @@ def call(){
                   env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
-                  env.JOB_NAME.contains(performance_test_job_name)
+                  env.JOB_NAME.contains(performance_test_job_name) ||
+                  env.JOB_NAME.contains(persephone_test_on_demand_job_name)
                 ) {
                 def latest_docker_tag = getLatestTag()
                 setDockerTag(latest_docker_tag)
@@ -870,6 +871,12 @@ def call(){
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                       '''
                     } else {
+                      if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
+                        // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
+                        // the rest, which were pulled from Artifactory, are env.docker_tag.
+                        tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
+                      }
+
                       // MR runs and Persephone on-demand runs use the local config service.
                       sh '''
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
@@ -2291,7 +2298,7 @@ void racetrackSet(action){
           sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
         } else if(action == "end"){
           env.run_result = currentBuild.currentResult
-          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"' 
+          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"'
         }
       }
     }
@@ -2396,64 +2403,65 @@ LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
 EOF
     '''
+
     updateEnvFileForConcordOnDemand()
+    updateEnvFileForPersephoneOnDemand()
 
     sh '''
       cp blockchain/docker/.env blockchain/hermes/
       cp blockchain/docker/.env blockchain/vars/env.log
     '''
-    script {
-      env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
-      env.WORKSPACE_ESCAPED = env.WORKSPACE.replaceAll('/', '___')
+
+    env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
+    env.WORKSPACE_ESCAPED = env.WORKSPACE.replaceAll('/', '___')
+    sh '''
+      # Update provisioning service application-test.properties
+      sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+      sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
+      sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
+      sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<ONPREM_VCENTER_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<METAINF_ENV_WORKSPACE>"'/'"${WORKSPACE_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+    '''
+
+    if (env.JOB_NAME.contains(long_tests_job_name)) {
       sh '''
-        # Update provisioning service application-test.properties
-        sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
-        sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
-        sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<ONPREM_VCENTER_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<METAINF_ENV_WORKSPACE>"'/'"${WORKSPACE_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
       '''
+    } else {
+      sh '''
+        sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
+      '''
+    }
 
-      if (env.JOB_NAME.contains(long_tests_job_name)) {
-        sh '''
-          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
-        '''
-      } else {
-        sh '''
-          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
-        '''
-      }
-
-      if (env.JOB_NAME.contains(persephone_test_job_name)) {
-        sh '''
-          # Update provisioning service application-test.properties with bintray registry for nightly runs
-          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        '''
-      } else {
-        sh '''
-          # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
-          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        '''
-      }
+    if (env.JOB_NAME.contains(persephone_test_job_name)) {
+      sh '''
+        # Update provisioning service application-test.properties with bintray registry for nightly runs
+        sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+      '''
+    } else {
+      sh '''
+        # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
+        sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+      '''
     }
   }
 }
@@ -2463,7 +2471,7 @@ void updateEnvFileForConcordOnDemand(){
     if (env.JOB_NAME.contains(deploy_concord_job_name)) {
       if (env.concord_deployment_tag.toLowerCase() == "lastsuccessfultot") {
         env.dep_comp_concord_tag = env.docker_tag
-        sh ''' 
+        sh '''
           echo "Using concord tag (last successful ToT): " + ${dep_comp_concord_tag}
         '''
       }
@@ -2531,10 +2539,39 @@ void startOfficialPerformanceRun(){
 // This is needed for deployment testing, as SDDCs are located outside the firewall.
 void pushConcordComponentsToDockerHub(){
   tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
+  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag)
   tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag)
+}
+
+// For the Persephone On Demand, we only build and want to use
+// Persephone components.
+void updateEnvFileForPersephoneOnDemand(){
+  if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
+    setPropVals([
+      "persephone_agent_tag",
+      "persephone_configuration_tag",
+      "persephone_ipam_tag",
+      "persephone_provisioning_tag"
+    ], env.product_version, "blockchain/docker/.env")
+  }
+}
+
+// Sets a list of keys equal to val in file.
+void setPropVals(keys, val, file){
+  for (key in keys){
+    echo "Setting '" + key + "' to '" + val + "' in " + file
+    env.setPropValsKey = key
+    env.setPropValsVal = val
+    env.setPropValsFile = file
+    sh '''
+      sed -i -e 's/'"${setPropValsKey}=.*"'/'"${setPropValsKey}=${setPropValsVal}"'/g' "${setPropValsFile}"
+    '''
+    contents = readFile(file)
+    echo("File now contains: " + contents)
+  }
 }
