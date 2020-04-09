@@ -21,6 +21,8 @@ class ConcordKeyValueLedgerReaderSpec
     def streamFrom(offset: Long): Source[Update, NotUsed]
   }
 
+  private val aSpanContext = Array[Byte](1, 2, 3)
+
   "ledger reader" should {
     "wrap thin-replica block" in {
       val blockSource = mock[BlockSource]
@@ -29,7 +31,7 @@ class ConcordKeyValueLedgerReaderSpec
             (Array[Byte](0, 1, 2), Array[Byte](4, 5, 6)))
       when(blockSource.streamFrom(any()))
         .thenReturn(Source.single(
-          Update(123, expectedKeyValuePairs.toArray, "aCorrelationId")))
+          Update(123, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
       val instance =
         new ConcordKeyValueLedgerReader(blockSource.streamFrom, "aLedgerId")
       val stream = instance.events(Some(KVOffset.fromLong(123)))
@@ -52,7 +54,7 @@ class ConcordKeyValueLedgerReaderSpec
     "stream from StartIndex in case no offset is specified" in {
       val blockSource = mock[BlockSource]
       when(blockSource.streamFrom(ConcordKeyValueLedgerReader.StartIndex))
-        .thenReturn(Source.single(Update(0, Array(), "aCorrelationId")))
+        .thenReturn(Source.single(Update(0, Array(), "aCorrelationId", aSpanContext)))
       val instance =
         new ConcordKeyValueLedgerReader(blockSource.streamFrom, "aLedgerId")
       val stream = instance.events(None)

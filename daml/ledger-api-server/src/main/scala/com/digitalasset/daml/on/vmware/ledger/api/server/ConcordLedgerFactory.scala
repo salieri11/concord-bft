@@ -3,9 +3,8 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 import java.util.UUID
 
 import akka.stream.Materializer
-import com.daml.ledger.participant.state.kvutils.app.{LedgerFactory, ParticipantConfig, ReadWriteService, Config => KVUtilsConfig}
+import com.daml.ledger.participant.state.kvutils.app.{Config, LedgerFactory, ParticipantConfig, ReadWriteService}
 import com.daml.ledger.participant.state.pkvutils.api.PrivacyAwareKeyValueParticipantState
-import com.daml.ledger.participant.state.v1.SeedService.Seeding
 import com.digitalasset.daml.lf.data.Ref
 import com.digitalasset.daml.lf.data.Ref.ParticipantId
 import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCPrometheusMetricsEndpoint}
@@ -14,8 +13,6 @@ import com.digitalasset.daml.on.vmware.write.service.{KVBCClient, TRClient}
 import com.digitalasset.ledger.api.auth.AuthService
 import com.digitalasset.logging.LoggingContext
 import com.digitalasset.platform.apiserver.ApiServerConfig
-import com.digitalasset.platform.indexer.IndexerConfig
-import com.digitalasset.ports.Port
 import com.digitalasset.resources.ResourceOwner
 import com.google.common.net.HostAndPort
 import io.grpc.ConnectivityState
@@ -26,29 +23,37 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 object ConcordLedgerFactory
     extends LedgerFactory[ReadWriteService, ExtraConfig] {
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
-  // This is unused since we're providing our own parser by overriding Runner's `owner`
-  override def extraConfigParser(
-      parser: OptionParser[KVUtilsConfig[ExtraConfig]]): Unit = ()
+  override val defaultExtraConfig: ExtraConfig = ExtraConfig.Default
+
+  override def extraConfigParser(parser: OptionParser[Config[ExtraConfig]]): Unit =
+    ExtraConfig.addCommandLineArguments(parser)
+
+  // We explicitly set that for all participants we are going to migrate and start the database.
+  override def manipulateConfig(config: Config[ExtraConfig]): Config[ExtraConfig] =
+    config.copy(participants = config.participants.map(_.copy(allowExistingSchemaForIndex = true)))
 
   def readWriteServiceOwner(
-      config: KVUtilsConfig[ExtraConfig],
+      config: Config[ExtraConfig],
       participantConfig: ParticipantConfig,
   )(implicit materializer: Materializer,
     logCtx: LoggingContext): ResourceOwner[ReadWriteService] = {
     implicit val executionContext: ExecutionContextExecutor =
       materializer.executionContext
-
+    logger.info(
+      s"""Initializing vDAML ledger api server: version=${BuildInfo.Version}
+         |participantId=${config.participants.head.participantId} replicas=${config.extra.replicas}
+         |jdbcUrl=${config.participants.head.serverJdbcUrl}
+         |dar_file(s)=${config.archiveFiles.mkString("(", ";", ")")}""".stripMargin
+        .replaceAll("\n", " "))
     val thinReplicaClient =
       createThinReplicaClient(participantConfig.participantId, config.extra)
-
     val concordClient = createConcordClient(config.extra)
     waitForConcordToBeReady(concordClient)
-
     val ledgerId =
       config.ledgerId.getOrElse(
         Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
-
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       ledgerId,
@@ -59,66 +64,28 @@ object ConcordLedgerFactory
                                          () => concordClient.currentHealth)
     for {
       closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
-      closeableEndpoint = {
-        val endPoint = KVBCPrometheusMetricsEndpoint.createEndpoint(
+      closeableMetricsEndpoint = {
+        val metricsEndPoint = KVBCPrometheusMetricsEndpoint.createEndpoint(
           metricRegistry(participantConfig, config),
           closeableHttpServer.context)
         closeableHttpServer.start()
-        endPoint
+        metricsEndPoint
       }
-      _ <- ResourceOwner.forCloseable(() => closeableEndpoint)
+      _ <- ResourceOwner.forCloseable(() => closeableMetricsEndpoint)
     } yield PrivacyAwareKeyValueParticipantState(reader, writer)
   }
 
   override def apiServerConfig(
       participantConfig: ParticipantConfig,
-      config: KVUtilsConfig[ExtraConfig]): ApiServerConfig =
+      config: Config[ExtraConfig]): ApiServerConfig =
     super
       .apiServerConfig(participantConfig, config)
       .copy(tlsConfig = config.tlsConfig,
             maxInboundMessageSize = config.extra.maxInboundMessageSize)
 
-  override def indexerConfig(
-      participantConfig: ParticipantConfig,
-      config: KVUtilsConfig[ExtraConfig]): IndexerConfig =
-    super
-      .indexerConfig(participantConfig, config)
-      .copy(startupMode = config.extra.startupMode)
-
-  override def authService(config: KVUtilsConfig[ExtraConfig]): AuthService =
+  override def authService(config: Config[ExtraConfig]): AuthService =
     config.extra.authService.getOrElse(super.authService(config))
 
-  override val defaultExtraConfig: ExtraConfig = ExtraConfig.Default
-
-  private[server] def toKVUtilsAppConfig(
-      config: Config): KVUtilsConfig[ExtraConfig] =
-    KVUtilsConfig(
-      Some("KVBC"),
-      config.archiveFiles.map(_.toPath),
-      config.tlsConfig,
-      List(
-        ParticipantConfig(
-          config.participantId,
-          Some("0.0.0.0"),
-          Port(config.port),
-          config.portFile,
-          config.jdbcUrl,
-          allowExistingSchemaForIndex = true,
-        )),
-      seeding = Seeding.Strong,
-      ExtraConfig(
-        config.maxInboundMessageSize,
-        config.timeProvider,
-        config.startupMode,
-        config.replicas,
-        config.useThinReplica,
-        config.maxFaultyReplicas,
-        config.jaegerAgentAddress,
-        config.authService,
-      ),
-    )
-
-  private[this] val logger = LoggerFactory.getLogger(this.getClass)
   private[this] val DefaultReplicaPort = 50051
 
   private[this] def createConcordClient(config: ExtraConfig)(
