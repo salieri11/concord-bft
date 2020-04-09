@@ -106,6 +106,7 @@ services:
       - INDEXDB_USER=indexdb
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - PARTICIPANT_ID=daml_ledger_api1
+      - ENABLE_BATCHING=false
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
       - concord1
@@ -124,6 +125,7 @@ services:
       - INDEXDB_USER=indexdb
       - REPLICAS=concord2:50051,concord3:50051,concord4:50051,concord1:50051
       - PARTICIPANT_ID=daml_ledger_api2
+      - ENABLE_BATCHING=false
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
       - concord2
@@ -142,6 +144,7 @@ services:
       - INDEXDB_USER=indexdb
       - REPLICAS=concord3:50051,concord4:50051,concord1:50051,concord2:50051
       - PARTICIPANT_ID=daml_ledger_api3
+      - ENABLE_BATCHING=false
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
       - concord3
@@ -160,6 +163,7 @@ services:
       - INDEXDB_USER=indexdb
       - REPLICAS=concord4:50051,concord1:50051,concord2:50051,concord3:50051
       - PARTICIPANT_ID=daml_ledger_api4
+      - ENABLE_BATCHING=false
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
       - concord4
