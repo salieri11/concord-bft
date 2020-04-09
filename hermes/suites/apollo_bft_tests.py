@@ -9,7 +9,7 @@
 #         ApolloBftTests
 #
 """Test BFT protocol"""
-
+import subprocess
 import sys
 import os
 import importlib.util
@@ -31,6 +31,7 @@ sys.path.append(os.path.abspath("../concord/submodules/concord-bft/util/pyclient
 import pytest
 
 import trio
+from functools import wraps
 from bft import BftTestNetwork, TestConfig, with_trio
 from bft_config import Replica
 from test_skvbc import SkvbcTest
@@ -59,6 +60,26 @@ def stop_replica_cmd(replica_id):
     log.info(f"Stopping replica #{replica_id}")
     return ["docker", "kill", f"docker_concord{replica_id + 1}_1"]
 
+def with_timeout(async_fn):
+    """
+    Decorator that makes sure an async test case doesn't run indefinitely.
+    This could happen sometimes due to a co-routine waiting indefinitely for something to happen
+    (f.e. a view change).
+
+    In case the timeout is reached, we print the list of live Concord containers, to help debug such cases.
+    """
+    @wraps(async_fn)
+    async def timeout_wrapper(*args, **kwargs):
+        try:
+            with trio.fail_after(seconds=5*60):
+                return await async_fn(*args, **kwargs)
+        except trio.TooSlowError:
+            raw_output = subprocess.check_output(["docker", "ps", "--format", "{{ .Names }}"])
+            live_containers = [c.decode('utf-8') for c in raw_output.split()]
+            log.info(f"Live containers at the time of failure: {live_containers}")
+            raise
+
+    return timeout_wrapper
 
 @pytest.fixture(scope="module")
 @with_trio
@@ -87,6 +108,7 @@ def test_skvbc_get_block_data(fxProduct, bft_network):
     trio.run(_test_skvbc_get_block_data, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_get_block_data(bft_network):
     skvbc_test = SkvbcTest()
     log.info("Running SKVBC test_get_block_data...")
@@ -102,6 +124,7 @@ def test_skvbc_fast_path(fxProduct, bft_network):
     trio.run(_test_skvbc_fast_path, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_fast_path(bft_network):
     skvbc_fast_path_test = SkvbcFastPathTest()
     skvbc_fast_path_test.setUp()
@@ -119,6 +142,7 @@ def test_skvbc_slow_path(fxProduct, bft_network):
     trio.run(_test_skvbc_slow_path, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_slow_path(bft_network):
     skvbc_slow_path_test = SkvbcSlowPathTest()
     skvbc_slow_path_test.setUp()
@@ -136,6 +160,7 @@ def test_skvbc_checkpoint_creation(fxProduct, bft_network):
     trio.run(_test_skvbc_checkpoint_creation, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_checkpoint_creation(bft_network):
     skvbc_test = SkvbcTest()
     log.info("Running SKVBC checkpoint creation test...")
@@ -151,6 +176,7 @@ def test_skvbc_state_transfer(fxProduct, bft_network):
     trio.run(_test_skvbc_state_transfer, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_state_transfer(bft_network):
     skvbc_test = SkvbcTest()
     log.info("Running SKVBC state transfer test...")
@@ -166,6 +192,7 @@ def test_skvbc_view_change(fxProduct, bft_network):
     trio.run(_test_skvbc_view_change, bft_network)
 
 
+@with_timeout
 async def _test_skvbc_view_change(bft_network):
     skvbc_view_change_test = SkvbcViewChangeTest()
     log.info("Running SKVBC view change test...")
