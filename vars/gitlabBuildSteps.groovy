@@ -167,6 +167,7 @@ import hudson.util.Secret
 @Field String additional_components_to_build = ""
 
 // Job Names List
+@Field String deploy_concord_job_name = "Concord Deployment Test"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
 @Field String ext_long_tests_job_name = "Blockchain Extensive Long Tests"
 @Field String helen_role_test_job_name = "Helen Role Tests on GitLab"
@@ -184,6 +185,7 @@ import hudson.util.Secret
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
+  deploy_concord_job_name,
   ext_long_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
@@ -196,6 +198,7 @@ import hudson.util.Secret
 
 // These job names are just substrings of the actual job names.
 @Field List specialized_tests = [
+  deploy_concord_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
   helen_role_test_job_name,
@@ -275,6 +278,10 @@ def call(){
              description: "Override automatic node selection and run this job on a node with this label.",
              name: "jenkins_node"
 
+      string defaultValue: "LastSuccessfulToT",
+             description: "Concord deployment: Specify concord tag for the deployment [LastSuccessfulToT/ThisBranch/<Specific tag like 0.0.0.1246>].",
+             name: "concord_deployment_tag"
+
       choice(choices: "on-failure\nnever\nalways", description: 'Persephone Tests: Choose a deployment test failure Retention Policy', name: 'deployment_retention')
 
       string defaultValue: "10",
@@ -319,6 +326,7 @@ def call(){
               printSelectableSuites()
 
               // Set as env variables
+              env.concord_deployment_tag = params.concord_deployment_tag
               env.deployment_retention = params.deployment_retention
               env.performance_votes = params.performance_votes
               env.concord_ips = params.concord_ips
@@ -514,6 +522,7 @@ def call(){
                 def latest_docker_tag = updateOneCloudProvisioningBintrayAndGetLatestTag()
                 setDockerTag(latest_docker_tag)
               } else if(
+                  env.JOB_NAME.contains(deploy_concord_job_name) ||
                   env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
@@ -553,7 +562,18 @@ def call(){
             try{
               saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
-                if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+                if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+                  if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
+                    sh '''
+                      echo "Building concord..."
+                      ./buildall.sh --buildOnDemand concord
+                    '''
+                  }
+                  sh '''
+                    echo "Building grpc binding..."
+                    ./buildall.sh --buildOnDemand BuildPersephoneGRPCpyBindings
+                  '''
+                } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                   sh '''
                     echo "Building ONLY persephone related components..."
                     ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
@@ -648,6 +668,7 @@ def call(){
                   script {
                     // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+                    env.concord_deployment_test_logs = new File(env.test_log_root, "ConcordDeploymentTest").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
                     env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
@@ -770,6 +791,21 @@ def call(){
                       '''
                       saveTimeEvent("Performance tests", "End")
                     }
+                    if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+                      saveTimeEvent("Concord deployment test", "Start")
+                      if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
+                        env.dep_comp_concord_tag = env.product_version
+                        tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.dep_comp_concord_tag)
+                      }
+                      sh '''
+                        echo "Running Persephone deployment for concord..."
+                        mkdir -p "${concord_deployment_test_logs}"
+                        echo "**** Using concord tag: " + ${dep_comp_concord_tag}
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
+                      '''
+                      saveTimeEvent("Concord deployment test", "End")
+                    }
+
                   }
                 }
               }
@@ -2355,7 +2391,10 @@ commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
 EOF
+    '''
+    updateEnvFileForConcordOnDemand()
 
+    sh '''
       cp blockchain/docker/.env blockchain/hermes/
       cp blockchain/docker/.env blockchain/vars/env.log
     '''
@@ -2409,6 +2448,32 @@ EOF
           sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      }
+    }
+  }
+}
+
+void updateEnvFileForConcordOnDemand(){
+  script {
+    if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+      if (env.concord_deployment_tag.toLowerCase() == "lastsuccessfultot") {
+        env.dep_comp_concord_tag = env.docker_tag
+        sh ''' 
+          echo "Using concord tag (last successful ToT): " + ${dep_comp_concord_tag}
+        '''
+      }
+      else if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
+        env.dep_comp_concord_tag = env.product_version
+        sh '''
+          echo "Using concord tag (from this branch): " + ${dep_comp_concord_tag}
+          sed -i -e 's/'"concord_tag=${docker_tag}"'/'"concord_tag=${dep_comp_concord_tag}"'/g' blockchain/docker/.env
+        '''
+      } else {
+        env.dep_comp_concord_tag = env.concord_deployment_tag
+        sh '''
+          echo "Using concord tag (custom tag):" + ${dep_comp_concord_tag}
+          sed -i -e 's/'"concord_tag=${docker_tag}"'/'"concord_tag=${dep_comp_concord_tag}"'/g' blockchain/docker/.env
         '''
       }
     }
