@@ -38,7 +38,7 @@ class MockDamlValidatorClient : public IDamlValidatorClient {
  public:
   MOCK_METHOD7(ValidateSubmission,
                grpc::Status(std::string, std::string,
-                            google::protobuf::Timestamp&, std::string,
+                            const google::protobuf::Timestamp&, std::string,
                             std::string, opentracing::Span&,
                             da_kvbc::ValidateResponse*));
 
@@ -47,6 +47,13 @@ class MockDamlValidatorClient : public IDamlValidatorClient {
                             const std::map<std::string, std::string>&,
                             std::string, opentracing::Span&,
                             da_kvbc::ValidatePendingSubmissionResponse*));
+
+  MOCK_METHOD7(Validate,
+               grpc::Status(const std::string&,
+                            const google::protobuf::Timestamp&,
+                            const std::string&, const std::string&,
+                            opentracing::Span&, std::vector<std::string>&,
+                            KeyValueStorageOperations&));
 };
 
 class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {

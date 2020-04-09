@@ -4,23 +4,24 @@ package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.codahale.metrics.{MetricRegistry, Timer}
 import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
+import com.daml.ledger.participant.state.pkvutils
+import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
 import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
+import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.kvbc.daml_validator._
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
 import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
+import io.grpc.stub.StreamObserver
+import java.security.MessageDigest
 import java.time.{Duration, Instant}
 import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import com.digitalasset.daml.on.vmware.common.Constants
-
-import com.daml.ledger.participant.state.pkvutils.Fragmenter
-import com.daml.ledger.participant.state.pkvutils
 
 class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     extends ValidationServiceGrpc.ValidationService
@@ -76,6 +77,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]]
   )
 
+
   // Pending submissions for each replica that require further state to process.
   // We only keep the last submission and assume that each replica executes each
   // request sequentially.
@@ -116,7 +118,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
       }
     }
 
-  def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
+  override def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
     val replicaId = request.replicaId
     val correlationId = request.correlationId;
 
@@ -164,7 +166,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     ValidatePendingSubmissionResponse(Some(result))
   }
 
-  def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
+  override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
     val replicaId = request.replicaId
     val participantId = Ref.ParticipantId.assertFromString(request.participantId)
     val correlationId = request.correlationId;
@@ -218,6 +220,78 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
           processPendingSubmission(replicaId, pendingSubmission, correlationId)
         )
       )
+    }
+  }
+
+  override def validate(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
+    // NOTE(JM): This adapts the pipelined interface into the existing one. This is temporary until
+    // we bring in the batching validator which will properly use the pipelined interface.
+
+    import EventFromValidator._
+    def sendEvent(event: EventFromValidator => EventFromValidator): Unit =
+      responseObserver.onNext(event(EventFromValidator()))
+
+    // Hold the validate request to synthesize call to validatePendingSubmission
+    // when a read completes.
+    var optValidateRequest: Option[ValidateRequest] = None
+
+    new StreamObserver[EventToValidator] {
+      override def onNext(value: EventToValidator): Unit = {
+        value.toValidator match {
+          case EventToValidator.ToValidator.ValidateRequest(_) if optValidateRequest.isDefined =>
+            sys.error("Already processing a submission")
+
+          case EventToValidator.ToValidator.ValidateRequest(requestWithoutEntryId) =>
+            // The new protocol does not provide an entry id from the caller side. We use
+            // a sha256 hash of the submission as the entry id.
+            val submissionBytes = requestWithoutEntryId.submission.toByteArray
+            val entryId =
+              MessageDigest.getInstance("SHA-256").digest(submissionBytes).map("%02x" format _).mkString
+            val request = requestWithoutEntryId.withEntryId(ByteString.copyFromUtf8(entryId))
+            optValidateRequest = Some(request)
+
+            validateSubmission(request).foreach { response =>
+              if (response.response.isNeedState) {
+                // Send an event to fetch the state. We only send one event, hence we use static tag.
+                sendEvent(_.withRead(Read(tag = "NEEDSTATE", keys = response.getNeedState.keys)))
+              } else if (response.response.isResult) {
+                val result = response.getResult
+                sendEvent(_.withWrite(Write(result.updates)))
+                sendEvent(_.withDone(Done(result.readSet)))
+              } else {
+                sys.error("ValidateResponse is empty")
+              }
+            }
+
+          case EventToValidator.ToValidator.ReadResult(result) =>
+            optValidateRequest match {
+              case None =>
+                sys.error("ReadResult received, but there is no request.")
+              case Some(validateRequest) =>
+                assert(result.tag == "NEEDSTATE")
+                validatePendingSubmission(
+                  ValidatePendingSubmissionRequest(
+                    entryId = validateRequest.entryId,
+                    replicaId = validateRequest.replicaId,
+                    inputState = result.keyValuePairs,
+                    correlationId = validateRequest.correlationId
+                  )
+                ).foreach { response =>
+                  response.result
+                    .fold(sys.error("validatePendingSubmission returned no result")) { result =>
+                      sendEvent(_.withWrite(Write(result.updates)))
+                      sendEvent(_.withDone(Done(result.readSet)))
+                    }
+                }
+            }
+        }
+      }
+
+      override def onError(t: Throwable): Unit =
+        logger.error(s"validate() aborted due to an error: $t")
+
+      override def onCompleted(): Unit =
+        logger.info("validate() completed")
     }
   }
 

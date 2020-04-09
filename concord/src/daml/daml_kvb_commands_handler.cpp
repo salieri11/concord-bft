@@ -117,70 +117,119 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     const da_kvbc::CommitRequest& commit_req, const uint8_t flags,
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
-  auto daml_execute_commit = parent_span.tracer().StartSpan(
-      "daml_execute_commit", {opentracing::ChildOf(&parent_span.context())});
+  std::string span_name = enable_pipelined_commits_
+                              ? "daml_execute_commit_pipelined"
+                              : "daml_execute_commit";
+  auto execute_commit_span = parent_span.tracer().StartSpan(
+      span_name, {opentracing::ChildOf(&parent_span.context())});
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
-
-  BlockId current_block_id = storage_.getLastBlock();
-
-  // Since we're not batching, lets keep it simple and use the next block id as
-  // the DAML log entry id.
-  string entryId = std::to_string(current_block_id + 1);
-
-  google::protobuf::Timestamp record_time;
-  if (time) {
-    record_time = time->GetTime();
-    LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
-  } else {
-    record_time = google::protobuf::util::TimeUtil::GetEpoch();
-    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
-  }
-
   std::string correlation_id = commit_req.correlation_id();
-
+  BlockId current_block_id = storage_.getLastBlock();
+  google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
   if (has_pre_executed && request_.has_pre_execution_result()) {
-    return CommitPreExecutionResult(current_block_id, entryId, record_time,
-                                    correlation_id, *daml_execute_commit,
+    return CommitPreExecutionResult(current_block_id, record_time,
+                                    correlation_id, *execute_commit_span,
                                     concord_response);
   }
 
-  da_kvbc::ValidateResponse response;
-  da_kvbc::ValidatePendingSubmissionResponse response2;
-  da_kvbc::Result result;
-
-  bool daml_execution_success =
-      RunDamlExecution(commit_req, entryId, record_time, *daml_execute_commit,
-                       response, response2);
-
   SetOfKeyValuePairs updates;
+  // The set of keys used during validation. Includes reads of keys
+  // cached by the validator.
+  vector<string> read_set;
+  // Maximum record time to use when calling pre-execution.
+  std::optional<google::protobuf::Timestamp> max_record_time;
+  bool success = false;
+  if (enable_pipelined_commits_) {
+    success = DoCommitPipelined(commit_req.submission(), record_time,
+                                commit_req.participant_id(), correlation_id,
+                                *execute_commit_span, read_set, updates);
+  } else {
+    success = DoCommitSingle(commit_req, current_block_id, record_time,
+                             *execute_commit_span, &max_record_time, read_set,
+                             updates);
+  }
 
-  if (daml_execution_success) {
-    result = response.has_result() ? response.result() : response2.result();
-    GetUpdatesFromExecutionResult(result, entryId, updates);
+  if (success) {
+    if (pre_execute) {
+      BuildPreExecutionResult(updates, current_block_id, max_record_time,
+                              correlation_id, read_set, *execute_commit_span,
+                              concord_response);
+      LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+    } else {
+      RecordTransaction(updates, current_block_id, correlation_id,
+                        *execute_commit_span, concord_response);
+      LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
+    }
+    return true;
   } else {
     LOG4CPLUS_DEBUG(logger_, "DAML commit execution has failed.");
     return false;
   }
+}
 
-  if (pre_execute) {
-    BuildPreExecutionResult(updates, current_block_id, correlation_id, result,
-                            *daml_execute_commit, concord_response);
-    LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+bool DamlKvbCommandsHandler::DoCommitSingle(
+    const da_kvbc::CommitRequest& commit_request,
+    const BlockId current_block_id,
+    const google::protobuf::Timestamp& record_time,
+    opentracing::Span& parent_span,
+    std::optional<google::protobuf::Timestamp>* max_record_time,
+    std::vector<std::string>& read_set, SetOfKeyValuePairs& updates) {
+  // Since we're not batching, lets keep it simple and use the next block id as
+  // the DAML log entry id.
+  string entry_id = std::to_string(current_block_id + 1);
+  da_kvbc::ValidateResponse response;
+  da_kvbc::ValidatePendingSubmissionResponse response2;
+  if (RunDamlExecution(commit_request, entry_id, record_time, parent_span,
+                       response, response2)) {
+    const da_kvbc::Result& result =
+        response.has_result() ? response.result() : response2.result();
+    *max_record_time = result.has_max_record_time()
+                           ? std::make_optional(result.max_record_time())
+                           : std::nullopt;
+    std::copy(result.read_set().begin(), result.read_set().end(),
+              std::back_inserter(read_set));
+    GetUpdatesFromExecutionResult(result, entry_id, updates);
+    return true;
   } else {
-    RecordTransaction(entryId, updates, current_block_id, correlation_id,
-                      *daml_execute_commit, concord_response);
-    LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
+    return false;
   }
+}
 
-  return true;
+bool DamlKvbCommandsHandler::DoCommitPipelined(
+    const std::string& submission,
+    const google::protobuf::Timestamp& record_time,
+    const std::string& participant_id, const std::string& correlation_id,
+    opentracing::Span& parent_span, std::vector<std::string>& read_set,
+    SetOfKeyValuePairs& updates) {
+  // Callback for reading from storage.
+  DamlKvbReadFunc kvb_read = [&](const auto& keys) {
+    return GetFromStorage(keys);
+  };
+  WriteCollectingStorageOperations storage_operations(kvb_read);
+  grpc::Status status = validator_client_->Validate(
+      submission, record_time, participant_id, correlation_id, parent_span,
+      read_set, storage_operations);
+  // Wrap key/value pairs appropriately for storage.
+  for (auto entry : storage_operations.get_updates()) {
+    updates.insert(std::make_pair(
+        CreateDamlKvbKey(entry.first),
+        CreateDamlKvbValue(entry.second.value, entry.second.thin_replica_ids)));
+  }
+  if (!status.ok()) {
+    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                                  << status.error_message());
+    return false;
+  } else {
+    return true;
+  }
 }
 
 bool DamlKvbCommandsHandler::RunDamlExecution(
     const da_kvbc::CommitRequest& commit_req, const string& entryId,
-    google::protobuf::Timestamp& record_time, opentracing::Span& parent_span,
-    da_kvbc::ValidateResponse& response,
+    const google::protobuf::Timestamp& record_time,
+    opentracing::Span& parent_span, da_kvbc::ValidateResponse& response,
     da_kvbc::ValidatePendingSubmissionResponse& response2) {
   auto run_daml_execution = parent_span.tracer().StartSpan(
       "run_daml_execution", {opentracing::ChildOf(&parent_span.context())});
@@ -250,16 +299,16 @@ void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
 
 void DamlKvbCommandsHandler::BuildPreExecutionResult(
     const SetOfKeyValuePairs& updates, BlockId current_block_id,
-    string& correlation_id, const da_kvbc::Result& result,
+    const std::optional<google::protobuf::Timestamp>& max_record_time,
+    string& correlation_id, const vector<string>& validation_read_set,
     opentracing::Span& parent_span, ConcordResponse& concord_response) const {
   auto build_pre_execution_result = opentracing::Tracer::Global()->StartSpan(
       "build_pre_execution_result",
       {opentracing::ChildOf(&parent_span.context())});
   auto* pre_execution_result = concord_response.mutable_pre_execution_result();
 
-  if (result.has_max_record_time()) {
-    pre_execution_result->mutable_max_record_time()->CopyFrom(
-        result.max_record_time());
+  if (max_record_time) {
+    pre_execution_result->mutable_max_record_time()->CopyFrom(*max_record_time);
   }
 
   pre_execution_result->set_read_set_version(current_block_id);
@@ -272,7 +321,7 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
   }
 
   auto* read_set = pre_execution_result->mutable_read_set();
-  for (const auto& k : result.read_set()) {
+  for (const auto& k : validation_read_set) {
     const auto& key = CreateDamlKvbKey(k);
     read_set->add_keys(key.data(), key.length());
   }
@@ -286,14 +335,15 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
                     "Failed to retrieve the correlation ID from the "
                     "pre-executed DAML commit.");
   }
+
   pre_execution_result->set_request_correlation_id(correlation_id.c_str(),
                                                    correlation_id.size());
 }
 
 bool DamlKvbCommandsHandler::CommitPreExecutionResult(
-    BlockId current_block_id, const string& entryId,
-    google::protobuf::Timestamp& record_time, string& correlation_id,
-    opentracing::Span& parent_span, ConcordResponse& concord_response) {
+    BlockId current_block_id, google::protobuf::Timestamp& record_time,
+    string& correlation_id, opentracing::Span& parent_span,
+    ConcordResponse& concord_response) {
   auto commit_pre_execution_result_span =
       opentracing::Tracer::Global()->StartSpan(
           "commit_pre_execution_result_span",
@@ -322,7 +372,7 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
           kvbc::KeyValuePair(Sliver{std::move(*key)}, Sliver{std::move(*val)}));
     }
 
-    RecordTransaction(entryId, updates, current_block_id, correlation_id,
+    RecordTransaction(updates, current_block_id, correlation_id,
                       *commit_pre_execution_result_span, concord_response);
     LOG4CPLUS_DEBUG(
         logger_,
@@ -333,9 +383,9 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
 }
 
 void DamlKvbCommandsHandler::RecordTransaction(
-    const string& entryId, const SetOfKeyValuePairs& updates,
-    BlockId current_block_id, const string& correlation_id,
-    opentracing::Span& parent_span, ConcordResponse& concord_response) {
+    const SetOfKeyValuePairs& updates, BlockId current_block_id,
+    const string& correlation_id, opentracing::Span& parent_span,
+    ConcordResponse& concord_response) {
   auto record_transaction = opentracing::Tracer::Global()->StartSpan(
       "record_transaction", {opentracing::ChildOf(&parent_span.context())});
   // Commit the block, if there were no conflicts.
@@ -403,9 +453,8 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
         concord_req.pre_execution_result().request_correlation_id();
     commit_req.set_correlation_id(correlation_id);
     concord::utils::RAIIMDC mdc("cid", correlation_id);
-    bool result =
-        ExecuteCommit(commit_req, flags, time_contract, parent_span, response);
-    return result;
+    return ExecuteCommit(commit_req, flags, time_contract, parent_span,
+                         response);
   } else {
     daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {
@@ -491,6 +540,65 @@ void DamlKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
   auto status = addBlock(empty_updates, newBlockId);
   assert(status.isOK());
   assert(newBlockId == currentBlockId + 1);
+}
+
+google::protobuf::Timestamp DamlKvbCommandsHandler::RecordTimeForTimeContract(
+    TimeContract* time_contract) {
+  google::protobuf::Timestamp record_time;
+  if (time_contract) {
+    record_time = time_contract->GetTime();
+    LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
+  } else {
+    record_time = google::protobuf::util::TimeUtil::GetEpoch();
+    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
+  }
+  return record_time;
+}
+
+const char* DamlKvbCommandsHandler::kFeaturePipelinedCommitExecution =
+    "FEATURE_daml_pipelined_commits";
+
+bool DamlKvbCommandsHandler::IsPipelinedCommitExecutionEnabled(
+    const config::ConcordConfiguration& config) {
+  return config.hasValue<bool>(kFeaturePipelinedCommitExecution) &&
+         config.getValue<bool>(kFeaturePipelinedCommitExecution);
+}
+
+std::map<std::string, std::string> WriteCollectingStorageOperations::Read(
+    const google::protobuf::RepeatedPtrField<std::string>& keys) {
+  std::map<std::string, std::string> from_updates;
+  google::protobuf::RepeatedPtrField<std::string> keys_read_from_storage;
+  for (int i = 0; i < keys.size(); ++i) {
+    const std::string& requested_key = keys[i];
+    auto find_it = updates_.find(requested_key);
+    if (find_it != updates_.end()) {
+      from_updates[find_it->first] = find_it->second.value;
+    } else {
+      *keys_read_from_storage.Add() = requested_key;
+    }
+  }
+  if (keys_read_from_storage.size() > 0) {
+    std::map<std::string, std::string> from_storage =
+        kvb_read_(keys_read_from_storage);
+    std::map<std::string, std::string> from_both;
+    // Copy entries from the map that has less elements.
+    if (from_updates.size() > from_storage.size()) {
+      from_updates.swap(from_both);
+      from_both.insert(from_storage.begin(), from_storage.end());
+    } else {
+      from_storage.swap(from_both);
+      from_both.insert(from_updates.begin(), from_updates.end());
+    }
+    return from_both;
+  } else {
+    return from_updates;
+  }
+}
+
+void WriteCollectingStorageOperations::Write(
+    const std::string& key, const std::string& value,
+    const std::vector<std::string>& thin_replica_ids) {
+  updates_[key] = ValueWithThinReplicaIds(value, thin_replica_ids);
 }
 
 }  // namespace daml
