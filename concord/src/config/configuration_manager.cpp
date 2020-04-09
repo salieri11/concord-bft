@@ -3255,6 +3255,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "daml_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
 
+  node.declareParameter("FEATURE_daml_pipelined_commits",
+                        "Enable support for pipelined commits, i.e., "
+                        "interleaving read/writes by the submission validator.",
+                        "false");
+  node.tagParameter("FEATURE_daml_pipelined_commits", publicOptionalTags);
+  node.addValidator("FEATURE_daml_pipelined_commits", validateBoolean, nullptr);
+
   // Test Execution Engine (TEE) Parameters
   config.declareParameter(
       "tee_enable",

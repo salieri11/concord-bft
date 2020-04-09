@@ -29,10 +29,13 @@ class DamlKvbCommandsHandler
  private:
   log4cplus::Logger logger_;
   std::unique_ptr<IDamlValidatorClient> validator_client_;
+  bool enable_pipelined_commits_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
 
  public:
+  static const char* kFeaturePipelinedCommitExecution;
+
   DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,
@@ -46,6 +49,8 @@ class DamlKvbCommandsHandler
                                prometheus_registry, time_contract),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         validator_client_(std::move(validator)),
+        enable_pipelined_commits_(
+            IsPipelinedCommitExecutionEnabled(node_config)),
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_writes"}})},
@@ -68,6 +73,22 @@ class DamlKvbCommandsHandler
                      opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
 
+  bool DoCommitSingle(
+      const com::digitalasset::kvbc::CommitRequest& commit_request,
+      const kvbc::BlockId current_block_id,
+      const google::protobuf::Timestamp& record_time,
+      opentracing::Span& parent_span,
+      std::optional<google::protobuf::Timestamp>* max_record_time,
+      std::vector<std::string>& read_set, kvbc::SetOfKeyValuePairs& updates);
+
+  bool DoCommitPipelined(const std::string& submission,
+                         const google::protobuf::Timestamp& record_time,
+                         const std::string& participant_id,
+                         const std::string& correlation_id,
+                         opentracing::Span& parent_span,
+                         std::vector<std::string>& read_set,
+                         kvbc::SetOfKeyValuePairs& updates);
+
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
                       uint8_t flags, concord::time::TimeContract* time_contract,
                       opentracing::Span& parent_span,
@@ -82,26 +103,26 @@ class DamlKvbCommandsHandler
       const com::vmware::concord::DamlRequest& daml_request) const;
 
   void RecordTransaction(
-      const string& entryId, const kvbc::SetOfKeyValuePairs& updates,
-      kvbc::BlockId current_block_id, const string& correlation_id,
-      opentracing::Span& parent_span,
+      const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
+      const string& correlation_id, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
   bool CommitPreExecutionResult(
-      kvbc::BlockId current_block_id, const string& entryId,
-      google::protobuf::Timestamp& record_time, string& correlation_id,
-      opentracing::Span& parent_span,
+      kvbc::BlockId current_block_id, google::protobuf::Timestamp& record_time,
+      std::string& correlation_id, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
   void BuildPreExecutionResult(
       const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
-      string& correlation_id, const com::digitalasset::kvbc::Result& result,
+      const std::optional<google::protobuf::Timestamp>& record_time,
+      string& correlation_id,
+      const std::vector<std::string>& validation_read_set,
       opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool RunDamlExecution(
       const com::digitalasset::kvbc::CommitRequest& commit_req,
-      const string& entryId, google::protobuf::Timestamp& record_time,
+      const string& entry_id, const google::protobuf::Timestamp& record_time,
       opentracing::Span& parent_span,
       com::digitalasset::kvbc::ValidateResponse& response,
       com::digitalasset::kvbc::ValidatePendingSubmissionResponse& response2);
@@ -111,6 +132,48 @@ class DamlKvbCommandsHandler
       kvbc::SetOfKeyValuePairs& updates) const;
 
   std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime();
+
+  google::protobuf::Timestamp RecordTimeForTimeContract(
+      concord::time::TimeContract* time_contract);
+
+  static bool IsPipelinedCommitExecutionEnabled(
+      const config::ConcordConfiguration& config);
+};
+
+using DamlKvbReadFunc = std::function<std::map<std::string, std::string>(
+    const google::protobuf::RepeatedPtrField<std::string>&)>;
+
+// Enables DamlValidatorClient to read from storage while collecting updates to
+// be written.
+class WriteCollectingStorageOperations : public KeyValueStorageOperations {
+ public:
+  struct ValueWithThinReplicaIds {
+    ValueWithThinReplicaIds() = default;
+    ValueWithThinReplicaIds(const std::string& in_value,
+                            const std::vector<std::string>& in_thin_replica_ids)
+        : value(in_value), thin_replica_ids(in_thin_replica_ids) {}
+
+    std::string value;
+    std::vector<std::string> thin_replica_ids;
+  };
+
+  WriteCollectingStorageOperations(DamlKvbReadFunc kvb_read)
+      : kvb_read_(kvb_read) {}
+
+  std::map<std::string, std::string> Read(
+      const google::protobuf::RepeatedPtrField<std::string>& keys) override;
+
+  void Write(const std::string& key, const std::string& value,
+             const std::vector<std::string>& thin_replica_ids) override;
+
+  const std::unordered_map<std::string, ValueWithThinReplicaIds>&
+  get_updates() {
+    return updates_;
+  }
+
+ private:
+  DamlKvbReadFunc kvb_read_;
+  std::unordered_map<std::string, ValueWithThinReplicaIds> updates_;
 };
 
 }  // namespace daml

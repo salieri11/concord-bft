@@ -1,6 +1,6 @@
 // Copyright (c) 2019 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 //
-// KVBlockChain submission validation service
+// DAML submission validation service
 //
 
 syntax = "proto3";
@@ -8,14 +8,16 @@ package com.digitalasset.kvbc;
 option java_package = "com.digitalasset.kvbc";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 
 // The validation service provides a gRPC API taking the `DamlSubmission` message, along
 // with the inputs to the submission and returns the resulting fragments and state updates.
 service ValidationService {
+  // Old interface, but kept until we transition to the pipelined version.
   rpc ValidateSubmission (ValidateRequest) returns (ValidateResponse) {}
-
   rpc ValidatePendingSubmission (ValidatePendingSubmissionRequest) returns (ValidatePendingSubmissionResponse) {}
+
+  // New pipelined interface
+  rpc Validate (stream EventToValidator) returns (stream EventFromValidator) {}
 }
 
 message ValidateRequest {
@@ -79,6 +81,63 @@ message ValidatePendingSubmissionRequest {
 
 message ValidatePendingSubmissionResponse {
   Result result = 1;
+}
+
+
+//
+// New validator interface
+//
+
+// Event sent from the caller (e.g. Concord) towards the validator.
+message EventToValidator {
+  // A read result is the response to validator's `Read` event.
+  message ReadResult {
+    // Tag to match with the read event.
+    string tag = 1;
+
+    // The read key-value pairs.
+    repeated KeyValuePair key_value_pairs = 2;
+  }
+
+  oneof to_validator {
+    ValidateRequest validate_request = 1;
+    ReadResult read_result = 2;
+  }
+}
+
+// Event from the validator towards the caller.
+message EventFromValidator {
+  message Read {
+    // Tag to match with the read result.
+    string tag = 1;
+
+    // Keys to read from KVB.
+    repeated bytes keys = 2;
+  }
+
+  message Write {
+    // Key-value updates to write to KVB. Any subsequent reads should receive
+    // these writes.
+    repeated ProtectedKeyValuePair updates = 1;
+  }
+
+  message Done {
+    repeated bytes read_set = 1;
+  }
+
+  oneof from_validator {
+    // Request to read data from KVB. Client responds with a ReadResult.
+    // If an error occurs the client should close the stream to abort
+    // the validation.
+    Read read = 1;
+
+    // Request to write data to KVB. Client does not respond to this event.
+    Write write = 2;
+
+    // Signal that the validation has completed, this is the last event on
+    // the stream and it can be closed by the client now.
+    Done done = 3;
+  }
 }
 
 

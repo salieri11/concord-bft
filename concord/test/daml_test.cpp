@@ -12,6 +12,8 @@
 #include "mocks.hpp"
 #include "time/time_contract.hpp"
 
+using namespace std::placeholders;  // For _1, _2, etc.
+
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Cardinality;
@@ -459,6 +461,66 @@ TEST(daml_test, conflicting_write_of_new_key) {
 
   concord_response.ParseFromArray(reply_buffer, reply_size);
   ASSERT_EQ(result, 1);
+}
+
+class MockReadingFromStorage {
+ public:
+  MockReadingFromStorage() = default;
+
+  MOCK_METHOD1(Read,
+               std::map<std::string, std::string>(
+                   const google::protobuf::RepeatedPtrField<std::string>&));
+};
+
+TEST(write_collecting_storage_operations, delegates_read) {
+  MockReadingFromStorage mock_reader;
+  std::map<std::string, std::string> expected_result = {{"key1", "value1"},
+                                                        {"key2", "value2"}};
+  EXPECT_CALL(mock_reader, Read(_)).WillOnce(Return(expected_result));
+  DamlKvbReadFunc kvb_read = [&](const auto& keys) {
+    return mock_reader.Read(keys);
+  };
+  auto ops = new WriteCollectingStorageOperations(kvb_read);
+  google::protobuf::RepeatedPtrField<std::string> requested_keys;
+  requested_keys.Add("key1");
+  requested_keys.Add("key2");
+
+  EXPECT_EQ(expected_result, ops->Read(requested_keys));
+}
+
+TEST(write_collecting_storage_operations, reads_first_from_updates) {
+  MockReadingFromStorage mock_reader;
+  EXPECT_CALL(mock_reader, Read(_)).Times(NEVER);
+  DamlKvbReadFunc kvb_read = [&](const auto& keys) {
+    return mock_reader.Read(keys);
+  };
+  auto ops = new WriteCollectingStorageOperations(kvb_read);
+  google::protobuf::RepeatedPtrField<std::string> requested_key;
+  requested_key.Add("key");
+
+  ops->Write("key", "value", {});
+  std::map<std::string, std::string> expected_result = {{"key", "value"}};
+  EXPECT_EQ(expected_result, ops->Read(requested_key));
+}
+
+TEST(write_collecting_storage_operations, merges_reads_with_updates) {
+  MockReadingFromStorage mock_reader;
+  std::map<std::string, std::string> expected_result = {{"key2", "value2"}};
+  EXPECT_CALL(mock_reader, Read(_)).WillOnce(Return(expected_result));
+  DamlKvbReadFunc kvb_read = [&](const auto& keys) {
+    return mock_reader.Read(keys);
+  };
+  auto ops = new WriteCollectingStorageOperations(kvb_read);
+  google::protobuf::RepeatedPtrField<std::string> requested_keys;
+  requested_keys.Add("key1");
+
+  ops->Write("key1", "value1", {});
+  std::map<std::string, std::string> expected_one_value = {{"key1", "value1"}};
+  EXPECT_EQ(expected_one_value, ops->Read(requested_keys));
+  requested_keys.Add("key2");
+  std::map<std::string, std::string> expected_two_values = {{"key1", "value1"},
+                                                            {"key2", "value2"}};
+  EXPECT_EQ(expected_two_values, ops->Read(requested_keys));
 }
 
 std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
