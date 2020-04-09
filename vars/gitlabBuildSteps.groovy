@@ -147,7 +147,7 @@ import hudson.util.Secret
       --tests="-k vmArithmeticTest/add0.json" --suitesRealname=HelenDeployEthereumToSDDC'
   ],
   "HelenDeployDAMLToSDDC" : [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml  \
       --blockchainLocation=sddc --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc \
