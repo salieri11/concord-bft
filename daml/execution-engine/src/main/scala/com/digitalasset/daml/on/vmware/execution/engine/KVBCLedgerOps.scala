@@ -65,11 +65,6 @@ class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(implicit val executio
   }
 
   override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] = Future {
-    implicit val ordering: Ordering[ByteString] = {
-      val comparator = ByteString.unsignedLexicographicalComparator()
-      (x, y) => comparator.compare(x, y)
-    }
-
     val protectedKeyValuePairs =
       data.sortBy(_._1).map { case (key, value, acl) =>
         ProtectedKeyValuePair(key, value,

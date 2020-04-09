@@ -290,7 +290,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       override def onNext(value: EventToValidator): Unit = {
         value.toValidator match {
           case EventToValidator.ToValidator.ValidateRequest(request) =>
-            logger.trace(s"Request received, correlationId=($request.correlationId}")
+            logger.trace(s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
             val ledgerOps = new KVBCCachingInternalBatchLedgerOps(request.replicaId, new FragmentingLedgerOps(kvbcLedgerOps))
             val recordTime = parseTimestamp(request.recordTime.get).toInstant
             batchValidator.validateAndCommit(
@@ -300,10 +300,10 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
               request.submission,
               ledgerOps
             ).foreach { _ =>
-              // FIXME(JM): readSet should be sorted, otherwise results non-deterministic!
-              val readSet = ledgerOps.getReadSet().map(_.toByteString).toSeq
+              val sortedReadSet =
+                ledgerOps.getReadSet().map(_.toByteString).toSeq.sorted
 
-              responseObserver.onNext(EventFromValidator().withDone(EventFromValidator.Done(readSet)))
+              responseObserver.onNext(EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
               responseObserver.onCompleted()
               logger.info(s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
             }
@@ -319,7 +319,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       override def onError(t: Throwable): Unit =
         logger.error(s"validate() aborted due to an error: $t")
       override def onCompleted(): Unit =
-        logger.info("validate() completed")
+        logger.trace("validate() completed")
     }
   }
   override def validate(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =

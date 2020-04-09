@@ -111,6 +111,7 @@ services:
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
+      - ENABLE_BATCHING=false
     depends_on:
       - concord1
       - index_db
