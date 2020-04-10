@@ -124,16 +124,11 @@ def deployToSddc(logDir, hermesData):
    f = (numNodes - 1) / 3
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
-   response = conAdminRequest.createBlockchain(conId,
-                                               siteIds,
-                                               f,
-                                               0,
-                                               blockchain_type.upper()
-                                               )
+   response = conAdminRequest.createBlockchain(conId, siteIds, f, 0, blockchain_type.upper())
    taskId = response["task_id"]
-   timeout=60*15
-   success, response = helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
+   success, response = helper.waitForTask(conAdminRequest, taskId, timeout=60*15)
    blockchainId = response["resource_id"]
+
    replica_dict = None
 
    if success:
@@ -166,12 +161,16 @@ def deployToSddc(logDir, hermesData):
             success, daml_participant_replicas = deploy_daml_participants(conAdminRequest, blockchainId, siteIds, credentials,
                                                                           num_participants)
 
+      else:
+         raise NotImplementedError("Deployment not supported for blockchain type: {}".format(blockchain_type))
+
       replica_dict = save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas,
                                            daml_participant_replicas, logDir)
 
    if success:
       log.info("Blockchain deployed successfully")
    else:
+      create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
    return blockchainId, conId, replica_dict
@@ -345,6 +344,38 @@ def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_rep
 
     log.info("Saved replicas information in {} and {}".format(helper.REPLICAS_JSON_PATH, replica_log_dir_path))
     return replica_dict
+
+
+def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
+    """
+    Given the blockchain type, creates support bundles in the log directory specified
+    :param blockchain_type: Ethereum/DAML
+    :param log_dir: Log directory to save the deployment bundle into
+    :return: None
+    """
+    try:
+        with open(helper.REPLICAS_JSON_PATH, 'r') as replicas_file:
+            replica_dict = json.load(replicas_file)
+            if blockchain_type.lower() == helper.TYPE_ETHEREUM:
+                eth_ips = [replica["ip"] for replica in replica_dict[helper.TYPE_ETHEREUM]]
+                if eth_ips:
+                    log.debug("Collecting support bundle from following ethereum nodes: {}".format(eth_ips))
+                    helper.create_concord_support_bundle(eth_ips, helper.TYPE_ETHEREUM, log_dir)
+            elif blockchain_type.lower() == helper.TYPE_DAML:
+                committers = [replica["ip"] for replica in replica_dict[helper.TYPE_DAML_COMMITTER]]
+                if committers:
+                    log.debug("Collecting support bundle from following daml committer nodes: {}".format(committers))
+                    helper.create_concord_support_bundle(committers, helper.TYPE_DAML_COMMITTER, log_dir)
+                participants = [replica["public_ip"] for replica in replica_dict[helper.TYPE_DAML_PARTICIPANT]]
+                if participants:
+                    log.debug("Collecting support bundle from following daml participant nodes: {}".format(participants))
+                    helper.create_concord_support_bundle(participants, helper.TYPE_DAML_PARTICIPANT, log_dir)
+            else:
+                raise NotImplementedError("Support bundle creation not implemented for blockchain type: {}"
+                                          .format(blockchain_type))
+
+    except Exception as e:
+        log.error("Exception while creating support bundle: {}".format(e))
 
 
 @pytest.fixture(scope="module")
