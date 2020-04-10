@@ -212,7 +212,7 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
       submission, record_time, participant_id, correlation_id, parent_span,
       read_set, storage_operations);
   // Wrap key/value pairs appropriately for storage.
-  for (auto entry : storage_operations.get_updates()) {
+  for (const auto& entry : storage_operations.get_updates()) {
     updates.insert(std::make_pair(
         CreateDamlKvbKey(entry.first),
         CreateDamlKvbValue(entry.second.value, entry.second.thin_replica_ids)));
@@ -473,7 +473,7 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
         return ExecuteRead(cmd.read(), response);
 
       case da_kvbc::Command::kCommit: {
-        auto commit_req = cmd.commit();
+        const auto& commit_req = cmd.commit();
         concord::utils::RAIIMDC mdc("cid", commit_req.correlation_id());
         bool result = ExecuteCommit(commit_req, flags, time_contract,
                                     parent_span, response);
