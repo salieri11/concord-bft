@@ -355,9 +355,6 @@ def main():
     if not args.password:
         args.password = getpass.getpass()
 
-    if args.recipients:
-        args.recipients = args.recipients.split(",")
-
     logging.basicConfig(level=args.logLevel.upper())
 
     client = MaestroClient(args.apiUrl, args.reportingUrl, args.username, args.password)
