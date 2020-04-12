@@ -1,0 +1,263 @@
+other:cryptopp:8.2.0:
+ name: cryptopp
+ version: 8.2.0
+ repository: Other
+ license: CRYPTOGAMS
+ url: https://github.com/weidai11/cryptopp/tree/CRYPTOPP_8_2_0
+
+other:log4cplus:2.0.4:
+ name: log4cplus
+ version: 2.0.4
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/log4cplus/log4cplus
+
+other:openssl:1.1.1c:
+ name: openssl
+ version: 1.1.1c
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/openssl/openssl
+
+other:googletest:1.8.1:
+ name: gtest
+ version: 1.8.1
+ repository: Other
+ license: BSD 3-Clause
+ url: https://github.com/google/googletest
+
+other:boost:1.64:
+ name: boost
+ version: 1.64
+ repository: Other
+ license: Boost Software License 1.0
+ url: https://github.com/boostorg/boost/tree/boost-1.64.0
+
+other:relic:0.4.0:
+ name: relic
+ version: 0.4.0
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/relic-toolkit/relic
+
+other:rocksdb:5.7.3:
+ name: RocksDB
+ version: 5.7.3
+ repository: Other
+ license: GNU GENERAL PUBLIC LICENSE Version 2
+ url: https://github.com/facebook/rocksdb
+
+other:cryptopp:5_6_5:
+ name: cryptopp
+ version: 5_6_5
+ repository: Other
+ license: CRYPTOGAMS
+ url: https://github.com/weidai11/cryptopp/tree/CRYPTOPP_5_6_5
+
+other:boost:1.65:
+ name: boost
+ version: 1.65
+ repository: Other
+ license: Boost Software License 1.0
+ url: https://github.com/boostorg/boost/tree/boost-1.65.0
+
+other:protobuf:3.6:
+ name: protobuf
+ version: 3.6
+ repository: Other
+ license: BSD licenses
+ url: https://github.com/protocolbuffers/protobuf
+
+other:evmjit:0.9.0:
+ name: evmjit
+ version: 0.9.0
+ repository: Other
+ license: The MIT License
+ url: https://github.com/ethereum/evmjit
+
+other:secp256k1:
+ name: secp256k1
+ version: 1.0   
+ repository: Other
+ license: The MIT License
+ url: https://github.com/bitcoin-core/secp256k1
+
+other:googletest:1.10:
+ name: gtest
+ version: 1.10
+ repository: Other
+ license: BSD 3-Clause
+ url: https://github.com/google/googletest
+
+other:openssl:1.1.1a:
+ name: openssl
+ version: 1.1.1a
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/openssl/openssl
+
+other:grpc:1.17.0:
+ name: grpc
+ version: 1.17.0
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/grpc/grpc/tree/v1.17.0
+
+other:thrift:0.11.0:
+ name: thrift
+ version: 0.11.0
+ repository: thrift
+ license: Apache 2.0
+ url: https://github.com/apache/thrift/tree/0.11.0
+
+other:opentracing-cpp:1.5:
+ name: opentracing-cpp
+ version: 1.5
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/opentracing/opentracing-cpp/tree/1.5.x
+
+other:json:3.7.3:
+ name: json
+ version: 3.7.3
+ repository: Other
+ license: The MIT License
+ url: https://github.com/nlohmann/json/tree/v3.7.3
+
+other:jaeger-client-cpp:0.5.0:
+ name: jaeger
+ version: 0.5.0
+ repository: Other
+ license: Apache 2.0
+ url: https://github.com/jaegertracing/jaeger-client-cpp/tree/v0.5.0
+
+other:prometheus-cpp:0.8.0:
+ name: prometheus-cpp
+ version: 0.8.0
+ repository: Other
+ license: The MIT License
+ url: https://github.com/jupp0r/prometheus-cpp/tree/v0.8.0
+
+other:autoconf:
+ name: autoconf
+ version: 1.0
+ repository: Other
+ license: GNU GENERAL PUBLIC LICENSE Version 2
+ url: https://github.com/autotools-mirror/autoconf
+
+other:llvm-project:5.0:
+ name: llvm-project
+ version: 5.0
+ repository: Other
+ license: LLVM license
+ url: https://github.com/llvm/llvm-project
+
+other:libsnappy-dev:1.1.7:
+ name: libsnappy-dev
+ version: 1.1.7
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libsnappy-dev
+
+other:zlib1g-dev:1.2.11:
+ name: zlibg1-dev
+ version: 1.2.11
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/zlib1g-dev
+
+other:libbz2-dev:1.0.6:
+ name: libbz2-dev
+ version: 1.0.6
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libbz2-dev
+
+other:liblz4-dev:1.8.0:
+ name: liblz4-dev
+ version: 1.8.0
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/liblz4-dev
+
+other:libzstd-dev:1.4:
+ name: libzstd-dev
+ version: 1.4
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libzstd-dev
+
+other:cmake:3.10.2:
+ name: cmake
+ version: 3.10.2
+ license: BSD 3-clause
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/cmake
+
+other:clang-format-7:7.0.0:
+ name: clang-format-7
+ version: 7.0.0
+ license: LLVM Release License
+ repository: Other
+ url: https://packages.ubuntu.com/bionic-updates/clang-format-7
+
+other:clang-7:7.0.0:
+ name: clang-7
+ version: 7.0.0
+ license: LLVM Release License
+ repository: Other
+ url: https://packages.ubuntu.com/bionic-updates/clang-7
+
+other:g++:7.5.0:
+ name: g++
+ version: 7.5.0
+ license: GNU GENERAL PUBLIC LICENSE Version 3
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/g++-7
+
+other:libyaml-cpp-dev:0.5.2:
+ name: libyaml-cpp-dev
+ version: 0.5.2
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libyaml-cpp-dev
+
+other:libcurl4-openssl-dev:7.58.0:
+ name: libcurl4-openssl-dev
+ version: 7.58.0
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libcurl4-openssl-dev
+
+other:libgmp3-dev:6.1.2:
+ name: libgmp3
+ version: 6.1.2
+ repository: Other
+ url: http://git.savannah.gnu.org/cgit/libtool.git
+
+other:bzip2:1.0.8:
+ name: bzip2
+ version: 1.0.8
+ repository: Other
+ license: The MIT License
+ url: https://github.com/conan-community/conan-bzip2
+
+other:libs3-dev:2.0:
+ name: libs3-dev
+ version: 2.0
+ repository: Other
+ license: GNU GENERAL PUBLIC LICENSE Version 3
+ url: https://packages.ubuntu.com/bionic/libs3-dev
+
+other:hdr_histogram:0.9.12:
+ name: hdr_histogram
+ version: 0.9.12
+ repository: Other
+ license: BSD 2-Clause
+ url: http://github.com/HdrHistogram/HdrHistogram_c
+
+other:rapidcheck:258d907da00a0855f92c963d8f76eef115531716:
+ name: rapidcheck
+ version: 258d907da00a0855f92c963d8f76eef115531716
+ repository: Other
+ license: BSD 2-Clause
+ url: https://github.com/emil-e/rapidcheck
+
+other:Libtool:
+ name: Libtool
+ version: 1.0
+ repository: Other
+ url: https://packages.ubuntu.com/bionic/libgmp3-dev
