@@ -15,15 +15,10 @@ lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc"
 
 resolvers in Global ++=
   Seq(
-    "Digital Asset KV OEM integration kit" at "https://digitalassetsdk.bintray.com/vmware-integration-kit",
+    "Digital Asset KV OEM integration kit" at "https://build-artifactory.eng.vmware.com/digitalassetsdk.bintray.com/vmware-integration-kit",
   )
-
+//
 lazy val commonSettings = Seq()
-credentials += Credentials("Bintray",
- "digitalassetsdk.bintray.com", "khank@digitalassetsdk",
- "950e28835107431095fe4b98b6b1e0bd484ea9fa")
- resolvers += "Bintray".at("https://digitalassetsdk.bintray.com/vmware-integration-kit")
-
 
 lazy val protos = (project in file("protos"))
   .settings(
