@@ -18,32 +18,14 @@ import sys
 import tempfile
 import time
 import requests
-from uuid import UUID
 from config import common
-from lib import utils
+from lib import utils, ipam_utils
 from lib import vsphere
 
 
 DC_CONSTANTS = None
 
 logger = utils.setup_logging()
-
-def get_constants():
-    """
-        Populate constants from vault
-    """
-    client = utils.get_authenticated_hvac(common.VAULT_ENDPOINT)
-    data = client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="VMC")["data"]["data"]
-    return data
-
-
-def validate_uuid4(uuid_string):
-    try:
-        UUID(uuid_string, version=4)
-    except ValueError:
-        return False
-    return True
 
 
 def is_blockchain_vm(uuid_string):
@@ -53,18 +35,6 @@ def is_blockchain_vm(uuid_string):
         return False
     else:
         return True
-
-def source_ipam_certificate():
-    """
-    """
-    client = utils.get_authenticated_hvac(common.VAULT_ENDPOINT)
-    ipam_data = client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="ipam")["data"]["data"]
-    server_crt_file = None
-    with tempfile.NamedTemporaryFile(delete=False) as server_crt:
-        server_crt.write(ipam_data["server_crt"].encode())
-        server_crt_file = server_crt.name
-    return server_crt_file
 
 
 def nwaddress_to_hex(address):
@@ -80,30 +50,6 @@ def nwaddress_to_hex(address):
         first_address = network[0]
         return '{:02x}{:02x}{:02x}{:02x}'.format(
                 *map(int, first_address.exploded.split(".")))
-
-
-def get_network_metadata(vms):
-    """
-        Strip out nat rule id and public ip from vm name
-    """
-    metadata = {}
-    for vm in vms:
-        metadata[vm.name] = "-".join(vm.name.split("-")[5:])
-    return metadata
-
-
-def delete_vms(vms):
-    """
-        Poweroff and delete vm's
-    """
-    for vm in vms:
-        vm.PowerOff()
-    logger.info("Powered off vms %s" % vms)
-    #Use Taskmanager to poll task completion instead of arbitrary sleep
-    time.sleep(5)
-    for vm in vms:
-        vm.Destroy()
-    logger.info("Destroyed vms %s" % vms)
 
 
 def get_network_segment(name, dc_data):
@@ -252,11 +198,11 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
         folder_vms = get_dated_vms(vcobj, folder, hours)
     vms = [vm for vm in folder_vms if is_blockchain_vm(vm.name) is True]
     logger.info("Cleaning up %s vm resources" % len(vms))
-    metadata = get_network_metadata(vms)
+    metadata = utils.get_network_metadata([vm.name for vm in vms])
     if reap_ipam is True:
         delete_ipam_resources(vms, dc_dict, metadata)
     delete_network_resources(metadata, dc_dict)
-    delete_vms(vms)
+    vcobj.delete_vms(vms)
 
 
 def delete_ipam_resources(vms, dc_dict, metadata):
@@ -278,32 +224,12 @@ def delete_ipam_resources(vms, dc_dict, metadata):
             ipaddr = data["source_network"]
         logger.info("Deleting ipam for %s with address %s" %
                     (vm.name, ipaddr))
-        ipaddr_hex = nwaddress_to_hex(ipaddr)
+        ipaddr_hex = ipam_utils.nwaddress_to_hex(ipaddr)
         nw_segment = vm.network[0].name
         nw_segment_data = get_network_segment(nw_segment, dc_dict)
-        cidr_hex = nwaddress_to_hex(nw_segment_data['subnets'][0]['network'])
-        delete_ipam_entry(nw_segment, ipaddr_hex, cidr_hex, dc_dict["id"])
-
-
-def delete_ipam_entry(nw_name, ipaddr, cidr, sddc_id):
-    """
-        Delete ipam entry with grpc_curl
-    """
-    cert_path = source_ipam_certificate()
-    data = {"name":
-                "blocks/%s-%s/segments/%s/addresses/%s" % (
-                sddc_id, nw_name, cidr, ipaddr)}
-    release_method = ("vmware.blockchain.deployment."
-                       "v1.IPAllocationService.ReleaseAddress")
-    cmd =  ("grpcurl -format=json -d='%s' -cacert=%s %s %s" %
-                            (json.dumps(data), cert_path,
-                            common.IPAM_URL, release_method))
-    rc, rv = utils.subproc(cmd, logger=logger, timeout=10)
-    os.remove(cert_path)
-    if rc == 0:
-        logger.info("Successfully removed ipam entry %s" % ipaddr)
-    else:
-        logger.error("Error cleaning up ipam entry %s" % rv)
+        cidr_hex = ipam_utils.nwaddress_to_hex(
+                                nw_segment_data['subnets'][0]['network'])
+        ipam_utils.delete_ipam_entry(nw_segment, ipaddr_hex, cidr_hex, dc_dict["id"])
 
 
 def delete_network_resources(metadata, dc_dict):
@@ -327,12 +253,12 @@ def get_orphaned_nwids(dc_dict, entity, vms):
                                 dc_dict['id'])
         auto_ids = [i['display_name'] for i in natrules["results"]
                             if i["action"] == "REFLEXIVE"
-                            and validate_uuid4(i["display_name"]) is True]
+                            and utils.validate_uuid4(i["display_name"]) is True]
     elif entity == "eip":
         eips = get_public_ips(dc_dict["nsx_mgr"], DC_CONSTANTS["ORG_ID"],
                                 dc_dict['id'])
         auto_ids = [i['display_name'] for i in eips["results"] if
-                    validate_uuid4(i["display_name"]) is True]
+                    utils.validate_uuid4(i["display_name"]) is True]
     orphaned_nw_ids = list(set(auto_ids) - set(vms.values()))
     logger.info("There are %s orphaned network ids" % len(orphaned_nw_ids))
     return orphaned_nw_ids
@@ -342,17 +268,18 @@ def reap_orphaned_entities(vcobj, dc_dict, nat=True, eip=True, dryrun=False):
     """
         Reap network entities for sddc
     """
-    vms = get_network_metadata(vcobj.get_all_vms())
+    vms = vcobj.get_all_vms()
+    metadata = utils.get_network_metadata([vm.name for vm in vms])
     #logger.info("Virtual machines in the datacenter %s" % vms.keys())
     if nat is True:
-        natids = get_orphaned_nwids(dc_dict, "nat", vms)
+        natids = get_orphaned_nwids(dc_dict, "nat", metadata)
         logger.info("List of orphaned nat ids %s" % "\n".join(natids))
         if dryrun is False:
             for natid in natids:
                 delete_nat_rule(dc_dict["nsx_mgr"],
                     DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
     if eip is True:
-        eipids =  get_orphaned_nwids(dc_dict, "eip", vms)
+        eipids =  get_orphaned_nwids(dc_dict, "eip", metadata)
         logger.info("List of orphaned eips %s" % "\n".join(eipids))
         if dryrun is False:
             for eip in eipids:
@@ -368,11 +295,11 @@ def reap_network_entities(vcobj, networkname, dc_dict, reap_ipam=False):
     vms = [vm for vm in network.vm if is_blockchain_vm(vm.name) is True]
     logger.info("Cleaning up %s vm resources for network %s" %
                 (len(vms), networkname))
-    metadata = get_network_metadata(vms)
+    metadata = utils.get_network_metadata([vm.name for vm in vms])
     if reap_ipam is True:
         delete_ipam_resources(vms, dc_dict, metadata)
     delete_network_resources(metadata, dc_dict)
-    delete_vms(vms)
+    vcobj.delete_vms(vms)
 
 
 def setup_arguments():
@@ -414,7 +341,7 @@ def setup_arguments():
 
 
 if __name__ == "__main__":
-    DC_CONSTANTS = get_constants()
+    DC_CONSTANTS = utils.get_vault_constants("VMC")
     args = setup_arguments()
     dc_dict = DC_CONSTANTS["SDDCS"][args.sddc]
     vcenterobj = vsphere.Vsphere(hostname=dc_dict['vcenter'],

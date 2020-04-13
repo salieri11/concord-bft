@@ -9,9 +9,10 @@ import kubernetes
 import docker
 import hvac
 import slack
+from uuid import UUID
 from socket import gethostbyname, gaierror
 from logging.handlers import RotatingFileHandler
-from config import common
+from config import common, kube, cdn
 
 GIT_COMMIT_DIFF = ("%s/%s/%s/git/commits?until=%s&"
                     "since=%s&order=topo&ancestry_path=true")
@@ -101,7 +102,7 @@ def request_url(url, data_dict=None, header_dict=None, method=None):
     response = requests.request(method=method, url=url, data=data_dict,
                                 headers=header_dict, timeout=60)
     rc = response.status_code
-    rv = response.text if method != "DELETE" else ""
+    rv = response.text
     if rv.startswith(")]}'"):
         rv = rv[4:]
     return rc, rv
@@ -180,31 +181,19 @@ def get_authenticated_hvac(endpoint):
         return client
 
 
-def get_bintray_creds():
-    """
-        Get bintray credentials from default vault
-    """
-    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
-    return client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="bintray")["data"]["data"]
-
-
-def get_artifactory_creds():
-    """
-        Get artifactory credentials from default vault
-    """
-    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
-    return client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="artifactory")["data"]["data"]
-
-
-def get_slack_creds():
-    """
-        Get slack credentials from default vault
-    """
-    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
-    return client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="slack")["data"]["data"]
+def get_vault_constants(path, logger=None):
+        """
+            Populate constants from vault for datacenter
+        """
+        client = get_authenticated_hvac(common.VAULT_ENDPOINT)
+        if path in common.VAULT_KNOWN_KEYS:
+            data = client.secrets.kv.v2.read_secret_version(
+                            mount_point="kv", path=path)["data"]["data"]
+            return data
+        else:
+            if logger is not None:
+                logger.error("Vault path not found")
+                return None
 
 
 def get_auth_header(service, apitoken):
@@ -232,7 +221,7 @@ def get_full_commitid(commitid, repo):
     repoid = gitdata[repo]
     gitlab_token = gitdata["GITLAB_TOKEN"]
     url = ("%s/projects/%s/repository/commits/%s" %
-                (common.GITLAB_API, repoid, commitid))
+                (cdn.GITLAB_API, repoid, commitid))
     data = parse_request_json(url,
                 header_dict={'PRIVATE-TOKEN': gitlab_token})
     return data["id"]
@@ -245,14 +234,12 @@ def get_changelog(higher, lower, repo):
         higher: newer commit
         lower: older commit
     """
-    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
-    gitdata = client.secrets.kv.v2.read_secret_version(
-                            mount_point="kv", path="git")["data"]["data"]
+    gitdata = get_vault_constants("git")
     # desperado api needs full commit sha to resolve commit
     l_commit = get_full_commitid(lower, repo)
     h_commit = get_full_commitid(higher, repo)
-    commiturl = GIT_COMMIT_DIFF % (common.GIT_API,
-                    common.GITLAB_DEFAULT_GROUP, repo, h_commit, l_commit)
+    commiturl = GIT_COMMIT_DIFF % (cdn.GIT_API,
+                    cdn.GITLAB_DEFAULT_GROUP, repo, h_commit, l_commit)
     auth_token = gitdata["DESPERADO_AUTH_TOKEN"]
     gitlab_token = gitdata["GITLAB_TOKEN"]
     commitlist = parse_request_json(commiturl, header_dict={
@@ -273,7 +260,7 @@ def get_changelog(higher, lower, repo):
     return msg_list
 
 
-def json_to_file(payload, filename):
+def json_to_file(payload, filename, logger=None):
     try:
         with open(filename, 'w') as outfile:
             json.dump(data, outfile)
@@ -282,7 +269,7 @@ def json_to_file(payload, filename):
 
 
 def post_slack_channel(channel, text):
-    data = get_slack_creds()
+    data = get_vault_constants("slack")
     c_data = data[channel]
     client = slack.WebClient(c_data["apitoken"])
     client.chat_postMessage(
@@ -291,7 +278,7 @@ def post_slack_channel(channel, text):
 
 
 def get_kube_deployment_version(env, componentapp):
-    kenv = common.KUBE_CONFIGS[env]
+    kenv = kube.KUBE_CONFIGS[env]
     path = "'{.items[*].metadata.labels.version}'"
     rc, rv = subproc("kubectl config use-context %s" %
                 kenv["context"])
@@ -306,7 +293,7 @@ def get_kube_deployment_version(env, componentapp):
         1
 
 def get_default_concord(env, appname):
-    kenv = common.KUBE_CONFIGS[env]
+    kenv = kube.KUBE_CONFIGS[env]
     path = "'{.items[*].metadata.labels.defaultconcord}'"
     rc, rv = subproc("kubectl config use-context %s" %
                 kenv["context"])
@@ -318,4 +305,20 @@ def get_default_concord(env, appname):
     if rc == 0:
         return rv.decode()
     else:
-        1
+        return 1
+
+def validate_uuid4(uuid_string):
+    try:
+        UUID(uuid_string, version=4)
+    except ValueError:
+        return False
+    return True
+
+def get_network_metadata(vms):
+    """
+        Strip out nat rule id and public ip from vm name
+    """
+    metadata = {}
+    for vm in vms:
+        metadata[vm] = "-".join(vm.split("-")[5:])
+    return metadata

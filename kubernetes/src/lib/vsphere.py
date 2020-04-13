@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import logging
+import time
+from lib import utils
 
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVmomi import vim, vmodl
@@ -42,7 +44,7 @@ class Vsphere:
         :param bool use_ssl: If SSL should be used to connect
         :raises LookupError: if a datacenter or datastore cannot be found
         """
-        self._log = logging.getLogger('Vsphere')
+        self._log = utils.setup_logging()
         self._log.debug("Initializing Vsphere %s\nDatacenter: %s"
                         "\tDatastore: %s\tSSL: %s",
                         Vsphere.__version__, datacenter, datastore, use_ssl)
@@ -534,3 +536,28 @@ class Vsphere:
         for managed_object_ref in container.view:
             obj.update({managed_object_ref: managed_object_ref.name})
         return obj
+
+
+    def delete_vms(self, vms):
+        """
+        Poweroff and delete vms from a list
+        :param list of vm objects
+        """
+        for vm in vms:
+            vm.PowerOff()
+        self._log.info("Powered off vms %s" % vms)
+        #Use Taskmanager to poll task completion instead of arbitrary sleep
+        time.sleep(5)
+        for vm in vms:
+            vm.Destroy()
+        self._log.info("Destroyed vms %s" % vms)
+
+    def delete_vm_by_name(self, name):
+        """
+        Delete vm given vm name
+        """
+        vmobj = self.get_obj(self.datacenter.vmFolder, [vim.VirtualMachine], name)
+        if vmobj is None:
+            self._log.error("Unable to find vm with name %s" % name)
+            return None
+        self.delete_vms([vmobj])

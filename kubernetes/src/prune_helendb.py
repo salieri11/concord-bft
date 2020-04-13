@@ -98,21 +98,12 @@ def setup_arguments():
     print(args)
     return args
 
-def get_constants():
-    """
-        Populate constants from vault
-    """
-    client = utils.get_authenticated_hvac(common.VAULT_ENDPOINT)
-    data = client.secrets.kv.v2.read_secret_version(
-                        mount_point="kv", path="helendb")["data"]["data"]
-    return data
-
 if __name__ == "__main__":
     args = setup_arguments()
-    data = get_constants()
+    data = utils.get_vault_constants('helendb')
     env =  args.env
     db = HelenDB(data[env]['server'], data[env]['user'],
-               data[env]['password'], data[env]["database"],
-               data[env]['port'])
+                data[env]['password'], data[env]["database"],
+                data[env]['port'])
     for cid in args.consortiumids:
         db.clear_consortium(cid)

@@ -9,7 +9,7 @@ Script  to push artifacts from Artifactory to Bintray(production repo)
 import argparse
 import os
 import sys
-from config import common
+from config import common, cdn
 from lib import image_utils
 from lib import utils
 
@@ -31,7 +31,7 @@ def setup_arguments():
     parser.add_argument("--envpath", default=os.getcwd(),
                     help="Path to dump component env info for given "
                     "externaltag")
-    parser.add_argument("--externalrepo", default=common.BINTRAY_REPO_URL,
+    parser.add_argument("--externalrepo", default=cdn.BINTRAY_REPO_URL,
                     help="External repo to publist images to")
     parser.add_argument("--externalrepons", default=None,
                     help="External repo namespace to push images to")
