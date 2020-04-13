@@ -86,7 +86,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   };
 
   blockchainType: string;
-  infoLists: {config?: {}, items: any[], tourAnchor: string}[] = [];
+  infoLists: { graphConfig?: {}, config?: {}, items: any[], tourAnchor: string}[] = [];
 
   dashItems: { title: string, count: number, link: string[] }[];
 

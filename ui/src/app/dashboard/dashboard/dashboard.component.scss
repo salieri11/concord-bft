@@ -50,7 +50,7 @@
   }
 }
 
-:host ::ng-deep .ngx-charts text {
+:host ::ng-deep ngx-charts-gauge .ngx-charts text {
   margin-top: 2rem;
   fill: #60B515;
   display: none;
@@ -84,3 +84,6 @@
   color: $clr-green-light-midtone;
 }
 
+.dasharea-bottom {
+  margin-bottom: 50px;
+}

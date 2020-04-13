@@ -132,6 +132,9 @@ export const Apis = {
   get zonesReload() { return `${this.zones}?action=reload`; },
   get zonesTestConnection() { return `${this.zones}?action=test`; },
 
+  // Metrics
+  get metricsWavefront() { return `${this.base}/metrics/wavefront`; },
+
 
 
   /**
