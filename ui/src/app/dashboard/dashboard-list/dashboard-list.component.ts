@@ -19,7 +19,9 @@ export interface DashboardListConfig {
   styleUrls: ['./dashboard-list.component.scss']
 })
 export class DashboardListComponent implements OnInit {
-
+  @Input('graphConfig') graphConfig: any;
+  @Input('timeStart') timeStart: any;
+  @Input('timeEnd') timeEnd: any;
   @Input('listConfig') listConfig: DashboardListConfig;
   @Input('items') items: any[];
   @Input('tourAnchor') tourAnchor: string;

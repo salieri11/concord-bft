@@ -1,6 +1,12 @@
 <div class="card">
-  <h6 class="list-title">{{listConfig?.tableHeader | translate}}</h6>
-  <clr-datagrid>
+  <h6 *ngIf="listConfig?.tableHeader" class="list-title">{{listConfig?.tableHeader | translate}}</h6>
+  <concord-wavefront-graph *ngIf="graphConfig"
+    [graphConfig]="graphConfig"
+    [timeStart]="timeStart"
+    [timeEnd]="timeEnd"
+    >
+  </concord-wavefront-graph>
+  <clr-datagrid *ngIf="!graphConfig">
     <clr-dg-column *ngFor="let header of listConfig?.headers">{{header | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let item of items">
       <clr-dg-cell *ngFor="let prop of listConfig?.displayProperties; let i = index;">

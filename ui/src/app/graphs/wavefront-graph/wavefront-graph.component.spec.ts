@@ -1,16 +1,15 @@
 /*
- * Copyright 2018-2019 VMware, all rights reserved.
+ * Copyright 2020 VMware, all rights reserved.
  */
-
+/* tslint:disable:no-unused-variable */
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { DashboardListComponent } from './dashboard-list.component';
+import { WavefrontGraphComponent } from './wavefront-graph.component';
 import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
-
-describe('DashboardListComponent', () => {
-  let component: DashboardListComponent;
-  let fixture: ComponentFixture<DashboardListComponent>;
+describe('LineGraphComponent', () => {
+  let component: WavefrontGraphComponent;
+  let fixture: ComponentFixture<WavefrontGraphComponent>;
 
   beforeEach(async( () => {
     const tester = getSpecTestingModule();
@@ -20,7 +19,7 @@ describe('DashboardListComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(DashboardListComponent);
+    fixture = TestBed.createComponent(WavefrontGraphComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

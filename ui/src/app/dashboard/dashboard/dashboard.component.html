@@ -44,10 +44,13 @@
     </div>
   </div>
 
-  <div class="ps-1 fadein">
+  <div class="ps-1 fadein dasharea-bottom">
     <div class="clr-row">
       <div class="clr-col-sm-6 mt-1 cards-max-width" *ngFor="let list of infoLists">
-          <concord-dashboard-list [listConfig]="list.config" [items]="list.items" [tourAnchor]="list.tourAnchor"></concord-dashboard-list>
+          <concord-dashboard-list 
+            [listConfig]="list.config" [items]="list.items" [tourAnchor]="list.tourAnchor"
+            [timeStart]="timeStart" [timeEnd]="timeEnd" [graphConfig]="list.graphConfig">
+          </concord-dashboard-list>
       </div>
     </div>
   </div>
