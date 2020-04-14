@@ -6,7 +6,7 @@
 # Raw data points from each request
 metrics() {
   local file="$dir/simulation.log"
-  local metric="chessplus.request.latency.ms"
+  local metric="chessplus.raw.responseTime.ms"
 
   while read -r -a fields; do
     if [ "${fields[0]}" == "REQUEST" ]; then
@@ -29,13 +29,15 @@ stats() {
   local tags="[\"concurrency=$concurrency\", \"blockchain=$blockchain\", \"date=$date\"]"
 
   local filter="
+      def round: . * 100 + 0.5 | floor / 100;
       (\"$date\" | fromdateiso8601) as \$timestamp
       | .stats, .contents[].stats | delpaths([[\"group1\"],[\"group2\"],[\"group3\"],[\"group4\"]])
       | (.name |  sub(\"\\\\s+\"; \"-\") | ascii_downcase) as \$type | del(.name) | to_entries[]
-      | (.key | \"$prefix\" + . ) as \$metric | .value | to_entries[] | [\$metric, (.value | tonumber | round), \$timestamp, \"source=$source\", \"type=\"+\$type, \"status=\"+.key ] + $tags
+      | (.key | \"$prefix\" + \$metrics[0][.]) as \$metric | .value | to_entries[]
+      | [\$metric, (.value | tonumber | round), \$timestamp, \"source=$source\", \"type=\"+\$type, \"status=\"+.key ] + $tags
       | @tsv
   "
-  jq -r "$filter" "$file"
+  jq --slurpfile metrics metrics.json --raw-output "$filter" "$file"
 }
 
 publish() {

@@ -18,8 +18,7 @@ sudo apt install jq
 
 simulation.log is parsed to get the following metrics.
 
-* Metrics
-    *  chessplus.request.latency.ms
+* Metrics: chessplus.raw.responseTime.ms
 * Tags
     * source
     * type
@@ -31,25 +30,14 @@ simulation.log is parsed to get the following metrics.
 
 #### Example
 ```
-chessplus.request.latency.ms 6019 1585937897 source=spider type=fix-trade-async status=OK user=4 concurrency=8 blockchain=0.6.13 date=2020-04-03T18:16:07Z
+chessplus.raw.responseTime.ms 6019 1585937897 source=spider type=fix-trade-async status=OK user=4 concurrency=8 blockchain=0.6.13 date=2020-04-03T18:16:07Z
 ```
 
 ### Aggregate Stats
 
 js/stats.json is parsed to get the following metrics. 
 
-* Metrics
-    * numberOfRequests
-    * meanNumberOfRequestsPerSecond
-    * minResponseTime
-    * maxResponseTime
-    * meanResponseTime
-    * standardDeviation
-    * percentiles90
-    * percentiles95
-    * percentiles99
-    * percentiles99.9
-     
+* Metrics: refer [metrics.json](metrics.json)
 * Tags
     * source
     * type
@@ -60,7 +48,7 @@ js/stats.json is parsed to get the following metrics.
 
 #### Example
 ```
-chessplus.stats.meanNumberOfRequestsPerSecond 2	1585941367 source=spider type=fix-trade-sync status=ok concurrency=8 blockchain=0.6.13 date=2020-04-03T18:16:07Z
+chessplus.stats.mean.NumberOfRequestsPerSecond 2.55 1585941693 source=spider type=fix-trade-async status=ok concurrency=16	blockchain=1123	date=2020-04-03T18:21:33Z
 ```
 
 ## Usage
