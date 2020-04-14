@@ -22,18 +22,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Client extends AbstractEntity {
-    String nodeId; //do we really need this?
-    String clientGroupId; //up for discussion with ui
+    String logicalClientId;
+    String nodeId;
     @LinkedEntityId
-    String blockchainId; //for metrics?
+    String blockchainId;
     UUID zoneId;
-
     /**
      * Indicate the type of replica.
      */
+
     public enum ClientType {
-        // Only dealing with either NONE or DAML_PARTICIPANT for now
-        // None: Ethereum, HFL, DAML Committer
         NONE,
         DAML_PARTICIPANT
     }
