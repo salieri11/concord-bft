@@ -256,9 +256,9 @@
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/ethrpc:latest": "ethrpc",
-            "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
-            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
-            "vmwblockchain/telegraf:1.11": "telegraf"
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
             },
           "daml": {
             "vmwblockchain/agent:latest": "agent",
@@ -267,27 +267,27 @@
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
             "vmwblockchain/daml-index-db:latest": "daml_index_db",
-            "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
-            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
-            "vmwblockchain/telegraf:1.11": "telegraf"
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
           },
           "daml_committer": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
-            "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
-            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
-            "vmwblockchain/telegraf:1.11": "telegraf"
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
           },
           "daml_participant": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
             "vmwblockchain/daml-index-db:latest": "daml_index_db",
-            "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
-            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
-            "vmwblockchain/telegraf:1.11": "telegraf"
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
           },
           "hlf": {
             "vmwblockchain/agent:latest": "agent",
@@ -295,9 +295,9 @@
             "vmwblockchain/hlf-orderer:latest": "hlf-orderer",
             "vmwblockchain/hlf-peer:latest": "hlf-peer",
             "vmwblockchain/hlf-tools:latest": "hlf-tools",
-            "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
-            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
-            "vmwblockchain/telegraf:1.11": "telegraf"
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
           }
 
         }

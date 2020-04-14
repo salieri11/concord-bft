@@ -66,12 +66,12 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                name="vmwblockchain/wavefront-proxy:5.7"
+                name="vmwblockchain/wavefront-proxy:6.1"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.JAEGER_AGENT,
-                name="vmwblockchain/jaeger-agent:1.11"
+                name="vmwblockchain/jaeger-agent:1.17"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -91,7 +91,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.TELEGRAF,
-                name="vmwblockchain/telegraf:1.11"
+                name="vmwblockchain/telegraf:1.14.0"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -106,12 +106,12 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                    name="vmwblockchain/wavefront-proxy:5.7"
+                    name="vmwblockchain/wavefront-proxy:6.1"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.JAEGER_AGENT,
-                    name="vmwblockchain/jaeger-agent:1.11"
+                    name="vmwblockchain/jaeger-agent:1.17"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -126,7 +126,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.TELEGRAF,
-                    name="vmwblockchain/telegraf:1.11"
+                    name="vmwblockchain/telegraf:1.14.0"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -144,12 +144,12 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                    name="vmwblockchain/wavefront-proxy:5.7"
+                    name="vmwblockchain/wavefront-proxy:6.1"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.TELEGRAF,
-                    name="vmwblockchain/telegraf:1.11"
+                    name="vmwblockchain/telegraf:1.14.0"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -208,17 +208,17 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                    name="vmwblockchain/wavefront-proxy:5.7"
+                    name="vmwblockchain/wavefront-proxy:6.1"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.JAEGER_AGENT,
-                    name="vmwblockchain/jaeger-agent:1.11"
+                    name="vmwblockchain/jaeger-agent:1.17"
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.TELEGRAF,
-                    name="vmwblockchain/telegraf:1.11"
+                    name="vmwblockchain/telegraf:1.14.0"
                 )
             ]
     elif blockchain_type == "HLF":
