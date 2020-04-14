@@ -213,6 +213,8 @@ import hudson.util.Secret
   ui_e2e_daml_on_prem_job_name,
 ]
 
+
+
 def call(){
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -536,7 +538,10 @@ def call(){
                   env.JOB_NAME.contains(performance_test_job_name) ||
                   env.JOB_NAME.contains(persephone_test_on_demand_job_name)
                 ) {
-                def latest_docker_tag = getLatestTag()
+
+                dir('blockchain'){
+                  def latest_docker_tag = artifactory.getLatestTag()
+                }
                 setDockerTag(latest_docker_tag)
               } else {
                 echo "This run requires building components"
@@ -544,10 +549,11 @@ def call(){
               }
 
               setUpRepoVariables()
-
               setEnvFileAndUserConfig()
 
-              initializePython()
+              dir('blockchain'){
+                pythonlib.initializePython()
+              }
 
               racetrackSet("begin")
 
@@ -1158,7 +1164,7 @@ def call(){
           pruneImages()
           saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
-          if (!env.python) initializePython()
+          if (!env.python) pythonlib.initializePython()
 
           racetrackSet("end")
 
@@ -1233,6 +1239,10 @@ Boolean isGitLabRun(){
 }
 
 // All that varies for each repo is the branch, so wrap this very large call.
+// Note that this function is also in gitlablib.  We duplicate it here because
+// the way we currently do master/tot/etc... runs, which I think we should change,
+// those additional files have not been fetched yet.  Eventually, we should
+// rework this.  See JenkinsfilePerformance for how.
 void checkoutRepo(repo_url, branch_or_commit){
     maxAttempts = 10
     attempts = 0
@@ -1587,23 +1597,6 @@ void handleKnownHosts(host){
       error("Unable to retrieve the ssh key for " + host)
     }
   }
-}
-
-Boolean initializePython() {
-  if (env.python_bin) { return false } // Already initialized
-
-  saveTimeEvent("Setup", "Set up python")
-  env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
-  env.python = env.python_bin + "/python"
-  sh '''
-      # Adding websocket-client  0.56.0 to Artifactory: https://servicedesk.eng.vmware.com/servicedesk/customer/portal/12/INTSVC-549
-      # When that is done, then start passing in -i <url to artifactory>
-      . ${python_bin}/activate
-      pip3 install -r blockchain/hermes/requirements.txt
-      deactivate
-  '''
-  saveTimeEvent("Setup", "Finished setting up python")
-  return true
 }
 
 Boolean need_persephone_tests(always_exclude_jobs){
@@ -2150,25 +2143,6 @@ void setDockerTag(latest_docker_tag){
   env.docker_tag = env.recent_published_docker_tag
 }
 
-String getLatestTag(){
-  if (env.latest_tag) { return env.latest_tag }
-  initializePython()
-  withCredentials([
-    string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
-    string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')
-  ]) {
-    script {
-      dir('blockchain/vars') {
-        sh 'echo "${PASSWORD}" | sudo -SE "${python}" ../docker/get-build-info.py --artifactoryKey "${ARTIFACTORY_API_KEY}"'
-        latestTagJsonText = readFile('latest_tag.json')
-        latestTagJson = new JsonSlurperClassic().parseText(latestTagJsonText)
-        env.latest_tag = latestTagJson.latest_tag
-        return env.latest_tag
-      }
-    }
-  }
-}
-
 // Takes care of sending all post-run notifications.
 void sendNotifications(){
   sendGeneralEmail()
@@ -2504,12 +2478,9 @@ void updateEnvFileForConcordOnDemand(){
 // master run.  We will not wait for it or allow it to fail a run.
 void startOfficialPerformanceRun(){
   try{
-    // Read in JSON here because external steps cannot until we upgrade Jenkins plugins.
-    perfJson = readFile("blockchain/vars/performance.json")
-    perfObj = new JsonSlurperClassic().parseText(perfJson)
-
-    def performance = load "blockchain/vars/performance.groovy"
-    performance.startOfficialPerformanceRun(perfObj)
+    dir('blockchain'){
+      performance.startPerformanceRun()
+    }
   }catch(Exception ex){
     echo("Exception while starting a performance run:")
     echo(ex.toString())

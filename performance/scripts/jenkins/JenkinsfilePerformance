@@ -1,0 +1,65 @@
+pipeline{
+  agent any
+
+  parameters {
+    string(name: "build", defaultValue: "", description: "Leave blank for the latest, or enter the exact build to use.")
+    string(name: "jenkins_branch", defaultValue: "master", description: "Where to fetch the code which handles the mechanics of launching this Jenkins job.")
+  }
+
+  stages{
+    stage("Get Source"){
+      steps{
+        script {
+          // We have to use this one first.
+          gitlablib = load "vars/gitlablib.groovy"
+
+          dir('blockchain'){
+            gitlablib.checkoutRepo("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.jenkins_branch)
+          }
+        }
+      }
+    }
+
+
+    stage("Init Libs"){
+      steps{
+        script {
+          dir('blockchain'){
+            gitlablib = load "vars/gitlablib.groovy"
+            pythonlib = load "vars/pythonlib.groovy"
+            performancelib = load "vars/performancelib.groovy"
+
+            pythonlib.initializePython()
+          }
+        }
+      }
+    }
+
+
+    stage("Get Build"){
+      steps{
+        script{
+          if(params.build && params.build.trim()){
+            env.product_version = params.build.trim()
+          }else{
+            dir('blockchain'){
+              def artifactorylib = load "vars/artifactorylib.groovy"
+              env.product_version = artifactorylib.getLatestTag()
+            }
+          }
+        }
+      }
+    }
+
+
+    stage("Launch Maestro Client"){
+      steps{
+        script{
+          dir('blockchain'){
+            performancelib.startPerformanceRun()
+          }
+        }
+      }
+    }
+  }
+}
