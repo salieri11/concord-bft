@@ -53,7 +53,7 @@ public class DamlLedgerApiUtil {
         builder.append("export PARTICIPANT_ID=p" + nodeName);
         builder.append(System.getProperty("line.separator"));
         builder.append("export JAVA_OPTS=-Xmx10G");
-        addAuthJwt(builder, nodeProperties);
+        addAuthJwt(builder, properties);
 
         return builder.toString();
     }
@@ -71,19 +71,13 @@ public class DamlLedgerApiUtil {
      * Appends the auth jwt property if present.
      *
      * @param builder        builder
-     * @param nodeProperties properties
+     * @param properties properties
      */
-    private void addAuthJwt(StringBuilder builder, List<NodeProperty> nodeProperties) {
-        if (nodeProperties != null) {
-            var authToken = nodeProperties.stream().filter(nodeProperty ->
-                                                                   nodeProperty.getName()
-                                                                           .equals(NodeProperty.Name.CLIENT_AUTH_JWT))
-                    .findFirst();
-            if (authToken.isPresent()) {
-                builder.append(System.getProperty("line.separator"));
-                builder.append("export AUTH_SETTINGS=--auth-jwt-rs256-jwks " + authToken.get().getValueMap().get(0));
-            }
+    private void addAuthJwt(StringBuilder builder, Properties properties) {
+        var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.toString());
+        if (!Strings.isNullOrEmpty(authToken)) {
+            builder.append(System.getProperty("line.separator"));
+            builder.append("export AUTH_SETTINGS=--auth-jwt-rs256-jwks " + authToken);
         }
     }
-
 }

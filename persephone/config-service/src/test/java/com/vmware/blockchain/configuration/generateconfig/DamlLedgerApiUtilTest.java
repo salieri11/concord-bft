@@ -73,14 +73,11 @@ public class DamlLedgerApiUtilTest {
                 + "lt6bdHcgOeRWuhY";
         List<NodeProperty> nodePropertyList = List.of(NodeProperty.newBuilder()
                                                               .setName(NodeProperty.Name.NODE_ID)
-                                                              .putAllValue(nodeMap).build(),
-                                                      NodeProperty.newBuilder()
-                                                              .setName(NodeProperty.Name.CLIENT_AUTH_JWT)
-                                                              .putAllValue(ImmutableMap.of(0, authJwtToken))
-                                                              .build());
+                                                              .putAllValue(nodeMap).build());
 
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051")).build();
+                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
+                                              NodeProperty.Name.CLIENT_AUTH_JWT.toString(), authJwtToken)).build();
         String actual = new DamlLedgerApiUtil().generateConfig(properties, nodePropertyList);
 
         ClassLoader classLoader = getClass().getClassLoader();
