@@ -41,7 +41,7 @@ stats() {
 }
 
 publish() {
-  nc "$host" 2878
+  nc -N "$host" 2878
 }
 
 main() {
