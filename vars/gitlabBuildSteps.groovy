@@ -1164,9 +1164,7 @@ def call(){
 
           // Needs to trigger after owning workspace
           collectArtifacts()
-
           sendNotifications()
-
           cleanUpSDDC()
         }
       }
@@ -2501,37 +2499,12 @@ void updateEnvFileForConcordOnDemand(){
 // master run.  We will not wait for it or allow it to fail a run.
 void startOfficialPerformanceRun(){
   try{
-    withCredentials([
-      usernamePassword(credentialsId: 'BLOCKCHAIN_SVC_ACCOUNT',
-                      usernameVariable: 'username',
-                      passwordVariable: 'password')
-    ]){
-      dir('blockchain/performance/scripts') {
-        echo("Starting a performance run in the Performance team's lab.")
-        // Perf team needs this file at the base of our artifacts.
-        env.performanceResultsHtmlDir = env.WORKSPACE
-        env.performanceResultsHtmlFile = "performance.html"
-        env.performanceResultsHtmlPath = env.performanceResultsHtmlDir + "/" + env.performanceResultsHtmlFile
+    // Read in JSON here because external steps cannot until we upgrade Jenkins plugins.
+    perfJson = readFile("blockchain/vars/performance.json")
+    perfObj = new JsonSlurperClassic().parseText(perfJson)
 
-        // Leave this one down in the performance/scripts directory.
-        env.performanceResultsJsonDir = "blockchain/performance/scripts"
-        env.performanceResultsJsonFile = "performance.json"
-        env.performanceResultsJsonPath = env.performanceResultsJsonDir + "/" + env.performanceResultsJsonFile
-
-        sh '''
-          set +x
-          recipients="rvollmar,rahulg"
-          comments="Performance for build ${product_version}"
-          cmd="maestroclient.py --username \"${username}\" --password '${password}'"
-          cmd="${cmd} --recipients \"${recipients}\" --comments \\\"${comments}\\\""
-          cmd="${cmd} --bcversion ${product_version} --htmlFile \\\"${performanceResultsHtmlPath}\\\""
-          cmd="${cmd} --resultsFile \\\"${performanceResultsJsonFile}\\\""
-          eval "${python} ${cmd}"
-        '''
-      }
-      archiveArtifacts artifacts: env.performanceResultsJsonPath, allowEmptyArchive: true
-      archiveArtifacts artifacts: env.performanceResultsHtmlFile, allowEmptyArchive: true
-    }
+    def performance = load "blockchain/vars/performance.groovy"
+    performance.startOfficialPerformanceRun(perfObj)
   }catch(Exception ex){
     echo("Exception while starting a performance run:")
     echo(ex.toString())
