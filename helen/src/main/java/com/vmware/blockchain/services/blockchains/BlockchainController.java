@@ -343,8 +343,6 @@ public class BlockchainController {
                             .getOrDefault(Constants.NODE_VM_PROFILE, "small"));
         }
 
-        properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), consortiumId.toString());
-
         DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
                 .setModel(spec)
                 .setPlacement(placementSpec)
