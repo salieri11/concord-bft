@@ -79,7 +79,9 @@ class DamlKvbCommandsHandler
       const google::protobuf::Timestamp& record_time,
       opentracing::Span& parent_span,
       std::optional<google::protobuf::Timestamp>* max_record_time,
-      std::vector<std::string>& read_set, kvbc::SetOfKeyValuePairs& updates);
+      std::vector<std::string>& read_set, kvbc::SetOfKeyValuePairs& updates,
+      kvbc::SetOfKeyValuePairs& updates_on_timeout,
+      kvbc::SetOfKeyValuePairs& updates_on_conflict);
 
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
@@ -113,7 +115,10 @@ class DamlKvbCommandsHandler
       com::vmware::concord::ConcordResponse& concord_response);
 
   void BuildPreExecutionResult(
-      const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
+      const kvbc::SetOfKeyValuePairs& updates,
+      const kvbc::SetOfKeyValuePairs& updates_on_timeout,
+      const kvbc::SetOfKeyValuePairs& updates_on_conflict,
+      kvbc::BlockId current_block_id,
       const std::optional<google::protobuf::Timestamp>& record_time,
       string& correlation_id,
       const std::vector<std::string>& validation_read_set,
@@ -129,7 +134,15 @@ class DamlKvbCommandsHandler
 
   void GetUpdatesFromExecutionResult(
       const com::digitalasset::kvbc::Result& result, const string& entryId,
-      kvbc::SetOfKeyValuePairs& updates) const;
+      kvbc::SetOfKeyValuePairs& updates,
+      kvbc::SetOfKeyValuePairs& timeout_updates,
+      kvbc::SetOfKeyValuePairs& conflict_updates) const;
+
+  void BuildWriteSetsFromUpdates(
+      const kvbc::SetOfKeyValuePairs& updates,
+      const kvbc::SetOfKeyValuePairs& timeout_updates,
+      const kvbc::SetOfKeyValuePairs& conflict_updates,
+      com::vmware::concord::PreExecutionResult* result) const;
 
   std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime();
 
@@ -138,6 +151,11 @@ class DamlKvbCommandsHandler
 
   static bool IsPipelinedCommitExecutionEnabled(
       const config::ConcordConfiguration& config);
+
+  void GetUpdatesFromRawUpdates(
+      const google::protobuf::RepeatedPtrField<
+          ::com::digitalasset::kvbc::ProtectedKeyValuePair>& raw_updates,
+      kvbc::SetOfKeyValuePairs& updates) const;
 };
 
 using DamlKvbReadFunc = std::function<std::map<std::string, std::string>(

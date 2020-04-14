@@ -55,8 +55,12 @@ ConcordResponse build_pre_execution_response(
     BlockId pre_execution_block_id,
     const std::optional<Timestamp>& max_record_time = std::nullopt,
     const std::vector<std::string>& reads = {"read-key"},
-    const std::map<std::string, std::string>& writes = {
-        {"write-key", "write-value"}});
+    const std::map<std::string, std::string>& writes = {{"write-key",
+                                                         "write-value"}},
+    const std::map<std::string, std::string>& timeout_writes = {{"timeout",
+                                                                 "detected"}},
+    const std::map<std::string, std::string>& conflict_writes = {
+        {"conflict", "detected"}});
 
 TEST(daml_test, validate_commit_command_type) {
   da_kvbc::Command daml_commit_command;
@@ -177,6 +181,14 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   ASSERT_TRUE(concord_response.pre_execution_result().has_max_record_time());
   ASSERT_EQ(
       concord_response.pre_execution_result().write_set().kv_writes_size(), 2);
+  ASSERT_EQ(concord_response.pre_execution_result()
+                .conflict_write_set()
+                .kv_writes_size(),
+            1);
+  ASSERT_EQ(concord_response.pre_execution_result()
+                .timeout_write_set()
+                .kv_writes_size(),
+            1);
   ASSERT_EQ(concord_response.pre_execution_result().read_set().keys_size(), 3);
   ASSERT_EQ(concord_response.pre_execution_result().read_set_version(),
             last_block_id);
@@ -235,11 +247,14 @@ TEST(daml_test, valid_pre_execution_creates_block) {
   ASSERT_EQ(result, 0);
 }
 
-TEST(daml_test, conflicting_pre_execution_no_block) {
+TEST(daml_test, conflicting_pre_execution_fails_but_adds_conflict_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
@@ -284,11 +299,14 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
   ASSERT_EQ(result, 1);
 }
 
-TEST(daml_test, timed_out_pre_execution_no_block) {
+TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
@@ -341,11 +359,14 @@ TEST(daml_test, timed_out_pre_execution_no_block) {
   ASSERT_EQ(result, 1);
 }
 
-TEST(daml_test, conflicting_write_set) {
+TEST(daml_test, conflicting_write_set_fails_but_adds_conflict_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
@@ -430,8 +451,8 @@ TEST(daml_test, conflicting_write_of_new_key) {
       .WillOnce(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
 
   EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
+      .Times(2)
+      .WillRepeatedly(
           DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 91 + 1, _, _))
@@ -552,12 +573,20 @@ std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
     if (max_record_time) {
       result->mutable_max_record_time()->CopyFrom(max_record_time.value());
     }
-    da_kvbc::ProtectedKeyValuePair* u1 = result->add_updates();
+    auto* u1 = result->add_updates();
     u1->set_key("wk1");
     u1->set_value("wk1");
-    da_kvbc::ProtectedKeyValuePair* u2 = result->add_updates();
+    auto* u2 = result->add_updates();
     u2->set_key("wk2");
     u2->set_value("wv2");
+
+    auto* timeout_update = result->add_updates_on_timeout();
+    timeout_update->set_key("timeout");
+    timeout_update->set_value("detected");
+
+    auto* conflict_update = result->add_updates_on_conflict();
+    conflict_update->set_key("conflict");
+    conflict_update->set_value("detected");
 
     result->add_read_set("rk1");
     result->add_read_set("rk2");
@@ -609,7 +638,9 @@ ConcordResponse build_pre_execution_response(
     BlockId pre_execution_block_id,
     const std::optional<Timestamp>& max_record_time,
     const std::vector<std::string>& reads,
-    const std::map<std::string, std::string>& writes) {
+    const std::map<std::string, std::string>& writes,
+    const std::map<std::string, std::string>& timeout_writes,
+    const std::map<std::string, std::string>& conflict_writes) {
   ConcordResponse pre_execution_response;
   PreExecutionResult pre_execution_result;
 
@@ -628,6 +659,20 @@ ConcordResponse build_pre_execution_response(
   auto* write_set = pre_execution_result.mutable_write_set();
   for (const auto& kv : writes) {
     auto* new_kv = write_set->add_kv_writes();
+    new_kv->set_key(kv.first.c_str(), kv.first.size());
+    new_kv->set_value(kv.second.c_str(), kv.second.size());
+  }
+
+  auto* timeout_write_set = pre_execution_result.mutable_timeout_write_set();
+  for (const auto& kv : timeout_writes) {
+    auto* new_kv = timeout_write_set->add_kv_writes();
+    new_kv->set_key(kv.first.c_str(), kv.first.size());
+    new_kv->set_value(kv.second.c_str(), kv.second.size());
+  }
+
+  auto* conflict_write_set = pre_execution_result.mutable_conflict_write_set();
+  for (const auto& kv : conflict_writes) {
+    auto* new_kv = conflict_write_set->add_kv_writes();
     new_kv->set_key(kv.first.c_str(), kv.first.size());
     new_kv->set_value(kv.second.c_str(), kv.second.size());
   }

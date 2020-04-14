@@ -52,6 +52,8 @@ message Result {
   reserved 2; // was state_updates
   repeated bytes read_set = 3;
   google.protobuf.Timestamp max_record_time = 4;
+  repeated ProtectedKeyValuePair updates_on_timeout = 5;
+  repeated ProtectedKeyValuePair updates_on_conflict = 6;
 }
 
 

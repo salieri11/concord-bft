@@ -269,6 +269,8 @@ message PreExecutionResult {
    optional WriteSet write_set = 3;
    optional string request_correlation_id = 4;
    optional google.protobuf.Timestamp max_record_time = 5;
+   optional WriteSet conflict_write_set = 6;
+   optional WriteSet timeout_write_set = 7;
 }
 
 message ReadSet {
