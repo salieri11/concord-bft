@@ -18,6 +18,8 @@ import com.google.common.net.HostAndPort
 import io.grpc.ConnectivityState
 import org.slf4j.LoggerFactory
 import scopt.OptionParser
+import com.codahale.metrics.MetricRegistry
+import com.daml.ledger.participant.state.kvutils.api.{BatchingLedgerWriter, DefaultBatchingQueue}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -58,10 +60,34 @@ object ConcordLedgerFactory
       thinReplicaClient.committedBlocks,
       ledgerId,
       () => concordClient.currentHealth)
-    val writer = new ConcordLedgerWriter(ledgerId,
+    val concordWriter = new ConcordLedgerWriter(ledgerId,
                                          participantConfig.participantId,
                                          concordClient.commitTransaction,
                                          () => concordClient.currentHealth)
+
+    lazy val batchingWriter =
+      new BatchingLedgerWriter(
+        DefaultBatchingQueue(
+          maxQueueSize = config.extra.maxBatchQueueSize,
+          maxBatchSizeBytes = config.extra.maxBatchSizeBytes,
+          maxWaitDuration = config.extra.maxBatchWaitDuration,
+          maxConcurrentCommits = config.extra.maxBatchConcurrentCommits,
+        ),
+        concordWriter
+      )
+
+    val writer =
+      if (config.extra.enableBatching) {
+        batchingWriter
+      } else {
+        concordWriter
+      }
+
+    val theMetricRegistry = metricRegistry(participantConfig, config)
+    val participantState = PrivacyAwareKeyValueParticipantState(
+      reader, writer, theMetricRegistry)
+
+
     for {
       closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
       closeableMetricsEndpoint = {
@@ -72,7 +98,7 @@ object ConcordLedgerFactory
         metricsEndPoint
       }
       _ <- ResourceOwner.forCloseable(() => closeableMetricsEndpoint)
-    } yield PrivacyAwareKeyValueParticipantState(reader, writer)
+    } yield participantState
   }
 
   override def apiServerConfig(

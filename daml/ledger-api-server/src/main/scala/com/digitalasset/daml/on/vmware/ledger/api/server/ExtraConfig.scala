@@ -11,6 +11,7 @@ import com.digitalasset.daml.lf.data.Ref.IdString
 import com.digitalasset.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
 import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcard}
 import scopt.{OptionParser, Read}
+import scala.concurrent.duration._
 
 final case class ExtraConfig(
     maxInboundMessageSize: Int,
@@ -18,7 +19,13 @@ final case class ExtraConfig(
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
-    authService: Option[AuthService])
+    authService: Option[AuthService],
+    enableBatching: Boolean, // Whether we're batching requests or not.
+    maxBatchQueueSize: Int,  // Number of submissions we're willing to queue before dropping.
+    maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
+    maxBatchWaitDuration: FiniteDuration, // Maximum duration we're willing to wait to fill a batch.
+    maxBatchConcurrentCommits: Int, // Maximum number of concurrent commits.
+)
 
 object ExtraConfig {
   val DefaultParticipantId: IdString.ParticipantId = ParticipantId.assertFromString("standalone-participant")
@@ -29,7 +36,12 @@ object ExtraConfig {
     useThinReplica = false,
     maxFaultyReplicas = 1,
     jaegerAgentAddress = "localhost:6831",
-    authService = Some(AuthServiceWildcard)
+    authService = Some(AuthServiceWildcard),
+    enableBatching = false,
+    maxBatchQueueSize = 100,
+    maxBatchSizeBytes = 4 * 1024 * 1024 /* 4MB */,
+    maxBatchWaitDuration = 100.millis,
+    maxBatchConcurrentCommits = 5,
   )
 
   def addCommandLineArguments(parser: OptionParser[Config[ExtraConfig]]): Unit = {
@@ -131,6 +143,29 @@ object ExtraConfig {
       .optional()
       .text(s"[DEPRECATED] The participant id given to all components of a ledger api server. Defaults to ${ExtraConfig.DefaultParticipantId}")
       .action(deprecatedParameter[ParticipantId]("participant-id"))
+
+
+    parser
+      .opt[Map[String, String]]("batching")
+      .optional()
+      .text("Parameters for batching of submissions. The optional keys are [enable, max-queue-size, max-batch-size-bytes, max-wait-millis, max-concurrent-commits].")
+      .action({ case (kv, config) =>
+        config.copy(
+          extra = config.extra.copy(
+            enableBatching = kv.get("enable") match {
+              case Some("true") => true
+              case Some("false") => false
+              case None => false
+              case _ => sys.error("enable should be 'true' or 'false'")
+            },
+            maxBatchQueueSize = kv.get("max-queue-size").map(_.toInt).getOrElse(config.extra.maxBatchQueueSize),
+            maxBatchSizeBytes = kv.get("max-batch-size-bytes").map(_.toLong).getOrElse(config.extra.maxBatchSizeBytes),
+            maxBatchWaitDuration = kv.get("max-wait-millis").map(millis => Duration(millis.toInt, MILLISECONDS)).getOrElse(config.extra.maxBatchWaitDuration),
+            maxBatchConcurrentCommits = kv.get("max-concurrent-commits").map(_.toInt).getOrElse(config.extra.maxBatchConcurrentCommits)
+          )
+        )
+      })
+
   }
 
   private def deprecatedParameter[T](name: String)(value: T, config: Config[ExtraConfig]): Config[ExtraConfig] =

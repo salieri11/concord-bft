@@ -2,11 +2,15 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine
 
+import java.time.{Duration, Instant}
+
+import akka.stream.Materializer
 import com.codahale.metrics.{MetricRegistry, Timer}
-import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
+import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, DamlKvutils => KV}
 import com.daml.ledger.participant.state.pkvutils
 import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
+import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, FragmentingLedgerOps, InternalBatchLedgerOps}
 import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
 import com.digitalasset.daml.on.vmware.common.Constants
@@ -14,19 +18,24 @@ import com.digitalasset.kvbc.daml_validator._
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
+import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
 import io.grpc.stub.StreamObserver
 import java.security.MessageDigest
 import java.time.{Duration, Instant}
 import org.slf4j.LoggerFactory
+
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
+class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
+
+  implicit val executionContext: ExecutionContext = materializer.executionContext
 
   private object Metrics {
     val prefix = "validator.service"
@@ -87,12 +96,8 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
   // The default configuration to use if none has been uploaded.
   // FIXME(JM): Move into common place so getLedgerInitialConditions can use it as well.
   private val defaultConfig = Configuration(
-    0,
-    TimeModel.reasonableDefault.copy(
-      minTransactionLatency = Duration.ofSeconds(1),
-      maxClockSkew = Duration.ofSeconds(10),
-      maxTtl = Duration.ofMinutes(2),
-    ),
+    generation = 0,
+    timeModel = TimeModel.reasonableDefault,
     maxDeduplicationTime = Duration.ofDays(1) // Same default as SDK ledgers
   )
 
@@ -169,7 +174,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
   override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
     val replicaId = request.replicaId
     val participantId = Ref.ParticipantId.assertFromString(request.participantId)
-    val correlationId = request.correlationId;
+    val correlationId = request.correlationId
 
     logger.trace(s"Validating submission, replicaId=$replicaId participantId=${request.participantId} correlationId=$correlationId")
 
@@ -223,7 +228,104 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     }
   }
 
-  override def validate(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
+  val batchValidator =
+    BatchValidator(
+      params = BatchValidatorParameters.default,
+      metricRegistry = registry
+    )
+
+  class KVBCCachingInternalBatchLedgerOps(replicaId: ReplicaId, ops: InternalBatchLedgerOps)(
+    implicit executionContext: ExecutionContext)
+    extends InternalBatchLedgerOps {
+
+    private val readSet = mutable.Set.empty[KV.DamlStateKey]
+
+    /** Return the set of state reads that have been performed.
+     * Includes both cached and actual reads.
+     * Useful when the read set is required for e.g. conflict detection. */
+    def getReadSet(): Set[KV.DamlStateKey] =
+      this.synchronized { readSet.toSet }
+
+    override def readState(keys: Seq[KV.DamlStateKey]): Future[Seq[Option[KV.DamlStateValue]]] = {
+      this.synchronized { readSet ++= keys }
+
+      val cachedValues = cache.getAllPresent(keys.map(replicaId -> _)).map { case ((_, key), value) =>
+          key -> Some(value)
+      }
+      val remainingKeys = keys.toSet -- cachedValues.keySet
+
+      ops
+        .readState(remainingKeys.toSeq)
+        .map(remainingValues => remainingKeys.zip(remainingValues).toMap)
+        .map { remaining =>
+          remaining.collect {
+            case (key, Some(value)) => cache.put(replicaId -> key, value)
+          }
+          val all: Map[KV.DamlStateKey, Option[KV.DamlStateValue]] = cachedValues ++ remaining
+          keys.map(all(_))
+        }
+    }
+
+    override def commit(
+                         participantId: ParticipantId,
+                         logEntryId: KV.DamlLogEntryId,
+                         logEntry: KV.DamlLogEntry,
+                         inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]],
+                         outputState: Map[KV.DamlStateKey,KV. DamlStateValue]): Future[Unit] = {
+      cache.putAll(
+        outputState.map { case (key, value) =>
+          (replicaId, key) -> value
+        }
+      )
+      ops.commit(participantId, logEntryId, logEntry, inputState, outputState)
+    }
+  }
+
+
+  def validateBatch(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
+    implicit val executionContext = ExecutionContext.global
+
+    val kvbcLedgerOps = new KVBCLedgerOps(responseObserver.onNext)
+    new StreamObserver[EventToValidator] {
+      override def onNext(value: EventToValidator): Unit = {
+        value.toValidator match {
+          case EventToValidator.ToValidator.ValidateRequest(request) =>
+            logger.trace(s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
+            val ledgerOps = new KVBCCachingInternalBatchLedgerOps(request.replicaId, new FragmentingLedgerOps(kvbcLedgerOps))
+            val recordTime = parseTimestamp(request.recordTime.get).toInstant
+            batchValidator.validateAndCommit(
+              recordTime,
+              ParticipantId.assertFromString(request.participantId),
+              request.correlationId,
+              request.submission,
+              ledgerOps
+            ).foreach { _ =>
+              val sortedReadSet =
+                ledgerOps.getReadSet().map(_.toByteString).toSeq.sorted
+
+              responseObserver.onNext(EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
+              responseObserver.onCompleted()
+              logger.info(s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
+            }
+          case EventToValidator.ToValidator.ReadResult(result) =>
+            kvbcLedgerOps.handleReadResult(result)
+
+          case EventToValidator.ToValidator.Empty =>
+            sys.error("Message EventToValidator is empty!")
+
+
+        }
+      }
+      override def onError(t: Throwable): Unit =
+        logger.error(s"validate() aborted due to an error: $t")
+      override def onCompleted(): Unit =
+        logger.trace("validate() completed")
+    }
+  }
+  override def validate(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
+    validateBatch(responseObserver)
+
+  def validateSingle(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
     // NOTE(JM): This adapts the pipelined interface into the existing one. This is temporary until
     // we bring in the batching validator which will properly use the pipelined interface.
 
@@ -258,6 +360,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
                 val result = response.getResult
                 sendEvent(_.withWrite(Write(result.updates)))
                 sendEvent(_.withDone(Done(result.readSet)))
+                responseObserver.onCompleted()
               } else {
                 sys.error("ValidateResponse is empty")
               }
@@ -291,7 +394,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
         logger.error(s"validate() aborted due to an error: $t")
 
       override def onCompleted(): Unit =
-        logger.info("validate() completed")
+        logger.trace("validate() completed")
     }
   }
 
@@ -374,5 +477,5 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
   def currentHealth(): HealthStatus = Healthy
 
   override def bindService(): ServerServiceDefinition =
-    ValidationServiceGrpc.bindService(this, ec)
+    ValidationServiceGrpc.bindService(this, executionContext)
 }

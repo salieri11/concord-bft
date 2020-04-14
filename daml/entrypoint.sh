@@ -33,9 +33,17 @@ done
 
 INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
 
+# Batching parameters. These are all overridable from the outside.
+ENABLE_BATCHING=${ENABLE_BATCHING:=false}
+MAX_BATCH_SIZE_BYTES=${MAX_BATCH_SIZE_BYTES:=$((4 * 1024 * 1024))} # "Soft" limit for batch size (default to 4MB)
+MAX_BATCH_QUEUE_SIZE=${MAX_BATCH_QUEUE_SIZE:=100} # Max number of submissions to queue before dropping.
+MAX_BATCH_WAIT_MILLIS=${MAX_BATCH_WAIT_MILLIS:=50} # Max amount of time to wait to construct a batch.
+MAX_CONCURRENT_COMMITS=${MAX_CONCURRENT_COMMITS:=5} # Max number of concurrent commit calls towards concord.
+
 $API_SERVER \
   --replicas $REPLICAS \
   --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
+  --batching "enable=$ENABLE_BATCHING,max-queue-size=$MAX_BATCH_QUEUE_SIZE,max-batch-size-bytes=$MAX_BATCH_SIZE_BYTES,max-wait-millis=$MAX_BATCH_WAIT_MILLIS,max-concurrent-commits=$MAX_CONCURRENT_COMMITS" \
   --maxInboundMessageSize=67108864 \
   --ledger-id KVBC \
   $THIN_REPLICA_SETTINGS \
