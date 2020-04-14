@@ -84,7 +84,7 @@ public class ConcordConfiguration {
             DAML_EXECUTION_ENGINE);
 
     public static final Map<ConcordComponent.ServiceType, String> STATIC_TAG_LIST = ImmutableMap.of(
-            WAVEFRONT_PROXY, "5.7", TELEGRAF, "1.11", JAEGER_AGENT, "1.11"
+            WAVEFRONT_PROXY, "6.1", TELEGRAF, "1.14.0", JAEGER_AGENT, "1.17"
     );
 
     private static final Map<ConcordModelSpecification.BlockchainType, List<ConcordComponent.ServiceType>>

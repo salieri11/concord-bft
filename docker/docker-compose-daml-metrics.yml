@@ -6,7 +6,7 @@
 version: '3'
 services:
   telegraf:
-    image: telegraf:1.11
+    image: telegraf:1.14.0
     ports:
       - 9090:9090
     volumes:
@@ -22,7 +22,7 @@ services:
       - daml_execution_engine1
 
   jaeger-agent:
-    image: jaegertracing/jaeger-agent:1.11
+    image: jaegertracing/jaeger-agent:1.17
     ports:
       - 5775:5775/udp
       - 6831:6831/udp
@@ -35,7 +35,7 @@ services:
       - wavefront
 
   wavefront:
-    image: wavefronthq/proxy:5.7
+    image: wavefronthq/proxy:6.1
     volumes:
       - ./vdaml-metrics/wavefront.conf:/config/wavefront-proxy/wavefront.conf
     environment:
