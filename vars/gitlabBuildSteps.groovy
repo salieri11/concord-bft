@@ -356,6 +356,11 @@ def call(){
 
               // Add the VMware GitLab ssh key to known_hosts.
               handleKnownHosts("gitlab.eng.vmware.com")
+
+              // Try dealing with https://issues.jenkins-ci.org/browse/JENKINS-48300. Run failed with this error:
+              // "JENKINS-48300: if on an extremely laggy filesystem, consider -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
+              System.setProperty("org.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL", "86400")
+
             }catch(Exception ex){
               failRun()
               throw ex
