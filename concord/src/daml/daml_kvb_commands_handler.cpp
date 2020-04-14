@@ -135,6 +135,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   }
 
   SetOfKeyValuePairs updates;
+  SetOfKeyValuePairs updates_on_timeout;
+  SetOfKeyValuePairs updates_on_conflict;
+
   // The set of keys used during validation. Includes reads of keys
   // cached by the validator.
   vector<string> read_set;
@@ -148,14 +151,14 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   } else {
     success = DoCommitSingle(commit_req, current_block_id, record_time,
                              *execute_commit_span, &max_record_time, read_set,
-                             updates);
+                             updates, updates_on_timeout, updates_on_conflict);
   }
 
   if (success) {
     if (pre_execute) {
-      BuildPreExecutionResult(updates, current_block_id, max_record_time,
-                              correlation_id, read_set, *execute_commit_span,
-                              concord_response);
+      BuildPreExecutionResult(updates, updates_on_timeout, updates_on_conflict,
+                              current_block_id, max_record_time, correlation_id,
+                              read_set, *execute_commit_span, concord_response);
       LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
     } else {
       RecordTransaction(updates, current_block_id, correlation_id,
@@ -175,7 +178,9 @@ bool DamlKvbCommandsHandler::DoCommitSingle(
     const google::protobuf::Timestamp& record_time,
     opentracing::Span& parent_span,
     std::optional<google::protobuf::Timestamp>* max_record_time,
-    std::vector<std::string>& read_set, SetOfKeyValuePairs& updates) {
+    std::vector<std::string>& read_set, SetOfKeyValuePairs& updates,
+    SetOfKeyValuePairs& updates_on_timeout,
+    SetOfKeyValuePairs& updates_on_conflict) {
   // Since we're not batching, lets keep it simple and use the next block id as
   // the DAML log entry id.
   string entry_id = std::to_string(current_block_id + 1);
@@ -190,7 +195,9 @@ bool DamlKvbCommandsHandler::DoCommitSingle(
                            : std::nullopt;
     std::copy(result.read_set().begin(), result.read_set().end(),
               std::back_inserter(read_set));
-    GetUpdatesFromExecutionResult(result, entry_id, updates);
+
+    GetUpdatesFromExecutionResult(result, entry_id, updates, updates_on_timeout,
+                                  updates_on_conflict);
     return true;
   } else {
     return false;
@@ -284,21 +291,33 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
 }
 
 void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
-    const da_kvbc::Result& result, const string& entryId,
-    SetOfKeyValuePairs& updates) const {
+    const com::digitalasset::kvbc::Result& result, const string& entryId,
+    SetOfKeyValuePairs& updates, SetOfKeyValuePairs& timeout_updates,
+    SetOfKeyValuePairs& conflict_updates) const {
   vector<string> no_trids;
 
   // Insert the key-value updates into the store.
-  for (const auto& kv : result.updates()) {
+  GetUpdatesFromRawUpdates(result.updates(), updates);
+  GetUpdatesFromRawUpdates(result.updates_on_timeout(), timeout_updates);
+  GetUpdatesFromRawUpdates(result.updates_on_conflict(), conflict_updates);
+}
+
+void DamlKvbCommandsHandler::GetUpdatesFromRawUpdates(
+    const google::protobuf::RepeatedPtrField<da_kvbc::ProtectedKeyValuePair>&
+        raw_updates,
+    SetOfKeyValuePairs& updates) const {
+  for (const auto& kv : raw_updates) {
     const auto& protoTrids = kv.trids();
-    vector<string> trids(protoTrids.begin(), protoTrids.end());
+    std::vector<string> trids(protoTrids.begin(), protoTrids.end());
     updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
                                 CreateDamlKvbValue(kv.value(), trids)));
   }
 }
 
 void DamlKvbCommandsHandler::BuildPreExecutionResult(
-    const SetOfKeyValuePairs& updates, BlockId current_block_id,
+    const SetOfKeyValuePairs& updates,
+    const SetOfKeyValuePairs& updates_on_timeout,
+    const SetOfKeyValuePairs& updates_on_conflict, BlockId current_block_id,
     const std::optional<google::protobuf::Timestamp>& max_record_time,
     string& correlation_id, const vector<string>& validation_read_set,
     opentracing::Span& parent_span, ConcordResponse& concord_response) const {
@@ -313,12 +332,8 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
 
   pre_execution_result->set_read_set_version(current_block_id);
 
-  auto* write_set = pre_execution_result->mutable_write_set();
-  for (const auto& kv : updates) {
-    auto* new_kv = write_set->add_kv_writes();
-    new_kv->set_key(kv.first.data(), kv.first.length());
-    new_kv->set_value(kv.second.data(), kv.second.length());
-  }
+  BuildWriteSetsFromUpdates(updates, updates_on_timeout, updates_on_conflict,
+                            pre_execution_result);
 
   auto* read_set = pre_execution_result->mutable_read_set();
   for (const auto& k : validation_read_set) {
@@ -340,6 +355,30 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
                                                    correlation_id.size());
 }
 
+void DamlKvbCommandsHandler::BuildWriteSetsFromUpdates(
+    const SetOfKeyValuePairs& updates,
+    const SetOfKeyValuePairs& timeout_updates,
+    const SetOfKeyValuePairs& conflict_updates,
+    com::vmware::concord::PreExecutionResult* result) const {
+  for (const auto& kv : updates) {
+    auto* new_kv = result->mutable_write_set()->add_kv_writes();
+    new_kv->set_key(kv.first.data(), kv.first.length());
+    new_kv->set_value(kv.second.data(), kv.second.length());
+  }
+
+  for (const auto& kv : timeout_updates) {
+    auto* new_kv = result->mutable_timeout_write_set()->add_kv_writes();
+    new_kv->set_key(kv.first.data(), kv.first.length());
+    new_kv->set_value(kv.second.data(), kv.second.length());
+  }
+
+  for (const auto& kv : conflict_updates) {
+    auto* new_kv = result->mutable_conflict_write_set()->add_kv_writes();
+    new_kv->set_key(kv.first.data(), kv.first.length());
+    new_kv->set_value(kv.second.data(), kv.second.length());
+  }
+}
+
 bool DamlKvbCommandsHandler::CommitPreExecutionResult(
     BlockId current_block_id, google::protobuf::Timestamp& record_time,
     string& correlation_id, opentracing::Span& parent_span,
@@ -353,32 +392,34 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
   auto* pre_execution_result = request_.mutable_pre_execution_result();
   auto max_record_time = GetPreExecutionMaxRecordTime();
   correlation_id = pre_execution_result->request_correlation_id();
+
+  com::vmware::concord::WriteSet* write_set = nullptr;
   if (max_record_time.has_value() && record_time > max_record_time.value()) {
-    // TODO commit a block using the timeout_writeset (future)
     LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
                                  << correlation_id << " due to timeout.");
+    write_set = pre_execution_result->mutable_timeout_write_set();
   } else if (HasPreExecutionConflicts(request_.pre_execution_result())) {
-    // TODO commit a block using the conflict_writeset (future)
     LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
                                  << correlation_id << " due to conflicts.");
+    write_set = pre_execution_result->mutable_conflict_write_set();
   } else {
-    auto* write_set = pre_execution_result->mutable_write_set();
-    auto& kv_writes = *write_set->mutable_kv_writes();
-    for (auto& kv : kv_writes) {
-      auto key = std::unique_ptr<std::string>{kv.release_key()};
-      auto val = std::unique_ptr<std::string>{kv.release_value()};
-
-      updates.insert(
-          kvbc::KeyValuePair(Sliver{std::move(*key)}, Sliver{std::move(*val)}));
-    }
-
-    RecordTransaction(updates, current_block_id, correlation_id,
-                      *commit_pre_execution_result_span, concord_response);
-    LOG4CPLUS_DEBUG(
-        logger_,
-        "Done: Successfully validated and recorded pre-executed DAML command.");
+    LOG4CPLUS_DEBUG(logger_, "Recording successfully pre-executed DAML command "
+                                 << correlation_id << ".");
+    write_set = pre_execution_result->mutable_write_set();
     commit_pre_execution_result = true;
   }
+
+  auto& kv_writes = *write_set->mutable_kv_writes();
+  for (auto& kv : kv_writes) {
+    auto key = std::unique_ptr<std::string>{kv.release_key()};
+    auto val = std::unique_ptr<std::string>{kv.release_value()};
+
+    updates.insert(
+        kvbc::KeyValuePair(Sliver{std::move(*key)}, Sliver{std::move(*val)}));
+  }
+
+  RecordTransaction(updates, current_block_id, correlation_id,
+                    *commit_pre_execution_result_span, concord_response);
   return commit_pre_execution_result;
 }
 
