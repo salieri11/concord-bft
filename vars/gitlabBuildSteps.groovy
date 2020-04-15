@@ -187,6 +187,7 @@ import hudson.util.Secret
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
   deploy_concord_job_name,
+  deployment_support_bundle_job_name,
   ext_long_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
