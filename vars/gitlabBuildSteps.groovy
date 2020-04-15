@@ -558,8 +558,8 @@ def call(){
             }
           }
         }
-
       }
+
 
       stage("Build") {
         steps {
@@ -1170,7 +1170,7 @@ def call(){
           // Needs to trigger after owning workspace
           collectArtifacts()
           sendNotifications()
-          cleanUpSDDC()
+          cleanUpSDDCs()
         }
       }
     }
@@ -2228,6 +2228,27 @@ void announceToTFailure(){
   }
 }
 
+void announceSDDCCleanupFailures(failures){
+  msg = "SDDC cleanup job(s) failed; it is possible resources are being leaked!"
+  msg += "\nFailed jobs:"
+
+  for(failure in failures){
+    msg += "\n" + failure
+  }
+
+  env.cleanup_fail_msg = msg + "\nBuild url: " + env.BUILD_URL
+
+  dir("blockchain/hermes"){
+    sh '''
+      . ${python_bin}/activate
+      # For testing
+      # python3 invoke.py slackDM --param your_id@vmware.com "${cleanup_fail_msg}"
+
+      python3 invoke.py slackPost --param blockchain-build-fail "${cleanup_fail_msg}"
+      deactivate
+    '''
+  }
+}
 
 void collectArtifacts(){
   saveTimeEvent("Gather artifacts", "Start")
@@ -2275,23 +2296,51 @@ void collectArtifacts(){
   archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
 }
 
-void cleanUpSDDC(){
-  try{
-    saveTimeEvent("Clean up SDDCs", "Start")
-    sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
-    // LongTests Clean up older than 168 hours (7 days)
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-    build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
-    saveTimeEvent("Clean up SDDCs", "End")
-  }catch(Exception ex){
-    echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
+// Clean all SDDCs.
+// Store all failures in an array and report them in one message.
+void cleanUpSDDCs(){
+  saveTimeEvent("Clean up SDDCs", "Start")
+  sddcs = ['VMware-Blockchain-SDDC-1', 'VMware-Blockchain-SDDC-2', 'VMware-Blockchain-SDDC-3', 'VMware-Blockchain-SDDC-4']
+  failures = []
+
+  for(sddc in sddcs){
+    failure = cleanSDDC(sddc, "HermesTesting", "1")
+    if (failure){
+      failures << failure
+    }
   }
+
+  // LongTests Clean up older than 168 hours (7 days)
+  for(sddc in sddcs){
+    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "168")
+    if (failure){
+      failures << failure
+    }
+  }
+
+  if (failures.size() > 0){
+    announceSDDCCleanupFailures(failures)
+  }
+
+  saveTimeEvent("Clean up SDDCs", "End")
+}
+
+// Given an SDDC name, folder, and age, cleans it.
+// Returns a string of information about the failure if it failed.
+String cleanSDDC(sddc, folder, age){
+  failure = null
+
+  try{
+    echo ("Calling Job Cleanup-SDDC-folder, SDDC: " + sddc + ", folder: " + folder + ", older than: " + age)
+    build job: "Cleanup-SDDC-folder", parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: sddc],
+                                                   [$class: 'StringParameterValue', name: 'VMFolder', value: folder],
+                                                   [$class: 'StringParameterValue', name: 'OLDERTHAN', value: age]]
+  }catch(Exception ex){
+    echo(ex.toString())
+    failure = "SDDC: " + sddc + ", folder: " + folder
+  }
+
+  return failure
 }
 
 void racetrackSet(action){
