@@ -25,6 +25,7 @@ option java_multiple_files = true;
 message ConcordNodeIdentifier {
     int64 low = 1;
     int64 high = 2;
+    string id = 3;
 }
 
 /**
@@ -128,8 +129,9 @@ message ConcordNodeStatus {
  *   higher order bits of a 128-bit identifier;
  */
 message ConcordClusterIdentifier {
-    int64 low = 1;
-    int64 high = 2;
+    int64 low = 1 [deprecated=true];
+    int64 high = 2 [deprecated=true];
+    string id = 3;
 }
 
 /**

@@ -22,8 +22,9 @@ option java_multiple_files = true;
  *   higher order bits of a 128-bit identifier;
  */
 message OrchestrationSiteIdentifier {
-    uint64 low = 1;
-    uint64 high = 2;
+    uint64 low = 1 [deprecated=true];
+    uint64 high = 2 [deprecated=true];
+    string id = 3;
 }
 
 /**
