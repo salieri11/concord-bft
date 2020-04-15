@@ -8,7 +8,4 @@ public interface Operation {
 
     void execute();
 
-    default long getBlockId() {
-        return 0;
-    }
 }

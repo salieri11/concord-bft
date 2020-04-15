@@ -100,7 +100,6 @@ public abstract class WorkloadManager {
         logger.info("Request distribution: {}", clientToRequestCount);
 
         Collection<WorkloadClient> clients = clientToRequestCount.keySet();
-        logger.info("Ledger size before test: {}", getLedgerSize(clients));
 
         List<WorkloadClient> requestClients = assignClients(clientToRequestCount);
 
@@ -214,13 +213,6 @@ public abstract class WorkloadManager {
     }
 
     /**
-     * Size of ledger group by node
-     */
-    private Map<String, Long> getLedgerSize(Collection<WorkloadClient> clients) {
-        return clients.stream().collect(toMap(WorkloadClient::toString, WorkloadClient::getLedgerSize));
-    }
-
-    /**
      * No. of requests group by status, node
      */
     private Map<String, Map<Status.Code, LongAdder>> getStatusCount(Collection<WorkloadClient> clients) {
@@ -247,7 +239,6 @@ public abstract class WorkloadManager {
         logger.info("Average gRPC response time: {} ms", totalResponseTimeMillis / numOfRequests);
 
         logger.info("Response status: {}", getStatusCount(clients));
-        logger.info("Ledger size after test: {}", getLedgerSize(clients));
 
         stats.put(
                 "tableRow",

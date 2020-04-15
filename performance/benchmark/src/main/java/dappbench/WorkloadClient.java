@@ -82,11 +82,6 @@ public abstract class WorkloadClient {
     protected abstract void doExecute();
 
     /**
-     * Size of ledger
-     */
-    protected abstract long getLedgerSize();
-
-    /**
      * No. of requests grouped by status
      */
     public final Map<Status.Code, LongAdder> getStatusCount() {

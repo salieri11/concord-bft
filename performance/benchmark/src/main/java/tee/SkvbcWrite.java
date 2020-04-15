@@ -33,8 +33,6 @@ public class SkvbcWrite implements Operation {
     private final SkvbcPayload payload;
     private final TeeServiceBlockingStub blockingStub;
 
-    private long blockId;
-
     public SkvbcWrite(int requestSize, TeeServiceBlockingStub blockingStub) {
         this.payload = new SkvbcPayload(requestSize);
         this.blockingStub = blockingStub;
@@ -49,15 +47,7 @@ public class SkvbcWrite implements Operation {
         response.getContent().copyTo(buf);
         buf.flip();
 
-        byte opCode = buf.get();
-        byte opStatus = buf.get();
-        blockId = buf.getLong(2);
-
-        logger.debug("OpCode: {}, OpStatus: {}, BlockId: {}", opCode, opStatus, blockId);
+        logger.debug("OpCode: {}, OpStatus: {}, BlockId: {}", buf.get(), buf.get(), buf.getLong(2));
     }
 
-    @Override
-    public long getBlockId() {
-        return blockId;
-    }
 }
