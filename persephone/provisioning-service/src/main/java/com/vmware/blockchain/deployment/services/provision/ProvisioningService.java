@@ -20,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
 import java.util.concurrent.ScheduledExecutorService;
@@ -90,11 +89,6 @@ import lombok.extern.slf4j.Slf4j;
 public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningServiceImplBase {
 
     /**
-     * Executor to use for all async service operations.
-     */
-    private final ExecutorService executor;
-
-    /**
      * Orchestrator instance factory.
      */
     private final OrchestratorProvider orchestratorProvider;
@@ -146,8 +140,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
      * Constructor.
      */
     @Autowired
-    ProvisioningService(ExecutorService executor, BootstrapComponent bootstrapComponent) {
-        this.executor = executor;
+    ProvisioningService(BootstrapComponent bootstrapComponent) {
         this.orchestratorProvider = new OrchestratorFactory();
         configurationServiceClient = (new ConfigServiceInvoker(bootstrapComponent.configService))
                 .generateConfigServiceStub();
@@ -187,7 +180,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         // If successfully recorded.
         if (oldSession == null) {
             // Start the async workflow to carry out the deployment plan.
-            CompletableFuture.runAsync(() -> deployCluster(session), executor);
+            CompletableFuture.runAsync(() -> deployCluster(session));
 
             // Emit the acknowledgement and signal completion of the request.
             response.onNext(sessionId);
@@ -235,12 +228,12 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             var task = deploymentLog.get(request.getSession());
             if (task != null) {
-                task.thenAcceptAsync(sender, executor);
+                task.thenAcceptAsync(sender);
             } else {
                 var text = "Session does not have a background task";
                 response.onError(new IllegalStateException(text));
             }
-        }, executor).exceptionally(error -> {
+        }).exceptionally(error -> {
             response.onError(error);
             return null; // To satisfy type signature (Void).
         });
@@ -497,7 +490,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 sessionFuture.complete(DeploymentSession.newBuilder(deploymentSession).addAllEvents(deprovEv).build());
                 deploymentLog.replace(requestSession, sessionFuture);
                 log.info("Deprovisioning completed");
-            }, executor)
+            })
                     .exceptionally(error -> {
                         throw new IllegalStateException("Deprovisioning failed for id: " + requestSession, error);
                     });
@@ -706,7 +699,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                         privateNetworkAddressMap.put(entry.getKey(), createdEvent);
                                     }
                                 }
-                            }, executor)
+                            })
                     )
                     .toArray(CompletableFuture[]::new);
 
@@ -723,7 +716,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                     CompletableFuture<ConfigurationSessionIdentifier> configFuture =
                             CompletableFuture.allOf(networkAddressPromises)
                                     .thenComposeAsync(__ -> generateConfigurationId(
-                                            privateNetworkAddressMap, concordIdentifierMap, session), executor);
+                                            privateNetworkAddressMap, concordIdentifierMap, session));
                     configId = configFuture.get();
                 } catch (Throwable e) {
                     log.warn("Error received from config service", e);
@@ -795,7 +788,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                 } else {
                                     return CompletableFuture.completedFuture(null);
                                 }
-                            }, executor)
+                            })
                             // Put the network allocation event in the result collection.
                             .whenComplete((event, error) -> {
                                 if (error != null) {

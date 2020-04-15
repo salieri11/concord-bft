@@ -5,14 +5,11 @@
 package com.vmware.blockchain.deployment.server;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 
 import javax.net.ssl.SSLException;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,10 +38,4 @@ public class Application {
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Application.class, args);
     }
-
-    @Bean
-    public ExecutorService executorService() {
-        return ForkJoinPool.commonPool();
-    }
-
 }
