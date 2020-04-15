@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry
 import com.github.benmanes.caffeine.cache.stats.{CacheStats, StatsCounter}
 
 class KVBCMetricsStatsCounter(registry: MetricRegistry) extends StatsCounter {
-  private val prefix = "validator.cache"
+  private val prefix = "daml.validator.cache"
   private val hits = registry.counter(s"$prefix.hits")
   private val misses = registry.counter(s"$prefix.misses")
   private val totalLoadTime = registry.timer(s"$prefix.loads")

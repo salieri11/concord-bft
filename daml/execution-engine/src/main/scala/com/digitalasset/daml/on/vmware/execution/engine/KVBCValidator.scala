@@ -38,7 +38,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
   implicit val executionContext: ExecutionContext = materializer.executionContext
 
   private object Metrics {
-    val prefix = "validator.service"
+    val prefix = "daml.validator.service"
 
     val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
     val validateTimer = registry.timer(s"$prefix.validate-timer")
