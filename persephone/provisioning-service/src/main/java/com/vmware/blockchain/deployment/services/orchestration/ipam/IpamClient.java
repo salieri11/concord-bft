@@ -19,7 +19,6 @@ import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest;
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
-import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -37,13 +36,14 @@ public class IpamClient {
      * Constructor.
      */
     public IpamClient(Endpoint allocationServer) {
-        ManagedChannel managedChannel = null;
-        if (allocationServer.getTransportSecurity().getType() == TransportSecurity.Type.TLSv1_2) {
-            managedChannel = ManagedChannelBuilder.forTarget(allocationServer.getAddress()).build();
-        } else {
-            managedChannel = ManagedChannelBuilder.forTarget(allocationServer.getAddress()).usePlaintext().build();
+        ManagedChannelBuilder managedChannelBuilder = ManagedChannelBuilder.forTarget(allocationServer.getAddress())
+                .enableRetry().maxRetryAttempts(3);
+
+        if (allocationServer.getTransportSecurity().getType() == TransportSecurity.Type.NONE) {
+            managedChannelBuilder.usePlaintext();
         }
-        ipAllocationServiceStub = IPAllocationServiceGrpc.newStub(managedChannel);
+
+        ipAllocationServiceStub = IPAllocationServiceGrpc.newStub(managedChannelBuilder.build());
     }
 
     /**
