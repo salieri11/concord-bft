@@ -225,10 +225,6 @@ public class ClientController {
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
 
-        Blockchain blockchain = blockchainService.get(bid);
-
-        Blockchain.BlockchainType blockchainType = blockchain.getType();
-
         List<Replica> nodeEntryList = blockchainService.getReplicas(bid);
 
         String ipList = String.join(",", nodeEntryList.stream()
@@ -240,9 +236,12 @@ public class ClientController {
         if (body.clientJwt != null) {
             properties.put(NodeProperty.Name.CLIENT_AUTH_JWT.toString(), body.clientJwt);
         }
+
+        properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), bid.toString());
         var propertiesBuilder = Properties.newBuilder().putAllValues(properties).build();
 
-
+        Blockchain blockchain = blockchainService.get(bid);
+        Blockchain.BlockchainType blockchainType = blockchain.getType();
         if (blockchainType != Blockchain.BlockchainType.DAML) {
             logger.info("Participant node can be deployed only for DAML blockchains.");
             throw new BadRequestException(ErrorCode.BAD_REQUEST);

@@ -329,7 +329,7 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertEquals(0, request.getSpecification().getClusterSize());
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Map<String, String> properties = request.getSpecification().getProperties().getValuesMap();
-        Assertions.assertEquals(2, properties.size());
+        Assertions.assertEquals(3, properties.size());
         Assertions.assertEquals("fripSide", properties.get(NodeProperty.Name.CLIENT_AUTH_JWT.toString()));
         Assertions.assertEquals(3, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
@@ -363,7 +363,7 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertEquals(0, request.getSpecification().getClusterSize());
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Map<String, String> properties = request.getSpecification().getProperties().getValuesMap();
-        Assertions.assertEquals(1, properties.size());
+        Assertions.assertEquals(2, properties.size());
         Assertions.assertEquals(3, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(1, entries.stream()

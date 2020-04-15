@@ -382,6 +382,11 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         properties.put(NodeProperty.Name.WAVEFRONT_URL.toString(), wavefront.getUrl());
         properties.put(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), wavefront.getToken());
 
+        if (!properties.containsKey(NodeProperty.Name.BLOCKCHAIN_ID.toString())) {
+            var blockchainId = new UUID(session.getCluster().getHigh(), session.getCluster().getLow());
+            properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), blockchainId.toString());
+        }
+
         NodeProperty nodeProperty =
                 NodeProperty.newBuilder().setName(NodeProperty.Name.NODE_ID).putAllValue(nodeIds).build();
         NodeProperty loggingProperty =
