@@ -316,6 +316,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                     var nodeId = ConcordNodeIdentifier.newBuilder()
                             .setLow(uuid.getLeastSignificantBits())
                             .setHigh(uuid.getMostSignificantBits())
+                            .setId(uuid.toString())
                             .build();
 
                     OrchestrationSiteIdentifier site;
@@ -923,6 +924,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         return publisher -> {
             var computeRequest = new OrchestratorData.CreateComputeResourceRequest(
                     ConcordClusterIdentifier.newBuilder().setLow(sessionId.getLow()).setHigh(sessionId.getHigh())
+                            .setId(sessionId.toString())
                             .build(),
                     nodeId,
                     model,
