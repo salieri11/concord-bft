@@ -76,6 +76,9 @@ def finalize(result):
       return
     with open(idFilePath, "r") as f:
       setId = json.loads(f.read())["setId"]
+      print("")
+      print("Racetrack result set for this run:")
+      print("https://racetrack.eng.vmware.com/result.php?id=" + setId)
       if result == "ABORTED": setUpdate(setId, status="Aborted")
       if result == "FAILURE":
         setUpdate(setId, status="Waiting for Triage")
