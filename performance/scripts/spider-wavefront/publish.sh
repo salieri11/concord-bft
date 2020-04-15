@@ -26,7 +26,7 @@ metrics() {
 stats() {
   local file="$dir/js/stats.json"
   local prefix="chessplus.stats."
-  local tags="[\"concurrency=$concurrency\", \"blockchain=$blockchain\", \"date=$date\"]"
+  local tags="[\"concurrency=$concurrency\", \"blockchain=$blockchain\"]"
 
   local filter="
       def round: . * 100 + 0.5 | floor / 100;

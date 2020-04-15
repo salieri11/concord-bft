@@ -44,11 +44,10 @@ js/stats.json is parsed to get the following metrics.
     * status
     * concurrency
     * blockchain
-    * date
 
 #### Example
 ```
-chessplus.stats.mean.NumberOfRequestsPerSecond 2.55 1585941693 source=spider type=fix-trade-async status=ok concurrency=16	blockchain=1123	date=2020-04-03T18:21:33Z
+chessplus.stats.mean.NumberOfRequestsPerSecond 2.55 1585941693 source=spider type=fix-trade-async status=ok concurrency=16 blockchain=0.6.13
 ```
 
 ## Usage
