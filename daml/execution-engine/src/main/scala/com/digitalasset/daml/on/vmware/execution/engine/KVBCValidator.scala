@@ -2,8 +2,6 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine
 
-import java.time.{Duration, Instant}
-
 import akka.stream.Materializer
 import com.codahale.metrics.{MetricRegistry, Timer}
 import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, DamlKvutils => KV}
@@ -11,14 +9,13 @@ import com.daml.ledger.participant.state.pkvutils
 import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
 import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, FragmentingLedgerOps, InternalBatchLedgerOps}
-import com.digitalasset.daml.lf.data.{Ref, Time}
-import com.digitalasset.daml.lf.engine.Engine
+import com.daml.lf.data.{Ref, Time}
+import com.daml.lf.engine.Engine
 import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.kvbc.daml_validator._
-import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
+import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
-import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
 import io.grpc.stub.StreamObserver
 import java.security.MessageDigest
@@ -125,7 +122,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
 
   override def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
     val replicaId = request.replicaId
-    val correlationId = request.correlationId;
+    val correlationId = request.correlationId
 
     logger.trace(s"Completing submission, replicaId=$replicaId correlationId=$correlationId")
 
@@ -185,7 +182,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       Envelope.open(request.submission) match {
         case Right(Envelope.SubmissionMessage(submission)) => submission
         case _ =>
-          logger.error("Failed to parse submission, correlationId=$correlationId")
+          logger.error(s"Failed to parse submission, correlationId=$correlationId")
           throw new StatusRuntimeException(
             Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
           )

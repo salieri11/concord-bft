@@ -6,10 +6,10 @@ import java.nio.file.Path
 import com.auth0.jwt.algorithms.Algorithm
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.v1.ParticipantId
-import com.digitalasset.daml.lf.data.Ref
-import com.digitalasset.daml.lf.data.Ref.IdString
-import com.digitalasset.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
-import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcard}
+import com.daml.lf.data.Ref
+import com.daml.lf.data.Ref.IdString
+import com.daml.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
+import com.daml.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcard}
 import scopt.{OptionParser, Read}
 import scala.concurrent.duration._
 

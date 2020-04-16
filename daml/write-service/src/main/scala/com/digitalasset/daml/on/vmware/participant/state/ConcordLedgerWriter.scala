@@ -8,7 +8,7 @@ import com.daml.ledger.participant.state.v1.{
 }
 import com.digitalasset.daml.on.vmware.write.service.KVBCClient
 import com.digitalasset.kvbc.daml_commit.{CommitRequest, CommitResponse}
-import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
+import com.daml.ledger.api.health.{HealthStatus, Healthy}
 import com.google.protobuf.ByteString
 import io.grpc.{Status, StatusRuntimeException}
 import org.slf4j.LoggerFactory

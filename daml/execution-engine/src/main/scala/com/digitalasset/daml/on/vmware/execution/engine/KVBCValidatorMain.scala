@@ -12,11 +12,11 @@ import com.codahale.metrics.jvm.{
 }
 import io.grpc.{Server, ServerBuilder}
 import io.grpc.protobuf.services.ProtoReflectionService
-import com.digitalasset.grpc.adapter.{SingleThreadExecutionSequencerPool, ExecutionSequencerFactory}
+import com.daml.grpc.adapter.{SingleThreadExecutionSequencerPool, ExecutionSequencerFactory}
 import com.digitalasset.kvbc.daml_validator._
 import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCMetricsRegistry, KVBCPrometheusMetricsEndpoint}
-import com.digitalasset.ledger.api.health.HealthChecks
-import com.digitalasset.platform.server.api.services.grpc.GrpcHealthService
+import com.daml.ledger.api.health.HealthChecks
+import com.daml.platform.server.api.services.grpc.GrpcHealthService
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}

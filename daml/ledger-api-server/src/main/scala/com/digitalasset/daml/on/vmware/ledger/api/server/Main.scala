@@ -1,7 +1,7 @@
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
 import com.daml.ledger.participant.state.kvutils.app.Runner
-import com.digitalasset.resources.{ProgramResource, ResourceOwner}
+import com.daml.resources.{ProgramResource, ResourceOwner}
 import org.slf4j.LoggerFactory
 
 object Main {
