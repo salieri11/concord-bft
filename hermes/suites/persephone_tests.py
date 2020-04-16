@@ -517,7 +517,7 @@ class PersephoneTests(test_suite.TestSuite):
                action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
                stub=stub)
 
-            max_timeout = 240 # seconds
+            max_timeout = 480 # seconds
             sleep_time = 15 # seconds
             start_time = time.time()
             while ((time.time() - start_time) < max_timeout) and not cleaned_up:
