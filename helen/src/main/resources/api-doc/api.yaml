@@ -11,6 +11,8 @@ tags:
     description: User, Organization and Consortium Management
   - name: blockchains
     description: Blockchain Management
+  - name: clients
+    description: Client Management
   - name: contracts
     description: Contract Management
   - name: ethereum
@@ -943,8 +945,8 @@ paths:
     summary: Client GET/POST API
     post:
       tags:
-        - client
-      summary: Call the named procedure
+        - clients
+      summary: Create a new Client node
       operationId: postClient
       parameters:
         - name: bid
@@ -961,13 +963,13 @@ paths:
             schema:
               type: object
               properties:
-                zoneIds:
+                zone_ids:
                   type: array
                   items:
                     type: string
                     format: uuid
                   description: Zone IDs
-                clientJwt:
+                client_jwt:
                   type: string
                   format: string
                   description: Client JWT token
@@ -985,9 +987,17 @@ paths:
                     description: Task ID
     get:
       tags:
-        - blockchains
+        - clients
       summary: List all client nodes
       operationId: getClients
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
       responses:
         200:
           description: Returns a list of all client nodes
