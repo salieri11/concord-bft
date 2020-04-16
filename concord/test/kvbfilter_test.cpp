@@ -76,10 +76,6 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
         "mayHaveConflictBetween() not supported in test mode");
   }
 
-  void monitor() const override {
-    ADD_FAILURE() << "monitor() should not be called by this test";
-  }
-
   string concatKeyType(string key, char keyType) {
     std::string str1;
     str1.push_back(keyType);

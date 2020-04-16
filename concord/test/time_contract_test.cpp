@@ -32,7 +32,7 @@ using concord::kvbc::IBlocksAppender;
 using concord::kvbc::IDataKeyGenerator;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::Key;
-using concord::kvbc::KeyGenerator;
+using concord::kvbc::RocksKeyGenerator;
 using concord::kvbc::SetOfKeyValuePairs;
 using concord::kvbc::Value;
 using concord::storage::IDBClient;
@@ -60,7 +60,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
  private:
   KeyComparator comp = KeyComparator(new DBKeyComparator());
   Client db_ = Client(comp);
-  std::unique_ptr<IDataKeyGenerator> keyGen_{std::make_unique<KeyGenerator>()};
+  std::unique_ptr<IDataKeyGenerator> keyGen_{
+      std::make_unique<RocksKeyGenerator>()};
 
  public:
   Status get(const Key& key, Value& outValue) const override {
@@ -88,10 +89,6 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         << "Test should not cause mayHaveConflictBetween to be called";
     return Status::IllegalOperation(
         "mayHaveConflictBetween not supported in test");
-  }
-
-  void monitor() const override {
-    EXPECT_TRUE(false) << "Test should not cause monitor to be called";
   }
 
   Status addBlock(const SetOfKeyValuePairs& updates,

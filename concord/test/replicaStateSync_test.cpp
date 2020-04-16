@@ -34,7 +34,7 @@ using concord::kvbc::IBlocksAppender;
 using concord::kvbc::IDataKeyGenerator;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::Key;
-using concord::kvbc::KeyGenerator;
+using concord::kvbc::RocksKeyGenerator;
 using concord::kvbc::SetOfKeyValuePairs;
 using concord::kvbc::Value;
 using concord::storage::rocksdb::Client;
@@ -55,7 +55,8 @@ const BlockId singleBlockId = 999;
 const BlockId prevBlockId = lastBlockId - 1;
 const BlockId prevPrevBlockId = lastBlockId - 2;
 BlockId blockIdToBeRead = 0;
-std::unique_ptr<IDataKeyGenerator> keyGen{std::make_unique<KeyGenerator>()};
+std::unique_ptr<IDataKeyGenerator> keyGen{
+    std::make_unique<RocksKeyGenerator>()};
 
 class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
  public:
@@ -73,7 +74,6 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
                                 BlockId toBlock, bool &outRes) const override {
     return Status::OK();
   }
-  void monitor() const override { ; }
 };
 
 class MockIBlocksAppender : public IBlocksAppender {
@@ -203,6 +203,7 @@ int main(int argc, char **argv) {
   const string dbPath = "./replicaStateSync_test";
   dbClient = std::make_shared<Client>(dbPath,
                                       new KeyComparator(new DBKeyComparator()));
+  dbClient->init();
   bcDBAdapter = new DBAdapter(dbClient);
 
   int res = RUN_ALL_TESTS();

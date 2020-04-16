@@ -88,10 +88,6 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween() not supported in test mode");
   }
 
-  void monitor() const override {
-    EXPECT_TRUE(false) << "monitor() should not be called by this test";
-  }
-
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     outBlockId = ++blockId_;
@@ -111,7 +107,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   KeyComparator comp_{new DBKeyComparator{}};
   Client db_{comp_};
   BlockId blockId_{LAST_BLOCK_ID};
-  std::unique_ptr<IDataKeyGenerator> keyGen_{std::make_unique<KeyGenerator>()};
+  std::unique_ptr<IDataKeyGenerator> keyGen_{
+      std::make_unique<RocksKeyGenerator>()};
 };
 
 using ReplicaIDs = std::set<std::uint64_t>;

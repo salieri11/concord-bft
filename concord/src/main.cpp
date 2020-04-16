@@ -94,6 +94,7 @@ using concord::kvbc::DBKeyComparator;
 using concord::kvbc::IBlocksAppender;
 using concord::kvbc::IClient;
 using concord::kvbc::ICommandsHandler;
+using concord::kvbc::IDbAdapter;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::IReplica;
 using concord::kvbc::ReplicaImp;
@@ -569,7 +570,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConfig);
 
-    DBAdapter db_adapter(open_database(nodeConfig, logger));
+    auto db = open_database(nodeConfig, logger);
+    db->init();
+    auto db_adapter = std::unique_ptr<IDbAdapter>{new DBAdapter{db}};
 
     // Replica
     //
@@ -612,7 +615,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       LOG4CPLUS_INFO(logger, "Exposing BFT metrics via Prometheus.");
     }
 
-    ReplicaImp replica(icomm, replicaConfig, &db_adapter,
+    ReplicaImp replica(icomm, replicaConfig, std::move(db_adapter), db,
                        bft_metrics_aggregator);
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
