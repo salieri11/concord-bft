@@ -74,10 +74,6 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween not supported in test");
   }
 
-  void monitor() const override {
-    EXPECT_TRUE(false) << "Test should not cause monitor to be called";
-  }
-
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     Status status = db_.multiPut(updates);

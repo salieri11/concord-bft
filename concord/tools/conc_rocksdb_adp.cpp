@@ -37,7 +37,11 @@ string get_arg_value(string arg) {
 
 bool get_block(BlockId id, const DBAdapter *adapter, Sliver &res) {
   bool found = false;
-  adapter->getBlockById(id, res, found);
+  try {
+    res = adapter->getRawBlock(id);
+    found = true;
+  } catch (...) {
+  }
   return found;
 }
 
@@ -139,6 +143,7 @@ int main(int argc, char **argv) {
   std::unique_ptr<DBKeyComparator> manip(new DBKeyComparator());
   std::unique_ptr<KeyComparator> comp(new KeyComparator(manip.get()));
   std::shared_ptr<Client> client(new Client(path, comp.get()));
+  client->init();
   std::unique_ptr<DBAdapter> adapter(new DBAdapter(client));
 
   switch (opTypes[op]) {

@@ -96,10 +96,6 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
         "mayHaveConflictBetween() is not supported in test mode");
   }
 
-  void monitor() const override {
-    ADD_FAILURE() << "monitor() should not be called by this test";
-  }
-
  private:
   BlockMap db_;
 };
