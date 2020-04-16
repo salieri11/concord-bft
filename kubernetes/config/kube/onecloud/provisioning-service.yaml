@@ -14,10 +14,13 @@ spec:
     spec:
       containers:
       - name: provisioning-service
-        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:0.6.0.1101
+        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:0.0.0.1312
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "test"
         volumeMounts:
         - name: provision-volume
           mountPath: /config/app/profiles/

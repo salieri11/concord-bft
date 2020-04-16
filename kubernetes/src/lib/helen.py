@@ -7,7 +7,7 @@ from lib import utils
 
 
 class HelenApi():
-    def __init__(self, helen_url, org_id=None, csp_env="stg"):
+    def __init__(self, helen_url, org_id=None, csp_env="staging"):
         self.helen_url = helen_url
         self.csp_env = csp_env
         self.org_id = org_id
@@ -24,10 +24,10 @@ class HelenApi():
         self.task_timeout = 600
 
     def fetch_csp_header(self):
-        if self.csp_env == "stg":
+        if self.csp_env == "staging":
             return utils.get_auth_header(common.CSP_STG,
                         self.vaultinfo[common.CSP_STG_KEY])
-        elif self.csp_env == "prod":
+        elif self.csp_env == "production":
             return utils.get_auth_header(common.CSP_PROD,
                         self.vaultinfo[common.CSP_PROD_KEY])
 
@@ -80,13 +80,30 @@ class HelenApi():
                 headers=self.auth_header)
         return req.json()
 
-    def create_blockchain(self, consortium_id, blockchaintype, nodes=4):
+    def validate_zones(self, zones, zonetype):
+        """
+            Validate if zones for given zonetype exist
+        """
+        helen_zones = [zone['id'] for zone in self.get_zones()
+                        if zone['type'] == zonetype]
+        for zone in zones:
+            if zone not in helen_zones:
+                self.logger.error("Zone with id %s not found" % zone)
+                return False
+        return True
+
+    def create_blockchain(self, consortium_id, blockchaintype, nodes=4, zones=[]):
         """
             Create blockchain for given consortium, assumes equal distribution
             among cloud zones
+            Note:Does not work for onprem deployments without zone ids specified
         """
         f = (nodes - 1) / 3
-        siteids = self.compute_cloud_zones(nodes)
+        if len(zones) == 0:
+            #Assumes cloud deployment
+            siteids = self.compute_cloud_zones(nodes)
+        else:
+            siteids = zones*nodes
         url = ("%s/api/blockchains/" % (self.helen_url))
         data = {
             "consortium_id": consortium_id,
@@ -111,6 +128,7 @@ class HelenApi():
         """
             Polling for helen api task for success
         """
+        self.logger.info("Polling for task with id:%s" % task_id)
         req = requests.get("%s/api/tasks/%s" %(self.helen_url, task_id),
                         headers=self.auth_header)
         if req.json()['state'] == "SUCCEEDED":
@@ -168,6 +186,15 @@ class HelenApi():
         else:
             return req.json()
 
+    def get_consortium_from_blockchain(self, blockchain_id):
+        """
+            Retrieve consortium id from blockchain
+        """
+        consortium_id = self.get_blockchain_info(blockchain_id)["consortium_id"]
+        url = ("%s/api/consortiums/%s" % (self.helen_url, consortium_id))
+        data = utils.parse_request_json(url, header_dict=self.auth_header)
+        return data
+
     def get_replica_info(self, blockchain_id):
         """
             Retrieve participants for given blockchain id
@@ -180,17 +207,20 @@ class HelenApi():
         else:
             return req.json()
 
-    def deploy_participant(self, blockchain_id, number):
+    def deploy_participant(self, blockchain_id, number, zones=[]):
         """
             Deploy participant for given blockchain
         """
-        zones = self.compute_cloud_zones(1)
+        if len(zones) == 0:
+            zones = self.compute_cloud_zones(1)
         data = {"zone_ids": zones[:1]}
         for i in range(number):
             url = ("%s/api/blockchains/%s/clients" % (self.helen_url,
                         blockchain_id))
             req = requests.post(url, headers=self.auth_header, json=data)
             self.logger.info(req.text)
+            self.logger.info("Deploying participant for blockchain %s" %
+                            blockchain_id)
             taskid = req.json()["task_id"]
             participantid, participant_link = self.poll_task(taskid)
             if participantid is False:
@@ -201,19 +231,51 @@ class HelenApi():
                             (participantid, participant_link))
         return True
 
+    def get_concord_version(self, orgid=None):
+        """
+            Get concord version for given org
+            Check helen property if org property is not set
+        """
+        if orgid is None:
+            if self.org_id is None:
+                self.logger.error("Default org id not provided")
+                return False
+            else:
+                orgid = self.org_id
+        url = ("%s/api/organizations/%s" % (self.helen_url, orgid))
+        data = utils.parse_request_json(url, header_dict=self.auth_header)
+        version = data["organization_properties"].get(
+                    "org_docker_image_override", None)
+        if version is None:
+            self.logger.info("Org property for concord version not set,\ "
+                            "using default version")
+            version = utils.get_default_concord(self.csp_env, "helen")
+        return version
+
+
     def parse_blockchain_nodeinfo(self, blockchain_id):
         """
             Parse committer and participant node info
         """
-        committers = self.get_blockchain_info(blockchain_id)
+        url = ("%s/api/blockchains/%s/replicas" %
+                (self.helen_url, blockchain_id))
+        committers = utils.parse_request_json(url, header_dict=self.auth_header)
+        committer_publicips = []
+        committer_privateips = []
         participants = self.get_replica_info(blockchain_id)
         msg = ("Node information for new blockchain "
                 "deployment\n\nComitters\n%s\n" % ("-"*15))
-        for committer in committers["node_list"]:
-            msg = msg + ("nodeip: %s\nnodeurl: %s\n\n" %
-                        (committer["ip"], committer["url"]))
+        for committer in committers:
+            msg = msg + ("publicip: %s\nprivateip: %s\n\n" %
+                        (committer["public_ip"], committer["private_ip"]))
+            committer_publicips.append(committer["public_ip"])
+            committer_privateips.append(committer["private_ip"])
+        participant_publicips = []
+        participant_privateips = []
         msg = msg + "Participants\n%s\n" % ("-"*15)
         for participant in participants:
-            msg = msg + ("nodeip: %s\nnodeurl: %s\n\n" %
-                        (participant["public_ip"], participant["url"]))
+            msg = msg + ("nodeip: %s\nprivateip: %s\n\n" %
+                        (participant["public_ip"], participant["private_ip"]))
+            participant_publicips.append(participant["public_ip"])
+            participant_privateips.append(participant["private_ip"])
         return msg

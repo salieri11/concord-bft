@@ -11,10 +11,11 @@ import os
 import psycopg2
 import sys
 from config import common
-from lib import utils
+from lib import utils, helen
 
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+logger = utils.setup_logging()
 
 class HelenDB():
     def __init__(self, dbendpoint, user, password, database=None, port=5432):
@@ -92,8 +93,10 @@ def setup_arguments():
                             "Remove unused consortium data from helendb")
     parser.add_argument("--env", type=str, required=True,
                         choices=["production", "staging"], help="db env to prune")
-    parser.add_argument("--consortiumids", required=True, nargs="*", type=str,
-                        help="Consortium id to delete")
+    parser.add_argument("--blockchainids", required=True, nargs="*", type=str,
+                        help="Blockchain id to delete")
+    parser.add_argument("--helenurl", type=str, required=True,
+                    help="Helen url for environment")
     args = parser.parse_args()
     print(args)
     return args
@@ -105,5 +108,9 @@ if __name__ == "__main__":
     db = HelenDB(data[env]['server'], data[env]['user'],
                 data[env]['password'], data[env]["database"],
                 data[env]['port'])
-    for cid in args.consortiumids:
-        db.clear_consortium(cid)
+    hapi = helen.HelenApi(args.helenurl, csp_env=env)
+    for bcid in args.blockchainids:
+        cinfo = hapi.get_consortium_from_blockchain(bcid)
+        logger.info("Clearing blockchain %s and consortium %s "\
+                    "record from helen" % (bcid, cinfo["consortium_name"]))
+        db.clear_consortium(cinfo["consortium_id"])

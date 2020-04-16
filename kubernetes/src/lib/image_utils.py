@@ -7,7 +7,7 @@ import json
 import requests
 import docker
 from bintray.bintray import Bintray
-from config import common
+from config import common, cdn
 from lib import utils
 
 

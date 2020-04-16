@@ -22,7 +22,7 @@ def setup_arguments():
     parser.add_argument("--helenurl", type=str, required=True,
                     help="Helen url for environment")
     parser.add_argument("--cspenv", type=str, default="stg",
-                    choices=["stg", "prod"],
+                    choices=["staging", "production"],
                     help="CSP env associated for the helen deployment")
     parser.add_argument("--blockchainid", required=True, type=str,
                         help="Blockchain id to reap resources")
