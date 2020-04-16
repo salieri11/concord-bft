@@ -4,7 +4,7 @@ import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
 import com.daml.ledger.participant.state.kvutils.KVOffset
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
-import com.digitalasset.ledger.api.testing.utils.AkkaBeforeAndAfterAll
+import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.google.protobuf.ByteString
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when

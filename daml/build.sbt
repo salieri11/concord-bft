@@ -1,15 +1,15 @@
 
 
 ThisBuild / scalaVersion     := "2.12.8"
-ThisBuild / version          := "0.1.4-SNAPSHOT"
+ThisBuild / version          := "0.1.5-SNAPSHOT"
 ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.6.1"
-lazy val sdkVersion = "100.13.56-snapshot.20200331.3729.0.b43b8d86"
-lazy val integrationKitVersion = "0.0.7-snapshot.20200402.bdf3e26"
+lazy val sdkVersion = "0.13.56-snapshot.20200411.3905.0.f050da78"
+lazy val integrationKitVersion = "0.0.7"
 
-lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
+lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
 lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
 
@@ -66,13 +66,13 @@ lazy val execution_engine = (project in file("execution-engine"))
     name := "DAML on VMware Execution Engine",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-data" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
+      "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion,
+      "com.daml" %% "daml-lf-data" % sdkVersion,
+      "com.daml" %% "daml-lf-engine" % sdkVersion,
+      "com.daml" %% "daml-lf-language" % sdkVersion,
 
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
+      "com.daml" %% "participant-state" % sdkVersion,
+      "com.daml" %% "participant-state-kvutils" % sdkVersion,
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
       // Akka
@@ -107,23 +107,23 @@ lazy val write_service = (project in file("write-service"))
     name := "DAML on VMware Write Service",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-data" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
+      "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion,
+      "com.daml" %% "daml-lf-data" % sdkVersion,
+      "com.daml" %% "daml-lf-engine" % sdkVersion,
+      "com.daml" %% "daml-lf-language" % sdkVersion,
 
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-kvutils-app" % sdkVersion,
+      "com.daml" %% "participant-state" % sdkVersion,
+      "com.daml" %% "participant-state-kvutils" % sdkVersion,
+      "com.daml" %% "participant-state-kvutils-app" % sdkVersion,
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
-      "com.digitalasset.ledger-api" %% "testing-utils" % sdkVersion % Test,
+      "com.daml" %% "testing-utils" % sdkVersion % Test,
       "junit" % "junit" % "4.12" % Test,
       "org.mockito" % "mockito-core" % "2.24.0" % Test,
       "org.scalatest" %% "scalatest" % "3.0.8" % Test,
 
       // Database support
-      "org.postgresql" % "postgresql" % "42.2.6",
+      "org.postgresql" % "postgresql" % "42.2.9",
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -147,19 +147,19 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
     name := "DAML on VMware Ledger API Server",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
-      "com.digitalasset" %% "contextualized-logging" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-data" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
-      "com.digitalasset.platform" %% "sandbox" % sdkVersion,
-      "com.digitalasset.ledger" %% "ledger-api-auth" % sdkVersion,
+      "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion,
+      "com.daml" %% "contextualized-logging" % sdkVersion,
+      "com.daml" %% "daml-lf-data" % sdkVersion,
+      "com.daml" %% "daml-lf-engine" % sdkVersion,
+      "com.daml" %% "daml-lf-language" % sdkVersion,
+      "com.daml" %% "sandbox" % sdkVersion,
+      "com.daml" %% "ledger-api-auth" % sdkVersion,
 
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
+      "com.daml" %% "participant-state" % sdkVersion,
+      "com.daml" %% "participant-state-kvutils" % sdkVersion,
 
       // Database support
-      "org.postgresql" % "postgresql" % "42.2.6",
+      "org.postgresql" % "postgresql" % "42.2.9",
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -173,7 +173,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
       // Testing
-      "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+      "org.scalatest" %% "scalatest" % "3.0.8" % "test",
       "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % "test",
     ),
   )
@@ -185,8 +185,8 @@ lazy val trc_core = (project in file("thin-replica-client-core")) // regular sca
     target in javah := (sourceDirectory in nativeCompile in trc_native).value / "include",
     libraryDependencies ++= Seq(
       protobuf,
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion
+      "com.daml" %% "participant-state" % sdkVersion,
+      "com.daml" %% "participant-state-kvutils" % sdkVersion
     )
   )
   .dependsOn(trc_native % Runtime) // remove this if `core` is a library, leave choice to end-user

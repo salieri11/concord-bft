@@ -5,15 +5,15 @@ import java.util.UUID
 import akka.stream.Materializer
 import com.daml.ledger.participant.state.kvutils.app.{Config, LedgerFactory, ParticipantConfig, ReadWriteService}
 import com.daml.ledger.participant.state.pkvutils.api.PrivacyAwareKeyValueParticipantState
-import com.digitalasset.daml.lf.data.Ref
-import com.digitalasset.daml.lf.data.Ref.ParticipantId
+import com.daml.lf.data.Ref
+import com.daml.lf.data.Ref.ParticipantId
 import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCPrometheusMetricsEndpoint}
 import com.digitalasset.daml.on.vmware.participant.state.{ConcordKeyValueLedgerReader, ConcordLedgerWriter}
 import com.digitalasset.daml.on.vmware.write.service.{KVBCClient, TRClient}
-import com.digitalasset.ledger.api.auth.AuthService
-import com.digitalasset.logging.LoggingContext
-import com.digitalasset.platform.apiserver.ApiServerConfig
-import com.digitalasset.resources.ResourceOwner
+import com.daml.ledger.api.auth.AuthService
+import com.daml.logging.LoggingContext
+import com.daml.platform.apiserver.ApiServerConfig
+import com.daml.resources.ResourceOwner
 import com.google.common.net.HostAndPort
 import io.grpc.ConnectivityState
 import org.slf4j.LoggerFactory

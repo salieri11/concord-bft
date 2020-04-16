@@ -3,9 +3,9 @@
 package com.digitalasset.daml.on.vmware.write.service
 
 import com.digitalasset.kvbc.daml_commit._
-import com.digitalasset.grpc.adapter.ExecutionSequencerFactory
-import com.digitalasset.grpc.adapter.client.akka._
-import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
+import com.daml.grpc.adapter.ExecutionSequencerFactory
+import com.daml.grpc.adapter.client.akka._
+import com.daml.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
 import io.grpc.{ManagedChannel, ManagedChannelBuilder, ConnectivityState, Status, StatusRuntimeException}
 import org.slf4j.LoggerFactory
 

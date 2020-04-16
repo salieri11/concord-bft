@@ -10,7 +10,7 @@ import com.daml.ledger.participant.state.pkvutils.api.{
 import com.daml.ledger.participant.state.v1.{LedgerId, Offset}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
 import com.digitalasset.daml.on.vmware.write.service.TRClient
-import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
+import com.daml.ledger.api.health.{HealthStatus, Healthy}
 import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
 
