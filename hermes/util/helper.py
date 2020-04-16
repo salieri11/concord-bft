@@ -90,7 +90,7 @@ LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
 HEALTHD_RECENT_REPORT_PATH = "/var/log/healthd_recent_report.json"
-HEALTHD_SLACK_NOTIFICATION_INTERVAL = 86400 # 24 hours
+HEALTHD_SLACK_NOTIFICATION_INTERVAL = 3600 # 1 hour
 
 # Migration related constants
 MIGRATION_FILE = "../docker/config-helen/app/db/migration/R__zone_entities.sql"
@@ -661,8 +661,21 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    max_failed_validation_test_attempts = run_duration/24 #tolerate 1 failed validation test every 24 hrs
    start_time = time.time()
    end_time = start_time + run_duration * 3600
-   slack_last_reported = 0
+   slack_last_reported = start_time
+   dashboardLink = longRunningTestDashboardLink()
+
    slack.reportLongRunningTest(kickOff=True)
+   initialStats = get_replicas_stats(replicas)
+   remaining_time = format((end_time - time.time()) / 3600, ".2g")
+   firstMessage = slack.reportLongRunningTest("<RUN> has {} hour remaining. Status:\n{}".format(
+      remaining_time, "\n".join(initialStats["message_format"])
+   ))
+   slackThread = firstMessage['ts'] if firstMessage else None
+   slack.postMessageOnChannel( # output link to Wavefront dashboard
+      channelName = slack.CHANNEL_LONG_RUNNING_TEST,
+      message = dashboardLink,
+      ts = slackThread
+   )
 
    while ((time.time() - start_time)/3600 < run_duration):
       replica_status = None
@@ -721,7 +734,7 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
         remaining_time = format((end_time - time.time()) / 3600, ".2g")
         slack.reportLongRunningTest("<RUN> has {} hour remaining. Status:\n{}".format(
           remaining_time, "\n".join(stats["message_format"])
-        ))
+        ), ts=slackThread) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
       # Collect support logs incase of a failed replica
@@ -1206,6 +1219,48 @@ def hermesNonCriticalTrace(e, message=None):
     "error": e,
     "message": message
   })
+
+
+def parseReplicasConfig(replicasConfig):
+  with open(replicasConfig, 'r') as f:
+    result = {}
+    replicas = json.loads(f.read())
+    for nodeType in replicas:
+      nodeWithThisType = replicas[nodeType]
+      if nodeType not in result: result[nodeType] = []
+      for nodeInfo in nodeWithThisType:
+        if "ip" in nodeInfo:
+          result[nodeType].append(nodeInfo["ip"])
+        elif "public_ip" in nodeInfo:
+          result[nodeType].append(nodeInfo["public_ip"])
+    return result
+  return None
+
+
+def longRunningTestDashboardLink(replicasConfig=None):
+  if not replicasConfig: replicasConfig = REPLICAS_JSON_PATH
+  config = parseReplicasConfig(replicasConfig)
+  dashBaseUrl = "https://vmware.wavefront.com/dashboards/"
+  params = []
+  committers = config[TYPE_DAML_COMMITTER]
+  participants = config[TYPE_DAML_PARTICIPANT]
+  for i, ip in enumerate(committers):
+    params.append("committer{}_ip:(l:'Committer-{}%20IP',v:'{}'),".format(i+1, i+1, ip))
+  for i, ip in enumerate(participants):
+    params.append("participant{}_ip:(l:'Participant-{}%20IP',v:'{}'),".format(i+1, i+1, ip))
+  dashName = None
+  if len(committers) == 4 and len(participants) == 1: dashName = "Blockchain-LRT-c4-p1"
+  elif len(committers) == 7 and len(participants) == 1: dashName = "Blockchain-LRT-c7-p1"
+  elif len(committers) == 7 and len(participants) == 3: dashName = "Blockchain-LRT-c7-p3"
+  return (
+    "{}{}#".format(dashBaseUrl, dashName) + 
+    "_v01(" + 
+      "g:(d:1800,ls:!t,w:'30m')," + # last 30 minutes, live
+      "p:(" + 
+        ",".join(params) + 
+      ")" + 
+    ")"
+  )
 
 
 def installHealthDaemon(replicas):

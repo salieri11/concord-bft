@@ -97,8 +97,8 @@ def parseColumnViewToJson(cmds, columns):
     field = row[start_idx:stop_idx].strip()
     return field
   column_ranges = [find_column_range(header, column) for column in columns]
-  running_containers = [row_to_container(row, column_ranges) for row in rows]
-  return running_containers
+  all_data_rows = [row_to_container(row, column_ranges) for row in rows]
+  return all_data_rows
 
 
 class CPULoadViewer():
@@ -152,20 +152,25 @@ class CPULoadViewer():
 
 
 def getMemoryFootprint():
-  mem=str(os.popen('free -t -m').readlines())
-  T_ind=mem.index('T')
-  mem_G=mem[T_ind+14:-4]
-  S1_ind=mem_G.index(' ')
-  mem_T=mem_G[0:S1_ind]
-  mem_G1=mem_G[S1_ind+8:]
-  S2_ind=mem_G1.index(' ')
-  mem_U=mem_G1[0:S2_ind]
-  mem_F=mem_G1[S2_ind+8:]
+  command = ["free", "-t", "-m"]
+  columns = ['total', 'used', 'free', 'shared', 'buff/cache', 'available']
+  allMems = parseColumnViewToJson(command, columns)
+  memInfo = allMems[0]
+  swapInfo = allMems[1]
+  total = float(memInfo["total"])
+  used = float(memInfo["total"]) - float(memInfo["available"])
   return { # in MB
-    "total" : float(mem_T.strip()),
-    "used" : float(mem_T.strip()) - float(mem_F.strip()),
-    "free" : float(mem_F.strip()),
-    "percent" : (float(mem_T.strip()) - float(mem_F.strip())) / float(mem_T.strip()) * 100
+    "total" : total,
+    "used" : used,
+    "free" : float(memInfo["free"]),
+    "shared": float(memInfo["shared"]),
+    "buff/cache": float(memInfo["buff/cache"]),
+    "percent" : used / total * 100,
+    "swap": {
+      "total": float(swapInfo["total"]),
+      "used": float(swapInfo["used"]),
+      "free": float(swapInfo["free"]),
+    }
   }
 
 
