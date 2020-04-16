@@ -44,6 +44,9 @@ lazy val common = (project in file("common"))
     libraryDependencies ++= Seq(
       protobuf,
 
+      // Uses extended Prometheus metrics exporter
+      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
+
       // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.26",
       "ch.qos.logback" % "logback-core" % "1.2.3",
