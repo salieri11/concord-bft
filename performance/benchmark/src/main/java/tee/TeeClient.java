@@ -52,14 +52,6 @@ public class TeeClient extends WorkloadClient {
         }
     }
 
-    /**
-     * TODO: As of now there is no method to get the blockchain size.
-     */
-    @Override
-    protected long getLedgerSize() {
-        return operation.getBlockId();
-    }
-
     @Override
     protected void doExecute() {
         operation.execute();

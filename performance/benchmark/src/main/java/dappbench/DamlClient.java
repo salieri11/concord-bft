@@ -1,8 +1,6 @@
 package dappbench;
 
 import com.daml.ledger.javaapi.data.Command;
-import com.daml.ledger.javaapi.data.LedgerOffset;
-import com.daml.ledger.javaapi.data.LedgerOffset.Absolute;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.digitalasset.quickstart.model.iou.Iou;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +10,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static java.lang.Long.parseLong;
 import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
@@ -53,15 +50,6 @@ public class DamlClient extends WorkloadClient {
         client.connect();
         String ledgerId = client.getLedgerId();
         logger.debug("ledger-id for node {} is {}", getHost(), ledgerId);
-    }
-
-    /**
-     * Get offset at end of the ledger.
-     */
-    @Override
-    protected long getLedgerSize() {
-        LedgerOffset offset = client.getTransactionsClient().getLedgerEnd().blockingGet();
-        return parseLong(((Absolute) offset).getOffset());
     }
 
     @Override

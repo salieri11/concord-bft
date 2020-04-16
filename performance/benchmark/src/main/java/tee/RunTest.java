@@ -31,11 +31,6 @@ public class RunTest implements Operation {
         logger.debug("Response size (bytes): {}", response.getTestOutput().length());
     }
 
-    @Override
-    public long getBlockId() {
-        return 0;
-    }
-
     /**
      * Payload factory for TEE/runTest protocol.
      * Variation in payload is immaterial for this test, hence this implementation uses the same payload each request.
