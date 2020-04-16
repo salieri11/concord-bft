@@ -170,6 +170,7 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
       startTimeMilis = stageData["startTime"] * 1000
       durationMilis = stageData["duration"] * 1000
       runTypeInfo = helper.getJenkinsRunTypeInfo(jobName)
+      runType = runTypeInfo["type"] if runTypeInfo else "OTHER"
       wavefront.queueSpan(
         name = wavefront.WF_JENKINS_STAGE_PREFIX + stageName,
         start = startTimeMilis,
@@ -178,7 +179,7 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
         tags = {
           wavefront.WF_TAGNAME_JOB: jobName,
           wavefront.WF_TAGNAME_BUILD: buildNumber,
-          wavefront.WF_TAGNAME_RUNTYPE: runTypeInfo["type"] # MAIN_MR | MASTER | RELEASE | OTHER | ...
+          wavefront.WF_TAGNAME_RUNTYPE: runType # MAIN_MR | MASTER | RELEASE | OTHER | ...
         }
       )
 

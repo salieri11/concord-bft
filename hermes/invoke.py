@@ -58,6 +58,11 @@ def publishRunsMR(args, options, secret):
   a = prepareArgs(args)
   jenkins.publishRunsMR(limit=a[0], startFromBuildNumber=a[1])
 
+def printLongRunningTestDashboardLink(args, options, secret):
+  a = prepareArgs(args)
+  link = helper.longRunningTestDashboardLink()
+  print(link)
+
 # Registry of callable standalone functions
 DISPATCH = {
   # Communications
@@ -75,6 +80,9 @@ DISPATCH = {
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
   "racetrackSetEnd": racetrackSetEnd,
+
+  # Long-running Test
+  "lrtPrintDashboardLink": printLongRunningTestDashboardLink
 }
 
 

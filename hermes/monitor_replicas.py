@@ -57,18 +57,7 @@ def main(args):
 
    if args.replicasConfig:
       log.info("Using replicas config: {}".format(args.replicasConfig))
-      with open(args.replicasConfig, "r") as fp:
-         all_replicas_details = json.load(fp)
-         for replica_type in all_replicas_details:
-            all_replicas[replica_type] = []
-            for replica_info in all_replicas_details[replica_type]:
-               if "ip" in replica_info: # committer node returns "ip"
-                  all_replicas[replica_type].append(replica_info["ip"])
-               elif "public_ip" in replica_info: # participant node returns "public_ip" and "private_ip"
-                  all_replicas[replica_type].append(replica_info["public_ip"])
-               else:
-                  log.error("replica config file should map replica info with property 'ip' or 'public_ip'")
-                  sys.exit(1)
+      all_replicas = helper.parseReplicasConfig(args.replicasConfig)
    else:
       log.info("Using replicas: {}".format(args.replicas))
       for item in args.replicas:
@@ -84,6 +73,7 @@ def main(args):
    log.info("")
    log.info("************************************************************")
    status = helper.installHealthDaemon(all_replicas)
+   time.sleep(30) # sleep for 30 second so health daemon initializes
    start_time = time.time()
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
@@ -94,12 +84,16 @@ def main(args):
                                       args.saveSupportLogsTo):
          log.info("**** Blockchain successfully active for {} hrs".format(
             args.runDuration))
+         if args.replicasConfig:
+            log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
       else:
          end_time = time.time()
          log.error("**** Blockchain FAILED to be active for {} hrs".format(
             args.runDuration))
          log.error("**** Blockchain sustained only for {} hrs".format(
             (end_time - start_time) / 3600))
+         if args.replicasConfig:
+            log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
          sys.exit(1)
    else:
       log.error(

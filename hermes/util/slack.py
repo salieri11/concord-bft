@@ -12,6 +12,7 @@ from . import helper, cert, jenkins
 
 log = logging.getLogger(__name__)
 reqSession = requests.Session()
+CHANNEL_LONG_RUNNING_TEST = "blockchain-long-tests-status"
 
 def sendMessageToPerson(email, message, ts=None, token=None):
   '''
@@ -102,9 +103,9 @@ def uploadFileOnChannel(channelName, message, fileName, filePath, token=None):
 
 
 
-def reportLongRunningTest(message="", kickOff=False):
+def reportLongRunningTest(message="", ts=None, kickOff=False):
   if kickOff: message = "<RUN> started."
-  channelName = "blockchain-long-tests-status"
+  channelName = CHANNEL_LONG_RUNNING_TEST
   runInfo = helper.getJenkinsJobNameAndBuildNumber()
   jobName = runInfo["jobName"]
   buildNumber = runInfo["buildNumber"]
@@ -113,12 +114,12 @@ def reportLongRunningTest(message="", kickOff=False):
   runName = f"Long-running test (#{buildNumber})"
   message = message.replace("<RUN>", runName)
   if kickOff:
-    uploadFileOnChannel(
+    return uploadFileOnChannel(
       channelName, 
       message,
-      "replicas.json",
-      "/tmp/replicas.json"
+      helper.REPLICAS_JSON_FILE,
+      helper.REPLICAS_JSON_PATH
     )
   else:
-    postMessageOnChannel(channelName, message)
+    return postMessageOnChannel(channelName, message, ts=ts)
 
