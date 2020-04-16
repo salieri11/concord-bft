@@ -1,0 +1,12 @@
+{
+  "numberOfRequests": "numberOfRequests",
+  "meanNumberOfRequestsPerSecond": "mean.NumberOfRequestsPerSecond",
+  "minResponseTime": "responseTime.min.ms",
+  "maxResponseTime": "responseTime.max.ms",
+  "meanResponseTime": "responseTime.mean.ms",
+  "standardDeviation": "responseTime.standardDeviation.ms",
+  "percentiles1": "responseTime.90pctl.ms",
+  "percentiles2": "responseTime.95pctl.ms",
+  "percentiles3": "responseTime.99pctl.ms",
+  "percentiles4": "responseTime.99.9pctl.ms"
+}
