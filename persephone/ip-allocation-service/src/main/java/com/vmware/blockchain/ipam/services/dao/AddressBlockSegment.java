@@ -4,29 +4,34 @@
 
 package com.vmware.blockchain.ipam.services.dao;
 
-import com.google.protobuf.ByteString;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
-
-import lombok.AllArgsConstructor;
 
 /**
  * Entity class to store segments.
  */
 @EntityColumnName("persephone.addressblocksegment")
-@AllArgsConstructor
 public class AddressBlockSegment extends AbstractEntity {
     String name;
     int segment;
-    ByteString allocations;
+    byte[] allocations;
 
     /**
-     * Default.
+     * Default constructor.
      */
     public AddressBlockSegment() {
         this.name = "";
         this.segment = 0;
-        this.allocations = ByteString.EMPTY;
+        this.allocations = new byte[0];
+    }
+
+    /**
+     * Specific constructor.
+     */
+    public AddressBlockSegment(String name, int segment, byte[] allocations) {
+        this.name = name;
+        this.segment = segment;
+        this.allocations = allocations;
     }
 
     public String getName() {
@@ -45,11 +50,11 @@ public class AddressBlockSegment extends AbstractEntity {
         this.segment = segment;
     }
 
-    public ByteString getAllocations() {
+    public byte[] getAllocations() {
         return this.allocations;
     }
 
-    public void setAllocations(ByteString allocations) {
+    public void putAllocations(byte[] allocations) {
         this.allocations = allocations;
     }
 }
