@@ -29,16 +29,20 @@ class ConcordKeyValueLedgerReader(
 
     committedBlocksSource(beginFromBlockId)
       .flatMapConcat { block =>
-        logger.info(s"Processing blockId=${block.blockId} correlationId=${block.correlationId}")
-        Source.single(
-          LedgerBlockContent(
-            KVOffset.fromLong(block.blockId),
-            block.kvPairs.toSeq.map {
-              case (keyByteArray, valueByteArray) =>
-                (ByteString.copyFrom(keyByteArray),
-                 ByteString.copyFrom(valueByteArray))
-            }
-          ))
+        if(block.kvPairs.nonEmpty) {
+          logger.info(s"Processing blockId=${block.blockId} correlationId=${block.correlationId} size=${block.kvPairs.length}")
+          Source.single(
+            LedgerBlockContent(
+              KVOffset.fromLong(block.blockId),
+              block.kvPairs.toSeq.map {
+                case (keyByteArray, valueByteArray) =>
+                  (ByteString.copyFrom(keyByteArray),
+                  ByteString.copyFrom(valueByteArray))
+              }
+            ))
+        } else {
+          Source.empty
+        }
       }
   }
 
