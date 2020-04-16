@@ -8,6 +8,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.vmware.blockchain.dao.ConcurrentUpdateException;
 import com.vmware.blockchain.deployment.v1.Address;
+import com.vmware.blockchain.deployment.v1.AddressBlockSpecification;
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest;
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse;
 import com.vmware.blockchain.deployment.v1.CreateAddressBlockRequest;
@@ -31,7 +34,6 @@ import com.vmware.blockchain.ipam.services.dao.IpAllocationDao;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 /**
  * An implementation of IP allocation service.
@@ -40,6 +42,10 @@ import lombok.val;
 @GRpcService
 @Slf4j
 public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationServiceImplBase {
+
+    /** Logging instance. */
+    private Logger log = LogManager.getLogger(IpAllocationService.class);
+
 
     private IpAllocationDao ipAllocationDao;
     private IpAllocationUtil ipAllocationUtil;
@@ -62,10 +68,10 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
             if (request == null || request.getBlock() == null) {
                 throw new RuntimeException("");
             }
-            val model = request.getBlock();
-            val blockName = ipAllocationUtil.blockName(request.getBlockId());
-            val reservations = request.getReservedAllocationsMap();
-            val subnetMask = (1 << (32 - model.getSubnet())) - 1;
+            AddressBlockSpecification model = request.getBlock();
+            ResourceName blockName = ipAllocationUtil.blockName(request.getBlockId());
+            Map<Integer, ByteString> reservations = request.getReservedAllocationsMap();
+            int subnetMask = (1 << (32 - model.getSubnet())) - 1;
 
             if ((model.getPrefix() & subnetMask) != 0) {
                 throw new RuntimeException("Wrong prefix");
@@ -79,13 +85,14 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
                 // check(allocation.size() == 32)
             }
 
-            val initialBlock =
+            AddressBlock initialBlock =
                     new AddressBlock(blockName.getValue(), ipAllocationUtil.convertToBlockSpecification(model),
                                      AddressBlock.State.ACTIVE);
             initialBlock.setId(ipAllocationUtil.resourceToUuid(blockName));
             for (Map.Entry<Integer, ByteString> entry : reservations.entrySet()) {
-                val segmentName = ipAllocationUtil.segmentName(blockName, entry.getKey());
-                val segment = new AddressBlockSegment(segmentName.getValue(), entry.getKey(), entry.getValue());
+                ResourceName segmentName = ipAllocationUtil.segmentName(blockName, entry.getKey());
+                AddressBlockSegment segment = new AddressBlockSegment(segmentName.getValue(),
+                        entry.getKey(), entry.getValue().toByteArray());
                 segment.setId(ipAllocationUtil.resourceToUuid(segmentName));
                 ipAllocationDao.createAddressBlockSegment(segment);
             }
@@ -113,10 +120,10 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
     public void deleteAddressBlock(DeleteAddressBlockRequest request,
                                    StreamObserver<DeleteAddressBlockResponse> responseObserver) {
 
-        val name = new ResourceName(request.getName());
+        ResourceName name = new ResourceName(request.getName());
 
         try {
-            val block = ensureDeletingBlock(name);
+            AddressBlock block = ensureDeletingBlock(name);
             if (block != null) {
                 ipAllocationUtil.segmentRangeOf(block);
                 //.map {
@@ -142,7 +149,7 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
 
         try {
 
-            val nameFragments = request.getParent().split("/");
+            String[] nameFragments = request.getParent().split("/");
             if (nameFragments.length != 2) {
                 throw new RuntimeException("");
             }
@@ -151,7 +158,7 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
             AllocateAddressResponse response = AllocateAddressResponse.newBuilder()
                     .setHeader(MessageHeader.newBuilder().setId(request.getHeader().getId())
                                        .build()).build();
-            val blockName = ipAllocationUtil.blockName(nameFragments[1]);
+            ResourceName blockName = ipAllocationUtil.blockName(nameFragments[1]);
 
             var addressBlock = ipAllocationDao.getAddressBlock(ipAllocationUtil.resourceToUuid(blockName));
             if (addressBlock == null) {
@@ -201,18 +208,18 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
         try {
             var released = false;
 
-            val nameFragments = request.getName().split("/");
+            String[] nameFragments = request.getName().split("/");
             if (nameFragments.length != 6) {
                 throw new RuntimeException("");
             }
 
-            val segmentName = ipAllocationUtil.segmentName(ipAllocationUtil.blockName(nameFragments[1]),
+            ResourceName segmentName = ipAllocationUtil.segmentName(ipAllocationUtil.blockName(nameFragments[1]),
                                                            Integer.valueOf(nameFragments[3]));
-            val address = Integer.valueOf(nameFragments[5]);
+            Integer address = Integer.valueOf(nameFragments[5]);
 
             var exist = true;
             while (!released && exist) {
-                val addressBlockSegment
+                AddressBlockSegment addressBlockSegment
                         = ipAllocationDao.getAddressBlockSegment(ipAllocationUtil.resourceToUuid(segmentName));
 
                 if (addressBlockSegment == null) {
@@ -276,7 +283,7 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
     @Nullable
     private Address allocateFromBlock(AddressBlock block, int segmentAddress) {
         Address allocation = null;
-        val name = ipAllocationUtil.segmentName(block.getName(), segmentAddress);
+        ResourceName name = ipAllocationUtil.segmentName(block.getName(), segmentAddress);
 
         // Attempt to allocate from this segment as long as:
         // 1. Segment still exists.
@@ -294,11 +301,11 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
                 isSegmentFull = true;
                 allocation = null;
             } else {
-                val subnetMask = (1 << (32 - block.getSpecification().subnet)) - 1;
-                val blockEnd = block.getSpecification().prefix + subnetMask - 1;
-                val limit = Math.min(blockEnd, addressBlockSegment.getSegment() + 255);
+                int subnetMask = (1 << (32 - block.getSpecification().subnet)) - 1;
+                int blockEnd = block.getSpecification().prefix + subnetMask - 1;
+                int limit = Math.min(blockEnd, addressBlockSegment.getSegment() + 255);
 
-                val allocated = allocateFromSegment(addressBlockSegment, limit);
+                Map.Entry<AddressBlockSegment, Integer> allocated = allocateFromSegment(addressBlockSegment, limit);
 
                 if (allocated != null) {
                     try {
@@ -333,23 +340,23 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
     private Map.Entry<AddressBlockSegment, Integer> allocateFromSegment(AddressBlockSegment segment, int limit) {
         // Look for a free bit.
         for (int index = 0; index <= 31; index++) {
-            val byteVal = segment.getAllocations().byteAt(index);
+            byte byteVal = ByteString.copyFrom(segment.getAllocations()).byteAt(index);
             for (int bit = 0; bit <= 7; bit++) {
                 if ((byteVal & (1 << bit)) == 0) {
                     // Found a free bit.
-                    val address = segment.getSegment() + (8 * index + bit);
+                    int address = segment.getSegment() + (8 * index + bit);
 
                     // Make sure we are still in allocation range with respect to block range.
                     if (address >= segment.getSegment() && address <= limit) {
                         return null;
                     }
 
-                    val newByte = (byteVal | (1 << bit));
-                    val newAllocations = segment.getAllocations().toByteArray();
+                    int newByte = (byteVal | (1 << bit));
+                    byte[] newAllocations = segment.getAllocations();
                     // .apply { set(index, newByte) }
 
                     AddressBlockSegment val1 = new AddressBlockSegment(segment.getName(), segment.getSegment(),
-                                                                       ByteString.copyFrom(newAllocations));
+                                                                       newAllocations);
                     return ImmutableMap.of(val1, address).entrySet().iterator().next();
                 }
             }
@@ -360,16 +367,16 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
     private AddressBlockSegment releaseFromSegment(AddressBlockSegment segment, int address) {
         //require(address in segment!!.segment..(segment!!.segment + 255))
 
-        val offset = address - segment.getSegment();
-        val byteVal = segment.getAllocations().byteAt(offset >> 3);
-        val bitMask = 1 << (offset % 8);
+        int offset = address - segment.getSegment();
+        byte byteVal = ByteString.copyFrom(segment.getAllocations()).byteAt(offset >> 3);
+        int bitMask = 1 << (offset % 8);
 
         if ((byteVal & bitMask) == bitMask) {
-            val newByte = (byteVal & ~(1 << (offset % 8)));
-            val newAllocations = segment.getAllocations().toByteArray();
+            int newByte = (byteVal & ~(1 << (offset % 8)));
+            byte[] newAllocations = segment.getAllocations();
             //.apply { set(offset ushr 3, newByte) }
             return new AddressBlockSegment(segment.getName(), segment.getSegment(),
-                                           ByteString.copyFrom(newAllocations));
+                                           newAllocations);
         } else {
             // There is no bit to clear, so just return the input value.
             // Note: It is possible that the caller's value is stale, which caller will find out
