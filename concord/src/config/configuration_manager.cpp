@@ -2026,7 +2026,7 @@ ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
       !config.hasValue<int>("client_max_retry_timeout_milli")) {
     if (failure_message) {
       *failure_message =
-          "Cannot validate timeouts milli- some feild not initialized";
+          "Cannot validate timeouts milli- some field not initialized";
     }
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }

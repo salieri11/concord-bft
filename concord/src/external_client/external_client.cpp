@@ -1,20 +1,16 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "external_client.hpp"
-
+#include <fstream>
+#include <string>
+#include <thread>
+#include <utility>
 #include "CommDefs.hpp"
 #include "CommFactory.hpp"
 #include "ICommunication.hpp"
 #include "KVBCInterfaces.h"
 #include "config/communication.hpp"
 #include "config/configuration_manager.hpp"
-
-#include <exception>
-#include <fstream>
-#include <future>
-#include <string>
-#include <thread>
-#include <utility>
 
 namespace concord {
 namespace external_client {
@@ -30,6 +26,7 @@ using concord::kvbc::IClient;
 using concordUtils::Status;
 using config::CommConfig;
 using config::ConcordConfiguration;
+using config::ConfigurationException;
 using config::ConfigurationPath;
 using config::ConfigurationResourceNotFoundException;
 using config::YAMLConfigurationInput;
@@ -44,9 +41,10 @@ ConcordConfiguration::ParameterStatus ValidateNumClients(
           const_cast<void*>(
               reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
       res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
+    throw ConfigurationException{" Pool clients configuration failed"};
   }
-
+  if (std::stoull(value) > 4096)
+    throw ConfigurationException{" Pool clients configuration failed"};
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -265,23 +263,20 @@ std::unique_ptr<ICommunication> ToCommunication(const CommConfig& comm_config) {
 
 }  // namespace
 
-ConcordClient::ConcordClient(ConcordConfiguration config, int client_num,
-                             UPDATE_CONNECTIVITY_FN status_callback) {
-  CreateClient(config, client_num, status_callback);
+ConcordClient::ConcordClient(ConcordConfiguration config, int client_id) {
+  CreateClient(config, client_id);
 }
 
-ConcordClient::ConcordClient(std::istream& config_stream,
-                             UPDATE_CONNECTIVITY_FN status_callback) {
-  Initialize(config_stream, status_callback);
+ConcordClient::ConcordClient(std::istream& config_stream) {
+  Initialize(config_stream);
 }
 
-ConcordClient::ConcordClient(std::string_view config_file_path,
-                             UPDATE_CONNECTIVITY_FN status_callback) {
+ConcordClient::ConcordClient(std::string_view config_file_path) {
   std::ifstream config_file;
   config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
   config_file.open(config_file_path.data());
 
-  Initialize(config_file, status_callback);
+  Initialize(config_file);
 }
 
 ConcordClient::~ConcordClient() noexcept {
@@ -294,45 +289,6 @@ ConcordClient::~ConcordClient() noexcept {
     client_->stop();
   } catch (...) {
   }
-}
-
-SubmitResult ConcordClientPool::SendRequest(
-    const void* request, std::uint32_t request_size, ClientMsgFlag flags,
-    std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-    void* out_reply, std::uint32_t* out_actual_reply_size) {
-  return SendARequest(request, request_size, flags, timeout_ms, reply_size,
-                      out_reply, out_actual_reply_size, std::string{});
-}
-
-SubmitResult ConcordClientPool::SendARequest(
-    const void* request, std::uint32_t request_size,
-    bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
-    std::uint32_t reply_size, void* out_reply,
-    std::uint32_t* out_actual_reply_size, const std::string& correlation_id) {
-  ConcordClientPool::LockClientsQueue();
-  if (!clients_.empty()) {
-    // start thread with client
-    auto client = clients_.front();
-    clients_.pop();
-    std::unique_ptr<ConcordClientProcessingJob> job =
-        std::make_unique<ConcordClientProcessingJob>(
-            this, client, request, request_size, flags, timeout_ms, reply_size,
-            out_reply, out_actual_reply_size, correlation_id);
-    ConcordClientPool::UnlockClientsQueue();
-    jobs_thread_pool_.add(job.get());
-    return SubmitResult::Acknowledged;
-  }
-  return SubmitResult::Overloaded;
-}
-
-void ConcordClient::SendRequestSync(const void* request,
-                                    std::uint32_t request_size,
-                                    ClientMsgFlag flags,
-                                    std::chrono::milliseconds timeout_ms,
-                                    std::uint32_t reply_size, void* out_reply,
-                                    std::uint32_t* out_actual_reply_size) {
-  SendRequestASync(request, request_size, flags, timeout_ms, reply_size,
-                   out_reply, out_actual_reply_size, std::string{});
 }
 
 void ConcordClient::SendRequestASync(const void* request,
@@ -354,13 +310,12 @@ void ConcordClient::SendRequestASync(const void* request,
 }
 
 void ConcordClient::CreateClient(const ConcordConfiguration& config,
-                                 int client_num,
-                                 UPDATE_CONNECTIVITY_FN status_callback) {
+                                 int client_id) {
   const auto num_replicas = config.getValue<std::uint16_t>("num_replicas");
 
   ClientConfig client_config;
   const auto& client_proxies_conf =
-      config.subscope("client_proxies", client_num);
+      config.subscope("client_proxies", client_id);
   const auto client_conf = client_proxies_conf.subscope("client", 0);
 
   client_config.fVal = config.getValue<decltype(client_config.fVal)>("f_val");
@@ -411,7 +366,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
     comm_config.nodes[replica_id] = node_info;
   }
 
-  comm_config.statusCallback = status_callback;
+  comm_config.statusCallback = nullptr;
 
   // Ensure exception safety by creating local pointers and only moving to
   // object members if construction and startup haven't thrown.
@@ -441,8 +396,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   client_ = std::move(client);
 }
 
-void ConcordClient::CreateClient(const ConcordConfiguration& config,
-                                 UPDATE_CONNECTIVITY_FN status_callback) {
+void ConcordClient::CreateClient(const ConcordConfiguration& config) {
   const auto num_replicas = config.getValue<std::uint16_t>("num_replicas");
 
   ClientConfig client_config;
@@ -494,7 +448,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
     comm_config.nodes[replica_id] = node_info;
   }
 
-  comm_config.statusCallback = status_callback;
+  comm_config.statusCallback = nullptr;
 
   // Ensure exception safety by creating local pointers and only moving to
   // object members if construction and startup haven't thrown.
@@ -507,41 +461,10 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   client_ = std::move(client);
 }
 
-void ConcordClient::Initialize(std::istream& config_stream,
-                               UPDATE_CONNECTIVITY_FN status_callback) {
+void ConcordClient::Initialize(std::istream& config_stream) {
   ConcordConfiguration config;
   ParseConfig(config_stream, config);
-  CreateClient(config, status_callback);
-}
-
-ConcordClientPool::ConcordClientPool(std::istream& config_stream,
-                                     UPDATE_CONNECTIVITY_FN status_callback) {
-  ConcordConfiguration config;
-  ParseConfig(config_stream, config);
-  uint16_t num_clients = config.getValue<std::uint16_t>("num_clients_proxies");
-  for (int i = 0; i < num_clients; i++) {
-    auto client = std::make_shared<ConcordClient>(config, i, status_callback);
-    clients_.push(std::move(client));
-  }
-  jobs_thread_pool_.start(num_clients);
-}
-
-ConcordClientPool::ConcordClientPool(std::string_view config_file_path,
-                                     UPDATE_CONNECTIVITY_FN status_callback) {
-  std::ifstream config_file;
-  config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
-  config_file.open(config_file_path.data());
-  ConcordClientPool(config_file, status_callback);
-}
-
-ConcordClientPool::~ConcordClientPool() {
-  jobs_thread_pool_.stop();
-  LockClientsQueue();
-  while (!clients_.empty()) {
-    auto client = clients_.front();
-    clients_.pop();
-  }
-  UnlockClientsQueue();
+  CreateClient(config);
 }
 
 }  // namespace external_client
