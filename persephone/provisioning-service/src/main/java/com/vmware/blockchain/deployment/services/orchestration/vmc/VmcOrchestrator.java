@@ -132,8 +132,7 @@ public class VmcOrchestrator implements Orchestrator {
                                                   request.getConfigurationSessionIdentifier(),
                                                   request.getConfigServiceEndpoint(),
                                                   request.getConfigServiceRestEndpoint(),
-                                                  OutboundProxyInfo.newBuilder().build(),
-                                                  info.getWavefront()
+                                                  OutboundProxyInfo.newBuilder().build()
                                           ),
                                           request.getVmProfile()
                     );

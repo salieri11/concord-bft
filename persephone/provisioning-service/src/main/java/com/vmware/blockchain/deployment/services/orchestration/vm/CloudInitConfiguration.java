@@ -4,11 +4,8 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vm;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +21,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
-import com.vmware.blockchain.deployment.v1.Wavefront;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -47,7 +43,6 @@ public class CloudInitConfiguration {
     private Endpoint configServiceEndpoint;
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
-    private Wavefront wavefront;
 
     /**
      * Constructor.
@@ -63,8 +58,7 @@ public class CloudInitConfiguration {
                                   ConfigurationSessionIdentifier configGenId,
                                   Endpoint configServiceEndpoint,
                                   Endpoint configServiceRestEndpoint,
-                                  OutboundProxyInfo outboundProxy,
-                                  Wavefront wavefront) {
+                                  OutboundProxyInfo outboundProxy) {
         this.containerRegistry = containerRegistry;
         this.model = model;
         this.ipAddress = ipAddress;
@@ -77,7 +71,6 @@ public class CloudInitConfiguration {
         this.configServiceEndpoint = configServiceEndpoint;
         this.configServiceRestEndpoint = configServiceRestEndpoint;
         this.outboundProxy = outboundProxy;
-        this.wavefront = wavefront;
     }
 
     private String agentImageName() {
@@ -167,114 +160,16 @@ public class CloudInitConfiguration {
     }
 
     /**
-     * Retrieve the user-data manifest of the Cloud-Init configuration.
-     *
-     * @return user-data manifest as a [String].
-     */
-    public String userData1() {
-
-        // FIXME: Use the relative path.
-        File fileToBeModified = new File("classpath:/CloudInit.txt");
-        BufferedReader reader = null;
-        FileWriter writer = null;
-
-        String oldContent = "";
-        try {
-            reader = new BufferedReader(new FileReader(fileToBeModified));
-            //Reading all the lines of input text file into oldContent
-            String line = reader.readLine();
-
-            while (line != null) {
-                oldContent = oldContent + line + System.lineSeparator();
-                line = reader.readLine();
-                switch (line) {
-                    case "{{dockerLoginCommand}}":
-                        line = toRegistryLoginCommand(containerRegistry);
-                        break;
-                    case "{{registrySecuritySetting}}":
-                        line = toRegistrySecuritySetting(containerRegistry.getAddress());
-                        break;
-                    case "{{agentImage}}":
-                        line = URI.create(containerRegistry.getAddress()).getAuthority() + "/" + agentImageName();
-                        break;
-                    case "{{agentConfig}}":
-                        line = com.google.protobuf.util.JsonFormat.printer().print(getConfiguration());
-                        break;
-                    case "{{networkSetupCommand}}":
-                        line = networkSetupCommand();
-                        break;
-                    case "{{dockerDns}}":
-                        line = dockerDnsSetupCommand();
-                        break;
-                    case "{{setupOutboundProxy}}":
-                        line = setupOutboundProxy();
-                        break;
-                    default:
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                //Closing the resources
-                reader.close();
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return oldContent;
-        }
-    }
-
-    /**
      * User data initializer.
      * @return info.
      */
     public String userData() {
 
         try {
+            InputStream inputStream = new FileInputStream("user-data.txt");
+            String content = new String(inputStream.readAllBytes());
 
-            String temp = "#!/bin/sh\n"
-                          + "echo -e \"c0nc0rd\\nc0nc0rd\" | /bin/passwd\n"
-                          + "\n"
-                          + "{{networkSetupCommand}}\n"
-                          + "\n"
-                          + "sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 "
-                          + "-H unix:///var/run/docker.sock {{registrySecuritySetting}}_g'"
-                          + " /lib/systemd/system/docker.service\n"
-                          + "\n"
-                          + "{{setupOutboundProxy}}\n"
-                          + "systemctl daemon-reload\n"
-                          + "\n"
-                          + "mkdir -p /etc/docker\n"
-                          + "echo '{\"log-driver\": \"json-file\", \"log-opts\": { \"max-size\": \"100m\","
-                          + " \"max-file\": \"5\"}}' > /etc/docker/daemon.json\n"
-                          + "\n"
-                          + "systemctl restart docker\n"
-                          + "\n"
-                          + "# To enable docker on boot.\n"
-                          + "systemctl enable docker\n"
-                          + "\n"
-                          + "# Enable time sync\n"
-                          + "vmware-toolbox-cmd timesync enable\n"
-                          + "\n"
-                          + "{{dockerLoginCommand}}\n"
-                          + "\n"
-                          + "# Output the node's model specification.\n"
-                          + "mkdir -p /config/agent\n"
-                          + "echo '{{agentConfig}}' > /config/agent/config.json\n"
-                          + "\n"
-                          + "# Update guest-info's network information in vSphere.\n"
-                          + "touch /etc/vmware-tools/tools.conf\n"
-                          + "printf '[guestinfo]\\nprimary-nics=eth*\\nexclude-nics=docker*,veth*'"
-                          + " > /etc/vmware-tools/tools.conf\n"
-                          + "/usr/bin/vmware-toolbox-cmd info update network\n"
-                          + "\n"
-                          + "docker run -d --name=agent --restart=always -v /config:/config"
-                          + " -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}\n"
-                          + "echo 'done'";
-
-            temp = temp.replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
+            content = content.replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
                     .replace("{{agentImage}}",
                              URI.create(containerRegistry.getAddress()).getAuthority()
                              + "/" + agentImageName())
@@ -286,7 +181,7 @@ public class CloudInitConfiguration {
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy());
 
-            return temp;
+            return content;
         } catch (Exception e) {
             throw new PersephoneException("Error generating user-data", e);
         }
