@@ -11,20 +11,21 @@ import org.eclipse.jetty.servlet.ServletHolder
 
 import scala.collection.mutable
 
+import com.daml.ledger.participant.state.pkvutils.metrics.util.ExtendedDropwizardExports
+
 object KVBCPrometheusMetricsEndpoint {
 
-  def createEndpoint(registry: MetricRegistry, context: ServletContextHandler): AutoCloseable = {
+  def createEndpoint(registry: MetricRegistry, context: ServletContextHandler): AutoCloseable =
     new AutoCloseable {
-      private[this] val collector = new DropwizardExports(registry)
+      private[this] val collector = new ExtendedDropwizardExports(registry)
 
       CollectorRegistry.defaultRegistry.register(collector)
       context.addServlet(new ServletHolder(new MetricsServlet()), "/metrics")
 
       override def close(): Unit = CollectorRegistry.defaultRegistry.unregister(collector)
     }
-  }
 
-  def createEndpoint(registries: List[MetricRegistry], context: ServletContextHandler): AutoCloseable = {
+  def createEndpoint(registries: List[MetricRegistry], context: ServletContextHandler): AutoCloseable =
     new AutoCloseable {
       private[this] val collectors = mutable.ListBuffer[DropwizardExports]()
 
@@ -37,7 +38,6 @@ object KVBCPrometheusMetricsEndpoint {
 
       context.addServlet(new ServletHolder(new MetricsServlet()), "/metrics")
 
-      override def close(): Unit = collectors.foreach(CollectorRegistry.defaultRegistry.unregister(_))
+      override def close(): Unit = collectors.foreach(CollectorRegistry.defaultRegistry.unregister)
     }
-  }
 }
