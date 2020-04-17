@@ -77,7 +77,7 @@ public class DamlLedgerApiUtil {
         var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.toString());
         if (!Strings.isNullOrEmpty(authToken)) {
             builder.append(System.getProperty("line.separator"));
-            builder.append("export AUTH_SETTINGS=--auth-jwt-rs256-jwks " + authToken);
+            builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
         }
     }
 }
