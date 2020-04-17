@@ -18,7 +18,6 @@ import hudson.util.Secret
 //   "concordConfigurationInput": String, files to use for concord config generation.
 //   "runAlone": Boolean, causes this suite to be run on a clean invocation of the product, by itself.
 //   "runWithGenericTests": Boolean, whether to run in a job not named in specialized_tests. Defaults to true.
-//   "runWithToTTests": Boolean, whether to run with ToT runs.  Defaults to true.
 //   "suiteDir": String, directory to cd into (and then out of when done)
 //   "setupFunction": String, name of a function in this file to run before running the suite
 // - Keys have to match the Jenkins job's list of test suites. We can't read them
@@ -34,6 +33,24 @@ import hudson.util.Secret
 //   api.
 // - Move this to another file?
 @Field Map testSuites = [
+  "PersephoneSmoke": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": true
+  ],
+  "PersephoneNightly": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --keepBlockchains ${deployment_retention} --tests all_tests',
+    "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": false
+  ],
+  "PersephoneOnDemand": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": false
+  ],
   "ApolloBftTests": [
     "runAlone": true,
     "enabled": true,
@@ -54,18 +71,26 @@ import hudson.util.Secret
   "EthCoreVmTests": [
     "enabled": true
   ],
-  "PerformanceTests": [
+  "PerformanceSmoke": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-perftest.yaml",
-    "performanceVotes": 10
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PerformanceTests',
+    "performanceVotes": 10,
+    "runWithGenericTests": true
+  ],
+  "PerformanceNightly": [
+    "enabled": true,
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-perftest.yaml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PerformanceTests',
+    "performanceVotes": 10000,
+    "runWithGenericTests": false
   ],
   "HelenAPITests": [
     "enabled": true
   ],
   "HelenRoleTests": [
     "enabled": true,
-    "runWithGenericTests": false,
-    "runWithToTTests": false
+    "runWithGenericTests": false
   ],
   "EthJsonRpcTests": [
     "enabled": true
@@ -119,11 +144,19 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
     "setupFunction": "enableTimeService"
   ],
-  "MemoryLeakTests": [
+ "MemoryLeakNightly": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
-      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\''
+      --repeatSuiteRun 6',
+    "runWithGenericTests": false
+  ],
+  "MemoryLeakSmoke": [
+    "enabled": true,
+    "suiteDir": "suites",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\'',
+    "runWithGenericTests": true
   ],
   "UiTests": [
     "enabled": true,
@@ -135,13 +168,11 @@ import hudson.util.Secret
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false,
-    "runWithToTTests": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
   ],
   "UiDAMLDeploy": [
     "enabled": false,
     "runWithGenericTests": false,
-    "runWithToTTests": false,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
@@ -688,28 +719,22 @@ def call(){
                     env.concord_deployment_test_logs = new File(env.test_log_root, "ConcordDeploymentTest").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
                     env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
-                    env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
-                    env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
-                    env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
+                    env.nightly_mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
+                    env.nightly_performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.log_insight_logs = new File(env.test_log_root, "LogInsightTest").toString()
 
                     if (genericTests) {
                       if (isGitLabRun()){
-                        // Keep running everything.  We're going to allow selection for GitLab runs later.
+                        // GitLab gave us a branch.  It is something like a merge request.
+                        selectApplicableGenericTestsForMR()
+                      } else if (env.JOB_NAME.contains(env.tot_job_name)){
+                        // This was something like the "master" run.  Jenkins just polls for merges
+                        // periodically; these are not set off by GitLab changes.
                         echo("Running all enabled generic tests")
                         for (suite in testSuites.keySet()){
                           if (testSuites[suite].enabled &&
                               (testSuites[suite].runWithGenericTests || testSuites[suite].runWithGenericTests == null)){
-                            testSuites[suite].runSuite = true
-                          }
-                        }
-                      } else if (env.JOB_NAME.contains(env.tot_job_name)){
-                        echo("Running all enabled tests for a ToT run")
-                        for (suite in testSuites.keySet()){
-                          echo("Suite: " + suite + " runWithToTTests: " + testSuites[suite].runWithToTTests)
-                          if (testSuites[suite].enabled &&
-                              (testSuites[suite].runWithToTTests || testSuites[suite].runWithToTTests == null)){
                             testSuites[suite].runSuite = true
                           }
                         }
@@ -748,6 +773,12 @@ def call(){
                     } else if (env.JOB_NAME.contains(helen_role_test_job_name)) {
                       selectOnlySuites(["HelenRoleTests"])
                       runTests()
+                    } else if (env.JOB_NAME.contains(performance_test_job_name)) {
+                      selectOnlySuites(["PerformanceNightly"])
+                      runTests()
+                    } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
+                      selectOnlySuites(["MemoryLeakNightly"])
+                      runTests()
                     } else if (env.JOB_NAME.contains(log_insight_test_job_name)) {
                       selectOnlySuites(["LoggingTests"])
                       runTests()
@@ -778,8 +809,7 @@ def call(){
                       '''
                     }
 
-                    // TODO: Make the items below follow the model above.
-
+                    // Special runs; maybe should go into their own Jenkinsfile someday.
                     if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
                       saveTimeEvent("Collect deployment support bundle", "Start")
                       sh '''
@@ -801,24 +831,8 @@ def call(){
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }
-                    if (env.JOB_NAME.contains(memory_leak_job_name)) {
-                      saveTimeEvent("Memory leak tests", "Start")
-                      sh '''
-                        echo "Running Entire Testsuite: Memory Leak..."
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 6 --resultsDir "${mem_leak_test_logs}"
-                      '''
-                      saveTimeEvent("Memory leak tests", "End")
-                    }
-                    if (env.JOB_NAME.contains(performance_test_job_name)) {
-                      saveTimeEvent("Performance tests", "Start")
-                      sh '''
-                        echo "Running Entire Testsuite: Performance..."
-                        mkdir -p "${performance_test_logs}"
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug > "${performance_test_logs}/performance_tests.log" 2>&1
-                      '''
-                      saveTimeEvent("Performance tests", "End")
-                    }
                     if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+                      // TODO: Move to the main test map.
                       saveTimeEvent("Concord deployment test", "Start")
                       if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
                         env.dep_comp_concord_tag = env.product_version
@@ -838,12 +852,6 @@ def call(){
               }
             }catch(Exception ex){
               echo("A failure occurred while running the tests.")
-
-              // See if this suite failed due to SR 19062354609.
-              // HelenDeployEthereumToSDDC is the only one of the above which uses Persephone.
-              helen_deploy_test_log_dir = new File(env.test_log_root, "HelenDeployEthereumToSDDC").toString()
-              handleFailedTestSuite(helen_deploy_test_log_dir)
-
               failRun(ex)
               throw ex
             }
@@ -881,32 +889,17 @@ def call(){
                                                 value: env.recent_published_docker_tag]
                                              ]
                       saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
-
-                      env.dep_comp_docker_tag = env.recent_published_docker_tag
-                    } else {
-                      // For everything else, use what we pushed to DockerHub earlier.
-                      env.dep_comp_docker_tag = env.docker_tag
                     }
 
-                    sh(script: 'mkdir -p "${persephone_test_logs}"')
-
-                    // Kashfat: Revert back.
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                      sh '''
-                        echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
-                      '''
-                    } else {
-                      if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
+                        selectOnlySuites(["PersephoneNightly"])
+                        runTests()
+                    } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
                         // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
                         // the rest, which were pulled from Artifactory, are env.docker_tag.
                         tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
-                      }
-
-                      // MR runs and Persephone on-demand runs use the local config service.
-                      sh '''
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
-                      '''
+                        selectOnlySuites(["PersephoneOnDemand"])
+                        runTests()
                     }
                   }
                 }
@@ -914,10 +907,6 @@ def call(){
               saveTimeEvent("Persephone tests", "End")
             }catch(Exception ex){
               echo("A failure occurred while running the tests.")
-
-              // See if this suite failed due to SR 19062354609.
-              handleFailedTestSuite(env.persephone_test_logs)
-
               failRun(ex)
               throw ex
             }
@@ -1011,7 +1000,7 @@ def call(){
                     withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                       sh '''
                         echo "Collect Transaction Rate from this run..."
-                        echo "${PASSWORD}" | sudo -SE ./update_performance_result.sh --resultsDir "${performance_test_logs}"
+                        echo "${PASSWORD}" | sudo -SE ./update_performance_result.sh --resultsDir "${nightly_performance_test_logs}"
                       '''
                     }
                   }
@@ -1403,7 +1392,7 @@ void pushHermesDataFile(fileToPush){
 
 void sendAlertNotification(test_name) {
   if (test_name == 'memory_leak') {
-    memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
+    memory_leak_spiked_log = new File(env.nightly_mem_leak_test_logs, "memory_leak_spiked.log").toString()
     if (fileExists(memory_leak_spiked_log)) {
       echo 'ALERT: Memory Leak spiked up'
 
@@ -1419,7 +1408,7 @@ void sendAlertNotification(test_name) {
   }
 
   if (test_name == 'performance') {
-    performance_test_spiked_log = new File(env.performance_test_logs, "performance_transaction_rate_spiked.log").toString()
+    performance_test_spiked_log = new File(env.nightly_performance_test_logs, "performance_transaction_rate_spiked.log").toString()
     if (fileExists(performance_test_spiked_log)) {
       echo 'ALERT: Performance Transaction Rate dipped in this run'
 
@@ -1584,7 +1573,7 @@ void passRun(){
 void failRun(Exception ex = null){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
   if (ex != null){
-    echo "The run has failed with an exception: " + ex.toString()  
+    echo "The run has failed with an exception: " + ex.toString()
   }
 }
 
@@ -1900,9 +1889,15 @@ void runTests(){
     env.suiteCmd += suiteParams.otherParameters ? " " + suiteParams.otherParameters : ""
     env.suiteRunConcordConfigGeneration = suiteParams.runConcordConfigurationGeneration == false ?
                                           "" : "--runConcordConfigurationGeneration"
-    resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
-    //GAAAH mixed case horror.
-    env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
+
+    if (env.JOB_NAME.contains(memory_leak_job_name)){
+      env.suiteResultsDir = env.nightly_mem_leak_test_logs
+    } else if (env.JOB_NAME.contains(performance_test_job_name)){
+      env.suiteResultsDir = env.nightly_performance_test_logs
+    }else{
+      resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
+      env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
+    }
 
     env.suitePerformanceVotes = suiteParams.performanceVotes ?
                               "--performanceVotes " + suiteParams.performanceVotes : ""
@@ -2079,56 +2074,6 @@ void setUpRepoVariables(){
   env.internal_trc_test_app_repo = env.internal_repo + "/trc-test-app"
 }
 
-// Carry out any special activities related to analysis or reporting
-// when a suite fails.
-// results_dir: Path to the test suite's results directory.
-void handleFailedTestSuite(results_dir){
-  lookForSR19062354609(results_dir)
-}
-
-void lookForSR19062354609(results_dir){
-  found_match = false
-
-  search_lines = [
-    "Cannot find the storage backing of library S3-Subscriber",
-    "due to the failure of importing file photon-ova.ovf",
-    "Error exporting file photon-ova.ovf",
-    "This error may occur due to restore of a deleted library"
-  ]
-  search_results_file = "SR19062354609.log"
-
-  if (fileExists(results_dir)){
-    echo("Searching directory '" + results_dir + "' for evidence of SR 19062354609.")
-
-    for(int i = 0; i < search_lines.size(); ++i){
-      search_line = search_lines[i]
-      command = "grep -e '" + search_line + "' -r '" + results_dir + "' >> " + search_results_file
-      status = sh(
-        script: command,
-        returnStatus: true
-      )
-
-      if(status == 0){
-        echo("Found: '" + search_line + "'")
-        found_match = true
-        break
-      }
-    }
-  }
-
-  if(found_match){
-    found_text = readFile(search_results_file)
-    // Don't bother with the File object because readFile() dictates this format.
-    recipients_file = "blockchain/vars/SR_19062354609_recipients.txt"
-    recipients = readFile(recipients_file).replaceAll("\n", " ")
-    msg = "Found an instance of SR 19062354609.\n" +
-        "Build url: " + env.BUILD_URL + "\n" +
-        "Text that led to this conclusion: " + found_text
-    emailext body: msg,
-             to: recipients,
-             subject: "Instance of SR 19062354609 found!"
-  }
-}
 
 // The version is: major.minor.patch.build
 // The first three are read from build_info data file.
@@ -2278,9 +2223,9 @@ void collectArtifacts(){
     }
     archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
   }
-  
+
   if (new File(env.WORKSPACE + '/failure_summary.log').exists()) {
-    archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true  
+    archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true
   }
   if (new File(env.WORKSPACE + '/otherFailures').exists()) {
     archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
@@ -2379,14 +2324,18 @@ void preprocessForMainMR(){
   // From this information, you can:
   //    1) choose to pull pre-built images, instead of building everything
   //    2) skip component-internal unit tests of components that didn't change
-  // Output the changed components map to `blockchain/vars/affected_components.json`
+  // Output the changed components map to `blockchain/vars/components_affected.json`
   // Also, extract effective commits and authors affecting this MR
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
     script {
       dir('blockchain/vars') {
         env.python = "/var/jenkins/workspace/venv_py37/bin/python"
-        sh 'echo "${PASSWORD}" | sudo -SE "${python}" getChangedPaths.py'
-        sh 'echo "${PASSWORD}" | sudo -SE "${python}" getCommitsBlame.py'
+        sh '''
+          echo "${PASSWORD}" | sudo -SE "${python}" get-changed-paths.py > components_affected.log 2>&1
+          cat components_affected.log
+          echo "${PASSWORD}" | sudo -SE "${python}" get-commits-blame.py
+          echo "${PASSWORD}" | sudo -SE "${python}" get-component-suites-and-builds.py
+        '''
       }
     }
   }
@@ -2633,4 +2582,77 @@ void setPropVals(keys, val, file){
     contents = readFile(file)
     echo("File now contains: " + contents)
   }
+}
+
+
+void selectApplicableGenericTestsForMR(){
+  // Use the file produced by get-changed-paths.py to select applicable test suites.
+  neededSuites = []
+
+  dir(".."){
+    componentsJson = readFile("vars/components_affected.json")
+    components = new JsonSlurperClassic().parseText(componentsJson)
+  }
+
+  runAllSuites = components["unknown"].changed
+
+  if (!runAllSuites){
+    for (key in components.keySet()){
+      if(key == "nothing"){
+        if(components[key].changed){
+          echo("Nothing changed, so no suites will be run.")
+          runAllSuites = false // Should not need to change, but just in case.
+          break
+        }else{
+          continue
+        }
+      } else if(findEmptySuiteList(components[key])){
+        echo("Found empty suite list in " + key + ": " + components[key].toString() + ". Running all suites.")
+        runAllSuites = true
+      }else if(findUnrecognizedSuites(components[key])){
+        echo("Found unrecognized suite in " + key + ": " + components[key].toString() + ". Running all suites.")
+        runAllSuites = true
+      }
+
+      if (!runAllSuites && components[key].changed){
+        echo("Adding suites " + components[key].test_suites.toString() + " because component " + key + " changed.")
+        neededSuites.addAll(components[key].test_suites)
+      }
+    }
+  }
+
+  for (suite in testSuites.keySet()){
+    if ((runAllSuites || suite in neededSuites) &&
+        testSuites[suite].enabled &&
+        (testSuites[suite].runWithGenericTests || testSuites[suite].runWithGenericTests == null)){
+      echo("Suite " + suite + " will be run.")
+      testSuites[suite].runSuite = true
+    }else{
+      testSuites[suite].runSuite = false
+    }
+  }
+}
+
+boolean findEmptySuiteList(component){
+  // Return whether an empty suite list is present.
+  if (component.changed && component.test_suites.size() == 0){
+    echo("Component changed, but no suites were defined for it.  Running all suites.")
+    return true
+  }
+
+  return false
+}
+
+
+boolean findUnrecognizedSuites(component){
+  // Return whether the test suites are recognizable.
+  if (component.changed){
+    for (suite in component.test_suites){
+      if (!(suite in testSuites.keySet())){
+        return true
+      }
+    }
+  }
+
+  return false
 }

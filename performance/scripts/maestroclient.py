@@ -349,7 +349,7 @@ class MaestroClient:
 
         try:
             python = "python3"
-            output = subprocess.run([python, "/vars/getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
+            output = subprocess.run([python, "/vars/get-commits-blame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
             logging.debug(output)
 
             commits_blame = json.load(open("/vars/commits_authors.json"))
