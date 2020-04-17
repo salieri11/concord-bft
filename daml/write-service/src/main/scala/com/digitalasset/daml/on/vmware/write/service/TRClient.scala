@@ -5,13 +5,20 @@ package com.digitalasset.daml.on.vmware.write.service
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Library
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
 import com.digitalasset.daml.on.vmware.common.Constants
+import com.codahale.metrics.MetricRegistry
 import org.slf4j.LoggerFactory
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 
 class TRClient(clientId: String , maxFaulty: Short,
-               privateKey: String, servers: Array[String], jaegerAgent: String) {
+               privateKey: String, servers: Array[String],
+               jaegerAgent: String, metricRegistry: MetricRegistry) {
   import TRClient._
+
+  private object Metrics {
+    val prefix = "daml.trc"
+    val getBlockTimer = metricRegistry.timer(s"$prefix.get-block")
+  }
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -40,7 +47,7 @@ class TRClient(clientId: String , maxFaulty: Short,
           subsResult => 
             // None return signals end of resource
             if(subsResult)
-                          Library.pop()
+                          Metrics.getBlockTimer.time(() => Library.pop)
                         else
                           None,
           // close
