@@ -44,7 +44,8 @@ class KVBClient {
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
         timePusher_(timePusher),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
+        logger_(
+            log4cplus::Logger::getInstance("com.vmware.concord.kvbclient")) {}
 
   ~KVBClient() { client_->stop(); }
 
@@ -76,9 +77,6 @@ class KVBClientPool {
   // Condition to wait on if clients_ is empty;
   std::condition_variable clients_condition_;
 
-  // Non-starvation: which thread gets to claim the next available client
-  std::queue<std::thread::id> wait_queue_;
-
   // Flag signaling that the pool is shutting down. Once this flag is set,
   // clients_ should only be taken out of the pool to be destroyed, not to be
   // used for sending client requests.
@@ -89,6 +87,8 @@ class KVBClientPool {
   prometheus::Family<prometheus::Counter> &kvbc_client_pool_replies_counters_;
   prometheus::Counter &kvbc_client_pool_received_requests_;
   prometheus::Counter &kvbc_client_pool_received_replies_;
+
+  std::chrono::milliseconds max_timeout_millis_{60 * 10 * 1000};
 
  public:
   // Constructor for KVBClientPool. clients should be a vector of pointers
