@@ -85,9 +85,6 @@ class MaestroClient:
                     "vsanStatsVmSupport": False,
                     "vsanStatsVsantraces": False,
                     "vsanCacheReservation": 0,
-                    "vsanCustomTestConfig": {
-                        "build - number": 12
-                    },
                     "vsanDedupCompression": False,
                     "vsanForceProvisioning": False,
                     "vsanWorkloadCfgHostSize": 0,
@@ -103,6 +100,15 @@ class MaestroClient:
                 "bcConfig": {
                     "BlockChainService": {
                         "releaseVersion": bcversion
+                    },
+                    "Benchmark": {
+                        "application": "IOU",
+                        "daml_version": "0.13.56-snapshot.20200331.3729.0.b43b8d86",
+                        "spider_version": "SNAPSHOT-1.25.0-20200414-1643-8e1346b1",
+                        "dataset_flavour": "sample",
+                        "transactions": 50000,
+                        "threads": 16,
+                        "batching": False
                     }
                 },
                 "viewplannerConfig": {
@@ -245,7 +251,7 @@ class MaestroClient:
                     "esxBuild": "ob-14320388"
                 },
                 "cc": recipients,
-                "testName": "testing bc",
+                "testName": "Performance CI Runs",
                 "comments": comments,
                 "resources": "1"
             }
