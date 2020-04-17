@@ -228,9 +228,16 @@ def main():
                                      help="Helen Flyway migration file to write generated configurations into, "
                                           "before launching Helen",
                                      default=helper.MIGRATION_FILE)
-   nonLocalDeployConfig.add_argument("--damlParticipantIp",
+   nonLocalDeployConfig.add_argument("--damlParticipantIP",
                                      help="Public IP of the DAML participant to upload DAR and run tests",
                                      default='localhost')
+   nonLocalDeployConfig.add_argument("--replicasConfig",
+                                     help="Replias config obtained after a helen/persephone deployment",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--enablePortForwarding",
+                                     default=False,
+                                     action='store_true',
+                                     help="Enable port forwarding to hit public IP over VMware fireware on 80/443")
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir

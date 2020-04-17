@@ -755,7 +755,7 @@ def call(){
                         testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
                             " --blockchainType " + params.concord_type.toLowerCase() +
                             " --blockchainLocation " + env.blockchain_location +
-                            " --numReplicas " + params.num_replicas + " "
+                            " --numReplicas 7 --numParticipants 1 "
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
@@ -769,8 +769,7 @@ def call(){
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."
-                        cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
-                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}" --blockchainLocation "${blockchain_location}"
+                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}"
                       '''
                     }
 
@@ -793,8 +792,7 @@ def call(){
                       env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
-                        cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
-                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --blockchainLocation "${blockchain_location}"
+                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}"
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }

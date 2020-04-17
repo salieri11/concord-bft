@@ -9,15 +9,16 @@
 # Example: python3 monitor_replicas.py
 #  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
 #  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
-#  --blockchainLocation <sddc/onprem>
 #  --runDuration 1
 #  --loadInterval 1
 
 import argparse
 import json
 import logging
+import os
 import sys
 import time
+from tempfile import NamedTemporaryFile
 from util import helper
 
 DEFAULT_SUPPORT_LOGS_DEST="/var/log/blockchain_support"
@@ -28,11 +29,6 @@ def main(args):
                        help="Repeated set of blockchain type:<comma separated list of IPs>")
    parser.add_argument("--replicasConfig",
                        help="If replicas are not passed via --replicas, pass in replicas.json file via this option")
-   parser.add_argument("--blockchainLocation",
-                       required=True,
-                       help="Location ({}, {}) of the blockchain being tested".format(
-                          helper.LOCATION_SDDC,
-                          helper.LOCATION_ONPREM)),
    parser.add_argument("--saveSupportLogsTo",
                        default="{}/logs_{}".format(DEFAULT_SUPPORT_LOGS_DEST,
                                                    time.strftime(
@@ -47,41 +43,58 @@ def main(args):
                        type=int,
                        default=60,
                        help="Minutes to wait between monitors (default 60 mins)")
+   parser.add_argument("--runAllTests",
+                       default=False,
+                       action='store_true',
+                       help="Runs additional tests from extensive test set")
+   parser.add_argument("--testlistFile",
+                       help="json file containing the list of tests",
+                       default=helper.LONG_RUN_TEST_FILE)
+
    args = parser.parse_args()
 
    if not args.replicasConfig and not args.replicas:
       log.error("Usage: pass either --replicas (or) --replicasConfig")
       sys.exit(1)
 
-   all_replicas = {}
+   all_replicas_and_type = {}
 
    if args.replicasConfig:
-      log.info("Using replicas config: {}".format(args.replicasConfig))
-      all_replicas = helper.parseReplicasConfig(args.replicasConfig)
+      replicas_config = args.replicasConfig
+      all_replicas_and_type = helper.parseReplicasConfig(args.replicasConfig)
    else:
-      log.info("Using replicas: {}".format(args.replicas))
+      replicas_config_data = {}
       for item in args.replicas:
          blockchain_type, ips = item[0].split(':')
-         all_replicas[blockchain_type] = ips.split(',')
+         replicas_details = []
+         for ip in ips.split(','):
+            replicas_details.append({"ip": ip})
+         replicas_config_data[blockchain_type] = replicas_details
 
+      replicas_config = NamedTemporaryFile(delete=False).name
+      with open(replicas_config, "w") as tmp:
+         json.dump(replicas_config_data, tmp, indent=True)
+      all_replicas_and_type = helper.parseReplicasConfig(replicas_config)
+
+   replica_json_data = json.dumps(all_replicas_and_type, sort_keys=True, indent=4)
    log.info("Initializing & Monitoring for blockchain type/replicas: {}".format(
-      json.dumps(all_replicas, sort_keys=True, indent=4)))
+      replica_json_data))
    log.info("Run Duration: {} hrs".format(args.runDuration))
    log.info("Load Interval: {} mins".format(args.loadInterval))
    log.info("Support bundle destination: {}".format(args.saveSupportLogsTo))
 
    log.info("")
    log.info("************************************************************")
-   status = helper.installHealthDaemon(all_replicas)
-   time.sleep(30) # sleep for 30 second so health daemon initializes
+   status = helper.installHealthDaemon(all_replicas_and_type)
    start_time = time.time()
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
-      if helper.monitor_replicas(all_replicas,
-                                      args.blockchainLocation.lower(),
-                                      args.runDuration,
-                                      args.loadInterval,
-                                      args.saveSupportLogsTo):
+      if helper.monitor_replicas(replicas_config,
+                                 args.runDuration,
+                                 args.loadInterval,
+                                 args.saveSupportLogsTo,
+                                 args.testlistFile,
+                                 run_all_tests=args.runAllTests):
          log.info("**** Blockchain successfully active for {} hrs".format(
             args.runDuration))
          if args.replicasConfig:
@@ -98,7 +111,7 @@ def main(args):
    else:
       log.error(
          "**** Failed to install status monitoring daemon on nodes: {}".format(
-            all_replicas))
+            all_replicas_and_type))
       sys.exit(1)
 
 if __name__ == '__main__':

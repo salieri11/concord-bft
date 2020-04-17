@@ -403,6 +403,16 @@ def fxProduct(request, fxHermesRunSettings):
    to the tests being run.
    '''
    if not fxHermesRunSettings["hermesCmdlineArgs"].noLaunch:
+      if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
+         all_replicas = helper.parseReplicasConfig(
+            fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig)
+
+      if fxHermesRunSettings["hermesCmdlineArgs"].enablePortForwarding:
+         credentials = \
+            fxHermesRunSettings["hermesUserConfig"]["persephoneTests"][
+               "provisioningService"]["concordNode"]
+
+      endpoint_hosts = ["localhost"]
       try:
          waitForStartupFunction = None
          waitForStartupParams = {}
@@ -410,9 +420,36 @@ def fxProduct(request, fxHermesRunSettings):
          productType = getattr(request.module, "productType", helper.TYPE_ETHEREUM)
 
          if productType == helper.TYPE_DAML:
-             waitForStartupFunction = helper.verify_connectivity
-             waitForStartupParams = {"ip": "localhost", "port": 6861}
-             checkProductStatusParams = {"ip": "localhost", "port": 6861, "max_tries": 1}
+            if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
+               endpoint_hosts = all_replicas["daml_participant"]
+            elif fxHermesRunSettings["hermesCmdlineArgs"].damlParticipantIP:
+               endpoint_hosts = fxHermesRunSettings[
+                  "hermesCmdlineArgs"].damlParticipantIP.split(",")
+
+            endpoint_port = 6861
+            for daml_participant_ip in endpoint_hosts:
+               if daml_participant_ip != 'localhost':
+                  endpoint_port = 6865
+
+                  if fxHermesRunSettings["hermesCmdlineArgs"].enablePortForwarding:
+                     endpoint_port = 80
+                     helper.add_ethrpc_port_forwarding(daml_participant_ip,
+                                                       credentials["username"],
+                                                       credentials["password"],
+                                                       src_port=endpoint_port,
+                                                       dest_port=6865)
+
+            waitForStartupFunction = helper.verify_daml_connectivity
+            waitForStartupParams = {
+               "docker_compose_files": fxHermesRunSettings[
+                  "hermesCmdlineArgs"].dockerComposeFile,
+               "endpoint_hosts": endpoint_hosts,
+               "endpoint_port": endpoint_port}
+            checkProductStatusParams = {
+               "docker_compose_files": fxHermesRunSettings[
+                  "hermesCmdlineArgs"].dockerComposeFile,
+               "endpoint_hosts": endpoint_hosts,
+               "endpoint_port": endpoint_port, "max_tries": 1}
 
          if productType == helper.TYPE_TEE:
              waitForStartupFunction = helper.verify_connectivity
