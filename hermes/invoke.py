@@ -41,6 +41,13 @@ def racetrackSetBegin(args, options, secret):
 def racetrackSetEnd(args, options, secret):
   a = prepareArgs(args)
   racetrack.finalize(a[0]) # a[0] = SUCCESS | FAILURE | ABORTED
+  info = racetrack.getTestingEnvironmentInfo()
+  jenkins.publishRunsRetroactively(
+    jobName = info["jobName"],
+    limit = 3, # publish this one and 2 previous runs just in case
+    startFromBuildNumber = info["build"],
+    verbose = True
+  )
 
 def publishRuns(args, options, secret):
   a = prepareArgs(args)
