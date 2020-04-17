@@ -86,8 +86,11 @@ public class CloudInitConfiguration {
             val dnsString = nameServers.stream().collect(Collectors.joining(" "));
             dnsEntry = "\\nDNS=" + dnsString;
         }
-        return "echo -e \"[Match]\\nName=eth0\\n\\n[Network]\\nAddress=" + ipAddress + "/" + subnet
-               + "\\nGateway=" + gateway + " " + dnsEntry + "\" > /etc/systemd/network/10-eth0-static.network; "
+        return "echo -e \"[Match]\\nName=eth0"
+               + "\\n\\n[Network]\\nAddress=" + ipAddress + "/" + subnet
+               + "\\nGateway=" + gateway
+               + dnsEntry
+               + "\\nIPv6AcceptRA=false" + "\" > /etc/systemd/network/10-eth0-static.network; "
                + "chmod 644 /etc/systemd/network/10-eth0-static.network; systemctl restart systemd-networkd;";
     }
 
