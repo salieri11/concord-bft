@@ -87,3 +87,18 @@
 .dasharea-bottom {
   margin-bottom: 50px;
 }
+
+.list-title {
+  color: rgba(110, 110, 110, 0.7);
+  margin-top: 0.35rem;
+  margin-bottom: 0.175rem;
+  margin-left: 0.1rem;
+  white-space: nowrap;
+  width: 100%;
+  font-size: 0.475rem;
+  font-weight: normal;
+}
+
+.dashstats-no-margin {
+  margin-top: 0;
+}

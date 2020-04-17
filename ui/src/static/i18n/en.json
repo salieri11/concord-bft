@@ -170,6 +170,10 @@
     "four": "iv. Sensitive data requiring a high level of security must not be kept in the PoC-grade service. Developers should use dummy data sets to develop and test their applications."
   },
   "dashboard": {
+    "consortium": "Consortium",
+    "consortiumId": "Consortium ID",
+    "blockchain": "Blockchain",
+    "blockchainId": "Blockchain ID",
     "totalActiveNodes": "Total Active Committers",
     "inactiveNodes": "Inactive Committers",
     "nodeHealth": "Committer Health",

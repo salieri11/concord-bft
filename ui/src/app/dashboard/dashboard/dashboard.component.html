@@ -1,28 +1,35 @@
 <ng-container>
   <div class="ps-1 fadein">
-    <div class="card p-1-2 dashstats-max-width" *ngIf="!onlyOnPrem">
+    <h6 class="list-title">
+      {{ 'dashboard.consortiumId' | translate }}: 
+      <span>{{ blockchainService?.selectedBlockchain?.consortium_id }}</span>
+      »
+      {{ 'dashboard.blockchainId' | translate }}:
+      <span>{{ blockchainService?.selectedBlockchain?.id }}</span>
+    </h6>
+    <div class="card p-1-2 dashstats-no-margin" *ngIf="!onlyOnPrem">
       <div class="clr-row" tourAnchor="onboardingTour.dashStats">
-          <div class="clr-col-lg-3 clr-col-xl-2 col-gauge">
-            <div class="node-health">
-              <div class="title">{{'dashboard.nodeHealth' | translate}}</div>
-              <h2 class="health-number {{nodeColor}}">
-                {{healthyNodesCount}}/{{nodes.length}}
-              </h2>
-              <ngx-charts-gauge
-                #nodeGuage
-                [view]="[240, 240]"
-                [min]="0"
-                [results]="nodeData"
-                [max]="nodes.length"
-                [showAxis]="false"
-                [valueFormatting]="valueFormatting"
-                [scheme]="colorScheme"
-                [startAngle]="-180"
-                [angleSpan]="360"
-                [tooltipDisabled]="true"
-                ></ngx-charts-gauge>
-            </div>
+        <div class="clr-col-lg-3 clr-col-xl-2 col-gauge">
+          <div class="node-health">
+            <div class="title">{{'dashboard.nodeHealth' | translate}}</div>
+            <h2 class="health-number {{nodeColor}}">
+              {{healthyNodesCount}}/{{nodes.length}}
+            </h2>
+            <ngx-charts-gauge
+              #nodeGuage
+              [view]="[240, 240]"
+              [min]="0"
+              [results]="nodeData"
+              [max]="nodes.length"
+              [showAxis]="false"
+              [valueFormatting]="valueFormatting"
+              [scheme]="colorScheme"
+              [startAngle]="-180"
+              [angleSpan]="360"
+              [tooltipDisabled]="true"
+              ></ngx-charts-gauge>
           </div>
+        </div>
         <div class="clr-col-lg clr-col-md-12 stats">
           <div class="clr-row clr-align-items-center clr-justify-content-center">
             <div *ngFor="let item of dashItems; let i = index;" class="clr-col-6" [class.b-r]="dashItems.length !== 1 && !(i % 2)">
