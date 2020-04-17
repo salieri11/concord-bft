@@ -188,7 +188,7 @@ export class ZoneFormComponent implements AfterViewInit {
         http_host: new FormControl(
           '',
           {
-            validators: [protocolNotAllowed()],
+            validators: [protocolNotAllowed({optional: true})],
             updateOn: 'blur'
           }
         ),
@@ -198,7 +198,7 @@ export class ZoneFormComponent implements AfterViewInit {
         https_host: new FormControl(
           '',
           {
-            validators: [protocolNotAllowed()],
+            validators: [protocolNotAllowed({optional: true})],
             updateOn: 'blur'
           }
         ),

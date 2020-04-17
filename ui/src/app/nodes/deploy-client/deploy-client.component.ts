@@ -23,7 +23,7 @@ export class DeployClientComponent implements OnInit {
   deployClient = new FormGroup({
     name: new FormControl('', Validators.required),
     zone: new FormControl('', Validators.required),
-    high_availability: new FormControl('', Validators.required), // high availability
+    high_availability: new FormControl(''), // high availability
     auth_url: new FormControl('', [Validators.pattern(urlValidateRegex)]),
   });
 

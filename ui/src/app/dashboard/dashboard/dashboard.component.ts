@@ -91,6 +91,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   dashItems: { title: string, count: number, link: string[] }[];
 
   constructor(
+    public blockchainService: BlockchainService,
     private orgService: OrgService,
     private smartContractsService: SmartContractsService,
     private blocksService: BlocksService,
@@ -99,7 +100,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private translate: TranslateService,
     private tourService: TourService,
-    private blockchainService: BlockchainService,
   ) { }
 
   ngOnInit() {

@@ -256,7 +256,7 @@ body.dark {
 .divider {
   height: 1px;
   margin: 1rem 0;
-  background-color: $clr-light-gray;
+  background-color: rgba(160, 160, 160, 0.2);
 }
 
 .pull-right {
@@ -280,5 +280,16 @@ concord-code-highlighter[ng-reflect-plugins~="autolinker"] {
     a {
       text-decoration: underline;    
     }
+  }
+}
+
+// Firfox remove ugly dropdown select with white background
+@supports (-moz-appearance:none) {
+  select {
+    color: #222222;
+    -moz-appearance:none !important;
+  }
+  option {
+    color: #222222 !important;
   }
 }

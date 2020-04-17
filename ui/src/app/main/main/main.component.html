@@ -27,7 +27,7 @@
         </div>
       </div>
     </main>
-    <clr-vertical-nav *ngIf="sidemenuVisible">
+    <clr-vertical-nav *ngIf="sidemenuVisible" class="sidemenu">
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
         <a clrVerticalNavLink [routerLink]="['/blockchain','deploy']" [ngClass]="{'disable': !enableDeploy}"
           id="sidebarDeploy">
@@ -153,6 +153,10 @@
           </ng-container> -->
         </ng-container>
       </ng-container>
+      <div class="sidemenu-bottom-buttons">
+        <concord-theme-switch-button class="bottom-button theme-switch-button" simple-button="true">
+        </concord-theme-switch-button>
+      </div>
     </clr-vertical-nav>
     <concord-task-panel class="panel-7"></concord-task-panel>
 

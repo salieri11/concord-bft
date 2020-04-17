@@ -35,11 +35,13 @@ export function validateNumberOfNodes(): ValidatorFn {
   };
 }
 
-export function protocolNotAllowed(): ValidatorFn {
+export function protocolNotAllowed(options?: {optional?: boolean}): ValidatorFn {
   return (control: AbstractControl): {[key: string]: any} | null => {
+    if (options && options.optional && !control.value) { return null; } // pass optional if falsey value (e.g empty string)
     const urlValid  = urlRegEx.test(control.value);
     const inValid = control.value.startsWith('http://') || control.value.startsWith('https://');
 
     return urlValid && !inValid ? null : {'protocolNotAllowed': {value: control.value}};
   };
 }
+
