@@ -230,6 +230,13 @@
         "../docker/config-concord3/concord.config",
         "../docker/config-concord4/concord.config"]
   },
+  "logInsight": {
+    "destinationName": "LOG_INSIGHT",
+    "address": "10.78.20.10",
+    "port": 9543,
+    "username": "fluentd",
+    "password": "<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"
+  },
   "persephoneTests": {
     "modelService": {
       "deployment_component_ids": {

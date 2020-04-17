@@ -148,10 +148,10 @@ import hudson.util.Secret
       --tests="-k vmArithmeticTest/add0.json" --suitesRealname=HelenDeployEthereumToSDDC'
   ],
   "HelenDeployDAMLToSDDC" : [
-    "enabled": false,
+    "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml  \
-      --blockchainLocation=sddc --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc \
+      --blockchainLocation onprem --numReplicas 7 --numParticipants 1 \
       --tests="-m deployment_only" --suitesRealname=HelenDeployDAMLToSDDC'
   ],
   "HelenDeployToSDDCTemplate" : [
@@ -2373,6 +2373,7 @@ void setEnvFileAndUserConfig(){
     string(credentialsId: 'DASHBOARD_WAVEFRONT_TOKEN', variable: 'DASHBOARD_WAVEFRONT_TOKEN'),
     string(credentialsId: 'SLACK_BOT_API_TOKEN', variable: 'SLACK_BOT_API_TOKEN'),
     string(credentialsId: 'VMW_DA_SLACK_BOT_API_TOKEN', variable: 'VMW_DA_SLACK_BOT_API_TOKEN'),
+    string(credentialsId: 'LOG_INSIGHT_ON_ONECLOUD_PASSWORD', variable: 'LOG_INSIGHT_ON_ONECLOUD_PASSWORD'),
     usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
     usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC1_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC1_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC1_VC_CREDENTIALS_PASSWORD'),
@@ -2469,6 +2470,7 @@ EOF
       sed -i -e 's/'"<METAINF_ENV_WORKSPACE>"'/'"${WORKSPACE_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
     '''
 
     if (env.JOB_NAME.contains(long_tests_job_name)) {

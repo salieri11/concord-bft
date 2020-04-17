@@ -7,6 +7,7 @@ import json
 import util.json_helper
 import logging
 import os
+import pprint
 import subprocess
 from subprocess import CompletedProcess, PIPE
 import threading
@@ -15,6 +16,8 @@ import time
 from util.debug import pp as pp
 
 from util.auth import getAccessToken, tokens
+import util.product
+import util.generate_zones_migration as migration
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -615,6 +618,78 @@ class Request():
       self._data = None
       self._endpointName = "get_zones"
       return self._send()
+
+
+   def addUserConfigZones(self, blockchainLocation):
+      '''
+      Add the zones in user_config.json.
+      '''
+      ids_added = []
+      cfgZones = self._userConfig["persephoneTests"]["provisioningService"]["zones"][blockchainLocation]
+
+      # Helen only supports adding onprem zones.
+      if blockchainLocation != util.helper.LOCATION_ONPREM:
+         raise Exception("The Helen API only supports creation of on prem zones, not '{}'" \
+                         .format(blockchainLocation))
+
+      # We need the docker information.  Currently, we put this in the Persephone properties
+      # file when we are testing.  Let's keep that as the source of truth for now.
+      with open(util.product.persephoneConfigFile, "r") as f:
+         for line in f.readlines():
+            if line.startswith("provisioning.container.registry.address="):
+               containerAddress = line.split("=")[1].strip()
+            elif line.startswith("provisioning.container.registry.username="):
+               containerUser = line.split("=")[1].strip()
+            elif line.startswith("provisioning.container.registry.password="):
+               containerPwd = line.split("=")[1].strip()
+
+      if containerPwd.startswith("<") and containerPwd.endswith(">"):
+         raise Exception("Ensure that usernames, passwords, etc... are valid in " \
+                         "{}".format(util.product.persephoneConfigFile))
+
+      for cfgZone in cfgZones:
+         if cfgZone["api"]["credential"]["passwordCredential"]["password"].startswith("<") and \
+            cfgZone["api"]["credential"]["passwordCredential"]["password"].endswith(">"):
+            raise Exception("Ensure that usernames, passwords, etc... are valid for the " \
+                            "zones in user_config.json.")
+
+         if blockchainLocation == util.helper.LOCATION_ONPREM:
+            zoneInfo = migration.build_onprem_body(cfgZone)
+         else:
+            raise Exception("Adding zone type '{}' via Helen API not supported yet.".format(blockchainLocation))
+
+         # At this point, zoneInfo is set up for the SQL migration used for Persephone testing.
+         # Tweak for the Helen API.
+         zoneInfo.update({
+            "type": util.helper.LOCATION_TO_ZONE_TYPES[blockchainLocation],
+            "container_repo": {
+               "url": containerAddress,
+               "username": containerUser,
+               "password": containerPwd
+            }
+         })
+
+         # Workaround for https://jira.eng.vmware.com/browse/BC-2156
+         # Can't specify bearer token for on prem zones in the Helen
+         # API.  Therefore, we must use Log Insight.
+         zoneInfo["log_managements"] = [{
+            "destination": self._userConfig["logInsight"]["destinationName"],
+            "address": self._userConfig["logInsight"]["address"],
+            "port": self._userConfig["logInsight"]["port"],
+            "username": self._userConfig["logInsight"]["username"],
+            "password": self._userConfig["logInsight"]["password"]
+         }]
+
+         createResponse = self.createZone(zoneInfo)
+
+         if "id" in createResponse:
+            ids_added.append(createResponse["id"])
+         else:
+            zoneInfo = pprint.pprint(zoneInfo, indent=4)
+            raise Exception("Failed to add zone to helen: {}, response: {}".format(zoneInfo, createResponse))
+
+      return ids_added
+
 
    '''
    =================================================================

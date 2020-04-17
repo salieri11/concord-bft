@@ -7,7 +7,7 @@ import logging
 import os
 import os.path
 import pathlib
-from rest.request import Request
+import rest.request
 from rpc.rpc_call import RPC
 import shutil
 import socket
@@ -913,11 +913,11 @@ class Product():
 
       while attempts < retries:
          attempts += 1
-         request = Request(self._productLogsDir,
-                           "getMembers",
-                           self._cmdlineArgs.reverseProxyApiBaseUrl,
-                           self._userConfig,
-                           self.STARTUP_TOKEN_DESCRIPTOR)
+         request = rest.request.Request(self._productLogsDir,
+                                        "getMembers",
+                                        self._cmdlineArgs.reverseProxyApiBaseUrl,
+                                        self._userConfig,
+                                        self.STARTUP_TOKEN_DESCRIPTOR)
          try:
             blockchainId = request.getBlockchains()[0]["id"]
 
