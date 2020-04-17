@@ -1,14 +1,18 @@
+import groovy.json.JsonSlurperClassic
+
 // The Performance team has requested we kick off a job on their server for every successful
 // master run.  We will not wait for it or allow it to fail a run.
-def startOfficialPerformanceRun(perfObj){
+def startPerformanceRun(){
   withCredentials([
     usernamePassword(credentialsId: 'BLOCKCHAIN_SVC_ACCOUNT',
                     usernameVariable: 'username',
                     passwordVariable: 'password')
   ]){
+    perfJson = readFile("vars/performance.json")
+    perfObj = new JsonSlurperClassic().parseText(perfJson)
     env.maestroRecipients = perfObj.recipients
 
-    dir('blockchain/performance/scripts') {
+    dir('performance/scripts') {
       echo("Starting a performance run in the Performance team's lab.")
       // Perf team needs this file at the base of our artifacts.
       env.performanceResultsHtmlDir = env.WORKSPACE
@@ -16,17 +20,17 @@ def startOfficialPerformanceRun(perfObj){
       env.performanceResultsHtmlPath = env.performanceResultsHtmlDir + "/" + env.performanceResultsHtmlFile
 
       // Leave this one down in the performance/scripts directory.
-      env.performanceResultsJsonDir = "blockchain/performance/scripts"
+      env.performanceResultsJsonDir = "performance/scripts"
       env.performanceResultsJsonFile = "performance.json"
       env.performanceResultsJsonPath = env.performanceResultsJsonDir + "/" + env.performanceResultsJsonFile
 
-
       sh '''
+        # Shhh
         set +x
 
         # Never fail due to launching performance
         set +e
-
+        
         comments="Performance for build ${product_version}"
         cmd="maestroclient.py --username \"${username}\" --password '${password}'"
         cmd="${cmd} --recipients \"${maestroRecipients}\" --comments \\\"${comments}\\\""
@@ -37,7 +41,11 @@ def startOfficialPerformanceRun(perfObj){
       '''
     }
     archiveArtifacts artifacts: env.performanceResultsJsonPath, allowEmptyArchive: true
-    archiveArtifacts artifacts: env.performanceResultsHtmlFile, allowEmptyArchive: true
+
+    dir(env.WORKSPACE){
+      // Has to be at the root in the artifact list in Jenkins.
+      archiveArtifacts artifacts: env.performanceResultsHtmlFile, allowEmptyArchive: true
+    }
   }
 }
 

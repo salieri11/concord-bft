@@ -357,6 +357,11 @@ def main():
 
     logging.basicConfig(level=args.logLevel.upper())
 
+    logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
+                 format(args.bcversion,
+                        args.recipients,
+                        args.comments))
+
     client = MaestroClient(args.apiUrl, args.reportingUrl, args.username, args.password)
     run_id = client.submit_run(args.bcversion,
                                args.recipients,
@@ -364,6 +369,5 @@ def main():
                                args.noexec)
     client.start_run(run_id, args.noexec)
     client.write_results(run_id, args.htmlFile, args.resultsFile)
-
 
 main()
