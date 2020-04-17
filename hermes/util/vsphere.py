@@ -17,6 +17,9 @@ import logging
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
+REQ_SESSION = requests.Session()
+CSP_SESSION = { "active": False }
+
 class ConnectionToSDDC:
   
   def __init__(self, sddcInfo):
@@ -273,6 +276,35 @@ class ConnectionToSDDC:
     return None
 
 
+  def getAllNATRules(self):
+    '''
+      Get all NAT rules in this SDDC
+    '''
+    if not cspGetConnection(self.vmcToken, self.headersNSXT): return False
+    response = REQ_SESSION.post(
+      f"{self.baseNSXT}/policy/api/v1/search/querypipeline?page_size=1000&cursor=0&sort_by=sequence_number&sort_ascending=true",
+      json = {
+        "query_pipeline":[
+          {"query": "resource_type:PolicyNATRule AND path:\/infra\/tier-1s\/cgw\/nat\/USER\/nat-rules* "}
+        ],
+      },
+      headers = self.headersNSXT
+    )
+    return response.json()["results"]
+
+
+  def getAllPublicIPs(self):
+    '''
+      Get all public IPs allocated in this SDDC
+    '''
+    if not cspGetConnection(self.vmcToken, self.headersNSXT): return False
+    response = REQ_SESSION.get(
+      f"{self.baseNSXT}/cloud-service/api/v1/infra/public-ips",
+      headers = self.headersNSXT
+    )
+    return response.json()["results"]
+
+
   def findRegisteredAttributeByName(self, name):
     manager = self.services.customFieldsManager
     if name in self.attrByName:
@@ -391,3 +423,27 @@ class ConnectionToSDDC:
     for thd in threads: thd.join() # wait for all API calls to return
     return results
 
+
+
+
+
+def cspGetConnection(vmcToken, headers={}):
+  try:
+    if not vmcToken: return False
+    now = int(time.time())
+    if not CSP_SESSION["active"] or now >= CSP_SESSION["expires"]:
+      response = REQ_SESSION.post(
+        "https://console.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize",
+        data = { "refresh_token": vmcToken }
+      )
+      if response.status_code != 200: return False
+      authInfo = response.json()
+      CSP_SESSION["id_token"] = authInfo["id_token"]
+      CSP_SESSION["access_token"] = authInfo["access_token"]
+      CSP_SESSION["expires"] = int(time.time()) + authInfo["expires_in"] - 30 # expire 30s early
+      headers["csp-auth-token"] = CSP_SESSION["access_token"]
+      headers["csp-open-id-token"] = CSP_SESSION["id_token"]
+      return True
+  except Exception as e:
+    log.debug(e)
+    return False
