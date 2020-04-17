@@ -44,14 +44,10 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @ContextConfiguration(classes = {DbConfig.class, TestDaoConfig.class })
 class IpAllocationDaoTest {
     private static final UUID ADDRESS_BLOCK_1 = UUID.fromString("88907046-715b-4486-a6c0-4ff01fc28ff1");
-    private static final UUID ADDRESS_BLOCK_2 = UUID.fromString("c3186782-5ba8-4e19-a19c-559137d353f2");
-    private static final UUID ADDRESS_BLOCK_3 = UUID.fromString("6c16b776-4285-4ad6-8655-1c7c028cf18e");
-    private static final UUID ADDRESS_BLOCK_4 = UUID.fromString("ebf9f4b8-919f-4a78-91ac-bdfaccb58250");
+    private static final UUID ADDRESS_BLOCK_2 = UUID.fromString("6c16b776-4285-4ad6-8655-1c7c028cf18e");
 
     private static final UUID ADDRESS_BLOCK_SEGMENT_1 = UUID.fromString("903622c7-85f2-4f0f-a85c-8644dda58ef0");
     private static final UUID ADDRESS_BLOCK_SEGMENT_2 = UUID.fromString("b00d5aab-97bb-4ef1-9310-680fd6feffff");
-    private static final UUID ADDRESS_BLOCK_SEGMENT_3 = UUID.fromString("b2389fb0-5d66-4b12-9837-1b75f829c379");
-    private static final UUID ADDRESS_BLOCK_SEGMENT_4 = UUID.fromString("c3d621aa-4ce9-41ef-9936-cafb177009fb");
 
     private static final UUID BAD_ADDRESS_BLOCK = UUID.fromString("3aa24e10-3c5d-44fb-9cde-bd17dc275d60");
     private static final UUID BAD_ADDRESS_BLOCK_SEGMENT = UUID.fromString("aeb8400f-6580-4bc5-82ab-b434bc179ad4");
@@ -60,13 +56,9 @@ class IpAllocationDaoTest {
 
     private AddressBlock addressBlock1;
     private AddressBlock addressBlock2;
-    private AddressBlock addressBlock3;
-    private AddressBlock addressBlock4;
 
     private AddressBlockSegment addressBlockSegment1;
     private AddressBlockSegment addressBlockSegment2;
-    private AddressBlockSegment addressBlockSegment3;
-    private AddressBlockSegment addressBlockSegment4;
 
     private UUID entityId;
 
@@ -92,16 +84,11 @@ class IpAllocationDaoTest {
 
         addressBlock1 = new AddressBlock("AB1", new BlockSpecification(), AddressBlock.State.ACTIVE);
         addressBlock2 = new AddressBlock("AB2", new BlockSpecification(), AddressBlock.State.ACTIVE);
-        addressBlock3 = new AddressBlock("AB3", new BlockSpecification(), AddressBlock.State.ACTIVE);
-        addressBlock4 = new AddressBlock("AB4", new BlockSpecification(), AddressBlock.State.ACTIVE);
 
         addressBlock1.setId(ADDRESS_BLOCK_1);
         addressBlock2.setId(ADDRESS_BLOCK_2);
-        addressBlock3.setId(ADDRESS_BLOCK_3);
-        addressBlock4.setId(ADDRESS_BLOCK_4);
 
         addressBlock1 = ipAllocationDao.createAddressBlock(addressBlock1);
-        addressBlock2 = ipAllocationDao.createAddressBlock(addressBlock2);
 
         byte[] arr = new byte[20];
 
@@ -109,18 +96,11 @@ class IpAllocationDaoTest {
         addressBlockSegment1 = new AddressBlockSegment("ABS1", 0, arr);
         rd.nextBytes(arr);
         addressBlockSegment2 = new AddressBlockSegment("ABS2", 0, arr);
-        rd.nextBytes(arr);
-        addressBlockSegment3 = new AddressBlockSegment("ABS3", 0, arr);
-        rd.nextBytes(arr);
-        addressBlockSegment4 = new AddressBlockSegment("ABS4", 0, arr);
 
         addressBlockSegment1.setId(ADDRESS_BLOCK_SEGMENT_1);
         addressBlockSegment2.setId(ADDRESS_BLOCK_SEGMENT_2);
-        addressBlockSegment3.setId(ADDRESS_BLOCK_SEGMENT_3);
-        addressBlockSegment4.setId(ADDRESS_BLOCK_SEGMENT_4);
 
         addressBlockSegment1 = ipAllocationDao.createAddressBlockSegment(addressBlockSegment1);
-        addressBlockSegment2 = ipAllocationDao.createAddressBlockSegment(addressBlockSegment2);
     }
 
     @AfterEach
@@ -158,11 +138,11 @@ class IpAllocationDaoTest {
      */
     @Test
     void testSimplePutAddressBlock() throws Exception {
-        AddressBlock addressBlock = ipAllocationDao.createAddressBlock(addressBlock3);
+        AddressBlock addressBlock = ipAllocationDao.createAddressBlock(addressBlock2);
 
-        Assertions.assertEquals(addressBlock.getName(), addressBlock3.getName());
-        Assertions.assertEquals(addressBlock.getSpecification(), addressBlock3.getSpecification());
-        Assertions.assertEquals(addressBlock.getState(), addressBlock3.getState());
+        Assertions.assertEquals(addressBlock.getName(), addressBlock2.getName());
+        Assertions.assertEquals(addressBlock.getSpecification(), addressBlock2.getSpecification());
+        Assertions.assertEquals(addressBlock.getState(), addressBlock2.getState());
 
         Assertions.assertNotNull(addressBlock.getCreated());
         Assertions.assertNotNull(addressBlock.getUpdated());
@@ -174,11 +154,11 @@ class IpAllocationDaoTest {
      */
     @Test
     void testSimplePutAddressBlockSegment() throws Exception {
-        AddressBlockSegment addressBlockSegment = ipAllocationDao.createAddressBlockSegment(addressBlockSegment3);
+        AddressBlockSegment addressBlockSegment = ipAllocationDao.createAddressBlockSegment(addressBlockSegment2);
 
-        Assertions.assertEquals(addressBlockSegment.getName(), addressBlockSegment3.getName());
-        Assertions.assertEquals(addressBlockSegment.getSegment(), addressBlockSegment3.getSegment());
-        Assertions.assertEquals(addressBlockSegment.getAllocations(), addressBlockSegment3.getAllocations());
+        Assertions.assertEquals(addressBlockSegment.getName(), addressBlockSegment2.getName());
+        Assertions.assertEquals(addressBlockSegment.getSegment(), addressBlockSegment2.getSegment());
+        Assertions.assertEquals(addressBlockSegment.getAllocations(), addressBlockSegment2.getAllocations());
 
         Assertions.assertNotNull(addressBlockSegment.getCreated());
         Assertions.assertNotNull(addressBlockSegment.getUpdated());
