@@ -49,8 +49,11 @@ object ConcordLedgerFactory
          |jdbcUrl=${config.participants.head.serverJdbcUrl}
          |dar_file(s)=${config.archiveFiles.mkString("(", ";", ")")}""".stripMargin
         .replaceAll("\n", " "))
+    val theMetricRegistry = metricRegistry(participantConfig, config)
     val thinReplicaClient =
-      createThinReplicaClient(participantConfig.participantId, config.extra)
+      createThinReplicaClient(participantConfig.participantId,
+                                         config.extra,
+                                         theMetricRegistry)
     val concordClient = createConcordClient(config.extra)
     waitForConcordToBeReady(concordClient)
     val ledgerId =
@@ -83,10 +86,8 @@ object ConcordLedgerFactory
         concordWriter
       }
 
-    val theMetricRegistry = metricRegistry(participantConfig, config)
     val participantState = PrivacyAwareKeyValueParticipantState(
       reader, writer, theMetricRegistry)
-
 
     for {
       closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
@@ -123,7 +124,8 @@ object ConcordLedgerFactory
   }
 
   private[this] def createThinReplicaClient(participantId: ParticipantId,
-                                            config: ExtraConfig): TRClient = {
+                                            config: ExtraConfig,
+                                            metricRegistry: MetricRegistry): TRClient = {
     if (!config.useThinReplica) {
       throw new IllegalArgumentException(
         "Must have thin replica client enabled")
@@ -132,7 +134,8 @@ object ConcordLedgerFactory
                  config.maxFaultyReplicas,
                  "",
                  config.replicas.toArray,
-                 config.jaegerAgentAddress)
+                 config.jaegerAgentAddress,
+                 metricRegistry)
   }
 
   private[this] def waitForConcordToBeReady(client: KVBCClient): Unit = {

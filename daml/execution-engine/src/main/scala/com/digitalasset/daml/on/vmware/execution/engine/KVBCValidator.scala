@@ -265,6 +265,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
 
     override def commit(
                          participantId: ParticipantId,
+                         correlationId: String,
                          logEntryId: KV.DamlLogEntryId,
                          logEntry: KV.DamlLogEntry,
                          inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]],
@@ -274,7 +275,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
           (replicaId, key) -> value
         }
       )
-      ops.commit(participantId, logEntryId, logEntry, inputState, outputState)
+      ops.commit(participantId, correlationId, logEntryId, logEntry, inputState, outputState)
     }
   }
 
