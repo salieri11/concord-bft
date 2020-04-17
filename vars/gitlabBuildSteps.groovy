@@ -2428,11 +2428,13 @@ trc_test_app_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
+PRODUCT_VERSION=${product_version}
 EOF
     '''
 
     updateEnvFileForConcordOnDemand()
     updateEnvFileForPersephoneOnDemand()
+    updateEnvFileForBuildingMRs()
 
     sh '''
       cp blockchain/docker/.env blockchain/hermes/
@@ -2504,6 +2506,25 @@ EOF
   }
 }
 
+void updateEnvFileForBuildingMRs(){
+  if (env.JOB_NAME.contains(main_mr_run_job_name)) {
+    withCredentials([
+      string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+      string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')
+    ]) {
+      script {
+        dir('blockchain/vars') {
+          env.python = "/var/jenkins/workspace/venv_py37/bin/python"
+          sh '''
+            echo "${PASSWORD}" | sudo -SE "${python}" rewrite-env-for-mr.py --artifactoryKey "${ARTIFACTORY_API_KEY}"
+            echo "${PASSWORD}" | sudo -SE chown builder:builder ../docker/.env
+          '''
+        }
+      }
+    }
+  }
+}
+
 void updateEnvFileForConcordOnDemand(){
   script {
     if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
@@ -2568,14 +2589,56 @@ void startOfficialPerformanceRun(){
 // "vmwblockchain" is what we call it on DockerHub.
 // This is needed for deployment testing, as SDDCs are located outside the firewall.
 void pushConcordComponentsToDockerHub(){
-  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag)
-  tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag)
+  env_file_tag = getTagFromEnv(env.internal_persephone_agent_repo)
+  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_concord_repo)
+  tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_ethrpc_repo)
+  tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_daml_ledger_api_repo)
+  tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_daml_execution_engine_repo)
+  tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_daml_index_db_repo)
+  tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_fluentd_repo)
+  tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
+}
+
+// Given a component like "athena-docker-local.artifactory.eng.vmware.com/concord-core", return its tag from the .env file.
+String getTagFromEnv(component){
+  env_lines = readFile("blockchain/docker/.env").split("\n")
+  prefix = null
+
+  for(line in env_lines){
+    tokens = line.split("=")
+    repo_key = tokens[0]
+    repo_val = tokens[1]
+
+    if(repo_val == component){
+      i = repo_key.lastIndexOf("_")
+      prefix = repo_key.substring(0, i)
+      tag_key = prefix + "_tag"
+
+      for(line2 in env_lines){
+        tokens = line2.split("=")
+        key = tokens[0]
+        val = tokens[1]
+
+        if(key == tag_key){
+          return val
+        }
+      }
+    }
+  }
+
+  return null
 }
 
 // For the Persephone On Demand, we only build and want to use

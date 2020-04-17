@@ -136,7 +136,7 @@
     },
     "nothing": {
         "changed": false,
-        "test_suites": [],
-        "build_targets": []
+        "test_suites": ["SampleSuite"],
+        "build_targets": ["none"]
     }
 }

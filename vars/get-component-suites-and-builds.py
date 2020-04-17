@@ -61,6 +61,8 @@ def write_map(src_dir_map):
 
 def get_suites_and_builds(src_dir_map):
   '''
+  For each directory in the top level components_affected.json, look for
+  COMPONENT_FILE.  If it is present, add its values to components_affected.json.
   '''
   for src_key in src_dir_map:
     if src_key == "root":

@@ -95,20 +95,31 @@ docker_build() {
     local DOCKER_REPO_TAG="$1"
     shift
 
-    local BUILD_ARG_PARAM=""
-    while [ "$1" != "" ] ; do
-       case $1 in
-          "--build-arg")
-             shift
-             BUILD_ARG_PARAM+=" --build-arg $1"
-             ;;
-       esac
-       shift
-    done
+    info "DOCKER_REPO_TAG: ${DOCKER_REPO_TAG}"
+    info "PRODUCT_VERSION: ${PRODUCT_VERSION}"
+    
+    if [ "${DOCKER_REPO_TAG}" == "${PRODUCT_VERSION}" ]
+    then
+      local BUILD_ARG_PARAM=""
+      while [ "$1" != "" ] ; do
+         case $1 in
+            "--build-arg")
+               shift
+               BUILD_ARG_PARAM+=" --build-arg $1"
+               ;;
+         esac
+         shift
+      done
 
-    local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
-    docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
-    addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
+      local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
+      docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+      addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
+    else
+      # When a component in .env has a different tag than PRODUCT_VERSION,
+      # that means we pull it from artifactory instead of building it.
+      echo Pulling ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG} instead of building it.
+      docker pull ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}
+    fi
 }
 
 docker_pull() {
@@ -365,4 +376,3 @@ then
 fi
 
 waitForProcesses
-
