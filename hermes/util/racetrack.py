@@ -30,6 +30,7 @@ def getTestingEnvironmentInfo():
     # Racetrack Test Results Table for Main MR
     # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=MR
     return {
+      "jobName": jobName,
       "build": buildNumber,
       "buildType": "Dev",
       "branch": "MR",
@@ -40,6 +41,7 @@ def getTestingEnvironmentInfo():
     # Racetrack Test Results Table for Master
     # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=master
     return {
+      "jobName": jobName,
       "build": buildNumber,
       "buildType": "Candidate",
       "branch": "master",
@@ -52,6 +54,7 @@ def getTestingEnvironmentInfo():
     productVersion = os.getenv("product_version")
     if productVersion is None: productVersion = "None"
     return {
+      "jobName": jobName,
       "build": buildNumber,
       "buildType": "Release",
       "branch": "release",
@@ -61,6 +64,7 @@ def getTestingEnvironmentInfo():
     # Racetrack Test Results Table for All Other Runs
     # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=other
     return {
+      "jobName": jobName,
       "build": buildNumber,
       "buildType": "Other",
       "branch": "other",
@@ -85,7 +89,7 @@ def finalize(result):
         if not os.path.exists(helper.getJenkinsWorkspace() + "/failure_summary.log"):
           # Failed but none of the cases reported as failed == likely pipeline error
           # Report this case to Racetrack so that failed runs are ALWAYS marked as failed.
-          caseId = caseStart("Pipeline", "check_pipeline_result", "The run has failed.")
+          caseId = caseStart("_Pipeline", "check_pipeline_result", "The run has failed.")
           caseEnd(caseId, 'FAIL')
       setEnd(setId)
   except Exception as e:

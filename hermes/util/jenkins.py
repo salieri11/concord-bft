@@ -63,7 +63,7 @@ def getTimesDataOfRun(jobName, buildNumber):
   return timesData
 
 
-def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
+def publishRunData(jobName=None, buildNumber=None, publishImmediately=True, verbose=True):
   '''
     This function retroactively publishes run data to Wavefront endpoint
     It also can be used to retroactively fill in missed metrics during run time,
@@ -77,11 +77,11 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
     runTypeInfo = helper.getJenkinsRunTypeInfo(jobName)
     runType = runTypeInfo["type"] if runTypeInfo else "OTHER"
     traceId = helper.getJenkinsBuildTraceId(jobName, buildNumber)
-    log.info("[ {}/{} ] traceId is {}".format(jobName, buildNumber, traceId))
+    if verbose: log.info("Publishing run '{}/{}' traceId is {}".format(jobName, buildNumber, traceId))
 
     metaData = getRunMetadata(jobName, buildNumber)
     if not metaData:
-      log.info("[ {}/{} ] metadata cannot be obtained".format(jobName, buildNumber))
+      if verbose: log.info("[ {}/{} ] metadata cannot be obtained".format(jobName, buildNumber))
       return None
     if metaData["building"]: metaData["result"] = "PENDING"
     ts = int(metaData["timestamp"] / 1000)
@@ -104,7 +104,7 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
           wavefront.WF_TAGNAME_TIMESCOPE:'1h',
         }))
       if publishImmediately: wavefront.publish()
-      log.info("[ {}/{} ] is PENDING".format(jobName, buildNumber))
+      if verbose: log.info("[ {}/{} ] is PENDING".format(jobName, buildNumber))
       return "PENDING"
     
     # If finished, remove pending status for this run
@@ -136,7 +136,7 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
     # Get times data in seconds for total run and all stages
     timesData = getTimesDataOfRun(jobName, buildNumber)
     if not timesData or "total" not in timesData or "Setup" not in timesData:
-      log.info("[ {}/{} ] timesData cannot be obtained. TIMES_MISSING".format(jobName, buildNumber))
+      if verbose: log.info("[ {}/{} ] timesData cannot be obtained. TIMES_MISSING".format(jobName, buildNumber))
       if publishImmediately: wavefront.publish()
       return "TIMES_MISSING"
     
@@ -155,7 +155,7 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
       stageData = timesData[stageName]
       if type(stageData) != dict: continue # timesData["total"] is int; skip if not dictionary
       if "duration" not in stageData:
-        log.info("[ {}/{} ] Stage duration for '{}' not found".format(jobName, buildNumber, stageName))
+        if verbose: log.info("[ {}/{} ] Stage duration for '{}' not found".format(jobName, buildNumber, stageName))
         continue
       if stageData["duration"] < 0: stageData["duration"] = 0
       wavefront.queueMetric(
@@ -187,11 +187,12 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True):
     return "SUCCESS"
 
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    if verbose: log.info(e)
+    traceback.print_exc()
     return None
 
 
-def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None):
+def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None, verbose=True):
   if limit is None: limit = 100
   limit = int(limit)
   if startFromBuildNumber is not None:
@@ -208,7 +209,7 @@ def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None):
   timesMissingCount = 0
   publishErrorCount = 0
   while buildNumber > 0 and count < limit:
-    result = publishRunData(jobName, buildNumber)
+    result = publishRunData(jobName, buildNumber, verbose)
     if result == "SUCCESS": successCount += 1
     elif result == "TIMES_MISSING": timesMissingCount += 1
     elif result == "PENDING": pendingCount += 1
@@ -216,9 +217,10 @@ def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None):
     buildNumber -= 1
     count += 1
   failureCount = wavefront.getPublishFailureCount()
-  log.info("Retroactively published metrics data, total {} runs of {}".format(count, jobName))
-  log.info("Build number from {} down to {}. SUCCESS={}, PENDING={}, TIMES_MISSING={}, ERRORS={}, PUBLISH_FAILURES={}".format(
-    topBuildNumber, buildNumber+1, successCount, pendingCount, timesMissingCount, publishErrorCount, failureCount))
+  if verbose:
+    log.info("Retroactively published metrics data, total {} runs of {}".format(count, jobName))
+    log.info("Build number from {} down to {}. SUCCESS={}, PENDING={}, TIMES_MISSING={}, ERRORS={}, PUBLISH_FAILURES={}".format(
+      topBuildNumber, buildNumber+1, successCount, pendingCount, timesMissingCount, publishErrorCount, failureCount))
 
 
 def getTopBuildNumberForJob(jobName):
