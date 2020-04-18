@@ -10,11 +10,13 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.VMC_AWS;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.values;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,13 +26,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 
@@ -47,107 +47,143 @@ public class ZoneService {
     private GenericDao genericDao;
     private OrganizationService organizationService;
     private AuthHelper authHelper;
-    private List<String> zoneIdList;
+    private Set<String> defaultZoneIdSet;
+    private String defaultZoneIdListString;
 
     @Autowired
     public ZoneService(GenericDao genericDao,
                        OrganizationService organizationService, AuthHelper authHelper,
-                       @Value("${vmbc.enabled.vmc.zones:#{null}}") String zoneIdListString) {
+                       @Value("${vmbc.enabled.vmc.zones:#{null}}") String defaultZoneIdListString) {
         this.genericDao = genericDao;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
+        this.defaultZoneIdListString = defaultZoneIdListString;
 
-        if (Strings.isNullOrEmpty(zoneIdListString)) {
-            zoneIdList = new ArrayList<>();
-        } else {
-            zoneIdList = Arrays.asList(zoneIdListString.split(","));
+        defaultZoneIdSet = new HashSet<>();
+        if (!Strings.isNullOrEmpty(defaultZoneIdListString)) {
+            Collections.addAll(defaultZoneIdSet, defaultZoneIdListString.split(","));
         }
-    }
-
-    private ImmutableMap<OrchestrationSiteInfo.Type, Type> typeMap
-            = ImmutableMap.of(OrchestrationSiteInfo.Type.NONE, NONE,
-                              OrchestrationSiteInfo.Type.VMC, VMC_AWS,
-                              OrchestrationSiteInfo.Type.VSPHERE, ON_PREM);
-
-    /**
-     * Get all zones.  Currently that means we also add in the list of zones supplied by Persephone.
-     * @return all zones.
-     */
-    public List<Zone> getZones() {
-        // make a copy of the zones list
-        List<Zone> allZones = loadDefaultZones();
-
-
-        // add in everything in the DB
-        allZones.addAll(genericDao.getAllByType(Zone.class).stream().filter(zone -> zone.getOrgId() != null)
-                                .collect(Collectors.toList()));
-        return allZones;
-    }
-
-    public Zone put(Zone zone) {
-        return genericDao.put(zone, null);
     }
 
     /**
      * Get a specific zone.  If not in database, look in default list.  Throw NotFound if no match.
+     * @param id zoneId for lookup
+     * @return Zone.class
      */
     public Zone get(UUID id) {
         return genericDao.get(id, Zone.class);
     }
 
-    public List<Zone> getByType(Zone.Type type) {
-        String json = JSONObject.toJSONString(Collections.singletonMap("type", type.toString()));
-        return genericDao.getByJsonQuery(json, Zone.class);
-    }
-
-    public List<OnPremZone> getOnpremZones(UUID orgId) {
-        String json = JSONObject.toJSONString(Collections.singletonMap("type", ON_PREM.toString()));
-        return genericDao.getJsonByParentQuery(orgId, json, OnPremZone.class);
+    /**
+     * Create a new zone.
+     * @param zone zone to be created
+     * @return Zone.class
+     */
+    public Zone put(Zone zone) {
+        return genericDao.put(zone, null);
     }
 
     /**
-     * Get Default zones.
-     * @return list
+     * Delete a zone.
+     * @param zoneId Zone to be deleted
      */
-    public List<Zone> loadDefaultZones() {
+    public void delete(UUID zoneId) {
+        genericDao.delete(zoneId, Zone.class);
+    }
+
+    /**
+     * Get default zones based on the configured Spring property.
+     * Typically used for VMC_AWS zones, but could be either VMC_AWS or ON_PREM.
+     * This method will load default zones strictly based on the configured Spring property.
+     * Its caller methods can decide additional zones to add to the results of the API call.
+     * @return List of Zone.class
+     */
+    public List<Zone> getDefaultZones() {
         List<Zone> allZones = genericDao.getAllByType(Zone.class);
-        log.info("Size {}", allZones);
-        log.info(zoneIdList.toString());
-        return allZones.stream().filter(zone -> zoneIdList.contains(zone.getId().toString()))
-                                                    .collect(Collectors.toList());
+        List<Zone> defaultZones = defaultZoneIdSet.size() > 0
+                ? allZones.stream().filter(zone -> defaultZoneIdSet.contains(zone.getId().toString()))
+                                   .collect(Collectors.toList())
+                : allZones;
+        log.info("List of default zones: {}", defaultZones.toString());
+        log.info("Default zoneIds: {}", defaultZoneIdListString);
+        return defaultZones;
     }
 
     /**
-     * Get a zone from a organization and type.
+     * Get the specific zone if this user is authorized to see it.
+     * @param zoneId Zone we want
+     * @return Zone if we are authorized to see it.
      */
-    public List<Zone> getByOrgAndType(UUID orgId, Type type) {
-        // Get the Persephone zones of this type
-        List<Zone> allZones = loadDefaultZones().stream().filter(zone -> zone.getType().equals(type))
-                                                      .collect(Collectors.toList());
-        String json = JSONObject.toJSONString(Collections.singletonMap("type", type.toString()));
-        // Add in anything in the DB.
-        allZones.addAll(genericDao.getJsonByParentQuery(orgId, json, Zone.class));
+    Zone getAuthorized(UUID zoneId) {
+        Zone zone = get(zoneId);
+        if (authHelper.isSystemAdmin()) {
+            return zone;
+        }
+        // Fist check if we have access to this type of zone
+        Organization org = organizationService.get(authHelper.getOrganizationId());
+        if (getAuthorizedTypes(org).contains(zone.getType())) {
+            // next, if this is an ON_PREM zone, see if this belongs to our org
+            if (zone.getType().equals(ON_PREM)) {
+                if (!((OnPremZone) zone).getOrgId().equals(org.getId())) {
+                    throw new NotFoundException(ErrorCode.NOT_FOUND);
+                }
+            }
+            return zone;
+        }
+        throw new NotFoundException(ErrorCode.NOT_FOUND);
+    }
+
+    /**
+     * Get all the Zones this user is authorized to see.
+     * @return List of Zone.class
+     */
+    List<Zone> getAllAuthorized() {
+        if (authHelper.isSystemAdmin()) {
+            return getZones();
+        } else {
+            Organization org = organizationService.get(authHelper.getOrganizationId());
+            return getByOrganization(org);
+        }
+
+    }
+
+    /**
+     * Get all zones.  Currently that means we add any OnPrem zones created, in addition to default zones.
+     * @return List of Zone.class
+     */
+    List<Zone> getZones() {
+        // Get all default zones whether VMC_AWS or ON_PREM
+        List<Zone> allZones = getDefaultZones();
+
+        // VMC_AWS zones are strictly only loaded from getDefaultZones
+        // Add all additional ON_PREM/NONE zones from the DB, which aren't present in default zones
+        List<Zone> additionalZones = getAllZonesByType(ON_PREM);
+        additionalZones.addAll(getAllZonesByType(NONE));
+        allZones.addAll(additionalZones.stream()
+                            .filter(zone -> zone.getOrgId() != null)
+                            .filter(zone -> !defaultZoneIdSet.contains(zone.getId().toString()))
+                            .collect(Collectors.toList()));
         return allZones;
     }
 
     /**
      * Get the list of zones this organization has access to.
-     *  Check to see of the ORG_ZONES property has been set.
-     *  If not, select all zone types
-     *  If so, select the zone types set in the properties
-     *  Collect all the zone this organization can see.
+     * Check to see of the ORG_ZONES property has been set.
+     * If not, select all zone types
+     * If so, select the zone types set in the properties
+     * Collect all the zone this organization can see.
      */
-    public List<Zone> getByOrganization(Organization organization) {
+    List<Zone> getByOrganization(Organization organization) {
         // zoneTypes will contain the types of zones we can see.
         List<Type> zoneTypes = getAuthorizedTypes(organization);
         List<Zone> zones = zoneTypes.stream()
-                .map(t -> getByOrgAndType(organization.getId(), t))
-                .flatMap(z -> z.stream())
+                .map(type -> getByOrgAndType(organization.getId(), type))
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
         return zones;
     }
 
-    private List<Type> getAuthorizedTypes(Organization organization) {
+    List<Type> getAuthorizedTypes(Organization organization) {
         List<Type> zoneTypes;
         // See if the org properties has a list of valid zones.
         Map<String, String> properties = organization.getOrganizationProperties();
@@ -163,44 +199,38 @@ public class ZoneService {
     }
 
     /**
-     * Get all the Zones this user is authorized to see.
-     * @return List of zones
+     * Get a zone by organization and type, applying filters on default zones.
      */
-    public List<Zone> getAllAuthorized() {
-        if (authHelper.isSystemAdmin()) {
-            return getZones();
+    List<Zone> getByOrgAndType(UUID orgId, Type type) {
+        // Get the default zones of this org and type
+        List<Zone> defaultOrgAndTypeZones = getDefaultZones().stream()
+                .filter(zone -> zone.getType().equals(type))
+                // TODO: Default zones don't have an orgId. Hermes fails if filtered on orgId for default zones.
+                // .filter(zone -> zone.getOrgId() != null && zone.getOrgId().toString().equals(orgId.toString()))
+                .collect(Collectors.toList());
+        if (type == VMC_AWS) {
+            // If type is VMC_AWS, only return filtered default zones
+            return defaultOrgAndTypeZones;
         } else {
-            Organization org = organizationService.get(authHelper.getOrganizationId());
-            return getByOrganization(org);
+            // For type ON_PREM or NONE, add additional zones of this org and type that are not in default zones
+            // Filtering out default zones here in case there are default ON_PREM/NONE zones in migrations
+            String json = JSONObject.toJSONString(Collections.singletonMap("type", type.toString()));
+            List<Zone> additionalOrgAndTypeZones = genericDao.getJsonByParentQuery(orgId, json, Zone.class).stream()
+                                                    .filter(zone -> !defaultZoneIdSet.contains(zone.getId().toString()))
+                                                    .collect(Collectors.toList());
+            additionalOrgAndTypeZones.addAll(defaultOrgAndTypeZones);
+            return additionalOrgAndTypeZones;
         }
-
     }
 
-    /**
-     * Get the specific zone if this user is authorized to see it.
-     * @param zoneId Zone we want
-     * @return Zone if we are authorized to see it.
-     */
-    public Zone getAuthorized(UUID zoneId) {
-        Zone zone = get(zoneId);
-        if (authHelper.isSystemAdmin()) {
-            return zone;
-        }
-        // Fist check if we have access to this type of zone
-        Organization org = organizationService.get(authHelper.getOrganizationId());
-        if (getAuthorizedTypes(org).contains(zone.getType())) {
-            // next, if this is an onprem zone, see if this belongs to our org
-            if (zone.getType().equals(ON_PREM)) {
-                if (!((OnPremZone) zone).getOrgId().equals(org.getId())) {
-                    throw new NotFoundException(ErrorCode.NOT_FOUND);
-                }
-            }
-            return zone;
-        }
-        throw new NotFoundException(ErrorCode.NOT_FOUND);
+    List<Zone> getAllZonesByType(Zone.Type type) {
+        String json = JSONObject.toJSONString(Collections.singletonMap("type", type.toString()));
+        return genericDao.getByJsonQuery(json, Zone.class);
     }
 
-    public void delete(UUID zoneId) {
-        genericDao.delete(zoneId, Zone.class);
+    List<OnPremZone> getOnpremZones(UUID orgId) {
+        String json = JSONObject.toJSONString(Collections.singletonMap("type", ON_PREM.toString()));
+        return genericDao.getJsonByParentQuery(orgId, json, OnPremZone.class);
     }
+
 }
