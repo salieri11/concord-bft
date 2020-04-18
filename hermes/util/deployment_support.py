@@ -14,6 +14,8 @@ import subprocess
 import tempfile
 import time
 
+deployment_support_bundle_base_dir = "/var/log/deployment_support_logs"
+
 files_folders_to_backup = [
    "/config",
    "/var/log/healthd.log",
@@ -139,7 +141,8 @@ if __name__ == '__main__':
    log = logging.getLogger(__name__)
 
    time_stamp=time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
-   deployment_support_bundle_base_dir = tempfile.gettempdir()
+   if not os.path.exists(deployment_support_bundle_base_dir):
+      os.makedirs(deployment_support_bundle_base_dir)
    deployment_support_bundle_name = "deployment-support-bundle_{}_{}".format(
       args.concordIP, time_stamp)
    deployment_support_bundle_dir_path = os.path.join(
