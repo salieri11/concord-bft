@@ -194,6 +194,7 @@ class ImageManager():
                 self.logger.error("Unable to retrieve manifest for "
                                   "product %s error %s"
                                   % (artifact, req.text))
+                tag_dict.pop(artifact)
         return tag_dict
 
     def pull_from_artifactory(self, tags, repo=None):

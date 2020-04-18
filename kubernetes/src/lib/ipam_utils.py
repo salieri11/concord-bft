@@ -50,5 +50,7 @@ def delete_ipam_entry(nw_name, ipaddr, cidr, sddc_id):
     os.remove(cert_path)
     if rc == 0:
         logger.info("Successfully removed ipam entry %s" % ipaddr)
+        return True
     else:
-        logger.error("Error cleaning up ipam entry %s" % rv)
+        logger.error("Error cleaning up ipam entry %s:%s" % (ipaddr, rv))
+        return False
