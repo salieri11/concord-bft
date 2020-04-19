@@ -8,8 +8,8 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <string_view>
 #include <utility>
+#include "client_pool_config.hpp"
 #include "external_client.hpp"
 
 namespace concord {
@@ -35,24 +35,26 @@ enum SubmitResult {
 //  client
 class ConcordClientPool {
  public:
-  ConcordClientPool(std::string_view config_file_path);
-
+  // Constructs the clients pool by passing absolute path to concord
+  // configuration file.
+  // Construction executes all needed steps to provide a ready-to-use
+  // object (including starting internal threads, if needed).
+  ConcordClientPool(std::string config_file_path);
+  // constructor that gets the configuration on istream type,
+  // helps on testing
   ConcordClientPool(std::istream& config_stream);
 
   ~ConcordClientPool();
 
-  SubmitResult SendASyncRequest(const void* request, std::uint32_t request_size,
-                                bftEngine::ClientMsgFlag flags,
-                                std::chrono::milliseconds timeout_ms,
-                                std::uint32_t reply_size, void* out_reply,
-                                std::uint32_t* out_actual_reply_size,
-                                const std::string& correlation_id = {});
+  SubmitResult SendRequest(const void* request, std::uint32_t request_size,
+                           bftEngine::ClientMsgFlag flags,
+                           std::chrono::milliseconds timeout_ms,
+                           std::uint32_t reply_size, void* out_reply,
+                           std::uint32_t* out_actual_reply_size,
+                           const std::string& correlation_id = {});
 
   void InsertClientToQueue(
-      std::shared_ptr<concord::external_client::ConcordClient> client) {
-    std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
-    clients_.push(client);
-  }
+      std::shared_ptr<concord::external_client::ConcordClient>& client);
 
  private:
   // Clients that are available for use (i.e. not already in use).
@@ -72,8 +74,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
       bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
       std::uint32_t reply_size, void* out_reply,
       std::uint32_t* out_actual_reply_size, const std::string& correlation_id)
-      : clients_{clients},
-        client_{std::move(client)},
+      : clients_pool_{clients},
+        processing_client_{std::move(client)},
         request_{request},
         request_size_{request_size},
         flags_{flags},
@@ -90,8 +92,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   void execute() override;
 
  private:
-  concord_client_pool::ConcordClientPool& clients_;
-  std::shared_ptr<external_client::ConcordClient> client_;
+  concord_client_pool::ConcordClientPool& clients_pool_;
+  std::shared_ptr<external_client::ConcordClient> processing_client_;
   const void* request_;
   std::uint32_t request_size_;
   bftEngine::ClientMsgFlag flags_;

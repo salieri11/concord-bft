@@ -1993,16 +1993,16 @@ ConcordConfiguration::ParameterStatus sizeExternalClients(
     size_t* output, void* state) {
   assert(output);
 
-  if (!(config.hasValue<uint16_t>("num_clients_proxies"))) {
+  if (!(config.hasValue<uint16_t>("num_of_external_clients"))) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  if (!((config.validate("num_clients_proxies") ==
+  if (!((config.validate("num_of_external_clients") ==
          ConcordConfiguration::ParameterStatus::VALID))) {
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
 
   uint16_t num_clients_proxies =
-      config.getValue<uint16_t>("num_clients_proxies");
+      config.getValue<uint16_t>("num_of_external_clients");
   size_t numExternal = (size_t)num_clients_proxies;
   if (numExternal > (size_t)UINT16_MAX) {
     return ConcordConfiguration::ParameterStatus::INVALID;

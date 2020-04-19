@@ -1,20 +1,14 @@
 // Copyright 2020 VMware, all rights reserved
 
 #pragma once
-#include <SimpleThreadPool.hpp>
+
 #include <bftengine/SimpleClient.hpp>
 #include <chrono>
+#include <config/communication.hpp>
 #include <cstdint>
-#include <istream>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <string_view>
-#include <thread>
 #include "StatusInfo.h"
-#include "concord_client_pool.hpp"
 #include "external_client_exception.hpp"
-using util::SimpleThreadPool;
+
 namespace bftEngine {
 class ICommunication;
 }
@@ -40,21 +34,12 @@ namespace external_client {
 //  client
 class ConcordClient {
  public:
-  // Constructs the client by passing an absolute path to the configuration
-  // file. Construction executes all needed steps to provide a ready-to-use
-  // object (including starting internal threads, if needed). The
-  // status_callback function is called by the client to report peer
-  // connectivity status. Errors are reported by throwing from the constructor.
-  ConcordClient(std::string_view config_file_path);
-
-  // Constructs the client by passing an input stream to the configuration file.
-  // Construction executes all needed steps to provide a ready-to-use object
-  // (including starting internal threads, if needed). The status_callback
-  // function is called by the client to report peer connectivity status. Errors
-  // are reported by throwing from the constructor.
-  ConcordClient(std::istream& config_stream);
-
-  ConcordClient(concord::config::ConcordConfiguration config, int client_id);
+  // Constructs the client by passing concord configuration
+  // object and a client_id to get the specific values for this client.
+  // Construction executes all needed steps to provide a ready-to-use
+  // object (including starting internal threads, if needed).
+  ConcordClient(concord::config::ConcordConfiguration const& config,
+                int const& client_id);
 
   // Destructs the client. This includes stopping any internal threads, if
   // needed.
@@ -70,24 +55,23 @@ class ConcordClient {
   //  - out_reply[out]: a reply buffer
   //  - out_actual_reply_size[out]: the actual size in bytes written to the
   //  reply buffer
-  //
+  //  -correlation_id: the correlation id of the request, defualt value - empty
+  //  string
   // This method doesn't allocate or deallocate memory. All buffers should be
   // managed by the user.
-  //
-  // Throws a ClientRequestException on known errors and any other exception on
-  // unknown ones.
-
-  void SendRequestASync(const void* request, std::uint32_t request_size,
-                        bftEngine::ClientMsgFlag flags,
-                        std::chrono::milliseconds timeout_ms,
-                        std::uint32_t reply_size, void* out_reply,
-                        std::uint32_t* out_actual_reply_size,
-                        const std::string& correlation_id = {});
+  void SendRequest(const void* request, std::uint32_t request_size,
+                   bftEngine::ClientMsgFlag flags,
+                   std::chrono::milliseconds timeout_ms,
+                   std::uint32_t reply_size, void* out_reply,
+                   std::uint32_t* out_actual_reply_size,
+                   const std::string& correlation_id = {});
 
  private:
-  void Initialize(std::istream& config_stream);
-  void CreateClient(const config::ConcordConfiguration&);
-  void CreateClient(const config::ConcordConfiguration&, int client_id);
+  void CreateClient(config::ConcordConfiguration const& config,
+                    int const& client_id);
+  void CreateCommConfig(config::CommConfig& comm_config,
+                        config::ConcordConfiguration const& config,
+                        int const& num_replicas, int const& client_id);
 
   std::unique_ptr<::bftEngine::ICommunication> comm_;
   std::unique_ptr<kvbc::IClient> client_;

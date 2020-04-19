@@ -25,12 +25,14 @@ TEST(external_client_test, parse_valid_config_file) {
 }
 
 // configuration file tests
-TEST(external_client_configuration_test, num_client_proxies_le_to_0) {
+TEST(external_client_configuration_test, num_external_clients_le_to_0) {
   const auto conf =
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: -1\n"
+      "num_of_external_clients: -1\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -58,7 +60,7 @@ TEST(external_client_configuration_test, num_client_proxies_le_to_0) {
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: 4\n"
       "         client_host: concord1\n"
@@ -85,12 +87,14 @@ TEST(external_client_configuration_test, num_client_proxies_le_to_0) {
                ConfigurationException);
 }
 
-TEST(external_client_configuration_test, num_client_proxies_gt_4096) {
+TEST(external_client_configuration_test, num_external_clients_gt_4096) {
   const auto conf =
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: 4097\n"
+      "num_of_external_clients: 4097\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -118,7 +122,7 @@ TEST(external_client_configuration_test, num_client_proxies_gt_4096) {
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: 4\n"
       "         client_host: concord1\n"
@@ -146,12 +150,14 @@ TEST(external_client_configuration_test, num_client_proxies_gt_4096) {
 }
 
 TEST(external_client_configuration_test,
-     num_client_proxies_lt_defined_clients) {
+     num_external_clients_lt_defined_clients) {
   const auto conf =
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: 2\n"
+      "num_of_external_clients: 2\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -179,7 +185,7 @@ TEST(external_client_configuration_test,
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: 4\n"
       "         client_host: concord1\n"
@@ -210,7 +216,9 @@ TEST(external_client_configuration_test, undefined_client_port) {
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: 2\n"
+      "num_of_external_clients: 2\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -238,7 +246,7 @@ TEST(external_client_configuration_test, undefined_client_port) {
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: 4\n"
       "         client_host: concord1\n"
@@ -270,7 +278,9 @@ TEST(external_client_configuration_test, undefined_client_host) {
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: 2\n"
+      "num_of_external_clients: 2\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -298,7 +308,7 @@ TEST(external_client_configuration_test, undefined_client_host) {
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: 4\n"
       "         client_host: \n"
@@ -330,7 +340,9 @@ TEST(external_client_configuration_test, undefined_client_principal_id) {
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "num_clients_proxies: 2\n"
+      "num_of_external_clients: 2\n"
+      "min_num_of_external_clients: 1\n"
+      "max_num_of_external_clients: 4096\n"
       "comm_to_use: tls\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
       "tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384\n"
@@ -358,7 +370,7 @@ TEST(external_client_configuration_test, undefined_client_principal_id) {
       "      - principal_id: 3\n"
       "        replica_host: concord4\n"
       "        replica_port: 3501\n"
-      "client_proxies:\n"
+      "external_clients:\n"
       "   - client:\n"
       "       - principal_id: \n"
       "         client_host: concord1\n"
