@@ -3,13 +3,9 @@
 #pragma once
 
 #include <SimpleThreadPool.hpp>
-#include <bftengine/SimpleClient.hpp>
-#include <chrono>
-#include <memory>
+#include <config/configuration_manager.hpp>
 #include <mutex>
 #include <queue>
-#include <utility>
-#include "client_pool_config.hpp"
 #include "external_client.hpp"
 
 namespace concord {
@@ -45,7 +41,12 @@ class ConcordClientPool {
   ConcordClientPool(std::istream& config_stream);
 
   ~ConcordClientPool();
-
+  // This method is responsible to deal with requests in an asynchronous way,
+  // for each request that comes, we will check if there is an available client
+  // to deal with the problem if there is a client the request enters into a
+  // thread pool and a positive answer is immediately returned to the
+  // application. If there is no available client, a negative answer is returned
+  // to the application.
   SubmitResult SendRequest(const void* request, std::uint32_t request_size,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,

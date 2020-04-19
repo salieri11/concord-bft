@@ -4,9 +4,10 @@
 
 #include <bftengine/SimpleClient.hpp>
 #include <chrono>
-#include <config/communication.hpp>
 #include <cstdint>
+#include <utility>
 #include "StatusInfo.h"
+#include "client_pool_config.hpp"
 #include "external_client_exception.hpp"
 
 namespace bftEngine {
@@ -39,7 +40,7 @@ class ConcordClient {
   // Construction executes all needed steps to provide a ready-to-use
   // object (including starting internal threads, if needed).
   ConcordClient(concord::config::ConcordConfiguration const& config,
-                int const& client_id);
+                int client_id);
 
   // Destructs the client. This includes stopping any internal threads, if
   // needed.
@@ -67,11 +68,10 @@ class ConcordClient {
                    const std::string& correlation_id = {});
 
  private:
-  void CreateClient(config::ConcordConfiguration const& config,
-                    int const& client_id);
+  void CreateClient(config::ConcordConfiguration const& config, int client_id);
   void CreateCommConfig(config::CommConfig& comm_config,
                         config::ConcordConfiguration const& config,
-                        int const& num_replicas, int const& client_id);
+                        int num_replicas, int client_id);
 
   std::unique_ptr<::bftEngine::ICommunication> comm_;
   std::unique_ptr<kvbc::IClient> client_;

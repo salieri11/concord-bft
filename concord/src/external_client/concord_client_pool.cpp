@@ -1,18 +1,14 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "concord_client_pool.hpp"
-#include <config/configuration_manager.hpp>
-#include <fstream>
-#include "client_pool_config.hpp"
-#include "external_client.hpp"
 
 namespace concord {
 
 namespace concord_client_pool {
 
-using config::ConcordConfiguration;
-// using namespace concord::external_client;
 using bftEngine::ClientMsgFlag;
+using config::ConcordConfiguration;
+using namespace config_pool;
 
 SubmitResult ConcordClientPool::SendRequest(
     const void *request, std::uint32_t request_size, ClientMsgFlag flags,
@@ -38,8 +34,7 @@ SubmitResult ConcordClientPool::SendRequest(
 ConcordClientPool::ConcordClientPool(std::istream &config_stream) {
   ConcordConfiguration config;
   concord::config_pool::ParseConfig(config_stream, config);
-  uint16_t num_clients =
-      config.getValue<std::uint16_t>("num_of_external_clients");
+  uint16_t num_clients = config.getValue<std::uint16_t>(NUM_EXTERN_VAR);
   for (int i = 0; i < num_clients; i++) {
     auto client = std::make_shared<external_client::ConcordClient>(config, i);
     clients_.push(std::move(client));
