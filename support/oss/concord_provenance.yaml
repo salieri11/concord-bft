@@ -180,7 +180,7 @@ other:libzstd-dev:1.4:
  name: libzstd-dev
  version: 1.4
  repository: Other
- url: https://packages.ubuntu.com/bionic/libzstd-dev
+ url: https://github.com/facebook/zstd/tree/v1.4.0
 
 other:cmake:3.10.2:
  name: cmake
@@ -226,7 +226,7 @@ other:libgmp3-dev:6.1.2:
  name: libgmp3
  version: 6.1.2
  repository: Other
- url: http://git.savannah.gnu.org/cgit/libtool.git
+ url: https://packages.ubuntu.com/bionic/libgmp3-dev
 
 other:bzip2:1.0.8:
  name: bzip2
@@ -256,8 +256,8 @@ other:rapidcheck:258d907da00a0855f92c963d8f76eef115531716:
  license: BSD 2-Clause
  url: https://github.com/emil-e/rapidcheck
 
-other:Libtool:
+other:Libtool:2.4.6
  name: Libtool
- version: 1.0
+ version: 2.4.6
  repository: Other
- url: https://packages.ubuntu.com/bionic/libgmp3-dev
+ url: https://launchpad.net/ubuntu/+source/libtool/2.4.6-2
