@@ -541,7 +541,7 @@ def call(){
                 ) {
 
                 dir('blockchain'){
-                  def latest_docker_tag = artifactory.getLatestTag()
+                  def latest_docker_tag = artifactorylib.getLatestTag()
                 }
                 setDockerTag(latest_docker_tag)
               } else {
