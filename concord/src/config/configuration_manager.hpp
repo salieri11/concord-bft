@@ -1530,14 +1530,6 @@ ConcordConfiguration::ParameterStatus sizeNodes(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state);
 
-ConcordConfiguration::ParameterStatus sizeExternalClients(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state);
-
-ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state);
-
 // Computes the number of SBFT replicas per Concord node. Note that, at the time
 // of this writing, we assume there is exactly one SBFT replica per Concord
 // node.

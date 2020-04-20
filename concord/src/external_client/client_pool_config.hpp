@@ -59,6 +59,15 @@ config::ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     const config::ConfigurationPath& path, std::string* failure_message,
     void* state);
 
+config::ConcordConfiguration::ParameterStatus sizeExternalClients(
+    const config::ConcordConfiguration& config,
+    const config::ConfigurationPath& path, size_t* output, void* state);
+
+config::ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
+    const std::string& value, const config::ConcordConfiguration& config,
+    const config::ConfigurationPath& path, std::string* failure_message,
+    void* state);
+
 void SpecifyClientConfiguration(config::ConcordConfiguration& config);
 
 void SpecifyGeneralConfiguration(config::ConcordConfiguration& config);

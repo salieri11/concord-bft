@@ -66,13 +66,75 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
+ConcordConfiguration::ParameterStatus sizeExternalClients(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  if (!(config.hasValue<uint16_t>("num_of_external_clients"))) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((config.validate("num_of_external_clients") ==
+         ConcordConfiguration::ParameterStatus::VALID))) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  uint16_t num_clients_proxies =
+      config.getValue<uint16_t>("num_of_external_clients");
+  size_t numExternal = (size_t)num_clients_proxies;
+  if (numExternal > (size_t)UINT16_MAX) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  *output = numExternal;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state) {
+  if (const auto res = validateUInt(
+          value, config, path, failure_message,
+          const_cast<void*>(
+              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
+      res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+
+  if (!config.hasValue<int>("client_initial_retry_timeout_milli") ||
+      !config.hasValue<int>("client_max_retry_timeout_milli")) {
+    if (failure_message) {
+      *failure_message =
+          "Cannot validate timeouts milli- some field not initialized";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+
+  auto initial =
+      config.getValue<uint16_t>("client_initial_retry_timeout_milli");
+  auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
+  auto min = std::stoull(value);
+  if (min < 1 || min > UINT_LEAST16_MAX)
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  if (max < 1 || max > UINT_LEAST16_MAX)
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  if (initial < min || initial > max) {
+    if (failure_message) {
+      *failure_message =
+          "Invalid value , value has to be between min to max retry timeout "
+          "milli";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 void SpecifyClientConfiguration(ConcordConfiguration& config) {
   config.declareParameter(NUM_EXTERN_VAR,
                           "Total number of BFT clients in this deployment.");
   config.addValidator(NUM_EXTERN_VAR, ValidateNumClients, nullptr);
   config.declareScope(EXTERNAL_CLIENTS_VAR,
                       "External client pool params replicas",
-                      config::sizeExternalClients, nullptr);
+                      sizeExternalClients, nullptr);
   auto& external_clients = config.subscope(EXTERNAL_CLIENTS_VAR);
   external_clients.declareScope(CLIENT_VAR, "One external client params",
                                 config::sizeReplicas, nullptr);
@@ -156,7 +218,7 @@ void SpecifySimpleClientParams(ConcordConfiguration& config) {
   config.declareParameter(MIN_RETRY_VAR, "Min retry timeout configuration",
                           "50");
   config.addValidator(
-      MIN_RETRY_VAR, config::ValidateTimeOutMilli,
+      MIN_RETRY_VAR, ValidateTimeOutMilli,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
   config.declareParameter(MAX_RETRY_VAR, "Max retry timeout configuration",
                           "1000");

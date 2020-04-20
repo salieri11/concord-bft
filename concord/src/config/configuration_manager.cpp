@@ -1988,68 +1988,6 @@ static ConcordConfiguration::ParameterStatus sizeClientProxies(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration::ParameterStatus sizeExternalClients(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
-
-  if (!(config.hasValue<uint16_t>("num_of_external_clients"))) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  if (!((config.validate("num_of_external_clients") ==
-         ConcordConfiguration::ParameterStatus::VALID))) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-
-  uint16_t num_clients_proxies =
-      config.getValue<uint16_t>("num_of_external_clients");
-  size_t numExternal = (size_t)num_clients_proxies;
-  if (numExternal > (size_t)UINT16_MAX) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  *output = numExternal;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state) {
-  if (const auto res = validateUInt(
-          value, config, path, failure_message,
-          const_cast<void*>(
-              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
-      res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-
-  if (!config.hasValue<int>("client_initial_retry_timeout_milli") ||
-      !config.hasValue<int>("client_max_retry_timeout_milli")) {
-    if (failure_message) {
-      *failure_message =
-          "Cannot validate timeouts milli- some field not initialized";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  auto initial =
-      config.getValue<uint16_t>("client_initial_retry_timeout_milli");
-  auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
-  auto min = std::stoull(value);
-  if (min < 1 || min > UINT_LEAST16_MAX)
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  if (max < 1 || max > UINT_LEAST16_MAX)
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  if (initial < min || initial > max) {
-    if (failure_message) {
-      *failure_message =
-          "Invalid value , value has to be between min to max retry timeout "
-          "milli";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
 static ConcordConfiguration::ParameterStatus validateBoolean(
     const string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, string* failureMessage, void* state) {
