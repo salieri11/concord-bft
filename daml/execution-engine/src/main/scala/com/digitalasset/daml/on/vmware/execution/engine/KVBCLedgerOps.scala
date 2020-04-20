@@ -3,7 +3,12 @@ package com.digitalasset.daml.on.vmware.execution.engine
 import com.daml.ledger.validator.batch.BatchLedgerOpsWithAccessControl
 import com.daml.ledger.validator.batch.BatchLedgerOpsWithAccessControl.{Key, Value}
 import com.daml.ledger.validator.privacy.{AccessControlList, PublicAccess, RestrictedAccess}
-import com.digitalasset.kvbc.daml_validator.{EventToValidator, KeyValuePair, ProtectedKeyValuePair, EventFromValidator}
+import com.digitalasset.kvbc.daml_validator.{
+  EventToValidator,
+  KeyValuePair,
+  ProtectedKeyValuePair,
+  EventFromValidator
+}
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Read, Write}
 import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
@@ -11,7 +16,9 @@ import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(implicit val executionContext: ExecutionContext) extends BatchLedgerOpsWithAccessControl {
+class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(
+    implicit val executionContext: ExecutionContext)
+    extends BatchLedgerOpsWithAccessControl {
   private var nextReadTag = 0
   private val readPromises = mutable.Map.empty[Int, Promise[Seq[KeyValuePair]]]
 
@@ -22,11 +29,13 @@ class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(implicit val executio
     logger.trace(s"Handling read result for $readTag")
 
     val promise =
-      this.synchronized {
-        readPromises.remove(readTag)
-      }.getOrElse(
-        sys.error(s"No read request for id $readTag!")
-      )
+      this
+        .synchronized {
+          readPromises.remove(readTag)
+        }
+        .getOrElse(
+          sys.error(s"No read request for id $readTag!")
+        )
 
     logger.trace(s"Completing promise with ${result.keyValuePairs.size} key-value pairs")
     promise.success(result.keyValuePairs)
@@ -45,16 +54,14 @@ class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(implicit val executio
 
     logger.trace(s"Sending read request: $readTag")
 
-    sendEvent(EventFromValidator().withRead(
-      Read(
-        tag = readTag.toString,
-        keys = keys)))
+    sendEvent(EventFromValidator().withRead(Read(tag = readTag.toString, keys = keys)))
 
-    promise
-      .future
+    promise.future
       .map { keyValuePairs =>
         logger.trace(s"Key-value pairs received for $readTag")
-        val kvMap = keyValuePairs.map { pair => pair.key -> pair.value }.toMap
+        val kvMap = keyValuePairs.map { pair =>
+          pair.key -> pair.value
+        }.toMap
         keys.map { key =>
           val optValue = kvMap.get(key)
           optValue.flatMap { v =>
@@ -66,14 +73,18 @@ class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(implicit val executio
 
   override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] = Future {
     val protectedKeyValuePairs =
-      data.sortBy(_._1).map { case (key, value, acl) =>
-        ProtectedKeyValuePair(key, value,
-          acl match {
-            case PublicAccess => Seq.empty
-            case RestrictedAccess(participants) =>
-              if (participants.isEmpty) Seq("_")
-              else participants.map(x => x: String).toSeq.sorted
-          })
+      data.sortBy(_._1).map {
+        case (key, value, acl) =>
+          ProtectedKeyValuePair(
+            key,
+            value,
+            acl match {
+              case PublicAccess => Seq.empty
+              case RestrictedAccess(participants) =>
+                if (participants.isEmpty) Seq("_")
+                else participants.map(x => x: String).toSeq.sorted
+            }
+          )
       }
     sendEvent(EventFromValidator().withWrite(Write(protectedKeyValuePairs)))
   }

@@ -21,14 +21,15 @@ final case class ExtraConfig(
     jaegerAgentAddress: String,
     authService: Option[AuthService],
     enableBatching: Boolean, // Whether we're batching requests or not.
-    maxBatchQueueSize: Int,  // Number of submissions we're willing to queue before dropping.
+    maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
     maxBatchWaitDuration: FiniteDuration, // Maximum duration we're willing to wait to fill a batch.
-    maxBatchConcurrentCommits: Int, // Maximum number of concurrent commits.
+    maxBatchConcurrentCommits: Int
 )
 
 object ExtraConfig {
-  val DefaultParticipantId: IdString.ParticipantId = ParticipantId.assertFromString("standalone-participant")
+  val DefaultParticipantId: IdString.ParticipantId =
+    ParticipantId.assertFromString("standalone-participant")
 
   val Default = ExtraConfig(
     maxInboundMessageSize = Config.DefaultMaxInboundMessageSize,
@@ -55,7 +56,8 @@ object ExtraConfig {
       .text("Prints the version on stdout and exit.")
     parser
       .opt[Int]("maxInboundMessageSize")
-      .action((size, config) => config.copy(extra = config.extra.copy(maxInboundMessageSize = size)))
+      .action(
+        (size, config) => config.copy(extra = config.extra.copy(maxInboundMessageSize = size)))
       .text(
         s"Max inbound message size in bytes. Defaults to ${Config.DefaultMaxInboundMessageSize}.")
 
@@ -64,7 +66,8 @@ object ExtraConfig {
       .optional()
       .action((replicas, config) => config.copy(extra = config.extra.copy(replicas = replicas)))
       .valueName("<IP:PORT>,<IP:PORT>,...")
-      .text(s"List of replicas (<IP:PORT>). Initially, the server connects to the first replica in the list. Defaults to ${ExtraConfig.Default.replicas}.")
+      .text(
+        s"List of replicas (<IP:PORT>). Initially, the server connects to the first replica in the list. Defaults to ${ExtraConfig.Default.replicas}.")
     parser
       .opt[Unit]("use-thin-replica")
       .optional()
@@ -73,13 +76,16 @@ object ExtraConfig {
     parser
       .opt[Int]("max-faulty-replicas")
       .optional()
-      .action((maxFaultyReplicas, config) => config.copy(extra = config.extra.copy(maxFaultyReplicas = maxFaultyReplicas.toShort)))
+      .action((maxFaultyReplicas, config) =>
+        config.copy(extra = config.extra.copy(maxFaultyReplicas = maxFaultyReplicas.toShort)))
       .text("Maximum number of faulty replicas that thin replica client should tolerate.")
     parser
       .opt[String]("jaeger-agent-address")
       .optional()
-      .text(s"The address of the Jaeger agent in <HOST:PORT> format. Defaults to ${ExtraConfig.Default.jaegerAgentAddress}.")
-      .action((hostAndPort, config) => config.copy(extra = config.extra.copy(jaegerAgentAddress = hostAndPort)))
+      .text(
+        s"The address of the Jaeger agent in <HOST:PORT> format. Defaults to ${ExtraConfig.Default.jaegerAgentAddress}.")
+      .action((hostAndPort, config) =>
+        config.copy(extra = config.extra.copy(jaegerAgentAddress = hostAndPort)))
 
     //
     // auth-* parameters.
@@ -90,12 +96,17 @@ object ExtraConfig {
       .hidden()
       .validate(v => Either.cond(v.length > 0, (), "HMAC secret must be a non-empty string"))
       .text("[UNSAFE] Enables JWT-based authorization with shared secret HMAC256 signing: USE THIS EXCLUSIVELY FOR TESTING")
-      .action((secret, config) => config.copy(extra = config.extra.copy(authService = Some(AuthServiceJWT(HMAC256Verifier(secret).valueOr(err => sys.error(s"Failed to create HMAC256 verifier: $err")))))))
+      .action((secret, config) =>
+        config.copy(extra =
+          config.extra.copy(authService = Some(AuthServiceJWT(HMAC256Verifier(secret).valueOr(err =>
+            sys.error(s"Failed to create HMAC256 verifier: $err")))))))
+    // format: off
     parser.opt[String]("auth-jwt-rs256-crt")
       .optional()
       .validate(v => Either.cond(v.length > 0, (), "Certificate file path must be a non-empty string"))
       .text("Enables JWT-based authorization, where the JWT is signed by RSA256 with a public key loaded from the given X509 certificate file (.crt)")
       .action((path, config) => config.copy(extra = config.extra.copy(authService = Some(AuthServiceJWT(RSA256Verifier.fromCrtFile(path).valueOr(err => sys.error(s"Failed to create RSA256 verifier: $err")))))))
+    //format: on
     parser
       .opt[String]("auth-jwt-es256-crt")
       .optional()

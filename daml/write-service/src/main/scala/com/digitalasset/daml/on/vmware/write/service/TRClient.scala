@@ -10,9 +10,13 @@ import org.slf4j.LoggerFactory
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 
-class TRClient(clientId: String , maxFaulty: Short,
-               privateKey: String, servers: Array[String],
-               jaegerAgent: String, metricRegistry: MetricRegistry) {
+class TRClient(
+    clientId: String,
+    maxFaulty: Short,
+    privateKey: String,
+    servers: Array[String],
+    jaegerAgent: String,
+    metricRegistry: MetricRegistry) {
   import TRClient._
 
   private object Metrics {
@@ -23,13 +27,13 @@ class TRClient(clientId: String , maxFaulty: Short,
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   val trcCreated = Library.createTRC(clientId, maxFaulty, privateKey, servers, jaegerAgent)
-  if(trcCreated)
+  if (trcCreated)
     logger.info("Thin Replica Client created")
   else
     logger.error("Failed to create Thin Replica Client")
 
   def committedBlocks(offset: Long): Source[Block, NotUsed] =
-    if(trcCreated)
+    if (trcCreated)
       Source
         .unfoldResource[Block, Boolean](
           // open
@@ -42,20 +46,23 @@ class TRClient(clientId: String , maxFaulty: Short,
             if (offset > 0)
               Library.subscribe(Constants.fragmentKeyPrefix.toStringUtf8, offset)
             else
-              Library.subscribe(Constants.fragmentKeyPrefix.toStringUtf8)},
+              Library.subscribe(Constants.fragmentKeyPrefix.toStringUtf8)
+          },
           // read
-          subsResult => 
+          subsResult =>
             // None return signals end of resource
-            if(subsResult)
-                          Metrics.getBlockTimer.time(() => Library.pop)
-                        else
-                          None,
+            if (subsResult)
+              Metrics.getBlockTimer.time(() => Library.pop)
+            else
+            None,
           // close
           subsResult =>
             // Do nothing, unsubscribe should not be called here.
-            logger.info("Deleting thin replica instance"))
-        .dropWhile { committedTx => committedTx.blockId < offset }
-    else
+            logger.info("Deleting thin replica instance")
+        )
+        .dropWhile { committedTx =>
+          committedTx.blockId < offset
+        } else
       Source.empty
 }
 

@@ -29,8 +29,8 @@ class ConcordKeyValueLedgerReaderSpec
       val expectedKeyValuePairs =
         Seq((Array[Byte](0, 1), Array[Byte](2, 3)), (Array[Byte](0, 1, 2), Array[Byte](4, 5, 6)))
       when(blockSource.streamFrom(any()))
-        .thenReturn(Source.single(
-          Update(123, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
+        .thenReturn(
+          Source.single(Update(123, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
       val instance =
         new ConcordKeyValueLedgerReader(blockSource.streamFrom, "aLedgerId")
       val stream = instance.events(Some(KVOffset.fromLong(123)))
@@ -55,8 +55,8 @@ class ConcordKeyValueLedgerReaderSpec
       val expectedKeyValuePairs =
         Seq((Array[Byte](0, 1), Array[Byte](2, 3)))
       when(blockSource.streamFrom(ConcordKeyValueLedgerReader.StartIndex))
-        .thenReturn(Source.single(
-          Update(0, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
+        .thenReturn(
+          Source.single(Update(0, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
       val instance =
         new ConcordKeyValueLedgerReader(blockSource.streamFrom, "aLedgerId")
       val stream = instance.events(None)

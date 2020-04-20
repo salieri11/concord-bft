@@ -12,10 +12,7 @@ import org.scalatestplus.mockito.MockitoSugar
 
 import scala.concurrent.Future
 
-class ConcordLedgerWriterSpec
-    extends AsyncWordSpec
-    with Matchers
-    with MockitoSugar {
+class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSugar {
 
   private sealed trait CommitTransaction {
     def commit(request: CommitRequest): Future[CommitResponse]
@@ -28,14 +25,12 @@ class ConcordLedgerWriterSpec
   "ledger writer" should {
     "wrap parameters and call commitTransaction" in {
       val commitFunction = mock[CommitTransaction]
-      val requestCaptor = ArgumentCaptor.forClass[CommitRequest, CommitRequest](
-        classOf[CommitRequest])
+      val requestCaptor =
+        ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
       when(commitFunction.commit(requestCaptor.capture()))
         .thenReturn(Future.successful[CommitResponse](
           CommitResponse().withStatus(CommitResponse.CommitStatus.OK)))
-      val instance = new ConcordLedgerWriter(aLedgerId,
-                                             aParticipantId,
-                                             commitFunction.commit)
+      val instance = new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map { actual =>
         actual shouldBe SubmissionResult.Acknowledged
         val actualRequest = requestCaptor.getValue
@@ -50,9 +45,7 @@ class ConcordLedgerWriterSpec
       when(commitFunction.commit(any()))
         .thenReturn(Future.successful[CommitResponse](
           CommitResponse().withStatus(CommitResponse.CommitStatus.ERROR)))
-      val instance = new ConcordLedgerWriter(aLedgerId,
-                                             aParticipantId,
-                                             commitFunction.commit)
+      val instance = new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map {
         case SubmissionResult.InternalError(reason) =>
           reason should include("ERROR")
@@ -67,9 +60,7 @@ class ConcordLedgerWriterSpec
         new IllegalArgumentException("Something went wrong")
       when(commitFunction.commit(any()))
         .thenReturn(Future.failed[CommitResponse](expectedException))
-      val instance = new ConcordLedgerWriter(aLedgerId,
-                                             aParticipantId,
-                                             commitFunction.commit)
+      val instance = new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map {
         case SubmissionResult.InternalError(reason) =>
           reason should include("Something went wrong")
@@ -84,9 +75,7 @@ class ConcordLedgerWriterSpec
         new StatusRuntimeException(Status.RESOURCE_EXHAUSTED)
       when(commitFunction.commit(any()))
         .thenReturn(Future.failed[CommitResponse](expectedException))
-      val instance = new ConcordLedgerWriter(aLedgerId,
-                                             aParticipantId,
-                                             commitFunction.commit)
+      val instance = new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map { actual =>
         actual shouldBe SubmissionResult.Overloaded
       }
@@ -97,9 +86,7 @@ class ConcordLedgerWriterSpec
       val expectedException = new StatusRuntimeException(Status.ABORTED)
       when(commitFunction.commit(any()))
         .thenReturn(Future.failed[CommitResponse](expectedException))
-      val instance = new ConcordLedgerWriter(aLedgerId,
-                                             aParticipantId,
-                                             commitFunction.commit)
+      val instance = new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map {
         case SubmissionResult.InternalError(_) =>
           succeed

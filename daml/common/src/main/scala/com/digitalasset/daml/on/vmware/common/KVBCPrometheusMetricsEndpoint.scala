@@ -25,7 +25,9 @@ object KVBCPrometheusMetricsEndpoint {
       override def close(): Unit = CollectorRegistry.defaultRegistry.unregister(collector)
     }
 
-  def createEndpoint(registries: List[MetricRegistry], context: ServletContextHandler): AutoCloseable =
+  def createEndpoint(
+      registries: List[MetricRegistry],
+      context: ServletContextHandler): AutoCloseable =
     new AutoCloseable {
       private[this] val collectors = mutable.ListBuffer[DropwizardExports]()
 
@@ -34,7 +36,7 @@ object KVBCPrometheusMetricsEndpoint {
           val collector = new DropwizardExports(registry)
           collectors += collector
           collector
-        })
+      })
 
       context.addServlet(new ServletHolder(new MetricsServlet()), "/metrics")
 

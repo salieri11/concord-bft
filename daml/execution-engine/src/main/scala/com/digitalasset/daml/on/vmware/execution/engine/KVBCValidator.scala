@@ -8,7 +8,12 @@ import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, 
 import com.daml.ledger.participant.state.pkvutils
 import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
-import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, FragmentingLedgerOps, InternalBatchLedgerOps}
+import com.daml.ledger.validator.batch.{
+  BatchValidator,
+  BatchValidatorParameters,
+  FragmentingLedgerOps,
+  InternalBatchLedgerOps
+}
 import com.daml.lf.data.{Ref, Time}
 import com.daml.lf.engine.Engine
 import com.digitalasset.daml.on.vmware.common.Constants
@@ -58,17 +63,20 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
     val cacheSizeEnv = System.getenv("KVBC_VALIDATOR_CACHE_SIZE")
     val cacheSize =
       if (cacheSizeEnv == null) {
-        logger.warn("KVBC_VALIDATOR_CACHE_SIZE unset, defaulting to 'KVBC_VALIDATOR_CACHE_SIZE=256' (megabytes)")
+        logger.warn(
+          "KVBC_VALIDATOR_CACHE_SIZE unset, defaulting to 'KVBC_VALIDATOR_CACHE_SIZE=256' (megabytes)")
         256 * 1024 * 1024
       } else {
         cacheSizeEnv.toInt
       }
 
     Scaffeine()
-      .recordStats({ () => new KVBCMetricsStatsCounter(registry) })
+      .recordStats({ () =>
+        new KVBCMetricsStatsCounter(registry)
+      })
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
-      .weigher[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue]{
+      .weigher[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] {
         case (k: (ReplicaId, KV.DamlStateKey), v: KV.DamlStateValue) =>
           k._2.getSerializedSize + v.getSerializedSize
       }
@@ -76,13 +84,12 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
   }
 
   case class PendingSubmission(
-    participantId: ParticipantId,
-    entryId: RawEntryId,
-    recordTime: Time.Timestamp,
-    submission: KV.DamlSubmission,
-    inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]]
+      participantId: ParticipantId,
+      entryId: RawEntryId,
+      recordTime: Time.Timestamp,
+      submission: KV.DamlSubmission,
+      inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]]
   )
-
 
   // Pending submissions for each replica that require further state to process.
   // We only keep the last submission and assume that each replica executes each
@@ -120,110 +127,117 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       }
     }
 
-  override def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
-    val replicaId = request.replicaId
-    val correlationId = request.correlationId
+  override def validatePendingSubmission(
+      request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] =
+    catchedTimedFutureThunk(Metrics.validatePendingTimer) {
+      val replicaId = request.replicaId
+      val correlationId = request.correlationId
 
-    logger.trace(s"Completing submission, replicaId=$replicaId correlationId=$correlationId")
+      logger.trace(s"Completing submission, replicaId=$replicaId correlationId=$correlationId")
 
-    val pendingSubmission =
+      val pendingSubmission =
         pendingSubmissions
           .remove(replicaId)
-          .getOrElse(sys.error(s"No pending submission for ${replicaId}, correlationId=$correlationId"))
+          .getOrElse(
+            sys.error(s"No pending submission for ${replicaId}, correlationId=$correlationId"))
 
-    Metrics.pendingSubmissions.dec()
+      Metrics.pendingSubmissions.dec()
 
-    if (pendingSubmission.entryId != request.entryId) {
-      sys.error(s"Entry ids don't match, pending=${pendingSubmission.entryId} supplied=${request.entryId} correlationId=$correlationId")
+      if (pendingSubmission.entryId != request.entryId) {
+        sys.error(
+          s"Entry ids don't match, pending=${pendingSubmission.entryId} supplied=${request.entryId} correlationId=$correlationId")
+      }
+
+      val providedInputs: StateInputs =
+        request.inputState.map { kv =>
+          val key =
+            keyValueCommitting.unpackDamlStateKey(kv.key.substring(1))
+
+          key ->
+            (if (kv.value.isEmpty)
+               None
+             else {
+               Envelope.open(kv.value) match {
+                 case Right(Envelope.StateValueMessage(v)) =>
+                   cache.put(replicaId -> key, v)
+                   Some(v)
+                 case _ =>
+                   logger.error(s"Corrupted state value of $key, correlationId=$correlationId")
+                   throw new StatusRuntimeException(
+                     Status.INVALID_ARGUMENT.withDescription("Corrupted input state value")
+                   )
+               }
+             })
+        }.toMap
+
+      val result = processPendingSubmission(
+        replicaId,
+        pendingSubmission.copy(inputState = pendingSubmission.inputState ++ providedInputs),
+        correlationId
+      )
+      ValidatePendingSubmissionResponse(Some(result))
     }
 
-    val providedInputs: StateInputs =
-      request.inputState.map { kv =>
-        val key =
-          keyValueCommitting.unpackDamlStateKey(kv.key.substring(1))
+  override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] =
+    catchedTimedFutureThunk(Metrics.validateTimer) {
+      val replicaId = request.replicaId
+      val participantId = Ref.ParticipantId.assertFromString(request.participantId)
+      val correlationId = request.correlationId
 
-        key ->
-          (if (kv.value.isEmpty)
-            None
-          else {
-            Envelope.open(kv.value) match {
-              case Right(Envelope.StateValueMessage(v)) =>
-                cache.put(replicaId -> key, v)
-                Some(v)
-              case _ =>
-                logger.error(s"Corrupted state value of $key, correlationId=$correlationId")
-                throw new StatusRuntimeException(
-                  Status.INVALID_ARGUMENT.withDescription("Corrupted input state value")
-                )
-            }
-          })
-      }
-      .toMap
+      logger.trace(
+        s"Validating submission, replicaId=$replicaId participantId=${request.participantId} correlationId=$correlationId")
 
-    val result = processPendingSubmission(
-      replicaId,
-      pendingSubmission.copy(inputState = pendingSubmission.inputState ++ providedInputs),
-      correlationId
-    )
-    ValidatePendingSubmissionResponse(Some(result))
-  }
+      Metrics.submissionSizes.update(request.submission.size())
 
-  override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
-    val replicaId = request.replicaId
-    val participantId = Ref.ParticipantId.assertFromString(request.participantId)
-    val correlationId = request.correlationId
+      // Unpack the submission.
+      val submission =
+        Envelope.open(request.submission) match {
+          case Right(Envelope.SubmissionMessage(submission)) => submission
+          case _ =>
+            logger.error(s"Failed to parse submission, correlationId=$correlationId")
+            throw new StatusRuntimeException(
+              Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
+            )
+        }
 
-    logger.trace(s"Validating submission, replicaId=$replicaId participantId=${request.participantId} correlationId=$correlationId")
-
-    Metrics.submissionSizes.update(request.submission.size())
-
-    // Unpack the submission.
-    val submission =
-      Envelope.open(request.submission) match {
-        case Right(Envelope.SubmissionMessage(submission)) => submission
-        case _ =>
-          logger.error(s"Failed to parse submission, correlationId=$correlationId")
-          throw new StatusRuntimeException(
-            Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
-          )
-      }
-
-    // Pull inputs from cache and create the pending submission
-    val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
-    val cachedInputs: StateInputs =
-      cache.getAllPresent(allInputs.map(replicaId -> _)).map { case ((_, key), v) => key -> Some(v) }
-    val pendingSubmission = PendingSubmission(
-      participantId,
-      entryId = request.entryId,
-      recordTime = parseTimestamp(request.recordTime.get),
-      submission = submission,
-      inputState = cachedInputs
-    )
-
-    // Check if some inputs are missing, and if so return with NeedState, otherwise
-    // process the submission.
-    val missingInputs =
-      (allInputs -- cachedInputs.keySet)
-        .map(packStateKey)
-        .toSeq
-    Metrics.missingInputs.update(missingInputs.size)
-
-    if (missingInputs.nonEmpty) {
-      logger.info(s"Requesting missing inputs, size=${missingInputs.size} correlationId=$correlationId participantId=${pendingSubmission.participantId}")
-      pendingSubmissions(replicaId) = pendingSubmission
-      Metrics.pendingSubmissions.inc()
-      ValidateResponse(
-        ValidateResponse.Response.NeedState(
-          ValidateResponse.NeedState(missingInputs))
+      // Pull inputs from cache and create the pending submission
+      val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
+      val cachedInputs: StateInputs =
+        cache.getAllPresent(allInputs.map(replicaId -> _)).map {
+          case ((_, key), v) => key -> Some(v)
+        }
+      val pendingSubmission = PendingSubmission(
+        participantId,
+        entryId = request.entryId,
+        recordTime = parseTimestamp(request.recordTime.get),
+        submission = submission,
+        inputState = cachedInputs
       )
-    } else {
-      ValidateResponse(
-        ValidateResponse.Response.Result(
-          processPendingSubmission(replicaId, pendingSubmission, correlationId)
+
+      // Check if some inputs are missing, and if so return with NeedState, otherwise
+      // process the submission.
+      val missingInputs =
+        (allInputs -- cachedInputs.keySet)
+          .map(packStateKey)
+          .toSeq
+      Metrics.missingInputs.update(missingInputs.size)
+
+      if (missingInputs.nonEmpty) {
+        logger.info(
+          s"Requesting missing inputs, size=${missingInputs.size} correlationId=$correlationId participantId=${pendingSubmission.participantId}")
+        pendingSubmissions(replicaId) = pendingSubmission
+        Metrics.pendingSubmissions.inc()
+        ValidateResponse(
+          ValidateResponse.Response.NeedState(ValidateResponse.NeedState(missingInputs))
         )
-      )
+      } else {
+        ValidateResponse(
+          ValidateResponse.Response.Result(
+            processPendingSubmission(replicaId, pendingSubmission, correlationId)
+          )
+        )
+      }
     }
-  }
 
   val batchValidator =
     BatchValidator(
@@ -232,21 +246,22 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
     )
 
   class KVBCCachingInternalBatchLedgerOps(replicaId: ReplicaId, ops: InternalBatchLedgerOps)(
-    implicit executionContext: ExecutionContext)
-    extends InternalBatchLedgerOps {
+      implicit executionContext: ExecutionContext)
+      extends InternalBatchLedgerOps {
 
     private val readSet = mutable.Set.empty[KV.DamlStateKey]
 
     /** Return the set of state reads that have been performed.
-     * Includes both cached and actual reads.
-     * Useful when the read set is required for e.g. conflict detection. */
+      * Includes both cached and actual reads.
+      * Useful when the read set is required for e.g. conflict detection. */
     def getReadSet(): Set[KV.DamlStateKey] =
       this.synchronized { readSet.toSet }
 
     override def readState(keys: Seq[KV.DamlStateKey]): Future[Seq[Option[KV.DamlStateValue]]] = {
       this.synchronized { readSet ++= keys }
 
-      val cachedValues = cache.getAllPresent(keys.map(replicaId -> _)).map { case ((_, key), value) =>
+      val cachedValues = cache.getAllPresent(keys.map(replicaId -> _)).map {
+        case ((_, key), value) =>
           key -> Some(value)
       }
       val remainingKeys = keys.toSet -- cachedValues.keySet
@@ -264,23 +279,24 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
     }
 
     override def commit(
-                         participantId: ParticipantId,
-                         correlationId: String,
-                         logEntryId: KV.DamlLogEntryId,
-                         logEntry: KV.DamlLogEntry,
-                         inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]],
-                         outputState: Map[KV.DamlStateKey,KV. DamlStateValue]): Future[Unit] = {
+        participantId: ParticipantId,
+        correlationId: String,
+        logEntryId: KV.DamlLogEntryId,
+        logEntry: KV.DamlLogEntry,
+        inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]],
+        outputState: Map[KV.DamlStateKey, KV.DamlStateValue]): Future[Unit] = {
       cache.putAll(
-        outputState.map { case (key, value) =>
-          (replicaId, key) -> value
+        outputState.map {
+          case (key, value) =>
+            (replicaId, key) -> value
         }
       )
       ops.commit(participantId, correlationId, logEntryId, logEntry, inputState, outputState)
     }
   }
 
-
-  def validateBatch(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
+  def validateBatch(
+      responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
     implicit val executionContext = ExecutionContext.global
 
     val kvbcLedgerOps = new KVBCLedgerOps(responseObserver.onNext)
@@ -288,29 +304,35 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       override def onNext(value: EventToValidator): Unit = {
         value.toValidator match {
           case EventToValidator.ToValidator.ValidateRequest(request) =>
-            logger.trace(s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
-            val ledgerOps = new KVBCCachingInternalBatchLedgerOps(request.replicaId, new FragmentingLedgerOps(kvbcLedgerOps))
+            logger.trace(
+              s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
+            val ledgerOps = new KVBCCachingInternalBatchLedgerOps(
+              request.replicaId,
+              new FragmentingLedgerOps(kvbcLedgerOps))
             val recordTime = parseTimestamp(request.recordTime.get).toInstant
-            batchValidator.validateAndCommit(
-              recordTime,
-              ParticipantId.assertFromString(request.participantId),
-              request.correlationId,
-              request.submission,
-              ledgerOps
-            ).foreach { _ =>
-              val sortedReadSet =
-                ledgerOps.getReadSet().map(_.toByteString).toSeq.sorted
+            batchValidator
+              .validateAndCommit(
+                recordTime,
+                ParticipantId.assertFromString(request.participantId),
+                request.correlationId,
+                request.submission,
+                ledgerOps
+              )
+              .foreach { _ =>
+                val sortedReadSet =
+                  ledgerOps.getReadSet().map(_.toByteString).toSeq.sorted
 
-              responseObserver.onNext(EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
-              responseObserver.onCompleted()
-              logger.info(s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
-            }
+                responseObserver.onNext(
+                  EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
+                responseObserver.onCompleted()
+                logger.info(
+                  s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
+              }
           case EventToValidator.ToValidator.ReadResult(result) =>
             kvbcLedgerOps.handleReadResult(result)
 
           case EventToValidator.ToValidator.Empty =>
             sys.error("Message EventToValidator is empty!")
-
 
         }
       }
@@ -320,10 +342,12 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
         logger.trace("validate() completed")
     }
   }
-  override def validate(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
+  override def validate(
+      responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
     validateBatch(responseObserver)
 
-  def validateSingle(responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
+  def validateSingle(
+      responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
     // NOTE(JM): This adapts the pipelined interface into the existing one. This is temporary until
     // we bring in the batching validator which will properly use the pipelined interface.
 
@@ -346,7 +370,11 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
             // a sha256 hash of the submission as the entry id.
             val submissionBytes = requestWithoutEntryId.submission.toByteArray
             val entryId =
-              MessageDigest.getInstance("SHA-256").digest(submissionBytes).map("%02x" format _).mkString
+              MessageDigest
+                .getInstance("SHA-256")
+                .digest(submissionBytes)
+                .map("%02x" format _)
+                .mkString
             val request = requestWithoutEntryId.withEntryId(ByteString.copyFromUtf8(entryId))
             optValidateRequest = Some(request)
 
@@ -402,7 +430,10 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
   private def packFragmentKey(key: pkvutils.protobuf.LogEntryFragmentKey): ByteString =
     Constants.fragmentKeyPrefix.concat(key.toByteString)
 
-  private def processPendingSubmission(replicaId: ReplicaId, pendingSubmission: PendingSubmission, correlationId: String): Result = {
+  private def processPendingSubmission(
+      replicaId: ReplicaId,
+      pendingSubmission: PendingSubmission,
+      correlationId: String): Result = {
     val submission = pendingSubmission.submission
     val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
     assert((allInputs -- pendingSubmission.inputState.keySet).isEmpty)
@@ -415,9 +446,10 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       defaultConfig = defaultConfig,
       submission = submission,
       participantId = pendingSubmission.participantId,
-      inputState = pendingSubmission.inputState)
+      inputState = pendingSubmission.inputState
+    )
 
-    stateUpdates.foreach { case(k, v) => cache.put(replicaId -> k, v) }
+    stateUpdates.foreach { case (k, v) => cache.put(replicaId -> k, v) }
 
     val fragments = Fragmenter.logEntryToFragments(
       entryId,
@@ -429,15 +461,16 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       stateUpdates)
 
     val result: Result = Metrics.envelopeCloseTimer.time { () =>
-      val outKeyPairs = stateUpdates
-        .toArray
-        .map { case (k, v) =>
-          ProtectedKeyValuePair(
-            packStateKey(k),
-            Envelope.enclose(v),
-            Seq("dummy-replica-id"), // only readable by the replica
-            // FIXME(JM): ^ what to put here?
-          )
+      val outKeyPairs = stateUpdates.toArray
+        .map {
+          case (k, v) =>
+            ProtectedKeyValuePair(
+              packStateKey(k),
+              Envelope.enclose(v),
+              // FIXME(JM): What to put below?
+              // I.e., should only be readable by the replica.
+              Seq("dummy-replica-id"),
+            )
         }
         // NOTE(JM): Since kvutils (still) uses 'Map' the results end up
         // in a non-deterministic order. Sort them to fix that.
