@@ -1,6 +1,4 @@
-//
-// Created by lgal on 4/19/20.
-//
+// Copyright 2020 VMware, all rights reserved
 #include <config/communication.hpp>
 #include <config/configuration_manager.hpp>
 #include <string>
@@ -23,32 +21,34 @@ class IClient;
 }
 
 namespace config_pool {
-const std::string CONFIG_LABEL = "concord_external_client";
-const std::string F_VAL_VAR = "f_val";
-const std::string C_VAL_VAR = "c_val";
-const std::string NUM_REPLICAS_VAR = "num_replicas";
-const std::string NUM_EXTERN_VAR = "num_of_external_clients";
-const int MAX_EXTERN_VAR = 4096;
-const std::string COMM_USE_VAR = "comm_to_use";
-const std::string CERT_FOLDER_VAR = "tls_certificates_folder_path";
-const std::string CIPHER_SUITE_VAR = "tls_cipher_suite_list";
-const std::string COMM_BUFF_LEN_VAR = "concord-bft_communication_buffer_length";
-const std::string INIT_RETRY_VAR = "client_initial_retry_timeout_milli";
-const std::string MIN_RETRY_VAR = "client_min_retry_timeout_milli";
-const std::string MAX_RETRY_VAR = "client_max_retry_timeout_milli";
-const std::string FIRST_THRESH_VAR =
+
+const std::string FILE_NAME = "concord_external_client";
+const std::string F_VAL = "f_val";
+const std::string C_VAL = "c_val";
+const std::string NUM_REPLICAS = "num_replicas";
+const std::string NUM_EXTERNAL_CLIENTS = "num_of_external_clients";
+const int MAX_EXTERNAL_CLIENTS = 4096;
+const std::string COMM_PROTOCOL = "comm_to_use";
+const std::string CERT_FOLDER = "tls_certificates_folder_path";
+const std::string CIPHER_SUITE = "tls_cipher_suite_list";
+const std::string COMM_BUFF_LEN = "concord-bft_communication_buffer_length";
+const std::string INITIAL_RETRY_TIMEOUT = "client_initial_retry_timeout_milli";
+const std::string MIN_RETRY_TIMEOUT = "client_min_retry_timeout_milli";
+const std::string MAX_RETRY_TIMEOUT = "client_max_retry_timeout_milli";
+const std::string FIRST_THRESH =
     "client_sends_request_to_all_replicas_first_thresh";
-const std::string PERIODIC_THRESH_VAR =
+const std::string PERIODIC_THRESH =
     "client_sends_request_to_all_replicas_period_thresh";
-const std::string RESET_THRESH_VAR = "client_periodic_reset_thresh";
+const std::string RESET_THRESH = "client_periodic_reset_thresh";
 const std::string NODE_VAR = "node";
 const std::string REPLICA_VAR = "replica";
-const std::string ID_VAR = "principal_id";
-const std::string REPLICA_HOST_VAR = "replica_host";
-const std::string REPLICA_PORT_VAR = "replica_port";
-const std::string EXTERNAL_CLIENTS_VAR = "external_clients";
-const std::string CLIENT_VAR = "client";
-const std::string CLIENT_PORT_VAR = "client_port";
+const std::string CLIENT_ID = "principal_id";
+const std::string REPLICA_HOST = "replica_host";
+const std::string REPLICA_PORT = "replica_port";
+const std::string EXTERNAL_CLIENTS = "external_clients";
+const std::string CLIENT = "client";
+const std::string CLIENT_PORT = "client_port";
+
 config::ConcordConfiguration::ParameterStatus ValidateNumClients(
     const std::string& value, const config::ConcordConfiguration& config,
     const config::ConfigurationPath& path, std::string* failure_message,

@@ -1,6 +1,5 @@
-//
-// Created by lgal on 4/19/20.
-//
+// Copyright 2020 VMware, all rights reserved
+
 #include "client_pool_config.hpp"
 namespace concord {
 
@@ -26,7 +25,7 @@ config::ConcordConfiguration::ParameterStatus ValidateNumClients(
       res != ConcordConfiguration::ParameterStatus::VALID) {
     throw ConfigurationException{" Pool clients configuration failed"};
   }
-  if (std::stoull(value) > MAX_EXTERN_VAR)
+  if (std::stoull(value) > MAX_EXTERNAL_CLIENTS)
     throw ConfigurationException{" Pool clients configuration failed"};
   return ConcordConfiguration::ParameterStatus::VALID;
 }
@@ -42,8 +41,7 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     return res;
   }
 
-  if (!config.hasValue<uint16_t>(F_VAL_VAR) ||
-      !config.hasValue<uint16_t>(C_VAL_VAR)) {
+  if (!config.hasValue<uint16_t>(F_VAL) || !config.hasValue<uint16_t>(C_VAL)) {
     if (failure_message) {
       *failure_message =
           "Cannot validate num_replicas: values for f_val and c_val are "
@@ -52,8 +50,8 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 
-  const auto expected = 3 * config.getValue<uint16_t>(F_VAL_VAR) +
-                        2 * config.getValue<uint16_t>(C_VAL_VAR) + 1;
+  const auto expected = 3 * config.getValue<uint16_t>(F_VAL) +
+                        2 * config.getValue<uint16_t>(C_VAL) + 1;
 
   if (std::stoll(value) != expected) {
     if (failure_message) {
@@ -129,55 +127,53 @@ ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
 }
 
 void SpecifyClientConfiguration(ConcordConfiguration& config) {
-  config.declareParameter(NUM_EXTERN_VAR,
+  config.declareParameter(NUM_EXTERNAL_CLIENTS,
                           "Total number of BFT clients in this deployment.");
-  config.addValidator(NUM_EXTERN_VAR, ValidateNumClients, nullptr);
-  config.declareScope(EXTERNAL_CLIENTS_VAR,
-                      "External client pool params replicas",
+  config.addValidator(NUM_EXTERNAL_CLIENTS, ValidateNumClients, nullptr);
+  config.declareScope(EXTERNAL_CLIENTS, "External client pool params replicas",
                       sizeExternalClients, nullptr);
-  auto& external_clients = config.subscope(EXTERNAL_CLIENTS_VAR);
-  external_clients.declareScope(CLIENT_VAR, "One external client params",
+  auto& external_clients = config.subscope(EXTERNAL_CLIENTS);
+  external_clients.declareScope(CLIENT, "One external client params",
                                 config::sizeReplicas, nullptr);
-  auto& client = external_clients.subscope(CLIENT_VAR);
+  auto& client = external_clients.subscope(CLIENT);
   client.declareParameter(
-      ID_VAR,
+      CLIENT_ID,
       "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
       "replicas, clients and client proxies to be principals, each of which "
       "must have a unique ID.");
 
-  client.declareParameter(CLIENT_PORT_VAR,
+  client.declareParameter(CLIENT_PORT,
                           "Port number this replica can be reached at.");
   client.addValidator(
-      CLIENT_PORT_VAR, config::validateUInt,
+      CLIENT_PORT, config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
 void SpecifyGeneralConfiguration(ConcordConfiguration& config) {
   // Validation of f_val is based on c_val and num_replicas .
-  config.declareParameter(F_VAL_VAR, "F parameter to the SBFT algorithm.");
+  config.declareParameter(F_VAL, "F parameter to the SBFT algorithm.");
 
   // Validation of c_val is based on f_val and num_replicas .
-  config.declareParameter(C_VAL_VAR, "C parameter to the SBFT algorithm.");
+  config.declareParameter(C_VAL, "C parameter to the SBFT algorithm.");
 
   // Validation is based on f_val and c_val .
   config.declareParameter(
-      NUM_REPLICAS_VAR, "Total number of Concord replicas in this deployment.");
-  config.addValidator(NUM_REPLICAS_VAR, ValidateNumReplicas, nullptr);
+      NUM_REPLICAS, "Total number of Concord replicas in this deployment.");
+  config.addValidator(NUM_REPLICAS, ValidateNumReplicas, nullptr);
 
   //  Validation is done at construction of the client object.
-  config.declareParameter(COMM_USE_VAR, "Default communication module");
+  config.declareParameter(COMM_PROTOCOL, "Default communication module");
 
-  config.declareParameter(CERT_FOLDER_VAR,
-                          "TLS certificates root folder path.");
+  config.declareParameter(CERT_FOLDER, "TLS certificates root folder path.");
 
-  config.declareParameter(CIPHER_SUITE_VAR, "TLS cipher suite list to use.");
+  config.declareParameter(CIPHER_SUITE, "TLS cipher suite list to use.");
 
   config.declareParameter(
-      COMM_BUFF_LEN_VAR,
+      COMM_BUFF_LEN,
       "Size of buffers to be used for messages exchanged with and within "
       "Concord-BFT.",
       "64000");
-  config.addValidator(COMM_BUFF_LEN_VAR, config::validateUInt,
+  config.addValidator(COMM_BUFF_LEN, config::validateUInt,
                       const_cast<void*>(reinterpret_cast<const void*>(
                           &config::kConcordBFTCommunicationBufferSizeLimits)));
 }
@@ -198,50 +194,49 @@ void SpecifyReplicaConfiguration(ConcordConfiguration& config) {
   auto& replica = node.subscope(REPLICA_VAR);
 
   replica.declareParameter(
-      ID_VAR,
+      CLIENT_ID,
       "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
       "replicas, clients and client proxies to be principals, each of which "
       "must have a unique ID.");
 
   replica.declareParameter(
-      REPLICA_HOST_VAR,
-      "IP address or host name this replica can be reached at.");
+      REPLICA_HOST, "IP address or host name this replica can be reached at.");
 
-  replica.declareParameter(REPLICA_PORT_VAR,
+  replica.declareParameter(REPLICA_PORT,
                            "Port number this replica can be reached at.");
   replica.addValidator(
-      REPLICA_PORT_VAR, config::validateUInt,
+      REPLICA_PORT, config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
 void SpecifySimpleClientParams(ConcordConfiguration& config) {
-  config.declareParameter(MIN_RETRY_VAR, "Min retry timeout configuration",
+  config.declareParameter(MIN_RETRY_TIMEOUT, "Min retry timeout configuration",
                           "50");
   config.addValidator(
-      MIN_RETRY_VAR, ValidateTimeOutMilli,
+      MIN_RETRY_TIMEOUT, ValidateTimeOutMilli,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
-  config.declareParameter(MAX_RETRY_VAR, "Max retry timeout configuration",
+  config.declareParameter(MAX_RETRY_TIMEOUT, "Max retry timeout configuration",
                           "1000");
-  config.declareParameter(INIT_RETRY_VAR,
+  config.declareParameter(INITIAL_RETRY_TIMEOUT,
                           "The initial retry timeout configuration", "150");
-  config.declareParameter(FIRST_THRESH_VAR,
+  config.declareParameter(FIRST_THRESH,
                           "The first thresh configuration for client sends "
                           "requests to all replicas",
                           "4");
   config.addValidator(
-      FIRST_THRESH_VAR, config::validateUInt,
+      FIRST_THRESH, config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
-  config.declareParameter(PERIODIC_THRESH_VAR,
+  config.declareParameter(PERIODIC_THRESH,
                           "The period thresh configuration for client sends "
                           "requests to all replicas",
                           "2");
   config.addValidator(
-      PERIODIC_THRESH_VAR, config::validateUInt,
+      PERIODIC_THRESH, config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
   config.declareParameter(
-      RESET_THRESH_VAR, "The client periodic reset thresh configuration", "30");
+      RESET_THRESH, "The client periodic reset thresh configuration", "30");
   config.addValidator(
-      RESET_THRESH_VAR, config::validateUInt,
+      RESET_THRESH, config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
@@ -251,7 +246,7 @@ void ParseConfig(std::istream& config_stream,
   SpecifyReplicaConfiguration(config);
   SpecifySimpleClientParams(config);
   SpecifyClientConfiguration(config);
-  config.setConfigurationStateLabel(CONFIG_LABEL);
+  config.setConfigurationStateLabel(FILE_NAME);
   YAMLConfigurationInput yaml{config_stream};
 
   yaml.parseInput();
@@ -264,8 +259,8 @@ void ParseConfig(std::istream& config_stream,
   // Instantiate the replica scope before node scope.
   config.subscope(NODE_VAR).instantiateScope(REPLICA_VAR);
   config.instantiateScope(NODE_VAR);
-  config.subscope(EXTERNAL_CLIENTS_VAR).instantiateScope(CLIENT_VAR);
-  config.instantiateScope(EXTERNAL_CLIENTS_VAR);
+  config.subscope(EXTERNAL_CLIENTS).instantiateScope(CLIENT);
+  config.instantiateScope(EXTERNAL_CLIENTS);
 
   // Next, load all features.
   yaml.loadConfiguration(config,

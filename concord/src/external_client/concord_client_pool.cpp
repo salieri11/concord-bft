@@ -34,7 +34,7 @@ SubmitResult ConcordClientPool::SendRequest(
 ConcordClientPool::ConcordClientPool(std::istream &config_stream) {
   ConcordConfiguration config;
   concord::config_pool::ParseConfig(config_stream, config);
-  uint16_t num_clients = config.getValue<std::uint16_t>(NUM_EXTERN_VAR);
+  uint16_t num_clients = config.getValue<std::uint16_t>(NUM_EXTERNAL_CLIENTS);
   for (int i = 0; i < num_clients; i++) {
     auto client = std::make_shared<external_client::ConcordClient>(config, i);
     clients_.push(std::move(client));
