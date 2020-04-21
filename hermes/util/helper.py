@@ -25,6 +25,7 @@ import hashlib
 import uuid
 import socket
 import struct
+import statistics
 from . import numbers_strings
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
@@ -669,11 +670,12 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    end_time = start_time + run_duration * 3600
    slack_last_reported = start_time
    dashboardLink = longRunningTestDashboardLink()
+   consoleURL = os.getenv("BUILD_URL") + "consoleText" if os.getenv("BUILD_URL") else None
 
-   slack.reportLongRunningTest(kickOff=True)
+   slack.reportMonitoring(kickOff=True)
    initialStats = get_replicas_stats(replicas)
    remaining_time = format((end_time - time.time()) / 3600, ".2g")
-   firstMessage = slack.reportLongRunningTest("<RUN> has {} hour remaining. Status:\n{}".format(
+   firstMessage = slack.reportMonitoring("<RUN> has {} hour remaining. Status:\n{}".format(
       remaining_time, "\n".join(initialStats["message_format"])
    ))
    slackThread = firstMessage['ts'] if firstMessage else None
@@ -738,12 +740,12 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
         stats = get_replicas_stats(replicas)
         remaining_time = format((end_time - time.time()) / 3600, ".2g")
-        slack.reportLongRunningTest("<RUN> has {} hour remaining. Status:\n{}".format(
-          remaining_time, "\n".join(stats["message_format"])
+        slack.reportMonitoring("<RUN> has {} hour remaining (goal: {} hours). Status:\n{}".format(
+          remaining_time, run_duration, "\n".join(stats["message_format"])
         ), ts=slackThread) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
-      # Collect support logs incase of a failed replica
+      # Collect support logs in case of a failed replica
       if not replica_status:
          for blockchain_type, replica_ips in replicas.items():
             log.info("Collect support bundle from all replica IPs: {}".format(
@@ -752,9 +754,10 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                                           save_support_logs_to)
          duration = format((time.time() - start_time) / 3600, ".2g")
          remaining_time = format((end_time - time.time()) / 3600, ".2g")
-         slack.reportLongRunningTest("<RUN> has failed after {} hours ({} had remained)".format(
-            duration, remaining_time
-         ))
+         endingMessage = "<RUN> has failed after {} hours ({} had remained)\n\nConsole: {}\n\nWavefront: {}".format(
+            duration, remaining_time, consoleURL, dashboardLink
+         )
+         slack.reportMonitoring(endingMessage)
          return False
 
       log.info("")
@@ -770,7 +773,10 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
          create_concord_support_bundle(replica_ips, blockchain_type,
                                        save_support_logs_to)
       return False
-   slack.reportLongRunningTest("<RUN> successfully passed. (total {} hours)".format(run_duration))
+   successEndingMessage = "<RUN> successfully passed. (total {} hours)\n\nConsole: {}\n\nWavefront: {}".format(
+      run_duration, consoleURL, dashboardLink
+   )
+   slack.reportMonitoring(successEndingMessage)
    return True
 
 
@@ -785,6 +791,7 @@ def get_replicas_stats(replicas):
   password = credentials["password"]
   temp_json_path = "/tmp/healthd_recent.json"
   all_reports = { "json": {}, "message_format": [] }
+  all_committers_mem = []
   for blockchain_type, replica_ips in replicas.items():
     typeName = "Committer"
     if blockchain_type == TYPE_DAML_PARTICIPANT: typeName = "Participant"
@@ -796,12 +803,21 @@ def get_replicas_stats(replicas):
             stat = json.load(f)
             stat["type"] = blockchain_type
             all_reports["json"][replica_ip] = stat
+            if blockchain_type == TYPE_DAML_COMMITTER:
+              all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
               status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
             ))
       except Exception as e:
         hermesNonCriticalTrace(e)
+  standardDeviation = statistics.stdev(all_committers_mem)
+  if standardDeviation > 2.0: # STDEV usually is < 0.5, high deviation is indication of malfunction
+    all_reports["message_format"].append(
+      ":warning: Committers memory standard deviation is high: {}".format(
+        format(standardDeviation, ".4g")
+      )
+    )
   return all_reports
 
 
@@ -1248,6 +1264,10 @@ def parseReplicasConfig(replicasConfig):
 
 
 def longRunningTestDashboardLink(replicasConfig=None):
+  '''
+    Returns URL for long-running test dashboard matching
+    the [c+p] configuration
+  '''
   if not replicasConfig: replicasConfig = REPLICAS_JSON_PATH
   config = parseReplicasConfig(replicasConfig)
   dashBaseUrl = "https://vmware.wavefront.com/dashboards/"
@@ -1255,20 +1275,18 @@ def longRunningTestDashboardLink(replicasConfig=None):
   committers = config[TYPE_DAML_COMMITTER]
   participants = config[TYPE_DAML_PARTICIPANT]
   for i, ip in enumerate(committers):
-    params.append("committer{}_ip:(l:'Committer-{}%20IP',v:'{}'),".format(i+1, i+1, ip))
+    params.append("committer{}_ip:(l:'Committer-{}%20IP',v:'{}')".format(i+1, i+1, ip))
   for i, ip in enumerate(participants):
-    params.append("participant{}_ip:(l:'Participant-{}%20IP',v:'{}'),".format(i+1, i+1, ip))
+    params.append("participant{}_ip:(l:'Participant-{}%20IP',v:'{}')".format(i+1, i+1, ip))
   dashName = None
   if len(committers) == 4 and len(participants) == 1: dashName = "Blockchain-LRT-c4-p1"
   elif len(committers) == 7 and len(participants) == 1: dashName = "Blockchain-LRT-c7-p1"
   elif len(committers) == 7 and len(participants) == 3: dashName = "Blockchain-LRT-c7-p3"
   return (
-    "{}{}#".format(dashBaseUrl, dashName) + 
+    "{}{}#".format(dashBaseUrl, dashName) + # base url
     "_v01(" + 
       "g:(d:1800,ls:!t,w:'30m')," + # last 30 minutes, live
-      "p:(" + 
-        ",".join(params) + 
-      ")" + 
+      "p:({})".format(",".join(params)) + # params comma-separated
     ")"
   )
 
