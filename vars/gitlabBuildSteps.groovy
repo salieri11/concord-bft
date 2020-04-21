@@ -749,13 +749,21 @@ def call(){
                       selectOnlySuites(["UiDAMLDeploy", "UiTests"])
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
-                      env.blockchain_location = "sddc"
-                      testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
-                          " --blockchainType " + params.concord_type.toLowerCase() +
-                          " --blockchainLocation " + env.blockchain_location +
-                          " --numReplicas " + params.num_replicas + " "
-                      selectOnlySuites(["HelenDeployToSDDCTemplate"])
-                      runTests()
+                      try {
+                        env.blockchain_location = "sddc"
+                        testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
+                            " --blockchainType " + params.concord_type.toLowerCase() +
+                            " --blockchainLocation " + env.blockchain_location +
+                            " --numReplicas " + params.num_replicas + " "
+                        selectOnlySuites(["HelenDeployToSDDCTemplate"])
+                        runTests()
+                      } catch(Exception ex) {
+                        env.fixture_setup_message = "<RUN> has failed to deploy blockchain fixture to SDDC.\n" + env.BUILD_URL + "console"
+                        sh '''
+                         "${python}" invoke.py slackReportMonitoring --param "${fixture_setup_message}"
+                        '''
+                        throw ex
+                      }
 
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
@@ -2476,6 +2484,8 @@ EOF
     if (env.JOB_NAME.contains(long_tests_job_name)) {
       sh '''
         sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<MONITORING_NOTIFICATION_RUN_NAME>"'/'"Long-running test"'/g' blockchain/hermes/resources/user_config.json
+        sed -i -e 's/'"<MONITORING_NOTIFICATION_TARGET>"'/'"blockchain-long-tests-status"'/g' blockchain/hermes/resources/user_config.json
       '''
     } else {
       sh '''

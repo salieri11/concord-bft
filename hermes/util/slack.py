@@ -72,20 +72,31 @@ def postMessageOnChannel(channelName, message, ts=None, token=None):
   return responseData
 
 
-def uploadFileOnChannel(channelName, message, fileName, filePath, token=None):
+def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
   '''
     Look up the workspace the channel resides in (VMware Internal? VMW+DA?)
     And using workspace api token, upload a file to a known registered Slack channel.
     `ts` denotes thread (if supplied, bot will send message as a reply to a thread)
   '''
+  channelName = channelNameOrEmail
   slackConfig = helper.loadConfigFile()["communication"]["slack"]
-  if channelName not in slackConfig["channels"]:
-    log.info(f"Channel name '{channelName}' is not registered on user_config.json")
-    return
-  channelId = slackConfig["channels"][channelName]["channelId"]
-  channelWorkspace = slackConfig["channels"][channelName]["workspace"]
-  token = token if token else slackConfig["workspaces"][channelWorkspace]["appToken"]
-  client = slack.WebClient(token=token, ssl=cert.getSecureContext())
+  isDirectMessage = "@" in channelName
+  
+  if isDirectMessage: # user email address? Direct message instead of channel post
+    client = slack.WebClient(token=token, ssl=cert.getSecureContext())
+    userData = client.users_lookupByEmail(email=channelName)
+    if userData["ok"] is not True:
+      log.info(f"Cannot look up user_id given email {channelName}, response not OK.\nResponse Body: {json.dumps(userData)}")
+      return
+    channelId = userData["user"]["id"] # use user_id in place of channel id
+  else:
+    channelId = slackConfig["channels"][channelName]["channelId"]
+    channelWorkspace = slackConfig["channels"][channelName]["workspace"]
+    token = token if token else slackConfig["workspaces"][channelWorkspace]["appToken"]
+    client = slack.WebClient(token=token, ssl=cert.getSecureContext())
+    if channelName not in slackConfig["channels"]:
+      log.info(f"Channel name '{channelName}' is not registered on user_config.json")
+      return
 
   log.info(f"Uploading a file on channel '{channelName}'...")
   fileType = fileName.split(".")[-1] if "." in fileName else "txt"
@@ -103,23 +114,34 @@ def uploadFileOnChannel(channelName, message, fileName, filePath, token=None):
 
 
 
-def reportLongRunningTest(message="", ts=None, kickOff=False):
+def reportMonitoring(message="", ts=None, kickOff=False):
+  '''
+    Slack notify monitoring progresss (start, interval, end)
+    using notification target specified in user_config.json
+  '''
+  monitoringReportConfig = helper.getUserConfig()["monitoring"]
+  runName = monitoringReportConfig["runName"]
+  channelNameOrEmail = monitoringReportConfig["notificationTarget"]
+  if channelNameOrEmail.startswith("<"): return None
   if kickOff: message = "<RUN> started."
-  channelName = CHANNEL_LONG_RUNNING_TEST
   runInfo = helper.getJenkinsJobNameAndBuildNumber()
+  if runName.startswith("<"): runName = runInfo["jobName"]
   jobName = runInfo["jobName"]
   buildNumber = runInfo["buildNumber"]
   encodedBuildPath = urllib.parse.quote_plus(f"{jobName}/{buildNumber}")
   buildUrl = 'https://blockchain.svc.eng.vmware.com/job/' + encodedBuildPath
-  runName = f"Long-running test (#{buildNumber})"
-  message = message.replace("<RUN>", runName)
+  runId = f"{runName} (#{buildNumber})"
+  message = message.replace("<RUN>", runId)
   if kickOff:
-    return uploadFileOnChannel(
-      channelName, 
+    return postFileUpload(
+      channelNameOrEmail, 
       message,
       helper.REPLICAS_JSON_FILE,
       helper.REPLICAS_JSON_PATH
     )
   else:
-    return postMessageOnChannel(channelName, message, ts=ts)
+    if "@" in channelNameOrEmail:
+      return sendMessageToPerson(channelNameOrEmail, message, ts=ts)
+    else:
+      return postMessageOnChannel(channelNameOrEmail, message, ts=ts)
 
