@@ -27,7 +27,7 @@ def slackPost(args, options, secret):
 
 def slackUpload(args, options, secret):
   a = prepareArgs(args)
-  slack.uploadFileOnChannel(channelName=a[0], message=a[1], fileName=a[2], filePath=a[3], token=secret)
+  slack.postFileUpload(channelNameOrEmail=a[0], message=a[1], fileName=a[2], filePath=a[3], token=secret)
 
 def emailSend(args, options, secret):
   a = prepareArgs(args)
@@ -65,10 +65,19 @@ def publishRunsMR(args, options, secret):
   a = prepareArgs(args)
   jenkins.publishRunsMR(limit=a[0], startFromBuildNumber=a[1])
 
+
+def slackReportMonitoring(args, options, secret):
+  a = prepareArgs(args)
+  slack.reportMonitoring(message=a[0])
+
+
 def printLongRunningTestDashboardLink(args, options, secret):
+  '''
+    Log output long-running test dashboard link (Wavefront)
+  '''
   a = prepareArgs(args)
   link = helper.longRunningTestDashboardLink()
-  print(link)
+  log.info(link)
 
 # Registry of callable standalone functions
 DISPATCH = {
@@ -77,6 +86,7 @@ DISPATCH = {
   "slackDM": slackDM,
   "slackPost": slackPost,
   "slackUpload": slackUpload,
+  "slackReportMonitoring": slackReportMonitoring,
 
   # CI/CD Dashboard data points publish
   "publishRuns": publishRuns,
