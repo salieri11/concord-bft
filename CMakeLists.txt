@@ -27,7 +27,7 @@ if (NOT DEFINED USE_LOG4CPP)
 endif()
 
 # Default BUILD_COMM_TCP_PLAIN to FALSE
-option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
+option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" TRUE)
 
 # Default BUILD_COMM_TCP_TLS to FALSE
 option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" FALSE)

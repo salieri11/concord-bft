@@ -31,9 +31,9 @@ class CLI:
 
 class SimpleClientParams:
     def __init__(self):
-        self.initial_retry_timeout_milli = 1100
-        self.min_retry_timeout_milli = 1000
-        self.max_retry_timeout_milli = 2000
+        self.initial_retry_timeout_milli = 10000
+        self.min_retry_timeout_milli = 5000
+        self.max_retry_timeout_milli = 15000
         self.sends_request_to_all_replicas_first_thresh = 2
         self.sends_request_to_all_replicas_period_thresh = 2
         self.periodic_reset_thresh = 30
@@ -279,7 +279,7 @@ class TestConfig:
                       "-f", str(self.num_of_faulty),
                       "-c", str(self.num_of_slow),
                       "-irt", str(
-                    self.simple_client_params.initial_retry_timeout_milli),
+                    self.simple_client_params.initial_retry_timeout_milliinitial_retry_timeout_milli),
                       "-minrt", str(
                     self.simple_client_params.min_retry_timeout_milli),
                       "-maxrt", str(

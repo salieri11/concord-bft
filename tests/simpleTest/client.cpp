@@ -30,7 +30,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
-
+#include <thread>
+#include <chrono>
 #include "test_parameters.hpp"
 #include "simple_test_client.hpp"
 #include "Logger.hpp"
@@ -151,7 +152,7 @@ void parse_params(int argc, char **argv, ClientParams &cp, bftEngine::SimpleClie
 
 int main(int argc, char **argv) {
   // TODO(IG:) configure Log4Cplus's output format, using default for now
-
+  // std::this_thread::sleep_for(std::chrono::seconds(20));
   ClientParams cp;
   bftEngine::SimpleClientParams scp;
   parse_params(argc, argv, cp, scp);
@@ -165,5 +166,5 @@ int main(int argc, char **argv) {
                << ", clientPeriodicResetThresh: " << scp.clientPeriodicResetThresh);
 
   SimpleTestClient cl(cp, clientLogger);
-  return cl.run() ? EXIT_SUCCESS : EXIT_FAILURE;
+   return cl.run() ? EXIT_SUCCESS : EXIT_FAILURE;
 }

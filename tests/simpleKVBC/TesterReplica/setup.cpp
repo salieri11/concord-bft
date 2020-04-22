@@ -124,7 +124,7 @@ std::unique_ptr<TestSetup> TestSetup::ParseArgs(int argc, char** argv) {
 
 #ifdef USE_COMM_PLAIN_TCP
     bftEngine::PlainTcpConfig conf = testCommConfig.GetTCPConfig(
-        true, replicaConfig.replicaId, replicaConfig.numOfClientProxies, numOfReplicas, commConfigFile;
+        true, replicaConfig.replicaId, replicaConfig.numOfClientProxies, numOfReplicas, commConfigFile);
 #elif USE_COMM_TLS_TCP
     bftEngine::TlsTcpConfig conf = testCommConfig.GetTlsTCPConfig(
         true, replicaConfig.replicaId, replicaConfig.numOfClientProxies, numOfReplicas, commConfigFile);

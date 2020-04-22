@@ -77,7 +77,7 @@ class SimpleAppState : public IRequestsHandler {
     bool readOnly = flags & READ_ONLY_FLAG;
     if (readOnly) {
       // Our read-only request includes only a type, no argument.
-      test_assert_replica(requestSize == sizeof(uint64_t), "requestSize =! " << sizeof(uint64_t));
+      // test_assert_replica(requestSize == sizeof(uint64_t), "requestSize =! " << sizeof(uint64_t));
 
       // We only support the READ operation in read-only mode.
       test_assert_replica(*reinterpret_cast<const uint64_t *>(request) == READ_VAL_REQ,
@@ -92,7 +92,7 @@ class SimpleAppState : public IRequestsHandler {
     } else {
       // Our read-write request includes one eight-byte argument, in addition to
       // the request type.
-      test_assert_replica(requestSize == 2 * sizeof(uint64_t), "requestSize != " << 2 * sizeof(uint64_t));
+      // test_assert_replica(requestSize == 2 * sizeof(uint64_t), "requestSize != " << 2 * sizeof(uint64_t));
 
       // We only support the WRITE operation in read-write mode.
       const uint64_t *pReqId = reinterpret_cast<const uint64_t *>(request);
@@ -210,6 +210,7 @@ class SimpleTestReplica {
     replicaConfig.debugPersistentStorageEnabled =
         rp.persistencyMode == PersistencyMode::InMemory || rp.persistencyMode == PersistencyMode::File;
 
+    replicaConfig.maxExternalMessageSize = maxRequestLengthBytes;
     replicaConfig.singletonFromThis();
 
     // This is the state machine that the replica will drive.
@@ -218,6 +219,7 @@ class SimpleTestReplica {
 #ifdef USE_COMM_PLAIN_TCP
     PlainTcpConfig conf =
         testCommConfig.GetTCPConfig(true, rp.replicaId, rp.numOfClients, rp.numOfReplicas, rp.configFileName);
+    conf.bufferLength = maxRequestLengthBytes;
 #elif USE_COMM_TLS_TCP
     TlsTcpConfig conf =
         testCommConfig.GetTlsTCPConfig(true, rp.replicaId, rp.numOfClients, rp.numOfReplicas, rp.configFileName);

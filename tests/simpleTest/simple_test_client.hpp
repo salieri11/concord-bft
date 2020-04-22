@@ -60,6 +60,7 @@ class SimpleTestClient {
     // Configure, create, and start the Concord client to use.
 #ifdef USE_COMM_PLAIN_TCP
     PlainTcpConfig conf = testCommConfig.GetTCPConfig(false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
+    conf.bufferLength = maxRequestLengthBytes;
 #elif USE_COMM_TLS_TCP
     TlsTcpConfig conf = testCommConfig.GetTlsTCPConfig(false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
 #else
@@ -117,9 +118,8 @@ class SimpleTestClient {
       if (i % readMod == 0) {
         // Read the latest value every readMod-th operation.
 
-        // Prepare request parameters.
-        const uint32_t kRequestLength = 1;
-        const uint64_t requestBuffer[kRequestLength] = {READ_VAL_REQ};
+        // Prepare request parameters
+        requestBuffer[0] = READ_VAL_REQ;
         const char* rawRequestBuffer = reinterpret_cast<const char*>(requestBuffer);
         const uint32_t rawRequestLength = sizeof(uint64_t) * kRequestLength;
 
@@ -154,8 +154,9 @@ class SimpleTestClient {
         expectedLastValue = (i + 1) * (i + 7) * (i + 18);
 
         // Prepare request parameters.
-        const uint32_t kRequestLength = 2;
-        const uint64_t requestBuffer[kRequestLength] = {SET_VAL_REQ, expectedLastValue};
+
+        requestBuffer[0]= SET_VAL_REQ;
+        requestBuffer[1]=expectedLastValue;
         const char* rawRequestBuffer = reinterpret_cast<const char*>(requestBuffer);
         const uint32_t rawRequestLength = sizeof(uint64_t) * kRequestLength;
 

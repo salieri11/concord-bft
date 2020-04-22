@@ -15,6 +15,10 @@
 
 #pragma once
 
+constexpr uint64_t kRequestLength = 25 << 20; // actual payload = kRequestLength * 8
+uint64_t requestBuffer[kRequestLength];
+uint64_t maxRequestLengthBytes = 202 << 20;
+
 // Request types for replica commands.
 #define READ_VAL_REQ ((uint64_t)100)
 #define SET_VAL_REQ ((uint64_t)200)
