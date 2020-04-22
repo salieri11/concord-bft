@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vm;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
@@ -120,7 +119,7 @@ public class CloudInitConfiguration {
     /**
      * Concord agent startup configuration parameters.
      */
-    protected ConcordAgentConfiguration getConfiguration() {
+    ConcordAgentConfiguration getConfiguration() {
         return ConcordAgentConfiguration.newBuilder()
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
@@ -140,9 +139,10 @@ public class CloudInitConfiguration {
      */
     private String toRegistryLoginCommand(Endpoint credential) {
         String passwordCredential = "";
-        if (credential.getCredential().getType() == Credential.Type.PASSWORD) {
-            passwordCredential = "-u " + credential.getCredential().getPasswordCredential().getUsername() + " -p '"
-                                 + credential.getCredential().getPasswordCredential().getPassword() + "'";
+        Credential passwordCred = credential.getCredential();
+        if (passwordCred.getType() == Credential.Type.PASSWORD) {
+            passwordCredential = "-u " + passwordCred.getPasswordCredential().getUsername() + " -p '"
+                                 + passwordCred.getPasswordCredential().getPassword() + "'";
         }
         return "docker login " + credential.getAddress() + " " + passwordCredential;
     }
@@ -169,7 +169,7 @@ public class CloudInitConfiguration {
     public String userData() {
 
         try {
-            InputStream inputStream = new FileInputStream("user-data.txt");
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("user-data.txt");
             String content = new String(inputStream.readAllBytes());
 
             content = content.replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
@@ -186,7 +186,7 @@ public class CloudInitConfiguration {
 
             return content;
         } catch (Exception e) {
-            throw new PersephoneException("Error generating user-data", e);
+            throw new PersephoneException(e, "Error generating user-data");
         }
     }
 }
