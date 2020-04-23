@@ -93,8 +93,8 @@ class SimpleClientImp : public SimpleClient, public IReceiver {
   Time timeOfLastTransmission_ = MinTime;
   uint16_t numberOfTransmissions_ = 0;
 
-  bool primaryReplicaIsKnown_ = false;
-  uint16_t knownPrimaryReplica_;
+  bool primaryReplicaIsKnown_ = true;
+  uint16_t knownPrimaryReplica_ = 0;
 
   DynamicUpperLimitWithSimpleFilter<uint64_t> limitOfExpectedOperationTime_;
 
@@ -200,6 +200,7 @@ int SimpleClientImp::sendRequest(uint8_t flags,
 
   if (!communication_->isRunning()) {
     communication_->Start();  // TODO(GG): patch ................ change
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
   }
 
   Assert(replysCertificate_.isEmpty());
