@@ -7,7 +7,7 @@ BC_COMPONENTS={
                     "helen", "persephone-configuration",
                     "persephone-ipam", "fluentd"],
             "blockchain": ["concord-core", "agent", "ethrpc", "daml-ledger-api",
-                    "daml-execution-engine", "daml-index-db"]
+                    "daml-execution-engine", "daml-index-db", "committer-tools"]
             }
 
 CSP_PROD = "https://console.cloud.vmware.com/csp/gateway"

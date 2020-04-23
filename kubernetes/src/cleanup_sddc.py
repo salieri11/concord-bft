@@ -192,6 +192,7 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
         older than 'hours'
         Should be leaf folder
     """
+    cleanup_state = True
     if hours == 0:
         folder_vms = vcobj.get_vms_from_folder(folder)
     else:
@@ -200,15 +201,18 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
     logger.info("Cleaning up %s vm resources" % len(vms))
     metadata = utils.get_network_metadata([vm.name for vm in vms])
     if reap_ipam is True:
-        delete_ipam_resources(vms, dc_dict, metadata)
+        if delete_ipam_resources(vms, dc_dict, metadata) is False:
+            cleanup_state = False
     delete_network_resources(metadata, dc_dict)
     vcobj.delete_vms(vms)
+    return cleanup_state
 
 
 def delete_ipam_resources(vms, dc_dict, metadata):
     """
         Retrieve cidr and ipaddr of vm to delete ipam entry
     """
+    success = True
     for vm in vms:
         natid = metadata[vm.name]
         data = get_nat_rule(dc_dict["nsx_mgr"],
@@ -229,7 +233,10 @@ def delete_ipam_resources(vms, dc_dict, metadata):
         nw_segment_data = get_network_segment(nw_segment, dc_dict)
         cidr_hex = ipam_utils.nwaddress_to_hex(
                                 nw_segment_data['subnets'][0]['network'])
-        ipam_utils.delete_ipam_entry(nw_segment, ipaddr_hex, cidr_hex, dc_dict["id"])
+        if ipam_utils.delete_ipam_entry(nw_segment,
+                    ipaddr_hex, cidr_hex, dc_dict["id"]) is False:
+            success = False
+    return success
 
 
 def delete_network_resources(metadata, dc_dict):
@@ -291,15 +298,18 @@ def reap_network_entities(vcobj, networkname, dc_dict, reap_ipam=False):
     """
         Reap all vm's in a given network
     """
+    cleanup_state = True
     network = vcobj.get_network(networkname)
     vms = [vm for vm in network.vm if is_blockchain_vm(vm.name) is True]
     logger.info("Cleaning up %s vm resources for network %s" %
                 (len(vms), networkname))
     metadata = utils.get_network_metadata([vm.name for vm in vms])
     if reap_ipam is True:
-        delete_ipam_resources(vms, dc_dict, metadata)
+        if delete_ipam_resources(vms, dc_dict, metadata) is False:
+            cleanup_state = False
     delete_network_resources(metadata, dc_dict)
     vcobj.delete_vms(vms)
+    return cleanup_state
 
 
 def setup_arguments():
@@ -351,7 +361,10 @@ if __name__ == "__main__":
         reap_orphaned_entities(vcenterobj, dc_dict, args.reap_nat,
                                 args.reap_eip, args.only_list)
     elif args.which == "resource":
-        clean_sddc_folder(vcenterobj, args.folder,
-                         dc_dict, args.olderthan, args.reap_ipam)
+        if clean_sddc_folder(vcenterobj, args.folder,
+                            dc_dict, args.olderthan, args.reap_ipam) is False:
+            sys.exit(1)
     elif args.which == "nwresource":
-        reap_network_entities(vcenterobj, args.networkname, dc_dict, args.reap_ipam)
+        if reap_network_entities(vcenterobj, args.networkname,
+                                dc_dict, args.reap_ipam) is False:
+            sys.exit(1)
