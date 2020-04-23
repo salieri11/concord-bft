@@ -540,8 +540,9 @@ def call(){
                   env.JOB_NAME.contains(persephone_test_on_demand_job_name)
                 ) {
 
+                def latest_docker_tag = ""
                 dir('blockchain'){
-                  def latest_docker_tag = artifactorylib.getLatestTag()
+                  latest_docker_tag = artifactorylib.getLatestTag()
                 }
                 setDockerTag(latest_docker_tag)
               } else {
