@@ -36,14 +36,12 @@ RUN apt-get update \
     && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
 
 # Runtime image (Provisioning Service).
-FROM openjdk:11.0.2-jdk-slim
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.0
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
-## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
-RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
-
 ## Install CA certificate.
-COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
+## This has hardcoded dependency on JAVA folder.
+COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.39.16-sa-jdk11.0.7-linux_x64/lib/security/cacerts
 
 WORKDIR /persephone-provisioning-service
 COPY ./provisioning-service/src/main/resources .
