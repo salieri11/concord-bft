@@ -84,7 +84,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml"
   ],
   "PrivacyTeeTests": [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose-tee.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
@@ -148,7 +148,7 @@ import hudson.util.Secret
       --tests="-k vmArithmeticTest/add0.json" --suitesRealname=HelenDeployEthereumToSDDC'
   ],
   "HelenDeployDAMLToSDDC" : [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml  \
       --blockchainLocation onprem --numReplicas 7 --numParticipants 1 \
@@ -540,8 +540,9 @@ def call(){
                   env.JOB_NAME.contains(persephone_test_on_demand_job_name)
                 ) {
 
+                def latest_docker_tag = ""
                 dir('blockchain'){
-                  def latest_docker_tag = artifactory.getLatestTag()
+                  latest_docker_tag = artifactorylib.getLatestTag()
                 }
                 setDockerTag(latest_docker_tag)
               } else {

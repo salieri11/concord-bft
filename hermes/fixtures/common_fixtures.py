@@ -126,11 +126,15 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
       zoneIds = conAdminRequest.addUserConfigZones(blockchainLocation)
 
    log.info("Zone IDs: {}".format(zoneIds))
+   if not zoneIds:
+       raise Exception("No zones available to proceed with deployment.")
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
    f = (numNodes - 1) / 3
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
    response = conAdminRequest.createBlockchain(conId, siteIds, f, 0, blockchain_type.upper())
+   if "task_id" not in response:
+       raise Exception("task_id not found in response to create blockchain.")
    taskId = response["task_id"]
    success, response = helper.waitForTask(conAdminRequest, taskId, timeout=60*15)
    blockchainId = response["resource_id"]

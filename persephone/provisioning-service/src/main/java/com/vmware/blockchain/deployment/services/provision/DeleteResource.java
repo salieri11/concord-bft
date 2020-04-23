@@ -31,9 +31,8 @@ public class DeleteResource {
             var orchestrator = entry.getKey();
             var resourceUri = entry.getValue();
             OrchestratorData.DeleteNetworkAllocationRequest networkDeallocReq =
-                    new OrchestratorData.DeleteNetworkAllocationRequest(resourceUri);
-            var deleteNetworkPublisher = orchestrator.deleteNetworkAllocation(networkDeallocReq);
-            works.add(ReactiveStream.toFutureSingle(deleteNetworkPublisher));
+                    new OrchestratorData.DeleteNetworkAllocationRequest(resourceUri);;
+            works.add(ReactiveStream.toFutureSingle(orchestrator.deleteNetworkAllocation(networkDeallocReq)));
         });
 
         return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
@@ -52,8 +51,7 @@ public class DeleteResource {
             var resourceUri = entry.getValue();
             OrchestratorData.DeleteComputeResourceRequest delComputeResReq =
                     new OrchestratorData.DeleteComputeResourceRequest(resourceUri);
-            var deleteDeploymentPublisher = orchestrator.deleteDeployment(delComputeResReq);
-            works.add(CompletableFuture.supplyAsync(() -> deleteDeploymentPublisher));
+            works.add(CompletableFuture.supplyAsync(() -> orchestrator.deleteDeployment(delComputeResReq)));
         });
 
         return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
@@ -72,8 +70,7 @@ public class DeleteResource {
             var resourceUri = entry.getValue();
             OrchestratorData.DeleteNetworkResourceRequest delNetworkResReq =
                     new OrchestratorData.DeleteNetworkResourceRequest(resourceUri);
-            var deleteNetworkAddrPublisher = orchestrator.deleteNetworkAddress(delNetworkResReq);
-            works.add(ReactiveStream.toFutureSingle(deleteNetworkAddrPublisher));
+            works.add(ReactiveStream.toFutureSingle(orchestrator.deleteNetworkAddress(delNetworkResReq)));
         });
 
         return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))

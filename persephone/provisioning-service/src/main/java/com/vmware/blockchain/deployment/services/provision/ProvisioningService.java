@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Flow;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -737,7 +736,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             ConfigurationSessionIdentifier finalConfigId = configId;
             var nodePublishers = session.getAssignment().getEntriesList().stream()
                     .map(placement -> {
-                        var publisher = deployNode(
+                        var publisher = CompletableFuture.supplyAsync(() -> deployNode(
                                 concordIdentifierMap,
                                 context.getOrchestrators().get(placement.getSite()),
                                 session.getId(),
@@ -746,20 +745,20 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                 session.getSpecification().getGenesis(),
                                 privateNetworkAddressMap.get(placement),
                                 finalConfigId,
-                                session.getSpecification().getProperties()
-                        );
+                                session.getSpecification().getProperties()));
                         return Map.entry(placement, publisher);
                     })
                     .collect(Collectors.toUnmodifiableList());
 
             var nodePromises = nodePublishers.stream()
-                    .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
-                            .thenComposeAsync(events -> {
+                    .map(entry -> entry.getValue()
+                            .thenComposeAsync(event -> {
                                 // Put the events in the result collection.
-                                results.addAll(events);
+                                results.add(event);
 
                                 // Find any compute resource event and extract the URI.
-                                var computeResource = events.stream()
+                                // Hank to not touch other structures.
+                                var computeResource = Arrays.asList(event).stream()
                                         .filter(OrchestratorData.ComputeResourceEvent.class::isInstance)
                                         .map(OrchestratorData.ComputeResourceEvent.class::cast)
                                         .map(OrchestratorData.ComputeResourceEvent::getResource)
@@ -915,7 +914,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
      * @return a {@link Publisher} of {@link OrchestratorData.OrchestrationEvent}s corresponding to the execution of the
      * node deployment workflow.
      */
-    private Flow.Publisher<? extends OrchestratorData.OrchestrationEvent> deployNode(
+    private OrchestratorData.OrchestrationEvent deployNode(
             Map<ConcordNodeIdentifier, Integer> concordIdentifierMap,
             Orchestrator orchestrator,
             DeploymentSessionIdentifier sessionId,
@@ -926,29 +925,22 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             ConfigurationSessionIdentifier configGenId,
             Properties properties) {
 
-        return publisher -> {
-            var computeRequest = new OrchestratorData.CreateComputeResourceRequest(
-                    ConcordClusterIdentifier.newBuilder().setLow(sessionId.getLow()).setHigh(sessionId.getHigh())
-                            .setId(sessionId.toString())
-                            .build(),
-                    nodeId,
-                    model,
-                    genesis,
-                    networkResourceEvent.getAddress(),
-                    configGenId,
-                    concordIdentifierMap.get(nodeId),
-                    bootstrapComponent.configService,
-                    bootstrapComponent.configServiceRest,
-                    properties.getValuesOrDefault(NodeProperty.Name.VM_PROFILE.toString(), "small")
-            );
+        var computeRequest = new OrchestratorData.CreateComputeResourceRequest(
+                ConcordClusterIdentifier.newBuilder().setLow(sessionId.getLow()).setHigh(sessionId.getHigh())
+                        .setId(sessionId.toString())
+                        .build(),
+                nodeId,
+                model,
+                genesis,
+                networkResourceEvent.getAddress(),
+                configGenId,
+                concordIdentifierMap.get(nodeId),
+                bootstrapComponent.configService,
+                bootstrapComponent.configServiceRest,
+                properties.getValuesOrDefault(NodeProperty.Name.VM_PROFILE.toString(), "small")
+        );
 
-            try {
-                publisher.onNext(orchestrator.createDeployment(computeRequest));
-                publisher.onComplete();
-            } catch (Exception e) {
-                publisher.onError(e);
-            }
-        };
+        return orchestrator.createDeployment(computeRequest);
     }
 
 
