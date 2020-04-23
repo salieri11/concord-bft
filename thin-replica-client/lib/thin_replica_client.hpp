@@ -244,11 +244,18 @@ class ThinReplicaClient final {
   // Thread function to start subscription_thread_ with.
   void ReceiveUpdates();
 
-  using AgreeingSubsetMembers =
-      std::map<std::pair<uint64_t, ThinReplicaClient::UpdateHashType>,
-               std::unordered_set<size_t>>;
-  using MostAgreedBlock =
+  // Pair of block ID and the hash of the block
+  using BlockIdHashPair =
       std::pair<uint64_t, ThinReplicaClient::UpdateHashType>;
+
+  // Map recording every BlockIdHashPair we have seen for the update we are
+  // seeking and which servers support that pair. Note we choose a map over an
+  // unordered_map here as std does not seem to provide a hash implementation
+  // for std::pair. The sets of servers supporting each pair are represented as
+  // unordered sets of server indexes.
+  using AgreeingSubsetMembers =
+      std::map<BlockIdHashPair, std::unordered_set<size_t>>;
+
   using SpanPtr = std::unique_ptr<opentracing::Span>;
   SpanPtr GetSpan(const com::vmware::concord::thin_replica::Data& data,
                   const std::string& child_name);
@@ -256,22 +263,20 @@ class ThinReplicaClient final {
   std::pair<bool, SpanPtr> ReadBlock(
       com::vmware::concord::thin_replica::Data& update_in,
       AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
-      MostAgreedBlock& most_agreed_block);
-  void VerifyBlockHash(std::vector<bool>& servers_tried,
-                       AgreeingSubsetMembers& agreeing_subset_members,
-                       size_t& most_agreeing,
-                       MostAgreedBlock& most_agreed_block,
-                       SpanPtr& parent_span);
-  void VerifyBlockHashAgainstAdditionalServers(
-      std::vector<bool>& servers_tried,
-      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
-      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
+      BlockIdHashPair& most_agreed_block);
+  void FindBlockHashAgreement(std::vector<bool>& servers_tried,
+                              AgreeingSubsetMembers& agreeing_subset_members,
+                              size_t& most_agreeing,
+                              BlockIdHashPair& most_agreed_block,
+                              SpanPtr& parent_span);
 
-  std::pair<bool, bool> RotateDataStreamServers(
+  bool RotateDataStreamAndVerify(
       com::vmware::concord::thin_replica::Data& update_in,
-      bool has_verified_data, std::vector<bool>& servers_tried,
-      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
-      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
+      AgreeingSubsetMembers& agreeing_subset_members,
+      BlockIdHashPair& most_agreed_block, SpanPtr& parent_span);
+
+  void ResetDataStreamTo(size_t server_idx);
+  void StartHashStreamWith(size_t server_idx);
 
   // Helper functions to ReceiveUpdates.
   UpdateHashType ComputeUpdateDataHash(
