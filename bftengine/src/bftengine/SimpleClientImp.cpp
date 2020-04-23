@@ -164,7 +164,7 @@ SimpleClientImp::SimpleClientImp(
   pendingRequest_ = nullptr;
   timeOfLastTransmission_ = MinTime;
   numberOfTransmissions_ = 0;
-  primaryReplicaIsKnown_ = false;
+  primaryReplicaIsKnown_ = true;
   knownPrimaryReplica_ = 0;
 
   communication_->setReceiver(clientId_, this);
@@ -404,13 +404,14 @@ void SimpleClientImp::sendPendingRequest() {
   }
 
   if (sendToAll) {
+    LOG_DEBUG(logger_, "sending to all replicas");
     for (uint16_t r : replicas_) {
       // int stat =
       communication_->sendAsyncMessage(r, pendingRequest_->body(), pendingRequest_->size());
       // TODO(GG): handle errors (print and/or ....)
     }
   } else {
-    // int stat =
+    LOG_DEBUG(logger_, "sending to primary " << knownPrimaryReplica_);
     communication_->sendAsyncMessage(knownPrimaryReplica_, pendingRequest_->body(), pendingRequest_->size());
     // TODO(GG): handle errors (print and/or ....)
   }
