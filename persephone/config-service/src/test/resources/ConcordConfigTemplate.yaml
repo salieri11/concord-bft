@@ -6,8 +6,8 @@ FEATURE_time_service: true
 eth_enable: false
 concord-bft_communication_buffer_length: 33554432
 concord-bft_max_external_message_size: 33554432
-concord-bft_max_reply_message_size: 33554432
-concord-bft_max_num_of_reserved_pages: 229376
+concord-bft_max_reply_message_size: 4096
+concord-bft_max_num_of_reserved_pages: 28
 comm_to_use: tls
 use_loopback_for_local_hosts: true
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384

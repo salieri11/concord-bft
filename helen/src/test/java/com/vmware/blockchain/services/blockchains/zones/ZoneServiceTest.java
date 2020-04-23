@@ -105,7 +105,7 @@ public class ZoneServiceTest {
     private UUID onPremId;
     private UUID onPrem2Id;
 
-    private Organization onpreOrg;
+    private Organization onpremOrg;
 
     private ZoneService zoneService;
 
@@ -119,9 +119,9 @@ public class ZoneServiceTest {
         when(authHelper.getUserId()).thenReturn(USER_ID);
         when(authHelper.getEmail()).thenReturn(USER_EMAIL);
 
-        onpreOrg = new Organization("TestOrg");
-        onpreOrg.setId(ONPREM_ORG);
-        when(organizationService.get(ONPREM_ORG)).thenReturn(onpreOrg);
+        onpremOrg = new Organization("TestOrg");
+        onpremOrg.setId(ONPREM_ORG);
+        when(organizationService.get(ONPREM_ORG)).thenReturn(onpremOrg);
 
         Zone v1 = new Zone(SITE_1, VMC_AWS, ImmutableMap.of("name", "US_WEST"));
         Zone v2 = new Zone(SITE_2, NONE, ImmutableMap.of("name", "US_EAST"));
@@ -167,7 +167,7 @@ public class ZoneServiceTest {
 
     @Test
     void typeTest() throws Exception {
-        List<Zone> l = zoneService.getByType(ON_PREM);
+        List<Zone> l = zoneService.getAllZonesByType(ON_PREM);
         Assertions.assertEquals(2, l.size());
     }
 
@@ -192,9 +192,11 @@ public class ZoneServiceTest {
         zoneService.put(zone);
 
         List<Zone> l = zoneService.getZones();
-        Assertions.assertEquals(5, l.size());
+        // 2 default zones and 2 ON_PREM zones
+        // SDDC1 added above isn't included
+        Assertions.assertEquals(4, l.size());
 
-        l = zoneService.getByType(VMC_AWS);
+        l = zoneService.getAllZonesByType(VMC_AWS);
         Assertions.assertEquals(2, l.size());
         Assertions.assertTrue(l.get(0) instanceof VmcAwsZone);
         Assertions.assertTrue(l.get(1) instanceof VmcAwsZone);
@@ -205,7 +207,8 @@ public class ZoneServiceTest {
     void testGetAllAuthorized() throws Exception {
         when(authHelper.isSystemAdmin()).thenReturn(false);
         List<Zone> l = zoneService.getAllAuthorized();
-        // We should see the two loaded zones, and the one zone we have access to
+        // We should see one ON_PREM zone that we have access to, that has an orgId assigned
+        // Not filtering orgId on default zones, so should see total 3
         Assertions.assertEquals(3, l.size());
     }
 
@@ -224,7 +227,7 @@ public class ZoneServiceTest {
 
     @Test
     void testGetAllAuthorizedProperties() throws Exception {
-        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        onpremOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
         when(authHelper.isSystemAdmin()).thenReturn(false);
         List<Zone> l = zoneService.getAllAuthorized();
         // We should see one of the loaded zones, and the one zone we have access to
@@ -233,7 +236,7 @@ public class ZoneServiceTest {
 
     @Test
     void testGetAuthorizedProperties() throws Exception {
-        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        onpremOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
         when(authHelper.isSystemAdmin()).thenReturn(false);
         Zone zone = zoneService.getAuthorized(onPremId);
         Assertions.assertNotNull(zone);
@@ -241,9 +244,9 @@ public class ZoneServiceTest {
 
     @Test
     void testGetUnAuthorizedProperties() throws Exception {
-        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        onpremOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
         when(authHelper.isSystemAdmin()).thenReturn(false);
-        // We should not be able to see SITE_2, becuase we don't have access to that zone type
+        // We should not be able to see SITE_2, because we don't have access to that zone type
         Assertions.assertThrows(NotFoundException.class, () -> zoneService.getAuthorized(SITE_2));
     }
 

@@ -57,7 +57,7 @@ public class StartupConfig {
             }
         }
         defaultProfiles.initialize();
-        logger.info("Number of default zones loaded: {}", zoneService.getZones().size());
+        logger.info(String.format("Number of default zones loaded: %d", zoneService.getDefaultZones().size()));
     }
 
 }
