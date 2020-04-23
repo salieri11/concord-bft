@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
                << ", clientSendsRequestToAllReplicasFirstThresh: " << scp.clientSendsRequestToAllReplicasFirstThresh
                << ", clientSendsRequestToAllReplicasPeriodThresh: " << scp.clientSendsRequestToAllReplicasPeriodThresh
                << ", clientPeriodicResetThresh: " << scp.clientPeriodicResetThresh);
-
+  cp.scp = scp;
   SimpleTestClient cl(cp, clientLogger);
   return cl.run() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
