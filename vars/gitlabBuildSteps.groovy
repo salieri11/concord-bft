@@ -568,7 +568,6 @@ def call(){
         }
       }
 
-
       stage("Build") {
         steps {
           archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
@@ -2543,12 +2542,32 @@ void updateEnvFileForConcordOnDemand(){
 void startOfficialPerformanceRun(){
   try{
     dir('blockchain'){
-      performance.startPerformanceRun()
+      performancelib.startPerformanceRun()
     }
   }catch(Exception ex){
-    echo("Exception while starting a performance run:")
-    echo(ex.toString())
-    echo("A failure to launch the performance run will not fail a build.")
+    subject = "Exception while starting a performance run"
+    body = ex.toString()
+    body += "\n(A failure to launch the performance run will not fail a build.)"
+    echo(subject)
+    echo(body)
+
+    // This was set in performancelib by reading from performance.json.
+    // It contains user IDs, not full email addresses.
+    ids = env.maestroRecipients
+    recipients = ""
+
+    for (id in ids.split(",")){
+        if(recipients != ""){
+            recipients += ","
+        }
+
+        recipients += id + "@vmware.com"
+    }
+
+    emailext to: recipients,
+             subject: subject,
+             body: body,
+             presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
   }
 }
 
