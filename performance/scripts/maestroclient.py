@@ -9,6 +9,7 @@ import logging
 import os
 import requests
 import urllib3
+import time
 
 # suppress certs verification warnings
 urllib3.disable_warnings()
@@ -32,7 +33,7 @@ class MaestroClient:
         self._reporting_url = reporting_url
 
 
-    def get_payload(self, bcversion, recipients, comments, noexec=False):
+    def get_payload(self, bcversion, recipients, application, comments, noexec=False):
         """
         Return json payload to send to the api server.  Inserts the blockchain version,
         recipients, and comments.
@@ -102,7 +103,7 @@ class MaestroClient:
                         "releaseVersion": bcversion
                     },
                     "Benchmark": {
-                        "application": "IOU",
+                        "application": application,
                         "daml_version": "0.13.56-snapshot.20200331.3729.0.b43b8d86",
                         "spider_version": "SNAPSHOT-1.25.0-20200414-1643-8e1346b1",
                         "dataset_flavour": "sample",
@@ -258,13 +259,13 @@ class MaestroClient:
         }
 
 
-    def submit_run(self, bcversion, recipients, comments=None, noexec=False):
+    def submit_run(self, bcversion, recipients, app, comments=None, noexec=False):
         """
         Create a run for the given blockchain version.
         Results will be emailed to recipients.
         """
         endpoint = self._api_url + '/vdi/submit_job/'
-        payload = self.get_payload(bcversion, recipients, comments, noexec)
+        payload = self.get_payload(bcversion, recipients, app, comments, noexec)
         logging.info("Submitting performance run. Version: '{}', recipients: '{}', comments: '{}'".format(bcversion, recipients, comments))
 
         if noexec:
@@ -298,21 +299,29 @@ class MaestroClient:
             response.raise_for_status()
 
 
-    def write_results(self, run_id, html_file, json_file):
+    def write_results(self, run_ids, apps, html_file, json_file):
         """
         Write results to an html file and a json file.
         """
-        url = "{}/{}/".format(self._reporting_url, run_id)
+
 
         logging.info("Writing results to {}".format(html_file))
-        with open(html_file, "w") as f:
-            f.write("<html><a href={}>Performance run {}</a></html>".format(url, run_id))
+        urls = []
+        with open(html_file, "a") as f:
+            html_results = "<html>"
+            for index in range(len(run_ids)):
+                url = "{}/{}/".format(self._reporting_url, run_ids[index])
+                html_results = html_results + "<a href={}>{} Performance run {}</a>".format(url, apps[index], run_ids[index]) + "<br>"
+                urls.append(url)
 
-        results = {
-            "run_id": run_id,
-            "url": url
-        }
+            html_results += "</html>"
+            f.write(html_results)
+
         logging.info("Writing results to {}".format(json_file))
+        results = {
+            "run_ids": run_ids[index],
+            "urls": urls
+        }
         with open(json_file, "w") as f:
             json.dump(results, f)
 
@@ -355,6 +364,9 @@ def main():
     parser.add_argument("--resultsFile",
                         help="JSON file containing run information.",
                         default="results.json")
+    parser.add_argument("--testList",
+                        help="list of tests like chess_plus, IOU etc",
+                        default="IOU")
 
     args = parser.parse_args()
 
@@ -363,17 +375,25 @@ def main():
 
     logging.basicConfig(level=args.logLevel.upper())
 
-    logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
-                 format(args.bcversion,
-                        args.recipients,
-                        args.comments))
 
     client = MaestroClient(args.apiUrl, args.reportingUrl, args.username, args.password)
-    run_id = client.submit_run(args.bcversion,
+    app_list = args.testList.split(",")
+    run_ids = []
+
+    for app in app_list:
+        comment = app + ": " +args.comments
+    	logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
+        	         format(args.bcversion,
+                	        args.recipients,
+                        	comment))
+        run_id = client.submit_run(args.bcversion,
                                args.recipients,
-                               args.comments,
+                               app, comment,
                                args.noexec)
-    client.start_run(run_id, args.noexec)
-    client.write_results(run_id, args.htmlFile, args.resultsFile)
+        client.start_run(run_id, args.noexec)
+        run_ids.append(run_id)
+        time.sleep(10)
+
+    client.write_results(run_ids, app_list, args.htmlFile, args.resultsFile)
 
 main()

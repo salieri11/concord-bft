@@ -11,6 +11,7 @@ def startPerformanceRun(){
     perfJson = readFile("vars/performance.json")
     perfObj = new JsonSlurperClassic().parseText(perfJson)
     env.maestroRecipients = perfObj.recipients
+    env.maestroTests = perfObj.tests
 
     dir('performance/scripts') {
       echo("Starting a performance run in the Performance team's lab.")
@@ -36,6 +37,7 @@ def startPerformanceRun(){
         cmd="${cmd} --recipients \"${maestroRecipients}\" --comments \\\"${comments}\\\""
         cmd="${cmd} --bcversion ${product_version} --htmlFile \\\"${performanceResultsHtmlPath}\\\""
         cmd="${cmd} --resultsFile \\\"${performanceResultsJsonFile}\\\""
+        cmd="${cmd} --testList \\\"${maestroTests}\\\""
         eval "${python} ${cmd}"
         set -e
       '''
