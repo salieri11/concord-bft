@@ -14,6 +14,8 @@
 #ifndef CONCORD_BFT_TEST_PARAMETERS_HPP
 #define CONCORD_BFT_TEST_PARAMETERS_HPP
 
+#include "SimpleClient.hpp"
+
 struct ClientParams {
   uint32_t numOfOperations = 4600;
   uint16_t clientId = 4;
@@ -23,6 +25,7 @@ struct ClientParams {
   uint16_t numOfSlow = 0;
   std::string configFileName;
   bool measurePerformance = false;
+  bftEngine::SimpleClientParams scp;
 
   uint16_t get_numOfReplicas() { return (uint16_t)(3 * numOfFaulty + 2 * numOfSlow + 1); }
 };

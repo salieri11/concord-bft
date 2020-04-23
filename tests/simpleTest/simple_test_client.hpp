@@ -74,7 +74,7 @@ class SimpleTestClient {
 
     ICommunication* comm = bftEngine::CommFactory::create(conf);
 
-    SimpleClient* client = SimpleClient::createSimpleClient(comm, id, cp.numOfFaulty, cp.numOfSlow);
+    SimpleClient* client = SimpleClient::createSimpleClient(comm, id, cp.numOfFaulty, cp.numOfSlow, cp.scp);
     comm->Start();
 
     // The state number that the latest write operation returned.

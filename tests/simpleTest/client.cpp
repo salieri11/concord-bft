@@ -166,5 +166,5 @@ int main(int argc, char **argv) {
                << ", clientPeriodicResetThresh: " << scp.clientPeriodicResetThresh);
 
   SimpleTestClient cl(cp, clientLogger);
-   return cl.run() ? EXIT_SUCCESS : EXIT_FAILURE;
+  return cl.run() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
