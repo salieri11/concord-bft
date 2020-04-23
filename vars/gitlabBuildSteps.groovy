@@ -769,7 +769,7 @@ def call(){
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."
-                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}"
+                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests
                       '''
                     }
 
@@ -792,7 +792,7 @@ def call(){
                       env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
-                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}"
+                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }

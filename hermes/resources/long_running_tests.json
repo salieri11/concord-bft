@@ -3,7 +3,7 @@
     "basic_tests": [
       {
         "testname": "Daml Test",
-        "test": "./main.py DamlTests --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml --dockerComposeFile ../docker/docker-compose-daml-test-tool.yml --enablePortForwarding"
+        "test": "./main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml-test-tool.yml"
       }
     ],
     "additional_tests": [

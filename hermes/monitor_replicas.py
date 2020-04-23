@@ -8,7 +8,7 @@
 #
 # Example: python3 monitor_replicas.py
 #  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
-#  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
+#  --replicas daml_participant:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
 #  --runDuration 1
 #  --loadInterval 1
 
@@ -43,10 +43,9 @@ def main(args):
                        type=int,
                        default=60,
                        help="Minutes to wait between monitors (default 60 mins)")
-   parser.add_argument("--runAllTests",
-                       default=False,
-                       action='store_true',
-                       help="Runs additional tests from extensive test set")
+   parser.add_argument("--testset",
+                       required=True,
+                       help="Set of test sets to be picked up from testlist file")
    parser.add_argument("--testlistFile",
                        help="json file containing the list of tests",
                        default=helper.LONG_RUN_TEST_FILE)
@@ -94,7 +93,7 @@ def main(args):
                                  args.loadInterval,
                                  args.saveSupportLogsTo,
                                  args.testlistFile,
-                                 run_all_tests=args.runAllTests):
+                                 args.testset):
          log.info("**** Blockchain successfully active for {} hrs".format(
             args.runDuration))
          if args.replicasConfig:

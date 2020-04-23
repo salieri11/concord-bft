@@ -49,10 +49,7 @@ def test_ledger_api_test_tool(fxProduct, fxHermesRunSettings):
          test_port = '6865'
       else:
          upload_host = test_host = ledger_api_host
-         forwarding_src_port = 6865
-
-         if fxHermesRunSettings["hermesCmdlineArgs"].enablePortForwarding:
-            forwarding_src_port = 80
+         forwarding_src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
          upload_port = test_port = str(forwarding_src_port)
 
       try:

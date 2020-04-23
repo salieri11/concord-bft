@@ -13,7 +13,6 @@ import logging
 import paramiko
 import warnings
 import cryptography
-import random
 import re
 import traceback
 import socket
@@ -119,8 +118,6 @@ REPLICAS_JSON_FILE = "replicas.json"
 REPLICAS_JSON_PATH = os.path.join("/tmp", REPLICAS_JSON_FILE)
 
 # Long running test related
-BASIC_TESTS = "basic_tests"
-EXTENSIVE_TESTS = "additional_tests"
 LONG_RUN_TEST_FILE = "resources/long_running_tests.json"
 
 # Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
@@ -520,23 +517,35 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
 
       if docker_ethrpc_ip:
          docker_ethrpc_ip = docker_ethrpc_ip.strip()
-         cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+
+         cmd_check_port_forward = "iptables -t nat -C PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
             src_port, docker_ethrpc_ip, dest_port)
-         log.debug("Port forwarding command: {}".format(cmd_port_forward))
-         output = ssh_connect(host, username, password, cmd_port_forward)
-         log.debug("Port forwarded command output: {}".format(output))
+         log.info("Check if port forwarding rule already exists...")
+         check_port_forward_output = ssh_connect(host, username, password, cmd_check_port_forward)
+         log.debug("Is port already forwarded command output: {}".format(check_port_forward_output))
 
-         cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
-         log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
-         port_forward_output = ssh_connect(host, username, password,
-                                           cmd_check_port_forward)
-         log.debug("Port forwarding check output: {}".format(port_forward_output))
+         if "iptables: No chain/target/match by that name" in check_port_forward_output:
+            log.info("Port forwarding rule does not exist. Adding...")
+            cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+               src_port, docker_ethrpc_ip, dest_port)
+            log.debug("Port forwarding command: {}".format(cmd_port_forward))
+            output = ssh_connect(host, username, password, cmd_port_forward)
+            log.debug("Port forwarded command output: {}".format(output))
 
-         check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
-                                                           docker_ethrpc_ip,
-                                                           dest_port)
-         if check_str_port_forward in port_forward_output:
-            log.debug("Port forwarded successfully")
+            cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
+            log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
+            port_forward_output = ssh_connect(host, username, password,
+                                              cmd_check_port_forward)
+            log.debug("Port forwarding check output: {}".format(port_forward_output))
+
+            check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
+                                                              docker_ethrpc_ip,
+                                                              dest_port)
+            if check_str_port_forward in port_forward_output:
+               log.debug("Port forwarded successfully")
+               return True
+         else:
+            log.info("Port forwading rule already exists")
             return True
    except Exception as e:
       log.debug(str(e))
@@ -544,7 +553,7 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
    log.debug("Port forwarding failed")
    return False
 
-def verify_daml_connectivity(docker_compose_files, endpoint_hosts,
+def verify_daml_test_ready(docker_compose_files, endpoint_hosts,
                                        endpoint_port, max_tries=10):
    '''
    Verify if daml test tool container is run; used for copying dar files,
@@ -684,6 +693,7 @@ def collect_support_logs_for_long_running_tests(all_replicas_and_type,
    :param all_replicas_and_type: dict of replica type & replica ips
    :param save_support_logs_to: location to save logs
    '''
+   log.info("Saving logs to: {}".format(save_support_logs_to))
    for blockchain_type, replica_ips in all_replicas_and_type.items():
       log.info("Collect support bundle from all replica IPs: {}".format(
          replica_ips))
@@ -691,7 +701,7 @@ def collect_support_logs_for_long_running_tests(all_replicas_and_type,
                                     save_support_logs_to)
 
 def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
-                     test_list_json_file, run_all_tests=False):
+                     test_list_json_file, testset):
    '''
    Helper util method to monitor the health of the replicas, and do a blockchain
    test (send/get transactions) and collect support logs incase of a replica
@@ -701,6 +711,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :param load_interval: Interval in moins between every monitoring call
    :param log_dir: logs archiving location
    :param test_list_json_file: test list json file
+   :param testset: Set of test sets to be picked up for this run
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
@@ -731,32 +742,34 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       ts = slackThread
    )
 
-   tests = get_long_running_tests(all_replicas_and_type, test_list_json_file, run_all_tests=run_all_tests)
+   tests = get_long_running_tests(all_replicas_and_type, test_list_json_file, testset)
    overall_result = []
    run_count = 0
    no_of_times_all_tests_failed = 0
    overall_run_status = None
    replica_status = None
-   while ((time.time() - start_time)/3600 < run_duration/240) and replica_status is not False:
+   while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
       if not check_replica_health(all_replicas_and_type, username, password):
          log.error("**** replica status is unhealthy")
          collect_support_logs_for_long_running_tests(all_replicas_and_type, log_dir)
          replica_status = False
          overall_run_status = False
       else:
+         replica_status = True
          for blockchain_type, replica_ips in all_replicas_and_type.items():
             if blockchain_type == TYPE_DAML_PARTICIPANT or blockchain_type == TYPE_ETHEREUM:
-               run_result = run_long_running_tests(tests, replica_config, log_dir)
+               testset_result_dict = run_long_running_tests(tests, replica_config, log_dir)
 
-               result, all_tests_failed = parse_long_running_test_result(run_result)
+               result, all_tests_failed = parse_long_running_test_result(testset_result_dict)
                result_details = {}
                run_count += 1
-               result_details[run_count] = run_result
+               result_details[run_count] = testset_result_dict
                overall_result.append(result_details)
 
                if result:
                   log.info("**** All tests passed in this iteration")
-                  overall_run_status = True
+                  if overall_run_status is None:
+                     overall_run_status = True
                else:
                   log.warning(
                      "**** Tests have failed - continuing to monitor...")
@@ -771,7 +784,6 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                   replica_status = False
 
                log.info("**** Testrun status for this iteration: {}".format(result))
-               overall_run_status = overall_run_status and result
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
@@ -782,13 +794,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
         ), ts=slackThread) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
-      # Collect support logs in case of a failed replica
       if not replica_status:
-         for blockchain_type, replica_ips in replicas.items():
-            log.info("Collect support bundle from all replica IPs: {}".format(
-               replica_ips))
-            create_concord_support_bundle(replica_ips, blockchain_type,
-                                          save_support_logs_to)
          duration = format((time.time() - start_time) / 3600, ".2g")
          remaining_time = format((end_time - time.time()) / 3600, ".2g")
          endingMessage = "<RUN> has failed after {} hours ({} had remained)\n\nConsole: {}\n\nWavefront: {}".format(
@@ -819,34 +825,34 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    return True
 
 
-def parse_long_running_test_result(run_result):
+def parse_long_running_test_result(testset_result_dict):
    '''
    Parse log running test results
-   :param run_result: run results from  various tests
+   :param testset_result_dict: run results from  various tests
    :return: test result, and True if all tests failed, else False
    '''
    all_tests_failed = True
    test_result = True
-   for res in run_result["results"]:
+   for res in testset_result_dict["results"]:
       if False in res.values():
          test_result = False
       if True in res.values():
          all_tests_failed = False
 
-   if not run_result:
+   if not testset_result_dict:
       test_result = False
    return test_result, all_tests_failed
 
 
-def get_long_running_tests(all_replicas_and_type, test_list_json_file, run_all_tests=False):
+def get_long_running_tests(all_replicas_and_type, test_list_json_file, testset):
    '''
    Get list of tests from testlist json
    :param all_replicas_and_type: dict of replica type & replica ips
    :param test_list_json_file: test list json file
-   :param run_all_tests: True if additional tests to be included (for extensive run), else False
+   :param testset: Set of test sets to be picked up for this run
    :return: set of tests to be run
    '''
-   tests = None
+   tests = []
    general_blockchain_type = None
    for blockchain_type, replica_ips in all_replicas_and_type.items():
       if blockchain_type == TYPE_DAML_PARTICIPANT:
@@ -857,9 +863,12 @@ def get_long_running_tests(all_replicas_and_type, test_list_json_file, run_all_t
    with open(test_list_json_file, "r", encoding="utf-8") as fp:
       data = json.load(fp)
 
-      tests = data[general_blockchain_type][BASIC_TESTS]
-      if run_all_tests:
-         tests += data[general_blockchain_type][EXTENSIVE_TESTS]
+      for test_set in testset.split(','):
+         try:
+            tests += data[general_blockchain_type][test_set]
+         except KeyError as e:
+            log.error("Error finding testset '{}' in {}".format(test_set, test_list_json_file))
+            raise
 
    log.info("Tests for this run: {}".format(json.dumps(tests, indent=True)))
    return tests
@@ -876,7 +885,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
    log.info("")
    log.info("**** Running test suites...")
    test_result = False
-   run_result = {}
+   testset_result_dict = {}
    testset_result = []
 
    python_bin = os.environ.get("python_bin")
@@ -884,23 +893,23 @@ def run_long_running_tests(tests, replica_config, log_dir):
       python = "{}/python".format(python_bin)
    else:
       python = "python3"
-   log.info("Runnning tests using '{}'".format(python))
 
    for test_count, test_set in enumerate(tests):
-      log.debug("test_set: {}".format(test_set))
+      log.debug("Test set: {}".format(test_set))
       test_results = {}
       try:
-         results_dir = os.path.join(log_dir,
-                                    "{}_{}".format(test_set["testname"].replace(' ', '_'),
-                                                   test_count+1))
+         results_dir = os.path.join(log_dir, "{}_{}".format(test_count + 1,
+                                                            test_set["testname"].replace(' ', '_')))
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
          test_cmd = python + " " + test_set[
             "test"] + " --resultsDir " + results_dir + " --replicasConfig " + replica_config
          log.info("Running test '{}. {}'".format(test_count+1, test_cmd))
          status, msg = execute_ext_command(test_cmd.split(" "))
+         log.debug("Run output: {}".format(msg))
          if not status:
-            collect_support_logs_for_long_running_tests(parseReplicasConfig(replica_config), results_dir)
+            collect_support_logs_for_long_running_tests(
+               parseReplicasConfig(replica_config), results_dir)
          test_result = status
       except Exception as e:
          log.error(e)
@@ -910,11 +919,11 @@ def run_long_running_tests(tests, replica_config, log_dir):
       test_results[test_count+1] = test_result
       testset_result.append(test_results)
 
-   run_result["results"] = testset_result
-   result_data = json.dumps(run_result, indent=True, sort_keys=True)
+   testset_result_dict["results"] = testset_result
+   result_data = json.dumps(testset_result_dict, indent=True, sort_keys=True)
    log.debug(result_data)
 
-   return run_result
+   return testset_result_dict
 
 
 def get_replicas_stats(all_replicas_and_type):
