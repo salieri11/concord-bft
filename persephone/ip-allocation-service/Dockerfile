@@ -24,11 +24,8 @@ RUN mvn -f pom.xml package -pl ip-allocation-service -am -B
 #RUN mvn -f ip-allocation-service/pom.xml install
 
 # Runtime image (IP Allocation Service).
-FROM openjdk:11.0.2-jdk-slim
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.0
 LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
-
-## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
-RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
 WORKDIR /persephone/ip-allocation-service
 COPY --from=builder ./ip-allocation-service/target/ip-allocation-service*.jar ./ip-allocation-service.jar

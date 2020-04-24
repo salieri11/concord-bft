@@ -21,7 +21,7 @@ class HelenApi():
                             (self.org_id, self.helen_url))
             else:
                 self.logger.info("Org id %s exists" % self.org_id)
-        self.task_timeout = 600
+        self.task_timeout = 900
 
     def fetch_csp_header(self):
         if self.csp_env == "staging":
@@ -206,6 +206,29 @@ class HelenApi():
             return False
         else:
             return req.json()
+
+    def deregister_blockchain(self, blockchain_id):
+        """
+            Mark blockchain as invalid
+        """
+        state = self.get_blockchain_info(blockchain_id)["blockchain_state"]
+        if state == "INACTIVE":
+            self.logger.info("Blockchain %s is already marked inactive" %
+                            blockchain_id)
+            return True
+        else:
+            url = ("%s/api/blockchains/deregister/%s" % (self.helen_url,
+                    blockchain_id))
+            rc, rv = utils.request_url(url, header_dict=self.auth_header,
+                                        method="POST")
+            if rc == 202:
+                self.logger.info("Succesfully de-regsitered blockchain %s" %
+                                blockchain_id)
+                return True
+            else:
+                self.logger.error("Unable to de de-regsiter blockchain %s:%s"
+                                % (blockchain_id, rv))
+                return False
 
     def deploy_participant(self, blockchain_id, number, zones=[]):
         """

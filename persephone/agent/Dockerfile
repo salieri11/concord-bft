@@ -29,11 +29,12 @@ RUN apt-get update \
     && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
 
 # Runtime image.
-FROM openjdk:11.0.2-jdk-slim
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.0
 LABEL description="Node Agent"
 
 ## Install CA certificate.
-COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
+## This has hardcoded dependency on JAVA folder.
+COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.39.16-sa-jdk11.0.7-linux_x64/lib/security/cacerts
 
 WORKDIR /agent
 

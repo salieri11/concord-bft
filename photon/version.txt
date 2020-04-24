@@ -1,0 +1,3 @@
+# shell include to set the base version.  Update for version changes
+
+IMAGE_VERSION=1.0.0
