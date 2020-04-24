@@ -1,16 +1,19 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.daml.ledger.validator.batch.BatchLedgerOpsWithAccessControl
-import com.daml.ledger.validator.batch.BatchLedgerOpsWithAccessControl.{Key, Value}
-import com.daml.ledger.validator.privacy.{AccessControlList, PublicAccess, RestrictedAccess}
+import com.daml.ledger.validator.privacy.{
+  AccessControlList,
+  LedgerStateOperationsWithAccessControlV2,
+  PublicAccess,
+  RestrictedAccess
+}
 import com.digitalasset.kvbc.daml_validator.{
+  EventFromValidator,
   EventToValidator,
   KeyValuePair,
-  ProtectedKeyValuePair,
-  EventFromValidator
+  ProtectedKeyValuePair
 }
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Read, Write}
-import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -18,7 +21,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(
     implicit val executionContext: ExecutionContext)
-    extends BatchLedgerOpsWithAccessControl {
+    extends LedgerStateOperationsWithAccessControlV2
+    with BatchLedgerOpsWithAccessControl {
   private var nextReadTag = 0
   private val readPromises = mutable.Map.empty[Int, Promise[Seq[KeyValuePair]]]
 
@@ -71,21 +75,22 @@ class KVBCLedgerOps(sendEvent: EventFromValidator => Unit)(
       }
   }
 
-  override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] = Future {
-    val protectedKeyValuePairs =
-      data.sortBy(_._1).map {
-        case (key, value, acl) =>
-          ProtectedKeyValuePair(
-            key,
-            value,
-            acl match {
-              case PublicAccess => Seq.empty
-              case RestrictedAccess(participants) =>
-                if (participants.isEmpty) Seq("_")
-                else participants.map(x => x: String).toSeq.sorted
-            }
-          )
-      }
-    sendEvent(EventFromValidator().withWrite(Write(protectedKeyValuePairs)))
-  }
+  override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] =
+    Future {
+      val protectedKeyValuePairs =
+        data.sortBy(_._1).map {
+          case (key, value, acl) =>
+            ProtectedKeyValuePair(
+              key,
+              value,
+              acl match {
+                case PublicAccess => Seq.empty
+                case RestrictedAccess(participants) =>
+                  if (participants.isEmpty) Seq("_")
+                  else participants.map(x => x: String).toSeq.sorted
+              }
+            )
+        }
+      sendEvent(EventFromValidator().withWrite(Write(protectedKeyValuePairs)))
+    }
 }

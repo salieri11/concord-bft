@@ -239,12 +239,6 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       }
     }
 
-  val batchValidator =
-    BatchValidator(
-      params = BatchValidatorParameters.default,
-      metricRegistry = registry
-    )
-
   class KVBCCachingInternalBatchLedgerOps(replicaId: ReplicaId, ops: InternalBatchLedgerOps)(
       implicit executionContext: ExecutionContext)
       extends InternalBatchLedgerOps {
@@ -300,6 +294,13 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
     implicit val executionContext = ExecutionContext.global
 
     val kvbcLedgerOps = new KVBCLedgerOps(responseObserver.onNext)
+    val batchValidator =
+      BatchValidator(
+        params = BatchValidatorParameters.default,
+        ledgerStateOperations = kvbcLedgerOps,
+        metricRegistry = registry,
+      )
+
     new StreamObserver[EventToValidator] {
       override def onNext(value: EventToValidator): Unit = {
         value.toValidator match {
@@ -315,8 +316,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
                 recordTime,
                 ParticipantId.assertFromString(request.participantId),
                 request.correlationId,
-                request.submission,
-                ledgerOps
+                request.submission
               )
               .foreach { _ =>
                 val sortedReadSet =
