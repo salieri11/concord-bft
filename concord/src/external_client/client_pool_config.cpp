@@ -15,10 +15,10 @@
 namespace concord {
 
 namespace config_pool {
-using bftEngine::CommFactory;
-using bftEngine::ICommunication;
-using bftEngine::PlainUdpConfig;
-using bftEngine::TlsTcpConfig;
+using bft::communication::CommFactory;
+using bft::communication::ICommunication;
+using bft::communication::PlainUdpConfig;
+using bft::communication::TlsTcpConfig;
 using config::CommConfig;
 using config::ConcordConfiguration;
 using config::ConfigurationException;

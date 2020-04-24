@@ -581,19 +581,19 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // EthKvbCommandsHandler and thus we can't use IReplica here. Need to
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
-    bftEngine::ICommunication *icomm = nullptr;
+    bft::communication::ICommunication *icomm = nullptr;
     if (commConfig.commType == "tls") {
-      bftEngine::TlsTcpConfig configuration(
+      bft::communication::TlsTcpConfig configuration(
           commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
           commConfig.nodes, commConfig.maxServerId, commConfig.selfId,
           commConfig.certificatesRootPath, commConfig.cipherSuite,
           commConfig.statusCallback);
-      icomm = bftEngine::CommFactory::create(configuration);
+      icomm = bft::communication::CommFactory::create(configuration);
     } else if (commConfig.commType == "udp") {
-      bftEngine::PlainUdpConfig configuration(
+      bft::communication::PlainUdpConfig configuration(
           commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
           commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
-      icomm = bftEngine::CommFactory::create(configuration);
+      icomm = bft::communication::CommFactory::create(configuration);
     } else {
       throw std::invalid_argument("Unknown communication module type" +
                                   commConfig.commType);
@@ -713,21 +713,21 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
                                   &clientConfig, i, nullptr);
 
-      bftEngine::ICommunication *comm = nullptr;
+      bft::communication::ICommunication *comm = nullptr;
       if (commConfig.commType == "tls") {
-        bftEngine::TlsTcpConfig config(
+        bft::communication::TlsTcpConfig config(
             clientCommConfig.listenIp, clientCommConfig.listenPort,
             clientCommConfig.bufferLength, clientCommConfig.nodes,
             clientCommConfig.maxServerId, clientCommConfig.selfId,
             clientCommConfig.certificatesRootPath, clientCommConfig.cipherSuite,
             clientCommConfig.statusCallback);
-        comm = bftEngine::CommFactory::create(config);
+        comm = bft::communication::CommFactory::create(config);
       } else if (commConfig.commType == "udp") {
-        bftEngine::PlainUdpConfig config(
+        bft::communication::PlainUdpConfig config(
             clientCommConfig.listenIp, clientCommConfig.listenPort,
             clientCommConfig.bufferLength, clientCommConfig.nodes,
             clientCommConfig.selfId, clientCommConfig.statusCallback);
-        comm = bftEngine::CommFactory::create(config);
+        comm = bft::communication::CommFactory::create(config);
       } else {
         throw std::invalid_argument("Unknown communication module type" +
                                     commConfig.commType);

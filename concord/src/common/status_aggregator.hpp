@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "StatusInfo.h"
+#include "communication/StatusInfo.h"
 #include "utils/concord_utils.hpp"
 
 namespace concord {
@@ -32,8 +32,7 @@ class StatusAggregator {
   /**
    * this function returns actual method that will be called by low level
    */
-  UPDATE_CONNECTIVITY_FN
-  get_update_connectivity_fn();
+  bft::communication::UPDATE_CONNECTIVITY_FN get_update_connectivity_fn();
 
  private:
   class Impl;

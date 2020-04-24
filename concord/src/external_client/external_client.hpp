@@ -17,13 +17,9 @@
 #include <chrono>
 #include <cstdint>
 #include <utility>
-#include "StatusInfo.h"
 #include "client_pool_config.hpp"
+#include "communication/StatusInfo.h"
 #include "external_client_exception.hpp"
-
-namespace bftEngine {
-class ICommunication;
-}
 
 namespace concord {
 
@@ -84,7 +80,7 @@ class ConcordClient {
                         config::ConcordConfiguration const& config,
                         int num_replicas, int client_id);
 
-  std::unique_ptr<::bftEngine::ICommunication> comm_;
+  std::unique_ptr<bft::communication::ICommunication> comm_;
   std::unique_ptr<kvbc::IClient> client_;
 };
 

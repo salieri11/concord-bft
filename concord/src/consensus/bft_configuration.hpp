@@ -158,9 +158,9 @@ inline bool initializeSBFTPrincipals(
         {replicaId, replicaConfig.getValue<std::string>("public_key")});
     if (outCommConfig) {
       outCommConfig->nodes.insert(
-          {replicaId,
-           NodeInfo{replicaConfig.getValue<std::string>("replica_host"),
-                    replicaPort, true}});
+          {replicaId, bft::communication::NodeInfo{
+                          replicaConfig.getValue<std::string>("replica_host"),
+                          replicaPort, true}});
       if (replicaId == selfNumber) {
         outCommConfig->listenPort = replicaPort;
       }
@@ -170,9 +170,9 @@ inline bool initializeSBFTPrincipals(
         uint16_t clientId = clientConfig.getValue<uint16_t>("principal_id");
         uint16_t clientPort = clientConfig.getValue<uint16_t>("client_port");
         outCommConfig->nodes.insert(
-            {clientId,
-             NodeInfo{clientConfig.getValue<std::string>("client_host"),
-                      clientPort, false}});
+            {clientId, bft::communication::NodeInfo{
+                           clientConfig.getValue<std::string>("client_host"),
+                           clientPort, false}});
         if (clientId == selfNumber) {
           outCommConfig->listenPort = clientPort;
         }

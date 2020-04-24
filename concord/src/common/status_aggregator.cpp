@@ -13,6 +13,7 @@
 using namespace std;
 using namespace boost;
 using namespace boost::asio;
+using namespace bft::communication;
 
 using concord::utils::get_epoch_millis;
 
