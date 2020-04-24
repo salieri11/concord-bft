@@ -14,14 +14,10 @@
 #include <config/communication.hpp>
 #include <config/configuration_manager.hpp>
 #include <string>
-#include "CommDefs.hpp"
-#include "CommFactory.hpp"
-#include "ICommunication.hpp"
 #include "KVBCInterfaces.h"
-
-namespace bftEngine {
-class ICommunication;
-}
+#include "communication/CommDefs.hpp"
+#include "communication/CommFactory.hpp"
+#include "communication/ICommunication.hpp"
 
 namespace concord {
 
@@ -91,7 +87,7 @@ void SpecifySimpleClientParams(config::ConcordConfiguration& config);
 void ParseConfig(std::istream& config_stream,
                  config::ConcordConfiguration& config);
 
-std::unique_ptr<bftEngine::ICommunication> ToCommunication(
+std::unique_ptr<bft::communication::ICommunication> ToCommunication(
     const config::CommConfig& comm_config);
 
 }  // namespace config_pool

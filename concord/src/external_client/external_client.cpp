@@ -23,6 +23,8 @@ using config::CommConfig;
 using config::ConcordConfiguration;
 using namespace config_pool;
 
+using namespace bft::communication;
+
 ConcordClient::ConcordClient(ConcordConfiguration const& config,
                              int client_id) {
   CreateClient(config, client_id);

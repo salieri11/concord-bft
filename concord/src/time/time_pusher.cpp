@@ -25,6 +25,8 @@ using google::protobuf::Duration;
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
 
+using namespace bft::communication;
+
 TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
                        const concord::config::ConcordConfiguration &nodeConfig)
     : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),

@@ -19,8 +19,9 @@ struct CommConfig {
   std::string listenIp;
   uint16_t listenPort;
   uint32_t bufferLength;
-  std::unordered_map<NodeNum, NodeInfo> nodes;
-  UPDATE_CONNECTIVITY_FN statusCallback;
+  std::unordered_map<bft::communication::NodeNum, bft::communication::NodeInfo>
+      nodes;
+  bft::communication::UPDATE_CONNECTIVITY_FN statusCallback;
   uint32_t selfId;
 
   // tcp
