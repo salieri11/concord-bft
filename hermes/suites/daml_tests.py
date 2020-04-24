@@ -32,33 +32,33 @@ productType = helper.TYPE_DAML
 def test_ledger_api_test_tool(fxProduct, fxHermesRunSettings):
    """Run ledger_api_test_tool
    """
-   try:
-      host = fxHermesRunSettings["hermesCmdlineArgs"].damlParticipantIp
-      upload_host = host
-      upload_port = '6861'
-      test_host = 'ledger'
-      test_port = '6865'
+   if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
+      all_replicas = helper.parseReplicasConfig(
+         fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig)
+      ledger_api_hosts = all_replicas["daml_participant"]
+   else:
+      ledger_api_hosts = fxHermesRunSettings[
+         "hermesCmdlineArgs"].damlParticipantIP.split(",")
 
-      if host != 'localhost':
-         credentials = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
-
-         # Use port 80 for DAML instead of 443. LedgerApiServer is listening on 6865 over plain text
-         # Setting up port forwarding from 443 to 6865 results in the following exception
-         # INFO: Transport failed
-         # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
-         forwarding_src_port = 80
-         helper.add_ethrpc_port_forwarding(host, credentials["username"], credentials["password"],
-                                           src_port=forwarding_src_port, dest_port=6865)
+   for ledger_api_host in ledger_api_hosts:
+      log.info("ledger_api_host: {}".format(ledger_api_host))
+      if ledger_api_host == 'localhost':
+         upload_host = ledger_api_host
+         upload_port = '6861'
+         test_host = 'ledger'
+         test_port = '6865'
+      else:
+         upload_host = test_host = ledger_api_host
+         forwarding_src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
          upload_port = test_port = str(forwarding_src_port)
-         test_host = host
 
-      log.info("Starting DAR upload on {}:{}".format(upload_host, upload_port))
-      daml_helper.upload_test_tool_dars(host=upload_host, port=upload_port)
-      log.info("Starting DAML verification tests on {}:{}".format(test_host, test_port))
-      daml_helper.verify_ledger_api_test_tool(host=test_host, port=test_port, run_all_tests=True)
-      log.info("DAR upload and verification successful on {}".format(host))
-
-   except Exception as e:
-      log.error(e)
-      raise
-   log.info("DAML tests passed.")
+      try:
+         log.info("Starting DAR upload on {}:{}".format(upload_host, upload_port))
+         daml_helper.upload_test_tool_dars(host=upload_host, port=upload_port)
+         log.info("Starting DAML verification tests on {}:{}".format(test_host, test_port))
+         daml_helper.verify_ledger_api_test_tool(host=test_host, port=test_port, run_all_tests=True)
+         log.info("DAR upload and verification successful on {}".format(test_host))
+      except Exception as e:
+         log.error(e)
+         raise
+      log.info("DAML tests passed.")

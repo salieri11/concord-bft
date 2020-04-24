@@ -114,8 +114,11 @@ PROPERTIES_VMBC_ENABLED_VMC_ZONES = "vmbc.enabled.vmc.zones"
 RACETRACK_SET_ID_FILE = "/blockchain/vars/racetrack_set_id.json"
 
 # Replicas Information
-REPLICAS_JSON_PATH = "/tmp/replicas.json"
 REPLICAS_JSON_FILE = "replicas.json"
+REPLICAS_JSON_PATH = os.path.join("/tmp", REPLICAS_JSON_FILE)
+
+# Long running test related
+LONG_RUN_TEST_FILE = "resources/long_running_tests.json"
 
 # Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
 # This future-proofs possible multi-Jenkins contexts with partners like DA/ASX/HK
@@ -514,28 +517,67 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
 
       if docker_ethrpc_ip:
          docker_ethrpc_ip = docker_ethrpc_ip.strip()
-         cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+
+         cmd_check_port_forward = "iptables -t nat -C PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
             src_port, docker_ethrpc_ip, dest_port)
-         log.debug("Port forwarding command: {}".format(cmd_port_forward))
-         output = ssh_connect(host, username, password, cmd_port_forward)
-         log.debug("Port forwarded command output: {}".format(output))
+         log.info("Check if port forwarding rule already exists...")
+         check_port_forward_output = ssh_connect(host, username, password, cmd_check_port_forward)
+         log.debug("Is port already forwarded command output: {}".format(check_port_forward_output))
 
-         cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
-         log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
-         port_forward_output = ssh_connect(host, username, password,
-                                           cmd_check_port_forward)
-         log.debug("Port forwarding check output: {}".format(port_forward_output))
+         if "iptables: No chain/target/match by that name" in check_port_forward_output:
+            log.info("Port forwarding rule does not exist. Adding...")
+            cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+               src_port, docker_ethrpc_ip, dest_port)
+            log.debug("Port forwarding command: {}".format(cmd_port_forward))
+            output = ssh_connect(host, username, password, cmd_port_forward)
+            log.debug("Port forwarded command output: {}".format(output))
 
-         check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
-                                                           docker_ethrpc_ip,
-                                                           dest_port)
-         if check_str_port_forward in port_forward_output:
-            log.debug("Port forwarded successfully")
+            cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
+            log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
+            port_forward_output = ssh_connect(host, username, password,
+                                              cmd_check_port_forward)
+            log.debug("Port forwarding check output: {}".format(port_forward_output))
+
+            check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
+                                                              docker_ethrpc_ip,
+                                                              dest_port)
+            if check_str_port_forward in port_forward_output:
+               log.debug("Port forwarded successfully")
+               return True
+         else:
+            log.info("Port forwading rule already exists")
             return True
    except Exception as e:
       log.debug(str(e))
 
    log.debug("Port forwarding failed")
+   return False
+
+def verify_daml_test_ready(docker_compose_files, endpoint_hosts,
+                                       endpoint_port, max_tries=10):
+   '''
+   Verify if daml test tool container is run; used for copying dar files,
+   and also checks the connectivity of endpoints
+   :param docker_compose_files: list of docker compose files
+   :param endpoint_hosts: list of endpoints (hosts/ips)
+   :param endpoint_port: endpoint port
+   :param max_tries: max tries to check the connectivity
+   :return: True if connectivity works, else False
+   '''
+   for ip in endpoint_hosts:
+      if not verify_connectivity(ip, endpoint_port, max_tries=max_tries):
+         return False
+
+   cmd_list_tests = "docker ps -a"
+   daml_test_tool_image = get_docker_compose_value(docker_compose_files,
+                                                   "daml_test_tool", "image")
+   status, output = execute_ext_command(cmd_list_tests.split())
+
+   if status:
+      for item in output:
+         if daml_test_tool_image in item:
+            return True
+
    return False
 
 
@@ -615,17 +657,17 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 
-def check_replica_health(replicas, username, password):
+def check_replica_health(all_replicas_and_type, username, password):
    '''
    Helper util method to check the health of replicas supplied. This method checks the
    crash file created by the health daemon incase of a failure (like container not up)
-   :param replicas: List of replicas to be monitored
+   :param all_replicas_and_type: List of replicas and it's blockchain type to be monitored
    :param username: replica login username
    :param password: replica login password
    :return: False if a replica is crashed, else True
    '''
    log.info("************************************************************")
-   for blockchain_type, replica_ips in replicas.items():
+   for blockchain_type, replica_ips in all_replicas_and_type.items():
       log.info("Verifying health on {} ({})".format(replica_ips, blockchain_type))
       for ip in replica_ips:
          log.info("{}...".format(ip))
@@ -644,19 +686,36 @@ def check_replica_health(replicas, username, password):
    log.info("")
    return True
 
+def collect_support_logs_for_long_running_tests(all_replicas_and_type,
+                                                save_support_logs_to):
+   '''
+   Collect support logs for long running tests
+   :param all_replicas_and_type: dict of replica type & replica ips
+   :param save_support_logs_to: location to save logs
+   '''
+   log.info("Saving logs to: {}".format(save_support_logs_to))
+   for blockchain_type, replica_ips in all_replicas_and_type.items():
+      log.info("Collect support bundle from all replica IPs: {}".format(
+         replica_ips))
+      create_concord_support_bundle(replica_ips, blockchain_type,
+                                    save_support_logs_to)
 
-def monitor_replicas(replicas, blockchain_location, run_duration, load_interval, save_support_logs_to):
+def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
+                     test_list_json_file, testset):
    '''
    Helper util method to monitor the health of the replicas, and do a blockchain
    test (send/get transactions) and collect support logs incase of a replica
    failed status (crash or failed  txn test)
-   :param replicas: List of replicas to be monitored
-   :param blockchain_location (sddc/onprem) of the blockchain being tested
+   :param replica_config: replica config file
    :param run_duration: No. of hrs to monitor the replicas
    :param load_interval: Interval in moins between every monitoring call
-   :param save_support_logs_to: Support logs archiving location in case of a failure
+   :param log_dir: logs archiving location
+   :param test_list_json_file: test list json file
+   :param testset: Set of test sets to be picked up for this run
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
+   all_replicas_and_type = parseReplicasConfig(replica_config)
+
    from . import slack
    configObject = getUserConfig()
    credentials = configObject["persephoneTests"]["provisioningService"][
@@ -664,8 +723,6 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    username = credentials["username"]
    password = credentials["password"]
 
-   failed_validation_test_count = 0
-   max_failed_validation_test_attempts = run_duration/24 #tolerate 1 failed validation test every 24 hrs
    start_time = time.time()
    end_time = start_time + run_duration * 3600
    slack_last_reported = start_time
@@ -673,7 +730,7 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    consoleURL = os.getenv("BUILD_URL") + "consoleText" if os.getenv("BUILD_URL") else None
 
    slack.reportMonitoring(kickOff=True)
-   initialStats = get_replicas_stats(replicas)
+   initialStats = get_replicas_stats(all_replicas_and_type)
    remaining_time = format((end_time - time.time()) / 3600, ".2g")
    firstMessage = slack.reportMonitoring("<RUN> has {} hour remaining. Status:\n{}".format(
       remaining_time, "\n".join(initialStats["message_format"])
@@ -685,73 +742,59 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
       ts = slackThread
    )
 
-   while ((time.time() - start_time)/3600 < run_duration):
-      replica_status = None
-      if not check_replica_health(replicas, username, password):
+   tests = get_long_running_tests(all_replicas_and_type, test_list_json_file, testset)
+   overall_result = []
+   run_count = 0
+   no_of_times_all_tests_failed = 0
+   overall_run_status = None
+   replica_status = None
+   while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
+      if not check_replica_health(all_replicas_and_type, username, password):
          log.error("**** replica status is unhealthy")
+         collect_support_logs_for_long_running_tests(all_replicas_and_type, log_dir)
          replica_status = False
+         overall_run_status = False
       else:
          replica_status = True
-         for blockchain_type, replica_ips in replicas.items():
-            if blockchain_type == TYPE_DAML_PARTICIPANT:
-               log.info("Performing validation test...")
-               for endpoint_node in replica_ips:
-                  log.info("{}...".format(endpoint_node))
-                  if blockchain_location.lower() == LOCATION_SDDC:
-                     endpoint_port = str(FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
-                     log.info("Using overridden port: {}".format(endpoint_port))
+         for blockchain_type, replica_ips in all_replicas_and_type.items():
+            if blockchain_type == TYPE_DAML_PARTICIPANT or blockchain_type == TYPE_ETHEREUM:
+               testset_result_dict = run_long_running_tests(tests, replica_config, log_dir)
+
+               result, all_tests_failed = parse_long_running_test_result(testset_result_dict)
+               result_details = {}
+               run_count += 1
+               result_details[run_count] = testset_result_dict
+               overall_result.append(result_details)
+
+               if result:
+                  log.info("**** All tests passed in this iteration")
+                  if overall_run_status is None:
+                     overall_run_status = True
+               else:
+                  log.warning(
+                     "**** Tests have failed - continuing to monitor...")
+                  overall_run_status = False
+
+                  if all_tests_failed:
+                     no_of_times_all_tests_failed += 1
                   else:
-                     endpoint_port = '6865'
-                  try:
-                     daml_helper.upload_test_tool_dars(host=endpoint_node,
-                                                       port=endpoint_port)
-                     daml_helper.verify_ledger_api_test_tool(
-                        host=endpoint_node,
-                        port=endpoint_port,
-                        run_all_tests=True)
-                     log.info("**** DAML test verification passed.")
-                  except Exception as e:
-                     log.error(e)
-                     failed_validation_test_count += 1
-                     log.warning("Replica validation test failed {}/{} times".format(
-                        failed_validation_test_count, max_failed_validation_test_attempts))
-                     if failed_validation_test_count >= max_failed_validation_test_attempts:
-                        replica_status = False
-                     else:
-                        log.info("Continuing to monitor...")
-            elif blockchain_type == "ethereum":
-               log.info("Performing validation test...")
-               for endpoint_node in replica_ips:
-                  log.info("{}...".format(endpoint_node))
-                  try:
-                     # TODO: Add a ethereum test here
-                     log.info("**** ethereum test verification passed.")
-                  except Exception as e:
-                     log.error(e)
-                     failed_validation_test_count += 1
-                     log.warning("Replica validation test failed {}/{} times".format(
-                        failed_validation_test_count, max_failed_validation_test_attempts))
-                     if failed_validation_test_count >= max_failed_validation_test_attempts:
-                        replica_status = False
-                     else:
-                        log.info("Continuing to monitor...")
+                     no_of_times_all_tests_failed = 0
+
+               if no_of_times_all_tests_failed == 3:
+                  replica_status = False
+
+               log.info("**** Testrun status for this iteration: {}".format(result))
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
-        stats = get_replicas_stats(replicas)
+        stats = get_replicas_stats(all_replicas_and_type)
         remaining_time = format((end_time - time.time()) / 3600, ".2g")
         slack.reportMonitoring("<RUN> has {} hour remaining (goal: {} hours). Status:\n{}".format(
           remaining_time, run_duration, "\n".join(stats["message_format"])
         ), ts=slackThread) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
-      # Collect support logs in case of a failed replica
       if not replica_status:
-         for blockchain_type, replica_ips in replicas.items():
-            log.info("Collect support bundle from all replica IPs: {}".format(
-               replica_ips))
-            create_concord_support_bundle(replica_ips, blockchain_type,
-                                          save_support_logs_to)
          duration = format((time.time() - start_time) / 3600, ".2g")
          remaining_time = format((end_time - time.time()) / 3600, ".2g")
          endingMessage = "<RUN> has failed after {} hours ({} had remained)\n\nConsole: {}\n\nWavefront: {}".format(
@@ -764,14 +807,16 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
       log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
       time.sleep(load_interval*60)
 
-   if failed_validation_test_count > 0:
-      log.error("Replica validation test failed {}/{} time(s)".format(
-         failed_validation_test_count, max_failed_validation_test_attempts))
-      for blockchain_type, replica_ips in replicas.items():
-         log.info("Collect support bundle from all replica IPs: {}".format(
-            replica_ips))
-         create_concord_support_bundle(replica_ips, blockchain_type,
-                                       save_support_logs_to)
+   log.info("Overall run summary: ")
+   for res in overall_result:
+      log.info(json.dumps(res))
+
+   if not overall_run_status:
+      duration = format((time.time() - start_time) / 3600, ".2g")
+      remaining_time = format((end_time - time.time()) / 3600, ".2g")
+      slack.reportLongRunningTest("<RUN> has failed after {} hours ({} had remained)".format(
+         duration, remaining_time
+      ))
       return False
    successEndingMessage = "<RUN> successfully passed. (total {} hours)\n\nConsole: {}\n\nWavefront: {}".format(
       run_duration, consoleURL, dashboardLink
@@ -780,7 +825,108 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    return True
 
 
-def get_replicas_stats(replicas):
+def parse_long_running_test_result(testset_result_dict):
+   '''
+   Parse log running test results
+   :param testset_result_dict: run results from  various tests
+   :return: test result, and True if all tests failed, else False
+   '''
+   all_tests_failed = True
+   test_result = True
+   for res in testset_result_dict["results"]:
+      if False in res.values():
+         test_result = False
+      if True in res.values():
+         all_tests_failed = False
+
+   if not testset_result_dict:
+      test_result = False
+   return test_result, all_tests_failed
+
+
+def get_long_running_tests(all_replicas_and_type, test_list_json_file, testset):
+   '''
+   Get list of tests from testlist json
+   :param all_replicas_and_type: dict of replica type & replica ips
+   :param test_list_json_file: test list json file
+   :param testset: Set of test sets to be picked up for this run
+   :return: set of tests to be run
+   '''
+   tests = []
+   general_blockchain_type = None
+   for blockchain_type, replica_ips in all_replicas_and_type.items():
+      if blockchain_type == TYPE_DAML_PARTICIPANT:
+         general_blockchain_type = TYPE_DAML
+      elif blockchain_type == TYPE_ETHEREUM:
+         general_blockchain_type = TYPE_ETHEREUM
+
+   with open(test_list_json_file, "r", encoding="utf-8") as fp:
+      data = json.load(fp)
+
+      for test_set in testset.split(','):
+         try:
+            tests += data[general_blockchain_type][test_set]
+         except KeyError as e:
+            log.error("Error finding testset '{}' in {}".format(test_set, test_list_json_file))
+            raise
+
+   log.info("Tests for this run: {}".format(json.dumps(tests, indent=True)))
+   return tests
+
+
+def run_long_running_tests(tests, replica_config, log_dir):
+   '''
+   Make call to execute tests
+   :param tests: list of tests
+   :param replica_config: replicas config json
+   :param log_dir: directory to save logs
+   :return: test set result
+   '''
+   log.info("")
+   log.info("**** Running test suites...")
+   test_result = False
+   testset_result_dict = {}
+   testset_result = []
+
+   python_bin = os.environ.get("python_bin")
+   if python_bin:
+      python = "{}/python".format(python_bin)
+   else:
+      python = "python3"
+
+   for test_count, test_set in enumerate(tests):
+      log.debug("Test set: {}".format(test_set))
+      test_results = {}
+      try:
+         results_dir = os.path.join(log_dir, "{}_{}".format(test_count + 1,
+                                                            test_set["testname"].replace(' ', '_')))
+         if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+         test_cmd = python + " " + test_set[
+            "test"] + " --resultsDir " + results_dir + " --replicasConfig " + replica_config
+         log.info("Running test '{}. {}'".format(test_count+1, test_cmd))
+         status, msg = execute_ext_command(test_cmd.split(" "))
+         log.debug("Run output: {}".format(msg))
+         if not status:
+            collect_support_logs_for_long_running_tests(
+               parseReplicasConfig(replica_config), results_dir)
+         test_result = status
+      except Exception as e:
+         log.error(e)
+         test_result = False
+
+      log.info("Test result: {}".format(test_result))
+      test_results[test_count+1] = test_result
+      testset_result.append(test_results)
+
+   testset_result_dict["results"] = testset_result
+   result_data = json.dumps(testset_result_dict, indent=True, sort_keys=True)
+   log.debug(result_data)
+
+   return testset_result_dict
+
+
+def get_replicas_stats(all_replicas_and_type):
   '''
     Given replicas with health daemon installed, get the latest
     stats report from each replica with sftp_client function
@@ -792,7 +938,7 @@ def get_replicas_stats(replicas):
   temp_json_path = "/tmp/healthd_recent.json"
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
-  for blockchain_type, replica_ips in replicas.items():
+  for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer"
     if blockchain_type == TYPE_DAML_PARTICIPANT: typeName = "Participant"
     for i, replica_ip in enumerate(replica_ips):
@@ -1291,7 +1437,7 @@ def longRunningTestDashboardLink(replicasConfig=None):
   )
 
 
-def installHealthDaemon(replicas):
+def installHealthDaemon(all_replicas_and_type):
   '''
       Installs local, small-footprint health daemon on the nodes:
       {
@@ -1359,8 +1505,8 @@ def installHealthDaemon(replicas):
       log.info("healthd reporting daemon started on {}".format(ip))
 
     threads = []
-    for deployedType in replicas:
-      ipListOfThatType = replicas[deployedType]
+    for deployedType in all_replicas_and_type:
+      ipListOfThatType = all_replicas_and_type[deployedType]
       for ip in ipListOfThatType:
         log.info("Installing health reporting daemon on {} as {}...".format(ip, deployedType))
         thr = threading.Thread(
@@ -1372,6 +1518,8 @@ def installHealthDaemon(replicas):
 
     for thd in threads: thd.join() # wait for all installations to return
     for result in results: log.info(result)
+    log.info("Sleep for 30 second so health daemon initializes")
+    time.sleep(30)
     return True
 
   except Exception as e:
