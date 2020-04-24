@@ -6,8 +6,8 @@ ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.6.1"
-lazy val sdkVersion = "0.13.56-snapshot.20200411.3905.0.f050da78"
-lazy val integrationKitVersion = "0.0.8-snapshot.20200417.7370900"
+lazy val sdkVersion = "1.1.0-snapshot.20200422.3991.0.6391ee9f"
+lazy val integrationKitVersion = "0.0.8"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
