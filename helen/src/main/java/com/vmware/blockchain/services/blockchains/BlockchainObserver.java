@@ -93,11 +93,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         this.clientType = clientType;
     }
 
-    private void logNode(ConcordNode node) {
-        logger.info("Node ID: {}, HostInfo: {}, Info: {}",
-                    FleetUtils.toUuid(node.getId()), node.getHostInfo(), node.getInfo());
-    }
-
     private void logCluster(ConcordCluster cluster) {
         logger.info("Cluser ID: {}, Info: {}", FleetUtils.toUuid(cluster.getId()), cluster.getInfo());
     }
@@ -109,9 +104,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         SecurityContextHolder.getContext().setAuthentication(auth);
         operationContext.setId(opId);
         String message = "Deployment in progress";
-        logger.info("Type: {}, Node: {}, Cluster: {}", value.getType(), value.getNode(), value.getCluster());
-        logNode(value.getNode());
-        logCluster(value.getCluster());
+        logger.info("Type: {}, Cluster: {}", value.getType(), value.getCluster());
         try {
             switch (value.getType()) {
                 case NODE_DEPLOYED:

@@ -126,8 +126,7 @@ public class BlockchainObserverTest {
                                                     Replica.ReplicaType.NONE, Client.ClientType.NONE);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         DeploymentSessionIdentifier deploymentSessionIdentifier = DeploymentSessionIdentifier.newBuilder()
-                .setLow(0)
-                .setHigh(0)
+                .setId(UUID.randomUUID().toString())
                 .build();
         value = DeploymentSessionEvent.newBuilder()
                 .setType(DeploymentSessionEvent.Type.NOOP)
@@ -137,35 +136,29 @@ public class BlockchainObserverTest {
                         .setType(ProvisionedResource.Type.GENERIC)
                         .setName("")
                         .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                         .setId(UUID.randomUUID().toString())
                                 .build())
                         .setCluster(ConcordClusterIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                            .setId(UUID.randomUUID().toString())
                                 .build())
                         .setNode(ConcordNodeIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                         .setId(UUID.randomUUID().toString())
                                 .build())
                         .build())
                 .setNode(ConcordNode.newBuilder()
                         .setId(ConcordNodeIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                       .setId(UUID.randomUUID().toString())
                                 .build())
                         .setInfo(ConcordNodeInfo.newBuilder()
                                 .setModel(ConcordModelIdentifier.newBuilder()
-                                        .setLow(0)
-                                        .setHigh(0)
+                                                  .setId(UUID.randomUUID().toString())
                                         .build())
                                 .putAllIpv4Addresses(Collections.emptyMap())
                                 .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
                                 .build())
                         .setHostInfo(ConcordNodeHostInfo.newBuilder()
                                 .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                        .setLow(0)
-                                        .setHigh(0)
+                                                 .setId(UUID.randomUUID().toString())
                                         .build())
                                 .putAllIpv4AddressMap(Collections.emptyMap())
                                 .putAllEndpoints(Collections.emptyMap())
@@ -173,15 +166,13 @@ public class BlockchainObserverTest {
                         .build())
                 .setNodeStatus(ConcordNodeStatus.newBuilder()
                         .setId(ConcordNodeIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                       .setId(UUID.randomUUID().toString())
                                 .build())
                         .setStatus(ConcordNodeStatus.Status.UNKNOWN)
                         .build())
                 .setCluster(ConcordCluster.newBuilder()
                         .setId(ConcordClusterIdentifier.newBuilder()
-                                .setLow(0)
-                                .setHigh(0)
+                                       .setId(UUID.randomUUID().toString())
                                 .build())
                         .setInfo(ConcordClusterInfo.newBuilder()
                                 .addAllMembers(Collections.emptyList())
@@ -195,8 +186,7 @@ public class BlockchainObserverTest {
     void deployNodeSuccess() throws Exception {
         ConcordNode node = ConcordNode.newBuilder()
                 .setId(ConcordNodeIdentifier.newBuilder()
-                        .setLow(NODE_ID.getLeastSignificantBits())
-                        .setHigh(NODE_ID.getMostSignificantBits())
+                        .setId(NODE_ID.toString())
                         .build())
                 .setInfo(ConcordNodeInfo.newBuilder().build())
                 .setHostInfo(ConcordNodeHostInfo.newBuilder().build())
@@ -275,8 +265,7 @@ public class BlockchainObserverTest {
 
     private ConcordCluster createTestCluster(UUID clusterId) {
         ConcordClusterIdentifier id = ConcordClusterIdentifier.newBuilder()
-                .setLow(clusterId.getLeastSignificantBits())
-                .setHigh(clusterId.getMostSignificantBits())
+                .setId(clusterId.toString())
                 .build();
         List<ConcordNode> nodes = C_NODES.stream().map(this::createNode).collect(Collectors.toList());
         ConcordClusterInfo info = ConcordClusterInfo.newBuilder()
@@ -291,8 +280,7 @@ public class BlockchainObserverTest {
     private ConcordNode createNode(UUID nodeId) {
         UUID mId = UUID.randomUUID();
         ConcordModelIdentifier modeId = ConcordModelIdentifier.newBuilder()
-                .setLow(mId.getLeastSignificantBits())
-                .setHigh(mId.getMostSignificantBits())
+                .setId(mId.toString())
                 .build();
 
         ConcordNodeInfo concordNodeInfo = ConcordNodeInfo.newBuilder()
@@ -302,8 +290,7 @@ public class BlockchainObserverTest {
                 .build();
 
         ConcordNodeIdentifier nId = ConcordNodeIdentifier.newBuilder()
-                .setLow(nodeId.getLeastSignificantBits())
-                .setHigh(nodeId.getMostSignificantBits())
+                .setId(nodeId.toString())
                 .build();
 
         return ConcordNode.newBuilder()
@@ -315,8 +302,7 @@ public class BlockchainObserverTest {
 
     private ConcordNodeHostInfo createNodeHostInfo() {
         OrchestrationSiteIdentifier oId = OrchestrationSiteIdentifier.newBuilder()
-                .setLow(1)
-                .setHigh(2)
+                .setId(UUID.randomUUID().toString())
                 .build();
         Map<Integer, Integer>  ipMap = ImmutableMap.of(1, 2);
         ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()

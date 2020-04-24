@@ -8,7 +8,6 @@ package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 
@@ -72,9 +71,6 @@ public class VSphereOrchestrator implements Orchestrator {
         val network = info.getVsphere().getNetwork();
 
         try {
-            val clusterId = new UUID(request.getCluster().getHigh(), request.getCluster().getLow());
-            val nodeId = new UUID(request.getNode().getHigh(), request.getNode().getLow());
-
             val getFolder = CompletableFuture
                     .supplyAsync(() -> vSphereHttpClient.getFolder(info.getVsphere().getFolder()));
             val getDatastore = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getDatastore(storage));
@@ -93,7 +89,8 @@ public class VSphereOrchestrator implements Orchestrator {
             val libraryItem = getLibraryItem.get();
 
             val instance = vSphereHttpClient
-                    .createVirtualMachine(clusterId + "-" + nodeId, libraryItem, datastore, resourcePool, folder,
+                    .createVirtualMachine(request.getCluster().getId() + "-" + request.getNode().getId(),
+                                          libraryItem, datastore, resourcePool, folder,
                                           Map.entry("blockchain-network", controlNetwork),
                                           new CloudInitConfiguration(
                                                   info.getContainerRegistry(),

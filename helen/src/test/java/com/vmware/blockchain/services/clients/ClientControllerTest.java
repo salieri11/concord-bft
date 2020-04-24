@@ -264,8 +264,7 @@ public class ClientControllerTest extends RuntimeException {
                                   Collections.emptyList(), "");
 
         dsId = DeploymentSessionIdentifier.newBuilder()
-                .setLow(DEP_ID.getLeastSignificantBits())
-                .setHigh(DEP_ID.getMostSignificantBits())
+                .setId(DEP_ID.toString())
                 .build();
         setCreateCluster(i -> {
             StreamObserver ob = i.getArgument(1);
@@ -335,15 +334,13 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(1, entries.stream()
                     .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                            .setLow(SITE_1.getLeastSignificantBits())
-                            .setHigh(SITE_1.getMostSignificantBits())
+                            .setId(SITE_1.toString())
                             .build()
                             .equals(e.getSite()))
                     .count());
         Assertions.assertEquals(2, entries.stream()
                     .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                            .setLow(SITE_2.getLeastSignificantBits())
-                            .setHigh(SITE_2.getMostSignificantBits())
+                            .setId(SITE_2.toString())
                             .build()
                             .equals(e.getSite()))
                     .count());
@@ -368,15 +365,13 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(1, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_1.getLeastSignificantBits())
-                        .setHigh(SITE_1.getMostSignificantBits())
+                        .setId(SITE_1.toString())
                         .build()
                         .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(2, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_2.getLeastSignificantBits())
-                        .setHigh(SITE_2.getMostSignificantBits())
+                        .setId(SITE_2.toString())
                         .build()
                         .equals(e.getSite()))
                 .count());

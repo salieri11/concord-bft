@@ -178,7 +178,7 @@ message DeploymentSessionEvent {
     DeploymentSessionIdentifier session = 2;
     DeploymentSession.Status status = 3; /* type == ACKNOWLEDGED | COMPLETED */
     ProvisionedResource resource = 4; /* type == RESOURCE | RESOURCE_DEPROVISIONING */
-    ConcordNode node = 5; /* type == NODE_DEPLOYED */
+    ConcordNode node = 5 [deprecated = true]; /* type == NODE_DEPLOYED */
     ConcordNodeStatus node_status = 6; /* type == NODE_STATUS */
     ConcordCluster cluster = 7; /* type == CLUSTER_DEPLOYED */
 }

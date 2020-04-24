@@ -47,10 +47,9 @@ public class FleetUtils {
     public static <T> UUID toUuid(T fleetId) {
 
         try {
-            Method low = fleetId.getClass().getDeclaredMethod("getLow");
-            Method high = fleetId.getClass().getDeclaredMethod("getHigh");
+            Method id = fleetId.getClass().getDeclaredMethod("getId");
 
-            return new UUID((Long) high.invoke(fleetId), (Long) low.invoke(fleetId));
+            return UUID.fromString((String) id.invoke(fleetId));
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             logger.warn("Could not convert to UUID {}", fleetId);
             return null;

@@ -25,13 +25,10 @@ public class FleetUtilsTest {
     void testId() {
         UUID id = UUID.randomUUID();
         ConcordNodeIdentifier cni = ConcordNodeIdentifier.newBuilder()
-                .setLow(id.getLeastSignificantBits())
-                .setHigh(id.getMostSignificantBits())
+                .setId(id.toString())
                 .build();
         Assertions.assertNotNull(cni);
         Assertions.assertTrue(cni instanceof ConcordNodeIdentifier);
-        Assertions.assertEquals(id.getLeastSignificantBits(), cni.getLow());
-        Assertions.assertEquals(id.getMostSignificantBits(), cni.getHigh());
 
         UUID id2 = toUuid(cni);
         Assertions.assertEquals(id, id2);

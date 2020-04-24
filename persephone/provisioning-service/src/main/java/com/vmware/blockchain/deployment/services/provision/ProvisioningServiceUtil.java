@@ -194,7 +194,7 @@ public class ProvisioningServiceUtil {
             Collection<OrchestratorData.OrchestrationEvent> events
     ) {
         var placementEntryByNodeName = session.getAssignment().getEntriesList().stream()
-                .map(entry -> Map.entry(toResourceName(entry.getNode()), entry))
+                .map(entry -> Map.entry(entry.getNode().getId(), entry))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         var computeResourceEvents = new HashMap<URI, OrchestratorData.ComputeResourceEventCreated>();
         var networkResourceEvents = new HashMap<URI, OrchestratorData.NetworkResourceEventCreated>();
@@ -442,16 +442,6 @@ public class ProvisioningServiceUtil {
     }
 
     /**
-     * Convert the {@link ConcordNodeIdentifier} to its canonical resource name.
-     *
-     * @param identifier identifier to convert into resource name.
-     * @return resource name as a {@link String}.
-     */
-    public static String toResourceName(ConcordNodeIdentifier identifier) {
-        return new UUID(identifier.getHigh(), identifier.getLow()).toString();
-    }
-
-    /**
      * Convert a canonical resource name to a {@link ConcordNodeIdentifier}.
      *
      * @param name resource name to convert into identifier.
@@ -478,7 +468,7 @@ public class ProvisioningServiceUtil {
             Map<String, PlacementAssignment.Entry> placementEntryByNodeName
     ) {
         return ConcordNodeHostInfo.newBuilder()
-                .setSite(placementEntryByNodeName.get(toResourceName(event.getNode())).getSite()).build();
+                .setSite(placementEntryByNodeName.get(event.getNode().getId()).getSite()).build();
     }
 
     /**
