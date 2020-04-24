@@ -2543,7 +2543,7 @@ void updateEnvFileForConcordOnDemand(){
 void startOfficialPerformanceRun(){
   try{
     dir('blockchain'){
-      performance.startPerformanceRun()
+      performancelib.startPerformanceRun()
     }
   }catch(Exception ex){
     echo("Exception while starting a performance run:")
