@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.base.Strings;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
@@ -358,7 +359,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             var siteInfo = entry.getKey().getSiteInfo();
 
-            var nodeUuid = new UUID(entry.getKey().getNode().getHigh(), entry.getKey().getNode().getLow()).toString();
+            var nodeUuid = entry.getKey().getNode().getId();
             nodeIds.put(nodeIndex, nodeUuid);
             loggingProperties.put(nodeIndex, getLogManagementJson(siteInfo));
             concordIdentifierMap.put(entry.getKey().getNode(), nodeIndex);
@@ -484,8 +485,20 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
      * @param requestSession deploymentSessionIdentifier to carry out the workflow for.
      */
     private void deprovision(DeploymentSessionIdentifier requestSession) {
-
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
+        if (sessionEventTask == null) {
+            if (Strings.isNullOrEmpty(requestSession.getId())) {
+                sessionEventTask =
+                        deploymentLog.entrySet().stream().filter(k -> k.getKey().getLow() == requestSession.getLow()
+                                                                      && k.getKey().getHigh() == requestSession
+                                .getHigh()).findFirst().get().getValue();
+            } else {
+                sessionEventTask =
+                        deploymentLog.entrySet().stream().filter(k -> k.getKey().getId() == requestSession
+                                .getId()).findFirst().get().getValue();
+            }
+        }
+
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
                 final var deleteEvents = deleteResourceEvents(deploymentSession.getEventsList());
@@ -670,7 +683,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                         var orchestrator = context.getOrchestrators().get(entry.getSite());
 
                         var node = entry.getNode();
-                        var resource = ProvisioningServiceUtil.toResourceName(node);
+                        var resource = node.getId();
                         var addressRequest = new OrchestratorData.CreateNetworkResourceRequest(resource, true);
                         var addressPublisher = orchestrator.createNetworkAddress(addressRequest);
 
@@ -739,7 +752,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                         var publisher = CompletableFuture.supplyAsync(() -> deployNode(
                                 concordIdentifierMap,
                                 context.getOrchestrators().get(placement.getSite()),
-                                session.getId(),
+                                session.getCluster(),
                                 placement.getNode(),
                                 model,
                                 session.getSpecification().getGenesis(),
@@ -778,7 +791,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
                                     var privateNetworkResource = privateNetworkAddressMap
                                             .get(entry.getKey()).getResource();
-                                    var resource = ProvisioningServiceUtil.toResourceName(placement.getNode());
+                                    var resource = placement.getNode().getId();
                                     var allocationRequest =
                                             new OrchestratorData.CreateNetworkAllocationRequest(
                                                     resource,
@@ -917,7 +930,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
     private OrchestratorData.OrchestrationEvent deployNode(
             Map<ConcordNodeIdentifier, Integer> concordIdentifierMap,
             Orchestrator orchestrator,
-            DeploymentSessionIdentifier sessionId,
+            ConcordClusterIdentifier clusterIdentifier,
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
             Genesis genesis,
@@ -925,10 +938,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             ConfigurationSessionIdentifier configGenId,
             Properties properties) {
 
-        var computeRequest = new OrchestratorData.CreateComputeResourceRequest(
-                ConcordClusterIdentifier.newBuilder().setLow(sessionId.getLow()).setHigh(sessionId.getHigh())
-                        .setId(sessionId.toString())
-                        .build(),
+        var computeRequest = new OrchestratorData.CreateComputeResourceRequest(clusterIdentifier,
                 nodeId,
                 model,
                 genesis,

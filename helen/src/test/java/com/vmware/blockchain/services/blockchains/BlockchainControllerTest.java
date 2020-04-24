@@ -400,8 +400,7 @@ public class BlockchainControllerTest {
                                  Collections.emptyList(), "");
 
         dsId = DeploymentSessionIdentifier.newBuilder()
-                .setLow(DEP_ID.getLeastSignificantBits())
-                .setHigh(DEP_ID.getMostSignificantBits())
+                .setId(DEP_ID.toString())
                 .build();
         setCreateCluster(i -> {
             StreamObserver ob = i.getArgument(1);
@@ -630,20 +629,19 @@ public class BlockchainControllerTest {
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(3, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                        .setId(SITE_1.toString())
                                 .build()
                         .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(1, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(SITE_2.getLeastSignificantBits())
-                                .setHigh(SITE_2.getMostSignificantBits())
+                        .setId(SITE_2.toString())
                                 .build()
                         .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(LogManagement.Type.LOG_INSIGHT, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                        .setId(SITE_1.toString())
                         .build()
                         .equals(e.getSite()))
                 .findFirst()
@@ -652,7 +650,7 @@ public class BlockchainControllerTest {
                      .orElse(LogManagement.Type.UNRECOGNIZED));
         Assertions.assertEquals("10.78.0.1:9000", entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                        .setId(SITE_1.toString())
                         .build()
                         .equals(e.getSite()))
                 .findFirst()
@@ -661,8 +659,7 @@ public class BlockchainControllerTest {
                 .orElse(""));
         Assertions.assertEquals("LINT_TEST_KEY", entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_2.getLeastSignificantBits())
-                        .setHigh(SITE_2.getMostSignificantBits())
+                        .setId(SITE_2.toString())
                         .build()
                         .equals(e.getSite()))
                 .findFirst()
@@ -809,8 +806,7 @@ public class BlockchainControllerTest {
 
         ConcordNodeHostInfo hostInfo = ConcordNodeHostInfo.newBuilder()
                 .setSite(OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(siteId.getLeastSignificantBits())
-                        .setHigh(siteId.getMostSignificantBits())
+                        .setId(siteId.toString())
                         .build())
                 .putAllIpv4AddressMap(ImmutableMap.of(ip, ip))
                 .putAllEndpoints(ImmutableMap.of("ethereum-rpc", endpoint))
@@ -818,8 +814,7 @@ public class BlockchainControllerTest {
 
         ConcordNodeInfo nodeInfo = ConcordNodeInfo.newBuilder()
                 .setModel(ConcordModelIdentifier.newBuilder()
-                        .setLow(1)
-                        .setHigh(0)
+                                  .setId(UUID.randomUUID().toString())
                         .build())
                 .putAllIpv4Addresses(ImmutableMap.of("ip", ip))
                 .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
@@ -827,8 +822,7 @@ public class BlockchainControllerTest {
 
         return ConcordNode.newBuilder()
                 .setId(ConcordNodeIdentifier.newBuilder()
-                        .setLow(nodeId.getLeastSignificantBits())
-                        .setHigh(nodeId.getMostSignificantBits())
+                        .setId(nodeId.toString())
                         .build())
                 .setInfo(nodeInfo)
                 .setHostInfo(hostInfo)
@@ -842,8 +836,7 @@ public class BlockchainControllerTest {
 
         return ConcordCluster.newBuilder()
                 .setId(ConcordClusterIdentifier.newBuilder()
-                        .setLow(clusterId.getLeastSignificantBits())
-                        .setHigh(clusterId.getMostSignificantBits())
+                        .setId(clusterId.toString())
                         .build())
                 .setInfo(info)
                 .build();
