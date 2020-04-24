@@ -1,16 +1,13 @@
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
-import java.io.File
-import java.nio.file.Path
-
 import com.auth0.jwt.algorithms.Algorithm
-import com.daml.ledger.participant.state.kvutils.app.Config
-import com.daml.ledger.participant.state.v1.ParticipantId
-import com.daml.lf.data.Ref
-import com.daml.lf.data.Ref.IdString
 import com.daml.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
 import com.daml.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcard}
-import scopt.{OptionParser, Read}
+import com.daml.ledger.participant.state.kvutils.app.Config
+import com.daml.ledger.participant.state.v1.ParticipantId
+import com.daml.lf.data.Ref.IdString
+import scopt.OptionParser
+
 import scala.concurrent.duration._
 
 final case class ExtraConfig(
@@ -31,7 +28,7 @@ object ExtraConfig {
   val DefaultParticipantId: IdString.ParticipantId =
     ParticipantId.assertFromString("standalone-participant")
 
-  val Default = ExtraConfig(
+  val Default: ExtraConfig = ExtraConfig(
     maxInboundMessageSize = Config.DefaultMaxInboundMessageSize,
     replicas = Seq("localhost:50051"),
     useThinReplica = false,
@@ -50,7 +47,7 @@ object ExtraConfig {
       .opt[Unit]("version")
       .optional()
       .action((_, _) => {
-        println(BuildInfo.Version);
+        println(BuildInfo.Version)
         sys.exit(0)
       })
       .text("Prints the version on stdout and exit.")
@@ -130,32 +127,6 @@ object ExtraConfig {
       .text("Enables JWT-based authorization, where the JWT is signed by RSA256 with a public key loaded from the given JWKS URL")
       .action((url, config) => config.copy(extra = config.extra.copy(authService = Some(AuthServiceJWT(JwksVerifier(url))))))
 
-    // Deprecated arguments -- these cannot be added right now as kvutils-app requires at least one
-    // --participant argument to be specified.
-    parser
-      .opt[Int]("port")
-      .optional()
-      .action(deprecatedParameter[Int]("port"))
-      .text("[DEPRECATED] Server port. If not set, a random port is allocated.")
-    parser
-      .opt[File]("port-file")
-      .optional()
-      .action(deprecatedParameter[File]("port-file"))
-      .text("[DEPRECATED] File to write the allocated port number to. Used to inform clients in CI about the allocated port.")
-    parser
-      .opt[String]("jdbc-url")
-      .text(s"[DEPRECATED] The JDBC URL to the postgres database used for the indexer and the index.")
-      .action(deprecatedParameter[String]("jdbc-url"))
-
-    implicit val participantIdRead: Read[Ref.ParticipantId] =
-      Read.stringRead.map(Ref.ParticipantId.assertFromString)
-    parser
-      .opt[Ref.ParticipantId]("participant-id")
-      .optional()
-      .text(s"[DEPRECATED] The participant id given to all components of a ledger api server. Defaults to ${ExtraConfig.DefaultParticipantId}")
-      .action(deprecatedParameter[ParticipantId]("participant-id"))
-
-
     parser
       .opt[Map[String, String]]("batching")
       .optional()
@@ -176,9 +147,5 @@ object ExtraConfig {
           )
         )
       })
-
   }
-
-  private def deprecatedParameter[T](name: String)(value: T, config: Config[ExtraConfig]): Config[ExtraConfig] =
-    sys.error("Parameter '--$name' is deprecated, see --help for correct usage on how to set up a participant via --participant parameter.")
 }
