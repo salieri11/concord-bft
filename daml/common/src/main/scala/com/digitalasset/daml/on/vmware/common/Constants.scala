@@ -5,6 +5,7 @@ import com.google.protobuf.ByteString
 
 /** Common constants. */
 object Constants {
+
   /** The prefix to prepend to fragment keys.
     * This prefix is used in the read service to filter
     * for fragment key-value pairs.

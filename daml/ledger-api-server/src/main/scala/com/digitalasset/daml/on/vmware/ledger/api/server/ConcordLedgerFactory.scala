@@ -3,12 +3,20 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 import java.util.UUID
 
 import akka.stream.Materializer
-import com.daml.ledger.participant.state.kvutils.app.{Config, LedgerFactory, ParticipantConfig, ReadWriteService}
+import com.daml.ledger.participant.state.kvutils.app.{
+  Config,
+  LedgerFactory,
+  ParticipantConfig,
+  ReadWriteService
+}
 import com.daml.ledger.participant.state.pkvutils.api.PrivacyAwareKeyValueParticipantState
 import com.daml.lf.data.Ref
 import com.daml.lf.data.Ref.ParticipantId
 import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCPrometheusMetricsEndpoint}
-import com.digitalasset.daml.on.vmware.participant.state.{ConcordKeyValueLedgerReader, ConcordLedgerWriter}
+import com.digitalasset.daml.on.vmware.participant.state.{
+  ConcordKeyValueLedgerReader,
+  ConcordLedgerWriter
+}
 import com.digitalasset.daml.on.vmware.write.service.{KVBCClient, TRClient}
 import com.daml.ledger.api.auth.AuthService
 import com.daml.logging.LoggingContext
@@ -23,8 +31,7 @@ import com.daml.ledger.participant.state.kvutils.api.{BatchingLedgerWriter, Defa
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-object ConcordLedgerFactory
-    extends LedgerFactory[ReadWriteService, ExtraConfig] {
+object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig] {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   override val defaultExtraConfig: ExtraConfig = ExtraConfig.Default
@@ -39,8 +46,9 @@ object ConcordLedgerFactory
   def readWriteServiceOwner(
       config: Config[ExtraConfig],
       participantConfig: ParticipantConfig,
-  )(implicit materializer: Materializer,
-    logCtx: LoggingContext): ResourceOwner[ReadWriteService] = {
+  )(
+      implicit materializer: Materializer,
+      logCtx: LoggingContext): ResourceOwner[ReadWriteService] = {
     implicit val executionContext: ExecutionContextExecutor =
       materializer.executionContext
     logger.info(
@@ -51,22 +59,20 @@ object ConcordLedgerFactory
         .replaceAll("\n", " "))
     val theMetricRegistry = metricRegistry(participantConfig, config)
     val thinReplicaClient =
-      createThinReplicaClient(participantConfig.participantId,
-                                         config.extra,
-                                         theMetricRegistry)
+      createThinReplicaClient(participantConfig.participantId, config.extra, theMetricRegistry)
     val concordClient = createConcordClient(config.extra)
     waitForConcordToBeReady(concordClient)
     val ledgerId =
-      config.ledgerId.getOrElse(
-        Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
+      config.ledgerId.getOrElse(Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       ledgerId,
       () => concordClient.currentHealth)
-    val concordWriter = new ConcordLedgerWriter(ledgerId,
-                                         participantConfig.participantId,
-                                         concordClient.commitTransaction,
-                                         () => concordClient.currentHealth)
+    val concordWriter = new ConcordLedgerWriter(
+      ledgerId,
+      participantConfig.participantId,
+      concordClient.commitTransaction,
+      () => concordClient.currentHealth)
 
     lazy val batchingWriter =
       new BatchingLedgerWriter(
@@ -86,8 +92,7 @@ object ConcordLedgerFactory
         concordWriter
       }
 
-    val participantState = PrivacyAwareKeyValueParticipantState(
-      reader, writer, theMetricRegistry)
+    val participantState = PrivacyAwareKeyValueParticipantState(reader, writer, theMetricRegistry)
 
     for {
       closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
@@ -107,8 +112,9 @@ object ConcordLedgerFactory
       config: Config[ExtraConfig]): ApiServerConfig =
     super
       .apiServerConfig(participantConfig, config)
-      .copy(tlsConfig = config.tlsConfig,
-            maxInboundMessageSize = config.extra.maxInboundMessageSize)
+      .copy(
+        tlsConfig = config.tlsConfig,
+        maxInboundMessageSize = config.extra.maxInboundMessageSize)
 
   override def authService(config: Config[ExtraConfig]): AuthService =
     config.extra.authService.getOrElse(super.authService(config))
@@ -123,19 +129,20 @@ object ConcordLedgerFactory
     KVBCClient(host, port)
   }
 
-  private[this] def createThinReplicaClient(participantId: ParticipantId,
-                                            config: ExtraConfig,
-                                            metricRegistry: MetricRegistry): TRClient = {
+  private[this] def createThinReplicaClient(
+      participantId: ParticipantId,
+      config: ExtraConfig,
+      metricRegistry: MetricRegistry): TRClient = {
     if (!config.useThinReplica) {
-      throw new IllegalArgumentException(
-        "Must have thin replica client enabled")
+      throw new IllegalArgumentException("Must have thin replica client enabled")
     }
-    new TRClient(participantId,
-                 config.maxFaultyReplicas,
-                 "",
-                 config.replicas.toArray,
-                 config.jaegerAgentAddress,
-                 metricRegistry)
+    new TRClient(
+      participantId,
+      config.maxFaultyReplicas,
+      "",
+      config.replicas.toArray,
+      config.jaegerAgentAddress,
+      metricRegistry)
   }
 
   private[this] def waitForConcordToBeReady(client: KVBCClient): Unit = {

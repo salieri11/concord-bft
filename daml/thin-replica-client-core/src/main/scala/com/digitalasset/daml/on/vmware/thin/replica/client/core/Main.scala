@@ -6,18 +6,18 @@ import com.daml.ledger.participant.state.kvutils._
 
 object Main extends App {
 
-  def isEqual(a: Update, b: Update): Boolean = 
+  def isEqual(a: Update, b: Update): Boolean =
     a.toString == b.toString
-  def isEqual(a: Option[Update], b: Option[Update]): Boolean = 
-    (a,b) match {
+  def isEqual(a: Option[Update], b: Option[Update]): Boolean =
+    (a, b) match {
       case (Some(e1), Some(e2)) => isEqual(e1, e2)
       case _ => false
     }
 
-  def printUpdate(update: Update):Unit = {
-    if(update.kvPairs.length > 0) {
+  def printUpdate(update: Update): Unit = {
+    if (update.kvPairs.length > 0) {
       System.out.println(s"Processing ${update.blockId} ${update.kvPairs.length}")
-      update.kvPairs.map{
+      update.kvPairs.map {
         case Tuple2(entryId, value) =>
           try {
             System.out.println(entryId)
@@ -31,7 +31,8 @@ object Main extends App {
               }
           } catch {
             case e: RuntimeException =>
-              System.out.println(s"Processing block failed with an exception, error='${e.toString}'")
+              System.out.println(
+                s"Processing block failed with an exception, error='${e.toString}'")
               sys.error(e.toString)
           }
         case _ => System.out.println("Some other stuff")
@@ -50,10 +51,17 @@ object Main extends App {
 
   val u = Library.getTestUpdate
   System.out.println(u)
-  assert(isEqual(u, Some(Update(17,Array("Alice".getBytes->"Bob".getBytes),"test", "SpanContext".getBytes))))
+  assert(
+    isEqual(
+      u,
+      Some(Update(17, Array("Alice".getBytes -> "Bob".getBytes), "test", "SpanContext".getBytes))))
 
-  val creatResult = Library.createTRC("example_client_id", 1, "",
-    Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"), "localhost:6831")
+  val creatResult = Library.createTRC(
+    "example_client_id",
+    1,
+    "",
+    Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"),
+    "localhost:6831")
   assert(creatResult == true)
   System.out.println("ThinReplicaClient constructed.")
 
@@ -68,7 +76,7 @@ object Main extends App {
     System.out.println("Subscription call did not yield any updates as initial state.")
   } else {
     System.out.println(
-        "The subscribe appears to have returned initial state to the update " +
+      "The subscribe appears to have returned initial state to the update " +
         "queue; fetching state from the update queue...")
   }
 
@@ -80,7 +88,7 @@ object Main extends App {
 
   if (has_update) {
     System.out.println(
-        "The (at least initial) contents of the update queue have been " +
+      "The (at least initial) contents of the update queue have been " +
         "exhausted; will now wait for and report any additional updates...")
     Library.acknowledgeBlockId(latest_block_id)
     System.out.println("Update(s) acknowledged.")

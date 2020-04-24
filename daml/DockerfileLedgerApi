@@ -18,6 +18,7 @@ RUN apt update && apt install -y curl && \
 
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
+COPY daml/.scalafmt.conf /doc/daml/
 WORKDIR /doc/daml
 RUN sbt update
 
@@ -34,7 +35,7 @@ ENV THIN_REPLICA_SETTINGS="--use-thin-replica --max-faulty-replicas 1"
 ENV LOG4CPLUS_CONFIGURATION /doc/daml/ledger-api-server/src/main/resources/log4cplus.properties
 
 RUN sbt nativeCompile
-RUN sbt ledger_api_server/stage
+RUN sbt scalafmtCheck ledger_api_server/stage
 RUN rm -r /thin-replica-client/build/
 EXPOSE 6865
 

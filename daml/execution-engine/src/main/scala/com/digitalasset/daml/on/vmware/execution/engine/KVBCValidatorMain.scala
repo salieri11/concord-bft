@@ -14,7 +14,11 @@ import io.grpc.{Server, ServerBuilder}
 import io.grpc.protobuf.services.ProtoReflectionService
 import com.daml.grpc.adapter.{SingleThreadExecutionSequencerPool, ExecutionSequencerFactory}
 import com.digitalasset.kvbc.daml_validator._
-import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCMetricsRegistry, KVBCPrometheusMetricsEndpoint}
+import com.digitalasset.daml.on.vmware.common.{
+  KVBCHttpServer,
+  KVBCMetricsRegistry,
+  KVBCPrometheusMetricsEndpoint
+}
 import com.daml.ledger.api.health.HealthChecks
 import com.daml.platform.server.api.services.grpc.GrpcHealthService
 import org.slf4j.LoggerFactory
@@ -36,7 +40,8 @@ class KVBCValidatorServer() {
   private val metricsRegistry = new KVBCMetricsRegistry("kvutils")
   private val httpServer = new KVBCHttpServer()
   KVBCPrometheusMetricsEndpoint.createEndpoint(metricsRegistry.registry, httpServer.context)
-  private val graphEndpoint = new KVBCGraphMetricsEndpoint(metricsRegistry.registry, httpServer.context)
+  private val graphEndpoint =
+    new KVBCGraphMetricsEndpoint(metricsRegistry.registry, httpServer.context)
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
 

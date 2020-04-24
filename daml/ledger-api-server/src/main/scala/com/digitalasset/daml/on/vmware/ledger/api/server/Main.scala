@@ -8,5 +8,6 @@ object Main {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   def main(args: Array[String]): Unit =
-    new ProgramResource(new Runner("vDAML Ledger API Server", ConcordLedgerFactory).owner(args)).run()
+    new ProgramResource(new Runner("vDAML Ledger API Server", ConcordLedgerFactory).owner(args))
+      .run()
 }

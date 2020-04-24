@@ -103,8 +103,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
       val privateKey = keyPair.getPrivate.asInstanceOf[RSAPrivateKey]
 
       val token = generateToken("test-key-1", privateKey)
-        .fold(e => fail("Failed to generate signed token: " + e.shows),
-              identity)
+        .fold(e => fail("Failed to generate signed token: " + e.shows), identity)
 
       // Start a JWKS server and create a verifier using the JWKS server
       val jwks = KeyUtils.generateJwks(
@@ -124,17 +123,17 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
     }
   }
 
-  private[this] def parseExtraConfig(
-      args: Array[String]): Config[ExtraConfig] = {
+  private[this] def parseExtraConfig(args: Array[String]): Config[ExtraConfig] = {
     val defaultArgs = Array(
       "--participant",
       "participant-id=test_id,port=1234"
     )
     Config
-      .parse("config-test",
-             ExtraConfig.addCommandLineArguments,
-             ExtraConfig.Default,
-             defaultArgs ++ args)
+      .parse(
+        "config-test",
+        ExtraConfig.addCommandLineArguments,
+        ExtraConfig.Default,
+        defaultArgs ++ args)
       .getOrElse(fail())
   }
 
@@ -162,9 +161,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
       f.deleteOnExit()
       f.getAbsolutePath
     }
-    Files.copy(resourceURL.openStream(),
-               Paths.get(tmpFile),
-               StandardCopyOption.REPLACE_EXISTING)
+    Files.copy(resourceURL.openStream(), Paths.get(tmpFile), StandardCopyOption.REPLACE_EXISTING)
     tmpFile
   }
 

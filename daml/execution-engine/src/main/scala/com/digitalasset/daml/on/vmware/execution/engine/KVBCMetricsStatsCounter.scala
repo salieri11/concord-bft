@@ -27,6 +27,6 @@ class KVBCMetricsStatsCounter(registry: MetricRegistry) extends StatsCounter {
       totalLoadTime.getCount,
       evictionCount.getCount,
       evictionWeight.getCount
-  )
+    )
   override def toString: String = snapshot().toString
 }

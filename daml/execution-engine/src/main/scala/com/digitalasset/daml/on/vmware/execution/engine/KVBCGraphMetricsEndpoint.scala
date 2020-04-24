@@ -10,13 +10,13 @@ import org.eclipse.jetty.util.resource.Resource
 import org.eclipse.jetty.servlet.{DefaultServlet, ServletHolder}
 
 final class KVBCGraphMetricsEndpoint(registry: MetricRegistry, context: ServletContextHandler) {
-  
+
   val indexFile = "index.html"
   val resourceUri: URI =
     new URI(this.getClass.getResource(s"/assets/$indexFile").toString().dropRight(indexFile.length))
   val resource: Resource = Resource.newResource(resourceUri)
   context.setBaseResource(resource)
-  
+
   val staticHolder = new ServletHolder("default", classOf[DefaultServlet])
   staticHolder.setInitParameter("dirAllowed", "false")
   context.addServlet(staticHolder, "/")
