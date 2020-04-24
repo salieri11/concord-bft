@@ -40,6 +40,11 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-tee.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
+  "DamlTestsOnPredeployedBlockchain": [
+    "enabled": false,
+    "dockerComposeFiles": "../docker/docker-compose-daml-test-tool.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --damlParticipantIP "${concord_ips}"'
+  ],
   "SampleSuite": [
     "enabled": true
   ],
@@ -168,6 +173,7 @@ import hudson.util.Secret
 @Field String additional_components_to_build = ""
 
 // Job Names List
+@Field String daml_test_on_predeployed_bc_job_name = "Daml Tests on pre-deployed Blockchain"
 @Field String deploy_concord_job_name = "Concord Deployment Test"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
 @Field String ext_long_tests_job_name = "Blockchain Extensive Long Tests"
@@ -186,6 +192,7 @@ import hudson.util.Secret
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
+  daml_test_on_predeployed_bc_job_name,
   deploy_concord_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
@@ -200,6 +207,7 @@ import hudson.util.Secret
 
 // These job names are just substrings of the actual job names.
 @Field List specialized_tests = [
+  daml_test_on_predeployed_bc_job_name,
   deploy_concord_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
@@ -293,7 +301,7 @@ def call(){
              name: "performance_votes"
 
       string defaultValue: "",
-             description: "To collect deployment support bundle, enter comma separated list of concord node IPs",
+             description: "To collect deployment support bundle, or for Daml test on pre-deployed blockchain, enter comma separated list of concord node IPs",
              name: "concord_ips"
       choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
 
@@ -531,6 +539,7 @@ def call(){
                 def latest_docker_tag = updateOneCloudProvisioningBintrayAndGetLatestTag()
                 setDockerTag(latest_docker_tag)
               } else if(
+                  env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(deploy_concord_job_name) ||
                   env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
@@ -603,6 +612,8 @@ def call(){
                     ./buildall.sh --buildOnDemand PerformanceTests
                   '''
                 } else if (
+                  env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
+                  env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
                   env.JOB_NAME.contains(deployment_support_bundle_job_name) ||
@@ -730,6 +741,9 @@ def call(){
                           }
                         }
                       }
+                      runTests()
+                    } else if (env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name)) {
+                      selectOnlySuites(["DamlTestsOnPredeployedBlockchain"])
                       runTests()
                     } else if (env.JOB_NAME.contains(helen_role_test_job_name)) {
                       selectOnlySuites(["HelenRoleTests"])
