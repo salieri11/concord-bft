@@ -25,22 +25,27 @@ def startPerformanceRun(){
       env.performanceResultsJsonFile = "performance.json"
       env.performanceResultsJsonPath = env.performanceResultsJsonDir + "/" + env.performanceResultsJsonFile
 
-      sh '''
-        # Shhh
-        set +x
+      status = sh(
+        script: '''
+          # Shhh
+          set +x
 
-        # Never fail due to launching performance
-        set +e
-        
-        comments="Performance for build ${product_version}"
-        cmd="maestroclient.py --username \"${username}\" --password '${password}'"
-        cmd="${cmd} --recipients \"${maestroRecipients}\" --comments \\\"${comments}\\\""
-        cmd="${cmd} --bcversion ${product_version} --htmlFile \\\"${performanceResultsHtmlPath}\\\""
-        cmd="${cmd} --resultsFile \\\"${performanceResultsJsonFile}\\\""
-        cmd="${cmd} --testList \\\"${maestroTests}\\\""
-        eval "${python} ${cmd}"
-        set -e
-      '''
+          comments="Performance for build ${product_version}"
+          cmd="maestroclient.py --username \"${username}\" --password '${password}'"
+          cmd="${cmd} --recipients \"${maestroRecipients}\" --comments \\\"${comments}\\\""
+          cmd="${cmd} --bcversion ${product_version} --htmlFile \\\"${performanceResultsHtmlPath}\\\""
+          cmd="${cmd} --resultsFile \\\"${performanceResultsJsonFile}\\\""
+          cmd="${cmd} --testList \\\"${maestroTests}\\\""
+          eval "${python} ${cmd}"
+        ''',
+        returnStatus: true
+      )
+
+      echo("Exit status of launching maestroclient.py: " + status.toString())
+      // We want to raise an exception, not have Jenkins fail the run.
+      if (status != 0){
+        throw new Exception("Maestro client error.")
+      }
     }
     archiveArtifacts artifacts: env.performanceResultsJsonPath, allowEmptyArchive: true
 

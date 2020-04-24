@@ -382,10 +382,10 @@ def main():
 
     for app in app_list:
         comment = app + ": " +args.comments
-    	logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
-        	         format(args.bcversion,
-                	        args.recipients,
-                        	comment))
+        logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
+                     format(args.bcversion,
+                            args.recipients,
+                            comment))
         run_id = client.submit_run(args.bcversion,
                                args.recipients,
                                app, comment,
