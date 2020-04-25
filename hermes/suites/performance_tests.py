@@ -68,7 +68,7 @@ class PerformanceTests(test_suite.TestSuite):
          except Exception as e:
             result = False
             info = str(e)
-            stackInfo = getStackInfo()
+            stackInfo = getStackInfo(e)
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 

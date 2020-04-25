@@ -48,10 +48,6 @@ def dynamicReportOverride_for_test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesR
     # [camelCase => spaced] description based on testName
     description = re.sub(r'((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))', r' \1', testName)
     suiteName = helper.CURRENT_SUITE_NAME
-    if helper.CURRENT_SUITE_NAME == "EthCoreVmTests":
-      # EthCoreVMTests have over 500+ cases; hard to scroll down.
-      # prepend 'Z_' for Racetrack to show this suite last on the table
-      suiteName = "Z_EthCoreVmTests"
     return {
       "suiteName": suiteName,
       "caseName": caseFullName,

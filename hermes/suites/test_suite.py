@@ -178,7 +178,7 @@ class TestSuite(ABC):
             return True
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo(e))
             raise ProductLaunchException(str(e), self._resultFile)
 
 
@@ -228,7 +228,7 @@ class TestSuite(ABC):
             self.product.launchPersephone()
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo(e))
             raise(e)
 
    def getWeb3Instance(self):
