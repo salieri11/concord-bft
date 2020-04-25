@@ -25,7 +25,7 @@ import requests
 
 from . import test_suite
 from util.auth import tokens
-from suites.case import describe, passed, failed
+from suites.case import describe, passed, failed, getStackInfo
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -93,7 +93,7 @@ class SampleDAppTests(test_suite.TestSuite):
          except Exception as e:
             result = False
             info = str(e)
-            stackInfo = getStackInfo()
+            stackInfo = getStackInfo(e)
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 

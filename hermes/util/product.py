@@ -21,6 +21,8 @@ import signal
 import util.blockchain.eth
 import util.helper
 
+from suites.case import describe
+
 PRODUCT_LOGS_DIR = "product_logs"
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -92,6 +94,8 @@ class Product():
       # Just send an initial check to see if it is running without doing a retry loop.
       self.checkProductStatusParams = checkProductStatusParams if checkProductStatusParams else waitForStartupParams
 
+
+   @describe("Should launch product with no error")
    def launchProduct(self):
       '''
       Launch the product if not launched already.
@@ -133,6 +137,8 @@ class Product():
          if not launched:
             raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
 
+
+   @describe("Should launch persephone with no error")
    def launchPersephone(self):
       '''
       Given the user's product config section, launch the product.

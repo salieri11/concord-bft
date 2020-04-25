@@ -49,7 +49,7 @@ class DeployDamlTests(test_suite.TestSuite):
             except Exception as e:
                 result = False
                 info = str(e) + "\n" + traceback.format_exc()
-                stackInfo = getStackInfo()
+                stackInfo = getStackInfo(e)
                 log.error("Exception running UI test: '{}'".format(info))
 
             self.writeResult(testName, result, info, stackInfo)

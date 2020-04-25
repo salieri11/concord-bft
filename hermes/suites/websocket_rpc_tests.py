@@ -47,7 +47,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
          except Exception as e:
             result = False
             info = str(e) + "\n" + traceback.format_exc()
-            stackInfo = getStackInfo()
+            stackInfo = getStackInfo(e)
             log.error(
                "Exception running RPC Websocket test: '{}'".format(info))
 

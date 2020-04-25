@@ -14,6 +14,7 @@ import json
 import os
 import urllib
 from util import helper, slack, mailer, wavefront, racetrack, jenkins
+from suites import case
 
 log = None
 
@@ -48,6 +49,14 @@ def racetrackSetEnd(args, options, secret):
     startFromBuildNumber = info["build"],
     verbose = True
   )
+
+def racetrackCaseFailed(args, options, secret):
+  a = prepareArgs(args)
+  case.reportFailedCase(suiteName=a[0], caseName=a[1], description=[2])
+
+def racetrackCasePassed(args, options, secret):
+  a = prepareArgs(args)
+  case.reportPassedCase(suiteName=a[0], caseName=a[1], description=[2])
 
 def publishRuns(args, options, secret):
   a = prepareArgs(args)
@@ -97,9 +106,11 @@ DISPATCH = {
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
   "racetrackSetEnd": racetrackSetEnd,
+  "racetrackCasePassed": racetrackCasePassed,
+  "racetrackCaseFailed": racetrackCaseFailed,
 
   # Long-running Test
-  "lrtPrintDashboardLink": printLongRunningTestDashboardLink
+  "lrtPrintDashboardLink": printLongRunningTestDashboardLink,
 }
 
 
@@ -126,6 +137,7 @@ def main():
     DISPATCH[args.funcName](param, options, args.credentials)
   except Exception as e:
     log.info(e); traceback.print_exc()
+  helper.hermesNonCriticalTraceFinalize()
   return
 
 

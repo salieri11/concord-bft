@@ -18,7 +18,7 @@ from suites import (contract_compiler_tests, eth_core_vm_tests,
                     eth_json_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
-from suites.case import saveException
+from suites.case import catchFailurePoint
 from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
 
@@ -65,7 +65,7 @@ def initialize():
       sys.path.append(path)
 
 
-@saveException
+@catchFailurePoint
 def main():
    suite = None
 
@@ -312,6 +312,7 @@ def main():
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
    printAllResults(allResults)
+   helper.hermesNonCriticalTraceFinalize()
 
    if not totalSuccess:
       exit(2)

@@ -232,7 +232,7 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
 
 
    except Exception as e:
-      log.debug(e)
+     helper.hermesNonCriticalTrace(e)
 
 
 def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):

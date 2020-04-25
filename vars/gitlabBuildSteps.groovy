@@ -365,7 +365,7 @@ def call(){
               System.setProperty("org.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL", "86400")
 
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -384,7 +384,7 @@ def call(){
                 echo "Run Persephone Tests? " + env.run_persephone_tests
               }
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -404,7 +404,7 @@ def call(){
                   }
                   saveTimeEvent("Setup", "Finished copying googletest")
                 }catch(Exception ex){
-                  failRun()
+                  failRun(ex)
                   throw ex
                 }
               }
@@ -430,7 +430,7 @@ def call(){
                   }
                   saveTimeEvent("Setup", "Finished copying evmjit")
                 }catch(Exception ex){
-                  failRun()
+                  failRun(ex)
                   throw ex
                 }
               }
@@ -447,7 +447,7 @@ def call(){
                   }
                   saveTimeEvent("Setup", "Finished copying ethereum tests")
                 }catch(Exception ex){
-                  failRun()
+                  failRun(ex)
                   throw ex
                 }
               }
@@ -475,7 +475,7 @@ def call(){
                 '''
               }
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -557,11 +557,11 @@ def call(){
                 pythonlib.initializePython()
               }
 
-              racetrackSet("begin")
+              racetrack(action: "setBegin")
 
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -602,22 +602,13 @@ def call(){
                     echo "For Performance nightly run, building ONLY performance & benchmark tool..."
                     ./buildall.sh --buildOnDemand PerformanceTests
                   '''
-                } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
-                  sh '''
-                    echo "No local build required for Memory Leak Testrun..."
-                  '''
-                } else if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
-                  sh '''
-                    echo "No local build required for monitoring health and status of replicas..."
-                  '''
-                } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
-                  sh '''
-                    echo "No local build required for collecting deployment support bundle..."
-                  '''
-                } else if (env.JOB_NAME.contains(long_tests_job_name)) {
-                  sh '''
-                    echo "No local build required for Blockchain Long Tests..."
-                  '''
+                } else if (
+                  env.JOB_NAME.contains(memory_leak_job_name) ||
+                  env.JOB_NAME.contains(monitor_replicas_job_name) ||
+                  env.JOB_NAME.contains(deployment_support_bundle_job_name) ||
+                  env.JOB_NAME.contains(long_tests_job_name)
+                ) {
+                  sh '''echo "No local build is required for this job"'''
                 } else {
                   sh '''
                     echo "Building All components..."
@@ -627,7 +618,8 @@ def call(){
               }
               saveTimeEvent("Build", "Finished buildall.sh")
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
+              racetrack(action: "reportFailure", caseName: "pipeline_build_failure")
               throw ex
             }
           }
@@ -661,7 +653,7 @@ def call(){
               pushConcordComponentsToDockerHub()
               saveTimeEvent("Push Concord components to DockerHub", "End")
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -838,7 +830,7 @@ def call(){
               helen_deploy_test_log_dir = new File(env.test_log_root, "HelenDeployEthereumToSDDC").toString()
               handleFailedTestSuite(helen_deploy_test_log_dir)
 
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -912,7 +904,7 @@ def call(){
               // See if this suite failed due to SR 19062354609.
               handleFailedTestSuite(env.persephone_test_logs)
 
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -935,7 +927,7 @@ def call(){
                     pushHermesDataFile('memory_leak_summary.csv')
                   }
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -949,7 +941,7 @@ def call(){
                     sendAlertNotification('memory_leak')
                   }
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -980,7 +972,7 @@ def call(){
 
                   saveTimeEvent("Memory leak tasks", "End")
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -1010,7 +1002,7 @@ def call(){
                     }
                   }
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -1024,7 +1016,7 @@ def call(){
                     pushHermesDataFile('perf_testrun_summary.csv')
                   }
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -1062,7 +1054,7 @@ def call(){
 
                   saveTimeEvent("Performance tasks", "End")
                 } catch(Exception ex){
-                    failRun()
+                    failRun(ex)
                     throw ex
                 }
               }
@@ -1092,7 +1084,7 @@ def call(){
               pushToArtifactory()
               saveTimeEvent("Save to artifactory", "End")
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -1128,7 +1120,7 @@ def call(){
                 }
               }
             }catch(Exception ex){
-              failRun()
+              failRun(ex)
               throw ex
             }
           }
@@ -1174,7 +1166,7 @@ def call(){
 
           if (!env.python) pythonlib.initializePython()
 
-          racetrackSet("end")
+          racetrack(action: "setEnd")
 
           // Files created by the docker run belong to root because they were created by the docker process.
           // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
@@ -1575,8 +1567,11 @@ void passRun(){
 }
 
 // Called when it fails.
-void failRun(){
+void failRun(Exception ex = null){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
+  if (ex != null){
+    echo "The run has failed with an exception: " + ex.toString()  
+  }
 }
 
 // Given a host to connect to, use ssh-keygen to see if we have
@@ -2269,13 +2264,18 @@ void collectArtifacts(){
     }
     archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
   }
+  
+  if (new File(env.WORKSPACE + '/failure_summary.log').exists()) {
+    archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true  
+  }
+  if (new File(env.WORKSPACE + '/otherFailures').exists()) {
+    archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
+  }
 
   saveTimeEvent("Gather artifacts", "End")
 
   // And grab the time file one more time so we can know how long gathering artifacts takes.
   archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
-  archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true
-  archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
 }
 
 // Clean all SDDCs.
@@ -2325,15 +2325,25 @@ String cleanSDDC(sddc, folder, age){
   return failure
 }
 
-void racetrackSet(action){
+void racetrack(Map params){
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    def action = params.action
     script {
       dir('blockchain/hermes') {
-        if(action == "begin") {
-          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
-        } else if(action == "end"){
-          env.run_result = currentBuild.currentResult
-          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"'
+        try{
+          if(action == "setBegin") {
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
+          } else if(action == "setEnd"){
+            env.run_result = currentBuild.currentResult
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"'
+          } else if(action == "reportFailure") {
+            env.tmp_suite_name = params.suiteName ? params.suiteName : "ZZ_Pipeline"
+            env.tmp_case_name = params.caseName ? params.caseName : "pipeline_unknown_case"
+            env.tmp_case_description = params.caseDescription ? params.caseDescription : ""
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackCaseFailed --param "${tmp_suite_name}" "${tmp_case_name}" "${tmp_case_description}"'
+          }
+        }catch(Exception ex){
+          echo(ex.toString())
         }
       }
     }

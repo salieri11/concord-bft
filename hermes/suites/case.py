@@ -25,6 +25,11 @@ log = hermes_logging.getMainLogger()
 
 FAILURE_SUMMARY_FILENAME = "failure_summary"
 FAILURE_FOLDER = "otherFailures"
+SUITENAME_OVERRIDE = {
+  # EthCoreVMTests have over 500+ cases; hard to scroll down.
+  # prepend 'Z_' for Racetrack to show this suite last on the table
+  "EthCoreVmTests": "Z_EthCoreVmTests"
+}
 
 
 class CaseType(Enum):
@@ -58,6 +63,8 @@ def getInvocationProxy(testFunc):
               suiteName = overrides["suiteName"]; setattr(testFunc, "_suite_name", suiteName)
             if "caseName" in overrides: caseName = overrides["caseName"]
             if "description" in overrides: description = overrides["description"]
+        if suiteName in SUITENAME_OVERRIDE:
+          suiteName = SUITENAME_OVERRIDE[suiteName]
         if dontReport:
           setattr(testFunc, "_case_id", False)
           return
@@ -131,8 +138,14 @@ def getInvocationProxy(testFunc):
   return callHijacker
 
 
-def getStackInfo():
-  return stack()[1:] # stack info not including this function
+def getStackInfo(e=None):
+  if not e:
+    return stack()[1:] # stack info not including this function
+  else:
+    failurePoint = traceback.extract_tb(e.__traceback__)[1]
+    stackInfo = stack()[1:]
+    stackInfo.insert(0, failurePoint)
+    return stackInfo
 
 
 def passed(message=None):
@@ -179,7 +192,7 @@ def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicR
 
 
 
-def saveException(func):
+def catchFailurePoint(func):
   '''
     Decorator function to capture and exception when func throw it
     without external reporting (e.g. Racetrack, Wavefront)
@@ -337,7 +350,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
         # in Jenkins context, also save first failure summary JSON to vars directory
         if os.path.exists(outputPath + 'blockchain/vars'):
           with open(outputPath + 'blockchain/vars/' + FAILURE_SUMMARY_FILENAME + '.json', "w+") as f:
-            f.write(failureSummaryJson)
+            f.write(json.dumps(failureSummaryJson, indent=4, default=str))
       else: # other failures, save to `otherFailures` directory
         if not os.path.exists(outputPath + FAILURE_FOLDER):
           os.makedirs(outputPath + FAILURE_FOLDER)
@@ -429,3 +442,13 @@ def getDecorators(obj, decoratorsList=None):
       else:
         decoratorsList.append(line.split("@")[1])
   return decoratorsList
+
+
+def reportFailedCase(suiteName, caseName, description=None):
+  caseId = racetrack.caseStart(suiteName=suiteName, caseName=caseName, description=description)
+  racetrack.caseEnd(caseId = caseId, result = "FAIL")
+
+
+def reportPassedCase(suiteName, caseName, description=None):
+  caseId = racetrack.caseStart(suiteName=suiteName, caseName=caseName, description=description)
+  racetrack.caseEnd(caseId = caseId, result = "PASS")

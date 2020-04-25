@@ -62,6 +62,7 @@ class HlfTests(test_suite.TestSuite):
    def getName(self):
       return "HlfTests"
 
+   @describe("Should launch HFL product")
    def launchProduct(self, cmdlineArgs, userConfig, force=False):
       '''Launch the HLF product.
       '''
@@ -72,7 +73,7 @@ class HlfTests(test_suite.TestSuite):
             self.product.launchProduct()
          except Exception as e:
             log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.", getStackInfo())
+            self.writeResult("All Tests", False, "The product did not start.", getStackInfo(e))
             raise
 
    def run(self):
@@ -97,7 +98,7 @@ class HlfTests(test_suite.TestSuite):
          except Exception as e:
             result = False
             info = str(e)
-            stackInfo = getStackInfo()
+            stackInfo = getStackInfo(e)
             traceback.print_tb(e.__traceback__)
             log.error("Exception running test: '{}'".format(info))
 
