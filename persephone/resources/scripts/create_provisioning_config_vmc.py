@@ -97,8 +97,7 @@ def new_orchestration_site(
     """
     site_uuid = uuid.UUID(data_center)
     site_id = orchestration.OrchestrationSiteIdentifier(
-        low=(site_uuid.int >> 64),
-        high=(site_uuid.int & 0xFFFFFFFFFFFFFFFF)
+        id=site_uuid
     )
     return orchestration.OrchestrationSite(
         id=site_id,
@@ -180,18 +179,6 @@ def main():
 
     # Generate JSON according to Protocol Buffer's JSON codec.
     config_json = json.loads(MessageToJson(config))
-
-    # Adapt "Protocol Buffer JSON":
-    # 1. Change uint64 to signed since JVM (server side) does not have unsigned type.
-    # 2. Protocol Buffer's JSON codec converts 64-bit precision integer to JSON string literals.
-    #    Convert the string back to int/number for JSON output.
-    for site in config_json["sites"]:
-        unsigned = site["id"]
-        signed = {
-            "low": to_signed_int(int(unsigned["low"])),
-            "high": to_signed_int(int(unsigned["high"]))
-        }
-        site["id"] = signed
 
     # Dump JSON to STDOUT.
     print(json.dumps(config_json, indent=4))

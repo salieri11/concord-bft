@@ -56,8 +56,7 @@ public class ProvisioningServiceUtil {
             // Hash the string value into an UUID.
             uuid = UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8));
         }
-        return DeploymentSessionIdentifier.newBuilder().setLow(uuid.getLeastSignificantBits())
-                .setHigh(uuid.getMostSignificantBits())
+        return DeploymentSessionIdentifier.newBuilder()
                 .setId(uuid.toString()).build();
     }
 
@@ -68,10 +67,7 @@ public class ProvisioningServiceUtil {
      * @return a new {@link ConcordClusterIdentifier} instance.
      */
     public static ConcordClusterIdentifier newClusterId() {
-        var uuid = UUID.randomUUID();
-
-        return ConcordClusterIdentifier.newBuilder().setLow(uuid.getLeastSignificantBits())
-                .setHigh(uuid.getMostSignificantBits()).setId(uuid.toString()).build();
+        return ConcordClusterIdentifier.newBuilder().setId(UUID.randomUUID().toString()).build();
     }
 
 
@@ -448,9 +444,7 @@ public class ProvisioningServiceUtil {
      * @return identifier as a {@link ConcordNodeIdentifier}.
      */
     public static ConcordNodeIdentifier toNodeIdentifier(String name) {
-        var uuid = UUID.fromString(name);
-        return ConcordNodeIdentifier.newBuilder().setLow(uuid.getLeastSignificantBits())
-                .setHigh(uuid.getMostSignificantBits()).setId(uuid.toString()).build();
+        return ConcordNodeIdentifier.newBuilder().setId(UUID.fromString(name).toString()).build();
     }
 
 

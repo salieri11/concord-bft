@@ -32,7 +32,7 @@ def parse_arguments() -> Dict[str, Any]:
     )
     parser.add_argument(
         "--deployment-id",
-        help="Deployment Id tuple. ex: (High.Low)"
+        help="Deployment Id"
     )
 
     return vars(parser.parse_args())
@@ -69,9 +69,7 @@ def main():
         channel = grpc.insecure_channel(args["server"])
     provisioning_stub = provisioning_service_rpc.ProvisioningServiceStub(channel)
 
-    deployment_id_tuple = args["deployment_id"].split(".")
-    dep = provisioning_service.DeploymentSessionIdentifier(low=int(deployment_id_tuple[1]),
-                                                 high=int(deployment_id_tuple[0]))
+    dep = provisioning_service.DeploymentSessionIdentifier(id=args["deployment_id"])
     update_deployment_request = provisioning_service.UpdateDeploymentSessionRequest(
         header=core.MessageHeader(),
         session=dep,
@@ -83,7 +81,7 @@ def main():
         session=dep
     )
     events = provisioning_stub.StreamClusterDeploymentSessionEvents(get_events_request)
-    log.info("StreamClusterDeploymentSessionEvents(): id(%d|%d)", dep.high, dep.low)
+    log.info("StreamClusterDeploymentSessionEvents(): id(%d)", dep.id)
     for event in events:
         log.info("DeploymentEvent: %s", MessageToJson(event))
 
