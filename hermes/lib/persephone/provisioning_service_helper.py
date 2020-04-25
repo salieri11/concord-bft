@@ -135,8 +135,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vmc=site_info)
-            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(
-               low=site_id["low"], high=site_id["high"])
+            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(id=site_id)
             deployment_site_ids.append(orchestration_site_id)
             deployment_sites.append(orchestration_site_info)
 
@@ -160,8 +159,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vsphere=site_info)
-            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(
-               low=site_id["low"], high=site_id["high"])
+            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(id=site_id)
             deployment_site_ids.append(orchestration_site_id)
             deployment_sites.append(orchestration_site_info)
 

@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.base.Strings;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
@@ -314,8 +313,6 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 .map(entry -> {
                     var uuid = UUID.randomUUID();
                     var nodeId = ConcordNodeIdentifier.newBuilder()
-                            .setLow(uuid.getLeastSignificantBits())
-                            .setHigh(uuid.getMostSignificantBits())
                             .setId(uuid.toString())
                             .build();
 
@@ -383,7 +380,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         properties.put(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), wavefront.getToken());
 
         if (!properties.containsKey(NodeProperty.Name.BLOCKCHAIN_ID.toString())) {
-            var blockchainId = new UUID(session.getCluster().getHigh(), session.getCluster().getLow());
+            var blockchainId = session.getCluster().getId();
             properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), blockchainId.toString());
         }
 
@@ -486,18 +483,6 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
      */
     private void deprovision(DeploymentSessionIdentifier requestSession) {
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
-        if (sessionEventTask == null) {
-            if (Strings.isNullOrEmpty(requestSession.getId())) {
-                sessionEventTask =
-                        deploymentLog.entrySet().stream().filter(k -> k.getKey().getLow() == requestSession.getLow()
-                                                                      && k.getKey().getHigh() == requestSession
-                                .getHigh()).findFirst().get().getValue();
-            } else {
-                sessionEventTask =
-                        deploymentLog.entrySet().stream().filter(k -> k.getKey().getId() == requestSession
-                                .getId()).findFirst().get().getValue();
-            }
-        }
 
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {

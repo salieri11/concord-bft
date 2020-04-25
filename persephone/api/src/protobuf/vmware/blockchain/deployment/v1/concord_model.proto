@@ -63,15 +63,9 @@ message ConcordComponent {
 /**
  * Identifier of a [ConcordModel].
  *
- * @property[low]
- *   lower order bits of a 128-bit identifier;
- * @property[high]
- *   higher order bits of a 128-bit identifier;
  */
 message ConcordModelIdentifier {
-    uint64 low = 1 [deprecated=true];
-    uint64 high = 2 [deprecated=true];
-    string id = 3;
+    string id = 1;
 }
 
 /**

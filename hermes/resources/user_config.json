@@ -318,10 +318,7 @@
       "zones": {
         "sddc": [
           {
-            "id": {
-              "low": 0,
-              "high": 1
-            },
+            "id": "1890ac97-941d-4479-a90c-98061c1e3639",
             "info": {
               "type": "VMC",
               "labels": {
@@ -376,10 +373,7 @@
             ]
           },
           {
-            "id": {
-              "low": 0,
-              "high": 4
-            },
+            "id": "4bb0fe0e-1f2f-470c-a427-774aa08ce2ea",
             "info": {
               "type": "VMC",
               "labels": {
@@ -436,10 +430,7 @@
         ],
         "onprem": [
           {
-            "id": {
-              "low": 0,
-              "high": 1
-            },
+            "id": "1890ac97-941d-4479-a90c-98061c1e3639",
             "info": {
               "type": "VSPHERE",
               "labels": {
@@ -490,10 +481,7 @@
             ]
           },
           {
-            "id": {
-              "low": 0,
-              "high": 4
-            },
+            "id": "4bb0fe0e-1f2f-470c-a427-774aa08ce2ea",
             "info": {
               "type": "VSPHERE",
               "labels": {

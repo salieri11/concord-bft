@@ -594,7 +594,7 @@ class PersephoneTests(test_suite.TestSuite):
             response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size, stub=stub)
             if response:
                response_session_id_json = helper.protobuf_message_to_json(response[0])
-               if "low" in response_session_id_json:
+               if "id" in response_session_id_json:
                   response_deployment_session_id = response[0]
 
                   events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -884,7 +884,7 @@ class PersephoneTests(test_suite.TestSuite):
                                                          concord_type=concord_type)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -982,7 +982,7 @@ class PersephoneTests(test_suite.TestSuite):
          zone_type=zone_type)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -1039,7 +1039,7 @@ class PersephoneTests(test_suite.TestSuite):
          replicas=replicas)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -1090,7 +1090,7 @@ class PersephoneTests(test_suite.TestSuite):
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -1129,7 +1129,7 @@ class PersephoneTests(test_suite.TestSuite):
          concord_type=concord_type)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -1164,7 +1164,7 @@ class PersephoneTests(test_suite.TestSuite):
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -1305,7 +1305,7 @@ class PersephoneTests(test_suite.TestSuite):
          zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
-         if "low" in response_session_id_json:
+         if "id" in response_session_id_json:
             response_deployment_session_id = response[0]
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(

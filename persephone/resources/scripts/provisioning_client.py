@@ -330,8 +330,7 @@ def main():
     provisioning_stub = provisioning_service_rpc.ProvisioningServiceStub(channel)
 
     site = orchestration.OrchestrationSiteIdentifier(
-        low=0,
-        high=3)
+        id="4cbc7fda-9576-4b13-9beb-06f867cf2c7c")
     create_cluster_request = provisioning_service.CreateClusterRequest(
         header=core.MessageHeader(),
         specification=provisioning_service.DeploymentSpecification(
@@ -382,14 +381,14 @@ def main():
     )
     log.info("CreateCluster(): request\n{}".format(create_cluster_request))
     session_id = provisioning_stub.CreateCluster(create_cluster_request)
-    log.info("CreateCluster(): id(%d|%d)", session_id.high, session_id.low)
+    log.info("CreateCluster(): id(%d)", session_id.id)
 
     get_events_request = provisioning_service.StreamClusterDeploymentSessionEventRequest(
         header=core.MessageHeader(),
         session=session_id
     )
     events = provisioning_stub.StreamClusterDeploymentSessionEvents(get_events_request)
-    log.info("StreamClusterDeploymentSessionEvents(): id(%d|%d)", session_id.high, session_id.low)
+    log.info("StreamClusterDeploymentSessionEvents(): id(%d)", session_id.id)
     for event in events:
         log.info("DeploymentEvent: %s", MessageToJson(event))
 
