@@ -6,9 +6,13 @@
 #include <opentracing/propagation.h>
 #include <opentracing/span.h>
 #include <opentracing/tracer.h>
+#include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <sstream>
+#include <thread>
 
 using com::vmware::concord::thin_replica::BlockId;
 using com::vmware::concord::thin_replica::Data;
@@ -178,10 +182,29 @@ void ThinReplicaClient::ReadUpdateHashFromStream(
     pair<uint64_t, ThinReplicaClient::UpdateHashType>&
         maximally_agreed_on_update) {
   Hash hash;
-
+  std::condition_variable cv;
+  bool read_success = false;
   LOG4CPLUS_DEBUG(logger_, "Read hash from " << server_index);
-  if (!subscription_hash_streams_[server_index]->Read(&hash)) {
-    LOG4CPLUS_WARN(logger_, "Hash stream " << server_index << " read failed."
+
+  thread reader_thread([this, &cv, &read_success, server_index, &hash]() {
+    read_success = subscription_hash_streams_[server_index]->Read(&hash);
+    cv.notify_one();
+  });
+  reader_thread.detach();
+
+  std::mutex m;
+  std::unique_lock<std::mutex> lock(m);
+  auto wait_status = cv.wait_for(lock, timeout_read_hash_stream_);
+  if (wait_status == std::cv_status::timeout) {
+    CloseStream(subscription_hash_streams_[server_index],
+                sub_hash_contexts_[server_index]);
+    LOG4CPLUS_WARN(logger_, "Hash stream " << server_index << " timed out.");
+    return;
+  }
+  lock.unlock();
+
+  if (!read_success) {
+    LOG4CPLUS_WARN(logger_, "Hash stream " << server_index << " read failed.");
     return;
   }
 
@@ -227,32 +250,68 @@ void ThinReplicaClient::CloseStream(unique_ptr<ReaderType>& stream,
   context.reset();
 }
 
+// Get the next data update from any server
 std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
     Data& update_in, AgreeingSubsetMembers& agreeing_subset_members,
     size_t& most_agreeing, BlockIdHashPair& most_agreed_block) {
-  if (!subscription_data_stream_->Read(&update_in)) {
-    LOG4CPLUS_WARN(logger_,
-                   "Read failed on a data subscription stream (to server index "
-                       << current_data_source_ << ").");
+  // Keep trying to get data forever unless application stops us
+  while (!stop_subscription_thread_) {
+    condition_variable cv;
+    bool read_success = false;
 
-    return {false, nullptr};
+    thread reader_thread([this, &cv, &read_success, &update_in]() {
+      read_success = subscription_data_stream_->Read(&update_in);
+      cv.notify_one();
+    });
+    reader_thread.detach();
+
+    std::mutex m;
+    std::unique_lock<std::mutex> lock(m);
+    auto wait_status = cv.wait_for(lock, timeout_read_data_stream_);
+    if (wait_status == std::cv_status::timeout) {
+      size_t new_server = (current_data_source_ + 1) % server_stubs_.size();
+      LOG4CPLUS_WARN(logger_, "Data stream "
+                                  << current_data_source_
+                                  << " timed out. Rotating data stream to "
+                                  << new_server);
+      ResetDataStreamTo(new_server);
+      continue;
+    }
+    lock.unlock();
+
+    if (!read_success) {
+      size_t new_server = (current_data_source_ + 1) % server_stubs_.size();
+      LOG4CPLUS_WARN(logger_, "Data stream "
+                                  << current_data_source_
+                                  << " read failed. Rotating data stream to "
+                                  << new_server);
+      ResetDataStreamTo(new_server);
+      continue;
+    }
+
+    auto span = GetSpan(update_in, "trclient_read_block");
+    if (update_in.block_id() < latest_verified_block_id_) {
+      LOG4CPLUS_WARN(logger_,
+                     "Data stream "
+                         << current_data_source_
+                         << " gave an update with decreasing block number.");
+      return {false, std::move(span)};
+    }
+    UpdateHashType update_data_hash = ComputeUpdateDataHash(update_in);
+    RecordCollectedHash(current_data_source_, update_in.block_id(),
+                        update_data_hash, agreeing_subset_members,
+                        most_agreeing, most_agreed_block);
+    return {true, std::move(span)};
   }
-  auto span = GetSpan(update_in, "trclient_block_verification");
-  if (update_in.block_id() < latest_verified_block_id_) {
-    LOG4CPLUS_WARN(logger_,
-                   "Data subscription stream (to server index "
-                       << current_data_source_
-                       << ") gave a data update with decreasing block number.");
-    return {false, std::move(span)};
-  }
-  UpdateHashType update_data_hash = ComputeUpdateDataHash(update_in);
-  RecordCollectedHash(current_data_source_, update_in.block_id(),
-                      update_data_hash, agreeing_subset_members, most_agreeing,
-                      most_agreed_block);
-  return {true, std::move(span)};
+  return {false, nullptr};
 }
 
 void ThinReplicaClient::StartHashStreamWith(size_t server_index) {
+  assert(server_index != current_data_source_);
+  if (subscription_hash_streams_[server_index]) {
+    CloseStream(subscription_hash_streams_[server_index],
+                sub_hash_contexts_[server_index]);
+  }
   sub_hash_contexts_[server_index].reset(new ClientContext());
   sub_hash_contexts_[server_index]->AddMetadata("client_id", client_id_);
   SubscriptionRequest sub_request;
@@ -261,6 +320,7 @@ void ThinReplicaClient::StartHashStreamWith(size_t server_index) {
   subscription_hash_streams_[server_index] =
       server_stubs_[server_index]->SubscribeToUpdateHashes(
           sub_hash_contexts_[server_index].get(), sub_request);
+  subscription_hash_streams_[server_index]->WaitForInitialMetadata();
 }
 
 void ThinReplicaClient::FindBlockHashAgreement(
@@ -286,7 +346,7 @@ void ThinReplicaClient::FindBlockHashAgreement(
 
   for (auto server_index : sorted_servers) {
     assert(server_stubs_[server_index]);
-    if (servers_tried[server_index]) {
+    if (servers_tried[server_index] || server_index == current_data_source_) {
       continue;
     }
     if (stop_subscription_thread_) {
@@ -313,6 +373,10 @@ void ThinReplicaClient::ResetDataStreamTo(size_t server_index) {
   if (subscription_data_stream_) {
     CloseStream(subscription_data_stream_, sub_data_context_);
   }
+  if (subscription_hash_streams_[server_index]) {
+    CloseStream(subscription_hash_streams_[server_index],
+                sub_hash_contexts_[server_index]);
+  }
   SubscriptionRequest sub_request;
   sub_data_context_.reset(new ClientContext());
   sub_data_context_->AddMetadata("client_id", client_id_);
@@ -320,7 +384,16 @@ void ThinReplicaClient::ResetDataStreamTo(size_t server_index) {
   sub_request.set_key_prefix(key_prefix_);
   subscription_data_stream_ = server_stubs_[server_index]->SubscribeToUpdates(
       sub_data_context_.get(), sub_request);
+  subscription_data_stream_->WaitForInitialMetadata();
   current_data_source_ = server_index;
+}
+
+void ThinReplicaClient::CloseAllHashStreams() {
+  for (size_t i = 0; i < server_stubs_.size(); ++i) {
+    if (subscription_hash_streams_[i]) {
+      CloseStream(subscription_hash_streams_[i], sub_hash_contexts_[i]);
+    }
+  }
 }
 
 bool ThinReplicaClient::RotateDataStreamAndVerify(
@@ -403,12 +476,15 @@ void ThinReplicaClient::ReceiveUpdates() {
 
   // Main subscription-driving loop; one iteration of this outer loop
   // corresponds to receiving, validating, and returning one update.
+  // We break out of this loop only if the application sets the flag.
   while (!stop_subscription_thread_) {
     // For each loop of the outer iteration, we need to find at least
     // (max_faulty_ + 1) responsive agreeing servers (we count the server that
     // gave us the actual data for this update as one of the agreeing, so we
     // need it plus max_faulty_ servers giving agreeing hashes) in order to
     // validate and return an update.
+
+    assert(subscription_data_stream_);
 
     Data update_in;
     SpanPtr span = nullptr;
@@ -420,15 +496,16 @@ void ThinReplicaClient::ReceiveUpdates() {
     bool has_data = false;
     bool has_verified_data = false;
 
-    // First, we collect updates from all subscriptions streams we have which
-    // are already open, starting with the data stream and followed by any hash
-    // streams.
-    LOG4CPLUS_DEBUG(logger_, "Read from data stream");
+    LOG4CPLUS_DEBUG(logger_, "Read from data stream " << current_data_source_);
     std::tie(has_data, span) = ReadBlock(update_in, agreeing_subset_members,
                                          most_agreeing, most_agreed_block);
     servers_tried[current_data_source_] = true;
+    if (stop_subscription_thread_) {
+      break;
+    }
 
-    LOG4CPLUS_DEBUG(logger_, "Find agreement amongst all servers");
+    LOG4CPLUS_DEBUG(logger_, "Find agreement amongst all servers for block "
+                                 << update_in.block_id());
     FindBlockHashAgreement(servers_tried, agreeing_subset_members,
                            most_agreeing, most_agreed_block, span);
     if (stop_subscription_thread_) {
@@ -437,23 +514,23 @@ void ThinReplicaClient::ReceiveUpdates() {
 
     // At this point we need to have agreeing servers.
     if (most_agreeing < (max_faulty_ + 1)) {
-      // ThinReplicaClient does not itself handle cases where we cannot reach
-      // at least (max_faulty_ + 1) agreeing servers. As such, we just trigger
-      // the registered subscription failure condition (if any) and stop the
-      // subscription in these cases.
-      LOG4CPLUS_ERROR(
-          logger_,
-          "ThinReplicaClient subscription failed: Could not reach enough "
-          "agreeing servers to receive and verify an update.");
+      LOG4CPLUS_WARN(logger_,
+                     "Couldn't find agreement amongst all servers. Try again.");
       lock_guard<mutex> failure_condition_reassignment_lock(
           failure_condition_mutex_);
       if (subscription_failure_condition_) {
         subscription_failure_condition_->notify_all();
       }
-      break;
+      // We need to force re-subscription on at least one of the f+1 open
+      // streams otherwise we might skip an update. By closing all streams here
+      // we do exactly what the algorithm would do in the next iteration of this
+      // loop anyways.
+      CloseAllHashStreams();
+      ResetDataStreamTo((current_data_source_ + 1) % server_stubs_.size());
+      continue;
     }
 
-    // If we have data, check whether its hash is the agreement.
+    // Check whether the hash from the data stream is among the agreement.
     if (has_data && agreeing_subset_members[most_agreed_block].count(
                         current_data_source_) > 0) {
       has_verified_data = true;
@@ -463,19 +540,24 @@ void ThinReplicaClient::ReceiveUpdates() {
     // among them then let's rotate the data stream to one of the servers
     // within the agreeing set.
     if (!has_verified_data) {
+      LOG4CPLUS_DEBUG(logger_, "Agreement amongst servers but no data");
       has_verified_data = RotateDataStreamAndVerify(
           update_in, agreeing_subset_members, most_agreed_block, span);
       if (!has_verified_data) {
-        LOG4CPLUS_ERROR(
-            logger_,
-            "ThinReplicaClient subscription failed: Could not get update from "
-            "agreeing servers.");
+        LOG4CPLUS_WARN(logger_,
+                       "Couldn't get data from agreeing servers. Try again.");
         lock_guard<mutex> failure_condition_reassignment_lock(
             failure_condition_mutex_);
         if (subscription_failure_condition_) {
           subscription_failure_condition_->notify_all();
         }
-        break;
+        // We need to force re-subscription on at least one of the f+1 open
+        // streams otherwise we might skip an update. By closing all streams
+        // here we do exactly what the algorithm would do in the next iteration
+        // of this loop anyways.
+        CloseAllHashStreams();
+        ResetDataStreamTo((current_data_source_ + 1) % server_stubs_.size());
+        continue;
       }
     }
 
@@ -485,7 +567,6 @@ void ThinReplicaClient::ReceiveUpdates() {
 
     assert(update_queue_);
 
-    latest_verified_block_id_ = update_in.block_id();
     unique_ptr<Update> update(new Update());
     update->block_id = update_in.block_id();
     update->correlation_id_ = update_in.correlation_id();
@@ -493,21 +574,13 @@ void ThinReplicaClient::ReceiveUpdates() {
       update->kv_pairs.push_back(make_pair(kvp_in.key(), kvp_in.value()));
     }
     InjectSpan(span, *update);
-    try {
-      trc_updates_counter_.Increment();
-      trc_queue_size_.Set(update_queue_->Size());
-      update_queue_->Push(move(update));
-    } catch (const exception& e) {
-      LOG4CPLUS_ERROR(logger_,
-                      "ThinReplicaClient subscription failed: update queue "
-                      "rejected an update.");
-      lock_guard<mutex> failure_condition_reassignment_lock(
-          failure_condition_mutex_);
-      if (subscription_failure_condition_) {
-        subscription_failure_condition_->notify_all();
-      }
-      break;
-    }
+
+    // Update metrics
+    trc_updates_counter_.Increment();
+    trc_queue_size_.Set(update_queue_->Size());
+
+    update_queue_->Push(move(update));
+    latest_verified_block_id_ = update_in.block_id();
 
     // Cleanup before the next update
 
@@ -539,11 +612,7 @@ void ThinReplicaClient::ReceiveUpdates() {
     CloseStream(subscription_data_stream_, sub_data_context_);
   }
   assert(subscription_hash_streams_.size() == sub_hash_contexts_.size());
-  for (size_t i = 0; i < subscription_hash_streams_.size(); ++i) {
-    if (subscription_hash_streams_[i]) {
-      CloseStream(subscription_hash_streams_[i], sub_hash_contexts_[i]);
-    }
-  }
+  CloseAllHashStreams();
   subscription_hash_streams_.clear();
   sub_hash_contexts_.clear();
 
