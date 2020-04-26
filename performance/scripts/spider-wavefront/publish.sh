@@ -8,18 +8,8 @@ metrics() {
   local file="$dir/simulation.log"
   local metric="chessplus.raw.responseTime.ms"
 
-  while read -r -a fields; do
-    if [ "${fields[0]}" == "REQUEST" ]; then
-
-      local user="${fields[1]}"
-      local type="${fields[2]}"
-      local timestamp=$((fields[3] / 1000))
-      local latency=$((fields[4] - fields[3]))
-      local status="${fields[5]}"
-
-      echo "$metric $latency $timestamp source=$source type=$type status=$status user=$user concurrency=$concurrency blockchain=$blockchain date=$date"
-    fi
-  done <"$file"
+  awk -v m=$metric -v c="$concurrency" -v b="$blockchain" -v s="$source" -v d="$date" \
+    'BEGIN {OFMT = "%.0f"} /^REQUEST/ {print m, $5-$4, $4/1000, "source="s, "type="$3, "status="$6, "user="$2, "concurrency="c, "blockchain="b, "date="d}' "$file"
 }
 
 # Statistics from aggregate functions
