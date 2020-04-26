@@ -15,7 +15,8 @@
 
 #pragma once
 
-constexpr uint64_t kRequestLength = 25 << 20; // actual payload = kRequestLength * 8
+//constexpr uint64_t kRequestLength = 25 << 20; // actual payload = kRequestLength * 8
+constexpr uint64_t kRequestLength = 1; // actual payload = kRequestLength * 8
 uint64_t requestBuffer[kRequestLength];
 uint64_t maxRequestLengthBytes = 202 << 20;
 
