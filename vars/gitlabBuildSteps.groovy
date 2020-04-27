@@ -2292,9 +2292,9 @@ void cleanUpSDDCs(){
     }
   }
 
-  // LongTests Clean up older than 168 hours (7 days)
+  // LongTests Clean up older than 120 hours (5 days)
   for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "168")
+    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "120")
     if (failure){
       failures << failure
     }
