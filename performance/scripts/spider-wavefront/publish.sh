@@ -31,13 +31,12 @@ rps() {
   local metric=$1
   local index=$2
   local file="$dir/simulation.log"
-  local metric="chessplus.requests.per.second"
 
   awk -v i="$index" \
     'BEGIN {OFMT = "%.0f"} /^REQUEST/ {print $3, $(4+i)/1000 ,$6}' "$file" |
     sort |
     uniq -c |
-    awk -v m=$metric -v s="$source" -v d="$date" \
+    awk -v m="$metric" -v s="$source" -v d="$date" \
       'BEGIN {OFMT = "%.0f"} {print m, $1, $3, "source="s, "type="$2, "status="$4, "date="d}'
 }
 

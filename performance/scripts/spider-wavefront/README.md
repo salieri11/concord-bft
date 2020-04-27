@@ -18,19 +18,20 @@ sudo apt install jq
 
 simulation.log is parsed to get the following metrics.
 
-* Metrics: chessplus.raw.responseTime.ms
+* Metrics: 
+    * chessplus.raw.responseTime.ms
+    * chessplus.rps.initiated
+    * chessplus.rps.completed
+
 * Tags
     * source
     * type
     * status
-    * user
-    * concurrency
-    * blockchain
     * date
 
 #### Example
 ```
-chessplus.raw.responseTime.ms 6019 1585937897 source=spider type=fix-trade-async status=OK user=4 concurrency=8 blockchain=0.6.13 date=2020-04-03T18:16:07Z
+chessplus.raw.responseTime.ms 6019 1585937897 source=spider type=fix-trade-async status=OK user=4 date=2020-04-03T18:16:07Z
 ```
 
 ### Aggregate Stats
