@@ -40,11 +40,16 @@ MAX_BATCH_QUEUE_SIZE=${MAX_BATCH_QUEUE_SIZE:=100} # Max number of submissions to
 MAX_BATCH_WAIT_MILLIS=${MAX_BATCH_WAIT_MILLIS:=50} # Max amount of time to wait to construct a batch.
 MAX_CONCURRENT_COMMITS=${MAX_CONCURRENT_COMMITS:=5} # Max number of concurrent commit calls towards concord.
 
+# We assume n = 3*f + 2*c + 1 whereby c=0
+N=$(echo $REPLICAS | awk -F"," '{print NF}')
+MAX_FAULTY_REPLICAS=${MAX_FAULTY_REPLICAS:=$((($N - 1) / 3))}
+
 $API_SERVER \
   --replicas $REPLICAS \
   --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
   --batching "enable=$ENABLE_BATCHING,max-queue-size=$MAX_BATCH_QUEUE_SIZE,max-batch-size-bytes=$MAX_BATCH_SIZE_BYTES,max-wait-millis=$MAX_BATCH_WAIT_MILLIS,max-concurrent-commits=$MAX_CONCURRENT_COMMITS" \
   --maxInboundMessageSize=67108864 \
+  --maxFaultyReplicas ${MAX_FAULTY_REPLICAS} \
   --ledger-id KVBC \
   $THIN_REPLICA_SETTINGS \
   $AUTH_SETTINGS
