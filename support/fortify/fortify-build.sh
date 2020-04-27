@@ -11,18 +11,19 @@ usage: $0 options
      -i <Project Id>; This is a numeric id based on the projects that are listed using the -l option
      -f <true>; Perform Fortify Scan e.g: '-f true'
      -a <artifactId>; This is usually the values in first few lines of parent pom.xml
+     -v <project version>; Project version from fortify
 EOF
 }
 
-AUTHTOKEN=
 POMFILE=
 SCAN=
 WARN=
 ARTIFACTID=
 PROJECTID=
 MVNARG=
+VERSION=
 
-while getopts ":h:p:s:f:l:a:i:m:" OPTION
+while getopts ":h:p:s:f:l:a:i:m:v:" OPTION
 do
      case $OPTION in
 	h)
@@ -43,13 +44,10 @@ do
 	  ;;
 	i)
 	  PROJECTID=$OPTARG
-	  expr "$PROJECTID" + 1 2>/dev/null
-	  if [ $? != 0 ]; then
-		# echo -e "Project Id is a proper number"
-		echo -e "Project Id: "$PROJECTID" is not a number, please provide correct value"
-		usage
-	  fi
 	  ;;
+        v)
+          VERSION=$OPTARG
+          ;;
 	?)
 	  usage
 	  exit
@@ -154,7 +152,6 @@ if [ "$SCAN" ] && [ "$POMFILE" ]; then
     export MAVEN_OPTS="-XX:MetaspaceSize=1536m -XX:MaxMetaspaceSize=2048m -Xms2048m -Xmx2560m -XX:ReservedCodeCacheSize=768m"
     export SCA_VM_OPTS="-Xmx5120m"
     # echo -e $MAVEN_OPTS
-
 	execCmd "clean install" "mvn clean install -DskipTests $MVNARG"
 
 	execCmd "clean" "mvn clean -P fortify $MVNARG"
@@ -177,12 +174,15 @@ if [ "$SCAN" ] && [ "$POMFILE" ]; then
 	fi
 
 	execCmd "Scan Only, no Upload" "mvn -Dfortify.sca.verbose="true" -Dfortify.sca.buildId=FortifyBuild -Dfortify.sca.toplevel.artifactId="$ARTIFACTID" -Dfortify.sca.debug=true -Dfortify.sca.renderSources=true sca:scan -P fortify $MVNARG"
-	echo -e "NOTE: If you would like automatic upload add -i <projecid> option"
-	execCmd "Report Generation" "ReportGenerator -format pdf -f ${ARTIFACTID}-OWASP2007.pdf -source target/${ARTIFACTID}*.fpr -template OWASP2007.xml"
 
-	if [ "$PROJECTID" ] && [ "$AUTHTOKEN" ]; then
-		execCmd "Upload fpr" "/build/toolchain/lin64/fortify-ssc-17.20/bin/fortifyclient uploadFPR -f target/${ARTIFACTID}*.fpr -project "$ARTIFACTID" -version "$VERSION" -authtoken "$AUTHTOKEN" -url https://fortify.eng.vmware.com:8180/ssc"
+	if [ "$PROJECTID" ] && [ "$VERSION" ]; then
+		execCmd "Upload fpr" "/build/toolchain/lin64/fortify-ssc-17.20/bin/fortifyclient uploadFPR -f target/${ARTIFACTID}*.fpr -project "$PROJECTID" -version "$VERSION" -authtoken "$AUTHTOKEN" -url https://fortify.eng.vmware.com:8180/ssc"
+        else
+                echo -e "NOTE: If you would like automatic upload add -i <projecid> and -v <version>"
+                exit
 	fi
+
+        execCmd "Report Generation" "ReportGenerator -format pdf -f ${ARTIFACTID}-OWASP2007.pdf -source target/${ARTIFACTID}*.fpr -template OWASP2007.xml"
 
 	cd $OLDPWD
 
