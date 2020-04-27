@@ -315,7 +315,7 @@ void ThinReplicaClient::StartHashStreamWith(size_t server_index) {
   sub_hash_contexts_[server_index].reset(new ClientContext());
   sub_hash_contexts_[server_index]->AddMetadata("client_id", client_id_);
   SubscriptionRequest sub_request;
-  sub_request.set_block_id(latest_verified_block_id_);
+  sub_request.set_block_id(latest_verified_block_id_ + 1);
   sub_request.set_key_prefix(key_prefix_);
   subscription_hash_streams_[server_index] =
       server_stubs_[server_index]->SubscribeToUpdateHashes(
@@ -380,7 +380,7 @@ void ThinReplicaClient::ResetDataStreamTo(size_t server_index) {
   SubscriptionRequest sub_request;
   sub_data_context_.reset(new ClientContext());
   sub_data_context_->AddMetadata("client_id", client_id_);
-  sub_request.set_block_id(latest_verified_block_id_);
+  sub_request.set_block_id(latest_verified_block_id_ + 1);
   sub_request.set_key_prefix(key_prefix_);
   subscription_data_stream_ = server_stubs_[server_index]->SubscribeToUpdates(
       sub_data_context_.get(), sub_request);
