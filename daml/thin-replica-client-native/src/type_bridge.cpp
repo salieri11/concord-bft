@@ -230,9 +230,13 @@ class TRCFFactory {
 
   static ThinReplicaClientFacade* CreateInstance(
       JNIConverter* converter, jstring j_client_id, jshort j_max_faulty,
-      jstring j_private_key, jobjectArray j_servers, jstring j_jaeger_agent) {
+      jstring j_private_key, jobjectArray j_servers,
+      jshort j_max_read_data_timeout, jshort j_max_read_hash_timeout,
+      jstring j_jaeger_agent) {
     return ModifyAndGet([converter, j_client_id, j_max_faulty, j_private_key,
-                         j_servers, j_jaeger_agent](Instance& instance) {
+                         j_servers, j_max_read_data_timeout,
+                         j_max_read_hash_timeout,
+                         j_jaeger_agent](Instance& instance) {
       if (!instance && converter) {
         string client_id = converter->ToString(j_client_id);
         string private_key = converter->ToString(j_private_key);
@@ -242,7 +246,8 @@ class TRCFFactory {
                   [](auto& e) { return make_pair(string(), e); });
         string jaeger_agent = converter->ToString(j_jaeger_agent);
         instance.reset(new ThinReplicaClientFacade(
-            client_id, j_max_faulty, private_key, servers, jaeger_agent));
+            client_id, j_max_faulty, private_key, servers,
+            j_max_read_data_timeout, j_max_read_hash_timeout, jaeger_agent));
       }
     });
   }
@@ -250,13 +255,16 @@ class TRCFFactory {
 
 extern "C" jboolean createTRC(JNIEnv* env, jobject obj, jstring j_client_id,
                               jshort j_max_faulty, jstring j_private_key,
-                              jobjectArray j_servers, jstring j_jaeger_agent) {
+                              jobjectArray j_servers,
+                              jshort j_max_read_data_timeout,
+                              jshort j_max_read_hash_timeout,
+                              jstring j_jaeger_agent) {
   ThinReplicaClientFacade* trcf = NULL;
   try {
     JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
-    trcf =
-        TRCFFactory::CreateInstance(converter, j_client_id, j_max_faulty,
-                                    j_private_key, j_servers, j_jaeger_agent);
+    trcf = TRCFFactory::CreateInstance(
+        converter, j_client_id, j_max_faulty, j_private_key, j_servers,
+        j_max_read_data_timeout, j_max_read_hash_timeout, j_jaeger_agent);
   } catch (const exception& e) {
     return JNI_FALSE;
   }
