@@ -112,8 +112,8 @@ int main(int argc, char** argv) {
         concGenconfigLogger,
         "An exception occurred while trying to parse the input to "
         "conc_genconfig. This likely suggests the requested input file (" +
-        inputFilename +
-        ") is inexistent, unreadable, malformed, or otherwise unusable.");
+            inputFilename +
+            ") is inexistent, unreadable, malformed, or otherwise unusable.");
     LOG4CPLUS_FATAL(concGenconfigLogger,
                     "Exception message: " + std::string(e.what()));
     return -1;
@@ -226,15 +226,15 @@ int main(int argc, char** argv) {
         LOG4CPLUS_FATAL(
             concGenconfigLogger,
             "An exception occurred while trying to write configuraiton file " +
-            outputFilename + ".");
+                outputFilename + ".");
         LOG4CPLUS_FATAL(concGenconfigLogger,
                         "Exception message: " + std::string(e.what()));
         return -1;
       }
       LOG4CPLUS_INFO(concGenconfigLogger,
                      "Configuration file " + outputFilename + " (" +
-                     std::to_string(i + 1) + " of " +
-                     std::to_string(numNodes) + ") written.");
+                         std::to_string(i + 1) + " of " +
+                         std::to_string(numNodes) + ") written.");
     }
 
     if (optionsInput.count("report-principal-locations")) {
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
         LOG4CPLUS_FATAL(concGenconfigLogger,
                         "An exception occurred while trying to write principal "
                         "locations mapping. Exception message: " +
-                        string(e.what()));
+                            string(e.what()));
         return -1;
       }
     }

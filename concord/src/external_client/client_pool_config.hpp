@@ -23,13 +23,12 @@ namespace concord {
 
 namespace config {
 class ConcordConfiguration;
-}
+}  // namespace config
 namespace kvbc {
 class IClient;
 }
 
 namespace config_pool {
-
 const std::string FILE_NAME = "concord_external_client";
 const std::string F_VAL = "f_val";
 const std::string C_VAL = "c_val";
@@ -56,33 +55,6 @@ const std::string REPLICA_PORT = "replica_port";
 const std::string EXTERNAL_CLIENTS = "external_clients";
 const std::string CLIENT = "client";
 const std::string CLIENT_PORT = "client_port";
-
-config::ConcordConfiguration::ParameterStatus ValidateNumClients(
-    const std::string& value, const config::ConcordConfiguration& config,
-    const config::ConfigurationPath& path, std::string* failure_message,
-    void* state);
-
-config::ConcordConfiguration::ParameterStatus ValidateNumReplicas(
-    const std::string& value, const config::ConcordConfiguration& config,
-    const config::ConfigurationPath& path, std::string* failure_message,
-    void* state);
-
-config::ConcordConfiguration::ParameterStatus sizeExternalClients(
-    const config::ConcordConfiguration& config,
-    const config::ConfigurationPath& path, size_t* output, void* state);
-
-config::ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
-    const std::string& value, const config::ConcordConfiguration& config,
-    const config::ConfigurationPath& path, std::string* failure_message,
-    void* state);
-
-void SpecifyClientConfiguration(config::ConcordConfiguration& config);
-
-void SpecifyGeneralConfiguration(config::ConcordConfiguration& config);
-
-void SpecifyReplicaConfiguration(config::ConcordConfiguration& config);
-
-void SpecifySimpleClientParams(config::ConcordConfiguration& config);
 
 void ParseConfig(std::istream& config_stream,
                  config::ConcordConfiguration& config);

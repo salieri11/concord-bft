@@ -1392,7 +1392,8 @@ void specifyConfiguration(ConcordConfiguration& config);
 // sizing parameters cannot be found in the input or cannot be loaded to the
 // configuration.
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
-                               ConcordConfiguration& config);
+                               ConcordConfiguration& config,
+                               bool is_client = false);
 
 // Instantiates the scopes within the given concord node configuration. This
 // function expects that config was initialized with specifyConfiguration. This
@@ -1412,6 +1413,9 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
 // specific to the first client proxy on each node).
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config);
+
+void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
+                                             ConcordConfiguration& config);
 
 // Loads all non-generated (i.e. required and optional input) parameters from
 // the given YAMLConfigurationInput to the given ConcordConfiguration object.
@@ -1541,6 +1545,43 @@ ConcordConfiguration::ParameterStatus sizeReplicas(
 ConcordConfiguration::ParameterStatus validateUInt(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failureMessage, void* state);
+
+config::ConcordConfiguration::ParameterStatus ValidateNumClients(
+    const std::string& value, const config::ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state);
+
+ConcordConfiguration::ParameterStatus ValidateNumReplicas(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state);
+
+ConcordConfiguration::ParameterStatus sizeExternalClients(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state);
+
+ConcordConfiguration::ParameterStatus ValidateTimeOutMilli1(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state);
+
+static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state);
+
+static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state);
+static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state);
+
+void SpecifyClientConfiguration(ConcordConfiguration& config);
+
+void SpecifyGeneralConfiguration(ConcordConfiguration& config);
+
+void SpecifyReplicaConfiguration(ConcordConfiguration& config);
+
+void SpecifySimpleClientParams(ConcordConfiguration& config);
+
+void SpecifyExternalClientConfiguration(config::ConcordConfiguration& config);
 
 inline const std::pair<unsigned long long, unsigned long long>
     kPositiveIntLimits({1, INT_MAX});

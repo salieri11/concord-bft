@@ -3623,16 +3623,20 @@ void specifyConfiguration(ConcordConfiguration& config) {
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
-                               ConcordConfiguration& config) {
+                               ConcordConfiguration& config, bool is_client) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ConfigurationPath fValPath("f_val", false);
   ConfigurationPath cValPath("c_val", false);
-  ConfigurationPath clientProxiesPerReplicaPath("client_proxies_per_replica",
-                                                false);
-  vector<ConfigurationPath> requiredParameters(
-      {fValPath, cValPath, clientProxiesPerReplicaPath});
-
+  vector<ConfigurationPath> requiredParameters({fValPath, cValPath});
+  if (is_client) {
+    ConfigurationPath externalClients("num_of_external_clients", false);
+    requiredParameters.push_back(std::move(externalClients));
+  } else {
+    ConfigurationPath clientProxiesPerReplicaPath("client_proxies_per_replica",
+                                                  false);
+    requiredParameters.push_back(std::move(clientProxiesPerReplicaPath));
+  }
   input.loadConfiguration(config, requiredParameters.begin(),
                           requiredParameters.end(), &logger, true);
 
@@ -3709,6 +3713,7 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
 
   assert(config.containsScope("node"));
   ConcordConfiguration& node = config.subscope("node");
+
   assert(node.containsScope("replica"));
   assert(node.containsScope("client_proxy"));
 
@@ -3734,6 +3739,84 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   config.instantiateScope("node");
+
+  // Now, we load values to parameters in scope templates within node instances.
+  selection =
+      ParameterSelection(config, selectInstancedTemplatedParameters, nullptr);
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+
+  // Finally, to enforce the policy that explicit instanced parameter
+  // specifications override values from their templates, we traverse the set of
+  // parameters that are contained in errrinstances of scopes within node
+  // instances, and write to them any values their node instance's template has
+  // for the same parameter.
+  selection =
+      ParameterSelection(config, selectInstancedInstancedParameters, nullptr);
+  for (auto iterator = selection.begin(); iterator != selection.end();
+       ++iterator) {
+    ConfigurationPath instancePath = *iterator;
+    ConfigurationPath templatePath(instancePath);
+    templatePath.subpath->useInstance = false;
+    ConfigurationPath containingScopeOfInstancePath(instancePath);
+    containingScopeOfInstancePath.subpath->subpath.reset();
+
+    if (config.hasValue<string>(templatePath)) {
+      string value = config.getValue<string>(templatePath);
+      ConcordConfiguration& subscope =
+          config.subscope(containingScopeOfInstancePath);
+      string failureMessage;
+      if (subscope.loadValue(instancePath.subpath->subpath->name, value,
+                             &failureMessage, true) ==
+          ConcordConfiguration::ParameterStatus::INVALID) {
+        LOG4CPLUS_ERROR(logger, "Cannot load value " + value +
+                                    " to parameter " + instancePath.toString() +
+                                    ": " + failureMessage);
+      }
+    }
+  }
+}
+
+void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
+                                             ConcordConfiguration& config) {
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val")) {
+    throw ConfigurationResourceNotFoundException(
+        "Cannot instantiate scopes for Concord configuration: required cluster "
+        "size parameters are not loaded.");
+  }
+
+  assert(config.containsScope("node"));
+  ConcordConfiguration& node = config.subscope("node");
+  ConcordConfiguration& ext = config.subscope("external_clients");
+  assert(node.containsScope("replica"));
+  assert(ext.containsScope("client"));
+
+  // Note this function is complicated by the fact that it handles loading the
+  // contents of templates before instantiating them as well as the fact that
+  // the input could contain parameters in a mixed state of being template or
+  // instance parameters (for example, the input could give a value of the port
+  // number for the first client proxy on each node).
+
+  // First, load any parameters in purely templated scopes, then instantiate the
+  // scopes within the node template.
+  ParameterSelection selection(config, selectStrictlyTemplatedParameters,
+                               nullptr);
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+  node.instantiateScope("replica");
+  ext.instantiateScope("client");
+
+  // Next, load values for parameters in instances of scopes within the node
+  // template. After that node can be instantiated.
+  selection =
+      ParameterSelection(config, selectTemplatedInstancedParameters, nullptr);
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+  config.instantiateScope("node");
+  config.instantiateScope("external_clients");
 
   // Now, we load values to parameters in scope templates within node instances.
   selection =
@@ -4442,5 +4525,451 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
   output << principal_map;
 }
 
+config::ConcordConfiguration::ParameterStatus ValidateNumClients(
+    const std::string& value, const config::ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state) {
+  if (const auto res = config::validateUInt(
+          value, config, path, failure_message,
+          const_cast<void*>(
+              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
+      res != ConcordConfiguration::ParameterStatus::VALID) {
+    throw ConfigurationException{" Pool clients configuration failed"};
+  }
+  if (std::stoull(value) > 4096)
+    throw ConfigurationException{" Pool clients configuration failed"};
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus ValidateNumReplicas(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state) {
+  if (const auto res = config::validateUInt(
+          value, config, path, failure_message,
+          const_cast<void*>(
+              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
+      res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val")) {
+    if (failure_message) {
+      *failure_message =
+          "Cannot validate num_replicas: values for f_val and c_val are "
+          "required to determine expected value of num_replicas.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+
+  const auto expected = 3 * config.getValue<uint16_t>("f_val") +
+                        2 * config.getValue<uint16_t>("c_val") + 1;
+
+  if (std::stoll(value) != expected) {
+    if (failure_message) {
+      *failure_message =
+          "Invalid value for num_replicas: " + value +
+          "; num_replicas must be equal to 3 * f_val + 2 * c_val + 1.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus sizeExternalClients(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  if (!(config.hasValue<uint16_t>("num_of_external_clients"))) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((config.validate("num_of_external_clients") ==
+         ConcordConfiguration::ParameterStatus::VALID))) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  uint16_t num_clients_proxies =
+      config.getValue<uint16_t>("num_of_external_clients");
+  size_t numExternal = (size_t)num_clients_proxies;
+  if (numExternal > (size_t)UINT16_MAX) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  *output = numExternal;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state) {
+  if (const auto res = validateUInt(
+          value, config, path, failure_message,
+          const_cast<void*>(
+              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
+      res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+
+  if (!config.hasValue<int>("client_initial_retry_timeout_milli") ||
+      !config.hasValue<int>("client_max_retry_timeout_milli")) {
+    if (failure_message) {
+      *failure_message =
+          "Cannot validate timeouts milli- some field not initialized";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+
+  auto initial =
+      config.getValue<uint16_t>("client_initial_retry_timeout_milli");
+  auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
+  auto min = std::stoull(value);
+  if (min < 1 || min > UINT_LEAST16_MAX)
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  if (max < 1 || max > UINT_LEAST16_MAX)
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  if (initial < min || initial > max) {
+    if (failure_message) {
+      *failure_message =
+          "Invalid value , value has to be between min to max retry timeout "
+          "milli";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  uint16_t principalID = (uint16_t)(std::stoull(value));
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("num_of_external_clients")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot fully validate Concord-BFT principal ID for " +
+          path.toString() +
+          ": f_val, c_val, and client_proxies_per_replica are required to "
+          "determine bounds for maximum principal ID.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t fVal = config.getValue<uint16_t>("f_val");
+  uint16_t cVal = config.getValue<uint16_t>("c_val");
+  uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
+  uint16_t clientProxiesPerReplica =
+      config.getValue<uint16_t>("num_of_external_clients");
+  uint16_t numPrincipals = numReplicas + (1 + clientProxiesPerReplica);
+
+  // The path to a principal Id should be of one of these forms:
+  //   node[i]/replica[0]/principal_id
+  //   node[i]/client_proxy[j]/principal_id
+  assert(path.isScope && path.subpath);
+
+  if (path.subpath->name == "replica") {
+    if (principalID >= numReplicas) {
+      if (failureMessage) {
+        *failureMessage =
+            "Invalid principal ID for " + path.toString() + ": " +
+            std::to_string(principalID) +
+            ". Principal IDs for replicas must be less than num_replicas.";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+
+  } else {
+    assert(path.subpath->name == "client");
+
+    if ((principalID < numReplicas) || (principalID >= numPrincipals)) {
+      if (failureMessage) {
+        *failureMessage =
+            "Invalid principal ID for " + path.toString() + ": " +
+            std::to_string(principalID) +
+            ". Principal IDs for client proxies should be in the range "
+            "(num_replicas, num_principals - 1), inclusive.";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+  }
+
+  res = ConcordConfiguration::ParameterStatus::VALID;
+  for (size_t i = 0; i < numReplicas; ++i) {
+    ConfigurationPath replicaPath("node", (size_t)i);
+    replicaPath.subpath.reset(new ConfigurationPath("replica", (size_t)0));
+    replicaPath.subpath->subpath.reset(
+        new ConfigurationPath("principal_id", false));
+    if (!config.hasValue<uint16_t>(replicaPath)) {
+      if (replicaPath != path) {
+        res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+    } else if ((config.getValue<uint16_t>(replicaPath) == principalID) &&
+               (replicaPath != path)) {
+      if (failureMessage) {
+        *failureMessage = "Invalid principal ID for " + path.toString() + ": " +
+                          std::to_string(principalID) +
+                          ". This ID is non-unique; it duplicates the ID for " +
+                          replicaPath.toString() + ".";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+
+    for (size_t j = 0; j < clientProxiesPerReplica; ++j) {
+      ConfigurationPath clientProxyPath("node", (size_t)i);
+      clientProxyPath.subpath.reset(new ConfigurationPath("client_proxy", j));
+      clientProxyPath.subpath->subpath.reset(
+          new ConfigurationPath("principal_id", false));
+      if (!config.hasValue<uint16_t>(clientProxyPath)) {
+        if (clientProxyPath != path) {
+          res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+        }
+      } else if ((config.getValue<uint16_t>(clientProxyPath) == principalID) &&
+                 (clientProxyPath != path)) {
+        if (failureMessage) {
+          *failureMessage =
+              "Invalid principal ID for " + path.toString() + ": " +
+              std::to_string(principalID) +
+              ". This ID is non-unique; it duplicates the ID for " +
+              clientProxyPath.toString() + ".";
+        }
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+    }
+  }
+
+  if (failureMessage &&
+      (res ==
+       ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)) {
+    *failureMessage = "Cannot fully validate principal ID for " +
+                      path.toString() +
+                      ": Not all other principal IDs are known, but are "
+                      "required to check for uniqueness.";
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  // The path to a principal Id should be of one of these forms:
+  //   node[i]/replica[0]/principal_id
+  //   node[i]/client_proxy[j]/principal_id
+
+  assert(path.isScope && path.subpath && path.useInstance);
+
+  if (path.subpath->name == "replica") {
+    *output = std::to_string(path.index);
+  } else {
+    assert((path.subpath->name == "client") && path.subpath->isScope &&
+           path.subpath->useInstance);
+
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                           2 * config.getValue<uint16_t>("c_val") + 1;
+
+    *output = std::to_string(path.index + numReplicas + (path.subpath->index));
+  }
+
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    string* output, void* state) {
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val")) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  *output = to_string(3 * config.getValue<uint16_t>("f_val") +
+                      2 * config.getValue<uint16_t>("c_val") + 1);
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+void SpecifyClientConfiguration(ConcordConfiguration& config) {
+  vector<std::string> publicGeneratedTags(
+      {"config_generation_time", "generated", "public"});
+
+  vector<std::string> publicInputTags(
+      {"config_generation_time", "input", "public"});
+
+  config.declareParameter("num_of_external_clients",
+                          "Total number of BFT clients in this deployment.");
+  config.tagParameter("num_of_external_clients", publicInputTags);
+  config.addValidator("num_of_external_clients", ValidateNumClients, nullptr);
+  config.declareScope("external_clients",
+                      "External client pool params replicas",
+                      sizeExternalClients, nullptr);
+  auto& external_clients = config.subscope("external_clients");
+  external_clients.declareScope("client", "One external client params",
+                                config::sizeReplicas, nullptr);
+  auto& client = external_clients.subscope("client");
+  client.declareParameter(
+      "principal_id",
+      "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
+      "replicas, clients and client proxies to be principals, each of which "
+      "must have a unique ID.");
+  client.tagParameter("principal_id", publicGeneratedTags);
+  // client.addValidator("principal_id", validatePrincipalId, nullptr);
+  client.addGenerator("principal_id", computeClientPrincipalId, nullptr);
+
+  client.declareParameter("client_port",
+                          "Port number this replica can be reached at.");
+  client.tagParameter("client_port", publicInputTags);
+  client.addValidator(
+      "client_port", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+}
+
+void SpecifyGeneralConfiguration(ConcordConfiguration& config) {
+  vector<std::string> publicGeneratedTags(
+      {"config_generation_time", "generated", "public"});
+
+  vector<std::string> publicInputTags(
+      {"config_generation_time", "input", "public"});
+
+  vector<std::string> defaultableByUtilityTags(
+      {"config_generation_time", "defaultable", "public"});
+
+  // Validation of f_val is based on c_val and num_replicas .
+  config.declareParameter("f_val", "F parameter to the SBFT algorithm.");
+  config.tagParameter("f_val", publicInputTags);
+  // Validation of c_val is based on f_val and num_replicas .
+  config.declareParameter("c_val", "C parameter to the SBFT algorithm.");
+  config.tagParameter("c_val", publicInputTags);
+  // Validation is based on f_val and c_val .
+  config.declareParameter(
+      "num_replicas", "Total number of Concord replicas in this deployment.");
+  config.tagParameter("num_replicas", publicGeneratedTags);
+  config.addValidator("num_replicas", ValidateNumReplicas, nullptr);
+  config.addGenerator("num_replicas", computeClientNumReplicas, nullptr);
+
+  //  Validation is done at construction of the client object.
+  config.declareParameter("comm_to_use", "Default communication module");
+  config.tagParameter("comm_to_use", publicInputTags);
+  config.declareParameter("tls_certificates_folder_path",
+                          "TLS certificates root folder path.");
+  config.tagParameter("tls_certificates_folder_path", publicInputTags);
+  config.declareParameter("tls_cipher_suite_list",
+                          "TLS cipher suite list to use.");
+  config.tagParameter("tls_cipher_suite_list", publicInputTags);
+  config.declareParameter(
+      "concord-bft_communication_buffer_length",
+      "Size of buffers to be used for messages exchanged with and within "
+      "Concord-BFT.",
+      "64000");
+  config.tagParameter("concord-bft_communication_buffer_length",
+                      defaultableByUtilityTags);
+  config.addValidator("concord-bft_communication_buffer_length",
+                      config::validateUInt,
+                      const_cast<void*>(reinterpret_cast<const void*>(
+                          &config::kConcordBFTCommunicationBufferSizeLimits)));
+}
+
+void SpecifyReplicaConfiguration(ConcordConfiguration& config) {
+  vector<std::string> publicGeneratedTags(
+      {"config_generation_time", "generated", "public"});
+
+  vector<std::string> publicInputTags(
+      {"config_generation_time", "input", "public"});
+
+  vector<std::string> principalHostTags(
+      {"config_generation_time", "could_be_loopback", "input", "public"});
+
+  config.declareScope("node",
+                      "Concord nodes that form the distributed system that "
+                      "maintains a blockchain in Concord.",
+                      sizeNodes, nullptr);
+
+  ConcordConfiguration& node = config.subscope("node");
+
+  node.declareScope(
+      "replica",
+      "SBFT replicas, which serve as the core replicas for Byzantine fault "
+      "tolerant consensus in a Concord deployment.",
+      sizeReplicas, nullptr);
+  ConcordConfiguration& replica = node.subscope("replica");
+
+  replica.declareParameter(
+      "principal_id",
+      "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
+      "replicas, clients and client proxies to be principals, each of which "
+      "must have a unique ID.");
+  replica.tagParameter("principal_id", publicGeneratedTags);
+  // replica.addValidator("principal_id", validatePrincipalId, nullptr);
+  replica.addGenerator("principal_id", computeClientPrincipalId, nullptr);
+
+  replica.declareParameter(
+      "replica_host",
+      "IP address or host name this replica can be reached at.");
+  replica.tagParameter("replica_host", principalHostTags);
+  replica.declareParameter("replica_port",
+                           "Port number this replica can be reached at.");
+  replica.tagParameter("replica_port", publicInputTags);
+  replica.addValidator(
+      "replica_port", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+}
+
+void SpecifySimpleClientParams(ConcordConfiguration& config) {
+  vector<std::string> defaultableByUtilityTags(
+      {"config_generation_time", "defaultable", "public"});
+
+  config.declareParameter("client_min_retry_timeout_milli",
+                          "Min retry timeout configuration", "50");
+  config.tagParameter("client_min_retry_timeout_milli",
+                      defaultableByUtilityTags);
+  config.addValidator(
+      "client_min_retry_timeout_milli", ValidateTimeOutMilli,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_max_retry_timeout_milli",
+                          "Max retry timeout configuration", "1000");
+  config.tagParameter("client_max_retry_timeout_milli",
+                      defaultableByUtilityTags);
+  config.declareParameter("client_initial_retry_timeout_milli",
+                          "The initial retry timeout configuration", "150");
+  config.tagParameter("client_initial_retry_timeout_milli",
+                      defaultableByUtilityTags);
+  config.declareParameter("client_sends_request_to_all_replicas_first_thresh",
+                          "The first thresh configuration for client sends "
+                          "requests to all replicas",
+                          "4");
+  config.tagParameter("client_sends_request_to_all_replicas_first_thresh",
+                      defaultableByUtilityTags);
+  config.addValidator(
+      "client_sends_request_to_all_replicas_first_thresh", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_sends_request_to_all_replicas_period_thresh",
+                          "The period thresh configuration for client sends "
+                          "requests to all replicas",
+                          "2");
+  config.tagParameter("client_sends_request_to_all_replicas_period_thresh",
+                      defaultableByUtilityTags);
+  config.addValidator(
+      "client_sends_request_to_all_replicas_period_thresh",
+      config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.declareParameter("client_periodic_reset_thresh",
+                          "The client periodic reset thresh configuration",
+                          "30");
+  config.tagParameter("client_periodic_reset_thresh", defaultableByUtilityTags);
+  config.addValidator(
+      "client_periodic_reset_thresh", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+}
+
+void SpecifyExternalClientConfiguration(config::ConcordConfiguration& config) {
+  SpecifyGeneralConfiguration(config);
+  SpecifyReplicaConfiguration(config);
+  SpecifyClientConfiguration(config);
+  SpecifySimpleClientParams(config);
+  config.setConfigurationStateLabel("concord_external_client");
+}
 }  // namespace config
 }  // namespace concord
