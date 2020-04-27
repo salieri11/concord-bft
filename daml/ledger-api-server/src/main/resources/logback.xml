@@ -2,21 +2,21 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %cyan(%logger{5}) - %msg%n</pattern>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
         </encoder>
     </appender>
 
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
         <encoder>
-          <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %cyan(%logger{5}) - %msg%n</pattern>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
         </encoder>
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>daml-ledger-api-server.log</file>
+        <file>daml-ledger-api.log</file>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %mdc%n</pattern>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %-5level %logger{36} - %msg %mdc%n</pattern>
         </encoder>
     </appender>
 
@@ -25,10 +25,13 @@
     </appender>
 
     <logger name="io.netty" level="WARN">
-            <appender-ref ref="STDERR"/>
+        <appender-ref ref="STDERR"/>
     </logger>
     <logger name="io.grpc.netty" level="WARN">
-            <appender-ref ref="STDERR"/>
+        <appender-ref ref="STDERR"/>
+    </logger>
+    <logger name="org.eclipse.jetty" level="WARN">
+        <appender-ref ref="STDERR"/>
     </logger>
 
     <root level="INFO">
