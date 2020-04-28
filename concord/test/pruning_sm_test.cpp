@@ -6,8 +6,8 @@
 #include "mocks.hpp"
 
 #include "config/configuration_manager.hpp"
-#include "db_adapter.h"
 #include "db_interfaces.h"
+#include "direct_kv_db_adapter.h"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "pruning/kvb_pruning_sm.hpp"
@@ -38,6 +38,7 @@
 
 using namespace concord::config;
 using namespace concord::kvbc;
+using namespace concord::kvbc::v1DirectKeyValue;
 using namespace concord::pruning;
 using namespace concord::storage;
 using namespace concord::storage::memorydb;
