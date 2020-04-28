@@ -727,7 +727,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    start_time = time.time()
    end_time = start_time + run_duration * 3600
    slack_last_reported = start_time
-   dashboardLink = longRunningTestDashboardLink()
+   dashboardLink = longRunningTestDashboardLink(replicasConfig=replica_config)
    consoleURL = os.getenv("BUILD_URL") + "consoleText" if os.getenv("BUILD_URL") else None
 
    slack.reportMonitoring(kickOff=True)
@@ -903,10 +903,11 @@ def run_long_running_tests(tests, replica_config, log_dir):
                                                             test_set["testname"].replace(' ', '_')))
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
-         test_cmd = python + " " + test_set[
-            "test"] + " --resultsDir " + results_dir + " --replicasConfig " + replica_config
+         testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config
+         test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
+
          log.info("Running test '{}. {}'".format(test_count+1, test_cmd))
-         status, msg = execute_ext_command(test_cmd.split(" "))
+         status, msg = execute_ext_command(test_cmd)
          log.debug("Run output: {}".format(msg))
          if not status:
             collect_support_logs_for_long_running_tests(
