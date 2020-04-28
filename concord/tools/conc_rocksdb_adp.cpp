@@ -11,16 +11,14 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include "db_adapter.h"
-#include "rocksdb/client.h"
-#include "rocksdb/key_comparator.h"
+
+#include "db_adapter_interface.h"
+#include "direct_kv_storage_factory.h"
 
 using namespace std;
 using concord::kvbc::BlockId;
-using concord::kvbc::DBAdapter;
-using concord::kvbc::DBKeyComparator;
-using concord::storage::rocksdb::Client;
-using concord::storage::rocksdb::KeyComparator;
+using concord::kvbc::IDbAdapter;
+using concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory;
 using concordUtils::Sliver;
 
 enum class OpType { GetBlockRaw, GetBlockDigest };
@@ -35,7 +33,7 @@ string get_arg_value(string arg) {
   return arg.substr(idx + 1, arg.length() - idx - 1);
 }
 
-bool get_block(BlockId id, const DBAdapter *adapter, Sliver &res) {
+bool get_block(BlockId id, const IDbAdapter *adapter, Sliver &res) {
   bool found = false;
   try {
     res = adapter->getRawBlock(id);
@@ -46,7 +44,7 @@ bool get_block(BlockId id, const DBAdapter *adapter, Sliver &res) {
 }
 
 std::vector<Sliver> get_data(BlockId from, BlockId to,
-                             const DBAdapter *adapter) {
+                             const IDbAdapter *adapter) {
   std::vector<Sliver> result;
   for (BlockId i = from; i <= to; i++) {
     Sliver res;
@@ -140,20 +138,17 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  std::unique_ptr<DBKeyComparator> manip(new DBKeyComparator());
-  std::unique_ptr<KeyComparator> comp(new KeyComparator(manip.get()));
-  std::shared_ptr<Client> client(new Client(path, comp.get()));
-  client->init();
-  std::unique_ptr<DBAdapter> adapter(new DBAdapter(client));
+  const auto storageFactory = RocksDBStorageFactory{path};
+  const auto dbSet = storageFactory.newDatabaseSet();
 
   switch (opTypes[op]) {
     case OpType::GetBlockDigest: {
-      std::vector<Sliver> results = get_data(from, to, adapter.get());
+      std::vector<Sliver> results = get_data(from, to, dbSet.dbAdapter.get());
       print_result(results, compute_digest);
       break;
     }
     case OpType::GetBlockRaw: {
-      std::vector<Sliver> results = get_data(from, to, adapter.get());
+      std::vector<Sliver> results = get_data(from, to, dbSet.dbAdapter.get());
       print_result(results);
       break;
     }

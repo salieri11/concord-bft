@@ -4,7 +4,6 @@
 #include <log4cplus/hierarchy.h>
 #include <boost/lockfree/spsc_queue.hpp>
 #include "config/configuration_manager.hpp"
-#include "db_adapter.h"
 #include "db_interfaces.h"
 #include "gtest/gtest.h"
 #include "kv_types.hpp"

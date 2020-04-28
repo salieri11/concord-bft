@@ -8,14 +8,13 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "db_adapter.h"
-#include "db_interfaces.h"
 #include "direct_kv_block.h"
+#include "direct_kv_db_adapter.h"
+#include "direct_kv_storage_factory.h"
 #include "gtest/gtest.h"
 #include "replica_state_sync_imp.hpp"
+#include "storage/db_interface.h"
 
-#include "rocksdb/client.h"
-#include "rocksdb/key_comparator.h"
 #include "storage/concord_block_metadata.h"
 
 #include <memory>
@@ -23,30 +22,30 @@
 using namespace std;
 using namespace log4cplus;
 
-using concord::kvbc::ReplicaStateSyncImp;
-using concord::storage::ConcordBlockMetadata;
-using BlockEntry = concord::kvbc::block::detail::Entry;
-using BlockHeader = concord::kvbc::block::detail::Header;
+using BlockEntry = concord::kvbc::v1DirectKeyValue::block::detail::Entry;
+using BlockHeader = concord::kvbc::v1DirectKeyValue::block::detail::Header;
+
 using concord::kvbc::BlockId;
-using concord::kvbc::DBAdapter;
-using concord::kvbc::DBKeyComparator;
 using concord::kvbc::IBlocksAppender;
-using concord::kvbc::IDataKeyGenerator;
+using concord::kvbc::IDbAdapter;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::Key;
-using concord::kvbc::RocksKeyGenerator;
+using concord::kvbc::ReplicaStateSyncImp;
 using concord::kvbc::SetOfKeyValuePairs;
 using concord::kvbc::Value;
-using concord::storage::rocksdb::Client;
-using concord::storage::rocksdb::KeyComparator;
+using concord::kvbc::v1DirectKeyValue::IDataKeyGenerator;
+using concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory;
+using concord::kvbc::v1DirectKeyValue::RocksKeyGenerator;
+using concord::storage::ConcordBlockMetadata;
+using concord::storage::IDBClient;
 
 using concordUtils::Sliver;
 using concordUtils::Status;
 
 namespace {
 
-std::shared_ptr<Client> dbClient;
-DBAdapter *bcDBAdapter = nullptr;
+std::shared_ptr<IDBClient> dbClient;
+IDbAdapter *bcDBAdapter = nullptr;
 Logger *logger = nullptr;
 Value emptyValue;
 const BlockId lastBlockId = 2;
@@ -201,13 +200,13 @@ int main(int argc, char **argv) {
   BasicConfigurator config(hierarchy, false);
   config.configure();
   const string dbPath = "./replicaStateSync_test";
-  dbClient = std::make_shared<Client>(dbPath,
-                                      new KeyComparator(new DBKeyComparator()));
-  dbClient->init();
-  bcDBAdapter = new DBAdapter(dbClient);
+  const auto storageFactory = RocksDBStorageFactory{dbPath};
+  const auto databaseSet = storageFactory.newDatabaseSet();
+
+  bcDBAdapter = databaseSet.dbAdapter.get();
+  dbClient = databaseSet.dataDBClient;
 
   int res = RUN_ALL_TESTS();
 
-  delete bcDBAdapter;
   return res;
 }

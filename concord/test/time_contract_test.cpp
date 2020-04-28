@@ -5,7 +5,7 @@
 
 #include "time/time_contract.hpp"
 #include "config/configuration_manager.hpp"
-#include "db_adapter.h"
+#include "direct_kv_db_adapter.h"
 #include "gtest/gtest.h"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
@@ -27,14 +27,14 @@ using com::vmware::concord::kvb::Time;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::kvbc::BlockId;
-using concord::kvbc::DBKeyComparator;
 using concord::kvbc::IBlocksAppender;
-using concord::kvbc::IDataKeyGenerator;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::Key;
-using concord::kvbc::RocksKeyGenerator;
 using concord::kvbc::SetOfKeyValuePairs;
 using concord::kvbc::Value;
+using concord::kvbc::v1DirectKeyValue::DBKeyComparator;
+using concord::kvbc::v1DirectKeyValue::IDataKeyGenerator;
+using concord::kvbc::v1DirectKeyValue::RocksKeyGenerator;
 using concord::storage::IDBClient;
 using concord::storage::memorydb::Client;
 using concord::storage::memorydb::KeyComparator;

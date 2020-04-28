@@ -34,8 +34,7 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
-#include "db_adapter.h"
-#include "db_interfaces.h"
+#include "direct_kv_storage_factory.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
@@ -44,14 +43,11 @@
 #include "hlf/kvb_commands_handler.hpp"
 #include "hlf/kvb_storage.hpp"
 #include "kv_types.hpp"
-#include "memorydb/client.h"
-#include "memorydb/key_comparator.h"
 #include "replica_state_sync_imp.hpp"
+#include "storage_factory_interface.h"
 #include "tee/grpc_services.hpp"
 #include "tee/tee_commands_handler.hpp"
 
-#include "rocksdb/client.h"
-#include "rocksdb/key_comparator.h"
 #include "storage/concord_block_metadata.h"
 #include "storage/kvb_key_types.h"
 #include "thin_replica/grpc_services.hpp"
@@ -89,19 +85,18 @@ using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
 using concord::kvbc::BlockId;
 using concord::kvbc::ClientConfig;
-using concord::kvbc::DBAdapter;
-using concord::kvbc::DBKeyComparator;
 using concord::kvbc::IBlocksAppender;
 using concord::kvbc::IClient;
 using concord::kvbc::ICommandsHandler;
-using concord::kvbc::IDbAdapter;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::IReplica;
+using concord::kvbc::IStorageFactory;
 using concord::kvbc::ReplicaImp;
 using concord::kvbc::ReplicaStateSyncImp;
 using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::v1DirectKeyValue::MemoryDBStorageFactory;
+using concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory;
 using concord::storage::ConcordBlockMetadata;
-using concord::storage::IDBClient;
 
 using concordUtils::Status;
 
@@ -237,8 +232,8 @@ void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
       std::static_pointer_cast<opentracing::Tracer>(tracer));
 }
 
-std::shared_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
-                                         Logger logger) {
+std::unique_ptr<IStorageFactory> create_storage_factory(
+    const ConcordConfiguration &nodeConfig, Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -247,17 +242,12 @@ std::shared_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
   string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    // Client makes a copy of comparator, so scope lifetime is not a problem
-    // here.
-    concord::storage::memorydb::KeyComparator comparator(new DBKeyComparator);
-    return std::make_shared<concord::storage::memorydb::Client>(comparator);
+    return std::make_unique<MemoryDBStorageFactory>();
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return std::make_shared<concord::storage::rocksdb::Client>(
-        rocks_path,
-        new concord::storage::rocksdb::KeyComparator(new DBKeyComparator()));
+    return std::make_unique<RocksDBStorageFactory>(rocks_path);
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -570,10 +560,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConfig);
 
-    auto db = open_database(nodeConfig, logger);
-    db->init();
-    auto db_adapter = std::unique_ptr<IDbAdapter>{new DBAdapter{db}};
-
     // Replica
     //
     // TODO(IG): since ReplicaImpl is used as an implementation of few
@@ -615,7 +601,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       LOG4CPLUS_INFO(logger, "Exposing BFT metrics via Prometheus.");
     }
 
-    ReplicaImp replica(icomm, replicaConfig, std::move(db_adapter), db,
+    ReplicaImp replica(icomm, replicaConfig,
+                       create_storage_factory(nodeConfig, logger),
                        bft_metrics_aggregator);
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));

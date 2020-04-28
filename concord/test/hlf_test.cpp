@@ -5,7 +5,7 @@
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
 #include "concord.pb.h"
-#include "db_adapter.h"
+#include "direct_kv_db_adapter.h"
 #include "gtest/gtest.h"
 #include "hlf/chaincode_invoker.hpp"
 #include "hlf/kvb_storage.hpp"
@@ -20,12 +20,12 @@ using namespace log4cplus;
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
 using concord::kvbc::BlockId;
-using concord::kvbc::DBKeyComparator;
 using concord::kvbc::IBlocksAppender;
 using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::Key;
 using concord::kvbc::SetOfKeyValuePairs;
 using concord::kvbc::Value;
+using concord::kvbc::v1DirectKeyValue::DBKeyComparator;
 using concord::storage::IDBClient;
 using concord::storage::memorydb::Client;
 using concord::storage::memorydb::KeyComparator;
