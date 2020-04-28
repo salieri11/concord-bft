@@ -516,11 +516,6 @@ void ThinReplicaClient::ReceiveUpdates() {
     if (most_agreeing < (max_faulty_ + 1)) {
       LOG4CPLUS_WARN(logger_,
                      "Couldn't find agreement amongst all servers. Try again.");
-      lock_guard<mutex> failure_condition_reassignment_lock(
-          failure_condition_mutex_);
-      if (subscription_failure_condition_) {
-        subscription_failure_condition_->notify_all();
-      }
       // We need to force re-subscription on at least one of the f+1 open
       // streams otherwise we might skip an update. By closing all streams here
       // we do exactly what the algorithm would do in the next iteration of this
@@ -546,11 +541,6 @@ void ThinReplicaClient::ReceiveUpdates() {
       if (!has_verified_data) {
         LOG4CPLUS_WARN(logger_,
                        "Couldn't get data from agreeing servers. Try again.");
-        lock_guard<mutex> failure_condition_reassignment_lock(
-            failure_condition_mutex_);
-        if (subscription_failure_condition_) {
-          subscription_failure_condition_->notify_all();
-        }
         // We need to force re-subscription on at least one of the f+1 open
         // streams otherwise we might skip an update. By closing all streams
         // here we do exactly what the algorithm would do in the next iteration
@@ -653,12 +643,6 @@ ThinReplicaClient::~ThinReplicaClient() {
     assert(subscription_thread_->joinable());
     subscription_thread_->join();
   }
-}
-
-void ThinReplicaClient::RegisterSubscriptionFailureCondition(
-    shared_ptr<condition_variable> failure_condition) {
-  lock_guard<mutex> condition_reassignment_lock(failure_condition_mutex_);
-  subscription_failure_condition_ = failure_condition;
 }
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
