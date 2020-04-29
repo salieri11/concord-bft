@@ -7,17 +7,23 @@ import getpass
 import json
 import logging
 import os
+import subprocess
+import traceback
+
 import requests
 import urllib3
 import time
 
+
 # suppress certs verification warnings
 urllib3.disable_warnings()
+
 
 class MaestroClient:
     """
     Client that interacts with Maestro
     """
+
     def __init__(self, api_url, reporting_url, username, password):
         """
         Args:
@@ -32,7 +38,6 @@ class MaestroClient:
         self._api_url = api_url
         self._reporting_url = reporting_url
 
-
     def get_payload(self, bcversion, recipients, application, comments, noexec=False):
         """
         Return json payload to send to the api server.  Inserts the blockchain version,
@@ -40,7 +45,10 @@ class MaestroClient:
         """
         if noexec:
             logging.debug("get_payload({}, {}, {})".format(bcversion, recipients, comments))
-        return  {
+
+        (commit_summary, authors) = self.get_commit_info()
+
+        return {
             "run_request": {
                 "config": {
                     "vsanHFT": 0,
@@ -110,6 +118,10 @@ class MaestroClient:
                         "transactions": 50000,
                         "threads": 16,
                         "batching": False
+                    },
+                    "git_commits": {
+                        "commits": commit_summary,
+                        "authors": authors
                     }
                 },
                 "viewplannerConfig": {
@@ -258,7 +270,6 @@ class MaestroClient:
             }
         }
 
-
     def submit_run(self, bcversion, recipients, app, comments=None, noexec=False):
         """
         Create a run for the given blockchain version.
@@ -266,7 +277,9 @@ class MaestroClient:
         """
         endpoint = self._api_url + '/vdi/submit_job/'
         payload = self.get_payload(bcversion, recipients, app, comments, noexec)
-        logging.info("Submitting performance run. Version: '{}', recipients: '{}', comments: '{}'".format(bcversion, recipients, comments))
+        logging.info(
+            "Submitting performance run. Version: '{}', recipients: '{}', comments: '{}'".format(bcversion, recipients,
+                                                                                                 comments))
 
         if noexec:
             return 1234
@@ -281,7 +294,6 @@ class MaestroClient:
             except Exception:
                 # get specific exception message from submit_template endpoint
                 raise Exception(response.json())
-
 
     def start_run(self, run_id, noexec=False):
         """
@@ -298,12 +310,10 @@ class MaestroClient:
             logging.debug(response.json())
             response.raise_for_status()
 
-
     def write_results(self, run_ids, apps, html_file, json_file):
         """
         Write results to an html file and a json file.
         """
-
 
         logging.info("Writing results to {}".format(html_file))
         urls = []
@@ -311,7 +321,8 @@ class MaestroClient:
             html_results = "<html>"
             for index in range(len(run_ids)):
                 url = "{}/{}/".format(self._reporting_url, run_ids[index])
-                html_results = html_results + "<a href={}>{} Performance run {}</a>".format(url, apps[index], run_ids[index]) + "<br>"
+                html_results = html_results + "<a href={}>{} Performance run {}</a>".format(url, apps[index],
+                                                                                            run_ids[index]) + "<br>"
                 urls.append(url)
 
             html_results += "</html>"
@@ -324,6 +335,38 @@ class MaestroClient:
         }
         with open(json_file, "w") as f:
             json.dump(results, f)
+
+    def get_commit_info(self):
+        """
+        Fetch commtit info in this master build
+        Args:
+
+        Returns:
+            list of commits and summary
+        """
+        commit_summary = []
+        author_emails = []
+
+        try:
+            python = os.environ["python"]
+            python = "python3"
+            output = subprocess.run([python, "getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
+            logging.debug(output)
+
+            commits_blame = json.load(open("../../vars/commits_authors.json"))
+            author_emails = commits_blame["authorsList"]
+
+            for commit in commits_blame["commits"]:
+                commit_summary.append(commit["summary"])
+
+            logging.debug(author_emails)
+            logging.debug(commit_summary)
+
+        except Exception as e:
+            logging.debug("Error while fetching commit information %s" % format(e))
+            traceback.print_exc()
+        return commit_summary, author_emails
+
 
 
 def main():
@@ -356,7 +399,7 @@ def main():
                         default=False)
     parser.add_argument("--logLevel",
                         help="Set the log level.  Valid values:"
-                        "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
+                             "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
                         default="INFO")
     parser.add_argument("--htmlFile",
                         help="HTML file containing run information.",
@@ -375,21 +418,20 @@ def main():
 
     logging.basicConfig(level=args.logLevel.upper())
 
-
     client = MaestroClient(args.apiUrl, args.reportingUrl, args.username, args.password)
     app_list = args.testList.split(",")
     run_ids = []
 
     for app in app_list:
-        comment = app + ": " +args.comments
+        comment = app + ": " + args.comments
         logging.info("Starting performance run with build: {}, recipients: {}, comments: {}". \
                      format(args.bcversion,
                             args.recipients,
                             comment))
         run_id = client.submit_run(args.bcversion,
-                               args.recipients,
-                               app, comment,
-                               args.noexec)
+                                   args.recipients,
+                                   app, comment,
+                                   args.noexec)
         client.start_run(run_id, args.noexec)
         run_ids.append(run_id)
         time.sleep(10)
