@@ -151,7 +151,7 @@ export class ZoneFormComponent implements AfterViewInit {
           address: new FormControl(
             '',
             {
-              validators: [protocolNotAllowed()],
+              validators: [protocolNotAllowed({optional: true})],
               updateOn: 'blur'
             }
           ),

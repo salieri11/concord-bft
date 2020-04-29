@@ -251,6 +251,7 @@
       "highAvailabilityDesc": "Two clients nodes to ensure high availability",
       "clientNodeNamePlaceholder": "Client Node 1",
       "authUrl": "Auth URL",
+      "authUrlPlaceholder": "https://<JWKS-endpoint> (optional)",
       "authUrlDesc": "URL that returns JWT public key",
       "authUrlError": "The supplied URL is not valid"
     }
@@ -1073,6 +1074,7 @@
       "navTitle": "Committers",
       "onPremTitle": "On Premises Zone Distribution",
       "cloudTitle": "Cloud Zone Distribution",
+      "regionalTitle": "Selected Zones",
       "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
       "add": "Add On Premises Region"
