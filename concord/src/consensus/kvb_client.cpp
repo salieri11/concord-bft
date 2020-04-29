@@ -74,7 +74,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
 KVBClientPool::KVBClientPool(
     std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
     std::shared_ptr<TimePusher> time_pusher,
-    std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
       time_pusher_(time_pusher),

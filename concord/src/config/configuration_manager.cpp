@@ -3387,12 +3387,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "preexec_requests_status_check_period_millisec", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
 
-  node.declareParameter("metrics_config",
-                        "Path, in this node's local filesystem, to a "
-                        "configuration for concord metrics",
-                        "/concord/resources/metrics_config.yaml");
-  node.tagParameter("metrics_config", defaultableByReplicaTags);
-
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "
                         "external API service can be reached.");

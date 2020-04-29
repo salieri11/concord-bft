@@ -69,7 +69,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
       concord::kvbc::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list,
-      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
       concord::time::TimeContract *time_contract = nullptr);
   virtual ~ConcordCommandsHandler() = default;
 
