@@ -167,7 +167,7 @@ public class VSphereHttpClient {
      * @return ID of the network as a [String], if found.
      */
     public String getNetwork(String name, String type) {
-        String uri = VsphereEndpoints.VSPHERE_NETWORKS.getPath() + "?filter.types=" + type + "&filter.names=" + name;
+        String uri = VsphereEndpoints.VSPHERE_NETWORKS.getPath() + "?filter.names=" + name;
 
         HttpEntity<String> requests = new HttpEntity<>(httpHeaders);
         ResponseEntity<GetNetworkResponse> responseEntity
