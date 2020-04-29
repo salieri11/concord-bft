@@ -7,7 +7,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { NodesService } from '../shared/nodes.service';
-import { Zone, ZoneType } from '../../zones/shared/zones.model';
+import { Zone } from '../../zones/shared/zones.model';
 
 // Works for domains and ips
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
@@ -40,11 +40,12 @@ export class DeployClientComponent implements OnInit {
     const selectedZoneId = this.deployClient.controls['zone'].value;
     // const selectedZone = this.zones.find(zone => zone.id === selectedZoneId);
     const clientJwt = this.deployClient.get('auth_url').value;
-
-    this.nodesService.deployClients({
+    const deployParams = {
       zone_ids: [selectedZoneId],
       client_jwt: clientJwt
-    });
+    };
+
+    this.nodesService.deployClients(deployParams);
 
     this.deployClient.reset();
     this.closeModal();
@@ -62,13 +63,15 @@ export class DeployClientComponent implements OnInit {
   private setZones() {
 
     if (this.blockchainService.zones) {
-      const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-      if (isOnPremZone) {
-        const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
-        this.zones = onPremZones;
-      } else {
-        this.zones = this.blockchainService.zones;
-      }
+      // Don't fileter based on zone type (See BC-2286 number 2)
+      this.zones = this.blockchainService.zones;
+      // const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+      // if (isOnPremZone) {
+      //   const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+      //   this.zones = onPremZones;
+      // } else {
+      //   this.zones = this.blockchainService.zones;
+      // }
     }
   }
 

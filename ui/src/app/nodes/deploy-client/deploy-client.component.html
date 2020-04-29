@@ -7,14 +7,15 @@
           <input clrInput class="input-width" type="text" formControlName="name" 
                 placeholder="{{ 'nodes.deployClientModal.clientNodeNamePlaceholder' | translate }}"/>
         </clr-input-container>
-        <clr-toggle-container>
+        <!-- Commented out until it is supported -->
+        <!-- <clr-toggle-container>
           <label>{{ 'nodes.deployClientModal.highAvailability' | translate }}</label>
           <clr-toggle-wrapper>
             <input type="checkbox" clrToggle value="high_availability" formControlName="high_availability"/>
           </clr-toggle-wrapper>
           <clr-control-helper>{{ 'nodes.deployClientModal.highAvailabilityDesc' | translate }}</clr-control-helper>
           <clr-control-error>This field is required!</clr-control-error>
-        </clr-toggle-container>
+        </clr-toggle-container> -->
         <clr-select-container>
           <label>{{ 'zones.detail.title' | translate }}</label>
           <select clrSelect formControlName="zone" class="select-width">
@@ -24,13 +25,15 @@
             </option>
           </select>
         </clr-select-container>
-        <clr-input-container>
+        <clr-textarea-container>
           <label>{{ 'nodes.deployClientModal.authUrl' | translate }}</label>
-          <input clrInput class="input-width" type="text"
-                formControlName="auth_url" placeholder="https://path-to-jwks"/>
-          <clr-control-helper>{{ 'nodes.deployClientModal.authUrlDesc' | translate }}</clr-control-helper>
-          <clr-control-error>{{ 'nodes.deployClientModal.authUrlError' | translate }}</clr-control-error>
-        </clr-input-container>
+          <textarea clrTextarea formControlName="auth_url"
+                placeholder="{{ 'nodes.deployClientModal.authUrlPlaceholder' | translate }}"
+                class="input-textarea-width textarea-margin-left">
+          </textarea>
+          <clr-control-helper class="textarea-margin-left">{{ 'nodes.deployClientModal.authUrlDesc' | translate }}</clr-control-helper>
+          <clr-control-error class="textarea-margin-left">{{ 'nodes.deployClientModal.authUrlError' | translate }}</clr-control-error>
+        </clr-textarea-container>
         <clr-input-container></clr-input-container>
       </form>
     </div>
