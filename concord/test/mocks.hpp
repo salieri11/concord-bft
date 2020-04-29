@@ -72,8 +72,9 @@ class MockBlockAppender : public IBlocksAppender {
   MOCK_METHOD2(addBlock, Status(const SetOfKeyValuePairs&, BlockId&));
 };
 
-class MockPrometheusRegistry : public IPrometheusRegistry {
+class MockPrometheusRegistry : public PrometheusRegistry {
  public:
+  MockPrometheusRegistry() : PrometheusRegistry("127.0.0.1:9891", 600) {}
   MOCK_METHOD1(scrapeRegistry, void(std::shared_ptr<prometheus::Collectable>));
   MOCK_METHOD3(createCounterFamily,
                prometheus::Family<prometheus::Counter>&(

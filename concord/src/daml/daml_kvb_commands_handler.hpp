@@ -43,7 +43,7 @@ class DamlKvbCommandsHandler
       concord::kvbc::IBlocksAppender& ba,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<IDamlValidatorClient> validator,
-      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
       concord::time::TimeContract* time_contract = nullptr)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry, time_contract),

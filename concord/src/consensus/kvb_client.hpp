@@ -103,7 +103,7 @@ class KVBClientPool {
   KVBClientPool(
       std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
       std::shared_ptr<concord::time::TimePusher> time_pusher,
-      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry);
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,

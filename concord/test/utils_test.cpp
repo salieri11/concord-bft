@@ -177,25 +177,8 @@ TEST(utils_test, from_uint256_t_test) {
   EXPECT_EQ(0, memcmp(expected.bytes, out.bytes, sizeof(evm_uint256be)));
 }
 
-TEST(utils_test, test_configuration_parser) {
-  auto conf = concord::utils::PrometheusRegistry::parseConfiguration(
-      "resources/metrics_config.yaml");
-  ASSERT_EQ(conf[0].name_, "concord_command_handler_operation_counters_total");
-  ASSERT_EQ(conf[0].type_, "counter");
-  ASSERT_EQ(conf[0].exposed_, true);
-
-  auto conf2 = concord::utils::ConcordBftMetricsManager::parseConfiguration(
-      "resources/metrics_config.yaml");
-  ASSERT_EQ(conf2[0].name_, "view");
-  ASSERT_EQ(conf2[0].component_, "replica");
-  ASSERT_EQ(conf2[0].type_, "gauge");
-  ASSERT_EQ(conf2[0].exposed_, true);
-}
-
 TEST(utils_test, test_prometheus_create_families) {
-  auto conf = std::vector<concord::utils::ConcordMetricConf>(
-      {{"m1", {}, "counter", "", "", true}, {"m2", {}, "gauge", "", "", true}});
-  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", conf);
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891");
   auto& cf = pr.createCounterFamily("m1", "h1", {});
   auto& counter = pr.createCounter(cf, {{"l1", "v1"}});
   counter.Increment();
@@ -207,9 +190,7 @@ TEST(utils_test, test_prometheus_create_families) {
 }
 
 TEST(utils_test, test_prometheus_create) {
-  auto conf = std::vector<concord::utils::ConcordMetricConf>(
-      {{"m1", {}, "counter", "", "", true}, {"m2", {}, "gauge", "", "", true}});
-  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", conf);
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891");
   auto& counter = pr.createCounter("m1", "h1", {{"l1", "v1"}});
   counter.Increment();
   ASSERT_EQ(counter.Value(), 1);
@@ -219,29 +200,62 @@ TEST(utils_test, test_prometheus_create) {
 }
 
 TEST(utils_test, test_prometheus_with_concord_bft_metrics) {
-  auto conf = std::vector<concord::utils::ConcordMetricConf>(
-      {{"m1", {{"l1", "v1"}}, "counter", "c1", "d1", true},
-       {"m2", {{"l2", "v2"}}, "gauge", "c1", "d2", true}});
-  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", {});
-  auto cbft = concord::utils::ConcordBftMetricsManager(conf);
-  concordMetrics::Component c1("c1", cbft.getAggregator());
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891");
+  auto cbft = std::make_shared<concord::utils::ConcordBftPrometheusCollector>();
+
+  concordMetrics::Component c1("c1", cbft->getAggregator());
   auto counter = c1.RegisterCounter("m1");
   auto gauge = c1.RegisterGauge("m2", 0);
   c1.Register();
+
+  concordMetrics::Component c2("c2", cbft->getAggregator());
+  auto counter2 = c2.RegisterCounter("m3");
+  auto gauge2 = c2.RegisterGauge("m4", 0);
+  c2.Register();
+
   counter.Get().Inc();
   gauge.Get().Set(100);
   c1.UpdateAggregator();
-  pr.scrapeRegistry(cbft.getCollector());
-  for (auto& mf : cbft.getCollector()->Collect()) {
+
+  counter2.Get().Inc();
+  gauge2.Get().Set(200);
+  c2.UpdateAggregator();
+
+  pr.scrapeRegistry(cbft);
+  int verifications = 0;
+  for (auto& mf : cbft->Collect()) {
+    string comp = "null";
+    for (auto& label : mf.metric[0].label) {
+      if (label.name == "component") {
+        comp = label.value;
+      }
+    }
     if (mf.type == prometheus::MetricType::Counter) {
-      ASSERT_EQ(mf.name, "concord_concordbft_m1");
-      ASSERT_EQ(mf.metric[0].counter.value, 1);
+      if (comp == "c1") {
+        ASSERT_EQ(mf.name, "concord_concordbft_m1");
+        ASSERT_EQ(mf.metric[0].counter.value, 1);
+        verifications++;
+      }
+      if (comp == "c2") {
+        ASSERT_EQ(mf.name, "concord_concordbft_m3");
+        ASSERT_EQ(mf.metric[0].counter.value, 1);
+        verifications++;
+      }
     }
     if (mf.type == prometheus::MetricType::Gauge) {
-      ASSERT_EQ(mf.name, "concord_concordbft_m2");
-      ASSERT_EQ(mf.metric[0].gauge.value, 100);
+      if (comp == "c1") {
+        ASSERT_EQ(mf.name, "concord_concordbft_m2");
+        ASSERT_EQ(mf.metric[0].gauge.value, 100);
+        verifications++;
+      }
+      if (comp == "c2") {
+        ASSERT_EQ(mf.name, "concord_concordbft_m4");
+        ASSERT_EQ(mf.metric[0].gauge.value, 200);
+        verifications++;
+      }
     }
   }
+  ASSERT_EQ(verifications, 4);
 }
 
 }  // namespace

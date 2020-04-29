@@ -471,8 +471,7 @@ bool OnlyOneTrue(bool a, bool b, bool c, bool d) {
 }
 
 std::shared_ptr<concord::utils::PrometheusRegistry>
-initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger,
-                              const std::string &metricsConfigPath) {
+initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
   uint16_t prometheus_port = config.hasValue<uint16_t>("prometheus_port")
                                  ? config.getValue<uint16_t>("prometheus_port")
                                  : 9891;
@@ -487,16 +486,7 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger,
                                                 << " dumping metrics interval: "
                                                 << dump_time_interval);
   return std::make_shared<concord::utils::PrometheusRegistry>(
-      prom_bindaddress,
-      concord::utils::PrometheusRegistry::parseConfiguration(metricsConfigPath),
-      dump_time_interval);
-}
-
-std::shared_ptr<concord::utils::ConcordBftMetricsManager>
-initialize_prometheus_for_concordbft(const std::string &metricsConfigPath) {
-  return std::make_shared<concord::utils::ConcordBftMetricsManager>(
-      concord::utils::ConcordBftMetricsManager::parseConfiguration(
-          metricsConfigPath));
+      prom_bindaddress, dump_time_interval);
 }
 
 /*
@@ -524,14 +514,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                    "HLF, or TEE) is set");
     return 0;
   }
-  std::string metricsConfigPath =
-      nodeConfig.getValue<std::string>("metrics_config");
-  LOG4CPLUS_INFO(logger,
-                 "metrics configuration file is: " << metricsConfigPath);
-  auto prometheus_registry =
-      initialize_prometheus_metrics(nodeConfig, logger, metricsConfigPath);
+  auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
   auto prometheus_for_concordbft =
-      initialize_prometheus_for_concordbft(metricsConfigPath);
+      std::make_shared<concord::utils::ConcordBftPrometheusCollector>();
+  prometheus_registry->scrapeRegistry(prometheus_for_concordbft);
+
   try {
     if (eth_enabled) {
       // The genesis parsing is Eth specific.
@@ -679,8 +666,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     replica.set_command_handler(kvb_commands_handler.get());
     replica.start();
-    prometheus_registry->scrapeRegistry(
-        prometheus_for_concordbft->getCollector());
     // Clients
 
     std::shared_ptr<TimePusher> timePusher;
@@ -722,10 +707,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       IClient *client = concord::kvbc::createClient(clientConfig, comm);
       client->start();
+      client->setMetricsAggregator(prometheus_for_concordbft->getAggregator());
       KVBClient *kvbClient = new KVBClient(client, timePusher);
       clients.push_back(kvbClient);
     }
-
     KVBClientPool pool(clients, clientTimeout, timePusher, prometheus_registry);
 
     if (timePusher) {
