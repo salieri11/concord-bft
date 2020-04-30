@@ -348,12 +348,11 @@ class MaestroClient:
         author_emails = []
 
         try:
-            python = os.environ["python"]
             python = "python3"
-            output = subprocess.run([python, "getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
+            output = subprocess.run([python, "/vars/getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
             logging.debug(output)
 
-            commits_blame = json.load(open("../../vars/commits_authors.json"))
+            commits_blame = json.load(open("/vars/commits_authors.json"))
             author_emails = commits_blame["authorsList"]
 
             for commit in commits_blame["commits"]:
