@@ -392,7 +392,8 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         NodeProperty nodeIpProperty = NodeProperty.newBuilder().setName(NodeProperty.Name.NODE_IP)
                 .putAllValue(nodeIpMap).build();
 
-        List<NodeProperty> nodePropertyList = Arrays.asList(nodeProperty, nodeIpProperty, loggingProperty);
+        List<NodeProperty> nodePropertyList
+                = new ArrayList(Arrays.asList(nodeProperty, nodeIpProperty, loggingProperty));
 
         if (!wavefrontProxyUrl.isEmpty()) {
             nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
