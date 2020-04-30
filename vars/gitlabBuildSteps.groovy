@@ -89,7 +89,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml"
   ],
   "PrivacyTeeTests": [
-    "enabled": false,
+    "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-tee.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
