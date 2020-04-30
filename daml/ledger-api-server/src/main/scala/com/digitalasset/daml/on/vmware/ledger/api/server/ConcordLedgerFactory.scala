@@ -27,6 +27,7 @@ import io.grpc.ConnectivityState
 import org.slf4j.LoggerFactory
 import scopt.OptionParser
 import com.codahale.metrics.MetricRegistry
+import com.daml.buildinfo.BuildInfo
 import com.daml.ledger.participant.state.kvutils.api.{BatchingLedgerWriter, DefaultBatchingQueue}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}

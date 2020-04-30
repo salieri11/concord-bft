@@ -1,6 +1,7 @@
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
 import com.auth0.jwt.algorithms.Algorithm
+import com.daml.buildinfo.BuildInfo
 import com.daml.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
 import com.daml.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcard}
 import com.daml.ledger.participant.state.kvutils.app.Config
