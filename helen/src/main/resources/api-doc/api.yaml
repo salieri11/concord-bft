@@ -1999,6 +1999,12 @@ components:
                   - DAML
                   - HLF
                 description: Type of blockchain node
+              blockchain_state:
+                type: string
+                enum:
+                  - ACTIVE
+                  - INACTIVE
+                description: Current state of blockchain
               node_list:
                 deprecated: true
                 description: Please use replica_list
@@ -2045,6 +2051,10 @@ components:
                       type: string
                       format: uuid
                       description: Deployment zone for this replica
+              metadata:
+                type: object
+                additionalProperties:
+                  type: string
 
 
   requestBodies:

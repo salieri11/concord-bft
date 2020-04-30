@@ -174,6 +174,7 @@ public class BlockchainController {
         @Deprecated
         private List<BlockchainNodeEntry> nodeList;
         private List<BlockchainReplicaEntry> replicaList;
+        private Map<String, String> metadata;
 
         public BlockchainGetResponse(Blockchain b) {
             this.id = b.getId();
@@ -183,6 +184,7 @@ public class BlockchainController {
             // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
             this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
+            this.metadata = b.getMetadata();
         }
     }
 
@@ -306,6 +308,8 @@ public class BlockchainController {
                 : enumMapForBlockchainType.get(blockchainType);
 
         ConcordModelSpecification spec;
+
+        logger.info("Concord version in Blockchain Controller {}", concordConfiguration.getVersion());
 
         if (deployDamlCommitter) {
             var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification

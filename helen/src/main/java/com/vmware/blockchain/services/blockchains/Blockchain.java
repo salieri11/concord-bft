@@ -4,7 +4,9 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.vmware.blockchain.dao.AbstractEntity;
@@ -83,4 +85,6 @@ public class Blockchain extends AbstractEntity {
 
     List<NodeEntry> nodeList;
 
+    // Store software versions for blockchain
+    Map<String, String> metadata = new HashMap<>();
 }

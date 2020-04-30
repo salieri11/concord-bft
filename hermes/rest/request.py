@@ -216,7 +216,7 @@ class Request():
          self._params = ""
       self._endpointName = "blockchains"
 
-      return self._send()
+      return self._send(verb="GET")
 
    def createBlockchain(self, consortiumId,  siteIds, f=1, c=0,
                         blockchainType=util.helper.TYPE_ETHEREUM.upper()):
@@ -265,6 +265,7 @@ class Request():
       '''
       self._subPath = "/api/blockchains/" + blockchainId
       self._params = ""
+      self._data = None
       self._endpointName = "blockchain"
       return self._send()
 
@@ -476,7 +477,7 @@ class Request():
       self._params = ""
       self._endpointName = "get_task"
       self._data = None
-      return self._send()
+      return self._send(verb = "GET")
 
    def createConsortium(self, conName):
       '''

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -101,6 +102,10 @@ public class BlockchainObserverTest {
         task = new Task();
         task.setId(TASK_ID);
         task.setState(task.getState().RUNNING);
+
+        HashMap<String, String> metadata = new HashMap<>();
+        metadata.put("concord", "1.0");
+
         when(taskService.get(TASK_ID)).thenReturn(task);
         when(taskService.merge(any(Task.class), any())).thenAnswer(i -> {
             ((Consumer<Task>) i.getArgument(1)).accept(i.getArgument(0));
@@ -108,14 +113,15 @@ public class BlockchainObserverTest {
         });
         when(authHelper.getOrganizationId()).thenReturn(ORG_ID);
         blockchain = new Blockchain(new UUID(1, 2), BlockchainType.ETHEREUM,
-                                    Blockchain.BlockchainState.INACTIVE, Collections.emptyList());
+                                    Blockchain.BlockchainState.INACTIVE, Collections.emptyList(), metadata);
         blockchain.setId(CLUSTER_ID);
-        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any()))
+        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any(), any()))
                 .thenAnswer(i -> {
                     blockchain.setId(i.getArgument(0));
                     blockchain.setConsortium(i.getArgument(1));
                     blockchain.setType(i.getArgument(2));
                     blockchain.setNodeList(i.getArgument(3));
+                    blockchain.setMetadata(i.getArgument(4));
                     return blockchain;
                 });
         operationContext = new OperationContext();
