@@ -236,7 +236,7 @@ def test_privacy_e2e(fxProduct,setup_test_suite):
     
     cid1 = "client_id_6"
     cid2 = "client_id_7"
-    port1 = 50060
+    port1 = 50063
     port2 = 50061
 
     cmd1 = docker_str.format(cid1,port1,test_app_repo,test_app_tag)
