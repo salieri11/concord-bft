@@ -3169,3 +3169,21 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
    else:
       log.warning("blockchainType must be {} and blockchainLocation must be onprem or sddc - Test skipped"
                .format(blockchain_type, blockchain_location))
+
+@describe()
+@pytest.mark.deployment_only
+def test_blockchain_metadata(fxConnection, fxBlockchain, fxHermesRunSettings):
+
+   blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
+   blockchain_location = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()
+
+   if blockchain_type == util.helper.TYPE_DAML and \
+      blockchain_location in [util.helper.LOCATION_SDDC, util.helper.LOCATION_ONPREM]:
+      blockchain_id = fxBlockchain.blockchainId
+      req = fxConnection.request.newWithToken(defaultTokenDescriptor)
+
+      blockchain = req.getBlockchainDetails(blockchain_id)
+
+      log.info(blockchain["metadata"])
+
+      assert "concord_version" in blockchain["metadata"]

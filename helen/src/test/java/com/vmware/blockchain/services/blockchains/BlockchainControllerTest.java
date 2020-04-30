@@ -118,6 +118,7 @@ public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
+
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
 
     static final UUID BC_DEREGISTER = UUID.fromString("691f2038-7545-11ea-bc55-0242ac130003");
@@ -361,11 +362,13 @@ public class BlockchainControllerTest {
                     .consortium(i.getArgument(1))
                     .type(i.getArgument(2))
                     .nodeList(i.getArgument(3))
+                    .metadata(i.getArgument(4))
                     .build();
             bc.setId(i.getArgument(0));
             return bc;
         });
-        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any(List.class)))
+        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any(List.class),
+                any(Map.class)))
                 .thenAnswer(blockchainResultAnswer);
         when(defaultProfiles.getBlockchain()).thenReturn(bn);
         Task t = new Task();

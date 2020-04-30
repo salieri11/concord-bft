@@ -30,14 +30,18 @@ import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.Metadata;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Helper class for @OrchestrationSite.
  */
 
+@Slf4j
 public class ProvisioningServiceUtil {
 
     /**
@@ -425,8 +429,13 @@ public class ProvisioningServiceUtil {
     public static DeploymentSessionEvent newClusterDeploymentEvent(
             DeploymentSessionIdentifier sessionId,
             DeploymentSession.Status status,
-            ConcordCluster cluster
+            ConcordCluster cluster,
+            String version
     ) {
+        log.info("Concord version in ProvisioningServiceUtil.newClusterDeploymentEvent {}", version);
+        Map<String, String> versionMap = new HashMap<>();
+        versionMap.put("concord_version", version);
+
         return DeploymentSessionEvent.newBuilder().setType(DeploymentSessionEvent.Type.CLUSTER_DEPLOYED)
                 .setSession(sessionId)
                 .setStatus(status)
@@ -434,6 +443,11 @@ public class ProvisioningServiceUtil {
                 .setNode(ConcordNode.getDefaultInstance())
                 .setNodeStatus(ConcordNodeStatus.getDefaultInstance())
                 .setCluster(cluster)
+                .setMetadata(
+                        Metadata.newBuilder()
+                                .putAllValues(versionMap)
+                                .build()
+                )
                 .build();
     }
 

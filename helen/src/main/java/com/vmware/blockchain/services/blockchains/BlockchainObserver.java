@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.blockchains;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -56,6 +57,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private BlockchainType type;
     private ClientType clientType;
     private ReplicaType replicaType;
+    Map<String, String> metadata;
+
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -115,7 +118,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     break;
 
                 case CLUSTER_DEPLOYED:
-
+                    metadata = value.getMetadata().getValuesMap();
                     ConcordCluster cluster = value.getCluster();
                     if (replicaType ==  replicaType.DAML_PARTICIPANT) {
                         // Temporary hack to allow client deployment.
@@ -203,7 +206,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                 task.setResourceLink(String.format("/api/blockchains/%s/clients", blockchainId));
             } else {
                 // Create blockchain entity based on collected information.
-                Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList);
+                if (metadata.containsKey("concord_version")) {
+                    logger.info("Concord version during deployment in Blockchain Observer {}",
+                            metadata.get("concord_version"));
+                } else {
+                    logger.info("No concord version during deployment in Blockchain Observer.");
+                }
+                Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList, metadata);
                 task.setResourceId(blockchain.getId());
                 task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
             }

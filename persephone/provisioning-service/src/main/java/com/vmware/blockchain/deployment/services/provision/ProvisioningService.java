@@ -162,6 +162,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         var sessionId = ProvisioningServiceUtil.newSessionId(request.getHeader());
         var clusterId = ProvisioningServiceUtil.newClusterId();
         var deploymentSpec = request.getSpecification();
+        log.info("Concord version in ProvisioningService.createCluster {}", deploymentSpec.getModel().getVersion());
         // Generate node ID and affix the node placements.
         var placements = resolvePlacement(deploymentSpec);
 
@@ -806,6 +807,8 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             CompletableFuture.allOf(nodePromises)
                     .thenRun(() -> {
+                        log.info("Concord version in ProvisioningService.deployCluster {}",
+                                session.getSpecification().getModel().getVersion());
                         // Create the updated deployment session instance.
                         var updatedSession = DeploymentSession.newBuilder(session)
                                 .setStatus(DeploymentSession.Status.SUCCESS)
@@ -951,6 +954,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
     private List<DeploymentSessionEvent> toDeploymentSessionEvents(DeploymentSession session,
             Collection<OrchestratorData.OrchestrationEvent> events
     ) {
+
         var resources = ProvisioningServiceUtil.toProvisionedResources(session, events);
         log.info("List of provisioned resources {}", resources);
 
@@ -961,10 +965,16 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         // Generate Concord node models based on orchestration events.
         var nodes = ProvisioningServiceUtil.toConcordNodes(session, events);
 
+
+
+
+        log.info("Concord version in ProvisioningService.toDeploymentSessionEvents {}",
+                session.getSpecification().getModel().getVersion());
         var clusterEvent = ProvisioningServiceUtil.newClusterDeploymentEvent(
                 session.getId(), session.getStatus(),
                 ConcordCluster.newBuilder().setId(session.getCluster())
-                        .setInfo(ConcordClusterInfo.newBuilder().addAllMembers(nodes).build()).build());
+                        .setInfo(ConcordClusterInfo.newBuilder().addAllMembers(nodes).build()).build(),
+                session.getSpecification().getModel().getVersion());
 
         // Concatenate every event together.
         // (Existing events, all node events, cluster event, and completion event)

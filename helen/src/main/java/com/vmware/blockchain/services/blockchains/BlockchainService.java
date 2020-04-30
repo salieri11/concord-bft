@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -52,14 +54,18 @@ public class BlockchainService {
      *
      * @param id            Preset UUID for this blockchain
      * @param consortiumId  ID of consortium owning this blockchain
+     * @param type          Type of blockchain
      * @param nodeList      List of node entries
+     * @param metadata      Blockchain component versions
      * @return Blockchain   Blockchain entity
      */
-    public Blockchain create(UUID id, UUID consortiumId, BlockchainType type, List<NodeEntry> nodeList) {
+    public Blockchain create(UUID id, UUID consortiumId, BlockchainType type, List<NodeEntry> nodeList,
+                             Map<String, String> metadata) {
         Blockchain b = new Blockchain.BlockchainBuilder()
                 .consortium(consortiumId)
                 .type(type)
                 .nodeList(nodeList)
+                .metadata(metadata)
                 .build();
         b.setId(id);
         b.setState(Blockchain.BlockchainState.ACTIVE);
@@ -71,6 +77,20 @@ public class BlockchainService {
             logger.warn("Connection pool creation failed for blockchain {}", b.getId());
         }
         return b;
+    }
+
+    /**
+     * Create a new blockchain with the parameters and a specified UUID.
+     * Use this call when all we know about the consortium is its Id.
+     *
+     * @param id            Preset UUID for this blockchain
+     * @param consortiumId  ID of consortium owning this blockchain
+     * @param type          Type of blockchain
+     * @param nodeList      List of node entries
+     * @return Blockchain   Blockchain entity
+     */
+    public Blockchain create(UUID id, UUID consortiumId, BlockchainType type, List<NodeEntry> nodeList) {
+        return create(id, consortiumId, type, nodeList, new HashMap<>());
     }
 
     /**

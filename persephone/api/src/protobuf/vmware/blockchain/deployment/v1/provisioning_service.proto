@@ -52,6 +52,13 @@ message PlacementSpecification {
 }
 
 /**
+ * Model definition of a versions map to send component version information to Helen
+ */
+message Metadata {
+    map<string, string> values = 1;
+}
+
+/**
  * Model definition of a Concord node placement assignment derived from [PlacementSpecification].
  *
  * @property[entries]
@@ -175,6 +182,7 @@ message DeploymentSessionEvent {
     ConcordNode node = 5 [deprecated = true]; /* type == NODE_DEPLOYED */
     ConcordNodeStatus node_status = 6; /* type == NODE_STATUS */
     ConcordCluster cluster = 7; /* type == CLUSTER_DEPLOYED */
+    Metadata metadata = 8;
 }
 
 /**
