@@ -1,0 +1,48 @@
+baseos:deb:libgmp3-dev:2:6.1.2+dfsg-2:ubuntu:
+    repository: BaseOS
+    name: 'libgmp3-dev'
+    version: '2:6.1.2+dfsg-2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'gmp'
+baseos:deb:libzstd-dev:1.3.3+dfsg-2ubuntu1.1:ubuntu:
+    repository: BaseOS
+    name: 'libzstd-dev'
+    version: '1.3.3+dfsg-2ubuntu1.1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'libzstd'
+baseos:deb:g++-7:7.5.0-3ubuntu1~18.04:ubuntu:
+    repository: BaseOS
+    name: 'g++-7'
+    version: '7.5.0-3ubuntu1~18.04'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'gcc-7'
+baseos:deb:libclang1-7:1:7-3~ubuntu0.18.04.1:ubuntu:
+    repository: BaseOS
+    name: 'libclang1-7'
+    version: '1:7-3~ubuntu0.18.04.1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'llvm-toolchain-7'
+baseos:deb:libcurl4-openssl-dev:7.58.0-2ubuntu3.8:ubuntu:
+    repository: BaseOS
+    name: 'libcurl4-openssl-dev'
+    version: '7.58.0-2ubuntu3.8'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'curl'
+baseos:deb:libbz2-dev:1.0.6-8.1ubuntu0.2:ubuntu:
+    repository: BaseOS
+    name: 'libbz2-dev'
+    version: '1.0.6-8.1ubuntu0.2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'bzip2'
+baseos:deb:libtool:2.4.6-2:ubuntu:
+    repository: BaseOS
+    name: 'libtool'
+    version: '2.4.6-2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
