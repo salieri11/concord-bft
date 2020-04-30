@@ -45,12 +45,14 @@ class PersephoneTests(test_suite.TestSuite):
 
 
    def _get_tests(self):
-      if self.args.tests is None or self.args.tests.lower() == "smoke":
+      if self.args.tests and self.args.tests.lower() == "smoke":
          return [
             ("7_Node_DAML_committer_participant_ON-PREM",
              self._test_daml_committer_participant_7_node_onprem),
+            ("Ethereum-on-cloud-with-IPAM-test",
+             self.deploy_and_verify_ipam_on_4_node_fixed_site),
          ]
-      elif self.args.tests.lower() == "all_tests":
+      elif self.args.tests and self.args.tests.lower() == "all_tests":
          return [
             ("7_Node_DAML_committer_participant_ON-PREM",
              self._test_daml_committer_participant_7_node_onprem),
@@ -64,7 +66,18 @@ class PersephoneTests(test_suite.TestSuite):
              self._test_concurrent_deployments_fixed_site),
             # ("concurrent_DAML_deployments_fixed_site",
             #  self._test_concurrent_daml_deployments_fixed_site),
-         ] 
+         ]
+      elif self.args.blockchainType.lower() == helper.TYPE_ETHEREUM:
+         return [
+            ("4_Node_ethereum_on-cloud",
+             self._test_create_blockchain_4_node_fixed_site),
+         ]
+      elif self.args.blockchainType.lower() == helper.TYPE_DAML:
+         return [
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
+         ]
+
 
 
    def getName(self):
@@ -133,12 +146,6 @@ class PersephoneTests(test_suite.TestSuite):
                                                      testLogDir)
          self.writeResult(testName, result, info, stackInfo)
 
-      # Deploy a blockchain and verify IPAM
-      fileRoot = os.path.join(self._testLogDir, "ethereum_deployment")
-      os.makedirs(fileRoot, exist_ok=True)
-      self.args.fileRoot = fileRoot
-      self.deploy_and_verify_ipam_on_4_node_fixed_site()
-
       if self.rpc_test_helper.deployment_info:
          fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
          os.makedirs(fileRoot, exist_ok=True)
@@ -154,6 +161,21 @@ class PersephoneTests(test_suite.TestSuite):
       self.update_provisioning_config_file(mode="RESET")
 
       log.info("Tests are done.")
+      log.info("")
+      log.info("############################################################")
+      log.info("##########          Deployment Summary            ##########")
+      log.info("############################################################")
+      for deployment_info in self.rpc_test_helper.deployment_info:
+         session_id = deployment_info["deployment_session_id"]
+         log.info("Blockchain type: {} (deployment {})".format(
+            deployment_info["concord_type"], session_id[0]))
+         log.info("Replicas (public IP)/Private IP")
+         for index, public_ip in enumerate(deployment_info["replicas"]):
+            log.info("{}) {:>15}/{}".format(index + 1, public_ip,
+                                        deployment_info["private_ips"][index]))
+         log.info("")
+      log.info("############################################################")
+
       return super().run()
 
 
@@ -470,7 +492,7 @@ class PersephoneTests(test_suite.TestSuite):
       :return: test status, test status description
       '''
       if deployment_session_id:
-         if (self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ALWAYS) or (
+         if (helper.KEEP_BLOCKCHAINS_ALWAYS in self.args.keepBlockchains) or (
                self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ON_FAILURE
                and (not status)):
             log.info("Adding Session ID to preserve list: \n{}".format(
@@ -631,8 +653,8 @@ class PersephoneTests(test_suite.TestSuite):
 
       self.parse_test_status(status, msg, stackInfo,
                              deployment_session_id=response_deployment_session_id)
-      self.writeResult("ethereum_deployment", status, msg, stackInfo)
-      return
+      # self.writeResult("ethereum_deployment", status, msg, stackInfo)
+      return (status, msg, stackInfo)
 
 
    def verify_IPAM_configuration(self):

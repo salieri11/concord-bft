@@ -47,7 +47,7 @@ import hudson.util.Secret
   ],
   "PersephoneOnDemand": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false
   ],
@@ -205,7 +205,6 @@ import hudson.util.Secret
 
 // Job Names List
 @Field String daml_test_on_predeployed_bc_job_name = "Daml Tests on pre-deployed Blockchain"
-@Field String deploy_concord_job_name = "Concord Deployment Test"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
 @Field String ext_long_tests_job_name = "Blockchain Extensive Long Tests"
 @Field String helen_role_test_job_name = "Helen Role Tests on GitLab"
@@ -216,7 +215,8 @@ import hudson.util.Secret
 @Field String monitor_replicas_job_name = "Monitor Blockchain replica health and status"
 @Field String performance_test_job_name = "Blockchain Performance Test"
 @Field String persephone_test_job_name = "Blockchain Persephone Tests"
-@Field String persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
+@Field String on_demand_concord_deployment_job_name = "ON DEMAND Concord Deployment"
+@Field String on_demand_persephone_test_job_name = "ON DEMAND Persephone Testrun on GitLab"
 @Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
 @Field String manual_with_params_job_name = "Blockchain Manual Run"
 
@@ -224,7 +224,6 @@ import hudson.util.Secret
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
   daml_test_on_predeployed_bc_job_name,
-  deploy_concord_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
   helen_role_test_job_name,
@@ -232,6 +231,7 @@ import hudson.util.Secret
   long_tests_job_name,
   memory_leak_job_name,
   monitor_replicas_job_name,
+  on_demand_concord_deployment_job_name,
   performance_test_job_name,
   ui_e2e_daml_on_prem_job_name,
 ]
@@ -239,7 +239,6 @@ import hudson.util.Secret
 // These job names are just substrings of the actual job names.
 @Field List specialized_tests = [
   daml_test_on_predeployed_bc_job_name,
-  deploy_concord_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
   helen_role_test_job_name,
@@ -247,9 +246,10 @@ import hudson.util.Secret
   long_tests_job_name,
   memory_leak_job_name,
   monitor_replicas_job_name,
+  on_demand_concord_deployment_job_name,
+  on_demand_persephone_test_job_name,
   performance_test_job_name,
   persephone_test_job_name,
-  persephone_test_on_demand_job_name,
   ui_e2e_daml_on_prem_job_name,
 ]
 
@@ -325,7 +325,7 @@ def call(){
              description: "Concord deployment: Specify concord tag for the deployment [LastSuccessfulToT/ThisBranch/<Specific tag like 0.0.0.1246>].",
              name: "concord_deployment_tag"
 
-      choice(choices: "on-failure\nnever\nalways", description: 'Persephone Tests: Choose a deployment test failure Retention Policy', name: 'deployment_retention')
+      choice(choices: "on-failure\nnever\nalways-1hr\nalways-1day", description: 'Persephone Tests: Choose a deployment test failure Retention Policy', name: 'deployment_retention')
 
       string defaultValue: "10",
              description: "Performance Test: Enter number of votes for Ballot App (default 10 votes)",
@@ -571,13 +571,13 @@ def call(){
                 setDockerTag(latest_docker_tag)
               } else if(
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
-                  env.JOB_NAME.contains(deploy_concord_job_name) ||
                   env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
-                  env.JOB_NAME.contains(performance_test_job_name) ||
-                  env.JOB_NAME.contains(persephone_test_on_demand_job_name)
+                  env.JOB_NAME.contains(on_demand_concord_deployment_job_name) ||
+                  env.JOB_NAME.contains(on_demand_persephone_test_job_name) ||
+                  env.JOB_NAME.contains(performance_test_job_name)
                 ) {
 
                 def latest_docker_tag = ""
@@ -616,7 +616,7 @@ def call(){
             try{
               saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
-                if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+                if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                   if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
                     sh '''
                       echo "Building concord..."
@@ -627,7 +627,7 @@ def call(){
                     echo "Building grpc binding..."
                     ./buildall.sh --buildOnDemand BuildPersephoneGRPCpyBindings
                   '''
-                } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+                } else if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)) {
                   sh '''
                     echo "Building ONLY persephone related components..."
                     ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
@@ -831,7 +831,7 @@ def call(){
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }
-                    if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+                    if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                       // TODO: Move to the main test map.
                       saveTimeEvent("Concord deployment test", "Start")
                       if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
@@ -842,7 +842,7 @@ def call(){
                         echo "Running Persephone deployment for concord..."
                         mkdir -p "${concord_deployment_test_logs}"
                         echo "**** Using concord tag: " + ${dep_comp_concord_tag}
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --blockchainType ${concord_type} --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
                       '''
                       saveTimeEvent("Concord deployment test", "End")
                     }
@@ -894,7 +894,7 @@ def call(){
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                         selectOnlySuites(["PersephoneNightly"])
                         runTests()
-                    } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
+                    } else if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
                         // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
                         // the rest, which were pulled from Artifactory, are env.docker_tag.
                         tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
@@ -2259,6 +2259,14 @@ void cleanUpSDDCs(){
     }
   }
 
+  // HermesTesting-1day-Retention clean up older than 24 hrs (1 day)
+  for(sddc in sddcs){
+    failure = cleanSDDC(sddc, "HermesTesting-1day-Retention", "24")
+    if (failure){
+      failures << failure
+    }
+  }
+
   if (failures.size() > 0){
     announceSDDCCleanupFailures(failures)
   }
@@ -2459,9 +2467,15 @@ EOF
         sed -i -e 's/'"<MONITORING_NOTIFICATION_TARGET>"'/'"blockchain-long-tests-status"'/g' blockchain/hermes/resources/user_config.json
       '''
     } else {
-      sh '''
-        sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
-      '''
+      if (env.deployment_retention == "always-1day" ) {
+        sh '''
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-1day-Retention"'/g' blockchain/hermes/resources/user_config.json
+        '''
+      } else {
+        sh '''
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
+        '''
+      }
     }
 
     if (env.JOB_NAME.contains(persephone_test_job_name)) {
@@ -2484,7 +2498,7 @@ EOF
 
 void updateEnvFileForConcordOnDemand(){
   script {
-    if (env.JOB_NAME.contains(deploy_concord_job_name)) {
+    if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
       if (env.concord_deployment_tag.toLowerCase() == "lastsuccessfultot") {
         env.dep_comp_concord_tag = env.docker_tag
         sh '''
@@ -2559,7 +2573,7 @@ void pushConcordComponentsToDockerHub(){
 // For the Persephone On Demand, we only build and want to use
 // Persephone components.
 void updateEnvFileForPersephoneOnDemand(){
-  if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)){
+  if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
     setPropVals([
       "persephone_agent_tag",
       "persephone_configuration_tag",
