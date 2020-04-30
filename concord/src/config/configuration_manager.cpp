@@ -4792,7 +4792,7 @@ static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-void SpecifyClientConfiguration(ConcordConfiguration& config) {
+void specifyClientConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
       {"config_generation_time", "generated", "public"});
 
@@ -4827,7 +4827,7 @@ void SpecifyClientConfiguration(ConcordConfiguration& config) {
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
-void SpecifyGeneralConfiguration(ConcordConfiguration& config) {
+void specifyGeneralConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
       {"config_generation_time", "generated", "public"});
 
@@ -4872,7 +4872,7 @@ void SpecifyGeneralConfiguration(ConcordConfiguration& config) {
                           &config::kConcordBFTCommunicationBufferSizeLimits)));
 }
 
-void SpecifyReplicaConfiguration(ConcordConfiguration& config) {
+void specifyReplicaConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
       {"config_generation_time", "generated", "public"});
 
@@ -4917,7 +4917,7 @@ void SpecifyReplicaConfiguration(ConcordConfiguration& config) {
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
-void SpecifySimpleClientParams(ConcordConfiguration& config) {
+void specifySimpleClientParams(ConcordConfiguration& config) {
   vector<std::string> defaultableByUtilityTags(
       {"config_generation_time", "defaultable", "public"});
 
@@ -4964,11 +4964,11 @@ void SpecifySimpleClientParams(ConcordConfiguration& config) {
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
 }
 
-void SpecifyExternalClientConfiguration(config::ConcordConfiguration& config) {
-  SpecifyGeneralConfiguration(config);
-  SpecifyReplicaConfiguration(config);
-  SpecifyClientConfiguration(config);
-  SpecifySimpleClientParams(config);
+void specifyExternalClientConfiguration(config::ConcordConfiguration& config) {
+  specifyGeneralConfiguration(config);
+  specifyReplicaConfiguration(config);
+  specifyClientConfiguration(config);
+  specifySimpleClientParams(config);
   config.setConfigurationStateLabel("concord_external_client");
 }
 }  // namespace config

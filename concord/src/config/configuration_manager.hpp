@@ -1573,15 +1573,15 @@ static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     std::string* output, void* state);
 
-void SpecifyClientConfiguration(ConcordConfiguration& config);
+void specifyClientConfiguration(ConcordConfiguration& config);
 
-void SpecifyGeneralConfiguration(ConcordConfiguration& config);
+void specifyGeneralConfiguration(ConcordConfiguration& config);
 
-void SpecifyReplicaConfiguration(ConcordConfiguration& config);
+void specifyReplicaConfiguration(ConcordConfiguration& config);
 
-void SpecifySimpleClientParams(ConcordConfiguration& config);
+void specifySimpleClientParams(ConcordConfiguration& config);
 
-void SpecifyExternalClientConfiguration(config::ConcordConfiguration& config);
+void specifyExternalClientConfiguration(config::ConcordConfiguration& config);
 
 inline const std::pair<unsigned long long, unsigned long long>
     kPositiveIntLimits({1, INT_MAX});

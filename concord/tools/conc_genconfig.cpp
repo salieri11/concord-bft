@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
        "JSON Object and principal IDs in each node's array of them will be in "
        "any particular order. This report-principal-locations option is intended "
        "primarily for use by software that automates the deployment of Concord.")
-      ("client-flag", po::value<bool>(&client_flag),
-       "flag that specifies if the current input file is a replica or a client configuration");
+      ("client-conf", po::value<bool>(&client_flag),
+       " An optional flag that specifies if the current input file is intended for a client configuration.");
 
   // clang-format on
 
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 
   ConcordConfiguration config;
   if (client_flag) {
-    SpecifyExternalClientConfiguration(config);
+    specifyExternalClientConfiguration(config);
   } else {
     specifyConfiguration(config);
     config.setConfigurationStateLabel("configuration_generation");
