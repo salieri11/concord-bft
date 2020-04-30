@@ -18,7 +18,6 @@ import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
-import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 
 import lombok.extern.slf4j.Slf4j;
@@ -105,7 +104,7 @@ public class VSphereOrchestrator implements Orchestrator {
                                                   request.getConfigurationSessionIdentifier(),
                                                   request.getConfigServiceEndpoint(),
                                                   request.getConfigServiceRestEndpoint(),
-                                                  OutboundProxyInfo.newBuilder().build()
+                                                  info.getVsphere().getOutboundProxy()
                                           ),
                                           request.getVmProfile()
                     );
