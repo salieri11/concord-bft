@@ -46,7 +46,7 @@ class MaestroClient:
         if noexec:
             logging.debug("get_payload({}, {}, {})".format(bcversion, recipients, comments))
 
-        (commit_summary, authors) = self.get_commit_info()
+        (commit_ids, commit_summary, authors) = self.get_commit_info()
 
         return {
             "run_request": {
@@ -120,6 +120,7 @@ class MaestroClient:
                         "batching": False
                     },
                     "git_commits": {
+                        "ids": commit_ids,
                         "commits": commit_summary,
                         "authors": authors
                     }
@@ -346,25 +347,29 @@ class MaestroClient:
         """
         commit_summary = []
         author_emails = []
+        commit_ids = []
 
         try:
-            python = "python3"
-            output = subprocess.run([python, "/vars/get-commits-blame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
-            logging.debug(output)
+            python = os.environ["python"]
+            logging.info(python)
+            output = subprocess.run([python, "../../vars/getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
+            logging.info(output)
 
-            commits_blame = json.load(open("/vars/commits_authors.json"))
+            commits_blame = json.load(open("commits_authors.json"))
             author_emails = commits_blame["authorsList"]
 
             for commit in commits_blame["commits"]:
                 commit_summary.append(commit["summary"])
+                commit_ids.append(commit["id"])
 
-            logging.debug(author_emails)
-            logging.debug(commit_summary)
+            logging.info(author_emails)
+            logging.info(commit_summary)
+            logging.info(commit_ids)
 
         except Exception as e:
-            logging.debug("Error while fetching commit information %s" % format(e))
+            logging.error("Error while fetching commit information %s" % format(e))
             traceback.print_exc()
-        return commit_summary, author_emails
+        return commit_ids, commit_summary, author_emails
 
 
 
