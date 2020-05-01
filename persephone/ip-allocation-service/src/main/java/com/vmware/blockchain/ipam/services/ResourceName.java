@@ -4,31 +4,15 @@
 
 package com.vmware.blockchain.ipam.services;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 /**
  * Data class for resource name.
  */
+@AllArgsConstructor
+@Data
 public class ResourceName {
-    private String value;
 
-    /**
-     * Constructor used for default AddressBlock values.
-     */
-    public ResourceName() {
-        this.value = "";
-    }
-
-    /**
-     * Constructor used for specified AddressBlock values.
-     */
-    public ResourceName(String value) {
-        this.value = value;
-    }
-
-    public String getValue() {
-        return this.value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
+    private String value = "";
 }

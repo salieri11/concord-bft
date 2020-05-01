@@ -60,14 +60,8 @@ public class IpAllocationDao {
      * @param addressBlock the AddressBlock
      * @return the address block created
      */
-    @Nullable
     public AddressBlock updateAddressBlock(AddressBlock addressBlock) {
-        try {
-            // What to do for ConcurrentUpdateException
-            return genericDao.put(addressBlock, addressBlock);
-        } catch (NotFoundException e) {
-            return null;
-        }
+        return genericDao.put(addressBlock, addressBlock);
     }
 
     /**
@@ -86,13 +80,8 @@ public class IpAllocationDao {
      * @param segmentId the AddressBlockSegment ID
      * @return the AddressBlockSegment
      */
-    @Nullable
     public AddressBlockSegment getAddressBlockSegment(UUID segmentId) throws NotFoundException {
-        try {
-            return genericDao.get(segmentId, AddressBlockSegment.class);
-        } catch (NotFoundException e) {
-            return null;
-        }
+        return genericDao.get(segmentId, AddressBlockSegment.class);
     }
 
     /**
@@ -111,13 +100,8 @@ public class IpAllocationDao {
      * @param addressBlockSegment the AddressBlockSegment
      * @return the AddressBlockSegment created
      */
-    @Nullable
     public AddressBlockSegment updateAddressBlockSegment(AddressBlockSegment addressBlockSegment) {
-        try {
-            return genericDao.put(addressBlockSegment, addressBlockSegment);
-        } catch (NotFoundException e) {
-            return null;
-        }
+        return genericDao.put(addressBlockSegment, addressBlockSegment);
     }
 
     /**

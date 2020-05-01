@@ -74,7 +74,7 @@ class IpAllocationDaoTest {
     BaseAuthHelper authHelper;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         UUID userId;
 
         ipAllocationDao = new IpAllocationDao(this.genericDao);
@@ -82,8 +82,8 @@ class IpAllocationDaoTest {
         when(authHelper.getUserId()).thenReturn(userId);
         when(authHelper.getEmail()).thenReturn("mockuser");
 
-        addressBlock1 = new AddressBlock("AB1", new BlockSpecification(), AddressBlock.State.ACTIVE);
-        addressBlock2 = new AddressBlock("AB2", new BlockSpecification(), AddressBlock.State.ACTIVE);
+        addressBlock1 = new AddressBlock("AB1", new BlockSpecification(0, 0), AddressBlock.State.ACTIVE);
+        addressBlock2 = new AddressBlock("AB2", new BlockSpecification(0, 0), AddressBlock.State.ACTIVE);
 
         addressBlock1.setId(ADDRESS_BLOCK_1);
         addressBlock2.setId(ADDRESS_BLOCK_2);
@@ -115,7 +115,7 @@ class IpAllocationDaoTest {
      * Make sure the we get the requested AddressBlock.
      */
     @Test
-    void testSimpleGetAddressBlock() throws Exception {
+    void testSimpleGetAddressBlock() {
         entityId = addressBlock1.getId();
         AddressBlock addressBlock = ipAllocationDao.getAddressBlock(entityId);
         String name = addressBlock.getName();
@@ -126,7 +126,7 @@ class IpAllocationDaoTest {
      * Make sure the we get the requested AddressBlockSegment.
      */
     @Test
-    void testSimpleGetAddressBlockSegment() throws Exception {
+    void testSimpleGetAddressBlockSegment() {
         entityId = addressBlockSegment1.getId();
         AddressBlockSegment addressBlockSegment = ipAllocationDao.getAddressBlockSegment(entityId);
         String name = addressBlockSegment.getName();
@@ -137,7 +137,7 @@ class IpAllocationDaoTest {
      * Make sure the AddressBlock we create is properly created.
      */
     @Test
-    void testSimplePutAddressBlock() throws Exception {
+    void testSimplePutAddressBlock() {
         AddressBlock addressBlock = ipAllocationDao.createAddressBlock(addressBlock2);
 
         Assertions.assertEquals(addressBlock.getName(), addressBlock2.getName());
@@ -153,7 +153,7 @@ class IpAllocationDaoTest {
      * Make sure the AddressBlockSegment we create is properly created.
      */
     @Test
-    void testSimplePutAddressBlockSegment() throws Exception {
+    void testSimplePutAddressBlockSegment() {
         AddressBlockSegment addressBlockSegment = ipAllocationDao.createAddressBlockSegment(addressBlockSegment2);
 
         Assertions.assertEquals(addressBlockSegment.getName(), addressBlockSegment2.getName());
@@ -169,7 +169,7 @@ class IpAllocationDaoTest {
      * Make sure the we properly update a AddressBlock.
      */
     @Test
-    void testUpdateAddressBlock() throws Exception {
+    void testUpdateAddressBlock() {
         int version = addressBlock1.getVersion();
         addressBlock1.setName("Pastel*Palettes");
 
@@ -183,7 +183,7 @@ class IpAllocationDaoTest {
      * Make sure the we properly update a AddressBlockSegment.
      */
     @Test
-    void testUpdateAddressBlockSegment() throws Exception {
+    void testUpdateAddressBlockSegment() {
         int version = addressBlockSegment1.getVersion();
         addressBlockSegment1.setName("Hakumei Parallel");
 
@@ -197,7 +197,7 @@ class IpAllocationDaoTest {
      * Make sure AddressBlock we want to delete is deleted.
      */
     @Test
-    void testSimpleDeleteAddressBlock() throws Exception {
+    void testSimpleDeleteAddressBlock() {
         UUID addressBlockId = addressBlock1.getId();
         ipAllocationDao.deleteAddressBlock(addressBlockId);
 
@@ -208,18 +208,18 @@ class IpAllocationDaoTest {
      * Make sure AddressBlockSegment we want to delete is deleted.
      */
     @Test
-    void testSimpleDeleteAddressBlockSegment() throws Exception {
+    void testSimpleDeleteAddressBlockSegment() {
         UUID absId = addressBlockSegment1.getId();
         ipAllocationDao.deleteAddressBlockSegment(absId);
 
-        Assertions.assertNull(ipAllocationDao.getAddressBlockSegment(absId));
+        Assertions.assertThrows(NotFoundException.class, () -> ipAllocationDao.getAddressBlockSegment(absId));
     }
 
     /**
      * Make sure that we get a null if no AddressBlock is present.
      */
     @Test
-    void testGetNotAvailableAddressBlock() throws Exception {
+    void testGetNotAvailableAddressBlock() {
         AddressBlock addressBlock = ipAllocationDao.getAddressBlock(BAD_ADDRESS_BLOCK);
 
         Assertions.assertNull(addressBlock);
@@ -229,28 +229,25 @@ class IpAllocationDaoTest {
      * Make sure that we get a null if no AddressBlockSegment is present.
      */
     @Test
-    void testGetNotAvailableAddressBlockSegment() throws Exception {
-        AddressBlockSegment addressBlockSegment = ipAllocationDao.getAddressBlockSegment(BAD_ADDRESS_BLOCK_SEGMENT);
-
-        Assertions.assertNull(addressBlockSegment);
+    void testGetNotAvailableAddressBlockSegment() {
+        Assertions
+                .assertThrows(NotFoundException.class,
+                    () -> ipAllocationDao.getAddressBlockSegment(BAD_ADDRESS_BLOCK_SEGMENT));
     }
 
     /**
      * Make sure the we get a null if no AddressBlockSegment is present.
      */
     @Test
-    void testDeleteUnavailableAddressBlock() throws Exception {
-        Assertions.assertThrows(
-                NotFoundException.class,
-            () -> ipAllocationDao.deleteAddressBlock(BAD_ADDRESS_BLOCK)
-        );
+    void testDeleteUnavailableAddressBlock() {
+        Assertions.assertThrows(NotFoundException.class, () -> ipAllocationDao.deleteAddressBlock(BAD_ADDRESS_BLOCK));
     }
 
     /**
      * Make sure the we get a null if no AddressBlockSegment is present.
      */
     @Test
-    void testDeleteUnavailableAddressBlockSegment() throws Exception {
+    void testDeleteUnavailableAddressBlockSegment() {
         Assertions.assertThrows(
                 NotFoundException.class,
             () -> ipAllocationDao.deleteAddressBlockSegment(BAD_ADDRESS_BLOCK_SEGMENT)

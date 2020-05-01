@@ -8,61 +8,27 @@ import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.ipam.services.BlockSpecification;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
  * Class representing Address Blocks.
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
 @EntityColumnName("persephone.addressblock")
 public class AddressBlock extends AbstractEntity {
+
     String name;
-    State state;
     BlockSpecification specification;
-
-    /**
-     * Constructor used for default AddressBlock values.
-     */
-    public AddressBlock() {
-        this.name = "";
-        this.specification = new BlockSpecification();
-        this.state = State.ACTIVE;
-    }
-
-    /**
-     * All args constructor used for AddressBlock values.
-     */
-    public AddressBlock(String name, BlockSpecification blockSpecification, State state) {
-        this.name = name;
-        this.specification = blockSpecification;
-        this.state = state;
-    }
-
-    public String getName() {
-        return this.name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public BlockSpecification getSpecification() {
-        return this.specification;
-    }
-
-    public void setSpecification(BlockSpecification specification) {
-        this.specification = specification;
-    }
-
-    public State getState() {
-        return this.state;
-    }
-
-    public void setState(State state) {
-        this.state = state;
-    }
+    State state;
 
     /**
      * Enum to determine state.
      */
-    public static enum State {
+    public enum State {
         ACTIVE,
         CREATING,
         DELETING
