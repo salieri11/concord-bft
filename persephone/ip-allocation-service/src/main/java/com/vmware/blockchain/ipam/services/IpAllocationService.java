@@ -4,17 +4,19 @@
 
 package com.vmware.blockchain.ipam.services;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.ConcurrentUpdateException;
 import com.vmware.blockchain.deployment.v1.Address;
 import com.vmware.blockchain.deployment.v1.AddressBlockSpecification;
@@ -43,10 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationServiceImplBase {
 
-    /** Logging instance. */
-    private Logger log = LogManager.getLogger(IpAllocationService.class);
-
-
     private IpAllocationDao ipAllocationDao;
     private IpAllocationUtil ipAllocationUtil;
 
@@ -64,12 +62,12 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
                                    StreamObserver<CreateAddressBlockResponse> responseObserver) {
 
         try {
-
             if (request == null || request.getBlock() == null) {
-                throw new RuntimeException("");
+                throw new BadRequestException("Invalid input");
             }
-            AddressBlockSpecification model = request.getBlock();
+
             ResourceName blockName = ipAllocationUtil.blockName(request.getBlockId());
+            AddressBlockSpecification model = request.getBlock();
             Map<Integer, ByteString> reservations = request.getReservedAllocationsMap();
             int subnetMask = (1 << (32 - model.getSubnet())) - 1;
 
@@ -121,17 +119,17 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
                                    StreamObserver<DeleteAddressBlockResponse> responseObserver) {
 
         ResourceName name = new ResourceName(request.getName());
-
+        UUID blockId = ipAllocationUtil.resourceToUuid(name);
         try {
-            AddressBlock block = ensureDeletingBlock(name);
+            AddressBlock block = ensureDeletingBlock(blockId);
             if (block != null) {
-                ipAllocationUtil.segmentRangeOf(block);
-                //.map {
-                /* Delete segments.*/
-                //ensureDeletedSegment(ipAllocationUtil.segmentName(block.name, it), block.version)
+                List<Integer> ranges = ipAllocationUtil.segmentRangeOf(block);
+                for (Integer each : ranges) {
+                    //ensureDeletedSegment(ipAllocationUtil.segmentName(block.name, it), block.version);
+                }
             }
 
-            ipAllocationDao.deleteAddressBlock(ipAllocationUtil.resourceToUuid(name));
+            ipAllocationDao.deleteAddressBlock(blockId);
             responseObserver.onNext(
                     DeleteAddressBlockResponse.newBuilder()
                             .setHeader(MessageHeader.newBuilder().setId(request.getHeader().getId())).build());
@@ -260,14 +258,18 @@ public class IpAllocationService extends IPAllocationServiceGrpc.IPAllocationSer
      *
      * @return the final versioned value of the [AddressBlock] as persisted with DELETING state.
      */
-    private AddressBlock ensureDeletingBlock(ResourceName name) {
-        AddressBlock addressBlock = ipAllocationDao.getAddressBlock(ipAllocationUtil.resourceToUuid(name));
-        if (addressBlock == null) {
+    private AddressBlock ensureDeletingBlock(UUID id) {
+        AddressBlock addressBlock = null;
+        try {
+            addressBlock = ipAllocationDao.getAddressBlock(id);
+        } catch (NotFoundException nfe) {
             return null;
         }
         if (addressBlock.getState() == AddressBlock.State.DELETING) {
             return addressBlock;
         }
+
+        // Can be done guaranteed with mergeWithRetry.
         addressBlock.setState(AddressBlock.State.DELETING);
         return ipAllocationDao.updateAddressBlock(addressBlock);
     }
