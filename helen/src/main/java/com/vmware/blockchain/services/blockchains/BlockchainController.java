@@ -48,7 +48,6 @@ import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
@@ -340,11 +339,6 @@ public class BlockchainController {
                 .build();
 
         Map<String, String> properties = new HashMap<>();
-        if (organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties() != null) {
-            properties.put(NodeProperty.Name.VM_PROFILE.toString(),
-                           organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties()
-                            .getOrDefault(Constants.NODE_VM_PROFILE, "small"));
-        }
 
         DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
                 .setModel(spec)
