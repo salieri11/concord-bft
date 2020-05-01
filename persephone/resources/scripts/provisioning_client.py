@@ -352,8 +352,7 @@ def main():
                 ]
             ),
             properties=core.Properties(
-                values={"BLOCKCHAIN_ID":"testBlockchain",
-                        "VM_PROFILE":"medium"}
+                values={"BLOCKCHAIN_ID":"testBlockchain"}
             ),
             genesis=genesis.Genesis(
                 config=genesis.Genesis.Config(

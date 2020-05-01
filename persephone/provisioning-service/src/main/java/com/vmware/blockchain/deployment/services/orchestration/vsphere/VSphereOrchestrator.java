@@ -105,8 +105,7 @@ public class VSphereOrchestrator implements Orchestrator {
                                                   request.getConfigServiceEndpoint(),
                                                   request.getConfigServiceRestEndpoint(),
                                                   info.getVsphere().getOutboundProxy()
-                                          ),
-                                          request.getVmProfile()
+                                          )
                     );
 
             vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L);

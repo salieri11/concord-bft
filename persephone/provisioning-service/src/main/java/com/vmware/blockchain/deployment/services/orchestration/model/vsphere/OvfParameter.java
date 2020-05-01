@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.model.vsphere;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
@@ -24,16 +23,11 @@ public class OvfParameter {
     String type;
     OvfProperty[] properties;
 
-    @JsonIgnore
-    String selectedKey;
-
     /**
      * Data class.
      */
     public enum OvfParameterTypes {
-        PROPERTY_PARAMS("com.vmware.vcenter.ovf.property_params", "PropertyParams"),
-        DEPLOYMENT_OPTION_PARAMS("com.vmware.vcenter.ovf.deployment_option_params",
-                                 "DeploymentOptionParams");
+        PROPERTY_PARAMS("com.vmware.vcenter.ovf.property_params", "PropertyParams");
 
         public String classValue;
         public String type;
