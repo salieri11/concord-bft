@@ -1,32 +1,142 @@
 {
-    "root": true,
-    "agent": true,
-    "blockchain-build": true,
-    "communication": true,
-    "concord": true,
-    "concord/src/ethereum": true,
-    "concord/src/daml": true,
-    "concord/src/hlf": true,
-    "concord/src/thin_replica": true,
-    "contract-compiler": true,
-    "csp-dev": true,
-    "daml": true,
-    "docker": true,
-    "ethrpc": true,
-    "helen": true,
-    "hermes": true,
-    "kubernetes": true,
-    "lib": true,
-    "performance": true,
-    "persephone": true,
-    "protobuf": true,
-    "support": true,
-    "thin-replica-client": true,
-    "ui": true,
-    "vars": true,
-    "vmbc-base": true,
-
-    "everything": true,
-    "nothing": false,
-    "uncaught": false
+    "root": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "blockchain-build": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "communication": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "concord": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "concord/src/ethereum": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "concord/src/daml": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "concord/src/hlf": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "concord/src/thin_replica": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "contract-compiler": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "daml": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "diagnosis": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "docker": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "ethrpc": {
+        "changed": true,
+        "build_targets": [],
+        "test_suites": []
+    },
+    "helen": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "hermes": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "kubernetes": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "performance": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "persephone": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "persephone/agent": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "persephone/ip-allocation-service": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "persephone/provisioning-service": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "support": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "thin-replica-client": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "ui": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "vars": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "vmbc-base": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "unknown": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
+    "nothing": {
+        "changed": false,
+        "test_suites": [],
+        "build_targets": []
+    }
 }
