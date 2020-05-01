@@ -36,8 +36,7 @@ public class IpamClient {
      * Constructor.
      */
     public IpamClient(Endpoint allocationServer) {
-        ManagedChannelBuilder managedChannelBuilder = ManagedChannelBuilder.forTarget(allocationServer.getAddress())
-                .enableRetry().maxRetryAttempts(3);
+        ManagedChannelBuilder managedChannelBuilder = ManagedChannelBuilder.forTarget(allocationServer.getAddress());
 
         if (allocationServer.getTransportSecurity().getType() == TransportSecurity.Type.NONE) {
             managedChannelBuilder.usePlaintext();
@@ -59,8 +58,20 @@ public class IpamClient {
 
         var promise = new CompletableFuture<AllocateAddressResponse>();
         try {
-            ipAllocationServiceStub.allocateAddress(requestAllocateAddress,
-                                                    ReactiveStream.blockedResultObserver(promise));
+            // Added retry to mitigate intermittent gRPC timeout. Make it more precise.
+            int retry = 3;
+            boolean success = false;
+            do {
+                try {
+                    ipAllocationServiceStub.allocateAddress(requestAllocateAddress,
+                                                            ReactiveStream.blockedResultObserver(promise));
+                    success = true;
+                } catch (Throwable e) {
+                    log.warn("Error received from IPAM service", e);
+                    retry--;
+                }
+            } while (!success && retry > 0);
+
             Address address = promise.get().getAddress();
             // Hack to adjust with IPAM response.
             if (address.getValue() <= 0) {
