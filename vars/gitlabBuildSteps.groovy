@@ -341,8 +341,8 @@ def call(){
              name: "replicas_with_bc_type"
       choice(choices: "SDDC\nONPREM", description: 'Monitor replicas: Choose blockchain location', name: 'blockchain_location')
 
-      string defaultValue: "72",
-             description: "Monitor replicas: Enter number of hours to monitor replicas (default 72 hrs)",
+      string defaultValue: "120",
+             description: "Monitor replicas: Enter number of hours to monitor replicas (default 120 hrs)",
              name: "run_duration"
       string defaultValue: "60",
              description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
@@ -2251,9 +2251,9 @@ void cleanUpSDDCs(){
     }
   }
 
-  // LongTests Clean up older than 120 hours (5 days)
+  // LongTests Clean up older than 168 hours (7 days)
   for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "120")
+    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "168")
     if (failure){
       failures << failure
     }
