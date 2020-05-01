@@ -214,8 +214,7 @@ public class VSphereHttpClient {
                                        String resourcePool,
                                        String folder,
                                        Map.Entry<String, String> networks,
-                                       CloudInitConfiguration cloudInit,
-                                       String vmProfile) {
+                                       CloudInitConfiguration cloudInit) {
 
         val encodedUserData = Base64.getEncoder().encodeToString(cloudInit.userData().getBytes());
 
@@ -238,13 +237,7 @@ public class VSphereHttpClient {
                                                                 OvfProperty.builder().id("hostname").value(name)
                                                                         .build(),
                                                                 OvfProperty.builder().id("user-data")
-                                                                        .value(encodedUserData).build()}).build(),
-                                                OvfParameter.builder().atClass(
-                                                        OvfParameter.OvfParameterTypes.DEPLOYMENT_OPTION_PARAMS
-                                                                .classValue)
-                                                        .type(OvfParameter.OvfParameterTypes.DEPLOYMENT_OPTION_PARAMS
-                                                                      .type)
-                                                        .selectedKey(vmProfile).build()))
+                                                                        .value(encodedUserData).build()}).build()))
                                 .build())
                 .target(LibraryItemDeploy.LibraryItemDeploymentTarget.builder()
                                 .resourcePoolId(resourcePool)

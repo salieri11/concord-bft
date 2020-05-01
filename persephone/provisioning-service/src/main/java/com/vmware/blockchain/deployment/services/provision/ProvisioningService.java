@@ -935,8 +935,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 configGenId,
                 concordIdentifierMap.get(nodeId),
                 bootstrapComponent.configService,
-                bootstrapComponent.configServiceRest,
-                properties.getValuesOrDefault(NodeProperty.Name.VM_PROFILE.toString(), "small")
+                bootstrapComponent.configServiceRest
         );
 
         return orchestrator.createDeployment(computeRequest);

@@ -53,7 +53,6 @@ public class OrchestratorData {
         int concordId;
         Endpoint configServiceEndpoint;
         Endpoint configServiceRestEndpoint;
-        String vmProfile = "small";
     }
 
     /**

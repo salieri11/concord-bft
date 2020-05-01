@@ -130,8 +130,7 @@ public class VmcOrchestrator implements Orchestrator {
                                                   request.getConfigServiceEndpoint(),
                                                   request.getConfigServiceRestEndpoint(),
                                                   OutboundProxyInfo.newBuilder().build()
-                                          ),
-                                          request.getVmProfile()
+                                          )
                     );
 
             vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 500L);
