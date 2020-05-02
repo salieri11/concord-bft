@@ -30,9 +30,11 @@ import static org.apache.logging.log4j.LogManager.getLogger;
  */
 public class TrSubscriber extends Thread {
 
+    private static final Logger logger = getLogger(TrSubscriber.class);
+
     public static final String TR_ID = randomUUID().toString();
     public static final ByteString SEND_TIME = copyFromUtf8(randomUUID().toString());
-    private static final Logger logger = getLogger(TrSubscriber.class);
+
     private final Node node;
     private final ThinReplicaBlockingStub blockingStub;
     private final TrEventHandler eventHandler;
@@ -111,7 +113,7 @@ public class TrSubscriber extends Thread {
 
             List<KVPair> pairs = data.getDataList();
 
-            // All updates may not relevant.
+            // BlockId without data implies that the update is not relevant for this TR.
             if (pairs == null) {
                 return;
             }

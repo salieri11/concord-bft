@@ -13,7 +13,7 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
 /**
- * A thin replica client which subscribes to data updates from one of the nodes and hash updates from all the nodes.
+ * A thin replica client which subscribes to data updates from one of the nodes and hash updates from all other nodes.
  *
  * @see <a href="https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=BLOC&title=Thin+Replica</a>
  */
@@ -48,20 +48,19 @@ public class TrClient implements TrEventHandler {
     }
 
     public void stop() {
-        // TODO: Unsubscription is not yet supported.
         subscribers.forEach(TrSubscriber::summarize);
         logger.info("Total duration of subscription: {}", between(start, now()));
         long avgResponseTimeMillis = totalResponseTimeMillis.longValue() / totalDataUpdates.longValue();
         logger.info("No. of blocks for which data updates were received: {}", totalDataUpdates);
         logger.info("Average end-to-end response time: {} ms", avgResponseTimeMillis);
+        // TODO: Unsubscription is not yet supported.
         System.exit(0);
     }
 
     @Override
     public void onDataReceived(long blockId, Instant sendTime) {
         totalDataUpdates.incrementAndGet();
-        Instant receiveTime = now();
-        long responseTimeMillis = between(sendTime, receiveTime).toMillis();
+        long responseTimeMillis = between(sendTime, now()).toMillis();
         logger.debug("Data for blockId {} received in {} ms", blockId, responseTimeMillis);
         totalResponseTimeMillis.addAndGet(responseTimeMillis);
     }
