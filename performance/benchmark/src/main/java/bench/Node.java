@@ -1,12 +1,14 @@
 package bench;
 
+import static java.util.Objects.requireNonNull;
+
 public class Node {
   String ip;
   int port;
   int percentage;
 
   public String getIp() {
-    return ip;
+    return requireNonNull(ip, "Node IP can not be null");
   }
 
   public void setIp(String ip) {
@@ -31,10 +33,6 @@ public class Node {
 
   @Override
   public String toString() {
-    return "Node {" +
-            "ip=" + ip +
-            ", port=" + port +
-            ", percentage=" + percentage +
-            "}";
+      return "Node {" + "ip=" + ip + ", port=" + port + "}";
   }
 }

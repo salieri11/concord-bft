@@ -20,9 +20,10 @@ simpleConfig:
       rateControl: 0 # Throttled RPS
       logging: false
       params:
-        - RunTest # TEE operation name (either RunTest or SkvbcWrite)
+        - RunTest # TEE operation name (either RunTest or SkvbcWrite or WriteBlock)
         - 1000 # Total no. of requests
         - 16000 # Size of request (max 60 KB)
+        - 1 # Value of f, just to validate that 3f+1 nodes are configured for TR subscription.
   numberThreads: 1 # No of concurrent requests
   outputDir: ./perf_result
 advancedConfig:

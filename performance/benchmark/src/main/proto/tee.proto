@@ -11,6 +11,8 @@ service TeeService {
 
     rpc SkvbcWrite (RawSkvbcRequest) returns (RawSkvbcResponse);
 
+    rpc WriteBlock (KVData) returns (TestOutput);
+
 }
 
 message TestInput {
@@ -27,4 +29,14 @@ message RawSkvbcRequest {
 
 message RawSkvbcResponse {
     bytes content = 1;
+}
+
+message KVData {
+    repeated TridKV trid_kvs = 1;
+}
+
+message TridKV {
+    repeated string trids = 1;
+    string key = 2;
+    string value = 3;
 }

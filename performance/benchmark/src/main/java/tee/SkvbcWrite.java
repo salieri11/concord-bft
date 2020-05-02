@@ -42,6 +42,7 @@ public class SkvbcWrite implements Operation {
     public void execute() {
         ByteString content = ByteString.copyFrom(payload.create());
         RawSkvbcRequest request = newBuilder().setContent(content).build();
+        logger.debug("Serialized size: {}", request.getSerializedSize());
         RawSkvbcResponse response = blockingStub.skvbcWrite(request);
         ByteBuffer buf = allocate(RESPONSE_SIZE).order(LITTLE_ENDIAN);
         response.getContent().copyTo(buf);
