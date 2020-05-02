@@ -35,13 +35,13 @@ import hudson.util.Secret
 @Field Map testSuites = [
   "PersephoneSmoke": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": true
   ],
   "PersephoneNightly": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --keepBlockchains ${deployment_retention} --tests all_tests',
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "all_tests" --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false
   ],
