@@ -10,13 +10,11 @@ spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "provisioning-service.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+        app: {{ template "provisioning-service.name" . }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "provisioning-service.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        app: {{ template "provisioning-service.name" . }}
     spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}

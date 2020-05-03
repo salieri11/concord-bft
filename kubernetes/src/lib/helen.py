@@ -1,5 +1,6 @@
 
 import math
+import json
 import requests
 import time
 from config import common
@@ -270,11 +271,56 @@ class HelenApi():
         version = data["organization_properties"].get(
                     "org_docker_image_override", None)
         if version is None:
-            self.logger.info("Org property for concord version not set,\ "
+            self.logger.info("Org property for concord version not set, "
                             "using default version")
             version = utils.get_default_concord(self.csp_env, "helen")
         return version
 
+
+    def patch_concord_version(self, concord_version, orgid=None):
+        """
+            Patch concord version for org
+        """
+        orgid = self.org_id if orgid is None else orgid
+        if orgid is None:
+            self.logger.error("Default org is not provided")
+            return False
+        data = {'add_properties':
+                    {'org_docker_image_override': concord_version}
+                }
+        url = ("%s/api/organizations/%s" % (self.helen_url, orgid))
+        rc, rv = utils.request_url(url, header_dict=self.auth_header,
+                                    data_dict=json.dumps(data), method="PATCH")
+        if rc == 200:
+            self.logger.info("Succesfully updated build for org to %s"
+                            % concord_version)
+            return True
+        else:
+            self.logger.error("Version update for org %s failed %s" %
+                            (orgid, rv))
+            return False
+
+    def delete_version_property(self, orgid=None):
+        """
+            Delete concord version property from org properties
+        """
+        orgid = self.org_id if orgid is None else orgid
+        if orgid is None:
+            self.logger.error("Default org is not provided")
+            return False
+        data = {'delete_properties':
+                    {'org_docker_image_override': None}
+                }
+        url = ("%s/api/organizations/%s" % (self.helen_url, orgid))
+        rc, rv = utils.request_url(url, header_dict=self.auth_header,
+                                    data_dict=json.dumps(data), method="PATCH")
+        if rc == 200:
+            self.logger.info("Succesfully delete concord version for org")
+            return True
+        else:
+            self.logger.error("Version update for org %s failed %s" %
+                            (orgid, rv))
+            return False
 
     def parse_blockchain_nodeinfo(self, blockchain_id):
         """

@@ -61,7 +61,8 @@ def get_blockchain_infra(url, cspenv, bcids):
         for node in all_nodes:
             zone = hapi.get_zone_info(node['zone_id'])
             if zone["type"] != "VMC_AWS":
-                logger.info("Cannot reap node for given zone type %s" % pformat(zone))
+                logger.info("Cannot reap node for given zone type %s" %
+                            pformat(zone['type']))
                 continue
             node_sddc = zone_data[node["zone_id"]]
             node_rule = [rule for rule in prod_vmc_data[node_sddc]["natrules"]

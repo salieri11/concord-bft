@@ -10,5 +10,4 @@ spec:
     - port: {{ .Values.service.containerPort }}
       targetPort: {{ .Values.service.targetPort }}
   selector:
-    app.kubernetes.io/name: {{ include "provisioning-service.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ template "provisioning-service.name" . }}
