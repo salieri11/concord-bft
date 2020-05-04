@@ -177,6 +177,7 @@
     "totalActiveNodes": "Total Active Committers",
     "inactiveNodes": "Inactive Committers",
     "nodeHealth": "Committer Health",
+    "nodeId": "Replica ID",
     "deployedContracts": "Contracts",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",

@@ -1,0 +1,218 @@
+@import "~@clr/ui/src/color/_variables.color.scss";
+
+.node-select-title {
+  margin-top: 0rem;
+  margin-right: 0.5rem;
+  display: inline-block;
+  transform: translate(0, 0.075rem);
+}
+.node-select {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+.select-width {
+  min-width: 150px;
+}
+.list-title {
+  color: rgba(110, 110, 110, 0.8);
+  margin-top: 0.3rem;
+  margin-bottom: 0.175rem;
+  margin-left: 0.75rem;
+  white-space: nowrap;
+  font-size: 0.5rem;
+  font-weight: normal;
+  display: inline-block;
+}
+
+.top-stats {
+  position: absolute;
+  width: 58%;
+  height: 50px;
+  text-align: center;
+  .top-stats-item {
+    display: inline-block;
+    margin: 0.25rem 0.35rem;
+  }
+  .status-bubble {
+    padding: 0 0.1rem;
+    padding-left: 0.4rem;
+    padding-right: 0rem;
+    padding-top: 0.1rem;
+    padding-bottom: 0.05rem;
+    height: 1.05rem;
+    line-height: 0.9rem;
+    border-radius: 20px;
+    border: 0.05rem solid rgba(140, 140, 140, 0.55);
+    display: inline-block;
+    font-size: 0.45rem;
+    vertical-align: middle;
+    @supports (-moz-appearance:none) {
+      padding-right: 0.025rem;
+    }
+  }
+  .status-bubble-inner {
+    height: 0.75rem;
+    line-height: 0.85rem;
+    margin-left: 0.2rem;
+    margin-right: 0.1rem;
+    padding: 0 0.4rem;
+    padding-bottom: 0.05rem;
+    border-radius: 20px;
+    background-color: rgba(148, 148, 148, 0.701);
+    display: inline-block;
+    font-size: 0.4rem;
+    color: white;
+    vertical-align: middle;
+    transform: translate(0, -2.5px);
+    @supports (-moz-appearance:none) {
+      height: 0.7rem;
+    }
+  }
+
+  .location-name {
+    margin-left: 0.3rem;
+  }
+}
+
+.stats {
+  .clr-col-6 {
+    margin-top: .4rem;
+  }
+  .clr-row {
+    height: 100%;
+  }
+}
+.col-gauge {
+  width: 200px !important;
+  max-width: 200px !important;
+  margin: 0 auto;
+  transform: translate(-6px, 50px);
+}
+.dashboard-stat-container {
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  margin-right: .5rem;
+  padding: .7rem 0rem 0.3rem;
+
+  .title {
+    font-weight: 500;
+  }
+
+  h2 {
+    line-height: 2.5rem;
+    font-size: 1.3rem;
+  }
+}
+
+.node-health {
+  position: relative;
+  width: 200px;
+  text-align: center;
+
+  .title {
+    position: absolute;
+    margin-top: 2.25rem;
+    width: 100%;
+    font-weight: 500;
+  }
+
+  .health-number {
+    position: absolute;
+    margin-top: 3.5rem;
+    width: 100%;
+    font-size: 1.65rem;
+  }
+}
+
+:host ::ng-deep ngx-charts-gauge .ngx-charts text {
+  margin-top: 2rem;
+  fill: #60B515;
+  display: none;
+}
+
+
+
+.metrics-divider {
+  margin-top: 0.8rem;
+}
+
+
+.datagrid-card {
+  margin-top: 0;
+  height: 100% !important;
+  min-height: 200px;
+  padding: .25rem .5rem 0.6rem;
+  margin: 0;
+  .card-list-title {
+    margin: 0; 
+    margin-left: 0.1rem;
+    margin-bottom: .2rem;
+    font-size: 0.5833333rem;
+    font-weight: 500;
+    letter-spacing: normal;
+  }
+}
+
+.graph-card {
+  margin-top: 0;
+  padding: .25rem .5rem .25rem;
+  margin: 0;
+  height: 250px;
+}
+
+
+.b-r {
+  border-right: 1px solid $clr-light-gray;
+}
+
+.b-b {
+  border-bottom: 1px solid $clr-light-gray
+}
+
+.p-1-2 {
+  padding: .5rem;
+}
+
+.ps-1 {
+  padding: 0 1rem;
+}
+
+.red {
+  color: $clr-red;
+}
+
+.yellow {
+  color: $clr-yellow;
+}
+
+.green {
+  color: $clr-green-light-midtone;
+}
+
+.dasharea-bottom {
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 50px;
+}
+
+.dashstats-no-margin {
+  margin-top: 0;
+}
+
+.hidden {
+  visibility: hidden;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+$small-spinner-size: 36px;
+.spinner-small {
+  margin-top: 0.4rem;
+  width: $small-spinner-size !important;
+  height: $small-spinner-size !important;
+  min-width: $small-spinner-size !important;
+  min-height: $small-spinner-size !important;
+}

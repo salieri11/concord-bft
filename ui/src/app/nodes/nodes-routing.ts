@@ -8,7 +8,7 @@ import { NodesComponent } from './nodes/nodes.component';
 
 export const nodeRoutes: Routes = [
   {
-    path: ':nodeType', component: NodesComponent
+    path: ':nodeTypeOrId', component: NodesComponent
   },
   {
     path: '', redirectTo: 'committers', pathMatch: 'full'

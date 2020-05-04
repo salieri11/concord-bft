@@ -4,16 +4,43 @@
 
 import { Component, Input, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild } from '@angular/core';
 import { monotoneX } from './curve.monotone.x.js';
-import { HttpClient } from '@angular/common/http';
-import { map, catchError } from 'rxjs/operators';
-import { Apis } from '../../shared/urls.model.js';
+import { map } from 'rxjs/operators';
+import { MetricsService } from '../../shared/metrics.service.js';
 
-const oneHour = 3600 * 1000;
-const oneDay = 24 * oneHour;
-const twoDay = 2 * oneDay;
-const oneMonth = 30 * oneDay;
+export const oneHour = 3600 * 1000;
+export const oneDay = 24 * oneHour;
+export const twoDays = 2 * oneDay;
+export const oneMonth = 30 * oneDay;
+export const timeStartDefaultAgo = 2 * oneHour;
 
-const timeStartDefaultAgo = 2 * oneHour;
+export const timeRangesAll = [
+  // { name: 'Today', value: 'today' },
+  // { name: 'Yesterday', value: 'yesterday' },
+  // { name: 'This Week', value: 'this_week' },
+  { name: 'Last 5 Minutes', value: 5 * 60 },
+  { name: 'Last 10 Minutes', value: 10 * 60 },
+  { name: 'Last 30 Minutes', value: 30 * 60 },
+  { name: 'Last 1 Hour', value: 3600 },
+  { name: 'Last 2 Hours', value: 2 * 3600 },
+  { name: 'Last 6 Hours', value: 6 * 3600 },
+  { name: 'Last 12 Hours', value: 12 * 3600 },
+  { name: 'Last 24 Hours', value: 24 * 3600 },
+  { name: 'Last 2 Days', value: 2 * 86400 },
+  { name: 'Last 4 Days', value: 4 * 86400 },
+  { name: 'Last 8 Days', value: 8 * 86400 },
+  { name: 'Last 4 Weeks', value: 28 * 86400 },
+];
+export const timeRangesShort = [
+  // { name: 'Today', value: 'today' },
+  // { name: 'Yesterday', value: 'yesterday' },
+  // { name: 'This Week', value: 'this_week' },
+  { name: 'Last 5 Minutes', value: 5 * 60 },
+  { name: 'Last 30 Minutes', value: 30 * 60 },
+  { name: 'Last 2 Hours', value: 2 * 3600 },
+  { name: 'Last 24 Hours', value: 24 * 3600 },
+  { name: 'Last 8 Days', value: 8 * 86400 },
+];
+
 
 @Component({
   selector: 'concord-wavefront-graph',
@@ -25,6 +52,9 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
   @Input('graphConfig') graphConfig: any;
   @Input('timeStart') timeStart = Date.now() - timeStartDefaultAgo; // UNIX TS, miliseconds
   @Input('timeEnd') timeEnd = Date.now(); // UNIX TS, miliseconds
+  @Input('onupdate') onupdate; // Some number to trigger data update
+  @Input('updateTrigger') updateTrigger = 0; // Some number to trigger data update
+  @Input('hidden') hidden = false; // Hidden graph with just query and events?
   @Input('colorScheme') colorScheme = {
     domain: [ // TODO; Default palette, should be improved
       '#FF8A80', '#EA80FC', '#8C9EFF', '#80D8FF', '#67eFbB', '#CCFF90', '#FF9E80',
@@ -41,11 +71,14 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
   public selectedTimeSpan = null;
   public timeStartSaved = Date.now() - timeStartDefaultAgo;
   public timeEndSaved = Date.now();
+  public fetchDataCalled = false;
+  public dataLoaded: boolean = false;
+  public noData: boolean = false;
 
   // Default options
   public configDefault = {
-    title: 'test',
-    description: 'test',
+    title: '',
+    description: '',
     query: { name: '', params: {} },
     showGridLines: true,
     legend: false,
@@ -58,15 +91,15 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
     autoScale: false,
     yScaleMin: null,
     yScaleMax: null,
-    xAxisLabel: 'Year',
-    yAxisLabel: 'Population',
+    xAxisLabel: '',
+    yAxisLabel: '',
     timeline: false,
     animation: false,
     curve: monotoneX,
   };
 
   constructor(
-    private http: HttpClient,
+    private metricsService: MetricsService,
   ) { }
 
   ngOnInit() {
@@ -90,10 +123,22 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
       if (this.timeSpanPick) {
         this.timeSpanPick.nativeElement.setAttribute('timespan', '');
       }
-      setTimeout(() => { this.fetchData(); }, 100);
+      this.fetchDataOneFrame();
     }
-    if (changes.graphConfig.currentValue) {
+    if (changes.updateTrigger) {
+      this.fetchDataOneFrame();
+    }
+    if (changes.graphConfig) {
       this.loadConfig(changes.graphConfig.currentValue);
+    }
+    if (changes.hidden) {
+      try {
+        if (changes.hidden.currentValue) {
+          this.chartContainer.nativeElement.classList.add('hidden');
+        } else {
+          this.chartContainer.nativeElement.classList.remove('hidden');
+        }
+      } catch (e) {}
     }
   }
 
@@ -107,25 +152,16 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
     this.overrideStyle(this.chartContainer, config.containerStyle);
     this.overrideStyle(this.titleDiv, config.titleStyle);
     this.overrideStyle(this.descriptionDiv, config.descriptionStyle);
-    this.fetchData();
   }
 
-  fetchData() {
-    const params: any = {
-      query_name: this.graphConfig.query.name,
-      start: this.timeStart + '',
-      end: this.timeEnd + ''
-    };
-    if (this.graphConfig.query.params.replica_id) {
-      params.replica_id = this.graphConfig.query.params.replica_id;
-    }
-    this.http.get<any>(Apis.metricsWavefront, { params: params}).pipe(
-      catchError(e => { console.log(e); return e; }),
-      map(data => this.parseWavefrontDataToGraphData(data))
-    ).subscribe(data => {
-      if (!data || !data.timeseries || data.timeseries.length === 0) { return; }
-      this.graphData = data.timeseries;
-    });
+  fetchDataOneFrame() {
+    if (this.fetchDataCalled) { return; }
+    this.fetchDataCalled = true;
+    this.dataLoaded = false;
+    setTimeout(() => {
+      this.fetchDataCalled = false;
+      this.fetchData();
+    }, 10);
   }
 
   dateTickFormatting(val) {
@@ -142,7 +178,7 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
       const d: Date = (<Date>val);
       if (diff < oneDay) {
         return getTimeString(d);
-      } else if (diff < twoDay) {
+      } else if (diff < twoDays) {
         return getTimeDateString(d);
       } else if (diff <= oneMonth) {
         return getDateString(d);
@@ -191,13 +227,37 @@ export class WavefrontGraphComponent implements OnInit, OnChanges {
         case '8d': this.timeStart = now - 8 * 24 * oneHour; break;
       }
     }
-    this.fetchData();
+    this.fetchDataOneFrame();
   }
 
   /** Place holder for later advanced chart event handling */
   onSelect(data): void { data = undefined; return data; }
   onActivate(data): void { data = undefined; return data; }
   onDeactivate(data): void { data = undefined; return data; }
+
+  private fetchData() {
+    const params: any = {
+      query_name: this.graphConfig.query.name,
+      start: this.timeStart + '',
+      end: this.timeEnd + ''
+    };
+    for (const paramName of Object.keys(this.graphConfig.query.params)) {
+      const paramValue = this.graphConfig.query.params[paramName];
+      if (paramValue) { params[paramName] = paramValue; }
+    }
+    const sub = this.metricsService.getWavefrontMetric(params).pipe(
+      map(data => this.parseWavefrontDataToGraphData(data))
+    );
+    sub.subscribe(data => {
+      if (!data || !data.timeseries) { return; }
+      this.dataLoaded = true;
+      if (data.timeseries.length === 0) { this.noData = true; this.graphData = null; return; }
+      this.noData = false;
+      this.graphData = data.timeseries;
+      if (this.onupdate) { this.onupdate(this.graphData); }
+    });
+    return sub;
+  }
 
   private parseWavefrontDataToGraphData(data) {
     const selectedTag = this.graphConfig.target.tag;

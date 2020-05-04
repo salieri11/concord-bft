@@ -12,6 +12,7 @@ import { NodesService } from '../shared/nodes.service';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { ContractEngines } from '../../blockchain/shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
+import { FeatureFlagService } from '../../shared/feature-flag.service';
 
 @Component({
   selector: 'concord-node-list',
@@ -33,17 +34,22 @@ export class NodeListComponent implements OnInit {
   blockchainType: ContractEngines;
   engines = ContractEngines;
 
+  // ! temporary feature flag
+  nodeDashboardEnabled: boolean = false;
+
   constructor(
     private nodesService: NodesService,
     private route: ActivatedRoute,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
+    private ff: FeatureFlagService
   ) {
     this.blockchainType = this.blockchainService.type;
+    this.nodeDashboardEnabled = this.ff.check('node_dashboard');
   }
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      this.type = params.nodeType;
+      this.type = params.nodeTypeOrId;
 
       switch (this.type) {
         case NodeType.committers:

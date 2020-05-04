@@ -1,0 +1,127 @@
+<ng-container>
+  <h6 class="node-select-title">Node:</h6>
+  <clr-select-container class="node-select">
+    <select #nodeSelect clrSelect class="select-width" [value]="replicaId" (change)="changeNode()">
+      <option *ngFor="let node of nodeList" [value]="node?.id">
+        {{ node.name }}
+      </option>
+    </select>
+  </clr-select-container>
+  <h6 class="list-title">
+    {{ 'dashboard.nodeId' | translate }}:
+    <span>{{ replicaId }}</span>
+  </h6>
+  <div class="card p-1-2 dashstats-no-margin">
+    <div class="clr-row">
+      <div class="top-stats">
+        <div class="top-stats-item">
+          <div class="status-bubble">{{
+            'Network'
+            }}<div class="status-bubble-inner">{{'Helathy'}}</div>
+          </div>
+        </div>
+        <div class="top-stats-item">
+          <div class="top-stats-item">
+            <div class="status-bubble">{{
+              'Status'
+              }}<div class="status-bubble-inner">{{'UP'}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="top-stats-item">
+          <clr-icon shape="world" size="20"></clr-icon>
+          <span class="location-name">{{ nodeLocation ? nodeLocation.location : 'Unknown' }}</span>
+        </div>
+        <div class="top-stats-item">
+          <clr-icon shape="cloud-network" size="20"></clr-icon>
+          <span class="location-name">{{ replicaEndpoint }}</span>
+        </div>
+      </div>
+      <div class="clr-col-lg-1 clr-col-xl-2 col-gauge" *ngFor="let guageData of guages">
+        <div class="node-health">
+          <div class="title">{{ guageData.title }}</div>
+          <h2 class="health-number {{nodeColor}}">
+            <clr-spinner *ngIf="guageData.displayValue==='_'" class="spinner spinner-small">_</clr-spinner>
+            <span *ngIf="guageData.displayValue!=='_'">{{ guageData.displayValue }}</span>
+          </h2>
+          <ngx-charts-gauge
+            [view]="[200, 200]"
+            [min]="guageData.min"
+            [results]="guageData.arrayData"
+            [max]="guageData.max"
+            [showAxis]="false"
+            [valueFormatting]="valueFormatting"
+            [scheme]="colorScheme"
+            [startAngle]="-180"
+            [angleSpan]="360">
+          </ngx-charts-gauge>
+        </div>
+      </div>
+      <div class="clr-col-lg-5 clr-col-md-12">
+        <concord-world-map *ngIf="nodeLocation" #worldMap [features]="[nodeLocation]"></concord-world-map>
+      </div>
+    </div>
+  </div>
+
+  <div class="metrics-divider"></div>
+  <h6 class="node-select-title">Time Range:</h6>
+  <clr-select-container class="node-select">
+    <select #timeRangeSelect clrSelect class="select-width" [value]="7200" (change)="changeTimeRange()">
+      <option *ngFor="let timeRange of timeRanges" [value]="timeRange.value">
+        {{ timeRange.name }}
+      </option>
+    </select>
+  </clr-select-container>
+  <div class="fadein dasharea-bottom">
+    <div class="clr-row">
+      <div class="clr-col-sm-6">
+        <div class="card datagrid-card">
+          <h6 class="card-list-title">PROCESSES</h6>
+          <clr-datagrid class="datagrid-compact datagrid-full-height"
+            [clrDgLoading]="processes.length==0">
+            <clr-dg-column>Name</clr-dg-column>
+            <clr-dg-column>CPU</clr-dg-column>
+            <clr-dg-column>Memory</clr-dg-column>
+            <clr-dg-column>Log</clr-dg-column>
+            <clr-dg-row *clrDgItems="let process of processes">
+              <clr-dg-cell>{{process.name}}</clr-dg-cell>
+              <clr-dg-cell>{{process.cpu}}</clr-dg-cell>
+              <clr-dg-cell>{{process.mem}}</clr-dg-cell>
+              <clr-dg-cell>{{process.log}}</clr-dg-cell>
+            </clr-dg-row>
+          </clr-datagrid>
+        </div>
+      </div>
+      <div class="clr-col-sm-6">
+        <div class="card graph-card">
+          <concord-wavefront-graph
+            [graphConfig]="graphConfigCPU" [timeStart]="timeStart" [timeEnd]="timeEnd"
+            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigCPU()">
+          </concord-wavefront-graph>
+        </div>
+      </div>
+      <div class="clr-col-sm-6 mt-1">
+        <div class="card graph-card">
+          <concord-wavefront-graph
+            [graphConfig]="graphConfigMEM" [timeStart]="timeStart" [timeEnd]="timeEnd"
+            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigMEM()">
+          </concord-wavefront-graph>
+        </div>
+      </div>
+      <div class="hidden">
+        <concord-wavefront-graph
+          [graphConfig]="graphConfigLOG" [timeStart]="timeStart" [timeEnd]="timeEnd"
+          [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigLOG()" [hidden]="true">
+        </concord-wavefront-graph>
+      </div>
+      <div class="clr-col-sm-6 mt-1">
+        <div class="card graph-card">
+          <concord-wavefront-graph
+            [graphConfig]="graphConfigDISK" [timeStart]="timeStart" [timeEnd]="timeEnd"
+            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigDISK()">
+          </concord-wavefront-graph>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>

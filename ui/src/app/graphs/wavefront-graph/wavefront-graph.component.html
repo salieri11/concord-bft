@@ -1,4 +1,12 @@
 <div #chartContainer class="chart-container">
+  <div *ngIf="!dataLoaded" class="loading-overlay">
+    <div class="spinner-spacer"></div>
+    <clr-spinner class="spinner"></clr-spinner>
+  </div>
+  <div *ngIf="noData" class="nodata-overlay">
+    <div class="nodata-spacer"></div>
+    <div class="nodata-text">NO DATA</div>
+  </div>
   <div #timeSpanPick class="timespan-pick">
     <div class="timespan-pick-button" (click)="timeSpanOverride('5m', $event)">5m</div>
     <div class="timespan-pick-button" (click)="timeSpanOverride('30m', $event)">30m</div>
@@ -38,7 +46,6 @@
     <ng-template #tooltipTemplate let-model="model">
       <div class="time-summary">{{ model.name }}</div>
       <table class="tooltip-series-table">
-        <div style="width:100%; border-bottom: 1px solid black;"></div>
         <tr class="tooltip-series">
           <th></th>
           <th>{{ graphConfig?.target?.name }}</th>
@@ -51,7 +58,7 @@
         </tr>
       </table>
     </ng-template>
-    <ng-template #seriesTooltipTemplate let-model="model" style="overflow:hidden;">
+    <ng-template #seriesTooltipTemplate let-model="model">
       <div class="time-summary">{{ model[0].name }}</div>
       <table class="tooltip-series-table">
         <tr class="tooltip-series">
