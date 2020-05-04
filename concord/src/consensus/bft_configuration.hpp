@@ -20,10 +20,9 @@ namespace consensus {
 const size_t MAX_ITEM_LENGTH = 4096;
 const std::string MAX_ITEM_LENGTH_STR = std::to_string(MAX_ITEM_LENGTH);
 
-void initializeSBFTThresholdPublicKeys(
+void InitializeSbftThresholdPublicKeys(
     concord::config::ConcordConfiguration& config, bool isClient, uint16_t f,
-    uint16_t c, bool supportDirectProofs,
-    IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
+    uint16_t c, IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
     IThresholdVerifier*& thresholdVerifierForCommit,
     IThresholdVerifier*& thresholdVerifierForOptimisticCommit) {
   concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
@@ -54,20 +53,15 @@ void initializeSBFTThresholdPublicKeys(
 /*
  * Reads the secret keys for the multisig and threshold schemes!
  */
-void initializeSBFTThresholdPrivateKeys(
+void InitializeSbftThresholdPrivateKeys(
     concord::config::ConcordConfiguration& config, uint16_t myReplicaId,
     uint16_t f, uint16_t c, IThresholdSigner*& thresholdSignerForSlowPathCommit,
     IThresholdSigner*& thresholdSignerForCommit,
-    IThresholdSigner*& thresholdSignerForOptimisticCommit,
-    bool supportDirectProofs) {
+    IThresholdSigner*& thresholdSignerForOptimisticCommit) {
   concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
   assert(auxState = dynamic_cast<
              concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
              config.getAuxiliaryState()));
-
-  if (!supportDirectProofs) {
-    printf("\nDoes not support direct proofs!\n");
-  }
 
   // 2f + c + 1
   assert(auxState->slowCommitCryptosys);
@@ -79,8 +73,6 @@ void initializeSBFTThresholdPrivateKeys(
     assert(auxState->commitCryptosys);
     thresholdSignerForCommit =
         auxState->commitCryptosys->createThresholdSigner();
-  } else {
-    printf("\n c <= 0");
   }
 
   // Reading multisig secret keys for the case where everybody sign case where
@@ -90,7 +82,7 @@ void initializeSBFTThresholdPrivateKeys(
       auxState->optimisticCommitCryptosys->createThresholdSigner();
 }
 
-inline bool initializeSBFTCrypto(
+inline bool InitializeSbftCrypto(
     uint16_t nodeId, uint16_t numOfReplicas, uint16_t maxFaulty,
     uint16_t maxSlow, concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& replicaConfig,
@@ -106,18 +98,13 @@ inline bool initializeSBFTCrypto(
   IThresholdSigner* thresholdSignerForOptimisticCommit;
   IThresholdVerifier* thresholdVerifierForOptimisticCommit;
 
-  /// TODO(IG): move to config
-  const bool supportDirectProofs = false;
+  InitializeSbftThresholdPublicKeys(
+      config, false, maxFaulty, maxSlow, thresholdVerifierForSlowPathCommit,
+      thresholdVerifierForCommit, thresholdVerifierForOptimisticCommit);
 
-  initializeSBFTThresholdPublicKeys(
-      config, false, maxFaulty, maxSlow, supportDirectProofs,
-      thresholdVerifierForSlowPathCommit, thresholdVerifierForCommit,
-      thresholdVerifierForOptimisticCommit);
-
-  initializeSBFTThresholdPrivateKeys(
+  InitializeSbftThresholdPrivateKeys(
       config, nodeId + 1, maxFaulty, maxSlow, thresholdSignerForSlowPathCommit,
-      thresholdSignerForCommit, thresholdSignerForOptimisticCommit,
-      supportDirectProofs);
+      thresholdSignerForCommit, thresholdSignerForOptimisticCommit);
 
   outConfig->publicKeysOfReplicas = publicKeysOfReplicas;
 
@@ -198,7 +185,7 @@ inline bool initializeSBFTPrincipals(
   return true;
 }
 
-inline bool initializeSBFTConfiguration(
+inline bool InitializeSbftConfiguration(
     concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& nodeConfig,
     concord::config::CommConfig* commConfig,
@@ -232,7 +219,7 @@ inline bool initializeSBFTConfiguration(
     repConf->replicaPrivateKey =
         replicaConfig.getValue<std::string>("private_key");
 
-    bool res = initializeSBFTCrypto(selfNumber, numOfReplicas, maxFaulty,
+    bool res = InitializeSbftCrypto(selfNumber, numOfReplicas, maxFaulty,
                                     maxSlow, config, replicaConfig,
                                     publicKeysOfReplicas, repConf);
     if (!res) return false;

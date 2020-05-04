@@ -119,7 +119,7 @@ using concord::thin_replica::ThinReplicaService;
 using concord::tee::TeeServiceImpl;
 
 // Parse BFT configuration
-using concord::consensus::initializeSBFTConfiguration;
+using concord::consensus::InitializeSbftConfiguration;
 
 using concord::tee::TeeCommandsHandler;
 
@@ -543,9 +543,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     ReplicaConfig replicaConfig;
 
-    // TODO(IG): check return value and shutdown concord if false
-    initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
-                                &replicaConfig);
+    bool success = InitializeSbftConfiguration(config, nodeConfig, &commConfig,
+                                               nullptr, 0, &replicaConfig);
+    assert(success);
+
+    LOG4CPLUS_INFO(
+        logger, "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
+                                          << " and C=" << replicaConfig.cVal);
+    LOG4CPLUS_INFO(logger, "Direct proofs are not supported");
 
     // Replica
     //
@@ -680,10 +685,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       ClientConfig clientConfig;
-      // TODO(IG): check return value and shutdown concord if false
       CommConfig clientCommConfig;
-      initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
-                                  &clientConfig, i, nullptr);
+      bool success = InitializeSbftConfiguration(
+          config, nodeConfig, &clientCommConfig, &clientConfig, i, nullptr);
+      assert(success);
 
       bft::communication::ICommunication *comm = nullptr;
       if (commConfig.commType == "tls") {
