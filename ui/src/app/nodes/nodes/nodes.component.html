@@ -1,3 +1,10 @@
-<div class="p-2 fadein">
-  <concord-node-list></concord-node-list>
+<div class="scrollable-pane">
+  <div class="p-1 fadein node-dashboard-top" *ngIf="!viewTypeList">
+    <concord-node-dashboard
+      [replicaId]="replicaId">
+    </concord-node-dashboard>
+  </div>
+  <div class="p-2 fadein" *ngIf="viewTypeList">
+    <concord-node-list></concord-node-list>
+  </div>
 </div>

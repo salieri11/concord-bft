@@ -21,6 +21,7 @@ import { TransactionsStatusFilterComponent } from './components/transactions-sta
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
 import { ContextualHelpService } from './contextual-help.service';
+import { MetricsService } from './metrics.service';
 import { IndexedDBService } from './indexeddb.service';
 import { CanViewDirective } from './directives/can-view.directive';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';
@@ -55,7 +56,8 @@ export const defaultProvided: any[] = [
   ContextualHelpService,
   VmwTasksService,
   VmwClarityThemeService,
-  IndexedDBService
+  IndexedDBService,
+  MetricsService
 ];
 
 @NgModule({

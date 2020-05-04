@@ -2,13 +2,15 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { async, TestBed, ComponentFixture } from '@angular/core/testing';
-import { NodesComponent } from './nodes.component';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
-describe('NodesComponent', () => {
-  let component: NodesComponent;
-  let fixture: ComponentFixture<NodesComponent>;
+import { NodeDashboardComponent } from './node-dashboard.component';
+
+
+describe('NodeDashboardComponent', () => {
+  let component: NodeDashboardComponent;
+  let fixture: ComponentFixture<NodeDashboardComponent>;
 
   beforeEach(async( () => {
     const tester = getSpecTestingModule();
@@ -18,7 +20,7 @@ describe('NodesComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(NodesComponent);
+    fixture = TestBed.createComponent(NodeDashboardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
