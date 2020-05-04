@@ -39,8 +39,15 @@ void ParseConfig(std::istream& config_stream,
   // Instantiate the replica scope before node scope.
   config.subscope(NODE_VAR).instantiateScope(REPLICA_VAR);
   config.instantiateScope(NODE_VAR);
-  config.subscope(EXTERNAL_CLIENTS).instantiateScope(CLIENT);
-  config.instantiateScope(EXTERNAL_CLIENTS);
+  config.subscope(PARTICIPANT_NODES)
+      .subscope(PARTICIPANT_NODE)
+      .subscope(EXTERNAL_CLIENTS)
+      .instantiateScope(CLIENT);
+  config.subscope(PARTICIPANT_NODES)
+      .subscope(PARTICIPANT_NODE)
+      .instantiateScope(EXTERNAL_CLIENTS);
+  config.subscope(PARTICIPANT_NODES).instantiateScope(PARTICIPANT_NODE);
+  config.instantiateScope(PARTICIPANT_NODES);
 
   // Next, load all features.
   yaml.loadConfiguration(config,
