@@ -28,24 +28,9 @@ using concord::config::YAMLConfigurationOutput;
 
 namespace po = boost::program_options;
 
-int main(int argc, char** argv) {
-  // Initialize the logger, as logging may be used by some subprocesses of this
-  // utility. Note this configuration generation utility currently is not using
-  // a logger configuration file for itself.
-  log4cplus::initialize();
-  log4cplus::BasicConfigurator loggerConfig;
-  loggerConfig.configure();
-  log4cplus::Logger concGenconfigLogger =
-      log4cplus::Logger::getInstance("com.vmware.concord.conc_genconfig");
-
-  std::string inputFilename;
-  std::string outputPrefix;
-  std::string nodeMapFilename;
-  bool client_flag = false;
-
-  variables_map optionsInput;
-  options_description optionsSpec;
-
+void defineOptionsSpec(string& inputFilename, string& outputPrefix,
+                       string& nodeMapFilename, bool& client_flag,
+                       options_description& optionsSpec) {
   // clang-format off
   optionsSpec.add_options()
       ("help,h", "Display help text and exit.")
@@ -75,58 +60,20 @@ int main(int argc, char** argv) {
        " An optional flag that specifies if the current input file is intended for a client configuration.");
 
   // clang-format on
+}
 
-  store(command_line_parser(argc, argv).options(optionsSpec).run(),
-        optionsInput);
-  if ((argc < 2) || optionsInput.count("help")) {
-    std::cout << "conc_genconfig" << std::endl;
-    std::cout << "Usage:" << std::endl;
-    std::cout << "    conc_genconfig --configuration-input <PATH_TO_INPUT_FILE>"
-              << std::endl;
-    std::cout << optionsSpec << std::endl;
-    return 0;
-  }
-  notify(optionsInput);
-
-  LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig launched.");
-
-  if (optionsInput.count("configuration-input") < 1) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "No input file specified. Please use --configuration-input options.");
-    return -1;
-  }
-  std::ifstream fileInput(inputFilename);
-  if (!(fileInput.is_open())) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "Could not open specified input file: \"" + inputFilename + "\".");
-    return -1;
-  }
-
-  YAMLConfigurationInput yamlInput(fileInput);
-  try {
-    yamlInput.parseInput();
-  } catch (std::exception& e) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "An exception occurred while trying to parse the input to "
-        "conc_genconfig. This likely suggests the requested input file (" +
-            inputFilename +
-            ") is inexistent, unreadable, malformed, or otherwise unusable.");
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Exception message: " + std::string(e.what()));
-    return -1;
-  }
-
-  ConcordConfiguration config;
+void configurationSpec(ConcordConfiguration& config, bool client_flag) {
   if (client_flag) {
     specifyExternalClientConfiguration(config);
   } else {
     specifyConfiguration(config);
     config.setConfigurationStateLabel("configuration_generation");
   }
+}
 
+int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
+                                ConcordConfiguration& config, bool client_flag,
+                                const log4cplus::Logger& concGenconfigLogger) {
   try {
     loadClusterSizeParameters(yamlInput, config, client_flag);
   } catch (ConfigurationResourceNotFoundException& e) {
@@ -184,7 +131,11 @@ int main(int argc, char** argv) {
                     "generated configuration parameters.");
     return -1;
   }
+  return 0;
+}
 
+int valideConfig(ConcordConfiguration& config,
+                 const log4cplus::Logger& concGenconfigLogger) {
   if (!config.scopeIsInstantiated("node")) {
     LOG4CPLUS_FATAL(concGenconfigLogger,
                     "conc_genconfig failed to determine the number of nodes "
@@ -204,6 +155,13 @@ int main(int argc, char** argv) {
                     "Parameters required for configuration files are missing.");
     return -1;
   }
+  return 0;
+}
+
+int outputConfig(ConcordConfiguration& config,
+                 const log4cplus::Logger& concGenconfigLogger, bool client_flag,
+                 const string nodeMapFilename,
+                 const variables_map& optionsInput, string& outputPrefix) {
   if (client_flag) {
     size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
     for (size_t i = 0; i < numNodes; ++i) {
@@ -221,7 +179,7 @@ int main(int argc, char** argv) {
     size_t numNodes = config.scopeSize("node");
     for (size_t i = 0; i < numNodes; ++i) {
       std::string outputFilename =
-          "Participant" + std::to_string(i + 1) + ".config";
+          outputPrefix + std::to_string(i + 1) + ".config";
       std::ofstream fileOutput(outputFilename);
       YAMLConfigurationOutput yamlOutput(fileOutput);
       try {
@@ -254,6 +212,79 @@ int main(int argc, char** argv) {
       }
     }
   }
+  return 0;
+}
+
+int main(int argc, char** argv) {
+  // Initialize the logger, as logging may be used by some subprocesses of this
+  // utility. Note this configuration generation utility currently is not using
+  // a logger configuration file for itself.
+  log4cplus::initialize();
+  log4cplus::BasicConfigurator loggerConfig;
+  loggerConfig.configure();
+  log4cplus::Logger concGenconfigLogger =
+      log4cplus::Logger::getInstance("com.vmware.concord.conc_genconfig");
+
+  std::string inputFilename;
+  std::string outputPrefix;
+  std::string nodeMapFilename;
+  bool client_flag = false;
+
+  variables_map optionsInput;
+  options_description optionsSpec;
+  defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, client_flag,
+                    optionsSpec);
+
+  store(command_line_parser(argc, argv).options(optionsSpec).run(),
+        optionsInput);
+  if ((argc < 2) || optionsInput.count("help")) {
+    std::cout << "conc_genconfig" << std::endl;
+    std::cout << "Usage:" << std::endl;
+    std::cout << "    conc_genconfig --configuration-input <PATH_TO_INPUT_FILE>"
+              << std::endl;
+    std::cout << optionsSpec << std::endl;
+    return 0;
+  }
+  notify(optionsInput);
+  LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig launched.");
+
+  if (optionsInput.count("configuration-input") < 1) {
+    LOG4CPLUS_FATAL(
+        concGenconfigLogger,
+        "No input file specified. Please use --configuration-input options.");
+    return -1;
+  }
+  std::ifstream fileInput(inputFilename);
+  if (!(fileInput.is_open())) {
+    LOG4CPLUS_FATAL(
+        concGenconfigLogger,
+        "Could not open specified input file: \"" + inputFilename + "\".");
+    return -1;
+  }
+
+  YAMLConfigurationInput yamlInput(fileInput);
+  try {
+    yamlInput.parseInput();
+  } catch (std::exception& e) {
+    LOG4CPLUS_FATAL(
+        concGenconfigLogger,
+        "An exception occurred while trying to parse the input to "
+        "conc_genconfig. This likely suggests the requested input file (" +
+            inputFilename +
+            ") is inexistent, unreadable, malformed, or otherwise unusable.");
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Exception message: " + std::string(e.what()));
+    return -1;
+  }
+  ConcordConfiguration config;
+  configurationSpec(config, client_flag);
+  if (initiateConfigurationParams(yamlInput, config, client_flag,
+                                  concGenconfigLogger) == -1)
+    return -1;
+  if (valideConfig(config, concGenconfigLogger) == -1) return -1;
+  if (outputConfig(config, concGenconfigLogger, client_flag, nodeMapFilename,
+                   optionsInput, outputPrefix) == -1)
+    return -1;
   LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
   return 0;
 }
