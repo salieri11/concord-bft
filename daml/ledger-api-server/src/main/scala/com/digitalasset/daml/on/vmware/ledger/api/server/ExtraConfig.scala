@@ -72,7 +72,7 @@ object ExtraConfig {
       .action((_, config) => config.copy(extra = config.extra.copy(useThinReplica = true)))
       .text("Use thin replica client as a source ledger updates.")
     parser
-      .opt[Int]("max-faulty-replicas")
+      .opt[Int]("maxFaultyReplicas")
       .optional()
       .action((maxFaultyReplicas, config) =>
         config.copy(extra = config.extra.copy(maxFaultyReplicas = maxFaultyReplicas.toShort)))
