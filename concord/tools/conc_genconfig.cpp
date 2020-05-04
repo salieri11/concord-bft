@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
     loadConfigurationInputParameters(yamlInput, config);
   } catch (ConfigurationResourceNotFoundException& e) {
     LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to laod required input parameters.");
+                    "Failed to load required input parameters.");
     return -1;
   }
   if (config.loadAllDefaults(false, false) !=
@@ -205,19 +205,23 @@ int main(int argc, char** argv) {
     return -1;
   }
   if (client_flag) {
-    std::string outputFilename = outputPrefix + ".config";
-    std::ofstream fileOutput(outputFilename);
-    YAMLConfigurationOutput yamlOutput(fileOutput);
-    try {
-      outputConcordNodeConfiguration(config, yamlOutput, 1);
-    } catch (std::exception& e) {
-      return -1;
+    size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
+    for (size_t i = 0; i < numNodes; ++i) {
+      std::string outputFilename =
+          "Participant" + std::to_string(i) + ".config";
+      std::ofstream fileOutput(outputFilename);
+      YAMLConfigurationOutput yamlOutput(fileOutput);
+      try {
+        outputParticipantNodeConfiguration(config, yamlOutput, i);
+      } catch (std::exception& e) {
+        return -1;
+      }
     }
   } else {
     size_t numNodes = config.scopeSize("node");
     for (size_t i = 0; i < numNodes; ++i) {
       std::string outputFilename =
-          outputPrefix + std::to_string(i + 1) + ".config";
+          "Participant" + std::to_string(i + 1) + ".config";
       std::ofstream fileOutput(outputFilename);
       YAMLConfigurationOutput yamlOutput(fileOutput);
       try {

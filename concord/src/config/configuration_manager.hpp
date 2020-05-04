@@ -1475,6 +1475,10 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node);
 
+void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
+                                        YAMLConfigurationOutput& output,
+                                        size_t node);
+
 // Loads the Concord configuration for a node (presumably the one running this
 // function) from a specified configuration file. This function expects that
 // config has been initilized with specifyConfiguration (see above); this

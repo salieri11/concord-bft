@@ -1,6 +1,7 @@
 f_val: 1
 c_val: 0
-num_of_external_clients: 5
+num_of_participant_nodes: 2
+clients_per_participant_node: 5
 comm_to_use: tls
 tls_certificates_folder_path: resources/tls_certs
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
@@ -23,14 +24,28 @@ node:
   - replica:
       - replica_host: concord4
         replica_port: 3501
-external_clients:
-  - client:
-      - client_port: 3502
-  - client:
-      - client_port: 3503
-  - client:
-      - client_port: 3504
-  - client:
-      - client_port: 3505
-  - client:
-      - client_port: 3506
+Participant_nodes:
+  - Participant_node: 	
+      - external_clients:
+          - client:
+              - client_port: 3502
+          - client:
+              - client_port: 3503
+          - client:
+              - client_port: 3504
+          - client:
+              - client_port: 3505
+          - client:
+              - client_port: 3506
+  - Participant_node: 	
+      - external_clients:
+          - client:
+              - client_port: 3507
+          - client:
+              - client_port: 3508
+          - client:
+              - client_port: 3509
+          - client:
+              - client_port: 3510
+          - client:
+              - client_port: 3511

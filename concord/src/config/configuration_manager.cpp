@@ -3630,7 +3630,9 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   ConfigurationPath cValPath("c_val", false);
   vector<ConfigurationPath> requiredParameters({fValPath, cValPath});
   if (is_client) {
-    ConfigurationPath externalClients("num_of_external_clients", false);
+    ConfigurationPath participant_nodes("num_of_participant_nodes", false);
+    requiredParameters.push_back(std::move(participant_nodes));
+    ConfigurationPath externalClients("clients_per_participant_node", false);
     requiredParameters.push_back(std::move(externalClients));
   } else {
     ConfigurationPath clientProxiesPerReplicaPath("client_proxies_per_replica",
@@ -3782,7 +3784,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val")) {
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("num_of_participant_nodes")) {
     throw ConfigurationResourceNotFoundException(
         "Cannot instantiate scopes for Concord configuration: required cluster "
         "size parameters are not loaded.");
@@ -3790,9 +3793,11 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
 
   assert(config.containsScope("node"));
   ConcordConfiguration& node = config.subscope("node");
-  ConcordConfiguration& ext = config.subscope("external_clients");
+  ConcordConfiguration& part_nodes = config.subscope("Participant_nodes");
+  ConcordConfiguration& part_node = part_nodes.subscope("Participant_node");
+  ConcordConfiguration& clients = part_node.subscope("external_clients");
   assert(node.containsScope("replica"));
-  assert(ext.containsScope("client"));
+  assert(part_nodes.containsScope("Participant_node"));
 
   // Note this function is complicated by the fact that it handles loading the
   // contents of templates before instantiating them as well as the fact that
@@ -3806,8 +3811,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
                                nullptr);
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
+  clients.instantiateScope("client");
   node.instantiateScope("replica");
-  ext.instantiateScope("client");
 
   // Next, load values for parameters in instances of scopes within the node
   // template. After that node can be instantiated.
@@ -3815,8 +3820,10 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
       ParameterSelection(config, selectTemplatedInstancedParameters, nullptr);
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
+  part_node.instantiateScope("external_clients");
+  part_nodes.instantiateScope("Participant_node");
   config.instantiateScope("node");
-  config.instantiateScope("external_clients");
+  config.instantiateScope("Participant_nodes");
 
   // Now, we load values to parameters in scope templates within node instances.
   selection =
@@ -4138,6 +4145,72 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
   }
   ParameterSelection node_config_params(node_config, selectNodeConfiguration,
                                         &(node));
+  output.outputConfiguration(node_config, node_config_params.begin(),
+                             node_config_params.end());
+}
+
+static bool selectParticipantConfiguration(const ConcordConfiguration& config,
+                                           const ConfigurationPath& path,
+                                           void* state) {
+  assert(state);
+
+  // The configuration generator does not output tempalted parameters, as it
+  // outputs specific values for each instance of a parameter.
+  const ConfigurationPath* pathStep = &path;
+  while (pathStep->isScope && pathStep->subpath) {
+    if (!(pathStep->useInstance)) {
+      return false;
+    }
+    pathStep = pathStep->subpath.get();
+  }
+
+  size_t node = *(static_cast<size_t*>(state));
+
+  if (path.isScope && (path.name == "Participant_nodes") && path.useInstance &&
+      (path.index == node)) {
+    return true;
+  } else if (path.isScope && (path.name == "Participant_nodes") &&
+             path.useInstance && (path.index != node))
+    return false;
+
+  const ConcordConfiguration* containingScope = &config;
+  if (path.isScope) {
+    containingScope = &(config.subscope(path.trimLeaf()));
+  }
+
+  return !(containingScope->isTagged(path.getLeaf().name, "private"));
+}
+
+void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
+                                        YAMLConfigurationOutput& output,
+                                        size_t node) {
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  ConcordConfiguration node_config = config;
+  node_config.subscope("Participant_nodes", 0) =
+      config.subscope("Participant_nodes", node);
+  node = 0;
+  if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
+      config.getValue<bool>("use_loopback_for_local_hosts")) {
+    ParameterSelection node_local_hosts(node_config, selectHostsToMakeLoopback,
+                                        &(node));
+    for (auto& path : node_local_hosts) {
+      ConcordConfiguration* containing_scope = &node_config;
+      if (path.isScope && path.subpath) {
+        containing_scope = &(node_config.subscope(path.trimLeaf()));
+      }
+      string failure_message;
+      if (containing_scope->loadValue(path.getLeaf().name, "127.0.0.1",
+                                      &failure_message, true) ==
+          ConcordConfiguration::ParameterStatus::INVALID) {
+        throw invalid_argument("Failed to load 127.0.0.1 for host " +
+                               path.toString() + " for node " +
+                               to_string(node) +
+                               "\'s configuration: " + failure_message);
+      }
+    }
+  }
+  ParameterSelection node_config_params(
+      node_config, selectParticipantConfiguration, &(node));
   output.outputConfiguration(node_config, node_config_params.begin(),
                              node_config_params.end());
 }
@@ -4575,21 +4648,49 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration::ParameterStatus sizeExternalClients(
+ConcordConfiguration::ParameterStatus sizeParticipantsNodes(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
 
-  if (!(config.hasValue<uint16_t>("num_of_external_clients"))) {
+  if (!(config.hasValue<uint16_t>("num_of_participant_nodes"))) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  if (!((config.validate("num_of_external_clients") ==
+
+  uint16_t num_participants =
+      config.getValue<uint16_t>("num_of_participant_nodes");
+  size_t numParticipants = (size_t)num_participants;
+  if (numParticipants > (size_t)UINT16_MAX) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  *output = numParticipants;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus sizeParticipantNode(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  size_t numParticipants = (size_t)1;
+  *output = numParticipants;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+ConcordConfiguration::ParameterStatus sizeExternalClients(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+  if (!(config.hasValue<uint16_t>("clients_per_participant_node"))) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((config.validate("clients_per_participant_node") ==
          ConcordConfiguration::ParameterStatus::VALID))) {
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
 
   uint16_t num_clients_proxies =
-      config.getValue<uint16_t>("num_of_external_clients");
+      config.getValue<uint16_t>("clients_per_participant_node");
   size_t numExternal = (size_t)num_clients_proxies;
   if (numExternal > (size_t)UINT16_MAX) {
     return ConcordConfiguration::ParameterStatus::INVALID;
@@ -4765,8 +4866,9 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
   if (path.subpath->name == "replica") {
     *output = std::to_string(path.index);
   } else {
-    assert((path.subpath->name == "client") && path.subpath->isScope &&
-           path.subpath->useInstance);
+    assert((path.subpath->subpath->subpath->name == "client") &&
+           path.subpath->subpath->subpath->isScope &&
+           path.subpath->subpath->subpath->useInstance);
 
     if (!config.hasValue<uint16_t>("f_val") ||
         !config.hasValue<uint16_t>("c_val")) {
@@ -4775,7 +4877,11 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
     uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
                            2 * config.getValue<uint16_t>("c_val") + 1;
 
-    *output = std::to_string(path.index + numReplicas + (path.subpath->index));
+    uint16_t numParticipants =
+        config.getValue<uint16_t>("clients_per_participant_node");
+
+    *output = std::to_string(path.index * numParticipants + numReplicas +
+                             (path.subpath->subpath->index));
   }
 
   return ConcordConfiguration::ParameterStatus::VALID;
@@ -4798,15 +4904,25 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
 
   vector<std::string> publicInputTags(
       {"config_generation_time", "input", "public"});
-
-  config.declareParameter("num_of_external_clients",
-                          "Total number of BFT clients in this deployment.");
-  config.tagParameter("num_of_external_clients", publicInputTags);
-  config.addValidator("num_of_external_clients", ValidateNumClients, nullptr);
-  config.declareScope("external_clients",
-                      "External client pool params replicas",
-                      sizeExternalClients, nullptr);
-  auto& external_clients = config.subscope("external_clients");
+  config.declareParameter(
+      "num_of_participant_nodes",
+      "Total number of participant nodes in this deployment.");
+  config.tagParameter("num_of_participant_nodes", publicInputTags);
+  config.declareParameter("clients_per_participant_node",
+                          "Max number of clients");
+  config.tagParameter("clients_per_participant_node", publicInputTags);
+  config.addValidator("clients_per_participant_node", ValidateNumClients,
+                      nullptr);
+  config.declareScope("Participant_nodes", "Participant nodes scope",
+                      sizeParticipantsNodes, nullptr);
+  auto& participant_nodes = config.subscope("Participant_nodes");
+  participant_nodes.declareScope("Participant_node", "One node",
+                                 sizeParticipantNode, nullptr);
+  auto& participant_node = participant_nodes.subscope("Participant_node");
+  participant_node.declareScope("external_clients",
+                                "External client pool params replicas",
+                                sizeExternalClients, nullptr);
+  auto& external_clients = participant_node.subscope("external_clients");
   external_clients.declareScope("client", "One external client params",
                                 config::sizeReplicas, nullptr);
   auto& client = external_clients.subscope("client");
