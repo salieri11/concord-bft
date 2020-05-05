@@ -362,7 +362,7 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
     if (time_->Changed()) {
       amended_updates.insert(time_->Serialize());
     }
-    amended_updates.insert(time_->SerializeSummarizedTime());
+    // amended_updates.insert(time_->SerializeSummarizedTime());
   }
 
   amended_updates[metadata_storage_.getKey()] =
