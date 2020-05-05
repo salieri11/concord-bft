@@ -4,9 +4,8 @@
 #include <log4cplus/loggingmacros.h>
 #include <prometheus/serializer.h>
 #include <prometheus/text_serializer.h>
-#include <algorithm>
+#include <map>
 #include <tuple>
-#include "yaml-cpp/yaml.h"
 
 using namespace prometheus;
 using namespace concordMetrics;
@@ -49,24 +48,40 @@ std::vector<MetricFamily> ConcordBftPrometheusCollector::Collect() {
 
 std::vector<MetricFamily> ConcordBftPrometheusCollector::collectCounters() {
   std::vector<MetricFamily> cf;
+  std::map<std::string, MetricFamily> metricsMap;
   for (auto& c : aggregator_->CollectCounters()) {
-    cf.emplace_back(MetricFamily{
-        getMetricName(c.name),
-        c.name + " - a concordbft metric",
-        MetricType::Counter,
-        {collect(c.component, std::get<concordMetrics::Counter>(c.value))}});
+    if (metricsMap.find(c.name) == metricsMap.end()) {
+      metricsMap[c.name] = MetricFamily{getMetricName(c.name),
+                                        c.name + " - a concordbft metric",
+                                        MetricType::Counter,
+                                        {}};
+    }
+    metricsMap[c.name].metric.emplace_back(
+        collect(c.component, std::get<concordMetrics::Counter>(c.value)));
+  }
+  cf.reserve(metricsMap.size());
+  for (auto& it : metricsMap) {
+    cf.emplace_back(std::move(it.second));
   }
   return cf;
 }
 
 std::vector<MetricFamily> ConcordBftPrometheusCollector::collectGauges() {
   std::vector<MetricFamily> gf;
+  std::map<std::string, MetricFamily> metricsMap;
   for (auto& g : aggregator_->CollectGauges()) {
-    gf.emplace_back(MetricFamily{
-        getMetricName(g.name),
-        g.name + " - a concordbft metric",
-        MetricType::Gauge,
-        {collect(g.component, std::get<concordMetrics::Gauge>(g.value))}});
+    if (metricsMap.find(g.name) == metricsMap.end()) {
+      metricsMap[g.name] = MetricFamily{getMetricName(g.name),
+                                        g.name + " - a concordbft metric",
+                                        MetricType::Gauge,
+                                        {}};
+    }
+    metricsMap[g.name].metric.emplace_back(
+        collect(g.component, std::get<concordMetrics::Gauge>(g.value)));
+  }
+  gf.reserve(metricsMap.size());
+  for (auto& it : metricsMap) {
+    gf.emplace_back(std::move(it.second));
   }
   return gf;
 }
