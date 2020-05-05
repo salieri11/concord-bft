@@ -2165,6 +2165,9 @@ void announceToTFailure(){
 }
 
 void announceSDDCCleanupFailures(failures){
+  // Don't mass notify with SDDC clean-up failure if the run was simply aborted.
+  if (currentBuild.currentResult == "ABORTED") { return }
+  
   msg = "SDDC cleanup job(s) failed; it is possible resources are being leaked!"
   msg += "\nFailed jobs:"
 
