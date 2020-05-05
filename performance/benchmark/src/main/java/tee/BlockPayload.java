@@ -41,7 +41,7 @@ public class BlockPayload {
 
     /**
      * Add enough KV pairs to create data of configured size.
-     * Hack: Add a special key to help TR calculate end-to-end time.
+     * Add a special key to help TR calculate end-to-end time.
      */
     public KVData create() {
         List<TridKV> pairs = Stream.generate(this::createRandomKv).limit(kvCount).collect(toList());

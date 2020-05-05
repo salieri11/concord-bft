@@ -118,7 +118,7 @@ public class TrSubscriber extends Thread {
                 return;
             }
 
-            // Hack: Special key to help TR calculate end-to-end time
+            // Special key to help TR calculate end-to-end time
             Instant sendTime = null;
             for (KVPair pair : pairs) {
                 ByteString key = pair.getKey();

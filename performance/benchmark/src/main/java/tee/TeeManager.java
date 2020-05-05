@@ -14,14 +14,15 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Integer.parseInt;
-import static tee.TeeClient.WRITE_BLOCK;
+import static tee.OperationType.WRITE_BLOCK;
+import static tee.OperationType.valueOfId;
 
 /**
  * Factory for TEE client
  */
 public class TeeManager extends WorkloadManager {
 
-    private final String operationName;
+    private final OperationType opType;
     private final int numOfRequests;
     private final int sizeOfRequest;
     private final List<String> params;
@@ -32,7 +33,7 @@ public class TeeManager extends WorkloadManager {
         super(workload, simpleconfig, advancedConfig, optionalWavefrontSender);
 
         params = workload.getParams();
-        this.operationName = params.get(0);
+        this.opType = valueOfId(params.get(0));
         this.numOfRequests = parseInt(params.get(1));
         this.sizeOfRequest = parseInt(params.get(2));
     }
@@ -40,7 +41,7 @@ public class TeeManager extends WorkloadManager {
     @Override
     public void executeWorkload() throws Exception {
         // Use thin replica for this operation
-        if (operationName.equals(WRITE_BLOCK)) {
+        if (opType == WRITE_BLOCK) {
             List<Node> nodes = getNodes();
             int f = parseInt(params.get(3));
             checkArgument(nodes.size() == 3 * f + 1, "Total nodes [%s] != 3f+1 for f=%s", nodes.size(), f);
@@ -62,7 +63,7 @@ public class TeeManager extends WorkloadManager {
 
     @Override
     protected WorkloadClient createClient(String host, int port) {
-        TeeClient client = new TeeClient(host, port, operationName, sizeOfRequest);
+        TeeClient client = new TeeClient(host, port, opType, sizeOfRequest);
         client.init();
         return client;
     }
