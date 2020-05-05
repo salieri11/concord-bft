@@ -6,6 +6,7 @@ Script to create a new blockchain for a new consortium
 """
 
 import argparse
+import atexit
 import math
 import requests
 import os
@@ -34,6 +35,8 @@ def setup_arguments():
     parser.add_argument("--zonetype", type=str,
                     default="VMC_AWS", choices=["VMC_AWS", "ON_PREM"],
                     help="Type of zone to deploy")
+    parser.add_argument("--concordversion", type=str, default=None,
+                    help="Concord version to use for deployment in org")
     parser.add_argument("--slack", action="store_true", default=False,
                     help="Notify on slack")
     parser.add_argument("--email", action="store_true", default=False,
@@ -69,6 +72,7 @@ if __name__ == "__main__":
     logger.info(args)
     helen = HelenApi(args.helenurl, args.orgid, args.cspenv)
     zones = args.zones
+    atexit.register(helen.delete_version_property)
     if zones is None:
         helen.logger.info("Using default cloud zones")
         zones = []
@@ -80,6 +84,9 @@ if __name__ == "__main__":
         if c_info is None:
             logger.exception("Error creating consortium")
             sys.exit(1)
+        if args.concordversion is not None:
+            if helen.patch_concord_version(args.concordversion) is False:
+                sys.exit(1)
         blockchainid = helen.create_blockchain(c_info["consortium_id"],
                         args.blockchaintype, args.nodenumber, zones)
         if blockchainid is None:
@@ -101,6 +108,9 @@ if __name__ == "__main__":
             logger.exception("Error finding blockchain with id %s"
                                 % args.blockchainid)
             sys.exit(1)
+        if args.concordversion is not None:
+            if helen.patch_concord_version(args.concordversion) is False:
+                sys.exit(1)
         if helen.deploy_participant(args.blockchainid, args.participants,
                                     zones) is True:
             result = helen.parse_blockchain_nodeinfo(args.blockchainid)
