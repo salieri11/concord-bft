@@ -1,4 +1,4 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2018-2020 VMware, all rights reserved
 //
 // Handler for connections from the API/UI servers.
 //
@@ -749,9 +749,6 @@ void ApiConnection::handle_prune_request() {
   internalPruneRequest->CopyFrom(request);
   ConcordResponse internalConcResponse;
 
-  internalPruneRequest->set_sender(pruneRequestSenderId_);
-  pruningSigner_.Sign(*internalPruneRequest);
-
   if (clientPool_.send_request_sync(internalConcRequest, false, *span_.get(),
                                     internalConcResponse)) {
     concordResponse_.MergeFrom(internalConcResponse);
@@ -866,18 +863,7 @@ ApiConnection::ApiConnection(
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
-      ethEnabled_(ethEnabled),
-      pruningSigner_{nodeConfig} {
-  // Always use the first client proxy's principal_id for PruneRequest messages.
-  // This is a workaround to support signed PruneRequest messages coming from
-  // the API. Support for PruneRequest over the API can be removed at a later
-  // stage when the operator node uses its own BFT client.
-  if (nodeConfig.containsScope("client_proxy") &&
-      nodeConfig.scopeSize("client_proxy")) {
-    pruneRequestSenderId_ = nodeConfig.subscope("client_proxy", 0)
-                                .getValue<uint64_t>("principal_id");
-  }
-}
+      ethEnabled_(ethEnabled) {}
 
 }  // namespace api
 }  // namespace concord

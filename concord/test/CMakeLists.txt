@@ -21,6 +21,7 @@ add_test(NAME PruningSMTest COMMAND PruningSMTest)
 add_test(NAME KVBFilterTest COMMAND KVBFilterTest)
 add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
 add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
+add_test(NAME OpenSSLCryptoWrapperTest COMMAND OpenSSLCryptoWrapperTest)
 
 add_executable(UtilsTests
         utils_test.cpp)
@@ -196,3 +197,13 @@ target_link_libraries(ExternalClientTest
         ${GTEST_LIBRARY}
         concord_external_client
         $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(OpenSSLCryptoWrapperTest
+               openssl_crypto_wrapper_tests.cpp)
+target_link_libraries(OpenSSLCryptoWrapperTest
+                      ${GTEST_LIBRARY}
+		      concord_utils
+                      ${CRYPTOPP_LIBRARIES}
+		      log4cplus
+		      pthread
+                      $<TARGET_OBJECTS:logging_dev>)

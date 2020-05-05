@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #ifndef CONCORD_PRUNING_RSA_PRUNING_SIGNER_HPP
 #define CONCORD_PRUNING_RSA_PRUNING_SIGNER_HPP
@@ -22,8 +22,12 @@ class RSAPruningSigner {
 
   // Sign() methods sign the passed message and store the signature in the
   // 'signature' field of the message. An exception is thrown on error.
+  //
+  // Note RSAPruningSigner does not handle signing of PruneRequest messages on
+  // behalf of the operator, as the operator's signature is a dedicated-purpose
+  // application-level signature rather than a Concord-BFT Principal's RSA
+  // signature.
   void Sign(com::vmware::concord::LatestPrunableBlock&) const;
-  void Sign(com::vmware::concord::PruneRequest&) const;
 
  private:
   std::string GetSignatureBuffer() const;

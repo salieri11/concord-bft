@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #include "rsa_pruning_signer.hpp"
 #include "pruning_exception.hpp"
@@ -49,32 +49,6 @@ void RSAPruningSigner::Sign(
   }
 
   block.set_signature(std::move(signature));
-}
-
-void RSAPruningSigner::Sign(com::vmware::concord::PruneRequest& request) const {
-  if (!request.has_sender() || request.latest_prunable_block_size() <= 0) {
-    throw PruningRuntimeException{
-        "RSAPruningSigner failed to sign a malformed PruneRequest message"};
-  }
-
-  std::string ser;
-  ser << request.sender();
-  for (auto i = 0; i < request.latest_prunable_block_size(); ++i) {
-    ser << request.latest_prunable_block(i);
-  }
-
-  auto signature = GetSignatureBuffer();
-  size_t actual_sign_len{0};
-  const auto res = signer_.sign(ser.c_str(), ser.length(), signature.data(),
-                                signer_.signatureLength(), actual_sign_len);
-  if (!res) {
-    throw PruningRuntimeException{
-        "RSAPruningSigner failed to sign a PruneRequest message"};
-  } else if (actual_sign_len < signature.length()) {
-    signature.resize(actual_sign_len);
-  }
-
-  request.set_signature(std::move(signature));
 }
 
 std::string RSAPruningSigner::GetSignatureBuffer() const {
