@@ -1,4 +1,4 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2018-2020 VMware, all rights reserved
 //
 // Handler for connections from the API/UI servers.
 
@@ -14,7 +14,6 @@
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
-#include "pruning/rsa_pruning_signer.hpp"
 
 namespace concord {
 namespace api {
@@ -157,14 +156,6 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
   const uint64_t gasLimit_;
   const uint64_t chainID_;
   const bool ethEnabled_;
-
-  /* This signer is used to sign unsigned PruneRequest messages received over
-   * the API so that the pruning state machine can process them. The signer uses
-   * the private key of the replica that is running in the same node.
-   * Additionally, a client_proxy principal_id from the same node is set as a
-   * sender. */
-  concord::pruning::RSAPruningSigner pruningSigner_;
-  uint64_t pruneRequestSenderId_{0};
 };
 
 }  // namespace api

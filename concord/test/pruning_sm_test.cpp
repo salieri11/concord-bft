@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 // Keep googletest includes on top as the Assert macro from assertUtils.hpp can
 // interfere.
@@ -48,7 +48,13 @@ using namespace concordUtils;
 using namespace com::vmware::concord;
 using google::protobuf::util::TimeUtil;
 
+using concord::utils::openssl_crypto::AsymmetricPrivateKey;
+using concord::utils::openssl_crypto::AsymmetricPublicKey;
+using concord::utils::openssl_crypto::DeserializePublicKey;
+using concord::utils::openssl_crypto::GenerateAsymmetricCryptoKeyPair;
 using CryptoPP::AutoSeededRandomPool;
+using std::pair;
+using std::unique_ptr;
 
 namespace {
 
@@ -211,8 +217,27 @@ void InitBlockchainStorage(TimeContract& tc, std::size_t replica_count,
   ASSERT_EQ(s.getLastBlock(), LAST_BLOCK_ID);
 }
 
-ConcordRequest ConstructPruneRequest(const ConcordConfiguration& config,
-                                     std::size_t client_idx) {
+// Helper function to the pruning state machine unit tests to generate a key
+// pair for the operator privileged to issue pruning commands, add the public
+// key for that key pair to the provided ConcordConfiguration object, and return
+// the private key from that key pair for use in the testing.
+unique_ptr<AsymmetricPrivateKey> ConfigureOperatorKey(
+    ConcordConfiguration& config) {
+  config.declareParameter("pruning_operator_public_key",
+                          "Public key for the privileged operator authorized "
+                          "to issue pruning commands.");
+
+  pair<unique_ptr<AsymmetricPrivateKey>, unique_ptr<AsymmetricPublicKey>>
+      operator_key_pair = GenerateAsymmetricCryptoKeyPair("secp256r1");
+  config.loadValue("pruning_operator_public_key",
+                   operator_key_pair.second->Serialize());
+  return move(operator_key_pair.first);
+}
+
+ConcordRequest ConstructPruneRequest(
+    const ConcordConfiguration& config,
+    const unique_ptr<AsymmetricPrivateKey>& pruning_operator_key,
+    std::size_t client_idx) {
   ConcordRequest req;
   auto prune_req = req.mutable_prune_request();
 
@@ -235,8 +260,8 @@ ConcordRequest ConstructPruneRequest(const ConcordConfiguration& config,
     block_signer.Sign(*latest_block);
   }
 
-  const auto req_signer = RSAPruningSigner{GetNodeConfig(config, client_idx)};
-  req_signer.Sign(*prune_req);
+  prune_req->set_signature(pruning_operator_key->Sign(
+      KVBPruningSM::GetSignablePruneCommandData(*prune_req)));
 
   return req;
 }
@@ -290,7 +315,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
   {
     const auto replicas = 4;
     const auto client_proxies = 4;
-    const auto c = TestConfiguration(replicas, client_proxies);
+    ConcordConfiguration base_config =
+        TestConfiguration(replicas, client_proxies);
+    ConfigureOperatorKey(base_config);
+    const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
     EXPECT_NO_THROW({
       TimeContract tc(s, c);
@@ -301,7 +329,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
   {
     const auto replicas = 4;
     const auto client_proxies = 8;
-    const auto c = TestConfiguration(replicas, client_proxies);
+    ConcordConfiguration base_config =
+        TestConfiguration(replicas, client_proxies);
+    ConfigureOperatorKey(base_config);
+    const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
     EXPECT_NO_THROW({
       TimeContract tc(s, c);
@@ -312,7 +343,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
   {
     const auto replicas = 4;
     const auto client_proxies = 2;
-    const auto c = TestConfiguration(replicas, client_proxies);
+    ConcordConfiguration base_config =
+        TestConfiguration(replicas, client_proxies);
+    ConfigureOperatorKey(base_config);
+    const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
     EXPECT_NO_THROW({
       TimeContract tc(s, c);
@@ -323,7 +357,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
   {
     const auto replicas = 7;
     const auto client_proxies = 3;
-    const auto c = TestConfiguration(replicas, client_proxies);
+    ConcordConfiguration base_config =
+        TestConfiguration(replicas, client_proxies);
+    ConfigureOperatorKey(base_config);
+    const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
     EXPECT_NO_THROW({
       TimeContract tc(s, c);
@@ -334,7 +371,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
   {
     const auto replicas = 4;
     const auto client_proxies = 0;
-    const auto c = TestConfiguration(replicas, client_proxies);
+    ConcordConfiguration base_config =
+        TestConfiguration(replicas, client_proxies);
+    ConfigureOperatorKey(base_config);
+    const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
     EXPECT_NO_THROW({
       TimeContract tc(s, c);
@@ -346,8 +386,13 @@ TEST(pruning_sm_test, sm_parse_configuration) {
 TEST(pruning_sm_test, sign_verify_correct) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  ConcordConfiguration base_config =
+      TestConfiguration(replica_count, client_proxy_count);
+
   const auto sending_id = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   const auto verifier = RSAPruningVerifier{config};
   std::vector<RSAPruningSigner> signers;
   for (auto i = 0; i < replica_count; ++i) {
@@ -375,9 +420,16 @@ TEST(pruning_sm_test, sign_verify_correct) {
       block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
+
+    unique_ptr<AsymmetricPublicKey> operator_public_key = DeserializePublicKey(
+        config.getValue<string>("pruning_operator_public_key"));
 
     EXPECT_TRUE(verifier.Verify(request));
+    EXPECT_TRUE(operator_public_key->Verify(
+        KVBPruningSM::GetSignablePruneCommandData(request),
+        request.signature()));
   }
 }
 
@@ -417,41 +469,18 @@ TEST(pruning_sm_test, sign_malformed_messages) {
         << "RSAPruningSigner fails to sign a malformed(missing replica ID) "
            "LatestPrunableBlock message";
   }
-
-  // Sign an empty PruneRequest.
-  {
-    PruneRequest request;
-    EXPECT_THROW(signers[sending_id].Sign(request), PruningRuntimeException)
-        << "RSAPruningSigner fails to sign an empty PruneRequest message";
-  }
-
-  // Omit the sender in PruneRequest and sign.
-  {
-    PruneRequest request;
-    auto block = request.add_latest_prunable_block();
-    block->set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    block->set_block_id(LAST_BLOCK_ID);
-    signers[sending_id].Sign(*block);
-    EXPECT_THROW(signers[sending_id].Sign(request), PruningRuntimeException)
-        << "RSAPruningSigner fails to sign a malformed(missing sender ID) "
-           "PruneRequest message";
-  }
-
-  // Omit latest blocks in PruneRequest and sign.
-  {
-    PruneRequest request;
-    request.set_sender(CLIENT_PRINCIPAL_ID_START + sending_id);
-    EXPECT_THROW(signers[sending_id].Sign(request), PruningRuntimeException)
-        << "RSAPruningSigner fails to sign a malformed(missing latest blocks) "
-           "PruneRequest message";
-  }
 }
 
 TEST(pruning_sm_test, verify_malformed_messages) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  ConcordConfiguration base_config =
+      TestConfiguration(replica_count, client_proxy_count);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+
   const auto sending_id = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count);
+  const auto& config = base_config;
   const auto verifier = RSAPruningVerifier{config};
   std::vector<RSAPruningSigner> signers;
   for (auto i = 0; i < replica_count; ++i) {
@@ -497,10 +526,17 @@ TEST(pruning_sm_test, verify_malformed_messages) {
       block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
+
     request.set_sender(request.sender() + 1);
 
-    EXPECT_FALSE(verifier.Verify(request));
+    EXPECT_TRUE(verifier.Verify(request));
+    EXPECT_FALSE(
+        DeserializePublicKey(
+            config.getValue<string>("pruning_operator_public_key"))
+            ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
+                     request.signature()));
   }
 
   // Change the signature in PruneRequest and verify.
@@ -514,10 +550,17 @@ TEST(pruning_sm_test, verify_malformed_messages) {
       block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
+
     request.mutable_signature()->at(0) += 1;
 
-    EXPECT_FALSE(verifier.Verify(request));
+    EXPECT_TRUE(verifier.Verify(request));
+    EXPECT_FALSE(
+        DeserializePublicKey(
+            config.getValue<string>("pruning_operator_public_key"))
+            ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
+                     request.signature()));
   }
 
   // Verify a PruneRequest with replica_count - 1 latest prunable blocks.
@@ -531,9 +574,14 @@ TEST(pruning_sm_test, verify_malformed_messages) {
       block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
 
     EXPECT_FALSE(verifier.Verify(request));
+    EXPECT_TRUE(DeserializePublicKey(
+                    config.getValue<string>("pruning_operator_public_key"))
+                    ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
+                             request.signature()));
   }
 
   // Change replica in a single latest prunable block message after signing it
@@ -550,9 +598,14 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     }
     request.mutable_latest_prunable_block(0)->set_replica(
         REPLICA_PRINCIPAL_ID_START + replica_count + 8);
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
 
     EXPECT_FALSE(verifier.Verify(request));
+    EXPECT_TRUE(DeserializePublicKey(
+                    config.getValue<string>("pruning_operator_public_key"))
+                    ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
+                             request.signature()));
   }
 
   // Change replica in a single latest prunable block message after signing it
@@ -567,11 +620,17 @@ TEST(pruning_sm_test, verify_malformed_messages) {
       block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
-    signers[sending_id].Sign(request);
+    request.set_signature(operator_private_key->Sign(
+        KVBPruningSM::GetSignablePruneCommandData(request)));
     request.mutable_latest_prunable_block(0)->set_replica(
         REPLICA_PRINCIPAL_ID_START + replica_count + 8);
 
     EXPECT_FALSE(verifier.Verify(request));
+    EXPECT_FALSE(
+        DeserializePublicKey(
+            config.getValue<string>("pruning_operator_public_key"))
+            ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
+                     request.signature()));
   }
 }
 
@@ -580,8 +639,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_correct_num_bocks_to_keep) {
   const auto client_proxy_count = replica_count;
   const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -605,8 +666,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_big_num_blocks_to_keep) {
   const auto client_proxy_count = replica_count;
   const auto num_blocks_to_keep = LAST_BLOCK_ID + 42;
   const auto replica_idx = 1;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -641,8 +704,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range) {
   const auto client_proxy_count = replica_count;
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
-                                        duration_to_keep_minutes);
+  ConcordConfiguration base_config = TestConfiguration(
+      replica_count, client_proxy_count, 0, duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -686,8 +751,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_offset) {
   const auto client_proxy_count = replica_count;
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
-                                        duration_to_keep_minutes);
+  ConcordConfiguration base_config = TestConfiguration(
+      replica_count, client_proxy_count, 0, duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -720,8 +787,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_empty_chain) {
   const auto client_proxy_count = replica_count;
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
-                                        duration_to_keep_minutes);
+  ConcordConfiguration base_config = TestConfiguration(
+      replica_count, client_proxy_count, 0, duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -760,8 +829,10 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_missing_last) {
   const auto client_proxy_count = replica_count;
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
-                                        duration_to_keep_minutes);
+  ConcordConfiguration base_config = TestConfiguration(
+      replica_count, client_proxy_count, 0, duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -792,9 +863,11 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_and_num_blocks) {
   const auto num_blocks_to_keep = LAST_BLOCK_ID - 5;  // prune a few blocks only
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 1;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
                         duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -825,9 +898,11 @@ TEST(pruning_sm_test, sm_latest_prunable_request_no_pruning_conf) {
   const auto num_blocks_to_keep = 0;
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 0;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
                         duration_to_keep_minutes);
+  ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
@@ -887,16 +962,20 @@ TEST(pruning_sm_test, sm_handle_prune_request_on_pruning_disabled) {
   const auto replica_idx = 1;
   const auto duration_to_keep_minutes = 0;
   const auto client_idx = 0;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
                         duration_to_keep_minutes, false);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
 
   auto tc = TimeContract{storage, config};
   const auto sm =
       KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
-  const auto req = ConstructPruneRequest(config, client_idx);
+  const auto req =
+      ConstructPruneRequest(config, operator_private_key, client_idx);
   ConcordResponse resp;
 
   sm.Handle(req, resp, false, *test_span);
@@ -914,15 +993,19 @@ TEST(pruning_sm_test, sm_handle_correct_prune_request) {
   const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
   const auto client_idx = 0;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
 
   auto tc = TimeContract{storage, config};
   const auto sm =
       KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
-  const auto req = ConstructPruneRequest(config, client_idx);
+  const auto req =
+      ConstructPruneRequest(config, operator_private_key, client_idx);
   ConcordResponse resp;
 
   sm.Handle(req, resp, false, *test_span);
@@ -939,8 +1022,11 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
   const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
   const auto client_idx = 0;
-  const auto config =
+  ConcordConfiguration base_config =
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
   TestStorage storage;
 
   auto tc = TimeContract{storage, config};
@@ -949,7 +1035,7 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Set an invalid sender.
   {
-    auto req = ConstructPruneRequest(config, client_idx);
+    auto req = ConstructPruneRequest(config, operator_private_key, client_idx);
     req.mutable_prune_request()->set_sender(req.prune_request().sender() + 1);
     ConcordResponse resp;
 
@@ -962,7 +1048,7 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Add a valid N + 1 latest prunable block.
   {
-    auto req = ConstructPruneRequest(config, client_idx);
+    auto req = ConstructPruneRequest(config, operator_private_key, client_idx);
     const auto& block = req.prune_request().latest_prunable_block(3);
     auto added_block = req.mutable_prune_request()->add_latest_prunable_block();
     added_block->CopyFrom(block);
@@ -977,7 +1063,7 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Send N - 1 latest prunable blocks.
   {
-    auto req = ConstructPruneRequest(config, client_idx);
+    auto req = ConstructPruneRequest(config, operator_private_key, client_idx);
     req.mutable_prune_request()->mutable_latest_prunable_block()->RemoveLast();
     ConcordResponse resp;
 
@@ -990,7 +1076,7 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Send a latest prunable block with an invalid signature.
   {
-    auto req = ConstructPruneRequest(config, client_idx);
+    auto req = ConstructPruneRequest(config, operator_private_key, client_idx);
     auto block =
         req.mutable_prune_request()->mutable_latest_prunable_block()->Mutable(
             2);
@@ -1006,7 +1092,7 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Send a prune request with an invalid signature.
   {
-    auto req = ConstructPruneRequest(config, client_idx);
+    auto req = ConstructPruneRequest(config, operator_private_key, client_idx);
     req.mutable_prune_request()->mutable_signature()->at(42) += 1;
     ConcordResponse resp;
 
@@ -1019,7 +1105,8 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
   // Send a valid prune request in a read-only message.
   {
-    const auto req = ConstructPruneRequest(config, client_idx);
+    const auto req =
+        ConstructPruneRequest(config, operator_private_key, client_idx);
     ConcordResponse resp;
 
     sm.Handle(req, resp, true, *test_span);

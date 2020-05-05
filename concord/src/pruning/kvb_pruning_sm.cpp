@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #include "kvb_pruning_sm.hpp"
 
@@ -14,7 +14,10 @@
 
 namespace concord {
 
+using com::vmware::concord::LatestPrunableBlock;
+using com::vmware::concord::PruneRequest;
 using concord::time::TimeContract;
+using concord::utils::openssl_crypto::DeserializePublicKey;
 using kvbc::BaseBlockInfo;
 using kvbc::BlockchainView;
 using kvbc::BlockId;
@@ -22,6 +25,8 @@ using kvbc::ILocalKeyValueStorageReadOnly;
 
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
+using std::invalid_argument;
+using std::stringstream;
 
 namespace pruning {
 
@@ -53,6 +58,20 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
         config.getValue<decltype(duration_to_keep_minutes_)>(
             "pruning_duration_to_keep_minutes");
   }
+
+  if (pruning_enabled_) {
+    if (!config.hasValue<string>("pruning_operator_public_key")) {
+      throw invalid_argument(
+          "Cannot initialize pruning state machine: pruning has been enabled, "
+          "but no value has been provided for pruning_operator_public_key; a "
+          "public key for the operator is required if pruning is enabled.");
+    }
+
+    // Note DeserializePublicKey should handle throwing an exception in the
+    // event the operator public key is malformed or otherwise cannot be parsed.
+    operator_public_key_ = DeserializePublicKey(
+        config.getValue<string>("pruning_operator_public_key"));
+  }
 }
 
 void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
@@ -82,6 +101,63 @@ void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
         "KVBPruningSM encountered an unknown exception");
     LOG4CPLUS_ERROR(logger_, "KVBPruningSM encountered an unknown exception");
   }
+}
+
+// Helper function to GetSignablePruneCommandData.
+static void UInt64BytesToStreamLittleEndian(const uint64_t* num,
+                                            stringstream& stream) {
+#ifndef BOOST_LITTLE_ENDIAN
+#ifndef BOOST_BIG_ENDIAN
+  static_assert(false,
+                "Cannot determine architecture endianness (neither "
+                "BOOST_BIG_ENDIAN nor BOOST_LITTLE_ENDIAN is defined).");
+#endif  // BOOST_BIG_ENDIAN not defined
+#endif  // BOOST_LITTLE_ENDIAN not defined
+
+  const char* bytes = reinterpret_cast<const char*>(num);
+#ifdef BOOST_LITTLE_ENDIAN
+  for (size_t i = 0; i < sizeof(uint64_t); ++i) {
+    stream.put(*bytes);
+    ++bytes;
+  }
+#else   // BOOST_LITTLE_ENDIAN not defined in this case
+  bytes += sizeof(uint64_t);
+  for (size_t i = 0; i < sizeof(uint64_t); ++i) {
+    --bytes;
+    stream.put(*bytes);
+  }
+#endif  // if BOOST_LITTLE_ENDIAN defined/else
+}
+
+string KVBPruningSM::GetSignablePruneCommandData(
+    const PruneRequest& prune_request) {
+  // Note it is structurally possible for there to exist multiple different
+  // PruneRequest message objects that yield identical signable byte strings in
+  // the event one of those prune requests is missing expected fields or has
+  // values of unexpected length for a variable-length field; however, we
+  // currently believe it is not necessary to, say, add boolean "value present"
+  // or integer "value length" fields to the signable data we prepare here, as
+  // we believe PruneRequest messages missing expected fields or having
+  // variable-length fields of unexpected length will fail validation elsewhere.
+
+  stringstream signable_data("");
+
+  uint64_t sender = prune_request.sender();
+  UInt64BytesToStreamLittleEndian(&sender, signable_data);
+
+  for (const LatestPrunableBlock& latest_prunable_block_message :
+       prune_request.latest_prunable_block()) {
+    uint64_t replica = latest_prunable_block_message.replica();
+    UInt64BytesToStreamLittleEndian(&replica, signable_data);
+
+    uint64_t block_id = latest_prunable_block_message.block_id();
+    UInt64BytesToStreamLittleEndian(&block_id, signable_data);
+
+    const string& replica_signature = latest_prunable_block_message.signature();
+    signable_data.write(replica_signature.c_str(), replica_signature.length());
+  }
+
+  return signable_data.str();
 }
 
 void KVBPruningSM::Handle(
@@ -131,10 +207,28 @@ void KVBPruningSM::Handle(
   const auto sender =
       request.has_sender() ? request.sender() : decltype(request.sender()){0};
 
+  if (!request.has_signature() ||
+      !operator_public_key_->Verify(GetSignablePruneCommandData(request),
+                                    request.signature())) {
+    LOG4CPLUS_WARN(
+        logger_, "KVBPruingSM failed to verify PruneRequest from principal_id "
+                     << sender
+                     << " on the grounds that it did not have a verifiable "
+                        "legitimate signature from an/the operator authorized "
+                        "to issue a pruning command.");
+    return;
+  }
+
   if (!verifier_.Verify(request)) {
     LOG4CPLUS_WARN(
-        logger_, "KVBPruningSM failed to verify PruneRequest from principal_id "
-                     << sender);
+        logger_,
+        "KVBPruningSM failed to verify PruneRequest from principal_id "
+            << sender
+            << " on the grounds that the pruning request did not include "
+               "LatestPrunableBlock responses from the required replicas, or "
+               "on the grounds that some non-empty subset of those "
+               "LatestPrunableBlock messages did not bear correct signatures "
+               "from the claimed replicas.");
     return;
   }
 

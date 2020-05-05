@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #ifndef CONCORD_PRUINING_RSA_PRUNING_VERIFIER_HPP
 #define CONCORD_PRUINING_RSA_PRUNING_VERIFIER_HPP
@@ -31,6 +31,13 @@ class RSAPruningVerifier {
   // Verify() methods verify that the message comes from the advertised sender.
   // Methods return true on successful verification and false on unsuccessful.
   // An exception is thrown on error.
+  //
+  // Note RSAPruningVerifier::Verify(const com::vmware::concord::PruneRequest&)
+  // handles verification of the LatestPrunableBlock message(s) contained within
+  // the PruneRequest, but does not itself handle verification of the issuing
+  // operator's signature of the pruning command, as the operator's signature is
+  // a dedicated application-level signature rather than one of the Concord-BFT
+  // Principal's RSA signatures.
   bool Verify(const com::vmware::concord::LatestPrunableBlock&) const;
   bool Verify(const com::vmware::concord::PruneRequest&) const;
 

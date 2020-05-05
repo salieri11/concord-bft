@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #ifndef CONCORD_PRUNING_KVB_PRUNING_SM_HPP
 #define CONCORD_PRUNING_KVB_PRUNING_SM_HPP
@@ -12,6 +12,7 @@
 #include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "time/time_contract.hpp"
+#include "utils/openssl_crypto_utils.hpp"
 
 #include "concord.pb.h"
 
@@ -27,11 +28,11 @@ namespace pruning {
 // well as providing read-only information to the operator node.
 //
 // The following configuration options are honored by the state machine:
-// * pruning_enabled - a system-wide configuration option that indicates if
-// pruning is enabled for the replcia. If set to false,
-// LatestPrunableBlockRequest will return 0 as a latest block(indicating no
-// blocks can be pruned) and PruneRequest will return an error. If not
-// specified, a value of false is assumed.
+//  * pruning_enabled - a system-wide configuration option that indicates if
+//  pruning is enabled for the replcia. If set to false,
+//  LatestPrunableBlockRequest will return 0 as a latest block(indicating no
+//  blocks can be pruned) and PruneRequest will return an error. If not
+//  specified, a value of false is assumed.
 //
 //  * pruning_num_blocks_to_keep - a system-wide configuration option that
 //  specifies a minimum number of blocks to always keep in storage when pruning.
@@ -49,6 +50,11 @@ namespace pruning {
 //  (the one that prunes less blocks). This option requires the time service to
 //  be enabled.
 //
+//  * pruning_operator_public_key - the public key for a priviliged operator
+//  authorized to issue pruning commands. This parameter is required if pruning
+//  is enabled. Pruning commands that do not have a correct signature produced
+//  with the private key corresponding to this public key will be rejected.
+//
 // The LatestPrunableBlockRequest command returns the latest block ID from the
 // replica's storage that is safe to prune. If no blocks can be pruned, 0 is
 // returned.
@@ -65,7 +71,9 @@ namespace pruning {
 class KVBPruningSM {
  public:
   // Construct by providing an interface to the storage engine, configuration
-  // and tracing facilities.
+  // and tracing facilities. Note this constructor may throw an exception if
+  // there is an issue with the configuration (for example, if the configuration
+  // enables pruning but does not provide a purning operator public key).
   KVBPruningSM(const kvbc::ILocalKeyValueStorageReadOnly&,
                const config::ConcordConfiguration& config,
                const config::ConcordConfiguration& node_config,
@@ -77,6 +85,16 @@ class KVBPruningSM {
   void Handle(const com::vmware::concord::ConcordRequest&,
               com::vmware::concord::ConcordResponse&, bool read_only,
               opentracing::Span& parent_span) const;
+
+  // Given a PruneRequest Protobuf message, compute the exact byte string of
+  // data that the pruning state machine expects the operator's signature to be
+  // made over in order to prove the legitimacy of that PruneRequest. Note that
+  // the (operator's) signature field itself of the PruneRequest message does
+  // not contribute to this signable data, though (replicas') signature fields
+  // in the individual LatestPrunableBlock messages contained in the
+  // PruneRequest message may.
+  static std::string GetSignablePruneCommandData(
+      const com::vmware::concord::PruneRequest& prune_request);
 
  private:
   void Handle(const com::vmware::concord::LatestPrunableBlockRequest&,
@@ -99,6 +117,8 @@ class KVBPruningSM {
   std::uint64_t replica_id_{0};
   std::uint64_t num_blocks_to_keep_{0};
   std::uint32_t duration_to_keep_minutes_{0};
+  std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
+      operator_public_key_{nullptr};
 };
 
 }  // namespace pruning

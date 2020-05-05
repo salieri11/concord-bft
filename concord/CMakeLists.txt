@@ -75,6 +75,8 @@ find_package(cryptopp REQUIRED)
 find_package(yaml-cpp REQUIRED)
 include_directories(${yaml-cpp_INCLUDE_DIRS})
 
+find_package(OpenSSL REQUIRED)
+
 add_subdirectory("submodules")
 add_subdirectory("proto")
 add_subdirectory("src")

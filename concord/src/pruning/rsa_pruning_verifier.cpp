@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #include "rsa_pruning_verifier.hpp"
 #include "pruning_exception.hpp"
@@ -85,15 +85,10 @@ bool RSAPruningVerifier::Verify(
     return false;
   }
 
-  // Verify the request as a whole.
-  std::string ser;
-  ser << request.sender();
-  for (auto i = 0; i < request.latest_prunable_block_size(); ++i) {
-    ser << request.latest_prunable_block(i);
-  }
-  if (!Verify(request.sender(), ser, request.signature())) {
-    return false;
-  }
+  // Note RSAPruningVerifier does not handle verification of the operator's
+  // signature authorizing this pruning order, as the operator's signature is a
+  // dedicated application-level signature rather than one of the Concord-BFT
+  // principals' RSA signatures.
 
   // Verify that *all* replicas have responded with valid responses.
   auto replica_ids_to_verify = replica_ids_;
