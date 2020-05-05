@@ -345,31 +345,53 @@ class MaestroClient:
         Returns:
             list of commits and summary
         """
-        commit_summary = []
+        commits = []
         author_emails = []
         commit_ids = []
-
         try:
-            python = os.environ["python"]
-            logging.info(python)
-            output = subprocess.run([python, "../../vars/getCommitsBlame.py"] ,stdout=subprocess.PIPE).stdout.decode('utf-8')
-            logging.info(output)
+            commits_output = subprocess.run([
+                'git', 'log', 'origin/master..',
+                '--pretty=format:"%H%x09%aN%x09%aE%x09%aD%x09%s"'
+                # More info: https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-log.html
+                # %H = Full Commit Hash
+                # %x09 = Tab Character (char code 9)
+                # %aN = Author Name (respecting .mailmap)
+                # %x09 = Tab Character (char code 9)
+                # %aE = Author Email (respecting .mailmap)
+                # %x09 = Tab Character (char code 9)
+                # %aD = Author Date (RFC2822 style)
+                # %x09 = Tab Character (char code 9)
+                # %s = Commit Summary
+            ], stdout=subprocess.PIPE).stdout.decode('utf-8')
+            commits_output = commits_output.split('\n')
 
-            commits_blame = json.load(open("commits_authors.json"))
-            author_emails = commits_blame["authorsList"]
+            for line in commits_output:
+                commit_info_str = line.strip()
+                # Ignore null line
+                if commit_info_str is None or len(commit_info_str) == 0:
+                    continue
+                # strip unwanted quotes
+                while commit_info_str.startswith('"') and commit_info_str.endswith('"'):
+                    commit_info_str = commit_info_str[1:-1]
+                commit_info = commit_info_str.split('\t')
+                if len(commit_info) != 5:
+                    logging.info("git log is not displaying results as expected, line: %s" % commit_info_str)
+                    continue
+                author_email = commit_info[2]
+                summary = commit_info[4]
+                if summary.startswith("Merge branch ") or author_email == "vmwathenabot@vmware.com":
+                    logging.info("Merging commit skipped, '%s'" % summary)
+                    continue
 
-            for commit in commits_blame["commits"]:
-                commit_summary.append(commit["summary"])
-                commit_ids.append(commit["id"])
-
+                author_emails.append(commit_info[2])
+                commits.append(commit_info[4])
+                commit_ids.append(commit_info[0])
+            logging.info(commits)
             logging.info(author_emails)
-            logging.info(commit_summary)
             logging.info(commit_ids)
-
         except Exception as e:
-            logging.error("Error while fetching commit information %s" % format(e))
-            traceback.print_exc()
-        return commit_ids, commit_summary, author_emails
+            logging.info("Error while fetching commit information %s" % format(e))
+        return commit_ids, commits, author_emails
 
 
 
