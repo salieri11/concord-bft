@@ -108,6 +108,11 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
+  "DamlPreexecutionTests": [
+    "enabled": false,
+    "dockerComposeFiles": "../docker/docker-compose-daml.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
+  ],
   "ThinReplicaServerTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml-nano.yml",
