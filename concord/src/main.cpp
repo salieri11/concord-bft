@@ -34,7 +34,6 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
-#include "direct_kv_storage_factory.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
@@ -43,6 +42,7 @@
 #include "hlf/kvb_commands_handler.hpp"
 #include "hlf/kvb_storage.hpp"
 #include "kv_types.hpp"
+#include "merkle_tree_storage_factory.h"
 #include "replica_state_sync_imp.hpp"
 #include "storage_factory_interface.h"
 #include "tee/grpc_services.hpp"
@@ -94,8 +94,8 @@ using concord::kvbc::IStorageFactory;
 using concord::kvbc::ReplicaImp;
 using concord::kvbc::ReplicaStateSyncImp;
 using concord::kvbc::SetOfKeyValuePairs;
-using concord::kvbc::v1DirectKeyValue::MemoryDBStorageFactory;
-using concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory;
+using concord::kvbc::v2MerkleTree::MemoryDBStorageFactory;
+using concord::kvbc::v2MerkleTree::RocksDBStorageFactory;
 using concord::storage::ConcordBlockMetadata;
 
 using concordUtils::Status;
