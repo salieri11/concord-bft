@@ -34,7 +34,7 @@ import hudson.util.Secret
 // - Move this to another file?
 @Field Map testSuites = [
   "PersephoneSmoke": [
-    "enabled": false,
+    "enabled": true,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": true
