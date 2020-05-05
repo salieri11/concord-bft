@@ -31,19 +31,14 @@ RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
 WORKDIR /
-RUN git clone https://github.com/log4cplus/log4cplus.git && \
-    cd /log4cplus && \
-    git checkout REL_1_2_1 && \
-    autoconf && \
-    ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" \
-                --enable-static
-# Combining the RUN above with the RUN below causes the log4cplus
-# build to complain about missing aclocal-1.14.
-WORKDIR /log4cplus
-RUN make -j4 && \
-    make install && \
-    cd / && \
-    rm -r log4cplus
+RUN git clone -b REL_1_2_1 --depth 1 https://github.com/log4cplus/log4cplus.git && \
+   cd /log4cplus && \
+   autoreconf && \
+   ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" --enable-static && \
+   make -j$(nproc) && \
+   make install && \
+   cd / && \
+   rm -r log4cplus
 
 WORKDIR /
 RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com/core-build/openssl.git && \
