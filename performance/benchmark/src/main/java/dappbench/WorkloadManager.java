@@ -80,6 +80,13 @@ public abstract class WorkloadManager {
     }
 
     /**
+     * Get blockchain nodes.
+     */
+    public List<Node> getNodes() {
+        return nodes;
+    }
+
+    /**
      * Get total number of requests to be executed.
      */
     protected abstract int getRequestCount();
@@ -173,7 +180,7 @@ public abstract class WorkloadManager {
             if (node.getPercentage() == 0) {
                 continue;
             }
-            logger.info("{}", node);
+            logger.info("{} - Load share: {}%", node, node.getPercentage());
             WorkloadClient client = createClient(node.getIp(), node.getPort());
 
             long requestCountForNode = round(numOfRequests * ((double) node.getPercentage() / 100));

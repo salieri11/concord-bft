@@ -1,11 +1,11 @@
 package tee;
 
-import com.vmware.concord.tee.TeeServiceGrpc;
 import com.vmware.concord.tee.TeeServiceGrpc.TeeServiceBlockingStub;
 import dappbench.WorkloadClient;
 import io.grpc.ManagedChannel;
 import org.apache.logging.log4j.Logger;
 
+import static com.vmware.concord.tee.TeeServiceGrpc.newBlockingStub;
 import static io.grpc.ManagedChannelBuilder.forAddress;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
@@ -18,17 +18,14 @@ public class TeeClient extends WorkloadClient {
 
     private static final Logger logger = getLogger(TeeClient.class);
 
-    private static final String RUN_TEST = "RunTest";
-    private static final String SKVBC_WRITE = "SkvbcWrite";
-
-    private final String operationName;
+    private final OperationType opType;
     private final int requestSize;
 
     private Operation operation;
 
-    public TeeClient(String concordHost, int concordPort, String operationName, int requestSize) {
+    public TeeClient(String concordHost, int concordPort, OperationType opType, int requestSize) {
         super(concordHost, concordPort);
-        this.operationName = operationName;
+        this.opType = opType;
         this.requestSize = requestSize;
     }
 
@@ -37,18 +34,20 @@ public class TeeClient extends WorkloadClient {
      */
     public void init() {
         ManagedChannel channel = forAddress(getHost(), getPort()).usePlaintext().build();
-        TeeServiceBlockingStub blockingStub = TeeServiceGrpc.newBlockingStub(channel);
+        TeeServiceBlockingStub blockingStub = newBlockingStub(channel);
 
-        switch (operationName) {
+        switch (opType) {
             case RUN_TEST:
                 operation = new RunTest(requestSize, blockingStub);
                 break;
             case SKVBC_WRITE:
                 operation = new SkvbcWrite(requestSize, blockingStub);
                 break;
+            case WRITE_BLOCK:
+                operation = new WriteBlock(requestSize, blockingStub);
+                break;
             default:
-                logger.error("Unknown TEE operation: " + operationName);
-                throw new IllegalArgumentException("No such operation: " + operationName);
+                logger.error("Unknown TEE operation: " + opType);
         }
     }
 

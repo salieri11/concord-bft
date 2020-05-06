@@ -12,8 +12,7 @@ public class BenchMaster {
 
   private static final Logger logger = LogManager.getLogger(BenchMaster.class);
 
-  @SuppressWarnings("unchecked")
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     System.out.println("Starting DAppBench...");
     Yaml yaml = new Yaml(new Constructor(Benchmark.class));
     try {
@@ -29,6 +28,5 @@ public class BenchMaster {
       System.exit(-1);
     }
     logger.info("Finished benchmark!");
-    System.exit(0);
   }
 }
