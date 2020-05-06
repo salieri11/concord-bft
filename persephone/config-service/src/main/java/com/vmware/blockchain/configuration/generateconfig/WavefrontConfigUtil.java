@@ -51,14 +51,14 @@ public class WavefrontConfigUtil {
             content = new String(inputStream.readAllBytes());
         } catch (IOException e) {
             // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized wavefront config input template",
+            log.warn("File {} does not exist: {}\n Using localized wavefront config input template",
                     wavefrontTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             try {
                 File file = new File(classLoader.getResource("wavefrontConfigTemplate.conf").getFile());
                 content = new String(Files.readAllBytes(file.toPath()));
             } catch (IOException | NullPointerException ex) {
-                log.error("Wavefront config could not be read due to: {}", ex.getLocalizedMessage());
+                log.warn("Wavefront config could not be read due to: {}", ex.getLocalizedMessage());
                 return null;
             }
         }

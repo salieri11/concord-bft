@@ -69,14 +69,14 @@ public class TelegrafConfigUtil {
             content = new String(inputStream.readAllBytes());
         } catch (IOException e) {
             // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized telegraf config input template",
+            log.warn("File {} does not exist: {}\n Using localized telegraf config input template",
                     telegrafTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             try {
                 File file = new File(classLoader.getResource("TelegrafConfigTemplate.conf").getFile());
                 content = new String(Files.readAllBytes(file.toPath()));
             } catch (IOException | NullPointerException ex) {
-                log.error("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());
+                log.warn("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());
                 return null;
             }
         }
@@ -151,7 +151,7 @@ public class TelegrafConfigUtil {
             metricsConfig = yaml.load(new FileInputStream(metricsConfigYamlPath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized metrics config yaml",
+            log.warn("File {} does not exist: {}\n Using localized metrics config yaml",
                     metricsConfigYamlPath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             metricsConfig = yaml.load(classLoader.getResourceAsStream("MetricsConfig.yaml"));
