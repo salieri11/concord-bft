@@ -12,6 +12,7 @@ if [ -e ${CONFIG_FILE} ]; then
 fi
 
 API_SERVER=/doc/daml/ledger-api-server/target/universal/stage/bin/daml-on-vmware-ledger-api-server
+DATE_CMD="date --iso-8601=seconds | awk -F'+' '{print \$1}'"
 
 # Check for --version and, if present, print the version and exit
 while test $# -gt 0
@@ -25,11 +26,11 @@ done
 
 # Try to connect to PostgreSQL
 until psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
-  >&2 echo "Postgres is unavailable - sleeping"
+  >&2 echo $(eval $DATE_CMD) "Postgres is unavailable - sleeping"
   sleep 5
 done
 
->&2 echo "Postgres is up - starting ledger api server"
+>&2 echo $(eval $DATE_CMD) "Postgres is up - starting ledger api server"
 
 INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
 
