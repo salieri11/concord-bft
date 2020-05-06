@@ -61,14 +61,14 @@ public class LoggingUtil {
             content = new String(inputStream.readAllBytes());
         } catch (IOException e) {
             // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized logging config input template",
+            log.warn("File {} does not exist: {}\n Using localized logging config input template",
                     loggingEnvTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             try {
                 File file = new File(classLoader.getResource("LoggingTemplate.env").getFile());
                 content = new String(Files.readAllBytes(file.toPath()));
             } catch (IOException | NullPointerException ex) {
-                log.error("Logging config could not be read due to: {}", ex.getLocalizedMessage());
+                log.warn("Logging config could not be read due to: {}", ex.getLocalizedMessage());
                 return null;
             }
         }

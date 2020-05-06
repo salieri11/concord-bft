@@ -210,7 +210,7 @@ public class ConcordConfigUtil {
             configInput = yaml.load(new FileInputStream(concordConfigTemplatePath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized config yaml input template",
+            log.warn("File {} does not exist: {}\n Using localized config yaml input template",
                     concordConfigTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));

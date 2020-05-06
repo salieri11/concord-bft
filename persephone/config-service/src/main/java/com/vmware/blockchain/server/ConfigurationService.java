@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -23,6 +23,8 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
@@ -37,8 +39,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.DeleteConfigurationRequest;
-import com.vmware.blockchain.deployment.v1.DeleteConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.Identity;
 import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
@@ -76,9 +76,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
 
-    /** per session all node tls configuration. */
-    private final Map<ConfigurationSessionIdentifier,
-            Map<Integer, List<ConfigurationComponent>>> sessionConfig = new ConcurrentHashMap<>();
+    /** per session all node configuration. */
+    private final Cache<ConfigurationSessionIdentifier, Map<Integer, List<ConfigurationComponent>>> cache;
 
     /**
      * Constructor.
@@ -102,6 +101,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
         initialize();
+
+        cache = CacheBuilder.newBuilder()
+                .expireAfterAccess(10, TimeUnit.MINUTES)
+                .expireAfterWrite(2, TimeUnit.HOURS)
+                .build();
     }
 
     /**
@@ -293,16 +297,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(msg)));
         } else {
             log.info("Persisting configurations for session: {} in memory...", sessionId);
-            var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
-
-            if (persist == null) {
-                log.info("Persisted configurations for session: {} in memory.", sessionId);
-                observer.onNext(sessionId);
-                observer.onCompleted();
-            } else {
-                observer.onError(new StatusException(
-                        Status.INTERNAL.withDescription("Could not persist configuration results")));
-            }
+            cache.put(sessionId, nodeComponent);
+            observer.onNext(sessionId);
+            observer.onCompleted();
         }
     }
 
@@ -353,9 +350,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     @Override
     public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
-
         try {
-            var components = sessionConfig.get(request.getIdentifier());
+            var components = cache.getIfPresent(request.getIdentifier());
             log.info("Configurations found for session id {}", request.getIdentifier());
 
             var nodeComponents = components.get(request.getNode());
@@ -376,22 +372,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(errorMsg)));
         }
 
-    }
-
-    @Override
-    public void deleteConfiguration(
-            @NotNull DeleteConfigurationRequest request,
-            @NotNull StreamObserver<DeleteConfigurationResponse> observer) {
-
-        try {
-            sessionConfig.remove(request.getId());
-            log.info("Deleted configurations for session id: {}", request.getId());
-            observer.onNext(DeleteConfigurationResponse.newBuilder().build());
-            observer.onCompleted();
-        } catch (Exception e) {
-            observer.onError(new StatusException(
-                    Status.NOT_FOUND.withDescription("No configuration available for session id: " + request.getId())));
-        }
     }
 
     /**
