@@ -794,9 +794,9 @@ def call(){
                       try {
                         env.blockchain_location = "sddc"
                         testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
-                            " --blockchainType " + params.concord_type.toLowerCase() +
-                            " --blockchainLocation " + env.blockchain_location +
-                            " --numReplicas 7 --numParticipants 1 "
+                            " --blockchainType daml" +
+                            " --blockchainLocation onprem" +
+                            " --numReplicas 7 --numParticipants 3 "
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
