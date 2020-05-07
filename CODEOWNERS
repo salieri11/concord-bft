@@ -19,7 +19,7 @@
 /agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
 /communication/ @rmuschner @andrewstone @machenbach @ysherman @tparvanov
-/concord/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
+/concord/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov @ybuchnik @ddanilov @tdimitrov @lgal @elerer @hstaykov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
 /daml/ @rmuschner @upshawa @bjay @bhealy @ftudane @jmaki @mmiklos @mziolek
 /docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
@@ -33,7 +33,7 @@
 /performance/ @vlin @dparmar @rsg @rahulg
 /persephone/ @khank @sanchitar @rsg @panamika @mandeab @hbhavsar
 /src/ @rvollmar @rsg
-/thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay @ysherman @igolikov @tkournik
+/thin-replica-client/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov @ybuchnik @ddanilov @tdimitrov @lgal @elerer @hstaykov
 /ui/ @mharrison @hbhavsar @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg @khank
 /kubernetes/ @bsubramanian @khank @rvollmar
