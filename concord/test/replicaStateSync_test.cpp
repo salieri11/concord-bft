@@ -73,6 +73,11 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
                                 BlockId toBlock, bool &outRes) const override {
     return Status::OK();
   }
+
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
 };
 
 class MockIBlocksAppender : public IBlocksAppender {

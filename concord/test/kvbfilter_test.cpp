@@ -54,6 +54,11 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
     return Status::IllegalOperation("get() should not be called by this test");
   }
 
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
+
   BlockId getLastBlock() const override { return blockId_; }
 
   Status getBlockData(BlockId b_id, SetOfKeyValuePairs& kvp) const override {

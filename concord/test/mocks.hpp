@@ -65,6 +65,7 @@ class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
   MOCK_CONST_METHOD4(mayHaveConflictBetween,
                      Status(const Sliver&, BlockId, BlockId, bool&));
   MOCK_CONST_METHOD0(monitor, void());
+  MOCK_CONST_METHOD0(getGenesisBlock, BlockId());
 };
 
 class MockBlockAppender : public IBlocksAppender {

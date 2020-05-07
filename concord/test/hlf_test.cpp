@@ -60,6 +60,11 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
 
   BlockId getLastBlock() const override { return 0; }
 
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
+
   Status getBlockData(BlockId blockId,
                       SetOfKeyValuePairs& outBlockData) const override {
     EXPECT_TRUE(false) << "Test should not cause getBlockData to be called";

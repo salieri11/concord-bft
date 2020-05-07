@@ -75,6 +75,11 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
     return db_.get(keyGen_->dataKey(key, 0), outValue);
   }
 
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
+
   BlockId getLastBlock() const override { return 0; }
 
   Status getBlockData(BlockId blockId,
