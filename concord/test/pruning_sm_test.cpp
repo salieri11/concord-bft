@@ -110,6 +110,11 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
 
   void setBlockId(BlockId id) { blockId_ = id; }
 
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
+
  private:
   KeyComparator comp_{new DBKeyComparator{}};
   Client db_{comp_};

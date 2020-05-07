@@ -79,6 +79,11 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
     return db_.cbegin()->first + db_.size() - 1;
   }
 
+  BlockId getGenesisBlock() const override {
+    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
+    return 0;
+  }
+
   Status getBlockData(BlockId id, SetOfKeyValuePairs& kvp) const override {
     auto res = db_.find(id);
     if (res == db_.end()) {
