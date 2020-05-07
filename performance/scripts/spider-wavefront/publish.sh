@@ -3,27 +3,45 @@
 # input: https://github.com/gatling/gatling/blob/master/gatling-charts/src/main/scala/io/gatling/charts/template/GlobalStatsJsonTemplate.scala
 # output: https://docs.wavefront.com/wavefront_data_format.html#metrics-data-format-syntax
 
-# Raw data points from each request
-metrics() {
+# Response time for each request
+response_time() {
   local file="$dir/simulation.log"
   local metric="chessplus.raw.responseTime.ms"
 
-  while read -r -a fields; do
-    if [ "${fields[0]}" == "REQUEST" ]; then
+  awk -v m=$metric -v s="$source" -v d="$date" \
+    'BEGIN {OFMT = "%.0f"} /^REQUEST/ {print m, $5-$4, $4/1000, "source="s, "type="$3, "status="$6, "user="$2, "date="d}' "$file"
+}
 
-      local user="${fields[1]}"
-      local type="${fields[2]}"
-      local timestamp=$((fields[3] / 1000))
-      local latency=$((fields[4] - fields[3]))
-      local status="${fields[5]}"
+# Count of initiated requests, grouped by second
+request_rate() {
+  local metric="chessplus.rps.initiated"
+  local index="0"
+  rps $metric $index
+}
 
-      echo "$metric $latency $timestamp source=$source type=$type status=$status user=$user concurrency=$concurrency blockchain=$blockchain date=$date"
-    fi
-  done <"$file"
+# Count of completed requests, grouped by second
+response_rate() {
+  local metric="chessplus.rps.completed"
+  local index="1"
+  rps $metric $index
+}
+
+# Count of either initiated or completed requests, grouped by second
+rps() {
+  local metric=$1
+  local index=$2
+  local file="$dir/simulation.log"
+
+  awk -v i="$index" \
+    'BEGIN {OFMT = "%.0f"} /^REQUEST/ {print $3, $(4+i)/1000 ,$6}' "$file" |
+    sort |
+    uniq -c |
+    awk -v m="$metric" -v s="$source" -v d="$date" \
+      'BEGIN {OFMT = "%.0f"} {print m, $1, $3, "source="s, "type="$2, "status="$4, "date="d}'
 }
 
 # Statistics from aggregate functions
-stats() {
+aggregate_stats() {
   local file="$dir/js/stats.json"
   local prefix="chessplus.stats."
   local tags="[\"concurrency=$concurrency\", \"blockchain=$blockchain\"]"
@@ -47,8 +65,10 @@ publish() {
 main() {
   init
 
-  metrics | publish
-  stats | publish
+  response_time | publish
+  request_rate | publish
+  response_rate | publish
+  aggregate_stats | publish
 }
 
 # Assign global parameters
