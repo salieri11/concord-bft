@@ -6,11 +6,11 @@ services:
       - "443:443"
       - "8843:8843"
     volumes:
-      - ./docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+      - ./data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
 
   fluentd:
     build:
-      context: ./docker/fluentd
+      context: ""
     image: "${fluentd_repo}:${fluentd_tag}"
     container_name: fluentd
     ports:
@@ -19,4 +19,4 @@ services:
     environment:
       - FLUENTD_CONF=fluent.conf
     volumes:
-      - ./docker/fluentd:/fluentd/etc
+      - ./fluentd:/fluentd/etc
