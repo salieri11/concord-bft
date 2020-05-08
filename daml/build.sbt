@@ -4,6 +4,7 @@ ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.5-SNAPSHOT"
 ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
+ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com.digitalasset.kvbc.daml_validator.*"
 
 lazy val akkaVersion = "2.6.1"
 lazy val sdkVersion = "1.1.0-snapshot.20200422.3991.0.6391ee9f"
@@ -29,7 +30,6 @@ lazy val protos = (project in file("protos"))
       target.value / "protobuf_external" / "protobuf",
       baseDirectory.value / "../../concord/proto",
     ),
-    //excludeFilter in PB.generate := "*.proto",
     includeFilter in PB.generate := "daml*.proto",
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
