@@ -2454,6 +2454,7 @@ def test_invalidBlockHash(fxConnection, fxBlockchain):
 
 @describe()
 @pytest.mark.smoke
+@pytest.mark.skip(reason="BC-2131")
 def test_largeReply(fxConnection, fxBlockchain):
    ### 1. Create three contracts, each 16kb in size
    ### 2. Request latest transaction list
