@@ -15,8 +15,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
-      - ./docker/config-concord1:/concord/config-local
-      - ./docker/config-public:/concord/config-public:ro
+      - ./config-concord1:/concord/config-local
+      - ./config-public:/concord/config-public:ro
       - ${tls_certs_location}:/concord/tls_certs:ro
 
   concord2:
@@ -34,8 +34,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
-      - ./docker/config-concord2:/concord/config-local
-      - ./docker/config-public:/concord/config-public:ro
+      - ./config-concord2:/concord/config-local
+      - ./config-public:/concord/config-public:ro
       - ${tls_certs_location}:/concord/tls_certs:ro
 
   concord3:
@@ -53,8 +53,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
-      - ./docker/config-concord3:/concord/config-local
-      - ./docker/config-public:/concord/config-public:ro
+      - ./config-concord3:/concord/config-local
+      - ./config-public:/concord/config-public:ro
       - ${tls_certs_location}:/concord/tls_certs:ro
 
   concord4:
@@ -72,8 +72,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
-      - ./docker/config-concord4:/concord/config-local
-      - ./docker/config-public:/concord/config-public:ro
+      - ./config-concord4:/concord/config-local
+      - ./config-public:/concord/config-public:ro
       - ${tls_certs_location}:/concord/tls_certs:ro
 
   helen:
@@ -98,7 +98,7 @@ services:
 
   ui:
     build:
-      context: ./ui
+      context: ../ui
     image: "${ui_repo}:${ui_tag}"
     ports:
       - 80:80
@@ -107,7 +107,7 @@ services:
 
   contract-compiler:
     build:
-      context: ./contract-compiler
+      context: ../contract-compiler
     image: "${contract_compiler_repo}:${contract_compiler_tag}"
     ports:
       - 3000:3000
@@ -142,13 +142,13 @@ services:
       - "443:443"
       - "8843:8843"
     volumes:
-      - ./docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+      - ./data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
     depends_on:
       - helen
 
   fluentd:
     build:
-      context: ./docker/fluentd
+      context: fluentd
     image: "${fluentd_repo}:${fluentd_tag}"
     container_name: fluentd
     ports:
@@ -157,4 +157,4 @@ services:
     environment:
       - FLUENTD_CONF=fluent.conf
     volumes:
-      - ./docker/fluentd:/fluentd/etc
+      - ./fluentd:/fluentd/etc

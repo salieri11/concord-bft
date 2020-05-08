@@ -5,7 +5,7 @@ services:
     ports:
       - 8545:8545
     volumes:
-      - ./docker/config-ethrpc1:/config:ro
+      - ./config-ethrpc1:/config:ro
     command:
       - java
       - -jar

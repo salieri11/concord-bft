@@ -2,7 +2,7 @@ version: '3'
 services:
   ui:
     build:
-      context: ./ui
+      context: ""
     image: "${ui_repo}:${ui_tag}"
     ports:
       - 80:80
