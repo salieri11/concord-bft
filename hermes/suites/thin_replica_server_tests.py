@@ -21,6 +21,7 @@ import itertools
 from suites.case import describe
 
 import util.daml.upload_dar as darutil
+import util.daml.daml_helper as daml_helper
 import util.helper as helper
 from util.thin_replica.trutil import ThinReplica
 
@@ -37,25 +38,17 @@ def setup_test_suite():
 
     Upload DAR file so each test has something to query.
     """
-    TEST_DAR = "Test-stable.dar"
-    TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
-
-    tmp_dar = ""
-    with NamedTemporaryFile(delete=False) as tmp:
-        getDar = "docker cp {}:/{} {}".format(TEST_TOOL_CONTAINER, TEST_DAR, tmp.name)
-        try:
-            subprocess.check_call(getDar.split())
-        except subprocess.CalledProcessError as e:
-            msg = "Failed to copy DAR ({}): {}".format(TEST_DAR, e)
-            msg += "\n{}".format(e.output)
-            LOG.error(msg)
-            raise
-        tmp_dar = tmp.name
+    TEST_DAR = "Test-stable.dar"    
+    _, dars = daml_helper.download_ledger_api_test_tool("localhost")
+    
+    for dar in dars:
+        if TEST_DAR in dar:
+            dar_to_upload = dar
+            break
 
     dar_uploaded = darutil.upload_dar(
-        host="localhost", port="6861", darfile=tmp_dar)
-    assert dar_uploaded, "Failed to upload test DAR " + tmp_dar
-    os.remove(tmp_dar)
+        host="localhost", port="6861", darfile=dar_to_upload)
+    assert dar_uploaded, "Failed to upload test DAR " + dar_to_upload
     return ThinReplica("localhost", "50051")
 
 def get_newest_block_id(thin_replica_list):

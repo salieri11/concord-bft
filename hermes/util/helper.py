@@ -328,6 +328,7 @@ def ssh_connect(host, username, password, command, log_mode=None):
    logging.getLogger("paramiko").setLevel(logging.WARNING)
 
    resp = None
+   ssh = None
    try:
       ssh = paramiko.SSHClient()
       ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -344,7 +345,9 @@ def ssh_connect(host, username, password, command, log_mode=None):
          log.warning("Could not connect to {}".format(host))
       else:
          log.error("Could not connect to {}: {}".format(host, e))
-
+   finally:
+      if ssh:
+         ssh.close()
    return resp
 
 
@@ -403,10 +406,11 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command):
+def execute_ext_command(command, display_output_on_success=True):
    '''
    Helper method to execute an external command
    :param command: command to be executed
+   :param display_output_on_success: Whether to display output on success.
    :return: True if command exit status is 0, else False
    '''
    log.debug("Executing external command: {}".format(command))
@@ -415,10 +419,12 @@ def execute_ext_command(command):
                                      stderr=subprocess.STDOUT)
    try:
       completedProcess.check_returncode()
-      log.debug("stdout: {}".format(
-         completedProcess.stdout.decode().replace(os.linesep, "")))
-      if completedProcess.stderr:
-         log.info("stderr: {}".format(completedProcess.stderr))
+
+      if display_output_on_success:
+         log.debug("stdout: {}".format(
+            completedProcess.stdout.decode().replace(os.linesep, "")))
+         if completedProcess.stderr:
+            log.info("stderr: {}".format(completedProcess.stderr.decode()))
    except subprocess.CalledProcessError as e:
       log.error(
          "Command '{}' failed to execute: {}".format(command, e.returncode))
@@ -554,12 +560,9 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
    log.debug("Port forwarding failed")
    return False
 
-def verify_daml_test_ready(docker_compose_files, endpoint_hosts,
-                                       endpoint_port, max_tries=10):
+def verify_daml_test_ready(endpoint_hosts, endpoint_port, max_tries=10):
    '''
-   Verify if daml test tool container is run; used for copying dar files,
-   and also checks the connectivity of endpoints
-   :param docker_compose_files: list of docker compose files
+   Checks the connectivity of endpoints
    :param endpoint_hosts: list of endpoints (hosts/ips)
    :param endpoint_port: endpoint port
    :param max_tries: max tries to check the connectivity
@@ -569,17 +572,7 @@ def verify_daml_test_ready(docker_compose_files, endpoint_hosts,
       if not verify_connectivity(ip, endpoint_port, max_tries=max_tries):
          return False
 
-   cmd_list_tests = "docker ps -a"
-   daml_test_tool_image = get_docker_compose_value(docker_compose_files,
-                                                   "daml_test_tool", "image")
-   status, output = execute_ext_command(cmd_list_tests.split())
-
-   if status:
-      for item in output:
-         if daml_test_tool_image in item:
-            return True
-
-   return False
+   return True
 
 
 def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1, max_tries=15):
