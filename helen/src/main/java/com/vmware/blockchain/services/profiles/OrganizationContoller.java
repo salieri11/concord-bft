@@ -71,9 +71,9 @@ public class OrganizationContoller {
      * @return a particular org with id
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.GET)
-    @PreAuthorize("@authHelper.canAccessOrg(#orgId)")
-    public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID orgId) {
-        Organization org = orgService.get(orgId);
+    @PreAuthorize("@authHelper.canAccessOrg(#organizationId)")
+    public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID organizationId) {
+        Organization org = orgService.get(organizationId);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
                 org.getOrganizationProperties()), HttpStatus.OK);
     }
@@ -84,10 +84,10 @@ public class OrganizationContoller {
      * @return the new org
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.PATCH)
-    @PreAuthorize("@authHelper.canUpdateOrg(#orgId)")
-    public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId,
+    @PreAuthorize("@authHelper.canUpdateOrg(#organizationId)")
+    public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID organizationId,
                                                     @RequestBody OrgPatchBody body) {
-        Organization org = orgService.get(orgId);
+        Organization org = orgService.get(organizationId);
 
         Map<String, String> addMap = body.getAddProperties();
         Map<String, String> delMap = body.getDeleteProperties();
