@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
         *logger_p, "Attempting to construct ThinReplicaClient..." << client_id);
 
     trc_facade.reset(new ThinReplicaClientFacade(
-        client_id, max_faulty, private_key, servers, "127.0.0.1:6831"));
+        client_id, max_faulty, private_key, servers, 5, 5, "127.0.0.1:6831"));
 
     LOG4CPLUS_DEBUG(*logger_p, "ThinReplicaClient constructed.");
     trc_facade->Subscribe("");

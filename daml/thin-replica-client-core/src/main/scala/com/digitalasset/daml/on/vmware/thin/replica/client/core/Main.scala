@@ -61,6 +61,8 @@ object Main extends App {
     1,
     "",
     Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"),
+    5,
+    5,
     "localhost:6831")
   assert(creatResult == true)
   System.out.println("ThinReplicaClient constructed.")
