@@ -1550,10 +1550,6 @@ ConcordConfiguration::ParameterStatus validateUInt(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failureMessage, void* state);
 
-config::ConcordConfiguration::ParameterStatus ValidateNumClients(
-    const std::string& value, const config::ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state);
-
 ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failure_message, void* state);
@@ -1562,7 +1558,7 @@ ConcordConfiguration::ParameterStatus sizeExternalClients(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state);
 
-ConcordConfiguration::ParameterStatus ValidateTimeOutMilli1(
+ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failure_message, void* state);
 
@@ -1608,6 +1604,11 @@ inline const std::pair<long long, long long> kInt32Limits({INT32_MIN,
 // minimal error responses can be passed through them.
 inline const std::pair<unsigned long long, unsigned long long>
     kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
+
+// We enforce a minimum size on communication buffers to ensure at least
+// minimal error responses can be passed through them.
+inline const std::pair<unsigned long long, unsigned long long>
+    kParticipantNodeNumOfClients({1, 4096});
 
 }  // namespace config
 }  // namespace concord

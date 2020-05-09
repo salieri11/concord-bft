@@ -29,7 +29,7 @@ using concord::config::YAMLConfigurationOutput;
 namespace po = boost::program_options;
 
 void defineOptionsSpec(string& inputFilename, string& outputPrefix,
-                       string& nodeMapFilename, bool& client_flag,
+                       string& nodeMapFilename, bool& clientFlag,
                        options_description& optionsSpec) {
   // clang-format off
   optionsSpec.add_options()
@@ -56,15 +56,16 @@ void defineOptionsSpec(string& inputFilename, string& outputPrefix,
        "JSON Object and principal IDs in each node's array of them will be in "
        "any particular order. This report-principal-locations option is intended "
        "primarily for use by software that automates the deployment of Concord.")
-      ("client-conf", po::value<bool>(&client_flag),
+      ("client-conf", po::value<bool>(&clientFlag),
        " An optional flag that specifies if the current input file is intended for a client configuration.");
 
   // clang-format on
 }
 
-void configurationSpec(ConcordConfiguration& config, bool client_flag) {
-  if (client_flag) {
+void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
+  if (clientFlag) {
     specifyExternalClientConfiguration(config);
+    config.setConfigurationStateLabel("concord_external_client");
   } else {
     specifyConfiguration(config);
     config.setConfigurationStateLabel("configuration_generation");
@@ -72,17 +73,17 @@ void configurationSpec(ConcordConfiguration& config, bool client_flag) {
 }
 
 int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
-                                ConcordConfiguration& config, bool client_flag,
+                                ConcordConfiguration& config, bool clientFlag,
                                 const log4cplus::Logger& concGenconfigLogger) {
   try {
-    loadClusterSizeParameters(yamlInput, config, client_flag);
+    loadClusterSizeParameters(yamlInput, config, clientFlag);
   } catch (ConfigurationResourceNotFoundException& e) {
     LOG4CPLUS_FATAL(concGenconfigLogger,
                     "Failed to load required parameters from input.");
     return -1;
   }
   try {
-    if (client_flag)
+    if (clientFlag)
       instantiateClientTemplatedConfiguration(yamlInput, config);
     else
       instantiateTemplatedConfiguration(yamlInput, config);
@@ -107,7 +108,7 @@ int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
                     "parameters not included in input.");
     return -1;
   }
-  if (!client_flag) {
+  if (!clientFlag) {
     try {
       LOG4CPLUS_INFO(concGenconfigLogger,
                      "Beginning key generation for the requested cluster. "
@@ -159,10 +160,10 @@ int valideConfig(ConcordConfiguration& config,
 }
 
 int outputConfig(ConcordConfiguration& config,
-                 const log4cplus::Logger& concGenconfigLogger, bool client_flag,
+                 const log4cplus::Logger& concGenconfigLogger, bool clientFlag,
                  const string nodeMapFilename,
                  const variables_map& optionsInput, string& outputPrefix) {
-  if (client_flag) {
+  if (clientFlag) {
     size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
     for (size_t i = 0; i < numNodes; ++i) {
       std::string outputFilename =
@@ -228,11 +229,11 @@ int main(int argc, char** argv) {
   std::string inputFilename;
   std::string outputPrefix;
   std::string nodeMapFilename;
-  bool client_flag = false;
+  bool clientFlag = false;
 
   variables_map optionsInput;
   options_description optionsSpec;
-  defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, client_flag,
+  defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, clientFlag,
                     optionsSpec);
 
   store(command_line_parser(argc, argv).options(optionsSpec).run(),
@@ -277,12 +278,12 @@ int main(int argc, char** argv) {
     return -1;
   }
   ConcordConfiguration config;
-  configurationSpec(config, client_flag);
-  if (initiateConfigurationParams(yamlInput, config, client_flag,
+  configurationSpec(config, clientFlag);
+  if (initiateConfigurationParams(yamlInput, config, clientFlag,
                                   concGenconfigLogger) == -1)
     return -1;
   if (valideConfig(config, concGenconfigLogger) == -1) return -1;
-  if (outputConfig(config, concGenconfigLogger, client_flag, nodeMapFilename,
+  if (outputConfig(config, concGenconfigLogger, clientFlag, nodeMapFilename,
                    optionsInput, outputPrefix) == -1)
     return -1;
   LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");

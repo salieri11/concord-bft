@@ -24,8 +24,8 @@ node:
   - replica:
       - replica_host: concord4
         replica_port: 3501
-Participant_nodes:
-  - Participant_node: 	
+participant_nodes:
+  - participant_node: 	
       - external_clients:
           - client:
               - client_port: 3502
@@ -37,7 +37,7 @@ Participant_nodes:
               - client_port: 3505
           - client:
               - client_port: 3506
-  - Participant_node: 	
+  - participant_node: 	
       - external_clients:
           - client:
               - client_port: 3507

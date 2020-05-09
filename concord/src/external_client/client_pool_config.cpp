@@ -27,6 +27,7 @@ using config::YAMLConfigurationInput;
 void ParseConfig(std::istream& config_stream,
                  config::ConcordConfiguration& config) {
   config::specifyExternalClientConfiguration(config);
+  config.setConfigurationStateLabel("concord_external_client");
   YAMLConfigurationInput yaml{config_stream};
 
   yaml.parseInput();

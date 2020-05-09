@@ -3623,13 +3623,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
-                               ConcordConfiguration& config, bool is_client) {
+                               ConcordConfiguration& config, bool isClient) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ConfigurationPath fValPath("f_val", false);
   ConfigurationPath cValPath("c_val", false);
   vector<ConfigurationPath> requiredParameters({fValPath, cValPath});
-  if (is_client) {
+  if (isClient) {
     ConfigurationPath participant_nodes("num_of_participant_nodes", false);
     requiredParameters.push_back(std::move(participant_nodes));
     ConfigurationPath externalClients("clients_per_participant_node", false);
@@ -3793,11 +3793,11 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
 
   assert(config.containsScope("node"));
   ConcordConfiguration& node = config.subscope("node");
-  ConcordConfiguration& part_nodes = config.subscope("Participant_nodes");
-  ConcordConfiguration& part_node = part_nodes.subscope("Participant_node");
+  ConcordConfiguration& part_nodes = config.subscope("participant_nodes");
+  ConcordConfiguration& part_node = part_nodes.subscope("participant_node");
   ConcordConfiguration& clients = part_node.subscope("external_clients");
   assert(node.containsScope("replica"));
-  assert(part_nodes.containsScope("Participant_node"));
+  assert(part_nodes.containsScope("participant_node"));
 
   // Note this function is complicated by the fact that it handles loading the
   // contents of templates before instantiating them as well as the fact that
@@ -3821,9 +3821,9 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   part_node.instantiateScope("external_clients");
-  part_nodes.instantiateScope("Participant_node");
+  part_nodes.instantiateScope("participant_node");
   config.instantiateScope("node");
-  config.instantiateScope("Participant_nodes");
+  config.instantiateScope("participant_nodes");
 
   // Now, we load values to parameters in scope templates within node instances.
   selection =
@@ -4166,10 +4166,10 @@ static bool selectParticipantConfiguration(const ConcordConfiguration& config,
 
   size_t node = *(static_cast<size_t*>(state));
 
-  if (path.isScope && (path.name == "Participant_nodes") && path.useInstance &&
+  if (path.isScope && (path.name == "participant_nodes") && path.useInstance &&
       (path.index == node)) {
     return true;
-  } else if (path.isScope && (path.name == "Participant_nodes") &&
+  } else if (path.isScope && (path.name == "participant_nodes") &&
              path.useInstance && (path.index != node))
     return false;
 
@@ -4186,8 +4186,8 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         size_t node) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
   ConcordConfiguration node_config = config;
-  node_config.subscope("Participant_nodes", 0) =
-      config.subscope("Participant_nodes", node);
+  node_config.subscope("participant_nodes", 0) =
+      config.subscope("participant_nodes", node);
   node = 0;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts")) {
@@ -4598,21 +4598,6 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
   output << principal_map;
 }
 
-config::ConcordConfiguration::ParameterStatus ValidateNumClients(
-    const std::string& value, const config::ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state) {
-  if (const auto res = config::validateUInt(
-          value, config, path, failure_message,
-          const_cast<void*>(
-              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
-      res != ConcordConfiguration::ParameterStatus::VALID) {
-    throw ConfigurationException{" Pool clients configuration failed"};
-  }
-  if (std::stoull(value) > 4096)
-    throw ConfigurationException{" Pool clients configuration failed"};
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
 ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failure_message, void* state) {
@@ -4652,17 +4637,12 @@ ConcordConfiguration::ParameterStatus sizeParticipantsNodes(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
-
+  uint16_t num_participants = 0;
   if (!(config.hasValue<uint16_t>("num_of_participant_nodes"))) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  uint16_t num_participants =
-      config.getValue<uint16_t>("num_of_participant_nodes");
+    num_participants = 1;
+  } else
+    num_participants = config.getValue<uint16_t>("num_of_participant_nodes");
   size_t numParticipants = (size_t)num_participants;
-  if (numParticipants > (size_t)UINT16_MAX) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
   *output = numParticipants;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
@@ -4671,7 +4651,6 @@ ConcordConfiguration::ParameterStatus sizeParticipantNode(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
-
   size_t numParticipants = (size_t)1;
   *output = numParticipants;
   return ConcordConfiguration::ParameterStatus::VALID;
@@ -4692,9 +4671,6 @@ ConcordConfiguration::ParameterStatus sizeExternalClients(
   uint16_t num_clients_proxies =
       config.getValue<uint16_t>("clients_per_participant_node");
   size_t numExternal = (size_t)num_clients_proxies;
-  if (numExternal > (size_t)UINT16_MAX) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
   *output = numExternal;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
@@ -4710,8 +4686,8 @@ ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
     return res;
   }
 
-  if (!config.hasValue<int>("client_initial_retry_timeout_milli") ||
-      !config.hasValue<int>("client_max_retry_timeout_milli")) {
+  if (!config.hasValue<uint16_t>("client_initial_retry_timeout_milli") ||
+      !config.hasValue<uint16_t>("client_max_retry_timeout_milli")) {
     if (failure_message) {
       *failure_message =
           "Cannot validate timeouts milli- some field not initialized";
@@ -4723,10 +4699,8 @@ ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
       config.getValue<uint16_t>("client_initial_retry_timeout_milli");
   auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
   auto min = std::stoull(value);
-  if (min < 1 || min > UINT_LEAST16_MAX)
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  if (max < 1 || max > UINT_LEAST16_MAX)
-    return ConcordConfiguration::ParameterStatus::INVALID;
+  if (min < 1) return ConcordConfiguration::ParameterStatus::INVALID;
+  if (max < 1) return ConcordConfiguration::ParameterStatus::INVALID;
   if (initial < min || initial > max) {
     if (failure_message) {
       *failure_message =
@@ -4750,8 +4724,7 @@ static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
   uint16_t principalID = (uint16_t)(std::stoull(value));
 
   if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("num_of_external_clients")) {
+      !config.hasValue<uint16_t>("c_val")) {
     if (failureMessage) {
       *failureMessage =
           "Cannot fully validate Concord-BFT principal ID for " +
@@ -4764,85 +4737,25 @@ static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
   uint16_t fVal = config.getValue<uint16_t>("f_val");
   uint16_t cVal = config.getValue<uint16_t>("c_val");
   uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
-  uint16_t clientProxiesPerReplica =
-      config.getValue<uint16_t>("num_of_external_clients");
-  uint16_t numPrincipals = numReplicas + (1 + clientProxiesPerReplica);
 
   // The path to a principal Id should be of one of these forms:
   //   node[i]/replica[0]/principal_id
-  //   node[i]/client_proxy[j]/principal_id
+  //   participant_node[i]/external_client[j]/client[0]/principal_id
   assert(path.isScope && path.subpath);
+  assert(path.subpath->subpath->subpath->name == "client");
 
-  if (path.subpath->name == "replica") {
-    if (principalID >= numReplicas) {
-      if (failureMessage) {
-        *failureMessage =
-            "Invalid principal ID for " + path.toString() + ": " +
-            std::to_string(principalID) +
-            ". Principal IDs for replicas must be less than num_replicas.";
-      }
-      return ConcordConfiguration::ParameterStatus::INVALID;
+  if ((principalID < numReplicas)) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid principal ID for " + path.toString() + ": " +
+          std::to_string(principalID) +
+          ". Principal IDs for client proxies should be in the range "
+          "(num_replicas, num_principals - 1), inclusive.";
     }
-
-  } else {
-    assert(path.subpath->name == "client");
-
-    if ((principalID < numReplicas) || (principalID >= numPrincipals)) {
-      if (failureMessage) {
-        *failureMessage =
-            "Invalid principal ID for " + path.toString() + ": " +
-            std::to_string(principalID) +
-            ". Principal IDs for client proxies should be in the range "
-            "(num_replicas, num_principals - 1), inclusive.";
-      }
-      return ConcordConfiguration::ParameterStatus::INVALID;
-    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
   }
 
   res = ConcordConfiguration::ParameterStatus::VALID;
-  for (size_t i = 0; i < numReplicas; ++i) {
-    ConfigurationPath replicaPath("node", (size_t)i);
-    replicaPath.subpath.reset(new ConfigurationPath("replica", (size_t)0));
-    replicaPath.subpath->subpath.reset(
-        new ConfigurationPath("principal_id", false));
-    if (!config.hasValue<uint16_t>(replicaPath)) {
-      if (replicaPath != path) {
-        res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-      }
-    } else if ((config.getValue<uint16_t>(replicaPath) == principalID) &&
-               (replicaPath != path)) {
-      if (failureMessage) {
-        *failureMessage = "Invalid principal ID for " + path.toString() + ": " +
-                          std::to_string(principalID) +
-                          ". This ID is non-unique; it duplicates the ID for " +
-                          replicaPath.toString() + ".";
-      }
-      return ConcordConfiguration::ParameterStatus::INVALID;
-    }
-
-    for (size_t j = 0; j < clientProxiesPerReplica; ++j) {
-      ConfigurationPath clientProxyPath("node", (size_t)i);
-      clientProxyPath.subpath.reset(new ConfigurationPath("client_proxy", j));
-      clientProxyPath.subpath->subpath.reset(
-          new ConfigurationPath("principal_id", false));
-      if (!config.hasValue<uint16_t>(clientProxyPath)) {
-        if (clientProxyPath != path) {
-          res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-        }
-      } else if ((config.getValue<uint16_t>(clientProxyPath) == principalID) &&
-                 (clientProxyPath != path)) {
-        if (failureMessage) {
-          *failureMessage =
-              "Invalid principal ID for " + path.toString() + ": " +
-              std::to_string(principalID) +
-              ". This ID is non-unique; it duplicates the ID for " +
-              clientProxyPath.toString() + ".";
-        }
-        return ConcordConfiguration::ParameterStatus::INVALID;
-      }
-    }
-  }
-
   if (failureMessage &&
       (res ==
        ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)) {
@@ -4859,7 +4772,7 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
     std::string* output, void* state) {
   // The path to a principal Id should be of one of these forms:
   //   node[i]/replica[0]/principal_id
-  //   node[i]/client_proxy[j]/principal_id
+  //   participant_node[i]/external_client[j]/client[0]/principal_id
 
   assert(path.isScope && path.subpath && path.useInstance);
 
@@ -4904,39 +4817,48 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
 
   vector<std::string> publicInputTags(
       {"config_generation_time", "input", "public"});
+
+  vector<std::string> privateInputTags(
+      {"config_generation_time", "input", "private"});
+
   config.declareParameter(
       "num_of_participant_nodes",
       "Total number of participant nodes in this deployment.");
-  config.tagParameter("num_of_participant_nodes", publicInputTags);
-  config.declareParameter("clients_per_participant_node",
-                          "Max number of clients");
+  config.tagParameter("num_of_participant_nodes", privateInputTags);
+  config.declareParameter(
+      "clients_per_participant_node",
+      "Max number of clients that each participant node can have");
   config.tagParameter("clients_per_participant_node", publicInputTags);
-  config.addValidator("clients_per_participant_node", ValidateNumClients,
-                      nullptr);
-  config.declareScope("Participant_nodes", "Participant nodes scope",
+  config.addValidator("clients_per_participant_node", validateUInt,
+                      const_cast<void*>(reinterpret_cast<const void*>(
+                          &config::kParticipantNodeNumOfClients)));
+  config.declareScope("participant_nodes", "Participant nodes scope",
                       sizeParticipantsNodes, nullptr);
-  auto& participant_nodes = config.subscope("Participant_nodes");
-  participant_nodes.declareScope("Participant_node", "One node",
+  auto& participant_nodes = config.subscope("participant_nodes");
+  participant_nodes.declareScope("participant_node", "One node",
                                  sizeParticipantNode, nullptr);
-  auto& participant_node = participant_nodes.subscope("Participant_node");
-  participant_node.declareScope("external_clients",
-                                "External client pool params replicas",
-                                sizeExternalClients, nullptr);
+  auto& participant_node = participant_nodes.subscope("participant_node");
+  participant_node.declareScope(
+      "external_clients",
+      "Scope that represent the clients inside this participant node, this "
+      "scope holds port number and principal id for each client",
+      sizeExternalClients, nullptr);
   auto& external_clients = participant_node.subscope("external_clients");
   external_clients.declareScope("client", "One external client params",
                                 config::sizeReplicas, nullptr);
   auto& client = external_clients.subscope("client");
   client.declareParameter(
       "principal_id",
-      "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
+      "Unique ID number for this Concord-BFT client proxy. Concord-BFT "
+      "considers "
       "replicas, clients and client proxies to be principals, each of which "
       "must have a unique ID.");
   client.tagParameter("principal_id", publicGeneratedTags);
-  // client.addValidator("principal_id", validatePrincipalId, nullptr);
+  client.addValidator("principal_id", validateClientPrincipalId, nullptr);
   client.addGenerator("principal_id", computeClientPrincipalId, nullptr);
 
   client.declareParameter("client_port",
-                          "Port number this replica can be reached at.");
+                          "Port number this client can be reached at.");
   client.tagParameter("client_port", publicInputTags);
   client.addValidator(
       "client_port", config::validateUInt,
@@ -4963,7 +4885,7 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");
   config.tagParameter("num_replicas", publicGeneratedTags);
-  config.addValidator("num_replicas", ValidateNumReplicas, nullptr);
+  config.addValidator("num_replicas", &config::ValidateNumReplicas, nullptr);
   config.addGenerator("num_replicas", computeClientNumReplicas, nullptr);
 
   //  Validation is done at construction of the client object.
@@ -5085,7 +5007,6 @@ void specifyExternalClientConfiguration(config::ConcordConfiguration& config) {
   specifyReplicaConfiguration(config);
   specifyClientConfiguration(config);
   specifySimpleClientParams(config);
-  config.setConfigurationStateLabel("concord_external_client");
 }
 }  // namespace config
 }  // namespace concord
