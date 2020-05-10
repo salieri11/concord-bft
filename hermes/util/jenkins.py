@@ -271,6 +271,35 @@ def getRunMetadata(jobName, buildNumber):
 
 
 
+def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
+  '''
+    Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
+  '''
+  builderPW = helper.getUserConfig()["jenkins"]["builderPassword"]
+  cmd = 'echo "{}" | sudo -S chown -R builder:builder /var/jenkins/workspace/*'.format(builderPW)
+  baseURL = getJenkinRunBaseUrl("ROOT", authenticated=True)
+  response = REQ_SESSION.get(baseURL + "/computer/api/json?tree=computer[displayName]")
+  count = 0
+  if response.status_code == 200:
+    resJSON = json.loads(response.content.decode('utf-8'), strict=False)
+    nodeList = resJSON["computer"]
+    for nodeInfo in nodeList:
+      nodeName = nodeInfo["displayName"]
+      if blockchainWorkersOnly and not nodeName.startswith("blockchain-worker."): continue
+      response2 = REQ_SESSION.get(baseURL + "/computer/{}".format(nodeName))
+      if response2.status_code == 200:
+        ip = response2.content.decode('utf-8').split("<h2>IP</h2><p>")[1].split("</p>")[0]
+        if ip:
+          try:
+            output = helper.ssh_connect(ip, "builder", builderPW, cmd)
+            if output is not None:
+              count += 1
+              log.info("[ {} :: {} ] /var/jenkins/workspace/* has been recursively owned by builder:builder".format(nodeName, ip))
+          except Exception as e:
+            pass
+    log.info("Total of {} nodes are affected.".format(count))
+    return True
+  else: return None
 
 
 
@@ -316,10 +345,14 @@ def normalizeTimesData(timesData):
   return normalized
 
 def getJenkinRunBaseUrl(jobName, buildNumber='', authenticated=False):
+  '''
+    If jobName is "ROOT" it will default to the very root URL
+  '''
   configObject = helper.getUserConfig()
   username = configObject["jenkins"]["username"]
   token = configObject["jenkins"]["token"]
   accessor = username + ':' + token
+  if jobName == "ROOT": return 'https://{}@{}'.format(accessor, MAIN_JENKINS_URL)
   jobNameEscaped = jobName
   for pattern in JOB_NAME_REPLACE_WITH: # escape slashes in job names
     jobNameEscaped = jobNameEscaped.replace(pattern, JOB_NAME_REPLACE_WITH[pattern])
