@@ -1475,6 +1475,13 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node);
 
+// Uses the provided YAMLConfigurationOutput to write a configuration file for a
+// specified Participant node. This function expects that values for all
+// parameters that are desired in the output have already been loaded; it will
+// only output values for parameters that are both initialized in config and
+// that should be included in the given Participant node configuration file.
+// Note this function may throw any I/O or YAML serialization exceptions that
+// occur while attempting this operation.
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
                                         size_t node);
@@ -1554,7 +1561,7 @@ ConcordConfiguration::ParameterStatus ValidateNumReplicas(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failure_message, void* state);
 
-ConcordConfiguration::ParameterStatus sizeExternalClients(
+ConcordConfiguration::ParameterStatus numOfExternalClients(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state);
 

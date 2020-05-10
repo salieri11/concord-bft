@@ -4149,9 +4149,9 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                              node_config_params.end());
 }
 
-static bool selectParticipantConfiguration(const ConcordConfiguration& config,
-                                           const ConfigurationPath& path,
-                                           void* state) {
+static bool selectParticipantNodeConfiguration(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    void* state) {
   assert(state);
 
   // The configuration generator does not output tempalted parameters, as it
@@ -4183,16 +4183,16 @@ static bool selectParticipantConfiguration(const ConcordConfiguration& config,
 
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
-                                        size_t node) {
+                                        size_t nodeId) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
   ConcordConfiguration node_config = config;
   node_config.subscope("participant_nodes", 0) =
-      config.subscope("participant_nodes", node);
-  node = 0;
+      config.subscope("participant_nodes", nodeId);
+  nodeId = 0;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts")) {
     ParameterSelection node_local_hosts(node_config, selectHostsToMakeLoopback,
-                                        &(node));
+                                        &(nodeId));
     for (auto& path : node_local_hosts) {
       ConcordConfiguration* containing_scope = &node_config;
       if (path.isScope && path.subpath) {
@@ -4204,13 +4204,13 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
           ConcordConfiguration::ParameterStatus::INVALID) {
         throw invalid_argument("Failed to load 127.0.0.1 for host " +
                                path.toString() + " for node " +
-                               to_string(node) +
+                               to_string(nodeId) +
                                "\'s configuration: " + failure_message);
       }
     }
   }
   ParameterSelection node_config_params(
-      node_config, selectParticipantConfiguration, &(node));
+      node_config, selectParticipantNodeConfiguration, &(nodeId));
   output.outputConfiguration(node_config, node_config_params.begin(),
                              node_config_params.end());
 }
@@ -4647,7 +4647,7 @@ ConcordConfiguration::ParameterStatus sizeParticipantsNodes(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration::ParameterStatus sizeParticipantNode(
+ConcordConfiguration::ParameterStatus numOfParticipantNodes(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
@@ -4656,7 +4656,7 @@ ConcordConfiguration::ParameterStatus sizeParticipantNode(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration::ParameterStatus sizeExternalClients(
+ConcordConfiguration::ParameterStatus numOfExternalClients(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
@@ -4836,13 +4836,13 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
                       sizeParticipantsNodes, nullptr);
   auto& participant_nodes = config.subscope("participant_nodes");
   participant_nodes.declareScope("participant_node", "One node",
-                                 sizeParticipantNode, nullptr);
+                                 numOfParticipantNodes, nullptr);
   auto& participant_node = participant_nodes.subscope("participant_node");
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "
       "scope holds port number and principal id for each client",
-      sizeExternalClients, nullptr);
+      numOfExternalClients, nullptr);
   auto& external_clients = participant_node.subscope("external_clients");
   external_clients.declareScope("client", "One external client params",
                                 config::sizeReplicas, nullptr);
