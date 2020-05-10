@@ -7,7 +7,7 @@
       "workspace": "<METAINF_ENV_WORKSPACE>"
     }
   },
-  "jenkins":{ "username": "svc.blockchain_1", "token": "<JENKINS_JSON_API_KEY>" },
+  "jenkins":{ "username": "svc.blockchain_1", "token": "<JENKINS_JSON_API_KEY>", "builderPassword": "<JENKINS_BUILDER_PASSWORD>" },
   "communication":{
     "slack": {
       "workspaces":{

@@ -88,6 +88,12 @@ def printLongRunningTestDashboardLink(args, options, secret):
   link = helper.longRunningTestDashboardLink()
   log.info(link)
 
+
+def ownAllJenkinsNodesWorkspace(args, options, secret):
+  a = prepareArgs(args)
+  jenkins.ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True)
+
+
 # Registry of callable standalone functions
 DISPATCH = {
   # Communications
@@ -102,6 +108,9 @@ DISPATCH = {
   "publishRunsMaster": publishRunsMaster,
   "publishRunsReleases": publishRunsReleases,
   "publishRunsMR": publishRunsMR,
+
+  # Jenkins Master/Executor Nodes Ops
+  "ownAllWorkspaces": ownAllJenkinsNodesWorkspace,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
