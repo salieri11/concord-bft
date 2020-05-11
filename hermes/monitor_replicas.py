@@ -52,6 +52,12 @@ def main(args):
    parser.add_argument("--su",
                        action="store_true", # implies default=False
                        help="Super user privilege with all Jenkins injected credentials available.")
+   parser.add_argument("--notifyTarget",
+                       help="Slack channel name or email address, default will skip notification",
+                       default=None)
+   parser.add_argument("--notifyJobName",
+                       help="Shortened job name running this monitoring script",
+                       default=None)
 
    args = parser.parse_args()
 
@@ -97,7 +103,9 @@ def main(args):
                                  args.loadInterval,
                                  args.saveSupportLogsTo,
                                  args.testlistFile,
-                                 args.testset):
+                                 args.testset,
+                                 args.notifyTarget,
+                                 args.notifyJobName):
          log.info("**** Blockchain successfully active for {} hrs".format(
             args.runDuration))
          if args.replicasConfig:

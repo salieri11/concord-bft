@@ -705,7 +705,7 @@ def collect_support_logs_for_long_running_tests(all_replicas_and_type,
                                     save_support_logs_to)
 
 def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
-                     test_list_json_file, testset):
+                     test_list_json_file, testset, notify_target=None, notify_job=None):
    '''
    Helper util method to monitor the health of the replicas, and do a blockchain
    test (send/get transactions) and collect support logs incase of a replica
@@ -716,6 +716,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :param log_dir: logs archiving location
    :param test_list_json_file: test list json file
    :param testset: Set of test sets to be picked up for this run
+   :param notify_target: string value of channel name or email; if none, skip.
+   :param notify_job: string value of shortened job name running this monitoring
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
@@ -731,19 +733,32 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    end_time = start_time + run_duration * 3600
    slack_last_reported = start_time
    dashboardLink = longRunningTestDashboardLink(replicasConfig=replica_config)
-   consoleURL = os.getenv("BUILD_URL") + "consoleText" if os.getenv("BUILD_URL") else None
+   consoleURL = os.getenv("BUILD_URL") + "console" if os.getenv("BUILD_URL") else None
 
-   slack.reportMonitoring(kickOff=True)
+   remaining_time = str(int((end_time - time.time()) / 3600))
+   slackThread = None
+   # shared snippet of replicas.json
+   slack.reportMonitoringIfTarget(
+     msgType="kickOff", replicasPath=replica_config,
+     target=notify_target, jobNameShort=notify_job)
    initialStats = get_replicas_stats(all_replicas_and_type)
-   remaining_time = format((end_time - time.time()) / 3600, ".2g")
-   firstMessage = slack.reportMonitoring("<RUN> has {} hour remaining. Status:\n{}".format(
-      remaining_time, "\n".join(initialStats["message_format"])
-   ))
+   # first message that will be the main thread
+   if notify_job:
+     firstMessageText = "<RUN> has {} hour remaining.\n\nConsole: {}\n\nStatus:\n{}".format(
+       remaining_time, consoleURL,
+       "\n".join(initialStats["message_format"]))
+   else:
+     firstMessageText = "<RUN> has {} hour remaining. Status:\n{}".format(
+       remaining_time, "\n".join(initialStats["message_format"]))
+   firstMessage = slack.reportMonitoringIfTarget(
+     firstMessageText,
+     target=notify_target, jobNameShort=notify_job
+   )
    slackThread = firstMessage['ts'] if firstMessage else None
-   slack.postMessageOnChannel( # output link to Wavefront dashboard
-      channelName = slack.CHANNEL_LONG_RUNNING_TEST,
-      message = dashboardLink,
-      ts = slackThread
+   slack.reportMonitoringIfTarget( # output link to Wavefront dashboard
+     message = dashboardLink,
+     ts = slackThread,
+     target=notify_target, jobNameShort=notify_job
    )
 
    tests = get_long_running_tests(all_replicas_and_type, test_list_json_file, testset)
@@ -791,20 +806,24 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
-        stats = get_replicas_stats(all_replicas_and_type)
-        remaining_time = format((end_time - time.time()) / 3600, ".2g")
-        slack.reportMonitoring("<RUN> has {} hour remaining (goal: {} hours). Status:\n{}".format(
-          remaining_time, run_duration, "\n".join(stats["message_format"])
-        ), ts=slackThread) # Add to reply thread instead of channel
+        stats = get_replicas_stats(all_replicas_and_type, concise=True)
+        remaining_time = str(int((end_time - time.time()) / 3600))
+        duration = str(int((time.time() - start_time) / 3600))
+        midRunMessage =  "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
+                            remaining_time, duration, "\n".join(stats["message_format"]))
+        slack.reportMonitoringIfTarget(
+          midRunMessage, 
+          ts=slackThread, target=notify_target, jobNameShort=notify_job
+        ) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
       if not replica_status:
-         duration = format((time.time() - start_time) / 3600, ".2g")
-         remaining_time = format((end_time - time.time()) / 3600, ".2g")
+         duration = str(int((time.time() - start_time) / 3600))
+         remaining_time = str(int((end_time - time.time()) / 3600))
          endingMessage = "<RUN> has failed after {} hours ({} had remained)\n\nConsole: {}\n\nWavefront: {}".format(
-            duration, remaining_time, consoleURL, dashboardLink
+             duration, remaining_time, consoleURL, dashboardLink
          )
-         slack.reportMonitoring(endingMessage)
+         slack.reportMonitoringIfTarget(endingMessage, target=notify_target, jobNameShort=notify_job)
          return False
 
       log.info("")
@@ -816,16 +835,18 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       log.info(json.dumps(res))
 
    if not overall_run_status:
-      duration = format((time.time() - start_time) / 3600, ".2g")
-      remaining_time = format((end_time - time.time()) / 3600, ".2g")
-      slack.reportLongRunningTest("<RUN> has failed after {} hours ({} had remained)".format(
-         duration, remaining_time
-      ))
+      duration = str(int((time.time() - start_time) / 3600))
+      remaining_time = str(int((end_time - time.time()) / 3600))
+      slack.reportMonitoringIfTarget(
+        "<RUN> has failed after {} hours ({} had remained)".format(duration, remaining_time),
+        target=notify_target, jobNameShort=notify_job
+      )
       return False
+
    successEndingMessage = "<RUN> successfully passed. (total {} hours)\n\nConsole: {}\n\nWavefront: {}".format(
-      run_duration, consoleURL, dashboardLink
+     run_duration, consoleURL, dashboardLink
    )
-   slack.reportMonitoring(successEndingMessage)
+   slack.reportMonitoringIfTarget(successEndingMessage, target=notify_target, jobNameShort=notify_job)
    return True
 
 
@@ -931,7 +952,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
    return testset_result_dict
 
 
-def get_replicas_stats(all_replicas_and_type):
+def get_replicas_stats(all_replicas_and_type, concise=False):
   '''
     Given replicas with health daemon installed, get the latest
     stats report from each replica with sftp_client function
@@ -944,8 +965,9 @@ def get_replicas_stats(all_replicas_and_type):
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
   for blockchain_type, replica_ips in all_replicas_and_type.items():
-    typeName = "Committer"
-    if blockchain_type == TYPE_DAML_PARTICIPANT: typeName = "Participant"
+    typeName = "Committer" if not concise else "c"
+    if blockchain_type == TYPE_DAML_PARTICIPANT:
+      typeName = "Participant" if not concise else "p"
     for i, replica_ip in enumerate(replica_ips):
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
@@ -957,13 +979,18 @@ def get_replicas_stats(all_replicas_and_type):
             if blockchain_type == TYPE_DAML_COMMITTER:
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
-            all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
-              status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
-            ))
+            if not concise:
+              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              ))
+            else:
+              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}%".format(
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              ))
       except Exception as e:
         hermesNonCriticalTrace(e)
   standardDeviation = statistics.stdev(all_committers_mem)
-  if standardDeviation > 2.0: # STDEV usually is < 0.5, high deviation is indication of malfunction
+  if standardDeviation > 5.0: # STDEV usually is < 5, high deviation is indication of malfunction
     all_reports["message_format"].append(
       ":warning: Committers memory standard deviation is high: {}".format(
         format(standardDeviation, ".4g")

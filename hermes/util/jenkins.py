@@ -429,6 +429,7 @@ def outputGetConnectionError():
   return None
 
 def getSecondsFromTimeStr(timeStr):
+  if "day" in timeStr: timeStr = timeStr.split(", ")[1]
   h, m, s = timeStr.split(':')
   return int(h) * 3600 + int(m) * 60 + int(s)
 
