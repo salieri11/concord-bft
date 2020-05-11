@@ -81,9 +81,6 @@ def slackReportMonitoring(args, options, secret):
 
 
 def printLongRunningTestDashboardLink(args, options, secret):
-  '''
-    Log output long-running test dashboard link (Wavefront)
-  '''
   a = prepareArgs(args)
   link = helper.longRunningTestDashboardLink()
   log.info(link)
@@ -92,6 +89,11 @@ def printLongRunningTestDashboardLink(args, options, secret):
 def ownAllJenkinsNodesWorkspace(args, options, secret):
   a = prepareArgs(args)
   jenkins.ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True)
+
+
+def resetBlockchain(args, options, secret):
+  a = prepareArgs(args)
+  helper.resetBlockchain(replicasConfigPath=a[0])
 
 
 # Registry of callable standalone functions
@@ -120,6 +122,9 @@ DISPATCH = {
 
   # Long-running Test
   "lrtPrintDashboardLink": printLongRunningTestDashboardLink,
+
+  # Reset Blockchain
+  "resetBlockchain" : resetBlockchain,
 }
 
 
