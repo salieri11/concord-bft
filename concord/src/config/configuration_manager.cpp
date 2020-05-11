@@ -2465,6 +2465,18 @@ static ConcordConfiguration::ParameterStatus validateDatabaseImplementation(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
+static ConcordConfiguration::ParameterStatus validateStorageType(
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void*) {
+  if (value != "basic" && value != "merkle") {
+    if (failureMessage) {
+      *failureMessage = "Unrecognized storage type: \"" + value + "\".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 static ConcordConfiguration::ParameterStatus validatePortNumber(
     const string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, string* failureMessage, void* state) {
@@ -3326,6 +3338,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "using the database implementation specified by blockchain_db_impl.",
       "rocksdbdata");
   node.tagParameter("blockchain_db_path", defaultableByReplicaTags);
+
+  node.declareParameter(
+      "blockchain_storage_type",
+      "The mechanism for storing blockchain data on top of the key/value "
+      "store. Possible values are: \"merkle\" and \"basic\"",
+      "merkle");
+  node.tagParameter("blockchain_storage_type", publicOptionalTags);
+  node.addValidator("blockchain_storage_type", validateStorageType, nullptr);
 
   node.declareParameter(
       "concord-bft_enable_debug_statistics",
