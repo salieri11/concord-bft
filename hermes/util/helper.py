@@ -146,6 +146,9 @@ CURRENT_SUITE_LOG_FILE = ""
 NON_CRITICAL_HERMES_EXCEPTIONS = []
 NON_CRITICAL_HERMES_OUTPUT_PATH = "/testLogs/non_critical.log"
 
+# Super user privilege; with all Jenkins injected credentials available in user_config
+WITH_JENKINS_INJECTED_CREDENTIALS = False
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -1125,22 +1128,35 @@ def loadConfigFile(args=None, filepath=None):
       log.info("Cannot find user config source in any of the locations.")
       return None
 
-   if "ethereum" in configObject and \
-      "testRoot" in configObject["ethereum"]:
+   # --su flag is set (local dev env, non-Jenkins run);
+   # Replace all bracket "<SOME_NAMED_CREDENTIAL>" to credentials from last good master
+   if WITH_JENKINS_INJECTED_CREDENTIALS and not jenkinsWorkspace:
+      try:
+        log.info("Privilege invoked from --su flag; will run Hermes with Jenkins injected credentials...")
+        from . import jenkins
+        configFromJenkins = jenkins.getUserConfigFromLatestGoodMaster()
+        if configFromJenkins: 
+          configObject = jenkins.overrideOnlyDefaultConfig(configObject, configFromJenkins)
+          configObject["metainf"]["env"]["jobName"] = "None"
+          configObject["metainf"]["env"]["buildNumber"] = "None"
+          configObject["metainf"]["env"]["dockerTag"] = ""
+          configObject["metainf"]["env"]["workspace"] = ""
+          configObject["jenkins"]["username"] = jenkins.JENKINS_USER_OVERRIDE
+          configObject["jenkins"]["token"] = jenkins.JENKINS_TOKEN_OVERRIDE
+          log.info("Successfully pulled Jenkins injected credentials from latest good master.")
+        else: sys.exit(1)
+      except Exception as e:
+        traceback.print_exc()
 
-      configObject["ethereum"]["testRoot"] = \
-         os.path.expanduser(configObject["ethereum"]["testRoot"])
+   if "ethereum" in configObject and "testRoot" in configObject["ethereum"]:
+      configObject["ethereum"]["testRoot"] = os.path.expanduser(configObject["ethereum"]["testRoot"])
 
    # Jenkins JOB_NAME & WORKSPACE containing slashes were replaced with ___; bring slashes back.
    #    More info: see MR !1324
    if "metainf" in configObject:
       envObject = configObject["metainf"]["env"]
-
-      if "jobName" in envObject:
-         envObject["jobName"] = envObject["jobName"].replace("___", "/")
-
-      if "workspace" in envObject:
-         envObject["workspace"] = envObject["workspace"].replace("___", "/")
+      if "jobName" in envObject: envObject["jobName"] = envObject["jobName"].replace("___", "/")
+      if "workspace" in envObject: envObject["workspace"] = envObject["workspace"].replace("___", "/")
 
    CONFIG_CACHED['data'] = configObject
 

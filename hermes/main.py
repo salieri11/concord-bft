@@ -178,6 +178,9 @@ def main():
    parser.add_argument("--suitesRealname",
                        default="",
                        help="Comma-separated list of real names for supplied suites argument")
+   parser.add_argument("--su",
+                       action="store_true", # implies default=False
+                       help="Super user privilege with all Jenkins injected credentials available.")
 
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
@@ -257,6 +260,7 @@ def main():
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
    suitesRealname = args.suitesRealname.split(",") if args.suites else []
+   if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
 
    for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:
