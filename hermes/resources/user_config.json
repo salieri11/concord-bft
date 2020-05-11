@@ -28,10 +28,6 @@
       "wavefront": { "url": "https://vmware.wavefront.com", "token": "<DASHBOARD_WAVEFRONT_TOKEN>" }
     }
   },
-  "monitoring": {
-    "runName": "<MONITORING_NOTIFICATION_RUN_NAME>",
-    "notificationTarget": "<MONITORING_NOTIFICATION_TARGET>"
-  },
   "infra":{
     "SDDC1":{
       "name": "SDDC1",

@@ -353,6 +353,10 @@ def call(){
       string defaultValue: "60",
              description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
              name: "load_interval"
+
+      string defaultValue: "",
+             description: "Slack notification target when monitoring (channel name or email address)",
+             name: "monitoring_notify_target"
     }
     stages {
       stage("Notify GitLab"){
@@ -384,6 +388,7 @@ def call(){
               env.blockchain_location = params.blockchain_location
               env.run_duration = params.run_duration
               env.load_interval = params.load_interval
+              env.monitoring_notify_target = params.monitoring_notify_target
 
               // Check parameters
               errString = "Parameter check error: "
@@ -802,16 +807,13 @@ def call(){
                         runTests()
                       } catch(Exception ex) {
                         env.fixture_setup_message = "<RUN> has failed to deploy blockchain fixture to SDDC.\n" + env.BUILD_URL + "console"
-                        sh '''
-                         "${python}" invoke.py slackReportMonitoring --param "${fixture_setup_message}"
-                        '''
+                        sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${fixture_setup_message}" "${monitoring_notify_target}"'''
                         throw ex
                       }
-
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."
-                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests
+                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Long-running test"
                       '''
                     }
 
@@ -833,7 +835,7 @@ def call(){
                       env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
-                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests
+                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Monitoring job"
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }
@@ -2474,9 +2476,7 @@ EOF
 
     if (env.JOB_NAME.contains(long_tests_job_name)) {
       sh '''
-        sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<MONITORING_NOTIFICATION_RUN_NAME>"'/'"Long-running test"'/g' blockchain/hermes/resources/user_config.json
-        sed -i -e 's/'"<MONITORING_NOTIFICATION_TARGET>"'/'"blockchain-long-tests-status"'/g' blockchain/hermes/resources/user_config.json
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
       '''
     } else {
       if (env.deployment_retention == "always-1day" ) {

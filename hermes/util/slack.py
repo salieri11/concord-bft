@@ -83,6 +83,7 @@ def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
   isDirectMessage = "@" in channelName
   
   if isDirectMessage: # user email address? Direct message instead of channel post
+    token = token if token else slackConfig["workspaces"]["vmware"]["appToken"]
     client = slack.WebClient(token=token, ssl=cert.getSecureContext())
     userData = client.users_lookupByEmail(email=channelName)
     if userData["ok"] is not True:
@@ -114,34 +115,43 @@ def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
 
 
 
-def reportMonitoring(message="", ts=None, kickOff=False):
+def reportMonitoring(message="", ts=None, msgType=None, 
+                      target=None, jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
   '''
     Slack notify monitoring progresss (start, interval, end)
     using notification target specified in user_config.json
+    `FROM_USER_CONFIG` target will inherit from `user_config.json` setting
+    If user_config is not set (startswith "<") it will not notify
   '''
-  monitoringReportConfig = helper.getUserConfig()["monitoring"]
-  runName = monitoringReportConfig["runName"]
-  channelNameOrEmail = monitoringReportConfig["notificationTarget"]
-  if channelNameOrEmail.startswith("<"): return None
-  if kickOff: message = "<RUN> started."
-  runInfo = helper.getJenkinsJobNameAndBuildNumber()
-  if runName.startswith("<"): runName = runInfo["jobName"]
-  jobName = runInfo["jobName"]
-  buildNumber = runInfo["buildNumber"]
-  encodedBuildPath = urllib.parse.quote_plus(f"{jobName}/{buildNumber}")
-  buildUrl = 'https://blockchain.svc.eng.vmware.com/job/' + encodedBuildPath
-  runId = f"{runName} (#{buildNumber})"
-  message = message.replace("<RUN>", runId)
-  if kickOff:
+  if not target: return None
+  if msgType == "kickOff": message = "<RUN> started."
+  if jobNameShort:
+    runInfo = helper.getJenkinsJobNameAndBuildNumber()
+    buildNumber = runInfo["buildNumber"]
+    runId = f"{jobNameShort} (#{buildNumber})"
+    message = message.replace("<RUN>", runId)
+  else:
+    message = message.replace("<RUN>", "Local monitoring")
+  
+  channelNameOrEmail = target
+
+  if msgType == "kickOff":
     return postFileUpload(
       channelNameOrEmail, 
       message,
       helper.REPLICAS_JSON_FILE,
-      helper.REPLICAS_JSON_PATH
+      replicasPath
     )
   else:
     if "@" in channelNameOrEmail:
       return sendMessageToPerson(channelNameOrEmail, message, ts=ts)
     else:
       return postMessageOnChannel(channelNameOrEmail, message, ts=ts)
+
+
+def reportMonitoringIfTarget(message="", ts=None, msgType=None,
+                            target=None, jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
+  if not target: return None
+  else: return reportMonitoring(message, ts, msgType, target, jobNameShort, replicasPath)
+
 

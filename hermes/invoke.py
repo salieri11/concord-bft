@@ -77,7 +77,7 @@ def publishRunsMR(args, options, secret):
 
 def slackReportMonitoring(args, options, secret):
   a = prepareArgs(args)
-  slack.reportMonitoring(message=a[0])
+  slack.reportMonitoring(message=a[0], target=a[1])
 
 
 def printLongRunningTestDashboardLink(args, options, secret):
