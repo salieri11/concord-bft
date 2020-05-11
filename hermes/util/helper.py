@@ -521,6 +521,26 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
 
       if docker_ethrpc_ip:
          docker_ethrpc_ip = docker_ethrpc_ip.strip()
+         docker_ethrpc_ip = docker_ethrpc_ip.replace("\r", "")
+
+         # Upon network reset there may be old forwarding rules. In this case,
+         # command to get container ip will return multiple rows. When new containers
+         # come up, there is no guaranty that it will use the same IP. Thus one needs
+         # to remove the old forwarding rule and instill a new one.
+         container_ips = docker_ethrpc_ip.split("\n")
+         if len(container_ips) >= 2 and container_ips[0] != container_ips[-1]: # old/new rule mismatch
+            for ip in container_ips:
+                ip = ip.replace('"', '')
+                previous_forward_ip = ip
+                remove_commands = [
+                  "iptables -t nat -D PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+                    src_port, previous_forward_ip, dest_port),
+                  "iptables -t nat -D PREROUTING -p tcp --dport {} -j DNAT --to-destination {}".format(
+                    src_port, previous_forward_ip),
+                ]
+                remove_previous_forward = "; ".join(remove_commands)
+                check_port_forward_output = ssh_connect(host, username, password, remove_previous_forward)
+            docker_ethrpc_ip = container_ips[-1] # last shall be new target
 
          cmd_check_port_forward = "iptables -t nat -C PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
             src_port, docker_ethrpc_ip, dest_port)
@@ -1195,6 +1215,16 @@ def getUserConfig():
   return configObject
 
 
+def getNodeCredentials():
+  '''
+    Returns tuple (username, password) used for ssh_connect to concord node
+    e.g. username, password = getNodeCredentials()
+  '''
+  configObject = getUserConfig()
+  credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
+  return (credentials["username"], credentials["password"])
+
+
 def checkRpcTestHelperImport():
    try:
       sys.path.append("lib/persephone")
@@ -1583,6 +1613,109 @@ def installHealthDaemon(all_replicas_and_type):
   except Exception as e:
     log.debug(str(e))
     return False
+
+
+def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
+  '''
+    ! DO NOT RUN AGAINST PRODUCTION BLOCKCHAIN
+
+    Reset blockchain and remove all its persisted data
+    `replicasConfig` can be fxBlockchain, path to replicas.json, or replicasInfo
+    Only covers DAML network for now.
+    
+    e.g.: helper.resetBlockchain(fxBlockchain, concordConfig={
+      "concord-bft_max_num_of_reserved_pages": 8192,
+      "view_change_timeout": 20000,
+    })
+  '''
+  replicas = parseReplicasConfig(replicasConfig)
+
+  wipeOutPre = [
+    "docker stop $(docker ps -a -q)",
+    "docker rm jaeger-agent",
+    "docker rm $(docker ps -a | grep -v \"agent\" | cut -d ' ' -f1)",
+    "for i in ` docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' blockchain-fabric`; do docker network disconnect -f blockchain-fabric $i; done",
+    "docker network rm blockchain-fabric"
+  ]
+  wipeOutDeleteData = [] if keepData else [
+    "rm -rf /config/concord/rocksdbdata", "rm -rf /config/daml_index_db"
+  ]
+  wipeOutConcordConfigSet = []
+  if concordConfig:
+    for configParam in concordConfig:
+      configParamValue = concordConfig[configParam]
+      wipeOutConcordConfigSet.append(
+        "sed -i '/{}/c\\{}: {}' /config/concord/config-local/concord.config".format(configParam, configParam, configParamValue),
+      )
+  wipeOutPost = [
+    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",  
+    "cp \"{}\" \"{}\"".format(HEALTHD_LOG_PATH, HEALTHD_LOG_PATH.replace(".log", "2.log")), # copy healthd.log => healthd2.log
+  ]
+  nodeWipeOutCommand = '; '.join(wipeOutPre + wipeOutDeleteData + wipeOutConcordConfigSet + wipeOutPost)
+  nodeRetartCommand = "docker start agent"
+  nodeResetCrashStatusCommand = "rm -rf \"{}\"; cd /root/health-daemon; nohup bash healthd.sh > /dev/null".format(HEALTHD_CRASH_FILE)
+  primarySearchCommand = [
+    "CONCORD_LOG_PATH=$(docker inspect --format='{{.LogPath}}' concord)",
+    "grep -c 'to current primary' \"$CONCORD_LOG_PATH\""
+  ]
+  primarySearchCommand = "; ".join(primarySearchCommand)
+
+  user, pw = getNodeCredentials()
+  def parallelSSH(ips, cmd):
+    threads = []; results = []
+    def sshExec(ip):
+      cnt = 0
+      while cnt < 3: # with retry 2 more times
+        output = ssh_connect(ip, user, pw, cmd); cnt += 1
+        if output is not None: break
+      results.append({"ip":ip, "output":output})
+    for ip in ips:
+      thr = threading.Thread(target = lambda ip: sshExec(ip), args = (ip, ))
+      threads.append(thr); thr.start()
+    for thd in threads: thd.join()
+    return results
+
+  committerIPs = replicas[TYPE_DAML_COMMITTER]
+  participantIPs = replicas[TYPE_DAML_PARTICIPANT]
+  allNodesIPs = committerIPs + participantIPs
+  
+  log.info("Resetting blockchain...")
+  log.info("Wiping out participant nodes: {}".format(participantIPs))
+  results = parallelSSH(participantIPs, nodeWipeOutCommand)
+  for result in results: log.debug("\n\n[Wiping participant containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+
+  log.info("Wiping out committer nodes: {}".format(committerIPs))
+  results = parallelSSH(committerIPs, nodeWipeOutCommand)
+  for result in results: log.debug("\n\n[Wiping committer containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+
+  log.info("Restarting committer nodes (through agent): {}".format(committerIPs))
+  results = parallelSSH(committerIPs, nodeRetartCommand)
+  for result in results: log.debug("\n\n[Restart agent on committers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+
+  log.info("Restarting participant nodes (through agent): {}".format(participantIPs))
+  results = parallelSSH(participantIPs, nodeRetartCommand)
+  for result in results: log.debug("\n\n[Restart agent on participant] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+
+  initializationGracePeriod = 30
+  log.info("Giving another {}s for all nodes to initialize...".format(initializationGracePeriod))
+  time.sleep(initializationGracePeriod)
+  
+  log.info("Resetting crash status of the nodes...")
+  results = parallelSSH(allNodesIPs, nodeResetCrashStatusCommand)
+  for result in results: log.debug("\n\n[Reset crashed status] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+
+  primaryInfo = { "ip": None, "index": None }
+  log.info("Searching for primary...")
+  results = parallelSSH(committerIPs, primarySearchCommand)
+  for result in results:
+    if result["output"].strip() and int(result["output"].strip()) == 0:
+      log.info("Primary found: {} (index: {})".format(result["ip"], committerIPs.index(result["ip"])))
+      primaryInfo["ip"] = result["ip"]
+      primaryInfo["index"] = committerIPs.index(result["ip"])
+    log.debug("\n\n[Primary search] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
+  
+  log.info("Blockchain network reset completed.")
+  return primaryInfo
 
 
 def ip2long(ip):
