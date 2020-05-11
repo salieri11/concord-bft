@@ -34,6 +34,7 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
+#include "direct_kv_storage_factory.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
@@ -94,8 +95,6 @@ using concord::kvbc::IStorageFactory;
 using concord::kvbc::ReplicaImp;
 using concord::kvbc::ReplicaStateSyncImp;
 using concord::kvbc::SetOfKeyValuePairs;
-using concord::kvbc::v2MerkleTree::MemoryDBStorageFactory;
-using concord::kvbc::v2MerkleTree::RocksDBStorageFactory;
 using concord::storage::ConcordBlockMetadata;
 
 using concordUtils::Status;
@@ -239,15 +238,34 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
     throw EVMException("Missing blockchain_db_impl config");
   }
 
-  string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
+  const auto db_impl_name =
+      nodeConfig.getValue<std::string>("blockchain_db_impl");
+  auto storage_type = std::string{};
+  if (nodeConfig.hasValue<std::string>("blockchain_storage_type")) {
+    storage_type = nodeConfig.getValue<std::string>("blockchain_storage_type");
+  }
+
   if (db_impl_name == "memory") {
-    LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    return std::make_unique<MemoryDBStorageFactory>();
+    if (storage_type == "basic") {
+      LOG4CPLUS_INFO(logger, "Using in-memory basic blockchain storage");
+      return std::make_unique<
+          concord::kvbc::v1DirectKeyValue::MemoryDBStorageFactory>();
+    }
+    LOG4CPLUS_INFO(logger, "Using in-memory merkle blockchain storage");
+    return std::make_unique<
+        concord::kvbc::v2MerkleTree::MemoryDBStorageFactory>();
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
-    LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
-    string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return std::make_unique<RocksDBStorageFactory>(rocks_path);
+    const auto rocks_path =
+        nodeConfig.getValue<std::string>("blockchain_db_path");
+    if (storage_type == "basic") {
+      LOG4CPLUS_INFO(logger, "Using rocksdb basic blockchain storage");
+      return std::make_unique<
+          concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory>(rocks_path);
+    }
+    LOG4CPLUS_INFO(logger, "Using rocksdb merkle blockchain storage");
+    return std::make_unique<concord::kvbc::v2MerkleTree::RocksDBStorageFactory>(
+        rocks_path);
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
