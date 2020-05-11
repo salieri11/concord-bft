@@ -11,7 +11,6 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
-
 #include "config/configuration_manager.hpp"
 
 using std::exception;
@@ -29,6 +28,194 @@ using concord::config::YAMLConfigurationOutput;
 
 namespace po = boost::program_options;
 
+void defineOptionsSpec(string& inputFilename, string& outputPrefix,
+                       string& nodeMapFilename, bool& clientFlag,
+                       options_description& optionsSpec) {
+  // clang-format off
+  optionsSpec.add_options()
+      ("help,h", "Display help text and exit.")
+      ("configuration-input", po::value<string>(&inputFilename),
+       "Path to a YAML file containing input to the configuration generation "
+       "utility, which includes cluster dimensions, network configuration, and "
+       "any non-default value elections for optional parameters.")
+      ("output-name", po::value<string>(&outputPrefix)->default_value("concord"),
+       "Prefix to use as the base of the filename for the output configuration "
+       "files. The output files will have names of the format "
+       "<output-name><i>.config. For example, if output-name is \"concord\" and "
+       "configuration is generated for a 4-node cluster, the output "
+       "configuration files will be named concord1.config, concord2.config, "
+       "concord3.config, and concord4.config.")
+      ("report-principal-locations", po::value<string>(&nodeMapFilename),
+       "Output a mapping reporting which Concord-BFT principals (by principal "
+       "ID) are on each Concord node in the configured cluster, in JSON. One "
+       "string parameter is expected with this option when it is used, naming a "
+       "file to output this JSON mapping to. Note that the node IDs (the names "
+       "in the name-value pairs) are 1-indexed, and correspond directly to the "
+       "sequential numbers appearing in the filenames of the generated "
+       "configuration files. Note it is not guaranteed that the nodes in the "
+       "JSON Object and principal IDs in each node's array of them will be in "
+       "any particular order. This report-principal-locations option is intended "
+       "primarily for use by software that automates the deployment of Concord.")
+      ("client-conf", po::value<bool>(&clientFlag),
+       " An optional flag that specifies if the current input file is intended for a client configuration.");
+
+  // clang-format on
+}
+
+void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
+  if (clientFlag) {
+    specifyExternalClientConfiguration(config);
+    config.setConfigurationStateLabel("concord_external_client");
+  } else {
+    specifyConfiguration(config);
+    config.setConfigurationStateLabel("configuration_generation");
+  }
+}
+
+int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
+                                ConcordConfiguration& config, bool clientFlag,
+                                const log4cplus::Logger& concGenconfigLogger) {
+  try {
+    loadClusterSizeParameters(yamlInput, config, clientFlag);
+  } catch (ConfigurationResourceNotFoundException& e) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Failed to load required parameters from input.");
+    return -1;
+  }
+  try {
+    if (clientFlag)
+      instantiateClientTemplatedConfiguration(yamlInput, config);
+    else
+      instantiateTemplatedConfiguration(yamlInput, config);
+  } catch (ConfigurationResourceNotFoundException& e) {
+    LOG4CPLUS_FATAL(
+        concGenconfigLogger,
+        "Failed to size configuration for the requested dimensions.");
+    return -1;
+  }
+
+  try {
+    loadConfigurationInputParameters(yamlInput, config);
+  } catch (ConfigurationResourceNotFoundException& e) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Failed to load required input parameters.");
+    return -1;
+  }
+  if (config.loadAllDefaults(false, false) !=
+      ConcordConfiguration::ParameterStatus::VALID) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Failed to load default values for configuration "
+                    "parameters not included in input.");
+    return -1;
+  }
+  if (!clientFlag) {
+    try {
+      LOG4CPLUS_INFO(concGenconfigLogger,
+                     "Beginning key generation for the requested cluster. "
+                     "Depending on the cluster size, this may take a while...");
+      generateConfigurationKeys(config);
+      LOG4CPLUS_INFO(concGenconfigLogger, "Key generation complete.");
+    } catch (std::exception& e) {
+      LOG4CPLUS_FATAL(
+          concGenconfigLogger,
+          "An exception occurred while attempting key generation for "
+          "the requested configuration.");
+      LOG4CPLUS_FATAL(concGenconfigLogger,
+                      "Exception message: " + std::string(e.what()));
+      return -1;
+    }
+  }
+  if (config.generateAll(true, false) !=
+      ConcordConfiguration::ParameterStatus::VALID) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Failed to generate and load values for implicit and "
+                    "generated configuration parameters.");
+    return -1;
+  }
+  return 0;
+}
+
+int valideConfig(ConcordConfiguration& config,
+                 const log4cplus::Logger& concGenconfigLogger) {
+  if (!config.scopeIsInstantiated("node")) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "conc_genconfig failed to determine the number of nodes "
+                    "for which configuration files should be output.");
+    return -1;
+  }
+
+  if (config.validateAll(true, false) !=
+      ConcordConfiguration::ParameterStatus::VALID) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "conc_genconfig failed to verify the all parameters that "
+                    "will be written to the configuratioin files are valid.");
+    return -1;
+  }
+  if (!hasAllParametersRequiredAtConfigurationGeneration(config)) {
+    LOG4CPLUS_FATAL(concGenconfigLogger,
+                    "Parameters required for configuration files are missing.");
+    return -1;
+  }
+  return 0;
+}
+
+int outputConfig(ConcordConfiguration& config,
+                 const log4cplus::Logger& concGenconfigLogger, bool clientFlag,
+                 const string nodeMapFilename,
+                 const variables_map& optionsInput, string& outputPrefix) {
+  if (clientFlag) {
+    size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
+    for (size_t i = 0; i < numNodes; ++i) {
+      std::string outputFilename =
+          "Participant" + std::to_string(i) + ".config";
+      std::ofstream fileOutput(outputFilename);
+      YAMLConfigurationOutput yamlOutput(fileOutput);
+      try {
+        outputParticipantNodeConfiguration(config, yamlOutput, i);
+      } catch (std::exception& e) {
+        return -1;
+      }
+    }
+  } else {
+    size_t numNodes = config.scopeSize("node");
+    for (size_t i = 0; i < numNodes; ++i) {
+      std::string outputFilename =
+          outputPrefix + std::to_string(i + 1) + ".config";
+      std::ofstream fileOutput(outputFilename);
+      YAMLConfigurationOutput yamlOutput(fileOutput);
+      try {
+        outputConcordNodeConfiguration(config, yamlOutput, i);
+      } catch (std::exception& e) {
+        LOG4CPLUS_FATAL(
+            concGenconfigLogger,
+            "An exception occurred while trying to write configuraiton file " +
+                outputFilename + ".");
+        LOG4CPLUS_FATAL(concGenconfigLogger,
+                        "Exception message: " + std::string(e.what()));
+        return -1;
+      }
+      LOG4CPLUS_INFO(concGenconfigLogger,
+                     "Configuration file " + outputFilename + " (" +
+                         std::to_string(i + 1) + " of " +
+                         std::to_string(numNodes) + ") written.");
+    }
+
+    if (optionsInput.count("report-principal-locations")) {
+      ofstream nodeMapOutput(nodeMapFilename);
+      try {
+        outputPrincipalLocationsMappingJSON(config, nodeMapOutput);
+      } catch (const exception& e) {
+        LOG4CPLUS_FATAL(concGenconfigLogger,
+                        "An exception occurred while trying to write principal "
+                        "locations mapping. Exception message: " +
+                            string(e.what()));
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 int main(int argc, char** argv) {
   // Initialize the logger, as logging may be used by some subprocesses of this
   // utility. Note this configuration generation utility currently is not using
@@ -42,37 +229,12 @@ int main(int argc, char** argv) {
   std::string inputFilename;
   std::string outputPrefix;
   std::string nodeMapFilename;
+  bool clientFlag = false;
 
   variables_map optionsInput;
   options_description optionsSpec;
-
-  // clang-format off
-  optionsSpec.add_options()
-    ("help,h", "Display help text and exit.")
-    ("configuration-input", po::value<string>(&inputFilename),
-     "Path to a YAML file containing input to the configuration generation "
-     "utility, which includes cluster dimensions, network configuration, and "
-     "any non-default value elections for optional parameters.")
-    ("output-name", po::value<string>(&outputPrefix)->default_value("concord"),
-     "Prefix to use as the base of the filename for the output configuration "
-     "files. The output files will have names of the format "
-     "<output-name><i>.config. For example, if output-name is \"concord\" and "
-     "configuration is generated for a 4-node cluster, the output "
-     "configuration files will be named concord1.config, concord2.config, "
-     "concord3.config, and concord4.config.")
-    ("report-principal-locations", po::value<string>(&nodeMapFilename),
-     "Output a mapping reporting which Concord-BFT principals (by principal "
-     "ID) are on each Concord node in the configured cluster, in JSON. One "
-     "string parameter is expected with this option when it is used, naming a "
-     "file to output this JSON mapping to. Note that the node IDs (the names "
-     "in the name-value pairs) are 1-indexed, and correspond directly to the "
-     "sequential numbers appearing in the filenames of the generated "
-     "configuration files. Note it is not guaranteed that the nodes in the "
-     "JSON Object and principal IDs in each node's array of them will be in "
-     "any particular order. This report-principal-locations option is intended "
-     "primarily for use by software that automates the deployment of Concord.");
-
-  // clang-format on
+  defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, clientFlag,
+                    optionsSpec);
 
   store(command_line_parser(argc, argv).options(optionsSpec).run(),
         optionsInput);
@@ -85,7 +247,6 @@ int main(int argc, char** argv) {
     return 0;
   }
   notify(optionsInput);
-
   LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig launched.");
 
   if (optionsInput.count("configuration-input") < 1) {
@@ -94,7 +255,6 @@ int main(int argc, char** argv) {
         "No input file specified. Please use --configuration-input options.");
     return -1;
   }
-
   std::ifstream fileInput(inputFilename);
   if (!(fileInput.is_open())) {
     LOG4CPLUS_FATAL(
@@ -117,119 +277,15 @@ int main(int argc, char** argv) {
                     "Exception message: " + std::string(e.what()));
     return -1;
   }
-
   ConcordConfiguration config;
-  specifyConfiguration(config);
-  config.setConfigurationStateLabel("configuration_generation");
-
-  try {
-    loadClusterSizeParameters(yamlInput, config);
-  } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load required parameters from input.");
+  configurationSpec(config, clientFlag);
+  if (initiateConfigurationParams(yamlInput, config, clientFlag,
+                                  concGenconfigLogger) == -1)
     return -1;
-  }
-  try {
-    instantiateTemplatedConfiguration(yamlInput, config);
-  } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "Failed to size configuration for the requested dimensions.");
+  if (valideConfig(config, concGenconfigLogger) == -1) return -1;
+  if (outputConfig(config, concGenconfigLogger, clientFlag, nodeMapFilename,
+                   optionsInput, outputPrefix) == -1)
     return -1;
-  }
-
-  try {
-    loadConfigurationInputParameters(yamlInput, config);
-  } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to laod required input parameters.");
-    return -1;
-  }
-  if (config.loadAllDefaults(false, false) !=
-      ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load default values for configuration "
-                    "parameters not included in input.");
-    return -1;
-  }
-  try {
-    LOG4CPLUS_INFO(concGenconfigLogger,
-                   "Beginning key generation for the requested cluster. "
-                   "Depending on the cluster size, this may take a while...");
-    generateConfigurationKeys(config);
-    LOG4CPLUS_INFO(concGenconfigLogger, "Key generation complete.");
-  } catch (std::exception& e) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "An exception occurred while attempting key generation for "
-                    "the requested configuration.");
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Exception message: " + std::string(e.what()));
-    return -1;
-  }
-  if (config.generateAll(true, false) !=
-      ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to generate and load values for implicit and "
-                    "generated configuration parameters.");
-    return -1;
-  }
-
-  if (!config.scopeIsInstantiated("node")) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "conc_genconfig failed to determine the number of nodes "
-                    "for which configuration files should be output.");
-    return -1;
-  }
-
-  if (config.validateAll(true, false) !=
-      ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "conc_genconfig failed to verify the all parameters that "
-                    "will be written to the configuratioin files are valid.");
-    return -1;
-  }
-  if (!hasAllParametersRequiredAtConfigurationGeneration(config)) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Parameters required for configuration files are missing.");
-    return -1;
-  }
-
-  size_t numNodes = config.scopeSize("node");
-  for (size_t i = 0; i < numNodes; ++i) {
-    std::string outputFilename =
-        outputPrefix + std::to_string(i + 1) + ".config";
-    std::ofstream fileOutput(outputFilename);
-    YAMLConfigurationOutput yamlOutput(fileOutput);
-    try {
-      outputConcordNodeConfiguration(config, yamlOutput, i);
-    } catch (std::exception& e) {
-      LOG4CPLUS_FATAL(
-          concGenconfigLogger,
-          "An exception occurred while trying to write configuraiton file " +
-              outputFilename + ".");
-      LOG4CPLUS_FATAL(concGenconfigLogger,
-                      "Exception message: " + std::string(e.what()));
-      return -1;
-    }
-    LOG4CPLUS_INFO(concGenconfigLogger, "Configuration file " + outputFilename +
-                                            " (" + std::to_string(i + 1) +
-                                            " of " + std::to_string(numNodes) +
-                                            ") written.");
-  }
-
-  if (optionsInput.count("report-principal-locations")) {
-    ofstream nodeMapOutput(nodeMapFilename);
-    try {
-      outputPrincipalLocationsMappingJSON(config, nodeMapOutput);
-    } catch (const exception& e) {
-      LOG4CPLUS_FATAL(concGenconfigLogger,
-                      "An exception occurred while trying to write principal "
-                      "locations mapping. Exception message: " +
-                          string(e.what()));
-      return -1;
-    }
-  }
-
   LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
   return 0;
 }

@@ -62,8 +62,9 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
                                      ConcordConfiguration const& config,
                                      int num_replicas, int client_id) {
-  const auto& external_clients_conf =
-      config.subscope(EXTERNAL_CLIENTS, client_id);
+  const auto nodes = config.subscope(PARTICIPANT_NODES, 0);
+  const auto node = nodes.subscope(PARTICIPANT_NODE, 0);
+  const auto external_clients_conf = node.subscope(EXTERNAL_CLIENTS, client_id);
   const auto client_conf = external_clients_conf.subscope(CLIENT, 0);
   comm_config.commType =
       config.getValue<decltype(comm_config.commType)>(COMM_PROTOCOL);
@@ -93,8 +94,9 @@ void ConcordClient::CreateClient(ConcordConfiguration const& config,
                                  int client_id) {
   const auto num_replicas = config.getValue<std::uint16_t>(NUM_REPLICAS);
   ClientConfig client_config;
-  const auto& external_clients_conf =
-      config.subscope(EXTERNAL_CLIENTS, client_id);
+  const auto nodes = config.subscope(PARTICIPANT_NODES, 0);
+  const auto node = nodes.subscope(PARTICIPANT_NODE, 0);
+  const auto external_clients_conf = node.subscope(EXTERNAL_CLIENTS, client_id);
   const auto client_conf = external_clients_conf.subscope(CLIENT, 0);
   client_config.fVal = config.getValue<decltype(client_config.fVal)>(F_VAL);
   client_config.cVal = config.getValue<decltype(client_config.cVal)>(C_VAL);

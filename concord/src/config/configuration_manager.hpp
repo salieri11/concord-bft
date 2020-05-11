@@ -1392,7 +1392,8 @@ void specifyConfiguration(ConcordConfiguration& config);
 // sizing parameters cannot be found in the input or cannot be loaded to the
 // configuration.
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
-                               ConcordConfiguration& config);
+                               ConcordConfiguration& config,
+                               bool is_client = false);
 
 // Instantiates the scopes within the given concord node configuration. This
 // function expects that config was initialized with specifyConfiguration. This
@@ -1412,6 +1413,9 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
 // specific to the first client proxy on each node).
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config);
+
+void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
+                                             ConcordConfiguration& config);
 
 // Loads all non-generated (i.e. required and optional input) parameters from
 // the given YAMLConfigurationInput to the given ConcordConfiguration object.
@@ -1470,6 +1474,17 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
 void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node);
+
+// Uses the provided YAMLConfigurationOutput to write a configuration file for a
+// specified Participant node. This function expects that values for all
+// parameters that are desired in the output have already been loaded; it will
+// only output values for parameters that are both initialized in config and
+// that should be included in the given Participant node configuration file.
+// Note this function may throw any I/O or YAML serialization exceptions that
+// occur while attempting this operation.
+void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
+                                        YAMLConfigurationOutput& output,
+                                        size_t node);
 
 // Loads the Concord configuration for a node (presumably the one running this
 // function) from a specified configuration file. This function expects that
@@ -1542,6 +1557,39 @@ ConcordConfiguration::ParameterStatus validateUInt(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failureMessage, void* state);
 
+ConcordConfiguration::ParameterStatus ValidateNumReplicas(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state);
+
+ConcordConfiguration::ParameterStatus numOfExternalClients(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state);
+
+ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failure_message, void* state);
+
+static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state);
+
+static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state);
+static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state);
+
+void specifyClientConfiguration(ConcordConfiguration& config);
+
+void specifyGeneralConfiguration(ConcordConfiguration& config);
+
+void specifyReplicaConfiguration(ConcordConfiguration& config);
+
+void specifySimpleClientParams(ConcordConfiguration& config);
+
+void specifyExternalClientConfiguration(config::ConcordConfiguration& config);
+
 inline const std::pair<unsigned long long, unsigned long long>
     kPositiveIntLimits({1, INT_MAX});
 inline const std::pair<unsigned long long, unsigned long long>
@@ -1563,6 +1611,11 @@ inline const std::pair<long long, long long> kInt32Limits({INT32_MIN,
 // minimal error responses can be passed through them.
 inline const std::pair<unsigned long long, unsigned long long>
     kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
+
+// We enforce a minimum size on communication buffers to ensure at least
+// minimal error responses can be passed through them.
+inline const std::pair<unsigned long long, unsigned long long>
+    kParticipantNodeNumOfClients({1, 4096});
 
 }  // namespace config
 }  // namespace concord
