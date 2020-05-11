@@ -18,6 +18,13 @@ public enum OperationType {
     }
 
     /**
+     * Get id.
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
      * Get type from Id.
      */
     public static OperationType valueOfId(String id) {

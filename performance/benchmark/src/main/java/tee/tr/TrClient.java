@@ -2,10 +2,12 @@ package tee.tr;
 
 import bench.Node;
 import org.apache.logging.log4j.Logger;
+import tee.tr.TrStats.GlobalStats;
+import tee.tr.TrStats.NodeStats;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Map;
 
 import static java.time.Duration.between;
 import static java.time.Instant.now;
@@ -22,20 +24,16 @@ public class TrClient implements TrEventHandler {
     private static final Logger logger = getLogger(TrClient.class);
 
     private final List<TrSubscriber> subscribers;
-
-    private final AtomicLong totalDataUpdates;
-    private final AtomicLong totalResponseTimeMillis;
-    private Instant start;
+    private final GlobalStats globalStats;
 
     public TrClient(List<Node> nodes) {
         subscribers = nodes.stream().map(node -> new TrSubscriber(node, this)).collect(toList());
-        totalResponseTimeMillis = new AtomicLong();
-        totalDataUpdates = new AtomicLong();
+        globalStats = new GlobalStats();
     }
 
     public void start() {
         // Read finite stream to get current state.
-        start = now();
+        Instant start = now();
         subscribers.forEach(TrSubscriber::readState);
         logger.info("Total duration to read initial state: {}", between(start, now()));
 
@@ -43,26 +41,27 @@ public class TrClient implements TrEventHandler {
         subscribers.get(0).setDataSubscriber(true);
 
         // Start subscribing for endless stream of updates
-        start = now();
-        subscribers.forEach(Thread::start);
+        globalStats.start();
+        subscribers.forEach(TrSubscriber::subscribe);
     }
 
-    public void stop() {
-        subscribers.forEach(TrSubscriber::summarize);
-        logger.info("Total duration of subscription: {}", between(start, now()));
-        long avgResponseTimeMillis = totalResponseTimeMillis.longValue() / totalDataUpdates.longValue();
-        logger.info("No. of blocks for which data updates were received: {}", totalDataUpdates);
-        logger.info("Average end-to-end response time: {} ms", avgResponseTimeMillis);
-        // TODO: Unsubscription is not yet supported.
-        System.exit(0);
+    public void stop(Map<String, Object> jsonStats) {
+        subscribers.forEach(TrSubscriber::unsubscribe);
+        globalStats.stop();
+
+        logger.info("Total duration of subscription: {}", globalStats.getDuration());
+        logger.info("Total data updates received: {}", globalStats.getUpdateCount());
+        logger.info("Average data updates per second: {}", globalStats.getAvgUpdateTimeMillis());
+
+        List<NodeStats> nodeStats = subscribers.stream().map(TrSubscriber::getNodeStats).collect(toList());
+        TrStats stats = new TrStats(globalStats, nodeStats);
+        jsonStats.put("TR", stats);
     }
 
     @Override
-    public void onDataReceived(long blockId, Instant sendTime) {
-        totalDataUpdates.incrementAndGet();
-        long responseTimeMillis = between(sendTime, now()).toMillis();
-        logger.debug("Data for blockId {} received in {} ms", blockId, responseTimeMillis);
-        totalResponseTimeMillis.addAndGet(responseTimeMillis);
+    public void onDataReceived(long blockId, long updateTimeMillis) {
+        globalStats.incrementUpdateCount();
+        globalStats.addUpdateTimeMillis(updateTimeMillis);
     }
 
     @Override

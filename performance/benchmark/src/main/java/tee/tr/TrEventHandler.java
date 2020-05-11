@@ -10,7 +10,7 @@ public interface TrEventHandler {
     /**
      * Callback when thin replica client subscriber receives data from a node.
      */
-    void onDataReceived(long blockId, Instant sendTime);
+    void onDataReceived(long blockId, long updateTimeMillis);
 
     /**
      * Callback when thin replica client subscriber receives hash from a node.

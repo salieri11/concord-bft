@@ -37,6 +37,11 @@ public class DAMLManager extends WorkloadManager {
     }
 
     @Override
+    protected String getOperationType() {
+        return "SubmitAndWait";
+    }
+
+    @Override
     protected WorkloadClient createClient(String host, int port) {
         DamlClient client = new DamlClient(host, port, party, noOfCommandsPerTransaction, logging);
         client.init();

@@ -28,5 +28,6 @@ public class BenchMaster {
       System.exit(-1);
     }
     logger.info("Finished benchmark!");
+    System.exit(0);
   }
 }
