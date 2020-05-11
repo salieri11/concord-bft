@@ -11,6 +11,7 @@ tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: true
+preexecution_enabled: true
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
   genesis_block: /concord/config-public/daml_genesis.json
