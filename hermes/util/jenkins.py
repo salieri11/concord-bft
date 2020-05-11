@@ -8,6 +8,7 @@ import jenkins
 import requests
 import json
 import traceback
+import os
 from itertools import islice
 from datetime import datetime
 from . import helper, hermes_logging, wavefront, racetrack
@@ -21,6 +22,8 @@ JOB_NAME_REPLACE_WITH = {
   # map of job names with slashes; escape slashes on URL
   '/releases/': '/releases%252F',
 }
+JENKINS_USER_OVERRIDE = os.getenv("JENKINS_USER")
+JENKINS_TOKEN_OVERRIDE = os.getenv("JENKINS_TOKEN")
 
 
 def publishRunsMaster(limit=100, startFromBuildNumber=None):
@@ -270,6 +273,22 @@ def getRunMetadata(jobName, buildNumber):
     return None
 
 
+def getUserConfigFromLatestGoodMaster():
+  if not JENKINS_USER_OVERRIDE or not JENKINS_TOKEN_OVERRIDE:
+    log.error("Your local environment is does not have the needed Jenkins environment variables.")
+    log.error("In order to set environment variables (e.g. ~/.bash_profile), add:")
+    log.error("export JENKINS_USER={LDAP_USERNAME} # e.g. email without '@vmware.com'")
+    log.error("export JENKINS_TOKEN={TOKEN} # e.g. add new API token on https://blockchain.svc.eng.vmware.com/user/{LDAP_USERNAME}/configure")
+    return False
+  log.info("Getting user_config.json from the latest good master...")
+  jobName = helper.JENKINS_RUN_MASTER["exactly"]
+  buildNumber = getTopBuildNumberForJob(jobName)
+  while True:
+    metadata = getRunMetadata(jobName, buildNumber)
+    if metadata["result"] == "SUCCESS": break
+    buildNumber -= 1
+  config = getArtifact(jobName, buildNumber, '/blockchain/hermes/resources/user_config.json')
+  return config
 
 def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
   '''
@@ -310,9 +329,13 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
 #========================================================================================
 
 def getConnection():
-  configObject = helper.getUserConfig()
-  username = configObject["jenkins"]["username"]
-  token = configObject["jenkins"]["token"]
+  if JENKINS_TOKEN_OVERRIDE:
+    username = JENKINS_USER_OVERRIDE
+    token = JENKINS_TOKEN_OVERRIDE
+  else:
+    configObject = helper.getUserConfig()
+    username = configObject["jenkins"]["username"]
+    token = configObject["jenkins"]["token"]
   if EXISTING_CONNECTION["conn"] is not None:
     return EXISTING_CONNECTION["conn"]
   conn = jenkins.Jenkins('https://' + MAIN_JENKINS_URL, username=username, password=token)
@@ -348,9 +371,13 @@ def getJenkinRunBaseUrl(jobName, buildNumber='', authenticated=False):
   '''
     If jobName is "ROOT" it will default to the very root URL
   '''
-  configObject = helper.getUserConfig()
-  username = configObject["jenkins"]["username"]
-  token = configObject["jenkins"]["token"]
+  if JENKINS_TOKEN_OVERRIDE:
+    username = JENKINS_USER_OVERRIDE
+    token = JENKINS_TOKEN_OVERRIDE
+  else:
+    configObject = helper.getUserConfig()
+    username = configObject["jenkins"]["username"]
+    token = configObject["jenkins"]["token"]
   accessor = username + ':' + token
   if jobName == "ROOT": return 'https://{}@{}'.format(accessor, MAIN_JENKINS_URL)
   jobNameEscaped = jobName
@@ -424,3 +451,27 @@ def queueToAllTimeIndexes(name, value, ts, baseTags):
         # 1h, 4h, 12h, 1d, 1w, 1mo
         wavefront.WF_TAGNAME_TIMESCOPE: timeScope
       }))
+
+def overrideOnlyDefaultConfig(target, src):
+  '''
+    Default config without sed replace is usually "<SOME_CONFIG_NAME>"
+    Recursively find and replace with matching configs from src
+  '''
+  if not target or not src: return
+  if isinstance(target, dict) and isinstance(src, dict):
+    for key, value in target.items():
+      if not value: continue
+      if isinstance(value, str):
+        if value.startswith("<") and value.endswith(">"):
+          if key in src: target[key] = src[key]
+      if isinstance(value, dict) or isinstance(value, list): 
+        if key in src: overrideOnlyDefaultConfig(value, src[key])
+  elif isinstance(target, list) and isinstance(src, list):
+    for idx, value in enumerate(target):
+      if not value: continue
+      if isinstance(value, str):
+        if value.startswith("<") and value.endswith(">"):
+          if idx < len(src): target[idx] = src[idx]
+      if isinstance(value, dict) or isinstance(value, list):
+        if idx < len(src): overrideOnlyDefaultConfig(value, src[idx])
+  return target

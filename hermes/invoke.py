@@ -138,7 +138,11 @@ def main():
                       help="arguments to the utility function call",
                       default=[],
                       nargs="*")
+  parser.add_argument("--su",
+                      action="store_true", # implies default=False
+                      help="Super user privilege with all Jenkins injected credentials available.")
   args = parser.parse_args()
+  if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
   setUpLogging()
   try:
     param = trimCmdlineArgs(args.param)

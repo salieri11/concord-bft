@@ -49,9 +49,13 @@ def main(args):
    parser.add_argument("--testlistFile",
                        help="json file containing the list of tests",
                        default=helper.LONG_RUN_TEST_FILE)
+   parser.add_argument("--su",
+                       action="store_true", # implies default=False
+                       help="Super user privilege with all Jenkins injected credentials available.")
 
    args = parser.parse_args()
 
+   if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
    if not args.replicasConfig and not args.replicas:
       log.error("Usage: pass either --replicas (or) --replicasConfig")
       sys.exit(1)
