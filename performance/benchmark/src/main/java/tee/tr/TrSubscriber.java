@@ -10,17 +10,21 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import org.apache.logging.log4j.Logger;
+import tee.tr.TrStats.NodeStats;
+import tee.tr.TrStats.OpStats;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.atomic.LongAdder;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.protobuf.ByteString.copyFromUtf8;
 import static com.vmware.concord.thin_replica.ThinReplicaGrpc.newBlockingStub;
 import static io.grpc.ManagedChannelBuilder.forAddress;
 import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 import static io.grpc.Metadata.Key.of;
 import static io.grpc.stub.MetadataUtils.newAttachHeadersInterceptor;
+import static java.time.Duration.between;
+import static java.time.Instant.now;
 import static java.time.Instant.parse;
 import static java.util.UUID.randomUUID;
 import static org.apache.logging.log4j.LogManager.getLogger;
@@ -35,22 +39,26 @@ public class TrSubscriber extends Thread {
     public static final String TR_ID = randomUUID().toString();
     public static final ByteString SEND_TIME = copyFromUtf8(randomUUID().toString());
 
-    private final Node node;
     private final ThinReplicaBlockingStub blockingStub;
     private final TrEventHandler eventHandler;
-    private final LongAdder updateCount;
 
     private long initialBlockId;
     private boolean dataSubscriber;
 
+    private final OpStats readState;
+    private final OpStats subscription;
+    private final NodeStats nodeStats;
+
 
     public TrSubscriber(Node node, TrEventHandler eventHandler) {
-        this.node = node;
         this.eventHandler = eventHandler;
-        updateCount = new LongAdder();
 
         ManagedChannel channel = forAddress(node.getIp(), node.getPort()).usePlaintext().intercept(interceptor()).build();
         blockingStub = newBlockingStub(channel);
+
+        readState = new OpStats();
+        subscription = new OpStats();
+        nodeStats = new NodeStats(node, readState, subscription);
     }
 
     /**
@@ -86,14 +94,25 @@ public class TrSubscriber extends Thread {
      * Its performance is not being tested here.
      */
     public void readState() {
+        readState.start();
         ReadStateRequest request = ReadStateRequest.newBuilder().build();
 
         blockingStub.readState(request).forEachRemaining(data -> {
             logger.debug("{}", data);
             initialBlockId = data.getBlockId();
+            readState.incrementUpdateCount();
         });
 
-        logger.info("{} - Initial blockId: {}", node, initialBlockId);
+        readState.stop();
+        logger.info("{} - {} blocks read in {}", nodeStats.getAddress(), initialBlockId, readState.getDuration());
+    }
+
+    /**
+     * Subscribe for updates.
+     */
+    public void subscribe() {
+        subscription.start();
+        start();
     }
 
     /**
@@ -111,13 +130,14 @@ public class TrSubscriber extends Thread {
 
             logger.debug("{}", data);
 
-            List<KVPair> pairs = data.getDataList();
+            subscription.incrementUpdateCount();
 
             // BlockId without data implies that the update is not relevant for this TR.
-            if (pairs == null) {
+            if (data.getDataCount() == 0) {
                 return;
             }
 
+            List<KVPair> pairs = data.getDataList();
             // Special key to help TR calculate end-to-end time
             Instant sendTime = null;
             for (KVPair pair : pairs) {
@@ -128,8 +148,11 @@ public class TrSubscriber extends Thread {
                 }
             }
 
-            updateCount.increment();
-            eventHandler.onDataReceived(data.getBlockId(), sendTime);
+            checkNotNull(sendTime, "Could not find start time");
+            long responseTimeMillis = between(sendTime, now()).toMillis();
+            logger.debug("Data for blockId {} received in {} ms", data.getBlockId(), responseTimeMillis);
+
+            eventHandler.onDataReceived(data.getBlockId(), responseTimeMillis);
         });
     }
 
@@ -148,13 +171,23 @@ public class TrSubscriber extends Thread {
 
             logger.debug("{}", hash);
 
-            updateCount.increment();
+            subscription.incrementUpdateCount();
             eventHandler.onHashReceived(hash.getBlockId());
         });
     }
 
-    public void summarize() {
-        logger.info("{} - Update count: {}", node, updateCount);
+    /**
+     * TODO: Unsubscription is not yet supported.
+     */
+    public void unsubscribe() {
+        subscription.stop();
+        logger.info("{} - {} updates received in {}", nodeStats.getAddress(), subscription.getUpdateCount(), subscription.getDuration());
     }
 
+    /**
+     * TR stats for this node.
+     */
+    public NodeStats getNodeStats() {
+        return nodeStats;
+    }
 }

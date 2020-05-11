@@ -9,6 +9,7 @@ import dappbench.WorkloadClient;
 import dappbench.WorkloadManager;
 import tee.tr.TrClient;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,15 +51,24 @@ public class TeeManager extends WorkloadManager {
         }
 
         super.executeWorkload();
+    }
 
+    @Override
+    public void tearDown() throws IOException {
         if (thinReplica != null) {
-            thinReplica.stop();
+            thinReplica.stop(getJsonStats());
         }
+        super.tearDown();
     }
 
     @Override
     protected int getRequestCount() {
         return numOfRequests;
+    }
+
+    @Override
+    protected String getOperationType() {
+        return opType.getId();
     }
 
     @Override

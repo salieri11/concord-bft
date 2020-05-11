@@ -6,8 +6,13 @@ import com.wavefront.sdk.common.WavefrontSender;
 import io.grpc.Status;
 import me.tongfei.progressbar.ProgressBar;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -17,6 +22,8 @@ import java.util.concurrent.atomic.LongAdder;
 
 import static java.lang.Math.max;
 import static java.lang.Math.round;
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.nanoTime;
 import static java.time.Instant.now;
@@ -44,6 +51,8 @@ public abstract class WorkloadManager {
     private final Wavefront wavefront;
 
     private final Map<String, List<String>> stats;
+    private WorkloadStats workloadStats;
+    private final Map<String, Object> jsonStats;
     private final Data data;
     private final String outputDir;
 
@@ -64,17 +73,18 @@ public abstract class WorkloadManager {
 
         // Will be used in reporting
         stats = new HashMap<>();
+        jsonStats = new HashMap<>();
         data = new Data();
         data.setAppSummaryTableHeader(
                 Arrays.asList(
-                        "WorkloadName",
+                        "Workload",
                         "Concurrency",
                         "Rate Control",
-                        "TestDuration",
+                        "Test Duration",
                         "Throughput",
-                        "Average gRPC response time",
+                        "Average Response Time",
                         "Total Requests",
-                        "Successful Requests"));
+                        "Response Status"));
         data.addBasicInformation("DLT", simpleconfig.getBlockchain());
         data.setConfigFilePath("../" + BenchUtil.getConfigPath());
     }
@@ -90,6 +100,11 @@ public abstract class WorkloadManager {
      * Get total number of requests to be executed.
      */
     protected abstract int getRequestCount();
+
+    /**
+     * Get type of operation.
+     */
+    protected abstract String getOperationType();
 
     /**
      * Create client specific to the type of workload.
@@ -149,13 +164,23 @@ public abstract class WorkloadManager {
         progressBar.close();
 
         Duration testTime = Duration.ofNanos(nanoTime() - startTimeNanos);
-        summarize(testTime, totalResponseTimeMillis.longValue(), clients);
+        workloadStats = createStats(testTime, totalResponseTimeMillis.longValue(), clients);
+        summarize(workloadStats);
         data.addAppSummaryTableData(getStats());
 
         Reporting report = new Reporting(data);
         report.process(outputDir);
     }
 
+    /**
+     * Post execution steps.
+     */
+    public void tearDown() throws IOException {
+        jsonStats.put(testName, workloadStats);
+        String timestamp = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+        Path file = Paths.get(outputDir, format("report-%s.json", timestamp));
+        Files.write(file, new JSONObject(jsonStats).toString(4).getBytes());
+    }
 
     /**
      * Await on the countdown latch.
@@ -238,32 +263,54 @@ public abstract class WorkloadManager {
     }
 
     /**
-     * Summarize the result.
+     * Summarize the result in Console and save as HTML.
      */
-    private void summarize(Duration testTime, long totalResponseTimeMillis, Collection<WorkloadClient> clients) {
-        logger.info("Total duration of test: {}", testTime);
-        logger.info("Throughput: {} rps", numOfRequests / max(testTime.getSeconds(), 1));
-        logger.info("Average gRPC response time: {} ms", totalResponseTimeMillis / numOfRequests);
-
-        logger.info("Response status: {}", getStatusCount(clients));
+    private void summarize(WorkloadStats s) {
+        logger.info("Total duration of test: {}", s.getTestDuration());
+        logger.info("Throughput: {} rps", s.getRps());
+        logger.info("Average gRPC response time: {} ms", s.getAverageResponseTimeMillis());
+        logger.info("Response status: {}", s.getResponseStatus());
 
         stats.put(
                 "tableRow",
                 Arrays.asList(
-                        testName,
-                        String.valueOf(concurrency),
-                        rateControl + " rps",
-                        String.valueOf(testTime),
-                        numOfRequests / max(testTime.getSeconds(), 1) + " rps",
-                        totalResponseTimeMillis / numOfRequests + " ms",
-                        String.valueOf(numOfRequests),
-                        String.valueOf(getStatusCount(clients))));
+                        s.getOperation(),
+                        valueOf(s.getConcurrency()),
+                        s.getRateControl() + " rps",
+                        valueOf(s.getTestDuration()),
+                        s.getRps() + " rps",
+                        s.getAverageResponseTimeMillis() + " ms",
+                        valueOf(s.getTotalRequests()),
+                        valueOf(s.getResponseStatus())));
     }
 
     /**
-     * Get stats
+     * Create workload stats.
+     */
+    private WorkloadStats createStats(Duration testTime, long totalResponseTimeMillis, Collection<WorkloadClient> clients) {
+        WorkloadStats s = new WorkloadStats();
+        s.setOperation(getOperationType());
+        s.setConcurrency(concurrency);
+        s.setRateControl(rateControl);
+        s.setTestDuration(testTime);
+        s.setTotalRequests(numOfRequests);
+        s.setRps(numOfRequests / max(testTime.getSeconds(), 1));
+        s.setAverageResponseTimeMillis(totalResponseTimeMillis / numOfRequests);
+        s.setResponseStatus(getStatusCount(clients));
+        return s;
+    }
+
+    /**
+     * HTML stats
      */
     public Map<String, List<String>> getStats() {
         return this.stats;
+    }
+
+    /**
+     * JSON stats
+     */
+    public Map<String, Object> getJsonStats() {
+        return jsonStats;
     }
 }

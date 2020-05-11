@@ -48,18 +48,25 @@ public class BenchController {
       Workload workload = workloads.get(0);
       WorkloadManager damlManager = new DAMLManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
       damlManager.executeWorkload();
-      optionalWavefrontSender.ifPresent(this::close);
+      tearDown(damlManager);
     } else if (workloadName.equals("TEE")) {
       Workload workload = workloads.get(0);
       WorkloadManager teeManager = new TeeManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
       teeManager.executeWorkload();
-      optionalWavefrontSender.ifPresent(this::close);
+      tearDown(teeManager);
     } else if (workloadName.equals("Ballot")) {
       BallotAppManager ballotAppManager = new BallotAppManager(simpleConfig, advancedConfig, nodes);
       ballotAppManager.distributeTransaction();
       ballotAppManager.processTransaction();
     }
+  }
 
+  /**
+   * Post execution cleanup.
+   */
+  private void tearDown(WorkloadManager workloadManager) throws IOException {
+    optionalWavefrontSender.ifPresent(this::close);
+    workloadManager.tearDown();
   }
 
   /**
