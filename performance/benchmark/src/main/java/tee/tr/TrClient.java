@@ -51,7 +51,8 @@ public class TrClient implements TrEventHandler {
 
         logger.info("Total duration of subscription: {}", globalStats.getDuration());
         logger.info("Total data updates received: {}", globalStats.getUpdateCount());
-        logger.info("Average data updates per second: {}", globalStats.getAvgUpdateTimeMillis());
+        logger.info("Throughput: {} ups", globalStats.getUpdatesPerSecond());
+        logger.info("Average data update time: {} ms", globalStats.getAvgUpdateTimeMillis());
 
         List<NodeStats> nodeStats = subscribers.stream().map(TrSubscriber::getNodeStats).collect(toList());
         TrStats stats = new TrStats(globalStats, nodeStats);
