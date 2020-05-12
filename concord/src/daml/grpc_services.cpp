@@ -50,7 +50,11 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());
-  if (!pool.send_request_sync(req, request->flags(), *span.get(), resp,
+  auto flags = request->flags();
+  if (pre_execute_all_requests) {
+    flags |= bftEngine::MsgFlag::PRE_PROCESS_FLAG;
+  }
+  if (!pool.send_request_sync(req, flags, *span.get(), resp,
                               request->correlation_id())) {
     LOG4CPLUS_ERROR(logger_, "DAML commit transaction failed");
     return grpc::Status::CANCELLED;
@@ -77,6 +81,13 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
 
   reply->CopyFrom(cmd_reply.commit());
   return grpc::Status::OK;
+}
+
+bool CommitServiceImpl::IsPreExecuteAllRequestsEnabled(
+    const config::ConcordConfiguration& config) {
+  const auto kPreExecuteAllRequests = "pre_execute_all_requests";
+  return config.hasValue<bool>(kPreExecuteAllRequests) &&
+         config.getValue<bool>(kPreExecuteAllRequests);
 }
 
 }  // namespace daml
