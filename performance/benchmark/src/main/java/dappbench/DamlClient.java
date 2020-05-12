@@ -2,15 +2,13 @@ package dappbench;
 
 import com.daml.ledger.javaapi.data.Command;
 import com.daml.ledger.rxjava.DamlLedgerClient;
-import com.digitalasset.quickstart.model.iou.Iou;
+import com.daml.quickstart.model.iou.Iou;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
@@ -77,11 +75,8 @@ public class DamlClient extends WorkloadClient {
         String workflowId = randomUUID().toString();
         String applicationId = "IouApp";
         String commandId = randomUUID().toString();
-        // Difference between following two - Min: PT11S, Max: PT2M
-        Instant ledgerEffectiveTime = now();
-        Instant maximumRecordTime = now().plusSeconds(11);
 
-        client.getCommandClient().submitAndWait(workflowId, applicationId, commandId, party, ledgerEffectiveTime, maximumRecordTime, commands).blockingGet();
+        client.getCommandClient().submitAndWait(workflowId, applicationId, commandId, party, commands).blockingGet();
     }
 
 
