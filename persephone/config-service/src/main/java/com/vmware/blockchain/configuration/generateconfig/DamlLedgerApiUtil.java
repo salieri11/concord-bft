@@ -52,7 +52,7 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export PARTICIPANT_ID=p" + nodeName);
         builder.append(System.getProperty("line.separator"));
-        builder.append("export JAVA_OPTS=-Xmx10G");
+        builder.append("export JAVA_OPTS=\"-Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
         addAuthJwt(builder, properties);
 
         return builder.toString();
