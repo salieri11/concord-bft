@@ -24,7 +24,7 @@ VAULT_KEY = os.environ.get("VAULT_KEY", None)
 SLACK_CHANNELS = ["vdaml-devops", "slackbot"]
 
 VAULT_KNOWN_KEYS = ["VMC", "slack", "artifactory", "bintray",
-					"ZONE-SDDC-MAP", "SDDC-FOLDER-MAP", "ipam", "helendb"]
+					"ZONE-SDDC-MAP", "SDDC-FOLDER-MAP", "ipam", "helendb", "git"]
 
 PRODUCTION_SDDCS = ["VMware-Blockchain-SDDC-2", "VMware-Blockchain-SDDC-3"]
 

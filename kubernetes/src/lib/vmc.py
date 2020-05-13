@@ -158,7 +158,7 @@ class VmcSddc():
         for vm in vms:
             natid = metadata[vm.name]
             data = self.get_nat_rule(natid)
-            if data is None:
+            if data is False:
                 self.logger.info("Nat rule does not exist, \
                                 checking for guest ip")
                 if vm.runtime.powerState == "poweredOn":
