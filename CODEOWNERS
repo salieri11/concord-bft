@@ -35,6 +35,6 @@
 /src/ @rvollmar @rsg
 /thin-replica-client/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov @ybuchnik @ddanilov @tdimitrov @lgal @elerer @hstaykov
 /ui/ @mharrison @hbhavsar @kkeunwoo @mandeab
-/vars/ @rvollmar @rsg @khank
+/vars/ @rvollmar @rsg @khank @tparvanov @ysherman @hstaykov @petari @igolikov @tdimitrov
 /kubernetes/ @bsubramanian @khank @rvollmar
 /support/ @bsubramanian @khank
