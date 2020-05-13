@@ -33,14 +33,19 @@ def source_ipam_certificate():
     return server_crt_file
 
 
-def delete_ipam_entry(nw_name, ipaddr, cidr, sddc_id):
+def delete_ipam_entry(nw_name, ipaddr, cidr, sddc_id, onprem=False):
     """
         Delete ipam entry with grpc_curl
     """
     cert_path = source_ipam_certificate()
-    data = {"name":
-                "blocks/%s-%s/segments/%s/addresses/%s" % (
-                sddc_id, nw_name, cidr, ipaddr)}
+    if onprem is False:
+        data = {"name":
+                    "blocks/%s-%s/segments/%s/addresses/%s" % (
+                    sddc_id, nw_name, cidr, ipaddr)}
+    else:
+        data = {"name":
+                    "blocks/%s/segments/%s/addresses/%s" % (
+                    nw_name, cidr, ipaddr)}
     release_method = ("vmware.blockchain.deployment."
                        "v1.IPAllocationService.ReleaseAddress")
     cmd =  ("grpcurl -format=json -d='%s' -cacert=%s %s %s" %

@@ -370,7 +370,7 @@ class ImageManager():
         l_commit = self.get_bintray_image_property(cdn.BINTRAY_COMMIT_LABEL,
                                     component, version=previous)
         self.logger.info("Latest version commit %s, Current version commit %s" %
-                            h_commit[0], l_commit[0])
+                            (h_commit[0], l_commit[0]))
         changelog = utils.get_changelog(h_commit[0], l_commit[0],
                                         cdn.GITLAB_DEFAULT_REPO)
         if outfile is not None:
@@ -378,4 +378,4 @@ class ImageManager():
                 filehandle.write("\n".join(changelog))
             self.logger.info("Successfully dumped changelog to file" % outfile)
         else:
-            self.logger.info("\n".join(changelog))
+            self.logger.info("\n%s" % "\n".join(changelog))

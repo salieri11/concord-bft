@@ -214,11 +214,14 @@ def delete_ipam_resources(vms, dc_dict, metadata):
     """
     success = True
     for vm in vms:
+        onprem = False
         natid = metadata[vm.name]
         data = get_nat_rule(dc_dict["nsx_mgr"],
             DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
         if data is None:
-            logger.info("Nat rule does not exist, checking for guest ip")
+            logger.info("Nat rule does not exist, assuming onprem node")
+            onprem = True
+            logger.info("Checking for guest ip")
             if vm.runtime.powerState == "poweredOn":
                 ipaddr = vm.guest.ipAddress
             else:
@@ -234,7 +237,7 @@ def delete_ipam_resources(vms, dc_dict, metadata):
         cidr_hex = ipam_utils.nwaddress_to_hex(
                                 nw_segment_data['subnets'][0]['network'])
         if ipam_utils.delete_ipam_entry(nw_segment,
-                    ipaddr_hex, cidr_hex, dc_dict["id"]) is False:
+                    ipaddr_hex, cidr_hex, dc_dict["id"], onprem) is False:
             success = False
     return success
 

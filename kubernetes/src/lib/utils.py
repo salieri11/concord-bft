@@ -182,18 +182,18 @@ def get_authenticated_hvac(endpoint):
 
 
 def get_vault_constants(path, logger=None):
-        """
-            Populate constants from vault for datacenter
-        """
-        client = get_authenticated_hvac(common.VAULT_ENDPOINT)
-        if path in common.VAULT_KNOWN_KEYS:
-            data = client.secrets.kv.v2.read_secret_version(
-                            mount_point="kv", path=path)["data"]["data"]
-            return data
-        else:
-            if logger is not None:
-                logger.error("Vault path not found")
-                return None
+    """
+        Populate constants from vault for datacenter
+    """
+    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
+    if path in common.VAULT_KNOWN_KEYS:
+        data = client.secrets.kv.v2.read_secret_version(
+                        mount_point="kv", path=path)["data"]["data"]
+        return data
+    else:
+        if logger is not None:
+            logger.error("Vault path not found")
+            return None
 
 
 def get_auth_header(service, apitoken):
