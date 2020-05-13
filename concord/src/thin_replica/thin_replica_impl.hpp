@@ -82,7 +82,7 @@ class ThinReplicaImpl {
     kvbc::BlockId start = 1;
     kvbc::BlockId end = rostorage_->getLastBlock();
     try {
-      ReadFromKvbAndSendData(logger_, context, stream, start, end, kvb_filter);
+      ReadFromKvbAndSendData(logger_, stream, start, end, kvb_filter);
     } catch (std::exception& error) {
       LOG4CPLUS_ERROR(logger_,
                       "Failed to read and send state: " << error.what());
@@ -167,8 +167,8 @@ class ThinReplicaImpl {
     }
 
     try {
-      SyncAndSend<ServerContextT, ServerWriterT, DataT>(
-          context, request->block_id(), live_updates, stream, kvb_filter);
+      SyncAndSend<ServerWriterT, DataT>(request->block_id(), live_updates,
+                                        stream, kvb_filter);
     } catch (std::exception& error) {
       LOG4CPLUS_ERROR(logger_, error.what());
       subscriber_list_.RemoveBuffer(live_updates);
@@ -182,7 +182,7 @@ class ThinReplicaImpl {
 
     // Read, filter, and send live updates
     std::string correlation_id;
-    while (!context->IsCancelled()) {
+    while (true) {
       if (metric_queue_size) {
         metric_queue_size->Set(live_updates->Size());
       }
@@ -203,7 +203,8 @@ class ThinReplicaImpl {
                    kvb_filter->HashUpdate(filtered_update));
         }
       } catch (std::exception& error) {
-        LOG4CPLUS_INFO(logger_, "Subscription stream closed: " << error.what());
+        LOG4CPLUS_INFO(logger_,
+                       "Data subscription stream closed: " << error.what());
         break;
       }
     }
@@ -223,11 +224,10 @@ class ThinReplicaImpl {
   }
 
  private:
-  template <typename ServerContextT, typename ServerWriterT>
+  template <typename ServerWriterT>
   void ReadFromKvbAndSendData(
-      log4cplus::Logger logger, ServerContextT* context, ServerWriterT* stream,
-      kvbc::BlockId start, kvbc::BlockId end,
-      std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
+      log4cplus::Logger logger, ServerWriterT* stream, kvbc::BlockId start,
+      kvbc::BlockId end, std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     using namespace std::chrono_literals;
     boost::lockfree::spsc_queue<storage::KvbUpdate> queue{10};
     std::atomic_bool close_stream = false;
@@ -240,9 +240,6 @@ class ThinReplicaImpl {
     std::string correlation_id;
     while (kvb_reader.wait_for(0s) != std::future_status::ready ||
            !queue.empty()) {
-      if (context->IsCancelled()) {
-        throw std::runtime_error("Data stream cancelled");
-      }
       while (queue.pop(kvb_update)) {
         try {
           auto& kv = kvb_update.second;
@@ -267,25 +264,20 @@ class ThinReplicaImpl {
     kvb_reader.get();
   }
 
-  template <typename ServerContextT, typename ServerWriterT>
+  template <typename ServerWriterT>
   void ReadFromKvbAndSendHashes(
-      log4cplus::Logger logger, ServerContextT* context, ServerWriterT* stream,
-      kvbc::BlockId start, kvbc::BlockId end,
-      std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
+      log4cplus::Logger logger, ServerWriterT* stream, kvbc::BlockId start,
+      kvbc::BlockId end, std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     for (auto block_id = start; block_id <= end; ++block_id) {
-      if (context->IsCancelled()) {
-        throw std::runtime_error("Hash stream cancelled");
-      }
       size_t hash = kvb_filter->ReadBlockHash(block_id);
       SendHash(stream, block_id, hash);
     }
   }
 
   // Read from KVB and send to the given stream depending on the data type
-  template <typename ServerContextT, typename ServerWriterT, typename DataT>
-  inline void ReadAndSend(log4cplus::Logger logger, ServerContextT* context,
-                          ServerWriterT* stream, kvbc::BlockId start,
-                          kvbc::BlockId end,
+  template <typename ServerWriterT, typename DataT>
+  inline void ReadAndSend(log4cplus::Logger logger, ServerWriterT* stream,
+                          kvbc::BlockId start, kvbc::BlockId end,
                           std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     static_assert(
         std::is_same<DataT, com::vmware::concord::thin_replica::Data>() ||
@@ -293,18 +285,18 @@ class ThinReplicaImpl {
         "We expect either a Data or Hash type");
     if constexpr (std::is_same<DataT,
                                com::vmware::concord::thin_replica::Data>()) {
-      ReadFromKvbAndSendData(logger, context, stream, start, end, kvb_filter);
+      ReadFromKvbAndSendData(logger, stream, start, end, kvb_filter);
     } else if constexpr (std::is_same<
                              DataT,
                              com::vmware::concord::thin_replica::Hash>()) {
-      ReadFromKvbAndSendHashes(logger, context, stream, start, end, kvb_filter);
+      ReadFromKvbAndSendHashes(logger, stream, start, end, kvb_filter);
     }
   }
 
   // Read from KVB until we are in sync with the live updates. This function
   // returns when the next update can be taken from the given live updates.
-  template <typename ServerContextT, typename ServerWriterT, typename DataT>
-  void SyncAndSend(ServerContextT* context, kvbc::BlockId start,
+  template <typename ServerWriterT, typename DataT>
+  void SyncAndSend(kvbc::BlockId start,
                    std::shared_ptr<SubUpdateBuffer> live_updates,
                    ServerWriterT* stream,
                    std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
@@ -315,8 +307,7 @@ class ThinReplicaImpl {
     // history we have to catch up with first
     LOG4CPLUS_INFO(logger_,
                    "Sync reading from KVB [" << start << ", " << end << "]");
-    ReadAndSend<ServerContextT, ServerWriterT, DataT>(logger_, context, stream,
-                                                      start, end, kvb_filter);
+    ReadAndSend<ServerWriterT, DataT>(logger_, stream, start, end, kvb_filter);
 
     // Let's wait until we have at least one live update
     live_updates->WaitUntilNonEmpty();
@@ -339,8 +330,8 @@ class ThinReplicaImpl {
 
       LOG4CPLUS_INFO(logger_,
                      "Sync filling gap [" << start << ", " << end << "]");
-      ReadAndSend<ServerContextT, ServerWriterT, DataT>(
-          logger_, context, stream, start, end, kvb_filter);
+      ReadAndSend<ServerWriterT, DataT>(logger_, stream, start, end,
+                                        kvb_filter);
     }
 
     // Overlap:

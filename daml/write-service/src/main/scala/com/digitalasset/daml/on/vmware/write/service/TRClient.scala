@@ -15,8 +15,6 @@ class TRClient(
     maxFaulty: Short,
     privateKey: String,
     servers: Array[String],
-    maxReadDataTimeout: Short,
-    maxReadHashTimeout: Short,
     jaegerAgent: String,
     metricRegistry: MetricRegistry) {
   import TRClient._
@@ -28,14 +26,7 @@ class TRClient(
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
-  val trcCreated = Library.createTRC(
-    clientId,
-    maxFaulty,
-    privateKey,
-    servers,
-    maxReadDataTimeout,
-    maxReadHashTimeout,
-    jaegerAgent)
+  val trcCreated = Library.createTRC(clientId, maxFaulty, privateKey, servers, jaegerAgent)
   if (trcCreated)
     logger.info("Thin Replica Client created")
   else

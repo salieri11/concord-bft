@@ -137,17 +137,13 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     if (!config.useThinReplica) {
       throw new IllegalArgumentException("Must have thin replica client enabled")
     }
-    // format: off
     new TRClient(
       participantId,
       config.maxFaultyReplicas,
       "",
       config.replicas.toArray,
-      config.maxTrcReadDataTimeout,
-      config.maxTrcReadHashTimeout,
       config.jaegerAgentAddress,
       metricRegistry)
-    // format: on
   }
 
   private[this] def waitForConcordToBeReady(client: KVBCClient): Unit = {

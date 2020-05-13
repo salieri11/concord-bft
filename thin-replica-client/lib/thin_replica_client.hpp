@@ -47,7 +47,6 @@
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
 #include <prometheus/registry.h>
-#include <chrono>
 #include <thread>
 
 namespace thin_replica_client {
@@ -193,9 +192,15 @@ class ThinReplicaClient final {
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
 
-  // Timeouts for data and hash stream read requests
-  std::chrono::milliseconds timeout_read_data_stream_;
-  std::chrono::milliseconds timeout_read_hash_stream_;
+  // Condition variable to notify if an active subscription can no longer
+  // progress.
+  std::shared_ptr<std::condition_variable> subscription_failure_condition_;
+
+  // Additional mutex needed to prevent race conditions that could arise if
+  // ThinReplicaClient::RegisterSubscriptionFailureCondition runs concurrently
+  // with an attempt from subscription worker thread(s) to notify the failure
+  // condition.
+  std::mutex failure_condition_mutex_;
 
   std::string key_prefix_;
   uint64_t latest_verified_block_id_;
@@ -239,18 +244,11 @@ class ThinReplicaClient final {
   // Thread function to start subscription_thread_ with.
   void ReceiveUpdates();
 
-  // Pair of block ID and the hash of the block
-  using BlockIdHashPair =
-      std::pair<uint64_t, ThinReplicaClient::UpdateHashType>;
-
-  // Map recording every BlockIdHashPair we have seen for the update we are
-  // seeking and which servers support that pair. Note we choose a map over an
-  // unordered_map here as std does not seem to provide a hash implementation
-  // for std::pair. The sets of servers supporting each pair are represented as
-  // unordered sets of server indexes.
   using AgreeingSubsetMembers =
-      std::map<BlockIdHashPair, std::unordered_set<size_t>>;
-
+      std::map<std::pair<uint64_t, ThinReplicaClient::UpdateHashType>,
+               std::unordered_set<size_t>>;
+  using MostAgreedBlock =
+      std::pair<uint64_t, ThinReplicaClient::UpdateHashType>;
   using SpanPtr = std::unique_ptr<opentracing::Span>;
   SpanPtr GetSpan(const com::vmware::concord::thin_replica::Data& data,
                   const std::string& child_name);
@@ -258,21 +256,22 @@ class ThinReplicaClient final {
   std::pair<bool, SpanPtr> ReadBlock(
       com::vmware::concord::thin_replica::Data& update_in,
       AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
-      BlockIdHashPair& most_agreed_block);
-  void FindBlockHashAgreement(std::vector<bool>& servers_tried,
-                              AgreeingSubsetMembers& agreeing_subset_members,
-                              size_t& most_agreeing,
-                              BlockIdHashPair& most_agreed_block,
-                              SpanPtr& parent_span);
+      MostAgreedBlock& most_agreed_block);
+  void VerifyBlockHash(std::vector<bool>& servers_tried,
+                       AgreeingSubsetMembers& agreeing_subset_members,
+                       size_t& most_agreeing,
+                       MostAgreedBlock& most_agreed_block,
+                       SpanPtr& parent_span);
+  void VerifyBlockHashAgainstAdditionalServers(
+      std::vector<bool>& servers_tried,
+      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
+      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
 
-  bool RotateDataStreamAndVerify(
+  std::pair<bool, bool> RotateDataStreamServers(
       com::vmware::concord::thin_replica::Data& update_in,
-      AgreeingSubsetMembers& agreeing_subset_members,
-      BlockIdHashPair& most_agreed_block, SpanPtr& parent_span);
-
-  void ResetDataStreamTo(size_t server_idx);
-  void StartHashStreamWith(size_t server_idx);
-  void CloseAllHashStreams();
+      bool has_verified_data, std::vector<bool>& servers_tried,
+      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
+      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
 
   // Helper functions to ReceiveUpdates.
   UpdateHashType ComputeUpdateDataHash(
@@ -338,8 +337,6 @@ class ThinReplicaClient final {
                     std::shared_ptr<UpdateQueue> update_queue,
                     uint16_t max_faulty, const std::string& private_key,
                     Iterator begin_servers, Iterator end_servers,
-                    const uint16_t max_read_data_timeout,
-                    const uint16_t max_read_hash_timeout,
                     const std::string& jaeger_agent)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
@@ -347,6 +344,8 @@ class ThinReplicaClient final {
         server_stubs_(),
         update_queue_(update_queue),
         max_faulty_(max_faulty),
+        subscription_failure_condition_(),
+        failure_condition_mutex_(),
         key_prefix_(),
         latest_verified_block_id_(0),
         subscription_thread_(),
@@ -356,8 +355,6 @@ class ThinReplicaClient final {
         current_data_source_(0),
         subscription_hash_streams_(),
         sub_hash_contexts_(),
-        timeout_read_data_stream_(std::chrono::seconds(max_read_data_timeout)),
-        timeout_read_hash_stream_(std::chrono::seconds(max_read_hash_timeout)),
         exposer_("0.0.0.0:9891", "/metrics", 1),
         registry_(std::make_shared<prometheus::Registry>()),
         trc_requests_counters_total_(
@@ -428,6 +425,32 @@ class ThinReplicaClient final {
   ThinReplicaClient(const ThinReplicaClient&& other) = delete;
   ThinReplicaClient& operator=(const ThinReplicaClient& other) = delete;
   ThinReplicaClient& operator=(const ThinReplicaClient&& other) = delete;
+
+  // Register a condition variable for this ThinReplicaClient to notify in the
+  // event it has an active subscription and becomes unable to receive or
+  // validate a new update, given a shared pointer to that condition variable.
+  // Note this is the primary programatic way to learn of failure(s) in the
+  // ThinReplicaClient's worker thread(s) for managing active subscriptions,
+  // which run asynchronously with all ThinReplicaClient functions after their
+  // initial creation by ThinReplicaClient::Subscribe.
+  //
+  // Reasons the ThinReplicaClient may become unable to receive or validate
+  // updates include disconnection from or unresponsiveness of Thin Replica
+  // Server(s), disagreement among Thin Replica Server(s), or some combination
+  // thereof.
+  //
+  // Note the ThinReplicaClient will notify all waiting threads (not just one
+  // waiting thread) on the failure conditioin. Note ThinReplicaClient only
+  // supports the registration of a single condition variable for subscription
+  // failure; calling this function when a condition variable is already
+  // registered will overwrite the existing condition (without notifying any
+  // threads waiting on it). Also note that the ThinReplicaClient::Unsubscribe
+  // and ThinReplicaClient's destructor will not cause the ThinReplicaClient to
+  // notify a registered condition. Note calling
+  // RegisterSubscriptionFailureCondition with a null failure_condition pointer
+  // will effectively de-register any currently registered failure condition.
+  void RegisterSubscriptionFailureCondition(
+      std::shared_ptr<std::condition_variable> failure_condition);
 
   // Subscribe to updates from the Thin Replica Servers. key_prefix_bytes should
   // be a byte string to request the thin replica servers filter updates on
