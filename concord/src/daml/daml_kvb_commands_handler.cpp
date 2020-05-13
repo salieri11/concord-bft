@@ -319,7 +319,7 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
     const SetOfKeyValuePairs& updates_on_timeout,
     const SetOfKeyValuePairs& updates_on_conflict, BlockId current_block_id,
     const std::optional<google::protobuf::Timestamp>& max_record_time,
-    string& correlation_id, const vector<string>& validation_read_set,
+    const string& correlation_id, const vector<string>& validation_read_set,
     opentracing::Span& parent_span, ConcordResponse& concord_response) const {
   auto build_pre_execution_result = opentracing::Tracer::Global()->StartSpan(
       "build_pre_execution_result",
@@ -339,16 +339,6 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
   for (const auto& k : validation_read_set) {
     const auto& key = CreateDamlKvbKey(k);
     read_set->add_keys(key.data(), key.length());
-  }
-
-  const DamlRequest& daml_request = request_.daml_request();
-  const auto optional_cid = GetCorrelationId(daml_request);
-  if (optional_cid) {
-    correlation_id = optional_cid.value();
-  } else {
-    LOG4CPLUS_ERROR(logger_,
-                    "Failed to retrieve the correlation ID from the "
-                    "pre-executed DAML commit.");
   }
 
   pre_execution_result->set_request_correlation_id(correlation_id.c_str(),
@@ -449,19 +439,6 @@ void DamlKvbCommandsHandler::RecordTransaction(
   command_reply.SerializeToString(&cmd_string);
   daml_response->set_command_reply(cmd_string.c_str(), cmd_string.size());
   write_ops_.Increment();
-}
-
-std::optional<std::string> DamlKvbCommandsHandler::GetCorrelationId(
-    const DamlRequest& daml_request) const {
-  da_kvbc::Command cmd;
-  if (!cmd.ParseFromString(daml_request.command())) {
-    return std::nullopt;
-  }
-  if (cmd.cmd_case() == da_kvbc::Command::kCommit) {
-    const auto& original_commit_req = cmd.commit();
-    return std::optional<std::string>(original_commit_req.correlation_id());
-  }
-  return std::nullopt;
 }
 
 std::optional<google::protobuf::Timestamp>
