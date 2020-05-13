@@ -209,6 +209,7 @@ import hudson.util.Secret
 @Field String additional_components_to_build = ""
 
 // Job Names List
+@Field String chess_plus_on_predeployed_bc_job_name = "ChessPlusOnPre-deployedBlockchain"
 @Field String daml_test_on_predeployed_bc_job_name = "Daml Tests on pre-deployed Blockchain"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
 @Field String ext_long_tests_job_name = "Blockchain Extensive Long Tests"
@@ -216,6 +217,7 @@ import hudson.util.Secret
 @Field String log_insight_test_job_name = "Log Insight Integration Test"
 @Field String long_tests_job_name = "Blockchain Long Tests"
 @Field String main_mr_run_job_name = "Main Blockchain Run on GitLab"
+@Field String manual_with_params_job_name = "Blockchain Manual Run"
 @Field String memory_leak_job_name = "BlockchainMemoryLeakTesting"
 @Field String monitor_replicas_job_name = "Monitor Blockchain replica health and status"
 @Field String performance_test_job_name = "Blockchain Performance Test"
@@ -223,11 +225,11 @@ import hudson.util.Secret
 @Field String on_demand_concord_deployment_job_name = "ON DEMAND Concord Deployment"
 @Field String on_demand_persephone_test_job_name = "ON DEMAND Persephone Testrun on GitLab"
 @Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
-@Field String manual_with_params_job_name = "Blockchain Manual Run"
 
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
 // and these runs can end up running them unintentionally.
 @Field List runs_excluding_persephone_tests = [
+  chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
@@ -243,6 +245,7 @@ import hudson.util.Secret
 
 // These job names are just substrings of the actual job names.
 @Field List specialized_tests = [
+  chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
   ext_long_tests_job_name,
@@ -337,8 +340,11 @@ def call(){
              name: "performance_votes"
 
       string defaultValue: "",
-             description: "To collect deployment support bundle, or for Daml test on pre-deployed blockchain, enter comma separated list of concord node IPs",
+             description: "To collect deployment support bundle, or for Daml/chess plus test on pre-deployed blockchain, enter comma separated list of concord node IPs",
              name: "concord_ips"
+      string defaultValue: "${env.DEFAULT_SPIDER_IMAGE_TAG}",
+             description: "For chess plus test on pre-deployed blockchain, enter Spider image tag",
+             name: "spider_image_tag"
       choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
 
       string defaultValue: "",
@@ -388,6 +394,7 @@ def call(){
               env.run_duration = params.run_duration
               env.load_interval = params.load_interval
               env.monitoring_notify_target = params.monitoring_notify_target
+              env.spider_image_tag = params.spider_image_tag
 
               // Check parameters
               errString = "Parameter check error: "
@@ -587,6 +594,7 @@ def call(){
                 def latest_docker_tag = updateOneCloudProvisioningBintrayAndGetLatestTag()
                 setDockerTag(latest_docker_tag)
               } else if(
+                  env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
@@ -660,6 +668,7 @@ def call(){
                     ./buildall.sh --buildOnDemand PerformanceTests
                   '''
                 } else if (
+                  env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(ext_long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
@@ -733,6 +742,7 @@ def call(){
                   script {
                     // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+                    env.chess_plus_test_logs = new File(env.test_log_root, "ChessPlusTest").toString()
                     env.concord_deployment_test_logs = new File(env.test_log_root, "ConcordDeploymentTest").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
                     env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
@@ -861,7 +871,23 @@ def call(){
                       '''
                       saveTimeEvent("Concord deployment test", "End")
                     }
+                    if (env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name)) {
+                      saveTimeEvent("Standalone Chess plus run", "Start")
+                      withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD')]) {
+                        script{
+                          command = "docker login -u " + env.DOCKERHUB_REPO_READER_USERNAME + " -p '" + env.DOCKERHUB_REPO_READER_PASSWORD + "'"
+                          sh 'echo ${command}'
+                          retryCommand(command, true)
+                        }
+                      }
 
+                      sh '''
+                        echo "Running Chess plus on a pre-deployed Blockchain..."
+                        mkdir -p "${chess_plus_test_logs}"
+                        "${python}" run_chess_plus.py --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --resultsDir "${chess_plus_test_logs}"
+                      '''
+                      saveTimeEvent("Standalone Chess plus run", "End")
+                    }
                   }
                 }
               }
