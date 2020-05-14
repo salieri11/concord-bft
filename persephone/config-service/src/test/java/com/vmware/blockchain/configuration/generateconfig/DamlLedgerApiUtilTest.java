@@ -53,7 +53,7 @@ public class DamlLedgerApiUtilTest {
         file = new File(classLoader.getResource("SampleDamlLedgerApiConfig.txt").getFile());
         expected = new String(Files.readAllBytes(file.toPath()));
 
-        Assertions.assertThat(actual.equals(expected)).isTrue();
+        Assertions.assertThat(actual).isEqualTo(expected);
     }
 
     @Test

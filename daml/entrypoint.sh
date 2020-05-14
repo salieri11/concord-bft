@@ -24,6 +24,9 @@ do
   shift
 done
 
+# Coredump location
+sysctl kernel.core_pattern=/config/daml-ledger-api/cores/core.%e.%h.%s.%t >/dev/null
+
 # Try to connect to PostgreSQL
 until psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
   >&2 echo $(eval $DATE_CMD) "Postgres is unavailable - sleeping"
