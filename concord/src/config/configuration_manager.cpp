@@ -4863,6 +4863,10 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
   participant_nodes.declareScope("participant_node", "One node",
                                  numOfParticipantNodes, nullptr);
   auto& participant_node = participant_nodes.subscope("participant_node");
+  participant_node.declareParameter(
+      "participant_node_host",
+      "IP address or host name this participant node can be reached at.");
+  participant_node.tagParameter("participant_node_host", publicInputTags);
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "
@@ -4912,7 +4916,9 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
   config.tagParameter("num_replicas", publicGeneratedTags);
   config.addValidator("num_replicas", &config::ValidateNumReplicas, nullptr);
   config.addGenerator("num_replicas", computeClientNumReplicas, nullptr);
-
+  config.declareParameter("prometheus_port",
+                          "Port of prometheus client to publish metrics on");
+  config.tagParameter("prometheus_port", publicInputTags);
   //  Validation is done at construction of the client object.
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);
