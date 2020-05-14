@@ -3253,6 +3253,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("daml_enable", publicDefaultableTags);
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
+  config.declareParameter("pre_execute_all_requests",
+                          "Enable pre-execution for all requests", "false");
+  config.tagParameter("pre_execute_all_requests", publicDefaultableTags);
+  config.addValidator("pre_execute_all_requests", validateBoolean, nullptr);
+
   node.declareParameter("daml_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
                         "DAML service can be reached.",

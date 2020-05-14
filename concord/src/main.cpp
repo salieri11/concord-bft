@@ -430,12 +430,13 @@ void start_worker_threads(int number) {
 
 void RunDamlGrpcServer(
     std::string server_address, KVBClientPool &pool,
+    const ConcordConfiguration &config,
     const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
-  CommitServiceImpl *commitService = new CommitServiceImpl(pool);
+  CommitServiceImpl *commitService = new CommitServiceImpl(pool, config);
   ThinReplicaService *thinReplicaService =
       new ThinReplicaService{std::make_unique<ThinReplicaImpl>(
           ro_storage, subscriber_list, prometheus_registry)};
@@ -754,8 +755,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
 
       // Spawn a thread in order to start management API server as well
-      std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
-                  std::ref(subscriber_list), max_num_threads,
+      std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), config,
+                  &replica, std::ref(subscriber_list), max_num_threads,
                   prometheus_registry)
           .detach();
     } else if (hlf_enabled) {

@@ -20,11 +20,19 @@ class CommitServiceImpl final
   concord::consensus::KVBClientPool& pool;
   std::mutex mutex;
 
+  const bool pre_execute_all_requests;
+
+  static bool IsPreExecuteAllRequestsEnabled(
+      const config::ConcordConfiguration& config);
+
  public:
-  explicit CommitServiceImpl(concord::consensus::KVBClientPool& p)
+  explicit CommitServiceImpl(
+      concord::consensus::KVBClientPool& p,
+      const concord::config::ConcordConfiguration& config)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.concord.daml.commit")),
-        pool(p) {}
+        pool(p),
+        pre_execute_all_requests(IsPreExecuteAllRequestsEnabled(config)) {}
 
   grpc::Status CommitTransaction(
       grpc::ServerContext* context,
