@@ -33,8 +33,7 @@ class ThinReplicaClientFacade final {
       const std::string& client_id, uint16_t max_faulty,
       const std::string& private_key,
       const std::vector<std::pair<std::string, std::string>>& servers,
-      const uint16_t max_read_data_timeout,
-      const uint16_t max_read_hash_timeout, const std::string& jaeger_agent);
+      const std::string& jaeger_agent);
   ~ThinReplicaClientFacade();
 
   void Subscribe(const std::string& prefix);
@@ -66,8 +65,7 @@ class ThinReplicaClientFacade final {
       const std::string& client_id, uint16_t max_faulty,
       const std::string& private_key,
       std::vector<std::pair<std::string, ThinReplicaServer>>& mock_servers,
-      const uint16_t max_read_data_timeout,
-      const uint16_t max_read_hash_timeout, const std::string& jaeger_agent);
+      const std::string& jaeger_agent);
 };
 
 }  // namespace thin_replica_client

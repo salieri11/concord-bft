@@ -62,19 +62,15 @@ int main(int argc, char** argv) {
 
   static const size_t kNumServersIndex = 1;
   static const size_t kMaxFaultyIndex = 2;
-  static const size_t kMaxReadTimeoutIndex = 3;
-  static const size_t kServersOffset = 4;
+  static const size_t kServersOffset = 3;
   string usage_text =
       "trc_example\n"
-      "usage: trc_example <NUM_SERVERS> <MAX_FAULTY> <MAX_READ_TIMEOUT> "
-      "<SERVERS...>\n"
+      "usage: trc_example <NUM_SERVERS> <MAX_FAULTY> <SERVERS...>\n"
       "<NUM_SERVERS> is the number of thin replica servers available in this "
       "cluster for the thin replica client to connect to.\n"
       "<MAX_FAULTY> is the maximum number of Byzantine-faulty thin replica "
       "servers the thin replica client must tolerate. <NUM_SERVERS> must be at "
       "least (3 * <MAX_FAULTY> + 1).\n"
-      "<MAX_READ_TIMEOUT> is the maximum time in seconds until we stop a read "
-      "request to the thin replica server.\n"
       "<SERVERS...> should be <NUM_SERVERS> separate arguments, each a network "
       "address for one of the thin replica servers avaliable for the thin "
       "replica client to connect to. Network addresses should be of the form "
@@ -92,11 +88,9 @@ int main(int argc, char** argv) {
 
   uint16_t num_servers;
   uint16_t max_faulty;
-  uint16_t max_read_timeout;
 
   bool has_num_servers = false;
   bool has_max_faulty = false;
-  bool has_max_read_timeout = false;
 
   try {
     unsigned long long num_servers_raw = stoull(argv[kNumServersIndex]);
@@ -131,22 +125,6 @@ int main(int argc, char** argv) {
                     << to_string(0) << "," << to_string(UINT16_MAX) << "].");
     return -1;
   }
-
-  try {
-    unsigned long long max_read_timeout_raw =
-        stoull(argv[kMaxReadTimeoutIndex]);
-    max_read_timeout = (uint16_t)max_read_timeout_raw;
-    has_max_read_timeout =
-        ((max_read_timeout_raw >= 0) && (max_read_timeout_raw <= UINT16_MAX));
-  } catch (const exception& e) {
-    has_max_read_timeout = false;
-  }
-  if (!has_max_read_timeout) {
-    LOG4CPLUS_INFO(logger,
-                   "Read timeout not provided. Using default 5 seconds.");
-    max_read_timeout = 5;
-  }
-
   // Note we attempt to compute whether num_servers is sufficient to accomodate
   // max_faulty using 64-bit arithmetic in case (3 * max_faulty + 1) overflows a
   // 16-bit unsigned integer
@@ -183,9 +161,9 @@ int main(int argc, char** argv) {
 
   try {
     LOG4CPLUS_INFO(logger, "Attempting to construct ThinReplicaClient...");
-    trcf.reset(new ThinReplicaClientFacade(
-        "example_client_id", max_faulty, private_key, servers, max_read_timeout,
-        max_read_timeout, "127.0.0.1:6831"));
+    trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
+                                           private_key, servers,
+                                           "127.0.0.1:6831"));
     LOG4CPLUS_INFO(logger, "ThinReplicaClient constructed.");
     trcf->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");
@@ -252,9 +230,9 @@ int main(int argc, char** argv) {
                                  << " updates; restarting subscription...");
       trcf.reset();
       LOG4CPLUS_INFO(logger, "Destroyed ThinReplicaClient object in use.");
-      trcf.reset(new ThinReplicaClientFacade(
-          "example_client_id", max_faulty, private_key, servers,
-          max_read_timeout, max_read_timeout, "127.0.0.1:6831"));
+      trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
+                                             private_key, servers,
+                                             "127.0.0.1:6831"));
       LOG4CPLUS_INFO(logger, "New ThinReplicaClient object constructed.");
       trcf->Subscribe("", latest_block_id);
       LOG4CPLUS_INFO(

@@ -114,8 +114,6 @@ class TestServerContext {
     return metadata_;
   }
   void erase_client_metadata() { metadata_.clear(); }
-
-  bool IsCancelled() { return false; }
 };
 
 template <typename DataT>

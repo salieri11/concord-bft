@@ -14,10 +14,8 @@
 JNIEXPORT jboolean JNICALL
 Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_createTRC(
     JNIEnv *env, jobject obj, jstring client_id, jshort max_faulty,
-    jstring private_key, jobjectArray servers, jshort max_read_data_timeout,
-    jshort max_read_hash_timeout, jstring jaeger_agent) {
-  return createTRC(env, obj, client_id, max_faulty, private_key, servers,
-                   max_read_data_timeout, max_read_hash_timeout, jaeger_agent);
+    jstring private_key, jobjectArray servers, jstring jaeger_agent) {
+  return createTRC(env, obj, client_id, max_faulty, private_key, servers, jaeger_agent);
 }
 
 /*

@@ -25,8 +25,6 @@ object Library {
       maxFaulty: Short,
       privateKey: String,
       servers: Array[String],
-      maxReadDataTimeout: Short,
-      maxReadHashTimeout: Short,
       jaegerAgent: String): Boolean
   @native def subscribe(prefix: String): Boolean
   @native def subscribe(prefix: String, blockId: Long): Boolean

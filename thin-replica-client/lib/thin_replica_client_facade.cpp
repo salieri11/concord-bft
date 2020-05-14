@@ -71,7 +71,6 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::string& client_id, uint16_t max_faulty,
     const std::string& private_key,
     const std::vector<std::pair<std::string, std::string>>& servers,
-    const uint16_t max_read_data_timeout, const uint16_t max_read_hash_timeout,
     const std::string& jaeger_agent)
     : impl(new Impl()) {
   try {
@@ -119,12 +118,6 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
           kMaxTimeToWaitForServerConnectivityUnitLabel + ".");
     }
 
-    if (max_read_data_timeout == 0 || max_read_hash_timeout == 0) {
-      throw runtime_error(
-          "Read data/hash timeouts are set to 0 seconds. Please set a timeout "
-          "> 0.");
-    }
-
     vector<pair<string, unique_ptr<ThinReplica::StubInterface>>> server_stubs;
     assert(serverChannels.size() == servers.size());
     for (size_t i = 0; i < servers.size(); ++i) {
@@ -135,8 +128,7 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
 
     impl->trc.reset(new ThinReplicaClient(
         client_id, impl->update_queue, max_faulty, private_key,
-        server_stubs.begin(), server_stubs.end(), max_read_data_timeout,
-        max_read_hash_timeout, jaeger_agent));
+        server_stubs.begin(), server_stubs.end(), jaeger_agent));
   } catch (const exception& e) {
     LOG4CPLUS_ERROR(
         impl->logger,
