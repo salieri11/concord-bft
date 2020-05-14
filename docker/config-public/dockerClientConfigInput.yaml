@@ -11,6 +11,7 @@ client_max_retry_timeout_milli: 1000
 client_sends_request_to_all_replicas_first_thresh: 4
 client_sends_request_to_all_replicas_period_thresh: 2
 client_periodic_reset_thresh: 30
+prometheus_port: 9873
 node:
   - replica:
       - replica_host: concord1
@@ -25,8 +26,9 @@ node:
       - replica_host: concord4
         replica_port: 3501
 participant_nodes:
-  - participant_node: 	
-      - external_clients:
+  - participant_node:
+      - participant_node_host: 0.0.0.0 	
+        external_clients:
           - client:
               - client_port: 3502
           - client:
@@ -37,8 +39,9 @@ participant_nodes:
               - client_port: 3505
           - client:
               - client_port: 3506
-  - participant_node: 	
-      - external_clients:
+  - participant_node:
+      - participant_node_host: 0.0.0.0 	
+        external_clients:
           - client:
               - client_port: 3507
           - client:

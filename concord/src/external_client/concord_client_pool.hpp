@@ -12,7 +12,9 @@
 // file.
 
 #pragma once
-
+#include <prometheus/counter.h>
+#include <prometheus/exposer.h>
+#include <prometheus/registry.h>
 #include <SimpleThreadPool.hpp>
 #include <config/configuration_manager.hpp>
 #include <mutex>
@@ -75,6 +77,13 @@ class ConcordClientPool {
   util::SimpleThreadPool jobs_thread_pool_;
   // Clients queue mutex
   std::mutex clients_queue_lock_;
+  // Metric
+  std::shared_ptr<prometheus::Exposer> exposer_;
+  std::shared_ptr<prometheus::Registry> registry_;
+  prometheus::Family<prometheus::Counter>& total_requests_counters_;
+  prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
+  prometheus::Counter& requests_counter_;
+  prometheus::Gauge& clients_gauge_;
 };
 
 class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
