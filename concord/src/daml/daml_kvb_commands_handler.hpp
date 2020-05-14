@@ -101,9 +101,6 @@ class DamlKvbCommandsHandler
   std::map<string, string> GetFromStorage(
       const google::protobuf::RepeatedPtrField<std::string>& keys);
 
-  std::optional<std::string> GetCorrelationId(
-      const com::vmware::concord::DamlRequest& daml_request) const;
-
   void RecordTransaction(
       const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
       const string& correlation_id, opentracing::Span& parent_span,
@@ -120,7 +117,7 @@ class DamlKvbCommandsHandler
       const kvbc::SetOfKeyValuePairs& updates_on_conflict,
       kvbc::BlockId current_block_id,
       const std::optional<google::protobuf::Timestamp>& record_time,
-      string& correlation_id,
+      const string& correlation_id,
       const std::vector<std::string>& validation_read_set,
       opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response) const;
