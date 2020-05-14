@@ -443,13 +443,9 @@ def fxProduct(request, fxHermesRunSettings):
 
             waitForStartupFunction = helper.verify_daml_test_ready
             waitForStartupParams = {
-               "docker_compose_files": fxHermesRunSettings[
-                  "hermesCmdlineArgs"].dockerComposeFile,
                "endpoint_hosts": endpoint_hosts,
                "endpoint_port": endpoint_port}
             checkProductStatusParams = {
-               "docker_compose_files": fxHermesRunSettings[
-                  "hermesCmdlineArgs"].dockerComposeFile,
                "endpoint_hosts": endpoint_hosts,
                "endpoint_port": endpoint_port, "max_tries": 1}
 

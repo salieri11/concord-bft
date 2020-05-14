@@ -3,7 +3,7 @@
     "basic_tests": [
       {
         "testname": "Daml Test",
-        "test": "./main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml-test-tool.yml"
+        "test": "./main.py DamlTests"
       }
     ],
     "additional_tests": [

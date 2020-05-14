@@ -59,7 +59,6 @@ import hudson.util.Secret
   ],
   "DamlTestsOnPredeployedBlockchain": [
     "enabled": false,
-    "dockerComposeFiles": "../docker/docker-compose-daml-test-tool.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --damlParticipantIP "${concord_ips}"'
   ],
   "SampleSuite": [

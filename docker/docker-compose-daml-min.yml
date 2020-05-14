@@ -4,15 +4,6 @@
 
 version: '3'
 services:
-  # The test tool is an image dependency but not a service dependency.
-  # If there is a way to just define an image dependency then this service
-  # should be removed.
-  # By specifying the test tool in here we make sure that we download the image
-  # from artifiactory so it can be used during the test.
-  daml_test_tool:
-    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.54
-    command: bash -c "echo \"Sleep so that Hermes can attach to our output\" && sleep 10"
-
   # Note: Make sure that Concord's configuration files have `daml_enable` set
   concord1:
     image: "${concord_repo}:${concord_tag}"
