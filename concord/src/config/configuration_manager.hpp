@@ -1557,29 +1557,6 @@ ConcordConfiguration::ParameterStatus validateUInt(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failureMessage, void* state);
 
-ConcordConfiguration::ParameterStatus ValidateNumReplicas(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state);
-
-ConcordConfiguration::ParameterStatus numOfExternalClients(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state);
-
-ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state);
-
-static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state);
-
-static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state);
-static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state);
-
 void specifyClientConfiguration(ConcordConfiguration& config);
 
 void specifyGeneralConfiguration(ConcordConfiguration& config);
