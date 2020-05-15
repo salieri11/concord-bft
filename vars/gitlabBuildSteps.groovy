@@ -349,8 +349,8 @@ def call(){
       string defaultValue: "120",
              description: "Monitor replicas: Enter number of hours to monitor replicas (default 120 hrs)",
              name: "run_duration"
-      string defaultValue: "60",
-             description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
+      string defaultValue: "0",
+             description: "Monitor replicas: Set the load interval between monitors (default 0 min)",
              name: "load_interval"
 
       string defaultValue: "",
