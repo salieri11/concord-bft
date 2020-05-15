@@ -1,23 +1,31 @@
 # Copyright 2020 VMware, all rights reserved
 
-# The example application image is to be created on top of the Thin Replica
-# Client Library image. By default, this Dockerfile assumes a Thin Replica
-# Client Library image at trc-lib:latest will be used; however, a different
-# image can be specified as the base via the trc_lib_repo and trc_lib_tag Docker
-# build arguments.
 ARG trc_lib_repo="trc-lib"
 ARG trc_lib_tag="latest"
+
+# The example application image is to be created from the Thin Replica Client
+# Library Image. By default, this Dockerfile assumes a Thin Replica Client
+# Library image at trc-lib:latest will be used; however, a different image can
+# be specified as the base via the trc_lib_repo and trc_lib_tag Docker build
+# arguments.
 FROM ${trc_lib_repo}:${trc_lib_tag} as trc_lib_image
 LABEL Description="Thin Replica Client example application"
 
-# Build
+# Copy sources
+COPY ./concord/cmake /concord/cmake
+COPY ./communication/src/main/proto /communication/src/main/proto
+COPY ./thin-replica-client /thin-replica-client
+
+# Build the example application.
 WORKDIR /thin-replica-client/build
 RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
           -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
 	  -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
 	  make -j$(nproc) trc_example
 
-# TODO: Create runtime container image
+# Copy the Log4Cplus configuration file.
+COPY ./thin-replica-client/example/log4cplus.properties /thin-replica-client/example/log4cplus.properties
+
 ENV LOG4CPLUS_CONFIGURATION /thin-replica-client/example/log4cplus.properties
 CMD ["/thin-replica-client/build/example/trc_example", "4", "1", \
      "concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"]
