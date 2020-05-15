@@ -117,7 +117,7 @@ class RegressionTests(test_suite.TestSuite):
               ("nested_contract_creation", self._test_nested_contract_creation),
               ("invalid_addresses", self._test_invalid_addresses),
               ("call_writer", self._test_call_writer),
-              ("large_transactions", self._test_large_transactions)
+              # ("large_transactions", self._test_large_transactions) Large tx skipped due to BC-2551.
               # ("zero_exit_code", self._test_zero_exit_code)
       ]
 
