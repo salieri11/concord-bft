@@ -32,6 +32,7 @@ public class TeeClient extends WorkloadClient {
     /**
      * Initialize the connection and payload.
      */
+    @Override
     public void init() {
         ManagedChannel channel = forAddress(getHost(), getPort()).usePlaintext().build();
         TeeServiceBlockingStub blockingStub = newBlockingStub(channel);

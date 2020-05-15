@@ -1,0 +1,24 @@
+# prerequisite: Enable PEE
+
+simpleConfig:
+  blockchain: concord
+  nodes: # committer nodes
+    - ip:
+      port: 50051
+      percentage: 100
+  workloads:
+    - dapp: PEE
+      rateControl: 0 # Throttled RPS
+      logging: false
+      params:
+        - PerfWrite # Operation name
+        - 100 # Total no. of requests
+        - 250 # No. of KV pairs in each block
+        - 32 # Key size
+        - 32 # Value size
+        - 0 # Batch of <n> blocks pre-created in Concord memory.
+  numberThreads: 1 # No of concurrent requests
+  outputDir: ./perf_result
+advancedConfig:
+  wavefront:
+    enabled: false

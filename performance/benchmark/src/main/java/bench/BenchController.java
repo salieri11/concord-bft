@@ -7,6 +7,7 @@ import com.wavefront.sdk.common.WavefrontSender;
 import com.wavefront.sdk.proxy.WavefrontProxyClient;
 import dappbench.DAMLManager;
 import dappbench.WorkloadManager;
+import pee.PeeManager;
 import tee.TeeManager;
 import java.io.IOException;
 import java.util.List;
@@ -54,6 +55,11 @@ public class BenchController {
       WorkloadManager teeManager = new TeeManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
       teeManager.executeWorkload();
       tearDown(teeManager);
+    } else if (workloadName.equals("PEE")) {
+        Workload workload = workloads.get(0);
+        WorkloadManager peeManager = new PeeManager(workload, simpleConfig, advancedConfig, optionalWavefrontSender);
+        peeManager.executeWorkload();
+        tearDown(peeManager);
     } else if (workloadName.equals("Ballot")) {
       BallotAppManager ballotAppManager = new BallotAppManager(simpleConfig, advancedConfig, nodes);
       ballotAppManager.distributeTransaction();
