@@ -1,5 +1,3 @@
-
-
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.5-SNAPSHOT"
 ThisBuild / organization     := "com.digitalasset"
@@ -8,7 +6,7 @@ ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com
 
 lazy val akkaVersion = "2.6.1"
 lazy val sdkVersion = "1.1.0-snapshot.20200422.3991.0.6391ee9f"
-lazy val integrationKitVersion = "0.0.8"
+lazy val integrationKitVersion = "0.0.9-snapshot.20200513.331.0.b38f2b0b"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -18,7 +16,7 @@ resolvers in Global ++=
   Seq(
     "Digital Asset KV OEM integration kit" at "https://build-artifactory.eng.vmware.com/digitalassetsdk.bintray.com/vmware-integration-kit",
   )
-//
+
 lazy val commonSettings = Seq()
 
 lazy val protos = (project in file("protos"))
@@ -43,12 +41,9 @@ lazy val common = (project in file("common"))
     name := "DAML on VMware Common",
     libraryDependencies ++= Seq(
       protobuf,
-
       "com.daml" %% "build-info" % sdkVersion,
-
       // Uses extended Prometheus metrics exporter
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
-
       // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.26",
       "ch.qos.logback" % "logback-core" % "1.2.3",
@@ -79,6 +74,9 @@ lazy val execution_engine = (project in file("execution-engine"))
       "com.daml" %% "participant-state" % sdkVersion,
       "com.daml" %% "participant-state-kvutils" % sdkVersion,
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
+      "com.daml" %% "testing-utils" % sdkVersion % Test,
+      "org.mockito" % "mockito-core" % "2.24.0" % Test,
+      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -123,7 +121,6 @@ lazy val write_service = (project in file("write-service"))
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
       "com.daml" %% "testing-utils" % sdkVersion % Test,
-      "junit" % "junit" % "4.12" % Test,
       "org.mockito" % "mockito-core" % "2.24.0" % Test,
       "org.scalatest" %% "scalatest" % "3.0.8" % Test,
 
@@ -177,9 +174,8 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "ch.qos.logback" % "logback-core" % "1.2.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
-      // Testing
-      "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-      "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % "test",
+      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+      "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % Test,
     ),
   )
   .dependsOn(protos, write_service, common, trc_core, trc_native % Runtime)

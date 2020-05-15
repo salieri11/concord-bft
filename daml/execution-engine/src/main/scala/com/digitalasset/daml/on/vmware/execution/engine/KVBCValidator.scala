@@ -2,37 +2,31 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine
 
+import java.time.{Duration, Instant}
+
 import akka.stream.Materializer
 import com.codahale.metrics.{MetricRegistry, Timer}
+import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, DamlKvutils => KV}
 import com.daml.ledger.participant.state.pkvutils
 import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
-import com.daml.ledger.validator.batch.{
-  BatchValidator,
-  BatchValidatorParameters,
-  FragmentingLedgerOps,
-  InternalBatchLedgerOps
-}
+import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, ConflictDetection}
 import com.daml.lf.data.{Ref, Time}
 import com.daml.lf.engine.Engine
 import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.kvbc.daml_validator._
-import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
-import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
 import io.grpc.stub.StreamObserver
-import java.security.MessageDigest
-import java.time.{Duration, Instant}
+import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materializer)
+class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
@@ -42,13 +36,13 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
   private object Metrics {
     val prefix = "daml.validator.service"
 
-    val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
-    val validateTimer = registry.timer(s"$prefix.validate-timer")
-    val validatePendingTimer = registry.timer(s"$prefix.validate-pending-timer")
-    val submissionSizes = registry.histogram(s"$prefix.submission-sizes")
-    val outputSizes = registry.histogram(s"$prefix.output-sizes")
-    val envelopeCloseTimer = registry.timer(s"$prefix.envelope-close-timer")
-    val missingInputs = registry.histogram(s"$prefix.missing-inputs")
+    val pendingSubmissions = metricRegistry.counter(s"$prefix.pending-submissions")
+    val validateTimer = metricRegistry.timer(s"$prefix.validate-timer")
+    val validatePendingTimer = metricRegistry.timer(s"$prefix.validate-pending-timer")
+    val submissionSizes = metricRegistry.histogram(s"$prefix.submission-sizes")
+    val outputSizes = metricRegistry.histogram(s"$prefix.output-sizes")
+    val envelopeCloseTimer = metricRegistry.timer(s"$prefix.envelope-close-timer")
+    val missingInputs = metricRegistry.histogram(s"$prefix.missing-inputs")
   }
 
   type ReplicaId = Long
@@ -57,22 +51,13 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
-  private val keyValueCommitting = new KeyValueCommitting(registry)
+  private val keyValueCommitting = new KeyValueCommitting(metricRegistry)
 
-  private val cache: Cache[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] = {
-    val cacheSizeEnv = System.getenv("KVBC_VALIDATOR_CACHE_SIZE")
-    val cacheSize =
-      if (cacheSizeEnv == null) {
-        logger.warn(
-          "KVBC_VALIDATOR_CACHE_SIZE unset, defaulting to 'KVBC_VALIDATOR_CACHE_SIZE=256' (megabytes)")
-        256 * 1024 * 1024
-      } else {
-        cacheSizeEnv.toInt
-      }
-
+  private lazy val cache: Cache[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] = {
+    val cacheSize = StateCaches.determineCacheSize()
     Scaffeine()
       .recordStats({ () =>
-        new KVBCMetricsStatsCounter(registry)
+        new KVBCMetricsStatsCounter(metricRegistry)
       })
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
@@ -98,17 +83,11 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
     scala.collection.concurrent.TrieMap.empty[ReplicaId, PendingSubmission]
 
   // The default configuration to use if none has been uploaded.
-  // FIXME(JM): Move into common place so getLedgerInitialConditions can use it as well.
   private val defaultConfig = Configuration(
     generation = 0,
     timeModel = TimeModel.reasonableDefault,
     maxDeduplicationTime = Duration.ofDays(1) // Same default as SDK ledgers
   )
-
-  private def buildTimestamp(ts: Time.Timestamp): com.google.protobuf.timestamp.Timestamp = {
-    val instant = ts.toInstant
-    com.google.protobuf.timestamp.Timestamp(instant.getEpochSecond, instant.getNano)
-  }
 
   private def parseTimestamp(ts: com.google.protobuf.timestamp.Timestamp): Time.Timestamp =
     Time.Timestamp.assertFromInstant(Instant.ofEpochSecond(ts.seconds, ts.nanos))
@@ -239,190 +218,25 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
       }
     }
 
-  class KVBCCachingInternalBatchLedgerOps(replicaId: ReplicaId, ops: InternalBatchLedgerOps)(
-      implicit executionContext: ExecutionContext)
-      extends InternalBatchLedgerOps {
+  private val readerCommitterFactoryFunction =
+    PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metricRegistry)) _
 
-    private val readSet = mutable.Set.empty[KV.DamlStateKey]
+  private val batchValidator =
+    BatchValidator[Unit](
+      BatchValidatorParameters.default,
+      keyValueCommitting,
+      engine,
+      new ConflictDetection(metricRegistry),
+      metricRegistry)
 
-    /** Return the set of state reads that have been performed.
-      * Includes both cached and actual reads.
-      * Useful when the read set is required for e.g. conflict detection. */
-    def getReadSet(): Set[KV.DamlStateKey] =
-      this.synchronized { readSet.toSet }
+  private val pipelinedValidator = new PipelinedValidator(
+    batchValidator,
+    readerCommitterFactoryFunction
+  )(materializer = materializer, executionContext = ExecutionContext.global)
 
-    override def readState(keys: Seq[KV.DamlStateKey]): Future[Seq[Option[KV.DamlStateValue]]] = {
-      this.synchronized { readSet ++= keys }
-
-      val cachedValues = cache.getAllPresent(keys.map(replicaId -> _)).map {
-        case ((_, key), value) =>
-          key -> Some(value)
-      }
-      val remainingKeys = keys.toSet -- cachedValues.keySet
-
-      ops
-        .readState(remainingKeys.toSeq)
-        .map(remainingValues => remainingKeys.zip(remainingValues).toMap)
-        .map { remaining =>
-          remaining.collect {
-            case (key, Some(value)) => cache.put(replicaId -> key, value)
-          }
-          val all: Map[KV.DamlStateKey, Option[KV.DamlStateValue]] = cachedValues ++ remaining
-          keys.map(all(_))
-        }
-    }
-
-    override def commit(
-        participantId: ParticipantId,
-        correlationId: String,
-        logEntryId: KV.DamlLogEntryId,
-        logEntry: KV.DamlLogEntry,
-        inputState: Map[KV.DamlStateKey, Option[KV.DamlStateValue]],
-        outputState: Map[KV.DamlStateKey, KV.DamlStateValue]): Future[Unit] = {
-      cache.putAll(
-        outputState.map {
-          case (key, value) =>
-            (replicaId, key) -> value
-        }
-      )
-      ops.commit(participantId, correlationId, logEntryId, logEntry, inputState, outputState)
-    }
-  }
-
-  def validateBatch(
-      responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
-    implicit val executionContext = ExecutionContext.global
-
-    val kvbcLedgerOps = new KVBCLedgerOps(responseObserver.onNext)
-    val batchValidator =
-      BatchValidator(
-        params = BatchValidatorParameters.default,
-        ledgerStateOperations = kvbcLedgerOps,
-        metricRegistry = registry,
-      )
-
-    new StreamObserver[EventToValidator] {
-      override def onNext(value: EventToValidator): Unit = {
-        value.toValidator match {
-          case EventToValidator.ToValidator.ValidateRequest(request) =>
-            logger.trace(
-              s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
-            val ledgerOps = new KVBCCachingInternalBatchLedgerOps(
-              request.replicaId,
-              new FragmentingLedgerOps(kvbcLedgerOps))
-            val recordTime = parseTimestamp(request.recordTime.get).toInstant
-            batchValidator
-              .validateAndCommit(
-                recordTime,
-                ParticipantId.assertFromString(request.participantId),
-                request.correlationId,
-                request.submission
-              )
-              .foreach { _ =>
-                val sortedReadSet =
-                  ledgerOps.getReadSet().map(_.toByteString).toSeq.sorted
-
-                responseObserver.onNext(
-                  EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
-                responseObserver.onCompleted()
-                logger.info(
-                  s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
-              }
-          case EventToValidator.ToValidator.ReadResult(result) =>
-            kvbcLedgerOps.handleReadResult(result)
-
-          case EventToValidator.ToValidator.Empty =>
-            sys.error("Message EventToValidator is empty!")
-
-        }
-      }
-      override def onError(t: Throwable): Unit =
-        logger.error(s"validate() aborted due to an error: $t")
-      override def onCompleted(): Unit =
-        logger.trace("validate() completed")
-    }
-  }
   override def validate(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
-    validateBatch(responseObserver)
-
-  def validateSingle(
-      responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
-    // NOTE(JM): This adapts the pipelined interface into the existing one. This is temporary until
-    // we bring in the batching validator which will properly use the pipelined interface.
-
-    import EventFromValidator._
-    def sendEvent(event: EventFromValidator => EventFromValidator): Unit =
-      responseObserver.onNext(event(EventFromValidator()))
-
-    // Hold the validate request to synthesize call to validatePendingSubmission
-    // when a read completes.
-    var optValidateRequest: Option[ValidateRequest] = None
-
-    new StreamObserver[EventToValidator] {
-      override def onNext(value: EventToValidator): Unit = {
-        value.toValidator match {
-          case EventToValidator.ToValidator.ValidateRequest(_) if optValidateRequest.isDefined =>
-            sys.error("Already processing a submission")
-
-          case EventToValidator.ToValidator.ValidateRequest(requestWithoutEntryId) =>
-            // The new protocol does not provide an entry id from the caller side. We use
-            // a sha256 hash of the submission as the entry id.
-            val submissionBytes = requestWithoutEntryId.submission.toByteArray
-            val entryId =
-              MessageDigest
-                .getInstance("SHA-256")
-                .digest(submissionBytes)
-                .map("%02x" format _)
-                .mkString
-            val request = requestWithoutEntryId.withEntryId(ByteString.copyFromUtf8(entryId))
-            optValidateRequest = Some(request)
-
-            validateSubmission(request).foreach { response =>
-              if (response.response.isNeedState) {
-                // Send an event to fetch the state. We only send one event, hence we use static tag.
-                sendEvent(_.withRead(Read(tag = "NEEDSTATE", keys = response.getNeedState.keys)))
-              } else if (response.response.isResult) {
-                val result = response.getResult
-                sendEvent(_.withWrite(Write(result.updates)))
-                sendEvent(_.withDone(Done(result.readSet)))
-                responseObserver.onCompleted()
-              } else {
-                sys.error("ValidateResponse is empty")
-              }
-            }
-
-          case EventToValidator.ToValidator.ReadResult(result) =>
-            optValidateRequest match {
-              case None =>
-                sys.error("ReadResult received, but there is no request.")
-              case Some(validateRequest) =>
-                assert(result.tag == "NEEDSTATE")
-                validatePendingSubmission(
-                  ValidatePendingSubmissionRequest(
-                    entryId = validateRequest.entryId,
-                    replicaId = validateRequest.replicaId,
-                    inputState = result.keyValuePairs,
-                    correlationId = validateRequest.correlationId
-                  )
-                ).foreach { response =>
-                  response.result
-                    .fold(sys.error("validatePendingSubmission returned no result")) { result =>
-                      sendEvent(_.withWrite(Write(result.updates)))
-                      sendEvent(_.withDone(Done(result.readSet)))
-                    }
-                }
-            }
-        }
-      }
-
-      override def onError(t: Throwable): Unit =
-        logger.error(s"validate() aborted due to an error: $t")
-
-      override def onCompleted(): Unit =
-        logger.trace("validate() completed")
-    }
-  }
+    pipelinedValidator.validateSubmissions(responseObserver)
 
   private def packStateKey(key: KV.DamlStateKey): ByteString =
     Constants.stateKeyPrefix.concat(keyValueCommitting.packDamlStateKey(key))
@@ -467,8 +281,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit materializer: Materialize
             ProtectedKeyValuePair(
               packStateKey(k),
               Envelope.enclose(v),
-              // FIXME(JM): What to put below?
-              // I.e., should only be readable by the replica.
+              // TODO(JM): Reference constant for ID meaning only readable by this replica.
               Seq("dummy-replica-id"),
             )
         }
