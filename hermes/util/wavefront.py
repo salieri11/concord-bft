@@ -86,7 +86,7 @@ def queueMetric(name, value, timestamp=None, tags={}):
     SENDER["queueLength"] += 1
     return True
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return False
 
 
@@ -137,8 +137,7 @@ def queueSpan(name, start, duration, traceId=None, parents=[], tags={}):
     SENDER["queueLength"] += 1
     return True
   except Exception as e:
-    log.info(e)
-    traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return False
 
 
@@ -177,7 +176,7 @@ def getPublishFailureCount():
     log.debug("Failure count is {}, for Wavefront publish items.".format(count))
     return count
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return False
 
 
@@ -208,7 +207,7 @@ def getConnection():
       return conn
     return SENDER["conn"]
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return None
 
 def getTime():

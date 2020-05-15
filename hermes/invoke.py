@@ -30,14 +30,20 @@ def slackUpload(args, options, secret):
   a = prepareArgs(args)
   slack.postFileUpload(channelNameOrEmail=a[0], message=a[1], fileName=a[2], filePath=a[3], token=secret)
 
+def slackReportMonitoring(args, options, secret):
+  a = prepareArgs(args)
+  slack.reportMonitoring(message=a[0])
+
 def emailSend(args, options, secret):
   a = prepareArgs(args)
   mailer.send(email=a[0], subject=a[1], message=a[2], senderName=a[3])
 
 def racetrackSetBegin(args, options, secret):
   setId = racetrack.setStart()
-  with open(racetrack.getIdFilePath(), "w+") as f:
-    f.write(json.dumps({"setId": setId}, indent = 4))
+  racetrack.setSetId(setId)
+  info = racetrack.getTestingEnvironmentInfo()
+  if info["branch"] == "MR" or info["branch"] == "master":
+    jenkins.autoSetRunDescription()
 
 def racetrackSetEnd(args, options, secret):
   a = prepareArgs(args)
@@ -47,7 +53,8 @@ def racetrackSetEnd(args, options, secret):
     jobName = info["jobName"],
     limit = 3, # publish this one and 2 previous runs just in case
     startFromBuildNumber = info["build"],
-    verbose = True
+    firstRunOverrideWith = a[0],
+    verbose = False
   )
 
 def racetrackCaseFailed(args, options, secret):

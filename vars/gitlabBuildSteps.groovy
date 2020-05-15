@@ -409,6 +409,13 @@ def call(){
               // Add the VMware GitLab ssh key to known_hosts.
               handleKnownHosts("gitlab.eng.vmware.com")
 
+              // Make summary folder
+              env.summaryFolder = env.WORKSPACE + "/summary"
+              sh '''
+                rm -rf "${summaryFolder}"
+                mkdir "${summaryFolder}"
+              '''
+
               // Try dealing with https://issues.jenkins-ci.org/browse/JENKINS-48300. Run failed with this error:
               // "JENKINS-48300: if on an extremely laggy filesystem, consider -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
               System.setProperty("org.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL", "86400")
@@ -2235,12 +2242,7 @@ void collectArtifacts(){
     archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
   }
 
-  if (new File(env.WORKSPACE + '/failure_summary.log').exists()) {
-    archiveArtifacts artifacts: "**/failure_summary.log", allowEmptyArchive: true
-  }
-  if (new File(env.WORKSPACE + '/otherFailures').exists()) {
-    archiveArtifacts artifacts: "**/otherFailures/**", allowEmptyArchive: true
-  }
+  archiveArtifacts artifacts: "**/summary/**", allowEmptyArchive: true
 
   saveTimeEvent("Gather artifacts", "End")
 
@@ -2315,7 +2317,7 @@ void racetrack(Map params){
             env.run_result = currentBuild.currentResult
             sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"'
           } else if(action == "reportFailure") {
-            env.tmp_suite_name = params.suiteName ? params.suiteName : "ZZ_Pipeline"
+            env.tmp_suite_name = params.suiteName ? params.suiteName : "_Pipeline"
             env.tmp_case_name = params.caseName ? params.caseName : "pipeline_unknown_case"
             env.tmp_case_description = params.caseDescription ? params.caseDescription : ""
             sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackCaseFailed --param "${tmp_suite_name}" "${tmp_case_name}" "${tmp_case_description}"'
