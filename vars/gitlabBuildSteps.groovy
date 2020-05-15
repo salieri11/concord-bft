@@ -809,6 +809,7 @@ def call(){
                         sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${fixture_setup_message}" "${monitoring_notify_target}"'''
                         throw ex
                       }
+                      if (params.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."
