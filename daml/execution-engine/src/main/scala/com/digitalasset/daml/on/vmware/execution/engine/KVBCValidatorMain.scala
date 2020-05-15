@@ -4,26 +4,19 @@ package com.digitalasset.daml.on.vmware.execution.engine
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
-import com.codahale.metrics.SharedMetricRegistries
-import com.codahale.metrics.jvm.{
-  GarbageCollectorMetricSet,
-  MemoryUsageGaugeSet,
-  ThreadStatesGaugeSet
-}
-import io.grpc.{Server, ServerBuilder}
-import io.grpc.protobuf.services.ProtoReflectionService
-import com.daml.grpc.adapter.{SingleThreadExecutionSequencerPool, ExecutionSequencerFactory}
-import com.digitalasset.kvbc.daml_validator._
+import com.daml.grpc.adapter.{ExecutionSequencerFactory, SingleThreadExecutionSequencerPool}
+import com.daml.ledger.api.health.HealthChecks
+import com.daml.platform.server.api.services.grpc.GrpcHealthService
 import com.digitalasset.daml.on.vmware.common.{
   KVBCHttpServer,
   KVBCMetricsRegistry,
   KVBCPrometheusMetricsEndpoint
 }
-import com.daml.ledger.api.health.HealthChecks
-import com.daml.platform.server.api.services.grpc.GrpcHealthService
+import io.grpc.protobuf.services.ProtoReflectionService
+import io.grpc.{Server, ServerBuilder}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 object KVBCValidatorMain extends App {
 
@@ -48,7 +41,7 @@ class KVBCValidatorServer() {
   // Use the global execution context. This uses threads proportional to
   // available processors.
   private implicit val ec: ExecutionContext = ExecutionContext.global
-  private implicit val system = ActorSystem("validator")
+  private implicit val system: ActorSystem = ActorSystem("validator")
   private implicit val mat: Materializer = ActorMaterializer()
   private implicit val esf: ExecutionSequencerFactory =
     new SingleThreadExecutionSequencerPool("validator-health", 1)
