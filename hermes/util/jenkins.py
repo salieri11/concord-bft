@@ -9,6 +9,8 @@ import requests
 import json
 import traceback
 import os
+import urllib
+import re
 from itertools import islice
 from datetime import datetime
 from . import helper, hermes_logging, wavefront, racetrack
@@ -66,7 +68,7 @@ def getTimesDataOfRun(jobName, buildNumber):
   return timesData
 
 
-def publishRunData(jobName=None, buildNumber=None, publishImmediately=True, verbose=True):
+def publishRunData(jobName=None, buildNumber=None, publishImmediately=True, runResultOverride=None, verbose=True):
   '''
     This function retroactively publishes run data to Wavefront endpoint
     It also can be used to retroactively fill in missed metrics during run time,
@@ -97,8 +99,11 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True, verb
       wavefront.WF_TAGNAME_RUNTYPE: runType,
     }
 
+    runResult = metaData["result"]
+    if runResultOverride: runResult = runResultOverride
+
     # If run is still building, set this run to pending and return
-    if metaData["result"] == "PENDING":
+    if runResult == "PENDING":
       # Set to pending status for this run
       wavefront.queueMetric(
         name = wavefront.WF_METRIC_RUN_RESULT, value = 1, # set to 1
@@ -191,11 +196,11 @@ def publishRunData(jobName=None, buildNumber=None, publishImmediately=True, verb
 
   except Exception as e:
     if verbose: log.info(e)
-    traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return None
 
 
-def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None, verbose=True):
+def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None, firstRunOverrideWith=None, verbose=True):
   if limit is None: limit = 100
   limit = int(limit)
   if startFromBuildNumber is not None:
@@ -212,7 +217,11 @@ def publishRunsRetroactively(jobName, limit=None, startFromBuildNumber=None, ver
   timesMissingCount = 0
   publishErrorCount = 0
   while buildNumber > 0 and count < limit:
-    result = publishRunData(jobName, buildNumber, verbose)
+    result = publishRunData(
+      jobName, buildNumber, 
+      runResultOverride= firstRunOverrideWith if count == 0 else None,
+      verbose=verbose
+    )
     if result == "SUCCESS": successCount += 1
     elif result == "TIMES_MISSING": timesMissingCount += 1
     elif result == "PENDING": pendingCount += 1
@@ -236,15 +245,21 @@ def getTopBuildNumberForJob(jobName):
   return res["nextBuildNumber"] - 1
 
 
-def getRunMetadata(jobName, buildNumber):
+def getRunMetadata(jobName=None, buildNumber=None):
   try:
     if getConnection() is None: return outputGetConnectionError()
+    if jobName is None or buildNumber is None:
+      runInfo = helper.getJenkinsJobNameAndBuildNumber()
+      jobName = runInfo["jobName"]
+      buildNumber = runInfo["buildNumber"]
     res = treeQuery(jobName, buildNumber,
-      query = 'description,timestamp,building,result,duration,'
+      query = 'displayName,fullDisplayName,description,timestamp,building,result,duration,url,'
             + 'actions[queuingDurationMillis,parameters[name,value],environment[*]]'
     )
     if res is None: return None
     metadata = {
+      "displayName": res["displayName"],
+      "fullDisplayName": res["fullDisplayName"],
       "description": res["description"],
       "timestamp": res["timestamp"],
       "building": res["building"],
@@ -290,6 +305,43 @@ def getUserConfigFromLatestGoodMaster():
   config = getArtifact(jobName, buildNumber, '/blockchain/hermes/resources/user_config.json')
   return config
 
+
+def configSubmit(jobName=None, buildNumber=None, displayName='', description='', descriptionAppend=False):
+  '''
+    Set `displayName` and/or `description` of a jenkins run
+  '''
+  if not displayName and not description: return
+  if jobName is None or buildNumber is None:
+    runInfo = helper.getJenkinsJobNameAndBuildNumber()
+    jobName = runInfo["jobName"]
+    buildNumber = runInfo["buildNumber"]
+  metadata = getRunMetadata(jobName, buildNumber)
+  before = { "displayName": metadata["displayName"], "description": metadata["description"] }
+  if descriptionAppend or not displayName or not description: # one fields missing, get from metadata
+    after = { "displayName": metadata["displayName"], "description": metadata["description"] }
+  else:
+    after = {}
+  if displayName: after["displayName"] = displayName
+  if description:
+    if descriptionAppend: after["description"] += description
+    else: after["description"] = description
+  print("")
+  print("Changing Jenkins build displayName and description...")
+  print("Before: " + json.dumps(before, indent=4))
+  print("After: " + json.dumps(after, indent=4))
+  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
+  res = REQ_SESSION.post(
+    baseUrl + '/configSubmit', 
+    data={"json": json.dumps(after)}
+  )
+  if res.status_code == 200:
+    print("Successfully modified Jenkins build displayName and description.")
+    return True
+  else:
+    log.info("Setting build displayName and description returned with {}".format(res.status_code))
+    return None
+
+
 def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
   '''
     Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
@@ -320,6 +372,28 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
     return True
   else: return None
 
+def autoSetRunDescription():
+  metadata = getRunMetadata()
+  prevDesc = metadata["description"]
+  newDesc = ""
+  if "GitLab Merge Request #" in prevDesc: # From MR
+    # e.g. Desc set by Gitlab kick off
+    # Triggered by <a href="https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/merge_requests/NNNN" target="_blank">
+    # GitLab Merge Request #NNNN</a>: blockchain/user/BC-NNNN => master
+    mrNumber = prevDesc.split("GitLab Merge Request #")[1].split("</a>")[0]
+    branchInfo = prevDesc.split("</a>: blockchain/")[1].split(" => ")[0]
+    jiraPrefixAndHyphen = helper.JIRA_PREFIX + "-"
+    if jiraPrefixAndHyphen in branchInfo:
+      jiraNumber = re.findall(r'\d+', branchInfo.split(jiraPrefixAndHyphen)[1])[0]
+      jiraId = jiraPrefixAndHyphen + jiraNumber
+      jiraStoryURL = helper.JIRA_BASE_URL + "/browse/" + jiraId
+      jiraStoryLink = '<a href="{}">{}</a>'.format(jiraStoryURL, jiraId)
+      branchInfo = branchInfo.replace(jiraId, jiraStoryLink)
+    mrURL = helper.GITLAB_BASE_URL + "/merge_requests/" + mrNumber
+    newDesc += '[ <a href="{}">{}</a> ]: {}<br>'.format(mrURL, 'MR ' + mrNumber, branchInfo)
+
+  newDesc += '[ <a href="{}">Racetrack</a> ]'.format(racetrack.getResultSetLink())
+  configSubmit(description=newDesc)
 
 
 #========================================================================================
@@ -407,10 +481,7 @@ def getArtifact(jobName, buildNumber, path, isJSON=True):
 def treeQuery(jobName, buildNumber='', query='', params={}):
   baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
   jsonApiPath = baseUrl + '/api/json?'
-  otherParams = []
-  for paramName in params: otherParams.append("{}={}")
-  otherParamsStr = '?'.join(otherParams)
-  if len(otherParamsStr) > 0: otherParamsStr = otherParamsStr + '?'
+  otherParamsStr = urllib.parse.urlencode(params) + "&" if len(params.keys()) > 0 else ""
   fullRequestUrl = jsonApiPath + otherParamsStr + 'tree=' + query if query else jsonApiPath
   response = REQ_SESSION.get(fullRequestUrl)
   if response.status_code == 200:

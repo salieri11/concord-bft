@@ -111,7 +111,8 @@ PROPERTIES_VMBC_ENABLED_VMC_ZONES = "vmbc.enabled.vmc.zones"
 
 # Where Racetrack setId (run identifier) is stored in Jenkins runs
 # default: ${WORKSPACE}/blockchain/vars/racetrack_set_id.json
-RACETRACK_SET_ID_FILE = "/blockchain/vars/racetrack_set_id.json"
+RACETRACK_SET_ID_FILE = "racetrack_set_id.json"
+RACETRACK_SET_ID_PATH = "/blockchain/vars/" + RACETRACK_SET_ID_FILE
 
 # Replicas Information
 REPLICAS_JSON_FILE = "replicas.json"
@@ -136,6 +137,11 @@ JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchai
 }
 JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
 
+# Used by invoke.py while setting Jenkins build description
+GITLAB_BASE_URL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain"
+JIRA_PREFIX = "BC"
+JIRA_BASE_URL = "https://jira.eng.vmware.com"
+
 # Current suite name and log path set by `main.py`
 CURRENT_SUITE_NAME = ""
 CURRENT_SUITE_LOG_FILE = ""
@@ -144,7 +150,8 @@ CURRENT_SUITE_LOG_FILE = ""
 # e.g. exceptions that are good to know but does not belong in product & test logs
 # e.g. Racetrack/wavefront report failure: doesn't affect test, but should be logged somewhere else
 NON_CRITICAL_HERMES_EXCEPTIONS = []
-NON_CRITICAL_HERMES_OUTPUT_PATH = "/testLogs/non_critical.log"
+NON_CRITICAL_HERMES_OUTPUT_FILE = "non_critical.log"
+NON_CRITICAL_HERMES_OUTPUT_PATH = "/summary/" + NON_CRITICAL_HERMES_OUTPUT_FILE
 
 # Super user privilege; with all Jenkins injected credentials available in user_config
 WITH_JENKINS_INJECTED_CREDENTIALS = False
@@ -1460,18 +1467,24 @@ def hermesNonCriticalTrace(e, message=None):
 
 def hermesNonCriticalTraceFinalize():
   try:
-    if not getJenkinsWorkspace(): return
-    if len(NON_CRITICAL_HERMES_OUTPUT_PATH) == 0: return
-    logPath = getJenkinsWorkspace() + NON_CRITICAL_HERMES_OUTPUT_PATH
+    ws = getJenkinsWorkspace()
+    if getJenkinsWorkspace():
+      nonCriticalLogPath = getJenkinsWorkspace() + NON_CRITICAL_HERMES_OUTPUT_PATH
+    else:
+      nonCriticalLogPath = NON_CRITICAL_HERMES_OUTPUT_FILE
     allLines = []
-    with open(logPath, 'a+') as f:
+    with open(nonCriticalLogPath, 'a+') as f:
       for item in NON_CRITICAL_HERMES_EXCEPTIONS:
-        if item["message"]: f.write(item["message"] + "\n")
-        tb = item["error"].__traceback__
-        traceback.print_tb(tb, 10, file=f)
-        f.write("\n")
+        e = item["error"]
+        divider = "=" * 128
+        exceptionString = divider + "\n"
+        if item["message"]: exceptionString += item["message"] + "\n"
+        exceptionString += "\n".join(traceback.format_exception(Exception, e, e.__traceback__))
+        exceptionString += divider + "\n\n\n\n"
+        allLines.append(exceptionString)
+      f.write("\n".join(allLines))
   except Exception as e:
-    log.info(e)
+    pass
 
 
 def parseReplicasConfig(replicasConfig):

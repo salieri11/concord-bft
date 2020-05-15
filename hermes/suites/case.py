@@ -78,7 +78,7 @@ def getInvocationProxy(testFunc):
       helper.hermesNonCriticalTrace(e, "Cannot execute pre function of {}".format(testFunc._name))
       return
       
-  def post(result, errorMessage, stackInfo, *args, **kwargs):
+  def post(result, errorMessage, stackInfo, originalE, *args, **kwargs):
     '''
       Script to be executed after test case function finished
     '''
@@ -90,7 +90,7 @@ def getInvocationProxy(testFunc):
         )
       dontReport = hasattr(testFunc, "_dont_report")
       if result is False and not dontReport and helper.CURRENT_SUITE_LOG_FILE:
-        extractAndSaveFailurePoint(testFunc, errorMessage, stackInfo, args, kwargs)
+        extractAndSaveFailurePoint(testFunc, errorMessage, stackInfo, originalE, args, kwargs)
     except Exception as e:
       helper.hermesNonCriticalTrace(e, "Cannot execute post function of {}".format(testFunc._name))
       return
@@ -118,7 +118,7 @@ def getInvocationProxy(testFunc):
         errorMessage = result[1]
         stackInfo = result[2]
       
-      post(booleanResult, errorMessage, stackInfo, *args, **kwargs) # report the test result (PASS/FAIL)
+      post(booleanResult, errorMessage, stackInfo, None, *args, **kwargs) # report the test result (PASS/FAIL)
       
       # return original result as it is for other original scripts depending on it
       return result
@@ -129,7 +129,8 @@ def getInvocationProxy(testFunc):
         failurePoint = traceback.extract_tb(e.__traceback__)[1]
         stackInfo = stack()[1:]
         stackInfo.insert(0, failurePoint)
-        post(False, str(e), stackInfo, *args, **kwargs) # report as FAIL when exception raised
+        errorMessage = e.__class__.__name__ + ': ' + str(e)
+        post(False, errorMessage, stackInfo, e, *args, **kwargs) # report as FAIL when exception raised
       except Exception as e:
         helper.hermesNonCriticalTrace(e)
       raise # raise the same exception/assertion so TestSuite/Pytest can handle it
@@ -208,7 +209,8 @@ def catchFailurePoint(func):
         failurePoint = traceback.extract_tb(e.__traceback__)[1]
         stackInfo = stack()[1:]
         stackInfo.insert(0, failurePoint)
-        extractAndSaveFailurePoint(func, str(e), stackInfo, args, kwargs)
+        errorMessage = e.__class__.__name__ + ': ' + str(e)
+        extractAndSaveFailurePoint(func, errorMessage, stackInfo, e, args, kwargs)
       except Exception as e:
         helper.hermesNonCriticalTrace(e)
       raise
@@ -229,7 +231,7 @@ def setTestCaseAttributes(func, description, casetype, stackInfo):
   setattr(func, "_casetype", casetype)
 
 
-def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
+def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, kwargs):
   '''
     Based on captured stackInfo and argument to test function output
     failure point summary to `failure_summary` json and log. This is
@@ -239,22 +241,24 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
   try:
     # Save arguments supplied to the test function
     testArgsMap = kwargs
+    nofixtureArgsMap = {} # avoid randomized props in fixtures hindering signature pinpointing
     funcArgs = inspect.getfullargspec(func)[0]
     for i, argName in enumerate(funcArgs):
       if i >= len(args): break
       testArgsMap[argName] = args[i]
+      if not argName.startswith("fx"): nofixtureArgsMap[argName] = args[i]
     testArgsMap.pop("self", None) # self argument is not needed
     if "fxHermesRunSettings" in testArgsMap:
       # run settings will be displayed later
       testArgsMap["fxHermesRunSettings"] = "<HermesRunSettings object>"
-    testArgsSerial = json.dumps(testArgsMap, indent=4, default=lambda o: '<NOT_SERIALIZABLE>')
+    testArgsSerial = json.dumps(nofixtureArgsMap, indent=4, default=lambda o: '<NOT_SERIALIZABLE>')
     testArgsSummary = []
     for testArgName in testArgsMap:
       testArgValue = testArgsMap[testArgName]
       if type(testArgValue) in [dict, list, tuple]:
         try: testArgValue = json.dumps(testArgValue, indent=4, default=str)
         except: pass
-      testArgValue = re.sub(r" at 0x[0-9a-fA-F]+", "", testArgValue) # remove object refs (e.g."at 0x7f8f7a70d898")
+      testArgValue = re.sub(r" at 0x[0-9a-fA-F]+", "", str(testArgValue)) # remove object refs (e.g."at 0x7f8f7a70d898")
       testArgsSummary.append("{} = {}".format(testArgName, testArgValue))
     testArgsSummary = "\n".join(testArgsSummary)
     
@@ -265,7 +269,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
       testLogPath = jenkins.getJenkinRunBaseUrl(run["jobName"], run["buildNumber"])
       testLogPath += '/artifact/testLogs/' + helper.CURRENT_SUITE_LOG_FILE.split('/testLogs/')[1]
       testLogPath = urllib.parse.quote_plus(testLogPath) # encodeURL
-      outputPath = helper.getJenkinsWorkspace() + '/' # directly to workspace
+      outputPath = helper.getJenkinsWorkspace() + '/summary/' # summary folder
     elif helper.CURRENT_SUITE_LOG_FILE:
       testLogPath = helper.CURRENT_SUITE_LOG_FILE
       outputPath = "/".join(testLogPath.split("/")[:-1]) + "/"
@@ -298,8 +302,14 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
     stackTraceList = stackTraceList[2:]
     while len(stackTraceList) > 0 and "post(" in stackTraceList[0]:
       stackTraceList = stackTraceList[1:]
+    
+    if originalE:
+      stackTrace = "\n".join(traceback.format_exception(
+        originalE.__class__, originalE, originalE.__traceback__
+      ))
+    else:
+      stackTrace = "".join(stackTraceList)
 
-    stackTrace = "".join(stackTraceList)
     failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n\n".format(
       "{}{} :: {}\n{}".format(
         "=============================================== Context =================================================================\n",
@@ -333,11 +343,12 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
       "function_name": func.__name__,
       "file": failurePointInfo["file"],
       "line_number": failurePointInfo["lineno"],
+      "message": errorMessage,
+      "stack_trace": stackTrace,
       "args": testArgsMap,
       "body": failurePointInfo["body"],
       "log_path": testLogPath,
       "sig": { "long": longSignature, "short": shortSignature },
-      "stack_trace": stackTraceList,
       "cmdline_args": helper.CMDLINE_ARGS,
       "user_config": helper.getUserConfig()
     }
@@ -363,6 +374,8 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, args, kwargs):
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
 
   except Exception as e:
+    log.info(e)
+    traceback.print_exc()
     helper.hermesNonCriticalTrace(e)
 
 
@@ -394,6 +407,15 @@ def traceStackData(stackData, func):
         failureLine = line
       if doTruncate and defEncountered and failureLineNumber - lineNumber > truncationLimit:
         continue
+      ellipsesLines = ""
+      if doTruncate and not defEncountered and line.strip().endswith("):"):
+        if failureLineNumber - lineNumber > truncationLimit + 1:
+          frontSpaceCount = len(line) - len(line.lstrip())
+          frontSpaces = " " * (frontSpaceCount + 2)
+          ellipsesLines += '\n'
+          ellipsesLines += frontSpaces + '...\n'
+          ellipsesLines += '\n'
+        defEncountered = True
       if lineNumber >= failureLineNumber:
         # On and after failure point mark with E
         # Just like how Pytest would output
@@ -401,14 +423,7 @@ def traceStackData(stackData, func):
         else: line = line[1:]; line = 'E' + line
         if doTruncate and lineNumber >= failureLineNumber + truncationLimit: break
       revisedLines.append(line)
-      if doTruncate and not defEncountered and line.lstrip().endswith("):"):
-        if failureLineNumber - lineNumber > truncationLimit + 1:
-          frontSpaceCount = len(line) - len(line.lstrip())
-          frontSpaces = " " * (frontSpaceCount + 2)
-          revisedLines.append('\n')
-          revisedLines.append(frontSpaces + '...\n')
-          revisedLines.append('\n')
-        defEncountered = True
+      if ellipsesLines: revisedLines.append(ellipsesLines)
     revisedFunctionBody = ''.join(revisedLines)
     return {
       "name": testFuncName, # e.g. test_example_with_fixture

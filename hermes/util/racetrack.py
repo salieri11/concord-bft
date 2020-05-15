@@ -17,7 +17,7 @@ PUBLISH_DEFAULT_PRODUCT = "blockchain"
 PUBLISH_DEFAULT_HOST_OS = "Linux"
 PUBLISH_DEFAULT_SET_TYPE = "Smoke"
 REQ_SESSION = requests.Session() # keep connection alive to avoid excessive HTTPS handshakes if possible
-DEFAULT_SET_ID = { "setId" : None }
+DEFAULT_SET_ID = { "setId" : None, "errored": False }
 
 
 def getTestingEnvironmentInfo():
@@ -74,24 +74,28 @@ def getTestingEnvironmentInfo():
 
 def finalize(result):
   try:
-    idFilePath = getIdFilePath()
-    if not os.path.exists(idFilePath):
+    setId = getSetId()
+    
+    if not setId:
       print("Racetrack set cannot finalize; the set did not start and save the setId to file.")
       return
-    with open(idFilePath, "r") as f:
-      setId = json.loads(f.read())["setId"]
+
+    resultSetLink = getResultSetLink(setId)
+    if resultSetLink:
       print("")
       print("Racetrack result set for this run:")
-      print("https://racetrack.eng.vmware.com/result.php?id=" + setId)
-      if result == "ABORTED": setUpdate(setId, status="Aborted")
-      if result == "FAILURE":
-        setUpdate(setId, status="Waiting for Triage")
-        if not os.path.exists(helper.getJenkinsWorkspace() + "/failure_summary.log"):
-          # Failed but none of the cases reported as failed == likely pipeline error
-          # Report this case to Racetrack so that failed runs are ALWAYS marked as failed.
-          caseId = caseStart("_Pipeline", "check_pipeline_result", "The run has failed.")
-          caseEnd(caseId, 'FAIL')
-      setEnd(setId)
+      print(resultSetLink)
+
+    if result == "ABORTED":
+      setUpdate(setId, status="Aborted")
+    elif result == "FAILURE":
+      setUpdate(setId, status="Waiting for Triage")
+      if not os.path.exists(helper.getJenkinsWorkspace() + "/failure_summary.log"):
+        # Failed but none of the cases reported as failed == likely pipeline error
+        # Report this case to Racetrack so that failed runs are ALWAYS marked as failed.
+        caseId = caseStart("_Pipeline", "check_pipeline_result", "The run has failed.")
+        caseEnd(caseId, 'FAIL')
+    setEnd(setId)
   except Exception as e:
     helper.hermesNonCriticalTrace(e)
 
@@ -168,18 +172,8 @@ def caseStart(suiteName, caseName, description=None, setId=None, startTime=None,
   # if setId is None, try to get it from setIdFile 
   # which was created when this Jenkins run passes python init point
   if setId is None:
-    if DEFAULT_SET_ID["setId"]:
-      setId = DEFAULT_SET_ID["setId"] # cached setId in this Jenkins run
-    elif "errored" not in DEFAULT_SET_ID:
-      try:
-        if os.path.isfile(getIdFilePath()):
-          with open(getIdFilePath(), "r") as f:
-            setId = json.loads(f.read())["setId"]
-            DEFAULT_SET_ID["setId"] = setId
-      except Exception as e:
-        DEFAULT_SET_ID["errored"] = True
-        log.info(e); traceback.print_exc()
-        return None # No setId, TestCaseBegin will error; no need to go further
+    setId = getSetId()
+    if not setId: return None # still no setId found.
       
   caseId = requestWithPathAndParams("/TestCaseBegin.php", {
     "ResultSetID" : setId,
@@ -263,11 +257,43 @@ def requestWithPathAndParams(requestPath, params):
       log.info("Racetrack {} has returned with {}, content: {}".format(requestPath, response.status_code, content))
       return None
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
     return None
 
 
 def getIdFilePath():
   if helper.getJenkinsWorkspace():
-    return helper.getJenkinsWorkspace() + helper.RACETRACK_SET_ID_FILE
-  return ""
+    return helper.getJenkinsWorkspace() + helper.RACETRACK_SET_ID_PATH
+  else:
+    return "../vars/" + helper.RACETRACK_SET_ID_FILE
+
+def setSetId(setId):
+  if not setId: return None
+  DEFAULT_SET_ID["setId"] = setId
+  with open(getIdFilePath(), "w+") as f:
+    f.write(json.dumps({"setId": setId}, indent = 4))
+    return True
+
+def getSetId():
+  # if errored once, no need to retry file read many times
+  if DEFAULT_SET_ID["errored"]: return None
+  # if exists, cached setId in this Jenkins run
+  if DEFAULT_SET_ID["setId"]: return DEFAULT_SET_ID["setId"]
+  # else, fetch from id file
+  idFilePath = getIdFilePath()
+  if not os.path.exists(idFilePath): return None
+  try:
+    with open(idFilePath, "r") as f:
+      setId = json.loads(f.read())["setId"]
+      DEFAULT_SET_ID["setId"] = setId
+      return setId
+  except Exception as e:
+    DEFAULT_SET_ID["errored"] = True
+    helper.hermesNonCriticalTrace(e)
+  return None
+
+
+def getResultSetLink(setId=None):
+  if not setId: setId = getSetId()
+  if setId: return BASE_PUBLISH_URL + "/result.php?id=" + setId
+  else: return None
