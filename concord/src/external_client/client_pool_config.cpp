@@ -22,12 +22,14 @@ using bft::communication::TlsTcpConfig;
 using config::CommConfig;
 using config::ConcordConfiguration;
 using config::ConfigurationResourceNotFoundException;
+using config::kConcordExternalClientConfigurationStateLabel;
 using config::YAMLConfigurationInput;
 
 void ParseConfig(std::istream& config_stream,
                  config::ConcordConfiguration& config) {
   config::specifyExternalClientConfiguration(config);
-  config.setConfigurationStateLabel("concord_external_client");
+  config.setConfigurationStateLabel(
+      kConcordExternalClientConfigurationStateLabel);
   YAMLConfigurationInput yaml{config_stream};
 
   yaml.parseInput();

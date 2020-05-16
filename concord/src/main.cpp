@@ -66,6 +66,7 @@ using boost::asio::io_service;
 using boost::asio::ip::address;
 using boost::asio::ip::tcp;
 using log4cplus::Logger;
+using std::chrono::milliseconds;
 
 using concord::api::ApiAcceptor;
 using concord::common::EthLog;
@@ -699,8 +700,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     std::vector<KVBClient *> clients;
 
-    std::chrono::milliseconds clientTimeout(
-        nodeConfig.getValue<uint32_t>("bft_client_timeout_ms"));
+    milliseconds clientTimeout(
+        nodeConfig.getValue<uint64_t>("bft_client_timeout_ms"));
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       ClientConfig clientConfig;

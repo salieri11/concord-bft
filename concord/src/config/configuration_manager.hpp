@@ -1594,6 +1594,25 @@ inline const std::pair<unsigned long long, unsigned long long>
 inline const std::pair<unsigned long long, unsigned long long>
     kParticipantNodeNumOfClients({1, 4096});
 
+// Configuration state label to be applied to a ConcordConfiguration object (via
+// that object's setConfigurationStateLabel function) to track that it is
+// currently being used for configuration generation in conc_genconfig.
+const std::string kConcGenconfigStateLabel = "configuration_generation";
+
+// Configuration state label to be applied to a ConcordConfiguration object (via
+// that object's setConfigurationStateLabel function) to track that it is
+// currently being used by a running Concord node to load and store the
+// information from the configuration file for that Concord node.
+const std::string kConcordNodeConfigurationStateLabel = "concord_node";
+
+// Configuration state label to be applied to a ConcordConfiguration object (via
+// that object's setConfigurationStateLabel function_ to track that it is
+// currently being used by a running application that uses Concord external
+// clients, such as a Concord Participant Node, to load and store Concord
+// configuration from a configuration file for that application.
+const std::string kConcordExternalClientConfigurationStateLabel =
+    "concord_external_client";
+
 }  // namespace config
 }  // namespace concord
 
