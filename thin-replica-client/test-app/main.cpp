@@ -3,6 +3,7 @@
 #include <grpc++/grpc++.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
+#include <condition_variable>
 #include <thread>
 #include "thin_replica.grpc.pb.h"
 #include "thin_replica_client_facade.hpp"
