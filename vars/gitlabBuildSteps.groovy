@@ -164,7 +164,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "UiTests": [
-    "enabled": false,
+    "enabled": true,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py UiTests'
@@ -2380,6 +2380,7 @@ void setEnvFileAndUserConfig(){
     usernamePassword(credentialsId: 'VMC_SDDC2_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC2_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC2_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
+    usernamePassword(credentialsId: 'UI_E2E_CSP_LOGIN_CREDENTIALS', usernameVariable: 'UI_E2E_CSP_LOGIN_USERNAME', passwordVariable: 'UI_E2E_CSP_LOGIN_PASSWORD'),
   ]) {
     sh '''
       echo "${PASSWORD}" | sudo -S ls
@@ -2474,6 +2475,17 @@ EOF
       sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
+
+      # For UI E2E zone test (vCenter form filling out)
+      sed -i -e 's/'"<CREDENTIALS_NOT_INJECTED_FROM_JENKINS>"'/'"set"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<UI_E2E_CSP_LOGIN_USERNAME>"'/'"${UI_E2E_CSP_LOGIN_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<UI_E2E_CSP_LOGIN_PASSWORD>"'/'"${UI_E2E_CSP_LOGIN_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/ui/e2e/credentials.json
+      sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
     '''
 
     if (env.JOB_NAME.contains(long_tests_job_name)) {

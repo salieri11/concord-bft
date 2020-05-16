@@ -13,14 +13,16 @@ export class Zone {
   }
 
   fillOutVcenter() {
+    // Safely injected credentials fron Jenkins (See BC-2712 for more information)
+    const zoneCreds = browser.params.credentials.zone;
     // zone location
     element(by.css('#location')).sendKeys('test');
     // zone designation
     element(by.css('#locationDesignation')).sendKeys('A');
     // zone designation
     element(by.css('#vcUrl')).sendKeys('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
-    element(by.css('#vcUsername')).sendKeys('cloudadmin@vmc.local');
-    element(by.css('#vcPassword')).sendKeys('o8Sa*SsI!rITsR9');
+    element(by.css('#vcUsername')).sendKeys(zoneCreds.vcenter.username);
+    element(by.css('#vcPassword')).sendKeys(zoneCreds.vcenter.password);
     element(by.css('#vcRp')).sendKeys('Compute-ResourcePool');
     element(by.css('#vcStorage')).sendKeys('WorkloadDatastore');
     element(by.css('#vcFolder')).sendKeys('HermesTesting');
@@ -37,14 +39,16 @@ export class Zone {
   }
 
   fillOutRest() {
+    // Safely injected credentials fron Jenkins (See BC-2712 for more information)
+    const zoneCreds = browser.params.credentials.zone;
     element(by.css('#liPort')).sendKeys('9543');
     element(by.css('#liUsername')).sendKeys('fluentd');
-    element(by.css('#liPasswor')).sendKeys('Fluentd!23');
+    element(by.css('#liPasswor')).sendKeys(zoneCreds.logInsight.password);
     element(by.css('#wfUrl')).sendKeys('https://vmware.wavefront.com');
-    element(by.css('#wfToken')).sendKeys('fbb8e2ec-7efa-4186-9c23-16d551e38595');
+    element(by.css('#wfToken')).sendKeys(zoneCreds.wavefront.token);
     element(by.css('#conUrl')).sendKeys('https://vmware-docker-blockchainsaas.bintray.io');
-    element(by.css('#conUsername')).sendKeys('vmbc-asx-reader@vmware');
-    element(by.css('#conPassword')).sendKeys('4dc71692db4a46941cedaf83d48a237e1a4cc1df');
+    element(by.css('#conUsername')).sendKeys(zoneCreds.bintray.username);
+    element(by.css('#conPassword')).sendKeys(zoneCreds.bintray.password);
     element(by.css('#opHttpHost')).sendKeys('127.0.0.1');
     element(by.css('#opHttpPort')).sendKeys('80');
     element(by.css('#opHttpsHost')).sendKeys('127.0.0.1');

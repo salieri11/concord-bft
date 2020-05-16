@@ -5,9 +5,9 @@
 import { browser, by, element } from 'protractor';
 import { waitFor, waitForURLContains } from '../helpers/utils';
 
-
-const CSP_LOGIN_EMAIL = 'admin-blockchain-dev@csp.local';
-const CSP_PASSWORD = 'Admin!23';
+// Safely injected credentials fron Jenkins (See BC-2712 for more information)
+const CSP_LOGIN_EMAIL = browser.params.credentials.login.username;
+const CSP_PASSWORD = browser.params.credentials.login.password;
 
 export class CSPLogin {
   navigateTo() {
@@ -25,12 +25,19 @@ export class CSPLogin {
   }
 
   // Password page
-  // https://csp-local.vidmpreview.com/SAAS/auth/login
+  // OLD: https://csp-local.vidmpreview.com/SAAS/auth/login
+  // CHANGED to https://csp-local.vidmpreview.com/authcontrol/auth/request (See BC-2697)
   fillInPassword() {
     const el = '#password';
     waitFor(el);
+    browser.sleep(1000);
+    element(by.css(el)).click();
+    browser.sleep(300);
     element(by.css(el)).sendKeys(CSP_PASSWORD);
-    element(by.css('#signIn')).click();
+    browser.sleep(1000);
+    // #signIn id in button is gone (See BC-2697)
+    // element(by.css('#signIn')).click();
+    element(by.css('[type="submit"]')).click();
   }
 
 

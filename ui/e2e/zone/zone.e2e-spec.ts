@@ -48,11 +48,14 @@ describe('concord-ui Add Zone', () => {
     browser.sleep(2000);
     const values = zone.getValues();
 
+    // Safely injected credentials fron Jenkins (See BC-2712 for more information)
+    const zoneCreds = browser.params.credentials.zone;
+
     expect(values[0]).toEqual('test');
     expect(values[1]).toEqual('A');
     expect(values[2]).toEqual('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
-    expect(values[3]).toEqual('cloudadmin@vmc.local');
-    expect(values[4]).toEqual('o8Sa*SsI!rITsR9');
+    expect(values[3]).toEqual(zoneCreds.vcenter.username);
+    expect(values[4]).toEqual(zoneCreds.vcenter.password);
     expect(values[5]).toEqual('Compute-ResourcePool');
     expect(values[6]).toEqual('WorkloadDatastore');
     expect(values[7]).toEqual('HermesTesting');
@@ -64,12 +67,12 @@ describe('concord-ui Add Zone', () => {
     expect(values[13]).toEqual('10.78.20.10');
     expect(values[14]).toEqual('9543');
     expect(values[15]).toEqual('fluentd');
-    expect(values[16]).toEqual('Fluentd!23');
+    expect(values[16]).toEqual(zoneCreds.logInsight.password);
     expect(values[17]).toEqual('https://vmware.wavefront.com');
-    expect(values[18]).toEqual('fbb8e2ec-7efa-4186-9c23-16d551e38595');
+    expect(values[18]).toEqual(zoneCreds.wavefront.token);
     expect(values[19]).toEqual('https://vmware-docker-blockchainsaas.bintray.io');
-    expect(values[20]).toEqual('vmbc-asx-reader@vmware');
-    expect(values[21]).toEqual('4dc71692db4a46941cedaf83d48a237e1a4cc1df');
+    expect(values[20]).toEqual(zoneCreds.bintray.username);
+    expect(values[21]).toEqual(zoneCreds.bintray.password);
     expect(values[22]).toEqual('127.0.0.1');
     expect(values[23]).toEqual('80');
     expect(values[24]).toEqual('127.0.0.1');
