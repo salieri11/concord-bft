@@ -21,9 +21,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.vmware.blockchain.deployment.server.Application;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -38,6 +43,8 @@ import com.vmware.blockchain.deployment.v1.PasswordCredential;
  * Tests for the class that generates User Data.
  */
 @ExtendWith(SpringExtension.class)
+@TestPropertySource(locations = "classpath:bootstrap-test.properties")
+@ContextConfiguration(classes = {Application.class})
 public class CloudInitConfigurationTest {
 
     CloudInitConfiguration cloudInitConfiguration;
@@ -78,7 +85,7 @@ public class CloudInitConfigurationTest {
      * Initialize various mocks.
      */
     @BeforeEach
-    public void init() {
+    void init() {
         cloudInitConfiguration =
                 new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
                                            nodeId, configGenId, configServiceEndpoint, configServiceRestEndpoint,
@@ -162,4 +169,19 @@ public class CloudInitConfigurationTest {
         doCallRealMethod().when(cloudInitConfiguration).getConfiguration();
         Assert.assertNotNull(cloudInitConfiguration.getConfiguration());
     }
+
+    @Test
+    void vmGeneratedPassword() {
+        String vmGeneratedPassword = PasswordGeneratorUtil.generateCommonTextPassword();
+        ReflectionTestUtils.setField(cloudInitConfiguration, "vmPassword", vmGeneratedPassword);
+        String output = cloudInitConfiguration.userData();
+        Assert.assertNotNull(output);
+
+        String expectedPasswdLine = "echo -e \"{{vmPassword}}\\n{{vmPassword}}\" | /bin/passwd"
+                                    .replace("{{vmPassword}}", vmGeneratedPassword);
+        String actualPasswdLine = output.split("\\r?\\n")[1];
+
+        Assert.assertEquals(expectedPasswdLine, actualPasswdLine);
+    }
+
 }
