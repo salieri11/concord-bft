@@ -27,6 +27,7 @@ using nlohmann::json;
 
 using concord::config::ConcordConfiguration;
 using concord::config::detectLocalNode;
+using concord::config::kConcordNodeConfigurationStateLabel;
 
 bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
                        variables_map& opts_out) {
@@ -83,7 +84,7 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
 
   // Parse configuration file.
   concord::config::specifyConfiguration(config_out);
-  config_out.setConfigurationStateLabel("concord_node");
+  config_out.setConfigurationStateLabel(kConcordNodeConfigurationStateLabel);
   concord::config::YAMLConfigurationInput input(fileInput);
 
   try {
@@ -2443,11 +2444,19 @@ static ConcordConfiguration::ParameterStatus validatePositiveReplicaInt(
     const string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, string* failureMessage, void* state) {
   const std::pair<unsigned long long, unsigned long long>* limits;
-  if (config.getConfigurationStateLabel() == "concord_node") {
+
+  // Note we can only truly validate that this parameter fits in an int on an
+  // actual Concord replica, and not in conc_genconfig, as int's size may vary
+  // between different builds and machines; in conc_genconfig this function will
+  // enforce as loose a bound as possible because it does not necessarilly know
+  // how big an int will be on the nodes being configured.
+  if (config.getConfigurationStateLabel() ==
+      kConcordNodeConfigurationStateLabel) {
     limits = &kPositiveIntLimits;
   } else {
     limits = &kPositiveULongLongLimits;
   }
+
   return validateUInt(value, config, path, failureMessage,
                       const_cast<void*>(reinterpret_cast<const void*>(limits)));
 }
@@ -2826,7 +2835,8 @@ static ConcordConfiguration::ParameterStatus validatePrincipalHost(
   // Enforcing that loopback is expected for node-local hosts does not make
   // sense unless we have a specific node's configuration and this principal
   // host belongs to a particular node.
-  if ((config.getConfigurationStateLabel() != "concord_node") ||
+  if ((config.getConfigurationStateLabel() !=
+       kConcordNodeConfigurationStateLabel) ||
       !path.isScope || !path.useInstance || (path.name != "node")) {
     return ConcordConfiguration::ParameterStatus::VALID;
   }
@@ -3313,13 +3323,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   node.declareParameter(
       "bft_client_timeout_ms",
-      "How long to wait for a command execution response, in milliseconds. "
-      "Zero is treated as infinity.",
-      "0");
+      "How long to wait for a command execution response, in milliseconds.",
+      to_string(UINT32_MAX));
   node.tagParameter("bft_client_timeout_ms", defaultableByReplicaTags);
   node.addValidator(
       "bft_client_timeout_ms", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
 
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "

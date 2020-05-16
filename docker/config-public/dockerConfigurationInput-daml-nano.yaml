@@ -17,7 +17,7 @@ node__TEMPLATE:
   genesis_block: /concord/config-public/daml_genesis.json
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000
-  bft_client_timeout_ms: 10000
+  bft_client_timeout_ms: 4294967295
   jaeger_agent: jaeger-agent:6831
   metrics_config: /concord/config-public/metrics_config.yaml
   prometheus_port: 9891

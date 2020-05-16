@@ -23,6 +23,7 @@ using boost::program_options::variables_map;
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationResourceNotFoundException;
+using concord::config::kConcGenconfigStateLabel;
 using concord::config::YAMLConfigurationInput;
 using concord::config::YAMLConfigurationOutput;
 
@@ -65,11 +66,10 @@ void defineOptionsSpec(string& inputFilename, string& outputPrefix,
 void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
   if (clientFlag) {
     specifyExternalClientConfiguration(config);
-    config.setConfigurationStateLabel("concord_external_client");
   } else {
     specifyConfiguration(config);
-    config.setConfigurationStateLabel("configuration_generation");
   }
+  config.setConfigurationStateLabel(kConcGenconfigStateLabel);
 }
 
 int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
