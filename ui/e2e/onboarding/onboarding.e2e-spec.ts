@@ -39,7 +39,9 @@ describe('concord-ui Onboarding Flow', () => {
     waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
     browser.sleep(500);
     loginPage.fillInEmail();
-    waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
+    // URL Changed 5/13/2020 (See BC-2697)
+    // waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
+    waitForURLContains('csp-local.vidmpreview.com/authcontrol/auth/request');
     browser.sleep(1000);
     loginPage.fillInPassword();
   });

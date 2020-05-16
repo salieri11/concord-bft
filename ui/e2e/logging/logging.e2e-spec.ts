@@ -9,6 +9,11 @@ import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 import { BROWSER_WAIT_TIME } from '../helpers/constants';
 
+// ! NOT A SECURITY THREAT
+// This is before CSP integration; local credentials don't matter
+const NON_CSP_USERNAME = 'admin@blockchain.local';
+const NON_CSP_PASSWORD = 'T3sting!';
+
 describe('concord-ui Logging', () => {
   let authHelper: AuthHelper;
   let loginPage: LoginPage;
@@ -20,7 +25,7 @@ describe('concord-ui Logging', () => {
     loginPage = new LoginPage();
     authHelper = new AuthHelper();
     loginPage.navigateTo();
-    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
+    loginPage.fillLogInForm(NON_CSP_USERNAME, NON_CSP_PASSWORD);
     browser.sleep(1000);
   });
 

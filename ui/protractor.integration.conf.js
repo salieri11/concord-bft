@@ -7,6 +7,13 @@ const Logger = require('protractor/built/logger').Logger,
 const HtmlScreenshotReporter = require('protractor-jasmine2-screenshot-reporter');
 const fs = require('fs');
 
+// See BC-2712 for more information
+const credentials = JSON.parse(fs.readFileSync('e2e/credentials.json', 'utf8'));
+if (credentials.status === '<CREDENTIALS_NOT_INJECTED_FROM_JENKINS>') {
+  console.error('Proper credentials are not injected to begin testing. '
+                + 'Please properly set "ui/e2e/credentials.json"');
+  process.exit(1);
+}
 
 function getFolderString() { // generates date and time in this format: 'd-m-yyyy_HH-MM-SS'
   const d = new Date();
@@ -38,8 +45,16 @@ exports.config = {
     './e2e/deploy/deploy.e2e-spec.ts'
   ],
   capabilities: {
-    'browserName': 'chrome',
-    acceptInsecureCerts : true
+    browserName: 'chrome',
+    trustAllSSLCertificates: true,
+    acceptInsecureCerts: true,
+    ACCEPT_SSL_CERTS: true,
+    chromeOptions: {
+      args: ['incognito'] // Avoids ERR_CACHE_MISS
+    }
+  },
+  params: {
+    credentials: credentials,
   },
   directConnect: true,
   baseUrl: 'https://localhost.vmware.com/',
