@@ -4,5 +4,5 @@ export INDEXDB_USER=indexdb
 export REPLICAS=10.0.0.1:50051
 export PARTICIPANT_ID=pTEST_NODE
 export JAVA_OPTS="-Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log"
-export THIN_REPLICA_SETTINGS="--jaeger-agent-address jaeger-agent:6831"
+export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831"
 export AUTH_SETTINGS="--auth-jwt-rs256-jwks eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE1ODU4NTI0MTUsImV4cCI6MTYxNzM4ODQxNSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.lOZceSXpHdKYzZsGS8koNdb_I_1olt6bdHcgOeRWuhY"
