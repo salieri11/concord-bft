@@ -10,6 +10,8 @@
 #include <numeric>
 #include <sstream>
 
+#include "trc_hash.hpp"
+
 using com::vmware::concord::thin_replica::BlockId;
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
@@ -140,16 +142,6 @@ uint64_t thin_replica_client::BasicUpdateQueue::Size() {
   return queue_data_.size();
 }
 
-ThinReplicaClient::UpdateHashType ThinReplicaClient::ComputeUpdateDataHash(
-    const Data& data) const {
-  UpdateHashType update_data_hash = hash<string>{}(to_string(data.block_id()));
-  for (const auto& kvp_in : data.data()) {
-    update_data_hash = AppendToSubscribeToUpdatesHash(
-        update_data_hash, make_pair(kvp_in.key(), kvp_in.value()));
-  }
-  return update_data_hash;
-}
-
 void ThinReplicaClient::RecordCollectedHash(
     size_t update_source, uint64_t block_id,
     ThinReplicaClient::UpdateHashType update_hash,
@@ -245,7 +237,7 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
                        << ") gave a data update with decreasing block number.");
     return {false, std::move(span)};
   }
-  UpdateHashType update_data_hash = ComputeUpdateDataHash(update_in);
+  UpdateHashType update_data_hash = HashUpdate(update_in);
   RecordCollectedHash(current_data_source_, update_in.block_id(),
                       update_data_hash, agreeing_subset_members, most_agreeing,
                       most_agreed_block);
@@ -362,7 +354,7 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
       continue;
     }
 
-    UpdateHashType update_data_hash = ComputeUpdateDataHash(update_in);
+    UpdateHashType update_data_hash = HashUpdate(update_in);
     if (update_data_hash != most_agreed_block.second) {
       LOG4CPLUS_WARN(logger_,
                      "Data subscription stream (to server index "
@@ -555,29 +547,6 @@ void ThinReplicaClient::ReceiveUpdates() {
   //              servers.
 }
 
-ThinReplicaClient::StateHashType ThinReplicaClient::AppendToReadStateHash(
-    ThinReplicaClient::StateHashType preceding_hash,
-    const pair<string, string>& kvp) const {
-  StateHashType pair_hash =
-      hash<string>{}(string{kvp.first.data(), kvp.first.length()});
-  pair_hash ^= hash<string>{}(string{kvp.second.data(), kvp.second.length()});
-  preceding_hash ^= pair_hash;
-  return preceding_hash;
-}
-
-ThinReplicaClient::UpdateHashType
-ThinReplicaClient::AppendToSubscribeToUpdatesHash(
-    ThinReplicaClient::UpdateHashType preceding_hash,
-    const pair<string, string>& kvp) const {
-  // The hash implementation for streaming update hashes currently happens to be
-  // the same as the implementation for initial state hashes, so we re-use its
-  // implementation to minimize code duplication; however, the equivalence of
-  // the hash functions remains subject to change at this time, so
-  // AppendToReadStateHash should not be called directly as a substitute for
-  // AppendToSubscribeToUpdateHash.
-  return AppendToReadStateHash(preceding_hash, kvp);
-}
-
 ThinReplicaClient::~ThinReplicaClient() {
   stop_subscription_thread_ = true;
   if (subscription_thread_) {
@@ -644,14 +613,12 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
         unique_ptr<Update> update(new Update());
         update->block_id = block_id;
         update->correlation_id_ = response.correlation_id();
-        expected_hash ^= hash<string>{}(to_string(block_id));
         for (int i = 0; i < response.data_size(); ++i) {
           KVPair kvp = response.data(i);
           update->kv_pairs.push_back(make_pair(kvp.key(), kvp.value()));
           size_t update_tail_index = update->kv_pairs.size() - 1;
-          expected_hash = AppendToReadStateHash(
-              expected_hash, update->kv_pairs[update_tail_index]);
         }
+        expected_hash ^= HashUpdate(*update);
         state.push_back(move(update));
       }
     }

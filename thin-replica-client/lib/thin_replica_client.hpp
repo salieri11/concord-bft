@@ -225,20 +225,9 @@ class ThinReplicaClient final {
   prometheus::Family<prometheus::Gauge>& trc_resources_gauges_total_;
   prometheus::Counter& trc_updates_counter_;
   prometheus::Gauge& trc_queue_size_;
-  // Function(s) for computing hashes as we anticipate they exist according to
-  // non-faulty Thin Replica Servers.
-  // XXX: We anticipate it is very possible the data type for hashes and hash
-  //      function implementation(s) are likely to change between the time of
-  //      this comment's writing and the time the Thin Replica mechanism is
-  //      hardened for production.
+
   typedef size_t StateHashType;
-  StateHashType AppendToReadStateHash(
-      StateHashType preceding_hash,
-      const std::pair<std::string, std::string>& kvp) const;
   typedef size_t UpdateHashType;
-  UpdateHashType AppendToSubscribeToUpdatesHash(
-      UpdateHashType preceding_hash,
-      const std::pair<std::string, std::string>& kvp) const;
 
   void SetupTracing(const std::string& jaeger_agent);
   // Thread function to start subscription_thread_ with.
@@ -279,8 +268,6 @@ class ThinReplicaClient final {
   void StartHashStreamWith(size_t server_idx);
 
   // Helper functions to ReceiveUpdates.
-  UpdateHashType ComputeUpdateDataHash(
-      const com::vmware::concord::thin_replica::Data& data) const;
   void RecordCollectedHash(
       size_t update_source, uint64_t block_id, UpdateHashType update_hash,
       std::map<std::pair<uint64_t, UpdateHashType>, std::unordered_set<size_t>>&

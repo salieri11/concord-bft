@@ -6,6 +6,7 @@
 #include "thin_replica_client_facade.hpp"
 #include "thin_replica_client_facade_impl.hpp"
 #include "thin_replica_client_mocks.hpp"
+#include "trc_hash.hpp"
 
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
@@ -18,7 +19,6 @@ using grpc::ClientReaderInterface;
 using grpc::Status;
 using grpc::StatusCode;
 using std::condition_variable;
-using std::hash;
 using std::list;
 using std::lock_guard;
 using std::make_unique;
@@ -32,6 +32,7 @@ using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
 using testing::Invoke;
+using thin_replica_client::HashUpdate;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::Update;
@@ -145,16 +146,6 @@ class MockHasher {
   const vector<Data>& data_;
 
   typedef size_t StateHashType;
-  StateHashType AppendToStateHash(StateHashType cummulative_hash,
-                                  const Data& update) const {
-    StateHashType update_hash = hash<string>{}(to_string(update.block_id()));
-    for (const KVPair& kvp : update.data()) {
-      StateHashType kvp_hash = hash<string>{}(kvp.key());
-      kvp_hash ^= hash<string>{}(kvp.value());
-      update_hash ^= kvp_hash;
-    }
-    return update_hash;
-  }
   Hash ComputeStateHash(uint64_t block_id, const string& key_prefix) const {
     if (block_id > data_.back().block_id()) {
       throw out_of_range(
@@ -165,8 +156,7 @@ class MockHasher {
     StateHashType hash_val = 0;
     for (size_t i = 0; i < data_.size() && data_[i].block_id() <= block_id;
          ++i) {
-      hash_val =
-          AppendToStateHash(hash_val, FilterUpdate(data_[i], key_prefix));
+      hash_val ^= HashUpdate(FilterUpdate(data_[i], key_prefix));
     }
     Hash hash;
     hash.set_block_id(block_id);
