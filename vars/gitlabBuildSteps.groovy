@@ -108,7 +108,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
   "DamlPreexecutionTests": [
-    "enabled": true,
+    "enabled": false,
     "runAlone": true,
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-preexecution.yaml"
