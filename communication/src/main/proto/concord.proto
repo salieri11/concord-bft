@@ -27,6 +27,7 @@ message ConcordRequest {
    optional PruneRequest prune_request = 15;
    optional PreExecutionResult pre_execution_result = 16;
    optional TeeRequest tee_request = 17;
+   optional ReconfigurationSmRequest reconfiguration_sm_request = 18;
 
    // 18-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -52,6 +53,7 @@ message ConcordResponse {
    optional PruneResponse prune_response = 15;
    optional PreExecutionResult pre_execution_result = 16;
    optional TeeResponse tee_response = 17;
+   optional ReconfigurationSmResponse reconfiguration_sm_response = 18;
 
    // 18-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -307,6 +309,20 @@ message PruneRequest {
 message PruneResponse {
    optional bool ok = 1;
    optional string error_msg = 2;
+}
+
+message ReconfigurationSmRequest {
+   enum PluginId {
+      MOCK = 0;
+   }
+   required PluginId pluginId = 1;
+   optional bytes command = 2;
+   optional bytes signature = 3;
+}
+
+message ReconfigurationSmResponse {
+   optional bool success = 1;
+   optional bytes additionalData = 2;
 }
 
 message ReconfigureTimePusherPeriodRequest {

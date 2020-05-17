@@ -18,6 +18,7 @@ add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
 add_test(NAME DamlTest COMMAND DamlTest)
 add_test(NAME PruningSMTest COMMAND PruningSMTest)
+add_test(NAME ReconfigurationSMTest COMMAND ReconfigurationSMTest)
 add_test(NAME KVBFilterTest COMMAND KVBFilterTest)
 add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
 add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
@@ -157,6 +158,22 @@ target_link_libraries(PruningSMTest
         concord_common
         concord_pruning
         $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(ReconfigurationSMTest
+		mocks.cpp
+		../src/config/configuration_manager.cpp
+        reconfiguration_sm_test.cpp)
+
+target_link_libraries(ReconfigurationSMTest
+		${Boost_LIBRARIES}
+		${GTEST_LIBRARY}
+		${yaml-cpp_LIBRARIES}
+		log4cplus
+		proto
+		concord_utils
+		concord_common
+        concord_reconfiguration
+		$<TARGET_OBJECTS:logging_dev>)
 
 add_executable(ThinReplicaTest
         thin_replica_test.cpp
