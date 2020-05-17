@@ -3,18 +3,18 @@ kind: Deployment
 metadata:
   name: {{ include "configservice.name" . }}
   labels:
-    app: {{ template "configservice.name" . }}
+    app: {{ index .Values "config-service" "app" }}
     version: {{ .Values.image.tag }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: {{ include "configservice.name" . }}
+      app: {{ index .Values "config-service" "app" }}
   template:
     metadata:
       labels:
-        app: {{ include "configservice.name" . }}
+        app: {{ index .Values "config-service" "app" }}
     spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}
@@ -22,6 +22,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: APPCONTEXT
+            value: {{ index .Values "config-service" "env" }}
           ports:
           - containerPort: {{ .Values.service.grpccontainerPort }}
           - containerPort: {{ .Values.service.restcontainerPort }}

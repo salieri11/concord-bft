@@ -36,6 +36,11 @@ resources:
     memory: 1024Mi
     cpu: 1024m
 
+config-service:
+  app: "config-service"
+  env: "staging"
+  rest: "cs-rest-stg"
+
 configmap:
   name: config-service
   volumename: config-volume
