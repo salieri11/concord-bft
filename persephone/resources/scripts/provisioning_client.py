@@ -115,7 +115,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.CONCORD,
+                    service_type=concord_model.ConcordComponent.DAML_CONCORD,
                     name="vmwblockchain/concord-core:latest"
                 ),
                 concord_model.ConcordComponent(
@@ -380,16 +380,16 @@ def main():
     )
     log.info("CreateCluster(): request\n{}".format(create_cluster_request))
     session_id = provisioning_stub.CreateCluster(create_cluster_request)
-    log.info("CreateCluster(): id(%d)", session_id.id)
+    log.info("CreateCluster(): id({})".format(session_id.id))
 
     get_events_request = provisioning_service.StreamClusterDeploymentSessionEventRequest(
         header=core.MessageHeader(),
         session=session_id
     )
     events = provisioning_stub.StreamClusterDeploymentSessionEvents(get_events_request)
-    log.info("StreamClusterDeploymentSessionEvents(): id(%d)", session_id.id)
+    log.info("StreamClusterDeploymentSessionEvents(): id({})".format(session_id.id))
     for event in events:
-        log.info("DeploymentEvent: %s", MessageToJson(event))
+        log.info("DeploymentEvent: {}".format(MessageToJson(event)))
 
     return
 
