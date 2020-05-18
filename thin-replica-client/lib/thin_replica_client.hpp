@@ -47,6 +47,7 @@
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
 #include <prometheus/registry.h>
+#include <condition_variable>
 #include <thread>
 
 namespace thin_replica_client {
