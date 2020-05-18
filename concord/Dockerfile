@@ -36,6 +36,7 @@ LABEL Description="Concord"
 
 RUN apt-get update \
     && apt-get -y install bind9-host \
+    gosu \
     dnsutils \
     libboost-atomic1.65.1 \
     libboost-chrono1.65.1 \
@@ -184,6 +185,9 @@ VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tl
 
 # Concord starting script 
 COPY ./concord/scripts/concord-entrypoint.sh /concord/concord-entrypoint.sh
+
+## Add concord user
+RUN groupadd -r -g 999 concord && useradd -r -g concord -u 999 concord
 
 # Set working directory and start.
 WORKDIR /concord
