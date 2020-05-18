@@ -13,8 +13,6 @@ namespace {
 // Note: they key is not stored in the final KVB
 const ::concordUtils::Sliver kSpanContextKey =
     ::concordUtils::Sliver(new char[2]{0x00, 0x01}, 2);
-
-const std::string kCorrelationIdTag = "cid";
 }  // namespace
 
 namespace concord::utils {

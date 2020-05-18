@@ -55,6 +55,9 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     }
   }
 
+  auto &replicaConfig = node_config.subscope("replica", 0);
+  replica_id_ = replicaConfig.getValue<uint16_t>("principal_id");
+
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
       storage, config, node_config, time_.get());
 }
@@ -66,6 +69,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     char *response_buffer,
                                     uint32_t &out_response_size) {
   executing_bft_sequence_num_ = sequence_num;
+  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
+                               << client_id << ", seq: " << sequence_num);
 
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
@@ -77,6 +82,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   request_context_.reset(nullptr);
 
   auto tracer = opentracing::Tracer::Global();
+
   std::unique_ptr<opentracing::Span> execute_span;
 
   bool result;
@@ -136,6 +142,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
     // Stashing this span in our state, so that if the subclass calls addBlock,
     // we can use it as the parent for the add_block span.
+    execute_span->SetTag(concord::utils::kRequestSeqNumTag, sequence_num);
+    execute_span->SetTag(concord::utils::kClientIdTag, client_id);
+    execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
+    execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);
+
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
     result = Execute(request_, flags, time_.get(), *addBlock_parent_span.get(),
@@ -289,6 +300,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     }
   }
 
+  execute_span->SetTag(concord::utils::kExecResultTag, result);
+  execute_span->SetTag(concord::utils::kExecRespSizeTag, out_response_size);
+
+  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::execute done, clientId: "
+                               << client_id << ", seq: " << sequence_num);
   return result ? 0 : 1;
 }
 
@@ -356,11 +372,24 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,
   // or allow addBlock to take a list of const sets.
+  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::addBlock, enter, updates: "
+                               << updates.size());
   SetOfKeyValuePairs amended_updates(updates);
+  LOG4CPLUS_TRACE(logger_, "ConcordCommandsHandler::addBlock, copied, updates: "
+                               << updates.size());
 
   if (time_) {
+    LOG4CPLUS_TRACE(logger_,
+                    "ConcordCommandsHandler::addBlock, time enter, updates: "
+                        << updates.size());
     if (time_->Changed()) {
+      LOG4CPLUS_TRACE(
+          logger_, "ConcordCommandsHandler::addBlock, time changed1, updates: "
+                       << updates.size());
       amended_updates.insert(time_->Serialize());
+      LOG4CPLUS_TRACE(
+          logger_, "ConcordCommandsHandler::addBlock, time changed2, updates: "
+                       << updates.size());
     }
     // amended_updates.insert(time_->SerializeSummarizedTime());
   }
@@ -368,14 +397,26 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   amended_updates[metadata_storage_.getKey()] =
       metadata_storage_.serialize(executing_bft_sequence_num_);
 
+  LOG4CPLUS_DEBUG(
+      logger_, "ConcordCommandsHandler::addBlock, before add block, updates: "
+                   << updates.size());
   concordUtils::Status status =
       appender_.addBlock(amended_updates, out_block_id);
   if (!status.isOK()) {
     return status;
   }
+  LOG4CPLUS_DEBUG(logger_,
+                  "ConcordCommandsHandler::addBlock, after add block, updates: "
+                      << updates.size());
   written_blocks_.Increment();
 
+  LOG4CPLUS_DEBUG(
+      logger_,
+      "ConcordCommandsHandler::addBlock, before TRS add block, updates: "
+          << updates.size());
   PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
+  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::addBlock, exit, updates: "
+                               << updates.size());
   return status;
 }
 
@@ -390,7 +431,8 @@ void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
     cid = iter->second.toString();
   }
   auto block_read_span = opentracing::Tracer::Global()->StartSpan(
-      "send_updates_to_thin_replica_server", {opentracing::SetTag{"cid", cid}});
+      "send_updates_to_thin_replica_server",
+      {opentracing::SetTag{concord::utils::kCorrelationIdTag, cid}});
   utils::InjectSpan(block_read_span, updates);
   subscriber_list_.UpdateSubBuffers({block_id, updates});
 }

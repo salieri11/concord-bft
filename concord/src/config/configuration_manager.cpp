@@ -3249,7 +3249,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   config.declareParameter(
       "eth_enable",
-      "Enable Ethereum support. At the moment, DAML/Eth/HLF/TEE "
+      "Enable Ethereum support. At the moment, DAML/Eth/HLF/TEE/Perf "
       "support are mutually exclusive.",
       "true");
   config.tagParameter("eth_enable", publicDefaultableTags);
@@ -3301,7 +3301,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter(
       "tee_enable",
       "Enable Test Execution Engine support. At the moment, "
-      "DAML/Eth/HLF/TEE support are mutually exclusive.",
+      "DAML/Eth/HLF/TEE/Perf support are mutually exclusive.",
       "false");
   config.tagParameter("tee_enable", publicDefaultableTags);
   config.addValidator("tee_enable", validateBoolean, nullptr);
@@ -3319,6 +3319,30 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("tee_service_threads", defaultableByReplicaTags);
   node.addValidator(
       "tee_service_threads", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+
+  // Performance handler parameters
+  config.declareParameter(
+      "perf_enable",
+      "Enable Performance Execution Engine support. At the moment, "
+      "DAML/Eth/HLF/TEE/Perf support are mutually exclusive.",
+      "false");
+  config.tagParameter("perf_enable", publicDefaultableTags);
+  config.addValidator("perf_enable", validateBoolean, nullptr);
+
+  node.declareParameter("perf_service_addr",
+                        "IP address and port (<IP>:<PORT>) on which Concord's "
+                        "Perforamance service can be reached.",
+                        "0.0.0.0:50051");
+  node.tagParameter("perf_service_addr", defaultableByReplicaTags);
+
+  node.declareParameter("perf_service_threads",
+                        "Number of threads to be used by the Performance gRPC"
+                        "server.",
+                        "32");
+  node.tagParameter("perf_service_threads", defaultableByReplicaTags);
+  node.addValidator(
+      "perf_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
 
   node.declareParameter(
@@ -3589,10 +3613,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.addGenerator("principal_id", computePrincipalId, nullptr);
 
   // Configuration of HLF
-  config.declareParameter("hlf_enable",
-                          "Enable HLF support. At the moment, DAML/Eth/HLF/TEE "
-                          "support are mutually exclusive.",
-                          "false");
+  config.declareParameter(
+      "hlf_enable",
+      "Enable HLF support. At the moment, DAML/Eth/HLF/TEE/Perf "
+      "support are mutually exclusive.",
+      "false");
   config.tagParameter("hlf_enable", publicDefaultableTags);
   config.addValidator("hlf_enable", validateBoolean, nullptr);
 

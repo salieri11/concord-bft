@@ -16,6 +16,15 @@ using SpanPtr = std::unique_ptr<opentracing::Span>;
 
 namespace concord::utils {
 
+const std::string kCorrelationIdTag = "cid";
+const std::string kRequestSeqNumTag = "req_seq_num";
+const std::string kClientIdTag = "client_id";
+const std::string kRequestFlagsTag = "req_flags";
+const std::string kRequestSizeTag = "req_size";
+const std::string kExecResultTag = "exec_result";
+const std::string kExecRespSizeTag = "exec_resp_size";
+const std::string kReplicaIdTag = "rid";
+
 using OpenTracingKeyValMap =
     std::unordered_map<concordUtils::Sliver, concordUtils::Sliver>;
 

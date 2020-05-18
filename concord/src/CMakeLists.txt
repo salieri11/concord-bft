@@ -9,6 +9,7 @@ file(GLOB concord_src "main.cpp"
   "hlf/*.cpp"          "hlf/*.hpp"
   "thin_replica/*.cpp" "thin_replica/*.hpp"
   "tee/*.cpp"          "tee/*.hpp"
+  "performance/*.cpp"  "performance/*.hpp"
   "${SKVBC_COMMANDS_HANDLER_DIR}/internalCommandsHandler.hpp"
   "${SKVBC_COMMANDS_HANDLER_DIR}/internalCommandsHandler.cpp"
 )
@@ -21,6 +22,8 @@ endif()
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${SKVBC_INCLUDE_DIR})
+get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
+include_directories(${thresh_include})
 
 add_subdirectory("common")
 add_subdirectory("consensus")

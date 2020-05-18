@@ -82,6 +82,7 @@ class DecoratedThinReplica
           LOG4CPLUS_DEBUG(*logger_p, "pop-!update");
           break;
         }
+        LOG4CPLUS_INFO(*logger_p, update->block_id);
         LOG4CPLUS_DEBUG(*logger_p, "pop-" << update->block_id);
         data.set_block_id(update->block_id);
         for (const auto& kvpi : update->kv_pairs) {
