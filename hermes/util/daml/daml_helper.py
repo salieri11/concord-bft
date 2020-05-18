@@ -28,25 +28,24 @@ DEFAULT_DAML_TEST = "SemanticTests"
 DAML_TESTS_WHITELIST = [
    "ActiveContractsServiceIT",
    "ClosedWorldIT",
-   # "CommandDeduplicationIT",
-   # "CommandServiceIT",                    # [FT] Temporarily disabled, works around need for newer test tool
+   "CommandDeduplicationIT",
+   "CommandServiceIT",
    "CommandSubmissionCompletionIT",
-   # "ConfigManagementServiceIT",           # [FT] Temporarily disabled, works around time model issue
+   # "ConfigManagementServiceIT", # Flaky, to be reviewed at next upgrade
    "ContractKeysIT",
-   # "ContractKeysSubmitterIsMaintainerIT", # [FT] Temporarily disabled, works around need for newer test tool
    "DivulgenceIT",
    "HealthServiceIT",
    "IdentityIT",
-   # "LedgerConfigurationServiceIT",        # [FT] Temporarily disabled, works around need for newer test tool
-   # "LotsOfPartiesIT",
+   "LedgerConfigurationServiceIT",
    "PackageManagementServiceIT",
    "PackageServiceIT",
    "PartyManagementServiceIT",
    "SemanticTests",
-   # "TransactionScaleIT",
-   # "TransactionServiceIT"                 # [FT] Temporarily disabled, works around need for newer test tool
+   "TransactionServiceIT"
    "WitnessesIT",
    "WronglyTypedContractIdIT",
+   # "LotsOfPartiesIT",
+   # "TransactionScaleIT",
 ]
 
 error_msg = None

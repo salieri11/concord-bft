@@ -29,6 +29,7 @@ import scopt.OptionParser
 import com.codahale.metrics.MetricRegistry
 import com.daml.buildinfo.BuildInfo
 import com.daml.ledger.participant.state.kvutils.api.{BatchingLedgerWriter, DefaultBatchingQueue}
+import com.daml.lf.engine.Engine
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -44,9 +45,10 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
   override def manipulateConfig(config: Config[ExtraConfig]): Config[ExtraConfig] =
     config.copy(participants = config.participants.map(_.copy(allowExistingSchemaForIndex = true)))
 
-  def readWriteServiceOwner(
+  override def readWriteServiceOwner(
       config: Config[ExtraConfig],
       participantConfig: ParticipantConfig,
+      engine: Engine,
   )(
       implicit materializer: Materializer,
       logCtx: LoggingContext): ResourceOwner[ReadWriteService] = {
@@ -58,9 +60,9 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
          |jdbcUrl=${config.participants.head.serverJdbcUrl}
          |dar_file(s)=${config.archiveFiles.mkString("(", ";", ")")}""".stripMargin
         .replaceAll("\n", " "))
-    val theMetricRegistry = metricRegistry(participantConfig, config)
+    val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
-      createThinReplicaClient(participantConfig.participantId, config.extra, theMetricRegistry)
+      createThinReplicaClient(participantConfig.participantId, config.extra, metrics.registry)
     val concordClient = createConcordClient(config.extra)
     waitForConcordToBeReady(concordClient)
     val ledgerId =
@@ -93,13 +95,13 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
         concordWriter
       }
 
-    val participantState = PrivacyAwareKeyValueParticipantState(reader, writer, theMetricRegistry)
+    val participantState = PrivacyAwareKeyValueParticipantState(reader, writer, metrics)
 
     for {
       closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
       closeableMetricsEndpoint = {
         val metricsEndPoint = KVBCPrometheusMetricsEndpoint.createEndpoint(
-          metricRegistry(participantConfig, config),
+          metrics.registry,
           closeableHttpServer.context)
         closeableHttpServer.start()
         metricsEndPoint

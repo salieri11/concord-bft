@@ -1,10 +1,10 @@
 # Dockerfile to get the Ledger API test tool
 #
 # Manually update via, e.g.:
-# docker build . -f DockerfileLedgerTestTool -t athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.8
-# docker push athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.8
+# docker build . -f DockerfileLedgerTestTool -t athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:0.13.56-snapshot.20200411.3905.0.f050da78
+# docker push athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:0.13.56-snapshot.20200411.3905.0.f050da78
 #
-# In artifcatory:
+# In artifactory:
 # * <repo-url>/daml-ledger-api-test-tool:100.13.8
 # * <repo-url>/daml-ledger-api-test-tool:100.13.12
 # * <repo-url>/daml-ledger-api-test-tool:100.13.16
@@ -23,11 +23,12 @@
 # * <repo-url>/daml-ledger-api-test-tool:100.13.46
 # * <repo-url>/daml-ledger-api-test-tool:100.13.52
 # * <repo-url>/daml-ledger-api-test-tool:100.13.54
+# * <repo-url>/daml-ledger-api-test-tool:0.13.56-snapshot.20200411.3905.0.f050da78
 
 FROM maven:3.6.2-jdk-8-slim
 
-RUN TEST_TOOL_VER='100.13.54' && \
+RUN TEST_TOOL_VER='0.13.56-snapshot.20200411.3905.0.f050da78' && \
     mvn dependency:get -DrepoUrl=http://repo.maven.apache.org/maven2/ \
-      -Dartifact=com.daml.ledger.testtool:ledger-api-test-tool:${TEST_TOOL_VER}:jar \
+      -Dartifact=com.daml:ledger-api-test-tool:${TEST_TOOL_VER}:jar \
       -Dtransitive=false -Ddest=/ledger-api-test-tool-${TEST_TOOL_VER}.jar && \
     java -jar /ledger-api-test-tool-${TEST_TOOL_VER}.jar -x localhost:6865

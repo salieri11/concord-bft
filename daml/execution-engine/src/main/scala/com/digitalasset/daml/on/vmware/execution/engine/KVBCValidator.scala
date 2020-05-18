@@ -5,7 +5,7 @@ package com.digitalasset.daml.on.vmware.execution.engine
 import java.time.{Duration, Instant}
 
 import akka.stream.Materializer
-import com.codahale.metrics.{MetricRegistry, Timer}
+import com.codahale.metrics.{Counter, Histogram, Timer}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, DamlKvutils => KV}
 import com.daml.ledger.participant.state.pkvutils
@@ -14,6 +14,7 @@ import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeM
 import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, ConflictDetection}
 import com.daml.lf.data.{Ref, Time}
 import com.daml.lf.engine.Engine
+import com.daml.metrics.Metrics
 import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.kvbc.daml_validator._
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
@@ -26,7 +27,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Materializer)
+class KVBCValidator(metrics: Metrics)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
@@ -36,13 +37,13 @@ class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Mater
   private object Metrics {
     val prefix = "daml.validator.service"
 
-    val pendingSubmissions = metricRegistry.counter(s"$prefix.pending-submissions")
-    val validateTimer = metricRegistry.timer(s"$prefix.validate-timer")
-    val validatePendingTimer = metricRegistry.timer(s"$prefix.validate-pending-timer")
-    val submissionSizes = metricRegistry.histogram(s"$prefix.submission-sizes")
-    val outputSizes = metricRegistry.histogram(s"$prefix.output-sizes")
-    val envelopeCloseTimer = metricRegistry.timer(s"$prefix.envelope-close-timer")
-    val missingInputs = metricRegistry.histogram(s"$prefix.missing-inputs")
+    val pendingSubmissions: Counter = metrics.registry.counter(s"$prefix.pending-submissions")
+    val validateTimer: Timer = metrics.registry.timer(s"$prefix.validate-timer")
+    val validatePendingTimer: Timer = metrics.registry.timer(s"$prefix.validate-pending-timer")
+    val submissionSizes: Histogram = metrics.registry.histogram(s"$prefix.submission-sizes")
+    val outputSizes: Histogram = metrics.registry.histogram(s"$prefix.output-sizes")
+    val envelopeCloseTimer: Timer = metrics.registry.timer(s"$prefix.envelope-close-timer")
+    val missingInputs: Histogram = metrics.registry.histogram(s"$prefix.missing-inputs")
   }
 
   type ReplicaId = Long
@@ -51,13 +52,13 @@ class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Mater
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
-  private val keyValueCommitting = new KeyValueCommitting(metricRegistry)
+  private val keyValueCommitting = new KeyValueCommitting(engine, metrics)
 
   private lazy val cache: Cache[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] = {
     val cacheSize = StateCaches.determineCacheSize()
     Scaffeine()
       .recordStats({ () =>
-        new KVBCMetricsStatsCounter(metricRegistry)
+        new KVBCMetricsStatsCounter(metrics.registry)
       })
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
@@ -118,7 +119,7 @@ class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Mater
         pendingSubmissions
           .remove(replicaId)
           .getOrElse(
-            sys.error(s"No pending submission for ${replicaId}, correlationId=$correlationId"))
+            sys.error(s"No pending submission for $replicaId, correlationId=$correlationId"))
 
       Metrics.pendingSubmissions.dec()
 
@@ -219,15 +220,15 @@ class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Mater
     }
 
   private val readerCommitterFactoryFunction =
-    PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metricRegistry)) _
+    PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
 
   private val batchValidator =
     BatchValidator[Unit](
       BatchValidatorParameters.default,
       keyValueCommitting,
-      engine,
-      new ConflictDetection(metricRegistry),
-      metricRegistry)
+      new ConflictDetection(metrics),
+      metrics,
+      engine)
 
   private val pipelinedValidator = new PipelinedValidator(
     batchValidator,
@@ -254,13 +255,12 @@ class KVBCValidator(metricRegistry: MetricRegistry)(implicit materializer: Mater
     val entryId = KV.DamlLogEntryId.newBuilder.setEntryId(pendingSubmission.entryId).build
 
     val (logEntry, stateUpdates) = keyValueCommitting.processSubmission(
-      engine = engine,
-      recordTime = pendingSubmission.recordTime,
       entryId = entryId,
+      recordTime = pendingSubmission.recordTime,
       defaultConfig = defaultConfig,
       submission = submission,
       participantId = pendingSubmission.participantId,
-      inputState = pendingSubmission.inputState
+      inputState = pendingSubmission.inputState,
     )
 
     stateUpdates.foreach { case (k, v) => cache.put(replicaId -> k, v) }
