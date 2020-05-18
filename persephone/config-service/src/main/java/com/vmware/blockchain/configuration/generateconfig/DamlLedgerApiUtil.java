@@ -52,7 +52,8 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export PARTICIPANT_ID=p" + nodeName);
         builder.append(System.getProperty("line.separator"));
-        builder.append("export JAVA_OPTS=\"-Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
+        builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G "
+                       + "-XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
         builder.append(System.getProperty("line.separator"));
         builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831\"");
         addAuthJwt(builder, properties);
