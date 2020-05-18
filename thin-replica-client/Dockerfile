@@ -3,8 +3,7 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v16 \
-      as dependencies
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v17
 
 # Base runtime image.
 FROM ubuntu:18.04
@@ -32,8 +31,6 @@ RUN apt-get update && apt-get -y install \
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
-
 # Copy dependencies from the prereqs image.
 # Note symbolic links are manually created or recreated as just copying them
 # causes the build to actually make a copy of their target, which increases the
@@ -53,27 +50,38 @@ COPY --from=0 /usr/local/lib/libssl.so.1.1 /usr/local/lib/
 RUN ln -s /usr/local/lib/libssl.so.1.1 /usr/local/lib/libssl.so
 
 # gRPC
-COPY --from=0 /usr/include/google/protobuf /usr/include/google/protobuf
-COPY --from=0 /opt/protobuf/bin /opt/protobuf/bin
 COPY --from=0 /opt/protobuf/include /opt/protobuf/include
-COPY --from=0 /opt/protobuf/lib/*.so.17.0.0 /opt/protobuf/lib/
-RUN for x in /opt/protobuf/lib/*.so.17.0.0; do \
-        ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.17.0.0}; \
+COPY --from=0 /opt/grpc/include /opt/grpc/include
+COPY --from=0 /opt/grpc/bin /opt/grpc/bin
+
+# Copy libraries and create symlinks (docker copies instead of sym linking)
+COPY --from=0 /opt/protobuf/lib/*.so.3.11.2.0 /opt/protobuf/lib/
+RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
+        ln -s $x ${x%%.3.11.2.0}; \
     done
 
-COPY --from=0 /opt/grpc/bin /opt/grpc/bin
-COPY --from=0 /opt/grpc/include /opt/grpc/include
-COPY --from=0 /opt/grpc/lib/*.so.7.0.0 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.7.0.0; do \
+COPY --from=0 /opt/grpc/lib/*.so.1.28.1 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.28.1; do \
+        ln -s $x ${x%%.28.1} && \
+        ln -s $x ${x%%.1.28.1}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.9.0.0; do \
         ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.7.0.0}; \
+        ln -s $x ${x%%.9.0.0}; \
     done
-COPY --from=0 /opt/grpc/lib/*.so.1.17.1 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.1.17.1; do \
-        ln -s $x ${x%%.17.1} && \
-        ln -s $x ${x%%.1.17.1}; \
+
+COPY --from=0 /opt/grpc/lib/*.so.1.2.11 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.2.11; do \
+        ln -s $x ${x%%.2.11} && \
+        ln -s $x ${x%%.1.2.11}; \
     done
+
+COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/grpc/lib:/opt/protobuf/lib
+ENV PATH=$PATH:/opt/grpc/bin
 
 # Thrift
 COPY --from=0 /usr/local/include/thrift /usr/local/include/thrift
@@ -115,6 +123,8 @@ RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
         ln -s $x ${x%%.0} && \
         ln -s $x ${x%%.0.8.0}; \
     done
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Copy sources
 COPY ./concord/cmake /concord/cmake
