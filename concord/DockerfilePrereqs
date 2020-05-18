@@ -12,7 +12,6 @@ RUN apt-get update && apt-get -y install \
     build-essential \
     clang-7 \
     clang-format-7 \
-    cmake \
     curl \
     g++ \
     git \
@@ -22,22 +21,21 @@ RUN apt-get update && apt-get -y install \
     libboost-filesystem1.65-dev \
     libboost-thread1.65-dev \
     libbz2-dev \
+    libcurl4-openssl-dev \
     libgmp3-dev \
     liblz4-dev \
-    libprotobuf-dev \
     libsnappy-dev \
+    libzstd1-dev \
     libtool \
-    libzstd-dev \
     llvm-5.0 \
     llvm-5.0-dev \
     libyaml-cpp0.5v5 \
     libyaml-cpp-dev \
     pkg-config \
-    protobuf-compiler \
     python2.7 \
     python3-pip \
     wget \
-    libcurl4-openssl-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
@@ -49,6 +47,12 @@ RUN pip3 install cpplint
 WORKDIR /tmp
 RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
     tar -C /usr/local -xf go1.11.linux-amd64.tar.gz
+
+# Install CMake 3.16
+RUN wget -q -O cmake-linux.sh \
+        https://github.com/Kitware/CMake/releases/download/v3.16.1/cmake-3.16.1-Linux-x86_64.sh && \
+    sh cmake-linux.sh -- --skip-license --prefix=/usr && \
+    rm cmake-linux.sh
 
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git && \
@@ -131,22 +135,27 @@ RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com
 
 # gRPC for DAML and HLF api server
 WORKDIR /
-RUN git clone https://github.com/grpc/grpc && \
-    cd /grpc && \
-    git checkout v1.17.x && \
-    git submodule update --init && \
-    cd /grpc/third_party/protobuf && \
-    git checkout 3.6.x && \
-    cd /grpc/third_party/protobuf && \
-    ./autogen.sh && \
-    ./configure --prefix=/opt/protobuf && \
-    make -j4 && \
-    make install && \
-    cd /grpc && \
-    make -j4 PROTOC=/opt/protobuf/bin/protoc && \
-    make prefix=/opt/grpc install && \
+RUN git clone -b v1.28.x --depth 1 --recurse-submodules https://github.com/grpc/grpc && \
+    mkdir -p /grpc/third_party/protobuf/cmake/build && \
+    cd /grpc/third_party/protobuf/cmake/build && \
+    cmake -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/opt/protobuf \
+          .. && \
+    make -j$(nproc) install && \
+    mkdir -p /grpc/cmake/build && \
+    cd /grpc/cmake/build && \
+    cmake -DgRPC_INSTALL=ON \
+          -DgRPC_SSL_PROVIDER=package \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/opt/grpc \
+          ../.. && \
+    make -j$(nproc) install && \
     cd / && \
     rm -r grpc
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/grpc/lib:/opt/protobuf/lib
+ENV PATH=$PATH:/opt/grpc/bin:/opt/protobuf/bin
 
 # thrift is a jaeger dependency
 WORKDIR /
@@ -202,7 +211,7 @@ RUN git clone https://github.com/jaegertracing/jaeger-client-cpp && \
     cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO .. && \
     make -j4 && \
     make install && \
-    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.10/Modules/ && \
+    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.16/Modules/ && \
     cd ../.. && \
     rm -r jaeger-client-cpp
 
@@ -213,7 +222,7 @@ RUN git clone https://github.com/jaegertracing/jaeger-client-cpp && \
 # search for BoostConfig.cmake.
 RUN sed -i '/boost_components/d' /usr/local/lib/cmake/jaegertracing/jaegertracingConfig.cmake
 
-ENV LD_LIBRARY_PATH /usr/local/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Install Prometheus-cpp
 WORKDIR /
