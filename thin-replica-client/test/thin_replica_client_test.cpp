@@ -6,11 +6,13 @@
 #include "thin_replica_client_facade.hpp"
 #include "thin_replica_client_facade_impl.hpp"
 #include "thin_replica_client_mocks.hpp"
+#include "thin_replica_mock.grpc.pb.h"
 #include "trc_hash.hpp"
 
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
 using com::vmware::concord::thin_replica::KVPair;
+using com::vmware::concord::thin_replica::MockThinReplicaStub;
 using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::ThinReplica;
@@ -184,7 +186,7 @@ class MockHasher {
   }
 };
 
-void SetMockServerInitialState(unique_ptr<MockThinReplicaServer>& server,
+void SetMockServerInitialState(unique_ptr<MockThinReplicaStub>& server,
                                const MockDataStreamPreparer& data_preparer,
                                const MockHasher& hasher) {
   ON_CALL(*server, ReadStateRaw)
@@ -195,7 +197,7 @@ void SetMockServerInitialState(unique_ptr<MockThinReplicaServer>& server,
 }
 
 void SetMockServerInitialState(
-    vector<pair<string, unique_ptr<MockThinReplicaServer>>>& servers,
+    vector<pair<string, unique_ptr<MockThinReplicaStub>>>& servers,
     const MockDataStreamPreparer& data_preparer, const MockHasher& hasher) {
   for (auto& server : servers) {
     SetMockServerInitialState(server.second, data_preparer, hasher);
@@ -224,9 +226,9 @@ TEST(thin_replica_client_test, test_receive_one_initial_update) {
   MockDataStreamPreparer stream_preparer(initial_updates);
   MockHasher hasher(initial_updates);
 
-  vector<pair<string, unique_ptr<MockThinReplicaServer>>> mock_servers;
+  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
   for (size_t i = 0; i < 4; ++i) {
-    mock_servers.push_back(make_pair("", make_unique<MockThinReplicaServer>()));
+    mock_servers.push_back(make_pair("", make_unique<MockThinReplicaStub>()));
   }
   SetMockServerInitialState(mock_servers, stream_preparer, hasher);
 
