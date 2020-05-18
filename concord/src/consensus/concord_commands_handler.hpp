@@ -42,6 +42,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
                                          kvbc::SetOfKeyValuePairs &updates);
 
+  uint16_t replica_id_;
+
  protected:
   const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
   concord::storage::ConcordBlockMetadata metadata_storage_;

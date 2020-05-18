@@ -1,0 +1,71 @@
+syntax = "proto3";
+package com.vmware.concord.performance;
+
+// This service is a first step in creating performance oriented interface to Concord, which can be used
+// for performance measurements in runtime.
+// Currently, it is used purely as Yet Another Execution Engine, but in future it can be used for various purposed,
+// e.g. changing log levels at runtime, enabling/disabling performance oriented features etc.
+service PerformanceService {
+    // This method may be used to pre-allocated all blocks data in memory and then the PerfWrite method will use them, instead of
+    // creating them on the fly
+    rpc PerfInit (PerfInitRequest) returns (PerfInitResponse) {}
+
+    // This method should be used if PerfInit was used for cleaning pre allocated data from the memory
+    rpc PerfClear (PerfCleanRequest) returns (PerfCleanResponse) {}
+
+    // This method performs actual write
+    rpc PerfWrite (PerfWriteRequest) returns (PerfWriteResponse) {}
+}
+
+message PerfInitRequest {
+    fixed32 block_count = 1; // num of blocks to be created in memory, must be > 0
+    fixed32 kv_count = 2; // kv count for each block, must be > 0
+    fixed32 key_size = 3; // key size for single KV pair, > 0
+    fixed32 value_size = 4; // value size for single KV pair, > 0
+}
+
+message PerfInitResponse {
+    string id = 1; // ID of the data set that was created
+    string workset_info = 2; // basic information about current memory consumption by all data sets
+}
+
+// This struct is used to indicate that the write data should be used from pre allocated data set
+message PerfWriteFromInit {
+    string init_id = 1; // if set, then the corresponding data set from Init phase will be used
+    fixed32 block_id = 2; // if init_id set to empty string, this field will be used as actual block number
+}
+
+// This struct is used to indicate that the block should be created on the fly (just 1 block)
+message PerfWriteExternal {
+    fixed32 kv_prefix = 1; // unique prefix for making key and value data unique for the write, not empty
+    fixed32 kv_count = 2; // kv pairs count for the block, > 0
+    fixed32 key_size = 3; // each kv key size, > 0
+    fixed32 value_size = 4; // each kv value size, > 0
+    fixed32 max_exec_time_milli = 5; // if block data creation using parameters in this message is too short (not to confuse with writing!)
+                                     // and we want to introduce longer delay, this value can be used
+                                     // the actual delay will be max(max_exec_time_milli, block data creation delay)
+}
+
+// This message is sent to perform the write
+message PerfWriteRequest {
+   bytes payload = 1; // may be used to simulate dummy payload, the data is meaningless and may be used to simulate big messages
+   oneof write_option {
+       PerfWriteFromInit from_init = 2;
+       PerfWriteExternal external = 3;
+   }
+}
+
+// This is response from single write
+message PerfWriteResponse {
+    string message = 1;
+    fixed64 new_block_id = 2;
+}
+
+// This message is sent when clean is required
+message PerfCleanRequest {
+    string init_id = 1; // if not provided, will clean all pre allocated data
+}
+
+message PerfCleanResponse {
+    string message = 1;
+}

@@ -47,6 +47,12 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   auto span =
       concord::utils::ExtractSpan(request->span_context(), "commit_transaction",
                                   logger_, request->correlation_id());
+
+  // temporary solution, when DA will start sending spans we may consider to
+  // remove this line,however, the result should be the same since tag is
+  // overwritten.
+  span->SetTag(concord::utils::kCorrelationIdTag, request->correlation_id());
+
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());

@@ -7,6 +7,7 @@
 
 #include "kvb_client.hpp"
 #include "SimpleClient.hpp"
+#include "utils/open_tracing_utils.hpp"
 
 #include <opentracing/tracer.h>
 #include <boost/thread.hpp>
@@ -42,6 +43,8 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
                                   const std::string &correlation_id) {
   auto span = parent_span.tracer().StartSpan(
       "send_request_sync", {opentracing::ChildOf(&parent_span.context())});
+  span->SetTag(concord::utils::kRequestFlagsTag, flags);
+
   AddTracingContext(req, *span.get());
 
   if (!(flags & bftEngine::READ_ONLY_REQ) && timePusher_) {

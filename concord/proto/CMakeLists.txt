@@ -14,6 +14,7 @@ set(HLF_PROTO
 )
 
 set(THIN_REPLICA_PROTO ${COMMUNICATION_PATH}/src/main/proto/thin_replica.proto)
+set(PERF_PROTO performance.proto)
 
 set(TEE_PROTO tee.proto)
 
@@ -25,6 +26,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
   ${TEE_PROTO}
+  ${PERF_PROTO}
 )
 
 grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
@@ -32,6 +34,7 @@ grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
   ${TEE_PROTO}
+  ${PERF_PROTO}
 )
 
 add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})

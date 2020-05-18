@@ -121,3 +121,5 @@ log
 # Intellij specific
 .idea
 *.iml
+
+build-local.sh

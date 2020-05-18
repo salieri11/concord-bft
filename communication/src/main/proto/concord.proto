@@ -27,7 +27,8 @@ message ConcordRequest {
    optional PruneRequest prune_request = 15;
    optional PreExecutionResult pre_execution_result = 16;
    optional TeeRequest tee_request = 17;
-   optional ReconfigurationSmRequest reconfiguration_sm_request = 18;
+   optional PerfRequest perf_request = 18;
+   optional ReconfigurationSmRequest reconfiguration_sm_request = 19;
 
    // 18-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -53,7 +54,8 @@ message ConcordResponse {
    optional PruneResponse prune_response = 15;
    optional PreExecutionResult pre_execution_result = 16;
    optional TeeResponse tee_response = 17;
-   optional ReconfigurationSmResponse reconfiguration_sm_response = 18;
+   optional PerfResponse perf_response = 18;
+   optional ReconfigurationSmResponse reconfiguration_sm_response = 19;
 
    // 18-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -127,6 +129,21 @@ message SkvbcRequest {
 }
 
 message SkvbcResponse {
+   optional bytes response_content = 1;
+}
+
+message PerfRequest {
+  enum PerfRequestType {
+    Init =1;
+    Write = 2;
+    Clean = 3;
+  }
+
+  optional PerfRequestType type = 1;
+  optional bytes request_content = 2;
+}
+
+message PerfResponse {
    optional bytes response_content = 1;
 }
 

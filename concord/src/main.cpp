@@ -44,13 +44,16 @@
 #include "hlf/kvb_storage.hpp"
 #include "kv_types.hpp"
 #include "merkle_tree_storage_factory.h"
+#include "performance/perf_handler.hpp"
+#include "performance/perf_service.hpp"
 #include "replica_state_sync_imp.hpp"
+#include "rocksdb/client.h"
+#include "rocksdb/key_comparator.h"
+#include "storage/concord_block_metadata.h"
+#include "storage/kvb_key_types.h"
 #include "storage_factory_interface.h"
 #include "tee/grpc_services.hpp"
 #include "tee/tee_commands_handler.hpp"
-
-#include "storage/concord_block_metadata.h"
-#include "storage/kvb_key_types.h"
 #include "thin_replica/grpc_services.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "thin_replica/thin_replica_impl.hpp"
@@ -130,6 +133,7 @@ static boost::thread_group worker_pool;
 // 50 MiBytes
 static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 static unique_ptr<grpc::Server> tee_grpc_server = nullptr;
+static unique_ptr<grpc::Server> perf_grpc_server = nullptr;
 static unique_ptr<concordMetrics::Server> bft_metrics_server = nullptr;
 
 static void signalHandler(int signum) {
@@ -152,6 +156,10 @@ static void signalHandler(int signum) {
     if (bft_metrics_server) {
       LOG4CPLUS_INFO(logger, "Stopping BFT metrics server");
       bft_metrics_server->Stop();
+    }
+    if (perf_grpc_server) {
+      LOG4CPLUS_INFO(logger, "Stopping Performance gRPC service");
+      perf_grpc_server->Shutdown();
     }
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
@@ -482,12 +490,37 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
   tee_grpc_server->Wait();
 }
 
+void RunPerfGrpcServer(std::string server_address, KVBClientPool &pool,
+                       const ILocalKeyValueStorageReadOnly *ro_storage,
+                       SubBufferList &subscriber_list, int max_num_threads) {
+  Logger logger = Logger::getInstance("concord.perf.grpc");
+
+  concord::performance::PerformanceServiceImp *perfService =
+      new concord::performance::PerformanceServiceImp(pool);
+  ThinReplicaService *thinReplicaService = new ThinReplicaService{
+      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list)};
+
+  grpc::ResourceQuota quota;
+  quota.SetMaxThreads(max_num_threads);
+
+  grpc::ServerBuilder builder;
+  builder.SetResourceQuota(quota);
+  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.RegisterService(perfService);
+  builder.RegisterService(thinReplicaService);
+
+  perf_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
+
+  LOG4CPLUS_INFO(logger,
+                 "Performance gRPC server listening on " << server_address);
+  perf_grpc_server->Wait();
+}
+
 /*
- * Check whether one and only one of the four provided booleans is true.
+ * Check whether one and only one out of all provided booleans is true.
  */
-bool OnlyOneTrue(bool a, bool b, bool c, bool d) {
-  return (a && !b && !c && !d) || (!a && b && !c && !d) ||
-         (!a && !b && c && !d) || (!a && !b && !c && d);
+bool OnlyOneTrue(bool a, bool b, bool c, bool d, bool e) {
+  return (a + b + c + d + e) == 1;
 }
 
 std::shared_ptr<concord::utils::PrometheusRegistry>
@@ -509,6 +542,42 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
       prom_bindaddress, dump_time_interval);
 }
 
+static concordUtils::Status create_perf_genesis_block(
+    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+  if (replica->getReadOnlyStorage().getLastBlock() > 0) {
+    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    return concordUtils::Status::OK();
+  }
+
+  string genesis_string = "performance execution engine genesis";
+  if (nodeConfig.hasValue<std::string>("genesis_block")) {
+    const auto &genesis_file_path =
+        nodeConfig.getValue<std::string>("genesis_block");
+    std::ifstream genesis_stream(genesis_file_path);
+    if (!genesis_stream.good()) {
+      LOG4CPLUS_WARN(logger,
+                     "Error reading genesis file at " << genesis_file_path);
+    } else {
+      nlohmann::json genesis_block;
+      genesis_stream >> genesis_block;
+      genesis_string = genesis_block.dump();
+    }
+  }
+
+  const auto &key = concord::kvbc::Key(
+      std::string({concord::storage::kKvbKeyAdminIdentifier}));
+  const auto &status = replica->addBlockToIdleReplica(
+      SetOfKeyValuePairs{{key, std::string{genesis_string}}});
+
+  if (status.isOK()) {
+    LOG4CPLUS_INFO(logger, "Successfully loaded performance genesis block");
+  } else {
+    throw std::runtime_error("Unable to add performance genesis block");
+  }
+
+  return concordUtils::Status::OK();
+}
+
 /*
  * Start the service that listens for connections from Helen.
  */
@@ -527,11 +596,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
   bool eth_enabled = config.getValue<bool>("eth_enable");
   bool tee_enabled = config.getValue<bool>("tee_enable");
+  bool perf_enabled = config.getValue<bool>("perf_enable");
 
-  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled, tee_enabled)) {
+  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled, tee_enabled,
+                   perf_enabled)) {
     LOG4CPLUS_WARN(logger,
                    "Make sure one and only one execution engine (DAML, Eth, "
-                   "HLF, or TEE) is set");
+                   "HLF, TEE or Perf) is set");
     return 0;
   }
   auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
@@ -673,6 +744,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           new TeeCommandsHandler(config, nodeConfig, replica, replica,
                                  subscriber_list, prometheus_registry));
       create_tee_genesis_block(&replica, nodeConfig, logger);
+    } else if (perf_enabled) {
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new concord::performance::PerformanceCommandsHandler(
+              config, nodeConfig, replica, replica, subscriber_list,
+              prometheus_registry));
+      create_perf_genesis_block(&replica, nodeConfig, logger);
     } else {
       assert(eth_enabled);
       kvb_commands_handler =
@@ -785,6 +862,15 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       int max_num_threads = nodeConfig.getValue<int>("tee_service_threads");
 
       std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), &replica,
+                  std::ref(subscriber_list), max_num_threads)
+          .detach();
+    } else if (perf_enabled) {
+      std::string perf_addr = {
+          nodeConfig.getValue<std::string>("perf_service_addr")};
+
+      int max_num_threads = nodeConfig.getValue<int>("perf_service_threads");
+
+      std::thread(RunPerfGrpcServer, perf_addr, std::ref(pool), &replica,
                   std::ref(subscriber_list), max_num_threads)
           .detach();
     }
