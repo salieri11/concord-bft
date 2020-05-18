@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v16
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v17
 
 ## Install gtest - patch for backward compatibility until conan is supported
 RUN make -C /googletest/_build install
@@ -28,7 +28,13 @@ COPY .git /.git
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" -DUSE_CONAN=OFF .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
+RUN cmake \
+      -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
+      -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" \
+      -DUSE_CONAN=OFF .. && \
+    CTEST_OUTPUT_ON_FAILURE=true make \
+      -j$(nproc) all test
 
 ## Base Run image
 FROM ubuntu:18.04
@@ -48,9 +54,8 @@ RUN apt-get update \
     libbz2-1.0 \
     libgmp10 \
     liblz4-1 \
-    libprotobuf10 \
     libsnappy1v5 \
-    libzstd1 \
+    libzstd1-dev \
     libyaml-cpp0.5v5 \
     llvm-5.0 \
     gdb \
@@ -84,27 +89,45 @@ RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
         ln -s $x ${x%%.0.8.0}; \
     done
 
-COPY --from=0 /opt/protobuf/lib/*.so.17.0.0 /opt/protobuf/lib/
-RUN for x in /opt/protobuf/lib/*.so.17.0.0; do \
-        ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.17.0.0}; \
+# gRPC
+COPY --from=0 /opt/protobuf/include /opt/protobuf/include
+COPY --from=0 /opt/grpc/include /opt/grpc/include
+COPY --from=0 /opt/grpc/bin /opt/grpc/bin
+
+# Copy libraries and create symlinks (docker copies instead of sym linking)
+COPY --from=0 /opt/protobuf/lib/*.so.3.11.2.0 /opt/protobuf/lib/
+RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
+        ln -s $x ${x%%.3.11.2.0}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.7.0.0 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.7.0.0; do \
-        ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.7.0.0}; \
+COPY --from=0 /opt/grpc/lib/*.so.1.28.1 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.28.1; do \
+        ln -s $x ${x%%.28.1} && \
+        ln -s $x ${x%%.1.28.1}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.1.17.1 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.1.17.1; do \
-        ln -s $x ${x%%.17.1} && \
-        ln -s $x ${x%%.1.17.1}; \
+COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.9.0.0; do \
+        ln -s $x ${x%%.0.0} && \
+        ln -s $x ${x%%.9.0.0}; \
     done
+
+COPY --from=0 /opt/grpc/lib/*.so.1.2.11 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.2.11; do \
+        ln -s $x ${x%%.2.11} && \
+        ln -s $x ${x%%.1.2.11}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+
 
 # Go is required because chaincode installation will
 # compile the chaincode source file to binary.
 COPY --from=0 /usr/local/go /usr/local/go
+ENV GOPATH=/concord
+ENV PATH=$PATH:/usr/local/go/bin
 
 # HLF
 # copy peer executable
@@ -174,11 +197,6 @@ EXPOSE 3505/udp
 
 # Metrics port
 EXPOSE 9891
-
-# ENV
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
-ENV GOPATH=/concord
-ENV PATH=$PATH:/usr/local/go/bin
 
 # Mountable volumes.
 VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/cores" ]
