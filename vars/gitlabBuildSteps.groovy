@@ -876,7 +876,6 @@ def call(){
                       withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD')]) {
                         script{
                           command = "docker login -u " + env.DOCKERHUB_REPO_READER_USERNAME + " -p '" + env.DOCKERHUB_REPO_READER_PASSWORD + "'"
-                          sh 'echo ${command}'
                           retryCommand(command, true)
                         }
                       }
@@ -884,7 +883,7 @@ def call(){
                       sh '''
                         echo "Running Chess plus on a pre-deployed Blockchain..."
                         mkdir -p "${chess_plus_test_logs}"
-                        "${python}" run_chess_plus.py --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --resultsDir "${chess_plus_test_logs}"
+                        "${python}" run_chess_plus.py --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --testTimeout 1800 --resultsDir "${chess_plus_test_logs}"
                       '''
                       saveTimeEvent("Standalone Chess plus run", "End")
                     }

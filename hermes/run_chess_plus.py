@@ -16,7 +16,7 @@ import util.hermes_logging as hermes_logging
 
 log = hermes_logging.getMainLogger()
 
-TEST_TIMEOUT = "1800" # 30 mins in seconds
+DEFAULT_TEST_TIMEOUT = "1800" # 30 mins in seconds
 DEFAULT_SPIDER_IMAGE_TAG = "1.25.300"
 DEFAULT_MARKET_FLAVOR = "sample"
 DEFAULT_CONCURRENCY = "3"
@@ -43,11 +43,13 @@ def parse_arguments():
                                                       "%Y-%m-%d-%H-%M-%S",
                                                       time.gmtime())),
                        help="Chess+ run logs dir")
+   parser.add_argument("--testTimeout", default=DEFAULT_TEST_TIMEOUT,
+                       help="Max test timeout in seconds (default: {})".format(DEFAULT_TEST_TIMEOUT))
 
    return parser.parse_args()
 
 def run_chess_plus(participant_ip, spider_image_tag, market_flavor,
-                   concurrency, results_dir):
+                   concurrency, results_dir, test_timeout):
    '''
    Run chess plus hitting a participant IP
    :param participant_ip: Participant node IP
@@ -64,7 +66,7 @@ def run_chess_plus(participant_ip, spider_image_tag, market_flavor,
       sys.exit(1)
 
    cmd = [
-      "timeout", TEST_TIMEOUT,
+      "timeout", test_timeout,
       "bash", "util/run_chess_plus.sh",
       "--ledgerHost", participant_ip,
       "--spiderImageTag", spider_image_tag,
@@ -91,7 +93,7 @@ def main():
 
       status = run_chess_plus(ledger_api_host, args.spiderImageTag,
                      args.marketFlavor, args.concurrency,
-                     results_dir)
+                     results_dir, args.testTimeout)
       if status:
          log.info("**** Run Passed")
          if over_all_status is None:
