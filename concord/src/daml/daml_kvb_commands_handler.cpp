@@ -5,6 +5,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
 #include <opentracing/tracer.h>
+#include <chrono>
 #include <map>
 #include <string>
 #include "utils/concord_logging.hpp"
@@ -117,17 +118,26 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     const da_kvbc::CommitRequest& commit_req, const uint8_t flags,
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
+  auto start = std::chrono::steady_clock::now();
   std::string span_name = enable_pipelined_commits_
                               ? "daml_execute_commit_pipelined"
                               : "daml_execute_commit";
   auto execute_commit_span = parent_span.tracer().StartSpan(
       span_name, {opentracing::ChildOf(&parent_span.context())});
-  LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   std::string correlation_id = commit_req.correlation_id();
   BlockId current_block_id = storage_.getLastBlock();
   google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
+
+  LOG4CPLUS_INFO(logger_,
+                 "Handle DAML commit command, cid: "
+                     << correlation_id << ", time: "
+                     << TimeUtil::ToString(record_time) << ",elapsed: "
+                     << std::chrono::duration_cast<std::chrono::milliseconds>(
+                            start - std::chrono::steady_clock::now())
+                            .count());
+
   if (has_pre_executed && request_.has_pre_execution_result()) {
     return CommitPreExecutionResult(current_block_id, record_time,
                                     correlation_id, *execute_commit_span,
@@ -163,11 +173,20 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     } else {
       RecordTransaction(updates, current_block_id, correlation_id,
                         *execute_commit_span, concord_response);
-      LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
+      auto end = std::chrono::steady_clock::now();
+      auto dur =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      LOG4CPLUS_INFO(logger_, "Done handle DAML commit command, cid: "
+                                  << correlation_id << ", time: "
+                                  << TimeUtil::ToString(record_time)
+                                  << ", dur: " << dur.count());
+      execution_time_.Increment((double)dur.count());
     }
     return true;
   } else {
-    LOG4CPLUS_DEBUG(logger_, "DAML commit execution has failed.");
+    LOG4CPLUS_INFO(logger_, "Failed handle DAML commit command, cid: "
+                                << correlation_id << ", time: "
+                                << TimeUtil::ToString(record_time));
     return false;
   }
 }

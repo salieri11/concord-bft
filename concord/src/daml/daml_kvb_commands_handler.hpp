@@ -32,6 +32,7 @@ class DamlKvbCommandsHandler
   bool enable_pipelined_commits_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
+  prometheus::Counter& execution_time_;
 
  public:
   static const char* kFeaturePipelinedCommitExecution;
@@ -56,7 +57,11 @@ class DamlKvbCommandsHandler
                                         {"operation", "daml_writes"}})},
         read_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
-                                        {"operation", "daml_reads"}})} {}
+                                        {"operation", "daml_reads"}})},
+        execution_time_{prometheus_registry->createCounter(
+            command_handler_counters_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"operation", "daml_execution_time"}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                uint8_t flags, concord::time::TimeContract* time_contract,

@@ -11,6 +11,7 @@
 
 #include <opentracing/tracer.h>
 #include <boost/thread.hpp>
+#include <chrono>
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
@@ -95,10 +96,23 @@ KVBClientPool::KVBClientPool(
           prometheus_registry->createCounterFamily(
               "concord_KVBClientPool_replies_counters_total",
               "counters of replies in KVBClientPool", {})),
+      kvbc_client_pool_queued_requests_gauge_(
+          prometheus_registry->createGaugeFamily(
+              "concord_KVBClientPool_queued_requests_total",
+              "num of queued requests in KVBClientPool", {})),
+      kvbc_client_pool_external_requests_dur_gauge_(
+          prometheus_registry->createGaugeFamily(
+              "concord_KVBClientPool_external_requests_duration",
+              "duration of external requests in KVBClientPool", {})),
       kvbc_client_pool_received_requests_(prometheus_registry->createCounter(
           kvbc_client_pool_requests_counters_, {{"action", "received"}})),
       kvbc_client_pool_received_replies_(prometheus_registry->createCounter(
-          kvbc_client_pool_replies_counters_, {{"action", "received"}})) {
+          kvbc_client_pool_replies_counters_, {{"action", "received"}})),
+      kvbc_client_pool_queued_requests_(prometheus_registry->createGauge(
+          kvbc_client_pool_queued_requests_gauge_, {{"action", "received"}})),
+      kvbc_client_external_requests_dur_(prometheus_registry->createGauge(
+          kvbc_client_pool_external_requests_dur_gauge_,
+          {{"action", "received"}})) {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
   }
@@ -136,6 +150,7 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
                                       opentracing::Span &parent_span,
                                       ConcordResponse &resp,
                                       const std::string &correlation_id) {
+  auto start = std::chrono::steady_clock::now();
   KVBClient *client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
@@ -143,6 +158,12 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
     auto predicate = [this] {
       // Only continue if either the node is shutting down or there is at lease
       // 1 available client in the pool
+      if (clients_.empty()) {
+        kvbc_client_pool_queued_requests_.Increment();
+      } else {
+        if (kvbc_client_pool_queued_requests_.Value() > 0)
+          kvbc_client_pool_queued_requests_.Decrement();
+      }
       return this->shutdown_ || !clients_.empty();
     };
 
@@ -174,10 +195,20 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
     clients_.pop();
   }  // scope unlocks mutex
 
-  kvbc_client_pool_received_requests_.Increment();
+  if (timeout == 0ms) {
+    kvbc_client_pool_received_requests_.Increment();
+    LOG_INFO(logger_, "Sending client request, cid: " << correlation_id);
+  }
   bool result = client->send_request_sync(req, flags, timeout, parent_span,
                                           resp, correlation_id);
-  kvbc_client_pool_received_replies_.Increment();
+  if (timeout == 0ms) {
+    kvbc_client_pool_received_replies_.Increment();
+    auto dur = (double)std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::steady_clock::now() - start)
+                   .count();
+    kvbc_client_external_requests_dur_.Set(dur);
+    LOG_INFO(logger_, "Received client response, cid: " << correlation_id);
+  }
 
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);

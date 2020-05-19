@@ -8,6 +8,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
+#include <prometheus/gauge.h>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -85,8 +86,14 @@ class KVBClientPool {
   // Metrics
   prometheus::Family<prometheus::Counter> &kvbc_client_pool_requests_counters_;
   prometheus::Family<prometheus::Counter> &kvbc_client_pool_replies_counters_;
+  prometheus::Family<prometheus::Gauge>
+      &kvbc_client_pool_queued_requests_gauge_;
+  prometheus::Family<prometheus::Gauge>
+      &kvbc_client_pool_external_requests_dur_gauge_;
   prometheus::Counter &kvbc_client_pool_received_requests_;
   prometheus::Counter &kvbc_client_pool_received_replies_;
+  prometheus::Gauge &kvbc_client_pool_queued_requests_;
+  prometheus::Gauge &kvbc_client_external_requests_dur_;
 
   std::chrono::milliseconds max_timeout_millis_{60 * 10 * 1000};
 
