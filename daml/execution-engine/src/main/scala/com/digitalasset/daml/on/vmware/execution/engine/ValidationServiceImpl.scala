@@ -1,11 +1,14 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
+import java.util.concurrent.Executors
+
 import akka.stream.Materializer
+import com.codahale.metrics.{InstrumentedExecutorService, MetricRegistry}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
 import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, ConflictDetection}
 import com.daml.lf.engine.Engine
-import com.daml.metrics.Metrics
+import com.daml.metrics.{MetricName, Metrics}
 import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition}
@@ -16,7 +19,8 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
-  implicit val executionContext: ExecutionContext = materializer.executionContext
+  implicit val executionContext: ExecutionContext =
+    ValidationServiceImpl.createInstrumentedExecutionContext(metrics.registry)
 
   private val readerCommitterFactoryFunction =
     PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
@@ -32,8 +36,9 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
 
   private val pipelinedValidator = new PipelinedValidator(
     batchValidator,
-    readerCommitterFactoryFunction
-  )(materializer = materializer, executionContext = ExecutionContext.global)
+    readerCommitterFactoryFunction,
+    new ConcordLedgerStateOperations.Metrics(metrics.registry)
+  )
 
   override def validate(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
@@ -49,6 +54,16 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
   override def currentHealth(): HealthStatus = Healthy
 
   override def bindService(): ServerServiceDefinition =
-    ValidationServiceGrpc.bindService(this, executionContext)
+    ValidationServiceGrpc.bindService(this, materializer.executionContext)
 
+}
+
+private[engine] object ValidationServiceImpl {
+  def createInstrumentedExecutionContext(metricRegistry: MetricRegistry): ExecutionContext =
+    ExecutionContext.fromExecutorService(
+      new InstrumentedExecutorService(
+        Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors()),
+        metricRegistry,
+        MetricName.DAML :+ "validator" :+ "parallel_validation" :+ "threadpool"
+      ))
 }
