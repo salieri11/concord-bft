@@ -49,8 +49,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    def __del__(self):
       self.close_channel(self.service_name)
 
-   def create_placement_specification(self, cluster_size,
-                                         zone_type=ZONE_TYPE_VMC):
+   def create_placement_specification(self, cluster_size, zone_type=ZONE_TYPE_VMC):
       '''
       Helper method to create place specification used for create cluster
       :param cluster_size: Number of placement sites
@@ -58,8 +57,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       '''
 
       entries = []
-      deployment_site_ids, deployment_sites = self.get_orchestration_sites(
-         zone_type)
+      deployment_site_ids, deployment_sites = self.get_orchestration_sites(zone_type)
 
       for placement_count in range(0, cluster_size):
          site_number = placement_count % len(deployment_sites)
@@ -82,9 +80,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param zone_type: Zone/Site type (VMC or ON-PREM)
       :return Orchestration sites
       '''
-      zones = \
-      self.args.userConfig["persephoneTests"]["provisioningService"]["zones"][
-         zone_type]
+      zones = self.args.zoneConfig["zones"][zone_type]
 
       deployment_site_ids = []
       deployment_sites = []

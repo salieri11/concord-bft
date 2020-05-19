@@ -33,12 +33,14 @@ def retrieveCustomCmdlineData(pytestRequest):
     cmdlineArgsDict = json.loads(pytestRequest.config.getoption("--hermesCmdlineArgs"))
     cmdlineArgsObject = types.SimpleNamespace(**cmdlineArgsDict)
     userConfig = json.loads(pytestRequest.config.getoption("--hermesUserConfig"))
+    zoneConfig = json.loads(pytestRequest.config.getoption("--hermesZoneConfig"))
     logDir = pytestRequest.config.getoption("--hermesTestLogDir")
     supportBundleFile = pytestRequest.config.getoption("--supportBundleFile")
 
     return {
         "hermesCmdlineArgs": cmdlineArgsObject,
         "hermesUserConfig": userConfig,
+        "hermesZoneConfig": zoneConfig,
         "hermesTestLogDir": logDir,
         "supportBundleFile": supportBundleFile
     }
@@ -127,7 +129,8 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
          zoneIds.append(zone["id"])
    else:
       # Use the Helen API to add on prem zones.
-      zoneIds = conAdminRequest.addUserConfigZones(blockchainLocation)
+      onpremZones = hermesData["hermesZoneConfig"]["zones"][helper.LOCATION_ONPREM]
+      zoneIds = conAdminRequest.addUserConfigZones(onpremZones, blockchainLocation)
 
    log.info("Zone IDs: {}".format(zoneIds))
    if not zoneIds:
@@ -457,8 +460,8 @@ def fxProduct(request, fxHermesRunSettings):
          # Run migration generation script before starting the product
          log.info("Generating Helen DB migration")
          migrationFile = fxHermesRunSettings["hermesCmdlineArgs"].migrationFile
-         if migration.build_migrations(fxHermesRunSettings["hermesUserConfig"],
-                                    fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation, migrationFile):
+         if migration.build_migrations(fxHermesRunSettings["hermesZoneConfig"],
+                                       fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation, migrationFile):
             log.info("Helen DB migration generated successfully in {}".format(migrationFile))
 
          product = Product(fxHermesRunSettings["hermesCmdlineArgs"],

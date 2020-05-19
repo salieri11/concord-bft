@@ -66,7 +66,7 @@ def get_ledger_api_version(host):
 
    if not _ledger_api_version:
       log.debug("Getting ledger api version from '{}'".format(host))
-      user_config = util.json_helper.readJsonFile(helper.CONFIG_JSON)
+      user_config = util.json_helper.readJsonFile(helper.CONFIG_USER_FILE)
       username = user_config["persephoneTests"]["provisioningService"]["concordNode"]["username"]
       password = user_config["persephoneTests"]["provisioningService"]["concordNode"]["password"]
 

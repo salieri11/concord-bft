@@ -22,9 +22,9 @@ def _parse_arguments() -> Dict[str, Any]:
     """
     parser = argparse.ArgumentParser(description="Zones Migrations generator")
     parser.add_argument(
-        "--config",
-        default=helper.CONFIG_JSON,
-        help="Path of the user config json file"
+        "--zoneConfig",
+        default=helper.CONFIG_ZONE_FILE,
+        help="Path of the zo ne config json file"
     )
     parser.add_argument(
         "--blockchainLocation",
@@ -40,22 +40,22 @@ def _parse_arguments() -> Dict[str, Any]:
     return vars(parser.parse_args())
 
 
-def _build_migrations_standalone(user_config_file: str, zone_type: str, migration_file: str) -> None:
+def _build_migrations_standalone(zone_config_file: str, zone_type: str, migration_file: str) -> None:
     """
     Builds the db migrations from standalone invocation of this script
-    :param user_config_file: Path to the user_config.json file
+    :param zone_config_file: Path to the zone_config.json file
     :param zone_type: sddc or onprem
     :param migration_file: Migration file path
     :return: None
     """
-    user_config = helper.loadConfigFile(filepath=user_config_file)
-    build_migrations(user_config, zone_type, migration_file)
+    zone_config = helper.loadZoneConfig(filepath=zone_config_file)
+    build_migrations(zone_config, zone_type, migration_file)
 
 
-def build_migrations(user_config, zone_type, migration_file):
+def build_migrations(zone_config, zone_type, migration_file):
     """
     Internal build migrations code
-    :param user_config: Data from the user_config file, extracted as a dictionary
+    :param zone_config: Zones from the zone_config file, as a json object
     :param zone_type: sddc or onprem
     :param migration_file: Migration file path
     :return: True/False if migrations were applied or not
@@ -63,7 +63,7 @@ def build_migrations(user_config, zone_type, migration_file):
     if os.path.dirname(migration_file) != helper.MIGRATION_BASE_PATH:
         raise Exception("Migrations can only be created in {}".format(helper.MIGRATION_BASE_PATH))
 
-    zones = get_zones(user_config, zone_type)
+    zones = get_zones(zone_config, zone_type)
     if not zones:
         return False
 
@@ -73,20 +73,23 @@ def build_migrations(user_config, zone_type, migration_file):
     return True
 
 
-def get_zones(config, zone_type):
+def get_zones(zone_config, zone_type):
     """
     Given zone_type, gets zones from config
-    :param config: user config dictionary
-    :param zone_type:
+    :param zone_config: zone config object
+    :param zone_type: sddc or onprem
     :return: List of zones from the user config
     """
     zones = []
-    if zone_type.lower() == helper.LOCATION_SDDC:
-        zones = config["persephoneTests"]["provisioningService"]["zones"][helper.LOCATION_SDDC]
-    elif zone_type.lower() == helper.LOCATION_ONPREM:
-        zones = config["persephoneTests"]["provisioningService"]["zones"][helper.LOCATION_ONPREM]
-    else:
-        log.warning("Migrations are not performed for blockchain location: {}".format(zone_type))
+    try:
+        if zone_type.lower() == helper.LOCATION_SDDC:
+            zones = zone_config["zones"][helper.LOCATION_SDDC]
+        elif zone_type.lower() == helper.LOCATION_ONPREM:
+            zones = zone_config["zones"][helper.LOCATION_ONPREM]
+        else:
+            log.warning("Migrations are not performed for blockchain location: {}".format(zone_type))
+    except Exception as e:
+        log.warning("Exception while fetching zones: {}".format(e))
 
     return zones
 
@@ -333,7 +336,7 @@ def main():
     :return: None
     """
     args = _parse_arguments()
-    _build_migrations_standalone(args["config"], args["blockchainLocation"], args["migrationFile"])
+    _build_migrations_standalone(args["zoneConfig"], args["blockchainLocation"], args["migrationFile"])
 
 
 if __name__ == "__main__":

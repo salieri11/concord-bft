@@ -42,9 +42,11 @@ class PytestSuite(test_suite.TestSuite):
       # -m performance -m smoke will run all peformance tests and all smoke tests.
       cmdlineArgsJson = json.dumps(vars(self._args))
       userConfigJson = json.dumps(self._userConfig)
+      zoneConfigJson = json.dumps(self._zoneConfig)
       params = ["--capture=no", "--verbose", "--json", self._reportFile,
                 "--hermesCmdlineArgs", cmdlineArgsJson,
                 "--hermesUserConfig", userConfigJson,
+                "--hermesZoneConfig", zoneConfigJson,
                 "--hermesTestLogDir", self._testLogDir,
                 "--supportBundleFile", self._supportBundleFile,
                 "--log-cli-level", logging.getLevelName(log.level),

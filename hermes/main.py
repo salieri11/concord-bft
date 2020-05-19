@@ -109,6 +109,9 @@ def main():
                        "'--tests vmArithmeticTest/add0.json'")
    parser.add_argument("--config",
                        help="User config file to be considered.")
+   parser.add_argument("--zoneConfig",
+                       help="Zone config file to load zones from",
+                       default=helper.CONFIG_ZONE_FILE)
    parser.add_argument("--dockerComposeFile",
                        help="REQUIRES SUDO. Accepts a docker compose file " \
                        "which starts concord and helen.  The product will " \

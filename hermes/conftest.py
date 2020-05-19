@@ -25,6 +25,11 @@ def pytest_addoption(parser):
         default="",
         help="Hermes userConfig object stored as json. POPULATED BY HERMES.")
     parser.addoption(
+        "--hermesZoneConfig",
+        action="store",
+        default="",
+        help="Hermes zoneConfig object stored as json. POPULATED BY HERMES.")
+    parser.addoption(
         "--hermesTestLogDir",
         action="store",
         default="",
