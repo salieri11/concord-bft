@@ -2,12 +2,15 @@ package com.digitalasset.daml.on.vmware.execution.engine
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import com.codahale.metrics.Timer.Context
+import com.codahale.metrics.{Histogram, MetricRegistry, Timer}
 import com.daml.ledger.validator.privacy.{
   AccessControlList,
   LedgerStateOperationsWithAccessControl,
   PublicAccess,
   RestrictedAccess
 }
+import com.daml.metrics.MetricName
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Read, Write}
 import com.digitalasset.kvbc.daml_validator.{
   EventFromValidator,
@@ -20,30 +23,45 @@ import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-class ConcordLedgerStateOperations(sendEvent: EventFromValidator => Unit)(
-    implicit val executionContext: ExecutionContext)
+class ConcordLedgerStateOperations(
+    sendEvent: EventFromValidator => Unit,
+    metrics: ConcordLedgerStateOperations.Metrics)(implicit val executionContext: ExecutionContext)
     extends LedgerStateOperationsWithAccessControl {
   import ConcordLedgerStateOperations.accessControlListToThinReplicaIds
 
+  private[engine] case class PendingRead(promise: Promise[Seq[KeyValuePair]], timerContext: Context)
+
   private[engine] val nextReadTag = new AtomicInteger
-  private[engine] val readPromises = mutable.Map.empty[Int, Promise[Seq[KeyValuePair]]]
+  private[engine] val pendingReads = mutable.Map.empty[Int, PendingRead]
+  private[engine] val correlationId = new mutable.StringBuilder()
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
+  /**
+    * Updates the currently set correlation ID used for logging purposes.
+    * Not thread-safe.
+    * @param newCorrelationId correlation ID to set; None if no correlation ID should be logged
+    */
+  def updateCorrelationId(newCorrelationId: Option[String]): Unit = {
+    correlationId.clear()
+    newCorrelationId.map(correlationId.append)
+  }
+
   def handleReadResult(result: EventToValidator.ReadResult): Unit = {
     val readTag = result.tag.toInt
-    logger.trace(s"Handling read result for $readTag")
-
-    val promise =
+    logger.trace(s"Handling read result for readTag=$readTag correlationId=$correlationId")
+    val PendingRead(promise, timerContext) =
       this
         .synchronized {
-          readPromises.remove(readTag)
+          pendingReads.remove(readTag)
         }
         .getOrElse(
           sys.error(s"No read request for id $readTag!")
         )
+    timerContext.stop()
 
-    logger.trace(s"Completing promise with ${result.keyValuePairs.size} key-value pairs")
+    logger.trace(
+      s"Completing promise with ${result.keyValuePairs.size} key-value pairs, correlationId=$correlationId")
     promise.success(result.keyValuePairs)
   }
 
@@ -53,16 +71,14 @@ class ConcordLedgerStateOperations(sendEvent: EventFromValidator => Unit)(
     val promise = Promise[Seq[KeyValuePair]]()
     val readTag = nextReadTag.getAndIncrement()
     this.synchronized {
-      readPromises(readTag) = promise
+      pendingReads(readTag) = PendingRead(promise, metrics.readCompletionTime.time())
     }
-
     logger.trace(s"Sending read request: $readTag")
-
     sendEvent(EventFromValidator().withRead(Read(tag = readTag.toString, keys = keys)))
 
     promise.future
       .map { keyValuePairs =>
-        logger.trace(s"Key-value pairs received for $readTag")
+        logger.trace(s"Key-value pairs received for readTag=$readTag correlationId=$correlationId")
         val kvMap = keyValuePairs.map { pair =>
           pair.key -> pair.value
         }.toMap
@@ -85,7 +101,9 @@ class ConcordLedgerStateOperations(sendEvent: EventFromValidator => Unit)(
             accessControlListToThinReplicaIds(acl)
           )
       }
-    sendEvent(EventFromValidator().withWrite(Write(protectedKeyValuePairs)))
+    val writeSet = Write(protectedKeyValuePairs)
+    sendEvent(EventFromValidator().withWrite(writeSet))
+    metrics.bytesWritten.update(writeSet.serializedSize)
   }
 }
 
@@ -99,4 +117,11 @@ object ConcordLedgerStateOperations {
       case RestrictedAccess(participants) if participants.isEmpty => VisibleToThisReplicaOnly
       case RestrictedAccess(participants) => participants.map(x => x: String).toSeq.sorted
     }
+
+  private[engine] class Metrics(metricRegistry: MetricRegistry) {
+    val Prefix: MetricName = MetricName.DAML :+ "validator"
+
+    val readCompletionTime: Timer = metricRegistry.timer(Prefix :+ "key_read")
+    val bytesWritten: Histogram = metricRegistry.histogram(Prefix :+ "bytes_written")
+  }
 }

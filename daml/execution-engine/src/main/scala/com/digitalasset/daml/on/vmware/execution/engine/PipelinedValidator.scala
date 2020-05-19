@@ -17,6 +17,8 @@ import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
+import scala.util.Failure
+import scala.util.control.NonFatal
 
 /**
   * Orchestrates validation using pipelined state access.
@@ -31,20 +33,23 @@ class PipelinedValidator(
     validator: BatchValidator[Unit],
     readerCommitterFactory: (Long, LedgerStateOperationsWithAccessControl) => (
         DamlLedgerStateReader with QueryableReadSet,
-        CommitStrategy[Unit]))(
+        CommitStrategy[Unit]),
+    metricsForLedgerStateOperations: ConcordLedgerStateOperations.Metrics)(
     implicit materializer: Materializer,
     val executionContext: ExecutionContext) {
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   def validateSubmissions(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] = {
-    val ledgerStateOperations = new ConcordLedgerStateOperations(responseObserver.onNext)
+    val ledgerStateOperations =
+      new ConcordLedgerStateOperations(responseObserver.onNext, metricsForLedgerStateOperations)
     new StreamObserver[EventToValidator] {
       override def onNext(value: EventToValidator): Unit = {
         value.toValidator match {
           case EventToValidator.ToValidator.ValidateRequest(request) =>
             logger.trace(
-              s"Request received, correlationId=($request.correlationId} participantId=${request.participantId}")
+              s"Validation request received, replicaId=${request.replicaId} correlationId=${request.correlationId} participantId=${request.participantId}")
+            ledgerStateOperations.updateCorrelationId(Some(request.correlationId))
             val (recordingLedgerStateReader, commitStrategy) =
               readerCommitterFactory(request.replicaId, ledgerStateOperations)
             val recordTime = parseTimestamp(request.recordTime.get).toInstant
@@ -57,6 +62,14 @@ class PipelinedValidator(
                 recordingLedgerStateReader,
                 commitStrategy
               )
+              .andThen {
+                case Failure(NonFatal(exception)) =>
+                  responseObserver.onError(exception)
+                  logger.info(
+                    s"Batch validation failed, correlationId=${request.correlationId} " +
+                      s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
+                      s"exception=${exception.getLocalizedMessage}")
+              }
               .foreach { _ =>
                 logger.debug(s"Submission with correlationId=${request.correlationId} validated")
                 val sortedReadSet =
@@ -65,7 +78,9 @@ class PipelinedValidator(
                   EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
                 responseObserver.onCompleted()
                 logger.info(
-                  s"Batch validation completed, correlationId=${request.correlationId} participantId=${request.participantId} recordTime=${recordTime.toString}")
+                  s"Batch validation completed, correlationId=${request.correlationId} " +
+                    s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
+                    s"readSetSize=${sortedReadSet.size}")
               }
           case EventToValidator.ToValidator.ReadResult(result) =>
             ledgerStateOperations.handleReadResult(result)
@@ -76,10 +91,10 @@ class PipelinedValidator(
       }
 
       override def onError(t: Throwable): Unit =
-        logger.error(s"validate() aborted due to an error: $t")
+        logger.error(s"validateSubmissions() aborted due to an error: $t")
 
       override def onCompleted(): Unit =
-        logger.trace("validate() completed")
+        logger.trace("validateSubmissions() completed")
     }
   }
 

@@ -1,11 +1,14 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
+import com.codahale.metrics.MetricRegistry
+import com.daml.dec.DirectExecutionContext
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.daml.ledger.participant.state.kvutils.DamlKvutils
 import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.daml.ledger.validator.batch.BatchValidator
 import com.daml.ledger.validator.privacy.LedgerStateOperationsWithAccessControl
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, QueryableReadSet}
+import com.digitalasset.daml.on.vmware.execution.engine
 import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator, ValidateRequest}
 import com.google.protobuf.ByteString
@@ -47,22 +50,14 @@ class PipelinedValidatorSpec
         .thenReturn(Future.unit)
       val mockStreamObserver = mock[StreamObserver[EventFromValidator]]
 
-      implicit val executionContext: ExecutionContext = ExecutionContext.global
+      implicit val executionContext: ExecutionContext = DirectExecutionContext
       val instance =
         new PipelinedValidator(
           mockValidator,
-          (_, _) => (mockDamlLedgerStateReader, mock[CommitStrategy[Unit]]))
+          (_, _) => (mockDamlLedgerStateReader, mock[CommitStrategy[Unit]]),
+          createMetrics())
       val inputStream = instance.validateSubmissions(mockStreamObserver)
-      val validateRequest = EventToValidator().withValidateRequest(
-        ValidateRequest()
-          .withReplicaId(0)
-          .withSubmission(aSubmission)
-          .withParticipantId("aParticipantId")
-          .withRecordTime(Timestamp.of(12, 34))
-          .withCorrelationId("aCorrelationId"))
-      inputStream.onNext(validateRequest)
-      // Is there a more sane way to wait for the future in onNext to complete?!
-      Thread.sleep(100)
+      inputStream.onNext(aValidateRequest())
       inputStream.onCompleted()
 
       verify(mockQueryableReadSet, times(1)).getReadSet
@@ -83,16 +78,34 @@ class PipelinedValidatorSpec
       val instance =
         new PipelinedValidator(
           mockValidator,
-          (_, _) => (mockQueryableReadSet, mock[CommitStrategy[Unit]]))
+          (_, _) => (mockQueryableReadSet, mock[CommitStrategy[Unit]]),
+          createMetrics())
       val inputStream = instance.validateSubmissions(mockStreamObserver)
-      val validateRequest = EventToValidator().withValidateRequest(
-        ValidateRequest()
-          .withReplicaId(0)
-          .withSubmission(aSubmission)
-          .withParticipantId("aParticipantId")
-          .withCorrelationId("aCorrelationId"))
 
-      assertThrows[NoSuchElementException](inputStream.onNext(validateRequest))
+      assertThrows[NoSuchElementException](inputStream.onNext(aValidateRequest(recordTime = None)))
+    }
+
+    "report validation error via onError() callback" in {
+      val mockQueryableReadSet = mock[DamlLedgerStateReader with QueryableReadSet]
+      val mockValidator = mock[BatchValidator[Unit]]
+      when(mockValidator.validateAndCommit(any(), any(), any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.failed(new IllegalArgumentException("something is not right")))
+      val mockStreamObserver = mock[StreamObserver[EventFromValidator]]
+      implicit val executionContext: ExecutionContext = DirectExecutionContext
+      val instance =
+        new PipelinedValidator(
+          mockValidator,
+          (_, _) => (mockQueryableReadSet, mock[CommitStrategy[Unit]]),
+          createMetrics())
+
+      val inputStream = instance.validateSubmissions(mockStreamObserver)
+      inputStream.onNext(aValidateRequest())
+
+      verify(mockStreamObserver, times(1)).onError(any())
+      verify(mockValidator, times(1)).validateAndCommit(any(), any(), any(), any(), any(), any())(
+        any(),
+        any())
+      succeed
     }
   }
 
@@ -114,7 +127,25 @@ class PipelinedValidatorSpec
     }
   }
 
+  private def createMetrics(): ConcordLedgerStateOperations.Metrics =
+    new ConcordLedgerStateOperations.Metrics(new MetricRegistry)
+
   private def aSubmission: ByteString = ByteString.copyFromUtf8("a submission")
+
+  private def aValidateRequest(
+      recordTime: Option[Timestamp] = Some(Timestamp.of(12, 34))): EventToValidator = {
+    val validateRequest =
+      ValidateRequest()
+        .withReplicaId(0)
+        .withSubmission(aSubmission)
+        .withParticipantId("aParticipantId")
+        .withCorrelationId("aCorrelationId")
+    recordTime
+      .map { value =>
+        EventToValidator().withValidateRequest(validateRequest.withRecordTime(value))
+      }
+      .getOrElse(EventToValidator().withValidateRequest(validateRequest))
+  }
 
   private trait CacheFactoryFunction {
     def create(): StateCache

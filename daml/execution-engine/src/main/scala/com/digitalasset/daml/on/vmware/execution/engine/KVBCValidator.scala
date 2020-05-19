@@ -219,6 +219,9 @@ class KVBCValidator(metrics: Metrics)(implicit materializer: Materializer)
       }
     }
 
+  private val validatorExecutionContext: ExecutionContext =
+    ValidationServiceImpl.createInstrumentedExecutionContext(metrics.registry)
+
   private val readerCommitterFactoryFunction =
     PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
 
@@ -228,12 +231,13 @@ class KVBCValidator(metrics: Metrics)(implicit materializer: Materializer)
       keyValueCommitting,
       new ConflictDetection(metrics),
       metrics,
-      engine)
+      engine)(executionContext = validatorExecutionContext)
 
   private val pipelinedValidator = new PipelinedValidator(
     batchValidator,
-    readerCommitterFactoryFunction
-  )(materializer = materializer, executionContext = ExecutionContext.global)
+    readerCommitterFactoryFunction,
+    new ConcordLedgerStateOperations.Metrics(metrics.registry)
+  )(materializer = materializer, executionContext = validatorExecutionContext)
 
   override def validate(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
