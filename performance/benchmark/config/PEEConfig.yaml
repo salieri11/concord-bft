@@ -6,6 +6,24 @@ simpleConfig:
     - ip:
       port: 50051
       percentage: 100
+    - ip:
+      port: 50051
+      percentage: 0
+    - ip:
+      port: 50051
+      percentage: 0
+    - ip:
+      port: 50051
+      percentage: 0
+    - ip:
+      port: 50051
+      percentage: 0
+    - ip:
+      port: 50051
+      percentage: 0
+    - ip:
+      port: 50051
+      percentage: 0
   workloads:
     - dapp: PEE
       rateControl: 0 # Throttled RPS
