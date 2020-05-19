@@ -77,7 +77,7 @@ def copy_util(src, dest):
    try:
       if os.path.isfile(src):
          shutil.copy(src, dest)
-      else:
+      elif os.path.isdir(src):
          shutil.copytree(src, dest)
    except Exception as e:
       log.error("Failed to copy: {}".format(e))
