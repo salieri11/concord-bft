@@ -97,22 +97,27 @@ docker_build() {
 
     info "DOCKER_REPO_TAG: ${DOCKER_REPO_TAG}"
     info "PRODUCT_VERSION: ${PRODUCT_VERSION}"
-    
+
     if [ "${DOCKER_REPO_TAG}" == "${PRODUCT_VERSION}" ]
     then
       local BUILD_ARG_PARAM=""
+      local BUILD_LABEL_PARAM=""
       while [ "$1" != "" ] ; do
          case $1 in
             "--build-arg")
                shift
                BUILD_ARG_PARAM+=" --build-arg $1"
                ;;
+            "--label")
+               shift
+               BUILD_LABEL_PARAM+=" --label $1"
+               ;;
          esac
          shift
       done
 
       local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
-      docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+      docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} ${BUILD_LABEL_PARAM} > "${LOG_FILE}" 2>&1 &
       addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
     else
       # When a component in .env has a different tag than PRODUCT_VERSION,
@@ -249,7 +254,8 @@ hlf() {
 
 daml() {
     info "Build DAML..."
-    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
+    DAMLSDKVERSION=$(sed -n -e '/sdkVersion/ s/.*\= *//p' daml/build.sbt | tr -d '"')
+    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}" --label ${daml_sdk_label}=$DAMLSDKVERSION
     docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
     docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
 }
@@ -314,6 +320,7 @@ info "Loading repos/tags for docker images from docker/.env"
 . docker/.env
 version_label="com.vmware.blockchain.version"
 commit_label="com.vmware.blockchain.commit"
+daml_sdk_label="com.daml.sdkversion"
 
 verifyDocker
 
