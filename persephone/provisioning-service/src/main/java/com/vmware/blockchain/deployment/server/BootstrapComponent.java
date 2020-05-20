@@ -44,6 +44,9 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.password}")
     private String password;
 
+    @Value("${provisioning.features.generatedPassword.enabled}")
+    public boolean useGeneratedPassword;
+
     public Endpoint configService;
 
     public Endpoint configServiceRest;

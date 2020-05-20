@@ -1,5 +1,5 @@
 #!/bin/sh
-echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
+echo -e "{{vmPassword}}\n{{vmPassword}}" | /bin/passwd
 
 {{networkSetupCommand}}
 

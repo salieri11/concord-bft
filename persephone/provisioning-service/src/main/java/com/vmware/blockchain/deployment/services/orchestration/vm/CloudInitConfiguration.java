@@ -11,7 +11,10 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.util.Strings;
 
+import com.vmware.blockchain.deployment.server.BootstrapComponent;
+import com.vmware.blockchain.deployment.server.SpringContext;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -42,6 +45,7 @@ public class CloudInitConfiguration {
     private Endpoint configServiceEndpoint;
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
+    private String vmPassword;
 
     /**
      * Constructor.
@@ -70,6 +74,9 @@ public class CloudInitConfiguration {
         this.configServiceEndpoint = configServiceEndpoint;
         this.configServiceRestEndpoint = configServiceRestEndpoint;
         this.outboundProxy = outboundProxy;
+        BootstrapComponent bootstrapComponent = SpringContext.getAppContext().getBean(BootstrapComponent.class);
+        this.vmPassword = bootstrapComponent.useGeneratedPassword ? PasswordGeneratorUtil.generateCommonTextPassword()
+                                                                  : "c0nc0rd";
     }
 
     private String agentImageName() {
@@ -172,7 +179,8 @@ public class CloudInitConfiguration {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("user-data.txt");
             String content = new String(inputStream.readAllBytes());
 
-            content = content.replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
+            content = content.replace("{{vmPassword}}", this.vmPassword)
+                    .replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
                     .replace("{{agentImage}}",
                              URI.create(containerRegistry.getAddress()).getAuthority()
                              + "/" + agentImageName())
