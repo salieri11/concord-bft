@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
  * Utility class for generating the generic configurations irrespective node type.
@@ -30,7 +31,7 @@ public class GenericConfigUtil {
      * @param nodeProperties Map of node properties.
      * @return map of host ips vs configs.
      */
-    public Map<Integer, String> getGenericConfig(List<NodeProperty> nodeProperties) {
+    public Map<Integer, String> getGenericConfig(List<NodeProperty> nodeProperties, Properties properties) {
 
         Map<Integer, String> configMap = new HashMap<>();
 
@@ -50,13 +51,24 @@ public class GenericConfigUtil {
             }
         });
 
+        String blockchainId = properties.getValuesMap()
+                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), "");
+        String consortiumId = properties.getValuesMap().getOrDefault(
+                NodeProperty.Name.CONSORTIUM_ID.toString(), "");
+
         nodeIds.forEach((node, value) -> {
             StringBuilder builder = new StringBuilder();
             builder.append("NODE_UUID=")
                     .append(value)
                     .append("\n")
                     .append("CLIENT_GROUP_ID=")
-                    .append(clientGroupIds.getOrDefault(node, value));
+                    .append(clientGroupIds.getOrDefault(node, value))
+                    .append("\n")
+                    .append("BLOCKCHAIN_ID=")
+                    .append(blockchainId)
+                    .append("\n")
+                    .append("CONSORTIUM_ID=")
+                    .append(consortiumId);
             configMap.put(node, builder.toString());
         });
 

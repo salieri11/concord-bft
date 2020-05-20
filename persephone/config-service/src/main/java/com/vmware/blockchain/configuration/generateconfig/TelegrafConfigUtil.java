@@ -87,8 +87,11 @@ public class TelegrafConfigUtil {
             prometheusUrls = String.join(",", prometheusUrlList);
         }
 
-        content = content.replace("$BLOCKCHAIN_ID", properties.getValuesMap()
-                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
+        content = content
+                .replace("$BLOCKCHAIN_ID", properties.getValuesMap()
+                        .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
+                .replace("$CONSORTIUM_ID", properties.getValuesMap()
+                        .getOrDefault(NodeProperty.Name.CONSORTIUM_ID.toString(), ""))
                 .replace("$URL", "[" + prometheusUrls + "]");
 
         Map<Integer, String> nodeIps = new HashMap<>();

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
  * Test for GenericConfigUtil.
@@ -21,10 +22,19 @@ import com.vmware.blockchain.deployment.v1.NodeProperty;
 public class GenericConfigUtilTest {
 
     private GenericConfigUtil genericConfigUtil;
+    private Properties properties;
 
+    /**
+     * setup.
+     */
     @BeforeEach
     public void createObject() {
         this.genericConfigUtil = new GenericConfigUtil();
+        this.properties = Properties.newBuilder()
+                .putAllValues(Map.of(
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
+                        NodeProperty.Name.CONSORTIUM_ID.toString(), "testConsortium"))
+                .build();
     }
 
     @Test
@@ -49,12 +59,16 @@ public class GenericConfigUtilTest {
                         .putAllValue(clientMap).build());
 
         var expected = new HashMap<Integer, String>();
-        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=CLIENT-NODE0");
-        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=CLIENT-NODE0");
-        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=CLIENT-NODE1");
-        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=CLIENT-NODE1");
+        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=CLIENT-NODE0"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=CLIENT-NODE0"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=CLIENT-NODE1"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=CLIENT-NODE1"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
 
-        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
+        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);
         Assertions.assertThat(actual.equals(expected)).isTrue();
     }
 
@@ -71,12 +85,16 @@ public class GenericConfigUtilTest {
                         .putAllValue(nodeMap).build());
 
         var expected = new HashMap<Integer, String>();
-        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=TEST-NODE0");
-        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=TEST-NODE1");
-        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=TEST-NODE2");
-        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=TEST-NODE3");
+        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=TEST-NODE0"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=TEST-NODE1"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=TEST-NODE2"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
+        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=TEST-NODE3"
+                + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
 
-        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
+        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);
         Assertions.assertThat(actual.equals(expected)).isTrue();
     }
 
@@ -94,7 +112,7 @@ public class GenericConfigUtilTest {
                         .setName(NodeProperty.Name.CLIENT_GROUP_ID)
                         .putAllValue(clientMap).build());
 
-        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
+        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);
 
         Assertions.assertThat(actual.size() == 0).isTrue();
     }
@@ -107,7 +125,7 @@ public class GenericConfigUtilTest {
                         .setName(NodeProperty.Name.BLOCKCHAIN_ID)
                         .putAllValue(new HashMap<>()).build());
 
-        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
+        var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);
 
         Assertions.assertThat(actual.isEmpty()).isTrue();
     }
