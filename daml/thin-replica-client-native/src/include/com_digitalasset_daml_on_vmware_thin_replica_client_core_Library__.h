@@ -9,10 +9,10 @@ extern "C" {
 /*
  * Class:     com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    createTRC
- * Signature: (Ljava/lang/String;SLjava/lang/String;[Ljava/lang/String;)Z
+ * Signature: (Ljava/lang/String;SLjava/lang/String;[Ljava/lang/String;SSLjava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_createTRC
-  (JNIEnv *, jobject, jstring, jshort, jstring, jobjectArray, jstring);
+  (JNIEnv *, jobject, jstring, jshort, jstring, jobjectArray, jshort, jshort, jstring);
 
 /*
  * Class:     com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024

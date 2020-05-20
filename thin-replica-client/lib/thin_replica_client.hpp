@@ -47,6 +47,7 @@
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
 #include <prometheus/registry.h>
+#include <chrono>
 #include <condition_variable>
 #include <thread>
 
@@ -193,6 +194,10 @@ class ThinReplicaClient final {
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
 
+  // Timeouts for data and hash stream read requests
+  std::chrono::milliseconds timeout_read_data_stream_;
+  std::chrono::milliseconds timeout_read_hash_stream_;
+
   // Condition variable to notify if an active subscription can no longer
   // progress.
   std::shared_ptr<std::condition_variable> subscription_failure_condition_;
@@ -267,6 +272,7 @@ class ThinReplicaClient final {
 
   void ResetDataStreamTo(size_t server_idx);
   void StartHashStreamWith(size_t server_idx);
+  void CloseAllHashStreams();
 
   // Helper functions to ReceiveUpdates.
   void RecordCollectedHash(
@@ -330,6 +336,8 @@ class ThinReplicaClient final {
                     std::shared_ptr<UpdateQueue> update_queue,
                     uint16_t max_faulty, const std::string& private_key,
                     Iterator begin_servers, Iterator end_servers,
+                    const uint16_t max_read_data_timeout,
+                    const uint16_t max_read_hash_timeout,
                     const std::string& jaeger_agent)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
@@ -348,6 +356,8 @@ class ThinReplicaClient final {
         current_data_source_(0),
         subscription_hash_streams_(),
         sub_hash_contexts_(),
+        timeout_read_data_stream_(std::chrono::seconds(max_read_data_timeout)),
+        timeout_read_hash_stream_(std::chrono::seconds(max_read_hash_timeout)),
         exposer_("0.0.0.0:9891", "/metrics", 1),
         registry_(std::make_shared<prometheus::Registry>()),
         trc_requests_counters_total_(

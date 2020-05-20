@@ -22,7 +22,9 @@ final case class ExtraConfig(
     maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
     maxBatchWaitDuration: FiniteDuration, // Maximum duration we're willing to wait to fill a batch.
-    maxBatchConcurrentCommits: Int
+    maxBatchConcurrentCommits: Int,
+    maxTrcReadDataTimeout: Short,
+    maxTrcReadHashTimeout: Short,
 )
 
 object ExtraConfig {
@@ -41,6 +43,8 @@ object ExtraConfig {
     maxBatchSizeBytes = 4 * 1024 * 1024 /* 4MB */,
     maxBatchWaitDuration = 100.millis,
     maxBatchConcurrentCommits = 5,
+    maxTrcReadDataTimeout = 0,
+    maxTrcReadHashTimeout = 0,
   )
 
   def addCommandLineArguments(parser: OptionParser[Config[ExtraConfig]]): Unit = {
@@ -59,6 +63,9 @@ object ExtraConfig {
       .text(
         s"Max inbound message size in bytes. Defaults to ${Config.DefaultMaxInboundMessageSize}.")
 
+    //
+    // Thin replica client
+    //
     parser
       .opt[Seq[String]]("replicas")
       .optional()
@@ -77,6 +84,20 @@ object ExtraConfig {
       .action((maxFaultyReplicas, config) =>
         config.copy(extra = config.extra.copy(maxFaultyReplicas = maxFaultyReplicas.toShort)))
       .text("Maximum number of faulty replicas that thin replica client should tolerate.")
+    // format: off
+    parser
+      .opt[Int]("maxTrcReadDataTimeout")
+      .optional()
+      .action((maxTrcReadDataTimeout, config) =>
+        config.copy(extra = config.extra.copy(maxTrcReadDataTimeout = maxTrcReadDataTimeout.toShort)))
+      .text("Maximum time in seconds until the data read request gets cancelled.")
+    parser
+      .opt[Int]("maxTrcReadHashTimeout")
+      .optional()
+      .action((maxTrcReadHashTimeout, config) =>
+        config.copy(extra = config.extra.copy(maxTrcReadHashTimeout = maxTrcReadHashTimeout.toShort)))
+      .text("Maximum time in seconds until the hash read request gets cancelled.")
+    // format: on
     parser
       .opt[String]("jaeger-agent-address")
       .optional()
