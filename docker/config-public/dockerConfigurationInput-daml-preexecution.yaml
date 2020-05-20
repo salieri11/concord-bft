@@ -21,7 +21,7 @@ node__TEMPLATE:
   bft_client_timeout_ms: 20000
   jaeger_agent: jaeger-agent:6831
   prometheus_port: 9891
-  FEATURE_daml_pipelined_commits: false
+  FEATURE_daml_pipelined_commits: true
 node:
   - service_host: 0.0.0.0
     service_port: 5458

@@ -3293,7 +3293,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.declareParameter("FEATURE_daml_pipelined_commits",
                         "Enable support for pipelined commits, i.e., "
                         "interleaving read/writes by the submission validator.",
-                        "false");
+                        "true");
   node.tagParameter("FEATURE_daml_pipelined_commits", publicOptionalTags);
   node.addValidator("FEATURE_daml_pipelined_commits", validateBoolean, nullptr);
 
