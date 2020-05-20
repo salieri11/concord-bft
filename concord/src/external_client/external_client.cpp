@@ -25,19 +25,16 @@ using namespace config_pool;
 
 using namespace bft::communication;
 
-ConcordClient::ConcordClient(ConcordConfiguration const& config,
-                             int client_id) {
-  CreateClient(config, client_id);
+ConcordClient::ConcordClient(const ConcordConfiguration& config, int client_id,
+                             const ClientPoolConfig& pool_config) {
+  logger_ = log4cplus::Logger::getInstance("com.vmware.external_client_pool");
+  client_id_ = client_id;
+  CreateClient(config, pool_config);
 }
 
 ConcordClient::~ConcordClient() noexcept {
   try {
     comm_->Stop();
-  } catch (...) {
-  }
-
-  try {
-    client_->stop();
   } catch (...) {
   }
 }
@@ -47,34 +44,50 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
                                 std::chrono::milliseconds timeout_ms,
                                 std::uint32_t reply_size, void* out_reply,
                                 std::uint32_t* out_actual_reply_size,
+                                uint64_t seq_num,
                                 const std::string& correlation_id) {
-  const auto status = client_->invokeCommandSynch(
-      static_cast<const char*>(request), request_size, flags, timeout_ms,
-      reply_size, static_cast<char*>(out_reply), out_actual_reply_size,
-      correlation_id);
+  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
+                                  request_size, seq_num, timeout_ms.count(),
+                                  reply_size, static_cast<char*>(out_reply),
+                                  *out_actual_reply_size, correlation_id);
 
-  if (!status.isOK()) {
+  assert(res >= -2 && res < 1);
+
+  if (res != 0)
+    LOG4CPLUS_ERROR(logger_, "reqSeqNum=" << seq_num
+                                          << " cid=" << correlation_id
+                                          << " has failed to invoke");
+  if (res == -1)
     throw ClientRequestException{
-        status, "ConcordClient failed to send a synchronous request"};
-  }
+        concordUtils::Status::GeneralError("timeout"),
+        "ConcordClient failed to send a synchronous request"};
+  else if (res == -2)
+    throw ClientRequestException{
+        concordUtils::Status::InvalidArgument("small buffer"),
+        "ConcordClient failed to send a synchronous request"};
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
-                                     ConcordConfiguration const& config,
-                                     int num_replicas, int client_id) {
-  const auto nodes = config.subscope(PARTICIPANT_NODES, 0);
-  const auto node = nodes.subscope(PARTICIPANT_NODE, 0);
-  const auto external_clients_conf = node.subscope(EXTERNAL_CLIENTS, client_id);
-  const auto client_conf = external_clients_conf.subscope(CLIENT, 0);
-  comm_config.commType =
-      config.getValue<decltype(comm_config.commType)>(COMM_PROTOCOL);
+                                     const ConcordConfiguration& config,
+                                     int num_replicas,
+                                     ClientPoolConfig pool_config) {
+  const auto nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
+  const auto node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
+  const auto external_clients_conf =
+      node.subscope(pool_config.EXTERNAL_CLIENTS, client_id_);
+  const auto client_conf =
+      external_clients_conf.subscope(pool_config.CLIENT, 0);
+  comm_config.commType = config.getValue<decltype(comm_config.commType)>(
+      pool_config.COMM_PROTOCOL);
   comm_config.listenIp = "external_client";
   comm_config.listenPort =
-      client_conf.getValue<decltype(comm_config.listenPort)>(CLIENT_PORT);
+      client_conf.getValue<decltype(comm_config.listenPort)>(
+          pool_config.CLIENT_PORT);
   comm_config.bufferLength =
-      config.getValue<decltype(comm_config.bufferLength)>(COMM_BUFF_LEN);
+      config.getValue<decltype(comm_config.bufferLength)>(
+          pool_config.COMM_BUFF_LEN);
   comm_config.selfId =
-      client_conf.getValue<decltype(comm_config.selfId)>(CLIENT_ID);
+      client_conf.getValue<decltype(comm_config.selfId)>(pool_config.CLIENT_ID);
 
   if (comm_config.commType == "tcp" || comm_config.commType == "tls") {
     comm_config.maxServerId = num_replicas - 1;
@@ -83,49 +96,75 @@ void ConcordClient::CreateCommConfig(CommConfig& comm_config,
   if (comm_config.commType == "tls") {
     comm_config.certificatesRootPath =
         config.getValue<decltype(comm_config.certificatesRootPath)>(
-            CERT_FOLDER);
+            pool_config.CERT_FOLDER);
     comm_config.cipherSuite =
-        config.getValue<decltype(comm_config.cipherSuite)>(CERT_FOLDER);
+        config.getValue<decltype(comm_config.cipherSuite)>(
+            pool_config.CIPHER_SUITE);
   }
   comm_config.statusCallback = nullptr;
 }
 
-void ConcordClient::CreateClient(ConcordConfiguration const& config,
-                                 int client_id) {
-  const auto num_replicas = config.getValue<std::uint16_t>(NUM_REPLICAS);
+void ConcordClient::CreateClient(const ConcordConfiguration& config,
+                                 ClientPoolConfig pool_config) {
+  const auto num_replicas =
+      config.getValue<std::uint16_t>(pool_config.NUM_REPLICAS);
   ClientConfig client_config;
-  const auto nodes = config.subscope(PARTICIPANT_NODES, 0);
-  const auto node = nodes.subscope(PARTICIPANT_NODE, 0);
-  const auto external_clients_conf = node.subscope(EXTERNAL_CLIENTS, client_id);
-  const auto client_conf = external_clients_conf.subscope(CLIENT, 0);
-  client_config.fVal = config.getValue<decltype(client_config.fVal)>(F_VAL);
-  client_config.cVal = config.getValue<decltype(client_config.cVal)>(C_VAL);
+  const auto nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
+  const auto node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
+  const auto external_clients_conf =
+      node.subscope(pool_config.EXTERNAL_CLIENTS, client_id_);
+  const auto client_conf =
+      external_clients_conf.subscope(pool_config.CLIENT, 0);
+  client_config.fVal =
+      config.getValue<decltype(client_config.fVal)>(pool_config.F_VAL);
+  client_config.cVal =
+      config.getValue<decltype(client_config.cVal)>(pool_config.C_VAL);
   client_config.clientId =
-      client_conf.getValue<decltype(client_config.clientId)>(CLIENT_ID);
+      client_conf.getValue<decltype(client_config.clientId)>(
+          pool_config.CLIENT_ID);
   CommConfig comm_config;
-  CreateCommConfig(comm_config, config, num_replicas, client_id);
+  CreateCommConfig(comm_config, config, num_replicas, pool_config);
   for (auto i = 0u; i < num_replicas; ++i) {
-    const auto& node_conf = config.subscope(NODE_VAR, i);
-    const auto replica_conf = node_conf.subscope(REPLICA_VAR, 0);
+    const auto& node_conf = config.subscope(pool_config.NODE_VAR, i);
+    const auto replica_conf = node_conf.subscope(pool_config.REPLICA_VAR, 0);
     const auto replica_id =
-        replica_conf.getValue<decltype(comm_config.nodes)::key_type>(CLIENT_ID);
+        replica_conf.getValue<decltype(comm_config.nodes)::key_type>(
+            pool_config.CLIENT_ID);
     NodeInfo node_info;
-    node_info.host =
-        replica_conf.getValue<decltype(node_info.host)>(REPLICA_HOST);
-    node_info.port =
-        replica_conf.getValue<decltype(node_info.port)>(REPLICA_PORT);
+    node_info.host = replica_conf.getValue<decltype(node_info.host)>(
+        pool_config.REPLICA_HOST);
+    node_info.port = replica_conf.getValue<decltype(node_info.port)>(
+        pool_config.REPLICA_PORT);
     node_info.isReplica = true;
     comm_config.nodes[replica_id] = node_info;
   }
   // Ensure exception safety by creating local pointers and only moving to
   // object members if construction and startup haven't thrown.
-  auto comm = config_pool::ToCommunication(comm_config);
-  auto client = std::unique_ptr<IClient>{
-      concord::kvbc::createClient(client_config, comm.get())};
-  client->start();
+  LOG4CPLUS_DEBUG(
+      logger_, "Client_id=" << client_id_ << " Creating communication module");
+  auto comm = pool_config.ToCommunication(comm_config);
+  LOG4CPLUS_DEBUG(
+      logger_,
+      "Client_id="
+          << client_id_
+          << " starting communication and creating simple client instance");
   comm_ = std::move(comm);
+  comm_.get()->Start();
+  auto client = std::unique_ptr<bftEngine::SimpleClient>{
+      bftEngine::SimpleClient::createSimpleClient(
+          comm_.get(), client_config.clientId, client_config.fVal,
+          client_config.cVal)};
+  seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
+      createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);
+  LOG4CPLUS_INFO(logger_, "client_id=" << client_id_ << " creation succeeded");
 }
+int ConcordClient::getClientId() const { return client_id_; }
 
+uint64_t ConcordClient::getClientSeqNum() const { return seq_num_; }
+
+void ConcordClient::generateClientSeqNum() {
+  seq_num_ = seqGen_->generateUniqueSequenceNumberForRequest();
+}
 }  // namespace external_client
 }  // namespace concord

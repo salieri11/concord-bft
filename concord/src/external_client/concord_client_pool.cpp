@@ -31,16 +31,24 @@ SubmitResult ConcordClientPool::SendRequest(
     // start thread with client
     auto &client = clients_.front();
     clients_.pop();
+    client->generateClientSeqNum();
+    LOG4CPLUS_INFO(logger_, "client_id=" << client->getClientId()
+                                         << " allocated, insert reqSeqNum="
+                                         << client->getClientSeqNum()
+                                         << " with cid=" << correlation_id
+                                         << " to the job pool");
     std::unique_ptr<ConcordClientProcessingJob> job =
         std::make_unique<ConcordClientProcessingJob>(
             *this, move(client), request, request_size, flags, timeout_ms,
-            reply_size, out_reply, out_actual_reply_size, correlation_id);
+            reply_size, out_reply, out_actual_reply_size, correlation_id,
+            client->getClientSeqNum());
     this->requests_counter_.Increment();
     this->clients_gauge_.Increment();
     clients_lock.unlock();
     jobs_thread_pool_.add(job.get());
     return SubmitResult::Acknowledged;
   }
+  LOG4CPLUS_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
   return SubmitResult::Overloaded;
 }
 
@@ -55,23 +63,11 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                 .Help("counts used clients")
                                 .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "updates"}})),
-      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})) {
+      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})),
+      logger_(
+          log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
-  concord::config_pool::ParseConfig(config_stream, config);
-  std::string bind_port = ":" + config.getValue<std::string>("prometheus_port");
-  std::string bind_address =
-      config.subscope(PARTICIPANT_NODES, 0)
-          .subscope(PARTICIPANT_NODE, 0)
-          .getValue<std::string>("participant_node_host") +
-      bind_port;
-  exposer_ = std::make_shared<prometheus::Exposer>(bind_address, "/metrics", 1);
-  exposer_->RegisterCollectable(registry_);
-  uint16_t num_clients = config.getValue<std::uint16_t>(NUM_EXTERNAL_CLIENTS);
-  for (int i = 0; i < num_clients; i++) {
-    auto client = std::make_shared<external_client::ConcordClient>(config, i);
-    clients_.push(std::move(client));
-  }
-  jobs_thread_pool_.start(num_clients);
+  CreatePool(config_stream, config);
 }
 
 ConcordClientPool::ConcordClientPool(std::string config_file_path)
@@ -85,26 +81,65 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                 .Help("counts used clients")
                                 .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "updates"}})),
-      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})) {
+      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})),
+      logger_(
+          log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   std::ifstream config_file;
   config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
   config_file.open(config_file_path.data());
   ConcordConfiguration config;
-  concord::config_pool::ParseConfig(config_file, config);
-  std::string bind_port = ":" + config.getValue<std::string>("prometheus_port");
+  try {
+    CreatePool(config_file, config);
+  } catch (config::ConfigurationResourceNotFoundException e) {
+    LOG4CPLUS_ERROR(logger_, "Could not parse the configuration file at path="
+                                 << config_file_path);
+    throw InternalError;
+  } catch (std::invalid_argument &e) {
+    LOG4CPLUS_ERROR(
+        logger_, "Communication module="
+                     << config.getValue<std::string>(
+                            config_pool::ClientPoolConfig().COMM_PROTOCOL)
+                     << " on file=" << config_file_path << " is not supported");
+    throw InternalError;
+  }
+}
+
+void ConcordClientPool::CreatePool(std::istream &config_stream,
+                                   ConcordConfiguration &config) {
+  auto pool_config = std::make_unique<config_pool::ClientPoolConfig>();
+  Config_Initialize(config, *pool_config.get(), config_stream);
+  Prometheus_Initialize(config, *pool_config.get());
+  uint16_t num_clients =
+      config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
+  LOG4CPLUS_INFO(logger_, "Creating pool of num_clients=" << num_clients);
+  for (int i = 0; i < num_clients; i++) {
+    LOG4CPLUS_DEBUG(logger_, "Creating client_id=" << i);
+    clients_.push(std::make_shared<external_client::ConcordClient>(
+        config, i, *pool_config.get()));
+  }
+  jobs_thread_pool_.start(num_clients);
+}
+
+void ConcordClientPool::Prometheus_Initialize(
+    const config::ConcordConfiguration &config,
+    const config_pool::ClientPoolConfig &pool_config) {
+  std::string bind_port =
+      ":" + config.getValue<std::string>(pool_config.PROMETHEUS_PORT);
   std::string bind_address =
-      config.subscope(PARTICIPANT_NODES, 0)
-          .subscope(PARTICIPANT_NODE, 0)
-          .getValue<std::string>("participant_node_host") +
+      config.subscope(pool_config.PARTICIPANT_NODES, 0)
+          .subscope(pool_config.PARTICIPANT_NODE, 0)
+          .getValue<std::string>(pool_config.PROMETHEUS_HOST) +
       bind_port;
   exposer_ = std::make_shared<prometheus::Exposer>(bind_address, "/metrics", 1);
   exposer_->RegisterCollectable(registry_);
-  uint16_t num_clients = config.getValue<std::uint16_t>(NUM_EXTERNAL_CLIENTS);
-  for (int i = 0; i < num_clients; i++) {
-    auto client = std::make_shared<external_client::ConcordClient>(config, i);
-    clients_.push(std::move(client));
-  }
-  jobs_thread_pool_.start(num_clients);
+  LOG4CPLUS_INFO(logger_, "BFT-Client pool metrics will expose to "
+                              << bind_address << "/metrics");
+}
+
+void ConcordClientPool::Config_Initialize(config::ConcordConfiguration &config,
+                                          ClientPoolConfig &pool_config,
+                                          std::istream &config_stream) {
+  pool_config.ParseConfig(config_stream, config);
 }
 
 ConcordClientPool::~ConcordClientPool() {
@@ -113,17 +148,28 @@ ConcordClientPool::~ConcordClientPool() {
   while (!clients_.empty()) {
     clients_.pop();
   }
+  LOG4CPLUS_INFO(logger_, "Clients cleanup complete");
 }
 
 void ConcordClientProcessingJob::execute() {
-  processing_client_->SendRequest(request_, request_size_, flags_, timeout_ms_,
-                                  reply_size_, out_reply_,
-                                  out_actual_reply_size_, correlation_id_);
-  clients_pool_.InsertClientToQueue(processing_client_);
+  try {
+    processing_client_->SendRequest(
+        request_, request_size_, flags_, timeout_ms_, reply_size_, out_reply_,
+        out_actual_reply_size_, seq_num_, correlation_id_);
+  } catch (external_client::ClientRequestException &e) {
+    throw InternalError;
+  }
+  clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
+                                    correlation_id_);
 }
 
 void ConcordClientPool::InsertClientToQueue(
-    std::shared_ptr<concord::external_client::ConcordClient> &client) {
+    std::shared_ptr<concord::external_client::ConcordClient> &client,
+    const uint64_t seq_num, const std::string &correlation_id) {
+  LOG4CPLUS_INFO(logger_,
+                 "reqSeqNum=" << seq_num << "with cid=" << correlation_id
+                              << "has ended.returns client_id="
+                              << client->getClientId() << " to the pool");
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   clients_.push(client);
   clients_gauge_.Decrement();
