@@ -32,7 +32,7 @@ def slackUpload(args, options, secret):
 
 def slackReportMonitoring(args, options, secret):
   a = prepareArgs(args)
-  slack.reportMonitoring(message=a[0])
+  slack.reportMonitoring(target=a[0], message=a[1])
 
 def emailSend(args, options, secret):
   a = prepareArgs(args)
@@ -81,22 +81,14 @@ def publishRunsMR(args, options, secret):
   a = prepareArgs(args)
   jenkins.publishRunsMR(limit=a[0], startFromBuildNumber=a[1])
 
-
-def slackReportMonitoring(args, options, secret):
-  a = prepareArgs(args)
-  slack.reportMonitoring(message=a[0], target=a[1])
-
-
 def printLongRunningTestDashboardLink(args, options, secret):
   a = prepareArgs(args)
   link = helper.longRunningTestDashboardLink()
   log.info(link)
 
-
 def ownAllJenkinsNodesWorkspace(args, options, secret):
   a = prepareArgs(args)
   jenkins.ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True)
-
 
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
