@@ -36,7 +36,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.concord.agent.services.configservice.ConfigServiceInvoker;
 import com.vmware.concord.agent.services.configuration.BaseContainerSpec;
 import com.vmware.concord.agent.services.configuration.DamlCommitterConfig;
-import com.vmware.concord.agent.services.configuration.DamlConfig;
 import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.concord.agent.services.configuration.EthereumConfig;
 import com.vmware.concord.agent.services.configuration.HlfConfig;
@@ -217,8 +216,7 @@ public final class AgentDockerClient {
                         containerSpec = DamlParticipantConfig.valueOf(component.getServiceType().name());
                         break;
                     default:
-                        containerSpec = DamlConfig.valueOf(component.getServiceType().name());
-                        break;
+                        throw new RuntimeException("DAML Node type not provided.");
                 }
                 break;
             case HLF:
@@ -358,7 +356,6 @@ public final class AgentDockerClient {
         }
 
         if (containerParam == DamlCommitterConfig.DAML_CONCORD
-            || containerParam == DamlConfig.DAML_CONCORD
             || containerParam == EthereumConfig.CONCORD) {
             // TODO Evaluate this with security.
             log.warn("Setting privilege mode");

@@ -44,7 +44,7 @@ def parse_arguments() -> Dict[str, Any]:
     )
     parser.add_argument(
         "--node-type",
-        default="NONE",
+        default="DAML_COMMITTER",
         choices=["DAML_COMMITTER", "DAML_PARTICIPANT"],
         help="Type of node"
     )
@@ -170,55 +170,6 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.LOGGING,
                     name="vmwblockchain/fluentd:latest"
-                )
-            ]
-        else:
-            # DAML works of custom images until code it rolled out.
-            return [
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.DAML_CONCORD,
-                    name="vmwblockchain/concord-core:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
-                    name="vmwblockchain/daml-execution-engine:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
-                    name="vmwblockchain/daml-index-db:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
-                    name="vmwblockchain/daml-ledger-api:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.GENERIC,
-                    name="vmwblockchain/agent:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.LOGGING,
-                    name="vmwblockchain/fluentd:latest"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                    name="vmwblockchain/wavefront-proxy:6.1"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.JAEGER_AGENT,
-                    name="vmwblockchain/jaeger-agent:1.17"
-                ),
-                concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                    service_type=concord_model.ConcordComponent.TELEGRAF,
-                    name="vmwblockchain/telegraf:1.14.0"
                 )
             ]
     elif blockchain_type == "HLF":

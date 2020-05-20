@@ -24,15 +24,13 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
 
     DAML_INDEX_DB("daml_index_db", List.of(
             new PortBinding(Ports.Binding.bindPort(5432), ExposedPort.tcp(5432))),
-                  List.of(Bind.parse("/config/daml_index_db/daml_index_db:/var/lib/postgresql/data")),
-                  null, null),
+                  List.of(Bind.parse("/config/daml-index-db/db:/var/lib/postgresql/data")),
+                  null),
 
     DAML_LEDGER_API("daml_ledger_api", List.of(
             new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
-                    List.of(new Link("daml_index_db", "daml_index_db")),
-                    null);
+                    List.of(new Link("daml_index_db", "daml_index_db")));
 
-    //TODO Inject Concord IP
 
     @Setter
     private String imageId;
@@ -42,17 +40,13 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
     private List<Bind> volumeBindings;
     private List<Link> links;
     private int ordinal;
-    @Setter
-    private List<String> environment;
 
     DamlParticipantConfig(String containerName,
-                          List<PortBinding> portBindings, List<Bind> volumeBindings,
-                          List<Link> links, List<String> environment) {
+                          List<PortBinding> portBindings, List<Bind> volumeBindings, List<Link> links) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;
         this.links = links;
-        this.environment = environment;
         this.ordinal = 1;
     }
 
