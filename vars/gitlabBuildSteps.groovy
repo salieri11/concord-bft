@@ -813,6 +813,7 @@ def call(){
                       selectOnlySuites(["UiDAMLDeploy", "UiTests"])
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+                      if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       try {
                         env.blockchain_location = "sddc"
                         testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
@@ -822,11 +823,10 @@ def call(){
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
-                        env.fixture_setup_message = "<RUN> has failed to deploy blockchain fixture to SDDC.\n" + env.BUILD_URL + "console"
-                        sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${fixture_setup_message}" "${monitoring_notify_target}"'''
+                        env.fixture_setup_message = "Long-running test has failed to deploy blockchain fixture to SDDC.\n" + env.BUILD_URL + "console"
+                        sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${monitoring_notify_target}" "${fixture_setup_message}"'''
                         throw ex
                       }
-                      if (params.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."

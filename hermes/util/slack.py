@@ -115,8 +115,8 @@ def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
 
 
 
-def reportMonitoring(message="", ts=None, msgType=None, 
-                      target=None, jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
+def reportMonitoring(target=None, message="", ts=None, msgType=None, 
+                     jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
   '''
     Slack notify monitoring progresss (start, interval, end)
     using notification target specified in user_config.json
@@ -149,9 +149,9 @@ def reportMonitoring(message="", ts=None, msgType=None,
       return postMessageOnChannel(channelNameOrEmail, message, ts=ts)
 
 
-def reportMonitoringIfTarget(message="", ts=None, msgType=None,
-                            target=None, jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
+def reportMonitoringIfTarget(target=None, message="", ts=None, msgType=None,
+                              jobNameShort=None, replicasPath=helper.REPLICAS_JSON_PATH):
   if not target: return None
-  else: return reportMonitoring(message, ts, msgType, target, jobNameShort, replicasPath)
+  else: return reportMonitoring(target, message, ts, msgType, jobNameShort, replicasPath)
 
 

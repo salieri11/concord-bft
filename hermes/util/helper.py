@@ -760,8 +760,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    slackThread = None
    # shared snippet of replicas.json
    slack.reportMonitoringIfTarget(
-     msgType="kickOff", replicasPath=replica_config,
-     target=notify_target, jobNameShort=notify_job)
+     target=notify_target, msgType="kickOff",
+     replicasPath=replica_config, jobNameShort=notify_job)
    initialStats = get_replicas_stats(all_replicas_and_type)
    # first message that will be the main thread
    if notify_job:
@@ -772,14 +772,16 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
      firstMessageText = "<RUN> has {} hour remaining. Status:\n{}".format(
        remaining_time, "\n".join(initialStats["message_format"]))
    firstMessage = slack.reportMonitoringIfTarget(
-     firstMessageText,
-     target=notify_target, jobNameShort=notify_job
+     target=notify_target,
+     message=firstMessageText,
+     jobNameShort=notify_job
    )
    slackThread = firstMessage['ts'] if firstMessage else None
    slack.reportMonitoringIfTarget( # output link to Wavefront dashboard
+     target=notify_target, 
      message = dashboardLink,
      ts = slackThread,
-     target=notify_target, jobNameShort=notify_job
+     jobNameShort=notify_job
    )
 
    tests = get_long_running_tests(all_replicas_and_type, test_list_json_file, testset)
@@ -833,8 +835,10 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
         midRunMessage =  "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
                             remaining_time, duration, "\n".join(stats["message_format"]))
         slack.reportMonitoringIfTarget(
-          midRunMessage, 
-          ts=slackThread, target=notify_target, jobNameShort=notify_job
+          target=notify_target,
+          message=midRunMessage,
+          ts=slackThread,
+          jobNameShort=notify_job
         ) # Add to reply thread instead of channel
         slack_last_reported = time.time()
               
@@ -844,7 +848,10 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
          endingMessage = "<RUN> has failed after {} hours ({} had remained)\n\nConsole: {}\n\nWavefront: {}".format(
              duration, remaining_time, consoleURL, dashboardLink
          )
-         slack.reportMonitoringIfTarget(endingMessage, target=notify_target, jobNameShort=notify_job)
+         slack.reportMonitoringIfTarget(
+           target=notify_target,
+           message=endingMessage,
+           jobNameShort=notify_job)
          return False
 
       log.info("")
@@ -859,15 +866,16 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       duration = str(int((time.time() - start_time) / 3600))
       remaining_time = str(int((end_time - time.time()) / 3600))
       slack.reportMonitoringIfTarget(
-        "<RUN> has failed after {} hours ({} had remained)".format(duration, remaining_time),
-        target=notify_target, jobNameShort=notify_job
+        target=notify_target,
+        message="<RUN> has failed after {} hours ({} had remained)".format(duration, remaining_time),
+        jobNameShort=notify_job
       )
       return False
 
    successEndingMessage = "<RUN> successfully passed. (total {} hours)\n\nConsole: {}\n\nWavefront: {}".format(
      run_duration, consoleURL, dashboardLink
    )
-   slack.reportMonitoringIfTarget(successEndingMessage, target=notify_target, jobNameShort=notify_job)
+   slack.reportMonitoringIfTarget(target=notify_target, message=successEndingMessage, jobNameShort=notify_job)
    return True
 
 
