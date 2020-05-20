@@ -10,9 +10,9 @@ FROM athena-docker-local.artifactory.eng.vmware.com/fabric-tools:${base_tag}
 
 #assuming local structure from  vmwathena_blockchain git repo  
 
-COPY ./docker/hlf/crypto-config /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-COPY ./docker/hlf/configtx-peer1/ /etc/hyperledger/configtx
-COPY ./docker/hlf/scripts/initialize_channel.sh /opt/gopath/src/github.com/hyperledger/fabric/peer/
+COPY ./crypto-config /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+COPY ./configtx-peer1/ /etc/hyperledger/configtx
+COPY ./scripts/initialize_channel.sh /opt/gopath/src/github.com/hyperledger/fabric/peer/
 
 ENV GOPATH=/opt/gopath
 ENV CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
