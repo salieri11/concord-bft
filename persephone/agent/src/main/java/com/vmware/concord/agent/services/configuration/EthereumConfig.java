@@ -39,7 +39,8 @@ public enum EthereumConfig implements BaseContainerSpec {
     private List<Bind> volumeBindings;
     private List<Link> links;
     private int ordinal;
-    @Setter
+
+    // TODO Move this to Config Service
     private List<String> environment;
 
     EthereumConfig(String containerName,
@@ -53,4 +54,7 @@ public enum EthereumConfig implements BaseContainerSpec {
         this.ordinal = 1;
     }
 
+    public List<String> getEnvironment() {
+        return environment;
+    }
 }

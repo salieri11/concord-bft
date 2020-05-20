@@ -24,10 +24,10 @@ public enum DamlCommitterConfig implements BaseContainerSpec {
 
     DAML_EXECUTION_ENGINE("daml_execution_engine", List.of(
             new PortBinding(Ports.Binding.bindPort(55000), ExposedPort.tcp(55000))), null,
-                          null, null),
+                          null),
     DAML_CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
-            ConcordHelper.getDefaultVolBinds(),
-            List.of(new Link("daml_execution_engine", "daml_execution_engine")), null);
+                 ConcordHelper.getDefaultVolBinds(),
+            List.of(new Link("daml_execution_engine", "daml_execution_engine")));
 
     @Setter
     private String imageId;
@@ -38,17 +38,13 @@ public enum DamlCommitterConfig implements BaseContainerSpec {
     private List<Link> links;
     private int ordinal;
 
-    @Setter
-    private List<String> environment;
-
     DamlCommitterConfig(String containerName,
                         List<PortBinding> portBindings, List<Bind> volumeBindings,
-                        List<Link> links, List<String> environment) {
+                        List<Link> links) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;
         this.links = links;
-        this.environment = environment;
         this.ordinal = 1;
     }
 

@@ -31,9 +31,7 @@ public interface BaseContainerSpec {
     List<Link> getLinks();
 
     @Deprecated
-    List<String> getEnvironment();
-
-    @Deprecated
-    void setEnvironment(List<String> environment);
-
+    default List<String> getEnvironment() {
+        return null;
+    }
 }
