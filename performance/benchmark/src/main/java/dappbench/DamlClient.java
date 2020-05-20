@@ -43,6 +43,7 @@ public class DamlClient extends WorkloadClient {
     /**
      * Connects to the ledger and runs initial validation.
      */
+    @Override
     public void init() {
         client = DamlLedgerClient.newBuilder(getHost(), getPort()).build();
         client.connect();

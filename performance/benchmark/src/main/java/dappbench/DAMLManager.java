@@ -43,9 +43,7 @@ public class DAMLManager extends WorkloadManager {
 
     @Override
     protected WorkloadClient createClient(String host, int port) {
-        DamlClient client = new DamlClient(host, port, party, noOfCommandsPerTransaction, logging);
-        client.init();
-        return client;
+        return new DamlClient(host, port, party, noOfCommandsPerTransaction, logging);
     }
 
 

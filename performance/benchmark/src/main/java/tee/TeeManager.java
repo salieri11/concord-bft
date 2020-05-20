@@ -73,8 +73,6 @@ public class TeeManager extends WorkloadManager {
 
     @Override
     protected WorkloadClient createClient(String host, int port) {
-        TeeClient client = new TeeClient(host, port, opType, sizeOfRequest);
-        client.init();
-        return client;
+        return new TeeClient(host, port, opType, sizeOfRequest);
     }
 }

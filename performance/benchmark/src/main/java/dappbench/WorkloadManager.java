@@ -163,6 +163,8 @@ public abstract class WorkloadManager {
         await(countDownLatch);
         progressBar.close();
 
+        clients.forEach(WorkloadClient::cleanup);
+
         Duration testTime = Duration.ofNanos(nanoTime() - startTimeNanos);
         workloadStats = createStats(testTime, totalResponseTimeMillis.longValue(), clients);
         summarize(workloadStats);
@@ -207,6 +209,7 @@ public abstract class WorkloadManager {
             }
             logger.info("{} - Load share: {}%", node, node.getPercentage());
             WorkloadClient client = createClient(node.getIp(), node.getPort());
+            client.init();
 
             long requestCountForNode = round(numOfRequests * ((double) node.getPercentage() / 100));
             clientToRequestCount.put(client, requestCountForNode);

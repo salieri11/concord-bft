@@ -76,10 +76,21 @@ public abstract class WorkloadClient {
     }
 
     /**
+     * Pre-execution initialization
+     */
+    protected abstract void init();
+
+    /**
      * Workload specific execution.
      * Implementation should report gPPC status code wrapped in RuntimeException.
      */
     protected abstract void doExecute();
+
+
+    /**
+     * Post-execution cleanup.
+     */
+    protected void cleanup() {}
 
     /**
      * No. of requests grouped by status
