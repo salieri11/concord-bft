@@ -63,19 +63,20 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
       createThinReplicaClient(participantConfig.participantId, config.extra, metrics.registry)
-    val concordClient = createConcordClient(config.extra)
-    waitForConcordToBeReady(concordClient)
+    val concordClients = createConcordClients(config.extra)
+    waitForConcordToBeReady(concordClients, config.extra.maxFaultyReplicas)
     val ledgerId =
       config.ledgerId.getOrElse(Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       ledgerId,
-      () => concordClient.currentHealth)
+      () => concordClients.head.currentHealth)
+    logger.info(s"Connecting to the first core replica ${config.extra.replicas.head}")
     val concordWriter = new ConcordLedgerWriter(
       ledgerId,
       participantConfig.participantId,
-      concordClient.commitTransaction,
-      () => concordClient.currentHealth)
+      concordClients.head.commitTransaction,
+      () => concordClients.head.currentHealth)
 
     lazy val batchingWriter =
       new BatchingLedgerWriter(
@@ -124,12 +125,13 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
 
   private[this] val DefaultReplicaPort = 50051
 
-  private[this] def createConcordClient(config: ExtraConfig)(
-      implicit executionContext: ExecutionContext): KVBCClient = {
+  private[this] def createConcordClients(config: ExtraConfig)(
+      implicit executionContext: ExecutionContext): Seq[KVBCClient] = {
     assert(config.replicas.nonEmpty)
-    val (host, port) = parseHostAndPort(config.replicas.head)
-    logger.info(s"Connecting to the first core replica ${config.replicas.head}")
-    KVBCClient(host, port)
+    config.replicas.map(replica => {
+      val (host, port) = parseHostAndPort(replica)
+      KVBCClient(host, port)
+    })
   }
 
   private[this] def createThinReplicaClient(
@@ -152,12 +154,21 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     // format: on
   }
 
-  private[this] def waitForConcordToBeReady(client: KVBCClient): Unit = {
-    // Make sure the server is ready to receive requests.
-    while (client.channel.getState(true) != ConnectivityState.READY) {
-      logger.info("Waiting for Concord to be ready")
+  private[this] def waitForConcordToBeReady(clients: Seq[KVBCClient], f: Int): Unit = {
+    // The first client is used to send requests to and therefore we need a working connection.
+    while (clients.head.channel.getState(true) != ConnectivityState.READY) {
+      logger.info("Waiting for first Concord to be ready")
       Thread.sleep(1000)
     }
+    var numReady = 0
+    logger.info("Waiting for 2*f other Concords to be ready")
+    do {
+      clients.tail.foreach(client =>
+        if (client.channel.getState(true) == ConnectivityState.READY) {
+          numReady += 1
+      })
+      if (numReady < (2 * f)) Thread.sleep(1000)
+    } while (numReady < (2 * f))
   }
 
   private[this] def parseHostAndPort(input: String): (String, Int) = {
