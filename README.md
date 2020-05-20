@@ -205,7 +205,7 @@ run from the same directory as this README, and not from
 `docker/fluentd`:
 
 ```
-blockchain$ docker build docker/fluentd -f docker/fluentd/Dockerfile -t fluentd:latest
+blockchain$ docker build persephone/fluentd -f persephone/fluentd/Dockerfile -t fluentd:latest
 ```
 
 ### Building Agent via Docker

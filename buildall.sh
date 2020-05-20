@@ -180,7 +180,7 @@ ui() {
 
 fluentd() {
     info "Build fluentd..."
-    docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
+    docker_build persephone/fluentd persephone/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
 }
 
 ethereum() {
@@ -242,9 +242,9 @@ hlf_submodules() {
 
 hlf() {
     info "hlf..."
-    docker_build . docker/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
-    docker_build . docker/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
-    docker_build . docker/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
+    docker_build . hlf/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
+    docker_build . hlf/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
+    docker_build . hlf/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
 }
 
 daml() {
@@ -333,16 +333,15 @@ then
 
     memleak_concord # concord should be built as a pre-req
     persephone
-    hlf_submodules
+
     daml
     trc-test-app
     waitForProcesses
 
-    cockroachDB # Do we still need this?
     reverse-proxy
     asset-transfer
     contract-compiler
-    hlf
+
     BuildPersephoneGRPCpyBindings
     BuildSupplyChain
     PerformanceTests

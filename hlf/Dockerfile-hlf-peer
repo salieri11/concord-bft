@@ -5,9 +5,9 @@ FROM athena-docker-local.artifactory.eng.vmware.com/fabric-peer:${base_tag}
 # HLF_HARDCODED_CONFIG
 
 #assuming local structure from  vmwathena_blockchain git repo  
-COPY ./docker/hlf/configtx-peer1/ /etc/hyperledger/configtx
-COPY ./docker/hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp /etc/hyperledger/msp/peer 
-COPY ./docker/hlf/crypto-config/peerOrganizations/org1.example.com/users /etc/hyperledger/msp/users
+COPY ./configtx-peer1/ /etc/hyperledger/configtx
+COPY ./crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp /etc/hyperledger/msp/peer
+COPY ./crypto-config/peerOrganizations/org1.example.com/users /etc/hyperledger/msp/users
 
 #only used for channel 
 EXPOSE 7051

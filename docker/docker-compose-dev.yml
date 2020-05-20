@@ -148,7 +148,7 @@ services:
 
   fluentd:
     build:
-      context: fluentd
+      context: persephone/fluentd
     image: "${fluentd_repo}:${fluentd_tag}"
     container_name: fluentd
     ports:
