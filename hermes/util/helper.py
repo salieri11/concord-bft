@@ -426,15 +426,16 @@ def execute_ext_command(command, display_output_on_success=True):
    log.debug("Executing external command: {}".format(command))
 
    completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT)
+                                     stderr=subprocess.STDOUT,
+                                     universal_newlines=True)
    try:
       completedProcess.check_returncode()
 
       if display_output_on_success:
          log.debug("stdout: {}".format(
-            completedProcess.stdout.decode().replace(os.linesep, "")))
+            completedProcess.stdout))
          if completedProcess.stderr:
-            log.info("stderr: {}".format(completedProcess.stderr.decode()))
+            log.info("stderr: {}".format(completedProcess.stderr))
    except subprocess.CalledProcessError as e:
       log.error(
          "Command '{}' failed to execute: {}".format(command, e.returncode))
@@ -442,7 +443,7 @@ def execute_ext_command(command, display_output_on_success=True):
                                                     completedProcess.stderr))
       return False, completedProcess.stderr
 
-   return True, completedProcess.stdout.decode().split("\n")
+   return True, completedProcess.stdout
 
 
 def protobuf_message_to_json(message_obj):

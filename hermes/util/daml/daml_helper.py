@@ -242,7 +242,7 @@ def get_list_of_tests(host, run_all_tests=False):
    status, output = helper.execute_ext_command(cmd_list_tests, True)
 
    if status:
-      for item in output:
+      for item in output.splitlines():
          if item and item.strip():
             item = item.split("*")[0].strip()
 
