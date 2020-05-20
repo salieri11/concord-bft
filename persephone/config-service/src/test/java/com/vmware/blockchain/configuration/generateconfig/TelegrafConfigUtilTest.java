@@ -77,7 +77,9 @@ public class TelegrafConfigUtilTest {
     @Test
     public void testTelegrafConfigHappyPathCommitter() throws IOException {
         Properties properties = Properties.newBuilder()
-                .putAllValues(Map.of(NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest"))
+                .putAllValues(Map.of(
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
+                        NodeProperty.Name.CONSORTIUM_ID.toString(), "testConsortium"))
                 .build();
 
         List<ServiceType> servicesList = List.of(
@@ -100,7 +102,9 @@ public class TelegrafConfigUtilTest {
     @Test
     public void testTelegrafConfigHappyPathParticipant() throws IOException {
         Properties properties = Properties.newBuilder()
-                .putAllValues(Map.of(NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest"))
+                .putAllValues(Map.of(
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
+                        NodeProperty.Name.CONSORTIUM_ID.toString(), "testConsortium"))
                 .build();
 
         List<ServiceType> servicesList = List.of(

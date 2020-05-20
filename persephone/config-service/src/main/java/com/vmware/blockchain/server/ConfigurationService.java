@@ -220,7 +220,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             }
         }
 
-        var genericConfigs = new GenericConfigUtil().getGenericConfig(request.getNodePropertiesList());
+        var genericConfigs = new GenericConfigUtil().getGenericConfig(
+                request.getNodePropertiesList(),
+                request.getProperties());
 
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
         for (int node = 0; node < request.getHostsList().size(); node++) {
