@@ -38,7 +38,7 @@ done
 INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
 
 # Batching parameters. These are all overridable from the outside.
-ENABLE_BATCHING=${ENABLE_BATCHING:=false}
+ENABLE_BATCHING=${ENABLE_BATCHING:=true}
 MAX_BATCH_SIZE_BYTES=${MAX_BATCH_SIZE_BYTES:=$((4 * 1024 * 1024))} # "Soft" limit for batch size (default to 4MB)
 MAX_BATCH_QUEUE_SIZE=${MAX_BATCH_QUEUE_SIZE:=100} # Max number of submissions to queue before dropping.
 MAX_BATCH_WAIT_MILLIS=${MAX_BATCH_WAIT_MILLIS:=50} # Max amount of time to wait to construct a batch.
