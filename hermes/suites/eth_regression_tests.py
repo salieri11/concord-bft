@@ -56,7 +56,7 @@ MAX_TESTABLE_TRANSACTION_SIZE = 10000000
 # SBFT client proxies.
 LARGE_TRANSACTIONS_TO_SEND = 100
 
-class RegressionTests(test_suite.TestSuite):
+class EthRegressionTests(test_suite.TestSuite):
    _args = None
    _userConfig = None
    _ethereumMode = False
@@ -66,10 +66,10 @@ class RegressionTests(test_suite.TestSuite):
    _userUnlocked = False
 
    def __init__(self, passedArgs, product):
-      super(RegressionTests, self).__init__(passedArgs, product)
+      super(EthRegressionTests, self).__init__(passedArgs, product)
 
    def getName(self):
-      return "RegressionTests"
+      return "EthRegressionTests"
 
    def run(self):
       ''' Runs all of the tests. '''
