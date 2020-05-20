@@ -46,8 +46,9 @@ class ConcordClient {
   // object and a client_id to get the specific values for this client.
   // Construction executes all needed steps to provide a ready-to-use
   // object (including starting internal threads, if needed).
-  ConcordClient(concord::config::ConcordConfiguration const& config,
-                int client_id);
+  ConcordClient(const concord::config::ConcordConfiguration& config,
+                int client_id,
+                const config_pool::ClientPoolConfig& pool_config);
 
   // Destructs the client. This includes stopping any internal threads, if
   // needed.
@@ -71,17 +72,30 @@ class ConcordClient {
                    bftEngine::ClientMsgFlag flags,
                    std::chrono::milliseconds timeout_ms,
                    std::uint32_t reply_size, void* out_reply,
-                   std::uint32_t* out_actual_reply_size,
+                   std::uint32_t* out_actual_reply_size, uint64_t seq_num,
                    const std::string& correlation_id = {});
 
+  int getClientId() const;
+
+  uint64_t getClientSeqNum() const;
+
+  void generateClientSeqNum();
+
  private:
-  void CreateClient(config::ConcordConfiguration const& config, int client_id);
+  void CreateClient(const config::ConcordConfiguration& config,
+                    config_pool::ClientPoolConfig pool_config);
   void CreateCommConfig(config::CommConfig& comm_config,
-                        config::ConcordConfiguration const& config,
-                        int num_replicas, int client_id);
+                        const config::ConcordConfiguration& config,
+                        int num_replicas,
+                        config_pool::ClientPoolConfig pool_config);
 
   std::unique_ptr<bft::communication::ICommunication> comm_;
-  std::unique_ptr<kvbc::IClient> client_;
+  std::unique_ptr<bftEngine::SimpleClient> client_;
+  // Logger
+  log4cplus::Logger logger_;
+  int client_id_;
+  bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
+  uint64_t seq_num_ = 0;
 };
 
 }  // namespace external_client

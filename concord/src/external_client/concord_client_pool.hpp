@@ -68,9 +68,17 @@ class ConcordClientPool {
                            const std::string& correlation_id = {});
 
   void InsertClientToQueue(
-      std::shared_ptr<concord::external_client::ConcordClient>& client);
+      std::shared_ptr<concord::external_client::ConcordClient>& client,
+      const uint64_t seq_num, const std::string& correlation_id);
 
  private:
+  void CreatePool(std::istream& config_stream,
+                  config::ConcordConfiguration& config);
+  void Prometheus_Initialize(const config::ConcordConfiguration& config,
+                             const config_pool::ClientPoolConfig& pool_config);
+  void Config_Initialize(config::ConcordConfiguration& config,
+                         config_pool::ClientPoolConfig& pool_config,
+                         std::istream& config_stream);
   // Clients that are available for use (i.e. not already in use).
   std::queue<std::shared_ptr<external_client::ConcordClient>> clients_;
   // Thread pool, on each thread on client will run
@@ -84,6 +92,8 @@ class ConcordClientPool {
   prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
   prometheus::Counter& requests_counter_;
   prometheus::Gauge& clients_gauge_;
+  // Logger
+  log4cplus::Logger logger_;
 };
 
 class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
@@ -94,7 +104,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
       const void* request, std::uint32_t request_size,
       bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
       std::uint32_t reply_size, void* out_reply,
-      std::uint32_t* out_actual_reply_size, const std::string& correlation_id)
+      std::uint32_t* out_actual_reply_size, const std::string& correlation_id,
+      uint64_t seq_num)
       : clients_pool_{clients},
         processing_client_{std::move(client)},
         request_{request},
@@ -104,7 +115,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
         reply_size_{reply_size},
         out_reply_{out_reply},
         out_actual_reply_size_{out_actual_reply_size},
-        correlation_id_{const_cast<std::string&>(correlation_id)} {};
+        correlation_id_{const_cast<std::string&>(correlation_id)},
+        seq_num_{seq_num} {};
 
   virtual ~ConcordClientProcessingJob() {}
 
@@ -123,6 +135,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   void* out_reply_;
   std::uint32_t* out_actual_reply_size_;
   const std::string& correlation_id_;
+  const uint64_t seq_num_;
 };
 }  // namespace concord_client_pool
 
