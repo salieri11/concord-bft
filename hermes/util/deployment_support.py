@@ -24,6 +24,10 @@ files_folders_to_backup = [
    "/var/lib/cloud/instance/user-data.txt",
 ]
 
+path_to_exclude_backup = [
+   "/config/concord/rocksdbdata"
+]
+
 support_commands_to_execute = [
    "/usr/sbin/ifconfig",
    "/usr/sbin/ip route",
@@ -68,6 +72,17 @@ def execute_support_commands(deployment_support_bundle_dir_path):
          deployment_support_bundle_dir_path, output_filename)
       execute_ext_command(command.split(), command_output_logfile_path)
 
+def get_ignore_backup_paths(path, filenames):
+   '''
+   Return ignore excluded directories
+   '''
+   ret = []
+   for filename in filenames:
+      if os.path.join(path, filename) in path_to_exclude_backup:
+         log.info("Excluding {} from support logs".format(filename))
+         ret.append(filename)
+   return ret
+
 def copy_util(src, dest):
    '''
    Utility method to copy files & folders to a destination folder
@@ -78,7 +93,7 @@ def copy_util(src, dest):
       if os.path.isfile(src):
          shutil.copy(src, dest)
       elif os.path.isdir(src):
-         shutil.copytree(src, dest)
+         shutil.copytree(src, dest, ignore=get_ignore_backup_paths)
    except Exception as e:
       log.error("Failed to copy: {}".format(e))
 
