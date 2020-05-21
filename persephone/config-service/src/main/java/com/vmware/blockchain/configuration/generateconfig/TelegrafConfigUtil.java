@@ -97,6 +97,11 @@ public class TelegrafConfigUtil {
         Map<Integer, String> nodeIps = new HashMap<>();
         Map<Integer, String> nodeIds = new HashMap<>();
 
+        // elasticsearch data
+        Map<Integer, String> esUrls = new HashMap<>();
+        Map<Integer, String> esUsername = new HashMap<>();
+        Map<Integer, String> espassword = new HashMap<>();
+
         String postgressPluginStr = "#[[inputs.postgresql]]";
         String indexDbInput = "address = \"postgres://indexdb@daml_index_db/$DBNAME\"";
 
@@ -107,6 +112,15 @@ public class TelegrafConfigUtil {
                     break;
                 case NODE_ID:
                     nodeIds.putAll(nodeProperty.getValueMap());
+                    break;
+                case ELASTICSEARCH_URL:
+                    esUrls.putAll(nodeProperty.getValueMap());
+                    break;
+                case ELASTICSEARCH_USER:
+                    esUsername.putAll(nodeProperty.getValueMap());
+                    break;
+                case ELASTICSEARCH_PWD:
+                    espassword.putAll(nodeProperty.getValueMap());
                     break;
                 default:
                     log.debug("property {} not relevant for telegraf", nodeProperty.getName());
@@ -135,6 +149,14 @@ public class TelegrafConfigUtil {
                 hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
             } else {
                 hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
+            }
+
+            if (!esUrls.isEmpty()) {
+                String url = esUrls.get(nodeIp.getKey());
+                String username = esUsername.getOrDefault(nodeIp.getKey(), "");
+                String pwd = espassword.getOrDefault(nodeIp.getKey(), "");
+
+                hostConfigCopy = hostConfigCopy.concat("\n\n" + getElasticsearchConfig(url, username, pwd));
             }
             configMap.put(nodeIp.getKey(), hostConfigCopy);
         }
@@ -167,6 +189,35 @@ public class TelegrafConfigUtil {
         yaml.dump(metricsConfig, writer);
 
         return writer.toString();
+    }
+
+    private String getElasticsearchConfig(String urls, String username, String password) {
+        StringBuilder config = new StringBuilder()
+                .append("[[outputs.elasticsearch]]\n")
+                .append("  urls = [ ")
+                .append(urls)
+                .append(" ]\n  timeout = \"5s\"")
+                .append("\n  enable_sniffer = false")
+                .append("\n  health_check_interval = \"10s\"");
+
+        if (!username.isBlank()) {
+            config.append("\n  username = \"")
+                    .append(username)
+                    .append("\"");
+        }
+
+        if (!password.isBlank()) {
+            config.append("\n  password = \"")
+                    .append(password)
+                    .append("\"");
+        }
+
+        config.append("\n  index_name = \"telegraf-%Y.%m.%d\"")
+                .append("\n  manage_template = true")
+                .append("\n  template_name = \"telegraf\"")
+                .append("\n  overwrite_template = false");
+
+        return config.toString();
     }
 
     private List<String> getPrometheusUrls(List<ConcordComponent.ServiceType> servicesList) {
