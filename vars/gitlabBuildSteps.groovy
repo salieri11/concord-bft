@@ -98,7 +98,7 @@ import hudson.util.Secret
     "enabled": true,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthJsonRpcTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
   ],
-  "RegressionTests": [
+  "EthRegressionTests": [
     "enabled": true,
     "runAlone": true
   ],

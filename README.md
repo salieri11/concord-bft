@@ -359,7 +359,7 @@ positional arguments:
   suite                 Test suite name. Available suites: [
                         'ContractCompilerTests', 'EthCoreVmTests',
                         'LintTests', 'EthJsonRpcTests', 'HelenAPITests',
-                        'PerformanceTests', 'RegressionTests', 'SampleDAppTests',
+                        'PerformanceTests', 'EthRegressionTests', 'SampleDAppTests',
                         'SimpleStateTransferTest', 'TruffleTests', 'UiTests',
                         'LoggingTests']
 ```

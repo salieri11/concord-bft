@@ -14,10 +14,22 @@ import traceback
 from time import strftime, localtime, sleep
 
 import event_recorder
-from suites import (contract_compiler_tests, eth_core_vm_tests,
-                    eth_json_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
-                    pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
-                    ui_tests, websocket_rpc_tests, persistency_tests)
+from suites import (
+  contract_compiler_tests,
+  eth_core_vm_tests,
+  eth_json_rpc_tests,
+  eth_regression_tests,
+  hlf_tests,
+  performance_tests,
+  persephone_tests,
+  persistency_tests,
+  pytest_suite,
+  sample_dapp_tests,
+  simple_st_test,
+  ui_e2e_deploy_daml,
+  ui_tests,
+  websocket_rpc_tests,
+)
 from suites.case import catchFailurePoint
 from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
@@ -31,6 +43,7 @@ suiteList = [
    "DamlTests",
    "EvilTimeTests",
    "EthJsonRpcTests",
+   "EthRegressionTests",
    "HelenAPITests",
    "HelenRoleTests",
    "HlfTests",
@@ -38,7 +51,6 @@ suiteList = [
    "LoggingTests",
    "PerformanceTests",
    "PersephoneTests",
-   "RegressionTests",
    "SampleDAppTests",
    "SampleSuite",
    "SimpleStateTransferTest",
@@ -373,14 +385,14 @@ def createTestSuite(args, suiteName, product):
       return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
    elif (suiteName == "EthJsonRpcTests"):
       return eth_json_rpc_tests.EthJsonRpcTests(args, product)
+   elif (suiteName == "EthRegressionTests"):
+      return eth_regression_tests.EthRegressionTests(args, product)
    elif (suiteName == "WebSocketRPCTests"):
       return websocket_rpc_tests.WebSocketRPCTests(args, product)
    elif (suiteName == "PerformanceTests"):
       return performance_tests.PerformanceTests(args, product)
    elif (suiteName == "PersephoneTests"):
       return persephone_tests.PersephoneTests(args, product)
-   elif (suiteName == "RegressionTests"):
-      return regression_tests.RegressionTests(args, product)
    elif (suiteName == "SampleSuite"):
       return pytest_suite.PytestSuite(args, "suites/sample_suite.py", product)
    elif (suiteName == "SimpleStateTransferTest"):
