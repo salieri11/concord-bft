@@ -135,10 +135,6 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth'
   ],
-  "HlfTests": [
-    "enabled": false, // RV: Disabled because these repeatedly cause the product to fail to launch in CI/CD.
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml"
-  ],
   "TimeTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
@@ -1800,12 +1796,6 @@ void pushToArtifactory(){
     env.internal_daml_ledger_api_repo,
     env.internal_daml_execution_engine_repo,
     env.internal_daml_index_db_repo,
-    env.internal_hlf_orderer_base_repo,
-    env.internal_hlf_peer_base_repo,
-    env.internal_hlf_tools_base_repo,
-    env.internal_hlf_orderer_repo,
-    env.internal_hlf_peer_repo,
-    env.internal_hlf_tools_repo,
     env.internal_trc_lib_repo,
     env.internal_trc_test_app_repo
   ]
@@ -1842,10 +1832,7 @@ void pushToDockerHub(){
     env.release_contract_compiler_repo,
     env.release_daml_ledger_api_repo,
     env.release_daml_execution_engine_repo,
-    env.release_daml_index_db_repo,
-    env.release_hlf_orderer_repo,
-    env.release_hlf_peer_repo,
-    env.release_hlf_tools_repo
+    env.release_daml_index_db_repo
   ]
 
   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
@@ -1873,9 +1860,6 @@ void tagImagesForRelease(){
     docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
     docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
     docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
-    docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
-    docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
-    docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
   ''')
 }
 
@@ -2075,9 +2059,6 @@ void setUpRepoVariables(){
   env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
   env.release_ui_repo = env.release_repo + "/ui"
   env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
-  env.release_hlf_tools_repo = env.release_repo + "/hlf-tools"
-  env.release_hlf_peer_repo = env.release_repo + "/hlf-peer"
-  env.release_hlf_orderer_repo = env.release_repo + "/hlf-orderer"
   env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
   env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
   env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
@@ -2096,12 +2077,6 @@ void setUpRepoVariables(){
   env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
   env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
   env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_hlf_tools_base_repo = env.internal_repo + "/fabric-tools"
-  env.internal_hlf_peer_base_repo = env.internal_repo + "/fabric-peer"
-  env.internal_hlf_orderer_base_repo = env.internal_repo + "/fabric-orderer"
   env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
@@ -2207,7 +2182,7 @@ void announceToTFailure(){
 void announceSDDCCleanupFailures(failures){
   // Don't mass notify with SDDC clean-up failure if the run was simply aborted.
   if (currentBuild.currentResult == "ABORTED") { return }
-  
+
   msg = "SDDC cleanup job(s) failed; it is possible resources are being leaked!"
   msg += "\nFailed jobs:"
 
@@ -2434,18 +2409,6 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}
 contract_compiler_tag=${docker_tag}
-hlf_tools_repo=${internal_hlf_tools_repo}
-hlf_tools_tag=${docker_tag}
-hlf_peer_repo=${internal_hlf_peer_repo}
-hlf_peer_tag=${docker_tag}
-hlf_orderer_repo=${internal_hlf_orderer_repo}
-hlf_orderer_tag=${docker_tag}
-hlf_tools_base_repo=${internal_hlf_tools_base_repo}
-hlf_tools_base_tag=${docker_tag}
-hlf_peer_base_repo=${internal_hlf_peer_base_repo}
-hlf_peer_base_tag=${docker_tag}
-hlf_orderer_base_repo=${internal_hlf_orderer_base_repo}
-hlf_orderer_base_tag=${docker_tag}
 daml_ledger_api_repo=${internal_daml_ledger_api_repo}
 daml_ledger_api_tag=${docker_tag}
 daml_execution_engine_repo=${internal_daml_execution_engine_repo}
