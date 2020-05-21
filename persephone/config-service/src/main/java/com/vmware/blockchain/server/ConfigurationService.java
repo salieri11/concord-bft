@@ -79,14 +79,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      **/
     private String wavefrontConfigPath;
 
-    /**
-     * Metrics config template path.
-     **/
-    private String metricsConfigPath;
-
-    /**
-     * Logging config template path.
-     **/
+    /** Logging config template path. **/
     private String loggingEnvTemplatePath;
 
     /**
@@ -113,8 +106,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String concordConfigTemplatePath,
                          @Value("${config.template.path:TelegrafConfigTemplate.conf}")
                                  String telegrafConfigTemplatePath,
-                         @Value("${config.template.path:MetricsConfig.yaml}")
-                                 String metricsConfigPath,
                          @Value("${config.template.path:wavefrontConfigTemplate.conf}")
                                  String wavefrontConfigPath,
                          @Value("${config.template.path:LoggingTemplate.env}")
@@ -122,7 +113,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                          ConfigurationServiceHelper configurationServiceHelper) {
         this.concordConfigPath = concordConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
-        this.metricsConfigPath = metricsConfigPath;
         this.wavefrontConfigPath = wavefrontConfigPath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
@@ -252,17 +242,10 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     staticComponentList.addAll(configurationServiceHelper.getEthereumComponent());
                     break;
                 case TELEGRAF:
-                    var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
-                    var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
+                    var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath);
                     telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getNodePropertiesList(),
                                                                           request.getProperties(),
                                                                           request.getServicesList());
-                    staticComponentList.add(ConfigurationComponent.newBuilder()
-                                                    .setType(ServiceType.TELEGRAF)
-                                                    .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
-                                                    .setComponent(metricsConfigYaml)
-                                                    .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                                    .build());
                     break;
                 case WAVEFRONT_PROXY:
                     var wavefrontConfigUtil = new WavefrontConfigUtil(wavefrontConfigPath);

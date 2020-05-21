@@ -55,8 +55,7 @@ public class ConcordConfigUtil {
         CLIENT_PROXY("client_proxy"),
         REPLICA_HOST("replica_host"),
         CLIENT_HOST("client_host"),
-        CLIENT_PORT("client_port"),
-        METRICS_CONFIG("metrics_config");
+        CLIENT_PORT("client_port");
 
         String name;
 
@@ -294,7 +293,6 @@ public class ConcordConfigUtil {
 
         configInput.put(ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigProperty.C_VAL.name, cVal);
-        configInput.put(ConfigProperty.METRICS_CONFIG.name, TelegrafConfigUtil.metricsConfigPath);
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigProperty.NODE.name);
