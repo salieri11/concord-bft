@@ -50,224 +50,49 @@ class MaestroClient:
 
         return {
             "run_request": {
-                "config": {
-                    "vsanHFT": 0,
-                    "vsanChecksum": False,
-                    "vsanPrepDisk": True,
-                    "vsanSnapshot": False,
-                    "vsanDropCache": True,
-                    "vsanRaidLevel": "RAID 0",
-                    "vsanEncryption": False,
-                    "vsanEsxcfgCmds": "",
-                    "vsanStatsEsxtop": False,
-                    "vsanStripeWidth": 1,
-                    "vsanVmkbootCmds": "",
-                    "vdiWorkloadTests": [{
-                        "name": "t1_5i_0r",
-                        "protocol": "PCOIP",
-                        "rdshType": 0,
-                        "iteration": 5,
-                        "thinkTime": 5,
-                        "rampUpTime": 5,
-                        "blastCodecs": "H264",
-                        "description": "runprofile for maestro run",
-                        "workloadList": ["vp_SuperpositionPro"],
-                        "defaultConfig": True,
-                        "workGroupName": "workGroup_1",
-                        "runProfileName": "runProfile_1",
-                        "workProfileName": "standardTestProfile_chrome",
-                        "vp_superPosition": {
-                            "gpuSuperPositionApi": "Directx",
-                            "gpuSuperPositionQuality": "High",
-                            "gpuSuperPositionTexture": "High",
-                            "gpuSuperPositionResolution": "1920X1080"
-                        }
-                    }],
-                    "vsanPostbootCmds": "",
-                    "vsanStatsPerfsvc": False,
-                    "vsanStatsVmkperf": False,
-                    "vsanStatsNetstats": False,
-                    "vsanStatsObserver": False,
-                    "vsanStatsVmkstats": False,
-                    "vsanNumActiveHosts": 1,
-                    "vsanPostenableCmds": "",
-                    "vsanStatsVmSupport": False,
-                    "vsanStatsVsantraces": False,
-                    "vsanCacheReservation": 0,
-                    "vsanDedupCompression": False,
-                    "vsanForceProvisioning": False,
-                    "vsanWorkloadCfgHostSize": 0,
-                    "vsanWorkloadCfgVmdkType": "thick",
-                    "vsanProportionalCapacity": 0,
-                    "vsanStatsPerfsvcInterval": 300,
-                    "vsanWorkloadCfgNumberOfVMs": 1,
-                    "vsanWorkloadCfgSizePercent": 0,
-                    "vsanWorkloadCfgNumberOfDisks": 1,
-                    "vsanWorkloadCfgSnapshotPrepPct": 0,
-                    "vsanWorkloadCfgSnapshotPrepRandPct": 0
+                "filters": {
+                    "config": {
+                        "region": "reg005",
+                        "cacheType": "",
+                        "cacheDisks": "",
+                        "capacityType": "",
+                        "capacityDisks": "",
+                        "resourceGroup": "",
+                        "cpuModel": ""
+                    },
+                    "hostType": "",
+                    "useFilters": True,
+                    "showOutOfService": False,
+                    "resourceSelection": [],
+                    "resourceTypeChosen": "",
+                    "isSelectionDisabled": False
                 },
-                "bcConfig": {
-                    "BlockChainService": {
-                        "releaseVersion": bcversion
-                    },
-                    "Benchmark": {
-                        "application": application,
-                        "daml_version": "0.13.56-snapshot.20200331.3729.0.b43b8d86",
-                        "spider_version": "SNAPSHOT-1.25.0-20200414-1643-8e1346b1",
-                        "dataset_flavour": "sample",
-                        "transactions": 50000,
-                        "threads": 16,
-                        "batching": False
-                    },
+                "config": {
+                    "releaseVersion": bcversion,
+                    "threads": 16,
+                    "batching": False,
+                    "application": application,
+                    "damlVersion": "1.0.0",
+                    "transactions": 1000,
+                    "spiderVersion": "1.25.162",
+                    "datasetFlavour": "cde7",
+                    "additionalJson": "",
+                    "maxQueueSize": 100,
+                    "maxBatchSizeBytes": 4194304,
+                    "maxWaitMillis": 100,
+                    "maxConcurrentCommits": 5,
+                    "operation": "RunTest",
                     "git_commits": {
                         "ids": commit_ids,
                         "commits": commit_summary,
                         "authors": authors
                     }
                 },
-                "viewplannerConfig": {
-                    "RDSFarm": {
-                        "farmType": "AUTOMATED",
-                        "cloneType": "LINKED",
-                        "maxRDSServers": 1,
-                        "customSpecType": "SYS_PREP",
-                        "maxSessionType": "UNLIMITED",
-                        "numberOfSessions": 10,
-                        "defaultDisplayProtocol": "PCOIP"
-                    },
-                    "runMode": "LOCAL",
-                    "useVSAN": False,
-                    "AppVolume": {
-                        "buildId": "",
-                        "buildUrl": "",
-                        "releaseId": "",
-                        "addWritable": False,
-                        "customAppStackUrl": ""
-                    },
-                    "vdiServer": {
-                        "viewBuild": "ob-14584133",
-                        "viewAgentBuild": "ob-14590940"
-                    },
-                    "viewAgent": {
-                        "cloneType": "LINKED"
-                    },
-                    "clientPool": {
-                        "numberOfVMs": 2
-                    },
-                    "coreStorage": {
-                        "dataStoreVersion": "vmfs6"
-                    },
-                    "desktopPool": {
-                        "poolType": "AUTOMATED",
-                        "cloneType": "INSTANT",
-                        "userAssign": "FLOATING",
-                        "numberOfVMs": 2,
-                        "customSpecType": "CLONE_PREP",
-                        "windowsVersion": "Desk",
-                        "windowsVersionNumber": "Windows-10",
-                        "defaultDisplayProtocol": "PCOIP"
-                    },
-                    "viewplanner": {
-                        "version": 4,
-                        "testMode": "local",
-                        "cloneType": "INSTANT",
-                        "vsanSetup": False,
-                        "runProfile": {
-                            "iteration": 1,
-                            "workGroup": {
-                                "addVdi": True,
-                                "protocol": "PCOIP",
-                                "rdshtype": 0,
-                                "workprofile": {
-                                    "name": "standardTestProfile_chrome",
-                                    "workload": "",
-                                    "description": ""
-                                }
-                            }
-                        },
-                        "collectVPStats": False,
-                        "supportAppVolume": False,
-                        "viewplannerBuild": "ob-15659297"
-                    },
-                    "uploadFileConfig": {
-                        "rerunId": "810",
-                        "runCommand": "",
-                        "fileLocation": "http://10.153.243.52/rahulRuns/810/pc_logs/custom_script/",
-                        "uploadedFiles": []
-                    },
-                    "gpuConfigurations": {
-                        "useGPU": False,
-                        "gpuType": "vGPU",
-                        "gpuProfile": "grid_p40-1q",
-                        "esxVibLocation": "ftp://prmh-gfxdev-nas02.eng.vmware.com/nvidia/signed/NVIDIA-VMware_ESXi_6.7_Host_Driver-440.43-1OEM.670.0.0.8169922.x86_64.vib",
-                        "decodingGpuType": "vGPU",
-                        "hardwareDecoding": False,
-                        "hardwareEncoding": True,
-                        "decodingGpuProfile": "",
-                        "nvidiaDriverLocation": "ftp://prmh-gfxdev-nas02.eng.vmware.com/nvidia/signed/441.66_grid_win10_server2016_server2019_64bit_international.exe",
-                        "decodingEsxVibLocation": "",
-                        "decodingNvidiaDriverLocation": ""
-                    },
-                    "nsxConfigurations": {
-                        "useNSX": False,
-                        "nsxBuild": ""
-                    },
-                    "advanceHardwareConfig": {
-                        "clientMemory": 4,
-                        "clientStorage": 50,
-                        "desktopMemory": 8,
-                        "desktopStorage": 50,
-                        "clientNumberCpu": 2,
-                        "desktopVramSize": 16,
-                        "viewClientBuild": "",
-                        "vmwareToolBuild": "",
-                        "desktopNumberCpu": 2,
-                        "updateClientConfig": False,
-                        "updateDesktopConfig": True,
-                        "desktopGraphicsMemory": 500,
-                        "provideViewClientBuild": False,
-                        "provideVmwareToolBuild": False
-                    }
-                },
-                "filters": {
-                    "config": {
-                        "region": "reg005",
-                        "gpuType": "",
-                        "cpuModel": "",
-                        "cacheType": "INTEL-NVMe-1526185MB-SSD",
-                        "cacheDisks": "1",
-                        "gpuCapacity": "",
-                        "capacityType": "INTEL-SATA-915715MB-SSD",
-                        "clientRegion": "",
-                        "capacityDisks": "1",
-                        "clientGpuType": "",
-                        "resourceGroup": "vsan-perf",
-                        "clientCpuModel": "",
-                        "clientCacheType": "",
-                        "clientCacheDisks": "",
-                        "clientGpuCapacity": "",
-                        "clientCapacityType": "",
-                        "clientCapacityDisks": "",
-                        "clientResourceGroup": ""
-                    },
-                    "hostType": "",
-                    "useFilters": True,
-                    "showOutOfService": False,
-                    "resourceSelection": [],
-                    "resourceTypeChosen": "anyHosts",
-                    "isSelectionDisabled": False,
-                    "clientResourceTypeChosen": ""
-                },
-                "hostsCount": 1,
-                "workload": "vdi-viewplanner",
-                "builds": {
-                    "vcBuild": "10.158.180.93",
-                    "esxBuild": "ob-14320388"
-                },
+                "workload": "ap-blockchain",
+                "builds": {},
                 "cc": recipients,
-                "testName": "Performance CI Runs",
                 "comments": comments,
-                "resources": "1"
+                "testName": "Blockchain CI Runs"
             }
         }
 
@@ -276,7 +101,7 @@ class MaestroClient:
         Create a run for the given blockchain version.
         Results will be emailed to recipients.
         """
-        endpoint = self._api_url + '/vdi/submit_job/'
+        endpoint = self._api_url + '/ap/submit_job/'
         payload = self.get_payload(bcversion, recipients, app, comments, noexec)
         logging.info(
             "Submitting performance run. Version: '{}', recipients: '{}', comments: '{}'".format(bcversion, recipients,
@@ -399,10 +224,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--apiUrl",
                         help="Where to send API calls",
-                        default="http://10.158.177.18:8001")
+                        default="https://bc.maestro.eng.vmware.com:8001")
     parser.add_argument("--reportingUrl",
                         help="Where to get reporting information",
-                        default="http://10.153.243.52/blockchainRuns")
+                        default="http://10.153.243.52/maestro_production")
     parser.add_argument("--username",
                         required=True,
                         help="The username")

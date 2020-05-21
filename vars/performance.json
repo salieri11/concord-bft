@@ -1,4 +1,4 @@
 {
     "recipients": "rvollmar,rahulg",
-    "tests": "IOU,chess_plus"
+    "tests": "chess_plus"
 }
