@@ -182,6 +182,9 @@ message NodeProperty {
         WAVEFRONT_PROXY_PASSWORD = 13;
         CLIENT_AUTH_JWT = 14;
         NODE_IP = 15;
+        ELASTICSEARCH_URL = 16;
+        ELASTICSEARCH_USER = 17;
+        ELASTICSEARCH_PWD = 18;
     }
 
     Name name = 1;

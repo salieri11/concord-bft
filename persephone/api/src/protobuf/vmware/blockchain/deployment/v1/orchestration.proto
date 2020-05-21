@@ -150,6 +150,7 @@ message VmcOrchestrationSiteInfo {
     VSphereDatacenterInfo vsphere = 6;
     repeated LogManagement log_managements = 7 [packed=false];
     Wavefront wavefront = 8;
+    ElasticSearch elasticsearch = 9;
 }
 
 /**
@@ -170,6 +171,7 @@ message VSphereOrchestrationSiteInfo {
     VSphereDatacenterInfo vsphere = 3;
     repeated LogManagement log_managements = 4 [packed=false];
     Wavefront wavefront = 5;
+    ElasticSearch elasticsearch = 6;
 }
 
 /**
@@ -179,6 +181,16 @@ message VSphereOrchestrationSiteInfo {
 message Wavefront {
     string url = 1;
     string token = 2;
+}
+
+/**
+* Model definition of ES object.
+*
+*/
+message ElasticSearch {
+    string url = 1;
+    string username = 2;
+    string password = 3;
 }
 
 /* [END messages] */
