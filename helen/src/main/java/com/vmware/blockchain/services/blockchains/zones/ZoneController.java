@@ -129,6 +129,7 @@ public class ZoneController {
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
         Zone.Wavefront wavefront;
+        Zone.Elasticsearch elasticsearch;
         List<OnPremZone.LogManagementOnPrem> logManagements;
 
         public OnPremGetResponse(OnPremZone z) {
@@ -142,6 +143,7 @@ public class ZoneController {
             this.outboundProxy = z.getOutboundProxy();
             this.containerRepo = z.getContainerRepo();
             this.wavefront = z.getWavefront();
+            this.elasticsearch = z.getElasticsearch();
             this.logManagements = (z.getLogManagements() == null) ? Collections.emptyList() : z.getLogManagements();
         }
     }
@@ -193,6 +195,7 @@ public class ZoneController {
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
         Zone.Wavefront wavefront;
+        Zone.Elasticsearch elasticsearch;
         List<OnPremZone.LogManagementOnPrem> logManagements;
     }
 
@@ -339,6 +342,9 @@ public class ZoneController {
             }
             if (onpremRequest.getWavefront() != null) {
                 op.setWavefront(onpremRequest.getWavefront());
+            }
+            if (onpremRequest.getElasticsearch() != null) {
+                op.setElasticsearch(onpremRequest.getElasticsearch());
             }
             if (onpremRequest.getLogManagements() != null) {
                 op.setLogManagements(onpremRequest.getLogManagements());
