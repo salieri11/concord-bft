@@ -6,11 +6,12 @@
 # create deployment support bundle
 
 import argparse
+import json
 import logging
-import tarfile
 import os
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 
@@ -24,6 +25,10 @@ files_folders_to_backup = [
    "/var/lib/cloud/instance/user-data.txt",
 ]
 
+product_logs_to_backup = [
+   "/concord/log"
+]
+
 path_to_exclude_backup = [
    "/config/concord/rocksdbdata"
 ]
@@ -32,6 +37,29 @@ support_commands_to_execute = [
    "/usr/sbin/ifconfig",
    "/usr/sbin/ip route",
 ]
+
+def gather_product_logs(docker_containers):
+   '''
+   Method to gather product logs from concord node/replica
+   :param docker_containers: List of expected docker containers to be running on the node
+   '''
+   for container in docker_containers:
+      log.debug("Gathering '{}' product logs...".format(container))
+      container_inspect_json = os.path.join(deployment_support_bundle_dir_path,
+                                   "{}-inspect.json").format(container)
+      command = ["docker", "inspect", "{}".format(container)]
+      if execute_ext_command(command, container_inspect_json):
+         with open(container_inspect_json, "r") as fp:
+            data = json.load(fp)
+            if data and "Mounts" in data[0]:
+               for mount in data[0]["Mounts"]:
+                  if "Destination" in mount and "Source" in mount and mount[
+                     "Destination"] in product_logs_to_backup:
+                     log.debug(
+                        "'{}' mount point '{}'".format(mount["Destination"],
+                                                       mount["Source"]))
+                     files_folders_to_backup.append(mount["Source"])
+
 
 def gather_deployment_docker_logs(docker_containers, deployment_support_bundle_dir_path):
    '''
@@ -110,15 +138,17 @@ def execute_ext_command(command, logfile=None):
    if logfile:
       with open(logfile, "w") as output_logfile:
          completedProcess = subprocess.run(command, stdout=output_logfile,
-                                           stderr=output_logfile)
+                                           stderr=output_logfile,
+                                           universal_newlines=True)
    else:
       completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
+                                        stderr=subprocess.STDOUT,
+                                        universal_newlines=True)
    try:
       completedProcess.check_returncode()
       if completedProcess.stdout:
          log.info("stdout: {}".format(
-            completedProcess.stdout.decode().replace(os.linesep, "")))
+            completedProcess.stdout))
       if completedProcess.stderr:
          log.error("stderr: {}".format(completedProcess.stderr))
    except subprocess.CalledProcessError as e:
@@ -167,6 +197,7 @@ if __name__ == '__main__':
       "{}.tar.gz".format(deployment_support_bundle_name))
    os.makedirs(deployment_support_bundle_dir_path, exist_ok=True)
 
+   gather_product_logs(args.dockerContainers)
    gather_deployment_docker_logs(args.dockerContainers,
                                  deployment_support_bundle_dir_path)
    backup_logfiles_folders(deployment_support_bundle_dir_path)
