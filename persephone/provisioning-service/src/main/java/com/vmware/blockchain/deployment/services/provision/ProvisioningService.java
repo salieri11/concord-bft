@@ -340,6 +340,9 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         Map<Integer, String> wavefrontProxyUrl = new HashMap<>();
         Map<Integer, String> wavefrontProxyPort = new HashMap<>();
         Map<Integer, String> nodeIpMap = new HashMap<>();
+        Map<Integer, String> esUrl = new HashMap<>();
+        Map<Integer, String> esUser = new HashMap<>();
+        Map<Integer, String> esPwd = new HashMap<>();
 
         Wavefront wavefront = Wavefront.newBuilder().build();
         for (Map.Entry<PlacementAssignment.Entry,
@@ -366,6 +369,13 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             if (!outboundProxy.getHttpsHost().isEmpty()) {
                 wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
                 wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
+            }
+
+            var elasticsearch = ProvisioningServiceUtil.getElasticsearch(siteInfo);
+            if (!elasticsearch.getUrl().isEmpty()) {
+                esUrl.put(nodeIndex, elasticsearch.getUrl());
+                esUser.put(nodeIndex, elasticsearch.getUsername());
+                esPwd.put(nodeIndex, elasticsearch.getPassword());
             }
 
         }
@@ -396,6 +406,15 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                          .putAllValue(wavefrontProxyUrl).build());
             nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_PROXY_PORT)
                                          .putAllValue(wavefrontProxyPort).build());
+        }
+
+        if (!esUrl.isEmpty()) {
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_URL)
+                    .putAllValue(esUrl).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_USER)
+                    .putAllValue(esUser).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_PWD)
+                    .putAllValue(esPwd).build());
         }
 
         var request = ConfigurationServiceRequest.newBuilder()

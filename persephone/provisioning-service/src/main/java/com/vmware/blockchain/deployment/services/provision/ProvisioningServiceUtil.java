@@ -32,6 +32,7 @@ import com.vmware.blockchain.deployment.v1.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.ElasticSearch;
 import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.Metadata;
@@ -598,6 +599,26 @@ class ProvisioningServiceUtil {
                 break;
         }
         return wavefront;
+    }
+
+    /**
+     * Get elasticsearch details.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return ElasticSearch
+     */
+    static ElasticSearch getElasticsearch(OrchestrationSiteInfo siteInfo) {
+        ElasticSearch elasticSearch = ElasticSearch.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                elasticSearch = siteInfo.getVmc().getElasticsearch();
+                break;
+            case VSPHERE:
+                elasticSearch = siteInfo.getVsphere().getElasticsearch();
+                break;
+            default:
+                break;
+        }
+        return elasticSearch;
     }
 
     /**
