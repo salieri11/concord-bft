@@ -1,0 +1,4 @@
+{
+  "test_suites": ["UiTests","UiDAMLDeploy"],
+  "build_targets": ["ui"]
+}

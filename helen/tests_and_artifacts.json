@@ -1,0 +1,5 @@
+{
+  "test_suites": ["HelenAPITests","HelenRoleTests","HelenDeployEthereumToSDDC","HelenDeployDAMLToSDDC",
+    "HelenDeployToSDDCTemplate","UiTests","UiDAMLDeploy"],
+  "build_targets": ["helen"]
+}
