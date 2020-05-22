@@ -2,11 +2,14 @@
 # DAML util file to perform daml tests
 
 import glob
+import json
 import os
+import requests
 import subprocess
 import sys
 import time
 from tempfile import NamedTemporaryFile
+import util.auth
 import util.json_helper
 
 if 'hermes_util' in sys.modules.keys():
@@ -57,6 +60,11 @@ _ledger_api_version = ""
 _ledger_api_test_tool_path = ""
 _ledger_api_dars = []
 
+# File which contains mappings of DAML SDK to Spider version.
+DA_SPIDER_MAPPING_FILE = "resources/da_spider_sdk_mappings.json"
+
+DA_SPIDER_IMAGE = "digitalasset/spider-application"
+
 def get_ledger_api_version(host):
    '''
    Returns the daml ledger api version from the daml ledger api repo Hermes is given
@@ -91,7 +99,11 @@ def get_ledger_api_version(host):
             output = helper.ssh_connect(host, username, password, cmd)
 
             if output and output.strip():
-               _ledger_api_version = output.strip()
+               if "Error" in output:
+                  raise Exception("Could not query Ledger API server on {}.  Received '{}'".format(host, output.strip()))
+               else:
+                  _ledger_api_version = output.strip()
+
                break
             else:
                if num_attempts >= max_attempts:
@@ -305,3 +317,102 @@ def verify_ledger_api_test_tool(host='localhost', port='6861', run_all_tests=Fal
 
    if overall_test_status is False:
       raise Exception("Overall DAML testsuite Status: Fail")
+
+
+def get_spider_version(required_sdk_version, username, password):
+   '''
+   Given a DAML SDK version, return a Spider app version which is compatible with it.
+   '''
+   spider_version = get_known_spider_version_for_sdk(required_sdk_version)
+
+   if not spider_version:
+      token = util.auth.get_dockerhub_auth_token(username, password)
+      next_url = None
+      max_calls = 1 # Not sure if we'll ever need to increase.
+      num_calls = 0
+      found = False
+
+      while (num_calls < max_calls and not found):
+         num_calls += 1
+
+         if next_url:
+            url = next_url
+         else:
+            # We can fetch up to 100 at a time.  When there is a new version, it will probably be within
+            # the first few.
+            url = "https://hub.docker.com/v2/repositories/{}/tags/?page_size=20".format(DA_SPIDER_IMAGE)
+
+         log.info("Fetching {} tags from DockerHub".format(DA_SPIDER_IMAGE))
+         response = requests.get(url, headers={"Authorization": "JWT " + token})
+         response_obj = json.loads(response.text)
+         results = response_obj["results"]
+         spider_version = find_spider_version_result(results, required_sdk_version)
+
+         if spider_version:
+             return spider_version
+         else:
+             next_url = response_obj["next"]
+
+         if not next_url:
+             break
+
+   return spider_version
+
+
+def find_spider_version_result(results, required_sdk_version):
+   '''
+   Given results from the /tags DockerHub API call, find (and return) the
+   first Spider version which matches the passed in DA SDK.
+   '''
+   for result in results:
+      log.info("Looking for SDK version {} in {}:{}".format(required_sdk_version, DA_SPIDER_IMAGE, result["name"]))
+      spider_version = result["name"]
+      cmd = ["docker", "pull", "{}:{}".format(DA_SPIDER_IMAGE, spider_version)]
+      success, _ = helper.execute_ext_command(cmd, True)
+
+      if not success:
+         raise Exception("Failed to pull {}:{}".format(DA_SPIDER_IMAGE, spider_version))
+
+      cmd = ["docker", "inspect", "-f", "'{{json .Config.Labels}}'",
+             "{}:{}".format(DA_SPIDER_IMAGE, spider_version)]
+      success, stdout = helper.execute_ext_command(cmd, True)
+
+      if not success:
+         raise Exception("Failed to inspect {}:{}".format(DA_SPIDER_IMAGE, spider_version))
+
+      # The data we want is surrounded by single quotes.
+      labels_obj = json.loads(stdout[1:-2])
+      found_sdk_version = labels_obj["da.version.sdk"]
+
+      if found_sdk_version == required_sdk_version:
+         log.info("Found SDK version {} in {}:{}".format(required_sdk_version, DA_SPIDER_IMAGE, result["name"]))
+         return spider_version
+
+   return None
+
+
+def get_known_spider_version_for_sdk(sdk_version):
+   '''
+   We have some SDK-to-Spider version mappings in a json file.  See if
+   we have a match, and return the Spider version if we do.
+   '''
+   spider_version = None
+   known_mappings = get_sdk_spider_version_mappings()
+
+   if known_mappings and sdk_version in known_mappings:
+      spider_version = known_mappings[sdk_version]
+      log.info("Found mapping of DAML SDK {} to Spider {} in the known Spider/SDK mappings file.".format(sdk_version, spider_version))
+
+   return spider_version
+
+
+def get_sdk_spider_version_mappings():
+   return util.json_helper.readJsonFile(DA_SPIDER_MAPPING_FILE)
+
+
+def download_spider_app(tag):
+   cmd = ["docker", "pull", "digitalasset/spider-application:" + tag]
+   success, _ = helper.execute_ext_command(cmd, True)
+
+   if not success:
+      raise Exception("Failed to pull digitalasset/spider-application:{}".format(spider_version))

@@ -558,3 +558,9 @@ def retrieveNewAccessToken(org, user, role):
    csp_auth_data = json.loads(content)
    log.debug('CSP Authorize API Response: {0}'.format(str(csp_auth_data)))
    return csp_auth_data['access_token']
+
+
+def get_dockerhub_auth_token(username, password):
+   response = requests.post("https://hub.docker.com/v2/users/login/", data={"username": username, "password": password})
+   response_obj = json.loads(response.text)
+   return response_obj["token"]

@@ -16,7 +16,7 @@ info() {
 }
 
 error() {
-    echo `date`: ERROR: "${1}" 1>&2
+    echo `date`: ERROR: "${1}"
 }
 
 check_usage() {
@@ -76,6 +76,7 @@ execute_command() {
             info "Tracker file ${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE} found"
             info "Skipping 2nd attempt of running command '${COMMAND_TO_RUN}' on ledger host: ${LEDGER_HOST}"
         else
+            info "Running ${COMMAND_TO_RUN}, output to ${LOG_FILE}"
             eval "${COMMAND_TO_RUN}" > "${LOG_FILE}"
             RC="$?"
             if [ ! -z "${INITIALIZE_ONCE}" ]
@@ -83,6 +84,7 @@ execute_command() {
                 touch "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
             fi
         fi
+
         info ""
 
         if [ "${RC}" == "0" -o -f "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}" ]
@@ -92,11 +94,10 @@ execute_command() {
                 keyword_matched=`cat "${LOG_FILE}" | grep "${VALIDATE_STRING}"`
                 if [ ! -z "${keyword_matched}" ]
                 then
-                    info "**** Command execution/validation completed sucessfully"
+                    info "**** Command ${COMMAND_TO_RUN} execution/validation completed sucessfully"
                 else
-                    error "**** Command execution failed"
+                    error "**** Command ${COMMAND_TO_RUN} execution failed"
                     trap_ctrlc
-                    exit 1
                 fi
             else
                 info "**** Command execution completed sucessfully"
@@ -104,7 +105,6 @@ execute_command() {
         else
             error "**** Command execution failed"
             trap_ctrlc
-            exit 1
         fi
         info ""
     fi
@@ -117,20 +117,15 @@ run_chess_plus_test() {
 
     load_spider_application
     execute_command --commandToRun vdaml_help --validateString "Commands exposed by Spider vDAML"
-    execute_command --commandToRun extract-dar --validateString "package_extract-[0-9]*-${SPIDER_IMAGE_TAG}" --initializeOnce
     execute_command --commandToRun upload-dar --validateString "DAR upload succeeded" --initializeOnce
     execute_command --commandToRun warm-package --validateString "{" --initializeOnce
     execute_command --commandToRun "echo ${DAML_SDK_IMAGE}" --validateString "${DAML_SDK_IMAGE}"
     execute_command --commandToRun "allocate-ledger-party 00000 00001" --validateString "Allocated '00001' for '00001' at ${LEDGER_HOST}:${LEDGER_PORT}" --initializeOnce
-
     execute_command --commandToRun start-spider --validateString "returned: 0"
-
     execute_command --commandToRun market-genesis --validateString "Create: 1" --initializeOnce
     execute_command --commandToRun "import-data-set ${MARKET_FLAVOUR}" --validateString "Failure: 0" --initializeOnce
-
     execute_command --commandToRun "load-runner --simulation bmw.open-market" --validateString "failed[' ']*0"
     execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file /home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv --loop-file --trade-timeout 60s --requests 1 --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
-
     execute_command --commandToRun stop-spider
     EXIT_STATUS=0
 }
