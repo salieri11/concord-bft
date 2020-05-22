@@ -8,7 +8,7 @@ def startPerformanceRun(){
                     usernameVariable: 'username',
                     passwordVariable: 'password')
   ]){
-    perfJson = readFile("vars/performance.json")
+    perfJson = readFile("vars/performance/performance.json")
     perfObj = new JsonSlurperClassic().parseText(perfJson)
     env.maestroRecipients = perfObj.recipients
     env.maestroTests = perfObj.tests

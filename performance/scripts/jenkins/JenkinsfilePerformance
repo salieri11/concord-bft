@@ -11,7 +11,7 @@ pipeline{
       steps{
         script {
           // We have to use this one first.
-          gitlablib = load "vars/gitlablib.groovy"
+          gitlablib = load "vars/util/gitlablib.groovy"
 
           dir('blockchain'){
             gitlablib.checkoutRepo("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.jenkins_branch)
@@ -25,9 +25,9 @@ pipeline{
       steps{
         script {
           dir('blockchain'){
-            gitlablib = load "vars/gitlablib.groovy"
-            pythonlib = load "vars/pythonlib.groovy"
-            performancelib = load "vars/performancelib.groovy"
+            gitlablib = load "vars/util/gitlablib.groovy"
+            pythonlib = load "vars/util/pythonlib.groovy"
+            performancelib = load "vars/performance/performancelib.groovy"
 
             pythonlib.initializePython()
           }
@@ -43,7 +43,7 @@ pipeline{
             env.product_version = params.build.trim()
           }else{
             dir('blockchain'){
-              def artifactorylib = load "vars/artifactorylib.groovy"
+              def artifactorylib = load "vars/util/artifactorylib.groovy"
               env.product_version = artifactorylib.getLatestTag()
             }
           }
