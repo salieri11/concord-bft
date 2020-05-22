@@ -1,0 +1,4 @@
+{
+  "test_suites": ["PersephoneSmoke","HelenDeployEthereumToSDDC"],
+  "build_targets": ["persephone"]
+}
