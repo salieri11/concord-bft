@@ -370,13 +370,23 @@ def call(){
         steps{
           script{
             try{
+
+              gitlablib = load "vars/util/gitlablib.groovy"
+              pythonlib = load "vars/util/pythonlib.groovy"
+              jenkinsbuilderlib = load "vars/util/jenkinsbuilderlib.groovy"
+              artifactorylib = load "vars/util/artifactorylib.groovy"
+              dockerutillib = load "vars/util/dockerutillib.groovy"
+              racetrack = load "vars/athenaspecific/racetrack.groovy"
+              customathenautil = load "vars/athenaspecific/customathenautil.groovy"
+              performancelib = load "vars/performance/performancelib.groovy"
+
               env.eventsFile = "times.json"
               env.eventsFullPath = env.WORKSPACE + "/" + env.eventsFile
               env.eventsRecorder = env.WORKSPACE + "/blockchain/hermes/event_recorder.py"
               checkSkipTestsPassword()
-              removeContainers()
-              pruneImages()
-              reportSystemStats()
+              dockerutillib.removeContainers()
+              dockerutillib.pruneImages()
+              jenkinsbuilderlib.reportSystemStats()
               printSelectableSuites()
 
               // Set as env variables
@@ -401,16 +411,11 @@ def call(){
               }
 
               // chown files in case something was left behind owned by root, so we can cleanWs().
-              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                sh '''
-                  echo "${PASSWORD}" | sudo -S chown -R builder:builder .
-                '''
-              }
-
+              jenkinsbuilderlib.ownWorkspace()
               cleanWs()
 
               // Add the VMware GitLab ssh key to known_hosts.
-              handleKnownHosts("gitlab.eng.vmware.com")
+              customathenautil.handleKnownHosts("gitlab.eng.vmware.com")
 
               // Make summary folder
               env.summaryFolder = env.WORKSPACE + "/summary"
@@ -456,12 +461,12 @@ def call(){
             steps() {
               script{
                 try{
-                  saveTimeEvent("Setup", "Copy googletest")
+                  customathenautil.saveTimeEvent("Setup", "Copy googletest")
                   sh 'mkdir googletest'
                   dir('googletest') {
                     sh 'cp -ar /var/jenkins/workspace/googletest/* .'
                   }
-                  saveTimeEvent("Setup", "Finished copying googletest")
+                  customathenautil.saveTimeEvent("Setup", "Finished copying googletest")
                 }catch(Exception ex){
                   failRun(ex)
                   throw ex
@@ -473,7 +478,7 @@ def call(){
             steps {
               dir('blockchain/vars') {
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                  sh 'echo "${PASSWORD}" | sudo -S ./add-localhost-vmware-com.sh'
+                  sh 'echo "${PASSWORD}" | sudo -S ./athenaspecific/ui/add-localhost-vmware-com.sh'
                 }
               }
             }
@@ -482,12 +487,12 @@ def call(){
             steps() {
               script{
                 try{
-                  saveTimeEvent("Setup", "Copy evmjit")
+                  customathenautil.saveTimeEvent("Setup", "Copy evmjit")
                   sh 'mkdir evmjit'
                   dir('evmjit') {
                     sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
                   }
-                  saveTimeEvent("Setup", "Finished copying evmjit")
+                  customathenautil.saveTimeEvent("Setup", "Finished copying evmjit")
                 }catch(Exception ex){
                   failRun(ex)
                   throw ex
@@ -499,12 +504,12 @@ def call(){
             steps() {
               script{
                 try{
-                  saveTimeEvent("Setup", "Copy ethereum tests")
+                  customathenautil.saveTimeEvent("Setup", "Copy ethereum tests")
                   sh 'mkdir ethereum_tests'
                   dir('ethereum_tests') {
                     sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
                   }
-                  saveTimeEvent("Setup", "Finished copying ethereum tests")
+                  customathenautil.saveTimeEvent("Setup", "Finished copying ethereum tests")
                 }catch(Exception ex){
                   failRun(ex)
                   throw ex
@@ -563,14 +568,14 @@ def call(){
               withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
                 script{
                   command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
-                  retryCommand(command, true)
+                  jenkinsbuilderlib.retryCommand(command, true)
                 }
               }
 
               withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                 script{
                   command = "docker login -u blockchainrepositorywriter -p " + env.DOCKERHUB_PASSWORD
-                  retryCommand(command, true)
+                  jenkinsbuilderlib.retryCommand(command, true)
                 }
               }
 
@@ -583,7 +588,7 @@ def call(){
               '''
 
               if (env.JOB_NAME.contains(main_mr_run_job_name)) {
-                preprocessForMainMR()
+                customathenautil.preprocessForMainMR()
               }
 
               if (env.JOB_NAME.contains(persephone_test_job_name)) {
@@ -618,7 +623,7 @@ def call(){
                 pythonlib.initializePython()
               }
 
-              racetrack(action: "setBegin")
+              racetrack.racetrack(action: "setBegin")
 
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
@@ -635,7 +640,7 @@ def call(){
           script{
             env.additional_components_to_build = additional_components_to_build
             try{
-              saveTimeEvent("Build", "Start buildall.sh")
+              customathenautil.saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
                 if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                   if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
@@ -680,7 +685,7 @@ def call(){
                   '''
                 }
               }
-              saveTimeEvent("Build", "Finished buildall.sh")
+              customathenautil.saveTimeEvent("Build", "Finished buildall.sh")
             }catch(Exception ex){
               failRun(ex)
               racetrack(action: "reportFailure", caseName: "pipeline_build_failure")
@@ -694,7 +699,7 @@ def call(){
       stage("Start tests"){
         steps {
           script {
-            saveTimeEvent("Tests", "Start")
+            customathenautil.saveTimeEvent("Tests", "Start")
           }
         }
       }
@@ -713,9 +718,9 @@ def call(){
         steps{
           script {
             try{
-              saveTimeEvent("Push Concord components to DockerHub", "Start")
+              customathenautil.saveTimeEvent("Push Concord components to DockerHub", "Start")
               pushConcordComponentsToDockerHub()
-              saveTimeEvent("Push Concord components to DockerHub", "End")
+              customathenautil.saveTimeEvent("Push Concord components to DockerHub", "End")
             }catch(Exception ex){
               failRun(ex)
               throw ex
@@ -748,7 +753,7 @@ def call(){
                     env.log_insight_logs = new File(env.test_log_root, "LogInsightTest").toString()
 
                     if (genericTests) {
-                      if (isGitLabRun()){
+                      if (gitlablib.isGitLabRun()){
                         // GitLab gave us a branch.  It is something like a merge request.
                         selectApplicableGenericTestsForMR()
                       } else if (env.JOB_NAME.contains(env.tot_job_name)){
@@ -832,15 +837,15 @@ def call(){
 
                     // Special runs; maybe should go into their own Jenkinsfile someday.
                     if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
-                      saveTimeEvent("Collect deployment support bundle", "Start")
+                      customathenautil.saveTimeEvent("Collect deployment support bundle", "Start")
                       sh '''
                         echo "Running script to collect deployment support bundle..."
                         "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
                       '''
-                      saveTimeEvent("Collect deployment support bundle", "End")
+                      customathenautil.saveTimeEvent("Collect deployment support bundle", "End")
                     }
                     if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
-                      saveTimeEvent("Monitor health and status of replicas", "Start")
+                      customathenautil.saveTimeEvent("Monitor health and status of replicas", "Start")
                       py_arg_replica_with_bc_type = ""
                       for (replica_set in env.replicas_with_bc_type.split()) {
                         py_arg_replica_with_bc_type = py_arg_replica_with_bc_type + " --replicas " + replica_set
@@ -850,14 +855,14 @@ def call(){
                         echo "Running script to monitor health and status of replicas..."
                         echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Monitoring job"
                       '''
-                      saveTimeEvent("Monitor health and status of replicas", "End")
+                      customathenautil.saveTimeEvent("Monitor health and status of replicas", "End")
                     }
                     if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                       // TODO: Move to the main test map.
-                      saveTimeEvent("Concord deployment test", "Start")
+                      customathenautil.saveTimeEvent("Concord deployment test", "Start")
                       if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
                         env.dep_comp_concord_tag = env.product_version
-                        tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.dep_comp_concord_tag)
+                        dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.dep_comp_concord_tag)
                       }
                       sh '''
                         echo "Running Persephone deployment for concord..."
@@ -865,14 +870,14 @@ def call(){
                         echo "**** Using concord tag: " + ${dep_comp_concord_tag}
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --blockchainType ${concord_type} --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
                       '''
-                      saveTimeEvent("Concord deployment test", "End")
+                      customathenautil.saveTimeEvent("Concord deployment test", "End")
                     }
                     if (env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name)) {
                       saveTimeEvent("Standalone Chess plus run", "Start")
                       withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD')]) {
                         script{
                           command = "docker login -u " + env.DOCKERHUB_REPO_READER_USERNAME + " -p '" + env.DOCKERHUB_REPO_READER_PASSWORD + "'"
-                          retryCommand(command, true)
+                          jenkinsbuilderlib.retryCommand(command, true)
                         }
                       }
 
@@ -904,7 +909,7 @@ def call(){
         steps {
           script{
             try{
-              saveTimeEvent("Persephone tests", "Start")
+              customathenautil.saveTimeEvent("Persephone tests", "Start")
 
               dir('blockchain/hermes') {
                 withCredentials([
@@ -915,7 +920,7 @@ def call(){
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       echo "For Persephone nightly run, push recent builds to bintray..."
 
-                      saveTimeEvent("Build", "Push recent builds to bintray using Job Setup-SAAS-Artifacts")
+                      customathenautil.saveTimeEvent("Build", "Push recent builds to bintray using Job Setup-SAAS-Artifacts")
                       build job: 'Setup-SAAS-Artifacts',
                                  parameters: [[$class: 'StringParameterValue',
                                                 name: 'INTERNALTAG',
@@ -924,7 +929,7 @@ def call(){
                                                 name: 'EXTERNALTAG',
                                                 value: env.recent_published_docker_tag]
                                              ]
-                      saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
+                      customathenautil.saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
                     }
 
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
@@ -933,14 +938,14 @@ def call(){
                     } else if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
                         // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
                         // the rest, which were pulled from Artifactory, are env.docker_tag.
-                        tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
+                        dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
                         selectOnlySuites(["PersephoneOnDemand"])
                         runTests()
                     }
                   }
                 }
               }
-              saveTimeEvent("Persephone tests", "End")
+              customathenautil.saveTimeEvent("Persephone tests", "End")
             }catch(Exception ex){
               echo("A failure occurred while running the tests.")
               failRun(ex)
@@ -961,7 +966,7 @@ def call(){
             steps {
               script {
                 try {
-                  saveTimeEvent("Memory leak tasks", "Start")
+                  customathenautil.saveTimeEvent("Memory leak tasks", "Start")
                   dir('hermes-data/memory_leak_test') {
                     pushHermesDataFile('memory_leak_summary.csv')
                   }
@@ -1009,7 +1014,7 @@ def call(){
                   yaxisMaximum: '',
                   yaxisMinimum: ''
 
-                  saveTimeEvent("Memory leak tasks", "End")
+                  customathenautil.saveTimeEvent("Memory leak tasks", "End")
                 } catch(Exception ex){
                     failRun(ex)
                     throw ex
@@ -1031,7 +1036,7 @@ def call(){
             steps {
               script {
                 try {
-                  saveTimeEvent("Performance tasks", "Start")
+                  customathenautil.saveTimeEvent("Performance tasks", "Start")
                   dir('blockchain/hermes/suites') {
                     withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                       sh '''
@@ -1091,7 +1096,7 @@ def call(){
                   yaxisMaximum: '',
                   yaxisMinimum: ''
 
-                  saveTimeEvent("Performance tasks", "End")
+                  customathenautil.saveTimeEvent("Performance tasks", "End")
                 } catch(Exception ex){
                     failRun(ex)
                     throw ex
@@ -1105,7 +1110,7 @@ def call(){
       stage("Finish tests"){
         steps {
           script {
-            saveTimeEvent("Tests", "End")
+            customathenautil.saveTimeEvent("Tests", "End")
           }
         }
       }
@@ -1119,9 +1124,9 @@ def call(){
         steps{
           script {
             try{
-              saveTimeEvent("Save to artifactory", "Start")
+              customathenautil.saveTimeEvent("Save to artifactory", "Start")
               pushToArtifactory()
-              saveTimeEvent("Save to artifactory", "End")
+              customathenautil.saveTimeEvent("Save to artifactory", "End")
             }catch(Exception ex){
               failRun(ex)
               throw ex
@@ -1137,14 +1142,14 @@ def call(){
         steps {
           script{
             try{
-              saveTimeEvent("Push to DockerHub", "Start")
+              customathenautil.saveTimeEvent("Push to DockerHub", "Start")
               dir('blockchain') {
-                createAndPushGitTag(env.product_version)
+                gitlablib.createAndPushGitTag(env.product_version)
               }
 
               tagImagesForRelease()
               pushToDockerHub()
-              saveTimeEvent("Push to DockerHub", "End")
+              customathenautil.saveTimeEvent("Push to DockerHub", "End")
 
               dir('blockchain/vars') {
                 script {
@@ -1152,7 +1157,7 @@ def call(){
 
                   if (fileExists(release_notification_address_file)) {
                     release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
-                    emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                    emailext body: "Changes: \n" + gitlablib.getChangesSinceLastTag(),
                          to: release_notification_recipients,
                          subject: "[Build] Concord version " + env.product_version + " has been pushed to DockerHub."
                   }
@@ -1193,209 +1198,33 @@ def call(){
       always {
         script{
           command = "docker logout"
-          retryCommand(command, false)
+          jenkinsbuilderlib.retryCommand(command, false)
 
           command = "docker logout athena-docker-local.artifactory.eng.vmware.com"
-          retryCommand(command, false)
+          jenkinsbuilderlib.retryCommand(command, false)
 
-          saveTimeEvent("Remove unnecessary docker artifacts", "Start")
-          removeContainers()
-          pruneImages()
-          saveTimeEvent("Remove unnecessary docker artifacts", "End")
+          customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "Start")
+          dockerutillib.removeContainers()
+          dockerutillib.pruneImages()
+          customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
           if (!env.python) pythonlib.initializePython()
 
-          racetrack(action: "setEnd")
+          racetrack.racetrack(action: "setEnd")
 
           // Files created by the docker run belong to root because they were created by the docker process.
           // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
           // belong to builder to catch any future files.
-          ownWorkspace()
+          jenkinsbuilderlib.ownWorkspace()
 
           // Needs to trigger after owning workspace
-          collectArtifacts()
+          customathenautil.collectArtifacts()
           sendNotifications()
           cleanUpSDDCs()
         }
       }
     }
   }
-}
-
-// The user's parameter is top priority, and if it fails, let an exception be thrown.
-// First, tries to fetch at branch_or_commit.
-// Next, try to get the branch of the developer's MR which triggered this run.
-// Failing the above, get ToT.
-// Finally, if testing a commit, it merges the commit being tested into ToT of the
-// current main branch (which is either master or a release branch).
-// Returns the short form commit hash of the commit being tested.
-String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
-  refPrefix = "refs/heads/"
-  gitlabRun = false
-
-  if (branch_or_commit){
-    branch_or_commit = branch_or_commit.trim()
-  }
-
-  echo("env.gitlabSourceBranch: " + env.gitlabSourceBranch)
-  echo("branch_or_commit: " + branch_or_commit)
-
-  if (branch_or_commit){
-    // We don't know if this was a branch or a commit, so don't add the refPrefix.
-    // Just insert exactly what the user requests.
-    echo("Given a branch or commit, checking out " + branch_or_commit + " for repo " + repo_url)
-    checkoutRepo(repo_url, branch_or_commit)
-  }else if (isGitLabRun()){
-    // When launched via gitlab triggering the pipeline plugin, there is a gitlabSourceBranch
-    // environment variable.
-    gitlabRun = true
-    echo("Given a GitLab run, checking out " + env.gitlabSourceBranch + " for repo " + repo_url)
-    checkoutRepo(repo_url, refPrefix + env.gitlabSourceBranch)
-  }else{
-    // This was launched some other way. Just get latest.
-    echo("Not given a branch or commit, and not a GitLab run, checking out ToT for repo " + repo_url)
-    checkoutRepo(repo_url, env.tot_branch)
-  }
-
-  commitBeingTested = getHead()
-
-  if (gitlabRun){
-    echo("Merging into ToT.")
-    mergeToTot(env.gitlabSourceBranch)
-  }else if (merge_branch_or_commit && branch_or_commit){
-    echo("Merging into ToT.")
-    mergeToTot(branch_or_commit)
-  }else{
-    echo("Not merging into ToT.")
-  }
-
-  return commitBeingTested
-}
-
-// Returns whether this is a GitLab run.
-Boolean isGitLabRun(){
-  return env.gitlabSourceBranch && env.gitlabSourceBranch.trim()
-}
-
-// All that varies for each repo is the branch, so wrap this very large call.
-// Note that this function is also in gitlablib.  We duplicate it here because
-// the way we currently do master/tot/etc... runs, which I think we should change,
-// those additional files have not been fetched yet.  Eventually, we should
-// rework this.  See JenkinsfilePerformance for how.
-void checkoutRepo(repo_url, branch_or_commit){
-    maxAttempts = 10
-    attempts = 0
-    sleepTime = 10
-    success = false
-
-    while (attempts < maxAttempts && !success){
-        try{
-            checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'GITLAB_LDAP_CREDENTIALS', url: repo_url]]])
-            success = true
-        }catch(Exception e){
-            echo "Checkout failed"
-
-            if (attempts < maxAttempts){
-                echo "Retrying in " + sleepTime + " seconds."
-                attempts += 1
-                sleep(sleepTime)
-            }
-        }
-    }
-
-    if (!success){
-        error("Reached maximum number of attempts to check out the repo. Failing.")
-    }
-}
-
-// We are going to build/test against what things will look like after merge.
-// These steps to merge were taken from GitLab, so we should be getting exactly
-// what GitLab will get when it does a merge, unless someone else merges first.
-void mergeToTot(branch_or_commit){
-  if (branch_or_commit){
-    sh(script: "git checkout ${branch_or_commit}")
-    branchHash = getHead()
-
-    sh(script: "git checkout ${tot_branch}")
-    origTotHash = getHead()
-
-    sh(script: "git merge --no-ff ${branch_or_commit} | tee '${env.WORKSPACE}/blockchain/vars/merge_output.log'")
-    sh(script: "git submodule update --recursive")
-    newTotHash = getHead()
-
-    echo "Merged '" + branch_or_commit + "' " +
-         "(hash '" + branchHash + "') with ToT at commit " +
-         "'" + origTotHash + "' resulting in new " +
-         "ToT hash '" + newTotHash + "'.  This is just a " +
-         "local merge and will not be pushed."
-  }
-}
-
-String getHead(){
-  return sh (
-    script: "git rev-parse --short HEAD",
-    returnStdout: true
-  ).trim()
-}
-
-// Given a repo and tag, pushes a docker image to whatever repo we
-// are currently logged into (set up by the caller).  If tagAsLatest
-// is set to true, that image will be re-tagged as latest and pushed
-// again.
-void pushDockerImage(repo, tag, tagAsLatest){
-  // TESTING CODE ONLY
-  // Push to a test repo in artifactory instead of the real one when testing push.
-  // if (repo.contains("athena-docker-local")){
-  //     old_repo = repo
-  //     repo = repo.replace("athena-docker-local.artifactory.eng.vmware.com", "athena-docker-local.artifactory.eng.vmware.com/test")
-  //     command = "docker tag ${old_repo}:${tag} ${repo}:${tag}"
-  //     retryCommand(command, true)
-  // }
-
-  if (repo.contains(env.internal_repo_name)){
-    // Re-pushing to artifactory will trigger an error.
-    component = repo.split("eng.vmware.com")[1]
-    apiLookupString = env.internal_repo_name + component + "/" + tag
-
-    if (existsInArtifactory(apiLookupString)){
-      return
-    }
-  }
-
-  retryCommand("docker push ${repo}:${tag}", true)
-
-  if(tagAsLatest){
-    command = "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest"
-    retryCommand(command, true)
-  }
-}
-
-// Creates a git tag and commits it. Must be called when the pwd is the
-// source git directory.
-void createAndPushGitTag(tag){
-  sh (
-    script: "git tag -a ${tag} -m 'Version tag created by the build system'",
-    returnStdout: false
-  )
-
-  sh (
-    script: "git push origin ${tag}",
-    returnStdout: false
-  )
-}
-
-// Tag orig_repo:docker_tag as new_repo:docker_tag and push new_repo:docker_tag to dockerhub.
-void tagAndPushDockerImage(orig_repo, new_repo, docker_tag) {
-  retryCommand("docker tag ${orig_repo}:${docker_tag} ${new_repo}:${docker_tag}", true)
-  pushDockerImage(new_repo, docker_tag, false)
-}
-
-// Returns all changes since the last git tag.
-String getChangesSinceLastTag(){
-  return sh (
-    script: 'git log `git tag -l --sort=-v:refname | head -n 1`..HEAD',
-    returnStdout: true
-  ).trim()
 }
 
 // Use groovy to create and return json for the version and commit
@@ -1407,6 +1236,7 @@ void createGUIVersionInfo(){
   return new JsonOutput().toJson(versionObject)
 }
 
+// TODO Move to Hermes
 void pushHermesDataFile(fileToPush){
   echo "git add"
   sh (
@@ -1426,6 +1256,7 @@ void pushHermesDataFile(fileToPush){
   )
 }
 
+// TODO Refactor
 void sendAlertNotification(test_name) {
   if (test_name == 'memory_leak') {
     memory_leak_spiked_log = new File(env.nightly_mem_leak_test_logs, "memory_leak_spiked.log").toString()
@@ -1460,140 +1291,6 @@ void sendAlertNotification(test_name) {
   }
 }
 
-// Uses the artifactory REST API to return whether the passed in object
-// exists in the VMware artifactory. The passed in object is the path
-// seen in the Artifactory GUI.  e.g.
-// athena-docker-local/test/concord-core/2ef3010
-Boolean existsInArtifactory(String path){
-  echo "Checking for existence of '" + path + "' in the VMware artifactory"
-  found = false
-  baseUrl = "https://build-artifactory.eng.vmware.com/artifactory/api/storage/"
-  resultJsonFile = "artifactoryResult.json"
-  curlCommand = "curl -s -H 'X-JFrog-Art-Api: " + env.ARTIFACTORY_API_KEY + "' " + baseUrl + path
-  curlCommand += " -o " + resultJsonFile
-  retryCurl(curlCommand, true)
-
-  // If it is there, we get a structure like this:
-  // {
-  //   "repo" : "athena-docker-local",
-  //   "path" : "/test/concord-core/2ef3010",
-  //   ...
-  //
-  // If not, we get:
-  // {
-  //   "errors" : [ {
-  //     "status" : 404,
-  //     "message" : "Unable to find item"
-  //   } ]
-  // }
-
-  resultJson = readFile(resultJsonFile)
-  resultObj = new JsonSlurperClassic().parseText(resultJson)
-
-  if (resultObj.path){
-    echo "Found " + path
-    return true
-  }else{
-    echo "Did not find " + path
-    return false
-  }
-}
-
-// Given a command, execute it, retrying a few
-// times if there is an error. Returns true if
-// the command succeeds.  If the command fails:
-//   - Raises an exception if failOnError is true.
-//   - Returns false if failOnError is false.
-// DO NOT USE THIS DIRECTLY FOR CURL, as curl exits with 0
-// for cases we would want to retry.
-Boolean retryCommand(command, failOnError){
-  tries = 0
-  maxTries = 10
-  sleepTime = 10
-
-  while (tries < maxTries){
-    tries += 1
-
-    status = sh(
-      script: command,
-      returnStatus: true
-    )
-
-    if (status == 0){
-      return true
-    }else{
-      echo "Command '" + command + "' failed."
-
-      if (tries < maxTries){
-        echo "Retrying in " + sleepTime + " seconds."
-        sleep(sleepTime)
-      }
-    }
-  }
-
-  msg = "Failed to run the command '" + command + "'."
-
-  if(failOnError){
-    error(msg)
-  }else{
-    echo(msg)
-    return false
-  }
-}
-
-// Given a curl command (without the --dump-header parameter),
-// run it, and retry if the header indicates a problem.
-// Returns true if the command succeeds.  If the command fails:
-//   - Raises an exception if failOnError is true.
-//   - Returns false if failOnError is false.
-Boolean retryCurl(command, failOnError){
-  tries = 0
-  maxTries = 10
-  sleepTime = 10
-  headerFile = "header.txt"
-  command += " --dump-header " + headerFile
-
-  sh(script: "rm -f " + headerFile)
-
-  while (tries < maxTries){
-    tries += 1
-
-    // The retryCommand function will repeat until we get
-    // a nonzero exit code, which covers things like a typo
-    // in the protocol or the server not responding at all.
-    commandResult = retryCommand(command, failOnError)
-
-    if(!commandResult){
-      return false
-    }else{
-      headers = readFile(headerFile)
-      statusHeader = headers.readLines()[0]
-      statusCode = statusHeader.split(" ")[1]
-
-      if(statusCode == "500" || statusCode == "503"){
-        echo "Attempt " + tries + " of command '" + command + "', returned status: '" + statusHeader + "'"
-
-        if(tries < maxTries){
-          echo "Retrying in " + sleepTime + " seconds"
-          sleep(sleepTime)
-        }
-      }
-      else{
-        return true
-      }
-    }
-  }
-
-  msg = "Failed to run '" + command + "'."
-
-  if(failOnError){
-    error(msg)
-  }else{
-    echo(msg)
-    return false
-  }
-}
-
 // Called when it begins.
 // Don't call for individual stages.
 void startRun(){
@@ -1610,34 +1307,6 @@ void failRun(Exception ex = null){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
   if (ex != null){
     echo "The run has failed with an exception: " + ex.toString()
-  }
-}
-
-// Given a host to connect to, use ssh-keygen to see if we have
-// its ssh key in known_hosts. If not, use ssh-keyscan to fetch it,
-// then verify with ssh-keygen.
-void handleKnownHosts(host){
-  // By setting returnStatus, we will get an exit code instead of
-  // having the entire Jenkins run fail.
-  status = sh (
-    script: "ssh-keygen -F " + host,
-    returnStatus: true
-  )
-
-  if(status != 0){
-    // ssh-keyscan throws a nice error; let it bubble up.
-    sh (
-      script: "ssh-keyscan -H " + host + " >> ~/.ssh/known_hosts",
-    )
-
-    status = sh (
-      script: "ssh-keygen -F " + host,
-      returnStatus: true
-    )
-
-    if(status != 0){
-      error("Unable to retrieve the ssh key for " + host)
-    }
   }
 }
 
@@ -1693,38 +1362,6 @@ Boolean have_any_paths_changed(paths){
   return changed
 }
 
-// Remove all containers.
-// Set returnStatus to true so that a build does not fail when there are no
-// containers.  That should never happen anyway, but just in case.
-void removeContainers(){
-  echo "Removing docker containers"
-  sh(script: '''docker rm -f $(docker ps -aq) > /dev/null''', returnStatus: true)
-}
-
-// Remove unused images.
-void pruneImages(){
-  echo "Pruning docker images"
-  sh(script: "docker system prune --force > /dev/null", returnStatus: true)
-}
-
-// Report status about this system
-void reportSystemStats(){
-  echo "Jenkins node networking info:"
-  sh(script:
-  '''
-  set +x
-  echo
-  ifconfig | grep -A 2 "ens"
-  set -x
-  ''')
-
-  echo "Jenkins node disk stats:"
-  sh(script: "df -h")
-
-  echo "Jenkins node docker system stats:"
-  sh(script: "docker system df")
-}
-
 // Returns whether we are pushing.  (If we are, the current run should run tests.)
 Boolean runWillPush(){
   return env.JOB_NAME.contains(env.tot_job_name) || params.deploy
@@ -1744,23 +1381,20 @@ void checkSkipTestsPassword(){
   }
 }
 
-void saveTimeEvent(stage, event){
-  sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
-}
-
 void fetchSourceRepos() {
   echo "Fetch blockchain repo source"
   sh 'mkdir blockchain'
+
   dir('blockchain') {
     // After the checkout, the content of the repo is directly under 'blockchain'.
     // There is no extra 'vmwathena_blockchain' directory.
-    env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit)
+    env.commit = gitlablib.getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit, env.WORKSPACE + "/blockchain/vars/merge_output.log")
   }
 
   echo "Fetch VMware blockchain hermes-data source"
   sh 'mkdir hermes-data'
   dir('hermes-data') {
-    env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data", env.tot_branch, false)
+    env.actual_hermes_data_fetched = gitlablib.getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data", env.tot_branch, false, env.WORKSPACE + "/blockchain/vars/merge_output.log")
     sh 'git checkout ${tot_branch}'
   }
 
@@ -1808,10 +1442,10 @@ void pushToArtifactory(){
       // tools are working with the new format.
       subdirRepo = repo + "/" + env.major_minor_patch
       command = "docker tag ${repo}:${env.docker_tag} ${subdirRepo}:${env.docker_tag}"
-      retryCommand(command, true)
+      jenkinsbuilderlib.retryCommand(command, true)
 
-      pushDockerImage(subdirRepo, env.docker_tag, false)
-      pushDockerImage(repo, env.docker_tag, false)
+      dockerutillib.pushDockerImage(subdirRepo, env.docker_tag, false)
+      dockerutillib.pushDockerImage(repo, env.docker_tag, false)
     }
   }
 }
@@ -1837,7 +1471,7 @@ void pushToDockerHub(){
 
   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
     for (repo in pushList){
-      pushDockerImage(repo, env.docker_tag, true)
+      dockerutillib.pushDockerImage(repo, env.docker_tag, true)
     }
   }
 }
@@ -2106,10 +1740,10 @@ void setProductVersion(){
 
 
 String updateOneCloudProvisioningBintrayAndGetLatestTag(){
-  saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
+  customathenautil.saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
   echo "For nightly runs (other than MR/ToT/Manual Run/ON DEMAND), fetching latest build number"
   def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
-  saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+  customathenautil.saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
   return build.buildVariables.concord_tag
 }
 
@@ -2204,56 +1838,10 @@ void announceSDDCCleanupFailures(failures){
   }
 }
 
-void collectArtifacts(){
-  saveTimeEvent("Gather artifacts", "Start")
-
-  def logMap = [
-    "tests": [
-      "base": "**/testLogs/**/*.",
-      "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
-    ],
-    "builds": [
-      "base": "**/blockchain/**/*.",
-      "types": ["log", "json", "properties", "sql"]
-    ]
-  ]
-
-  // Exclude 3rd party stuff; See BC-1858
-  // node_modules; avoid bundling 3000+ package.json files
-  def excludeMap = [
-    "node_modules": [
-      "pattern": "**/node_modules/**",
-    ]
-  ]
-
-  excludedPaths = ""
-  for (k in excludeMap.keySet()){
-    if (excludedPaths != "") excludedPaths += ","
-    excludedPaths += excludeMap[k]["pattern"]
-  }
-
-  // Iterate through the keys, *not* the map, because of Jenkins.
-  for (k in logMap.keySet()){
-    paths = ""
-    for (logType in logMap[k]["types"]){
-      if (paths != "") paths += ","
-      paths += logMap[k]["base"] + logType
-    }
-    archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
-  }
-
-  archiveArtifacts artifacts: "**/summary/**", allowEmptyArchive: true
-
-  saveTimeEvent("Gather artifacts", "End")
-
-  // And grab the time file one more time so we can know how long gathering artifacts takes.
-  archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
-}
-
 // Clean all SDDCs.
 // Store all failures in an array and report them in one message.
 void cleanUpSDDCs(){
-  saveTimeEvent("Clean up SDDCs", "Start")
+  customathenautil.saveTimeEvent("Clean up SDDCs", "Start")
   sddcs = ['VMware-Blockchain-SDDC-1', 'VMware-Blockchain-SDDC-2', 'VMware-Blockchain-SDDC-3', 'VMware-Blockchain-SDDC-4']
   failures = []
 
@@ -2284,7 +1872,7 @@ void cleanUpSDDCs(){
     announceSDDCCleanupFailures(failures)
   }
 
-  saveTimeEvent("Clean up SDDCs", "End")
+  customathenautil.saveTimeEvent("Clean up SDDCs", "End")
 }
 
 // Given an SDDC name, folder, and age, cleans it.
@@ -2303,63 +1891,6 @@ String cleanSDDC(sddc, folder, age){
   }
 
   return failure
-}
-
-void racetrack(Map params){
-  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-    def action = params.action
-    script {
-      dir('blockchain/hermes') {
-        try{
-          if(action == "setBegin") {
-            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
-          } else if(action == "setEnd"){
-            env.run_result = currentBuild.currentResult
-            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${run_result}"'
-          } else if(action == "reportFailure") {
-            env.tmp_suite_name = params.suiteName ? params.suiteName : "_Pipeline"
-            env.tmp_case_name = params.caseName ? params.caseName : "pipeline_unknown_case"
-            env.tmp_case_description = params.caseDescription ? params.caseDescription : ""
-            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackCaseFailed --param "${tmp_suite_name}" "${tmp_case_name}" "${tmp_case_description}"'
-          }
-        }catch(Exception ex){
-          echo(ex.toString())
-        }
-      }
-    }
-  }
-}
-
-void ownWorkspace(){
-  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-    script {
-      sh '''
-        echo "${PASSWORD}" | sudo -S chown -R builder:builder .
-      '''
-    }
-  }
-}
-
-void preprocessForMainMR(){
-  // Figure out which components have changed based on git diff
-  // From this information, you can:
-  //    1) choose to pull pre-built images, instead of building everything
-  //    2) skip component-internal unit tests of components that didn't change
-  // Output the changed components map to `blockchain/vars/components_affected.json`
-  // Also, extract effective commits and authors affecting this MR
-  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-    script {
-      dir('blockchain/vars') {
-        env.python = "/var/jenkins/workspace/venv_py37/bin/python"
-        sh '''
-          echo "${PASSWORD}" | sudo -SE "${python}" get-changed-paths.py > components_affected.log 2>&1
-          cat components_affected.log
-          echo "${PASSWORD}" | sudo -SE "${python}" get-commits-blame.py
-          echo "${PASSWORD}" | sudo -SE "${python}" get-component-suites-and-builds.py
-        '''
-      }
-    }
-  }
 }
 
 void setEnvFileAndUserConfig(){
@@ -2520,7 +2051,7 @@ void updateEnvFileForBuildingMRs(){
         dir('blockchain/vars') {
           env.python = "/var/jenkins/workspace/venv_py37/bin/python"
           sh '''
-            echo "${PASSWORD}" | sudo -SE "${python}" rewrite-env-for-mr.py --artifactoryKey "${ARTIFACTORY_API_KEY}"
+            echo "${PASSWORD}" | sudo -SE "${python}" util/rewrite-env-for-mr.py --artifactoryKey "${ARTIFACTORY_API_KEY}"
             echo "${PASSWORD}" | sudo -SE chown builder:builder ../docker/.env
           '''
         }
@@ -2594,25 +2125,25 @@ void startOfficialPerformanceRun(){
 // This is needed for deployment testing, as SDDCs are located outside the firewall.
 void pushConcordComponentsToDockerHub(){
   env_file_tag = getTagFromEnv(env.internal_persephone_agent_repo)
-  tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_concord_repo)
-  tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_ethrpc_repo)
-  tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_daml_ledger_api_repo)
-  tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_daml_execution_engine_repo)
-  tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_daml_index_db_repo)
-  tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
 
   env_file_tag = getTagFromEnv(env.internal_fluentd_repo)
-  tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
+  dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
 }
 
 // Given a component like "athena-docker-local.artifactory.eng.vmware.com/concord-core", return its tag from the .env file.
