@@ -129,6 +129,121 @@ public class TelegrafConfigUtilTest {
     }
 
     @Test
+    public void testTelegrafConfigElasticSearch() throws IOException {
+        Map<Integer, String> esUrls = new HashMap<>();
+        esUrls.put(0, "\"myurl0.com\"");
+        esUrls.put(1, "\"myurl1.com\"");
+        esUrls.put(2, "\"myurl2.com\"");
+        esUrls.put(3, "\"myurl3.com\"");
+
+        Map<Integer, String> esUsername = new HashMap<>();
+        esUsername.put(0, "myusername0");
+        esUsername.put(1, "myusername1");
+        esUsername.put(2, "myusername2");
+        esUsername.put(3, "myusername3");
+
+        Map<Integer, String> espassword = new HashMap<>();
+        espassword.put(0, "mypassword0");
+        espassword.put(1, "mypassword1");
+        espassword.put(2, "mypassword2");
+        espassword.put(3, "mypassword3");
+
+        var esList = List.of(
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.NODE_IP)
+                        .putAllValue(nodeIpMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.NODE_ID)
+                        .putAllValue(nodeIdMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_URL)
+                        .putAllValue(esUrls).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_USER)
+                        .putAllValue(esUsername).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_PWD)
+                        .putAllValue(espassword).build());
+
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
+                        NodeProperty.Name.CONSORTIUM_ID.toString(), "testConsortium"))
+                .build();
+
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_EXECUTION_ENGINE,
+                ServiceType.CONCORD,
+                ServiceType.GENERIC);
+
+        Map<Integer, String> actual = telegrafConfigUtil.getTelegrafConfig(esList, properties, servicesList);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigES.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        actual.forEach((key, value) -> {
+            var expect = expected
+                    .replace("$REPLICA", nodeIpMap.get(key))
+                    .replace("$num", key.toString());
+            Assertions.assertThat(value.equalsIgnoreCase(expect)).isTrue();
+        });
+    }
+
+    @Test
+    public void testTelegrafConfigElasticSearchNoUser() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
+                        NodeProperty.Name.CONSORTIUM_ID.toString(), "testConsortium"))
+                .build();
+
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_EXECUTION_ENGINE,
+                ServiceType.CONCORD,
+                ServiceType.GENERIC);
+
+        Map<Integer, String> esUrls = new HashMap<>();
+        Map<Integer, String> esUsername = new HashMap<>();
+        Map<Integer, String> espassword = new HashMap<>();
+
+        esUrls.put(0, "\"myurl0.com\"");
+        esUrls.put(1, "\"myurl1.com\"");
+        esUrls.put(2, "\"myurl2.com\"");
+        esUrls.put(3, "\"myurl3.com\"");
+
+        var esList = List.of(
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.NODE_IP)
+                        .putAllValue(nodeIpMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.NODE_ID)
+                        .putAllValue(nodeIdMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_URL)
+                        .putAllValue(esUrls).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_USER)
+                        .putAllValue(esUsername).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.ELASTICSEARCH_PWD)
+                        .putAllValue(espassword).build());
+
+        Map<Integer, String> actual = telegrafConfigUtil.getTelegrafConfig(esList, properties, servicesList);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigESNoUser.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        actual.forEach((key, value) -> {
+            var expect = expected
+                    .replace("$REPLICA", nodeIpMap.get(key))
+                    .replace("$num", key.toString());
+            Assertions.assertThat(value.equalsIgnoreCase(expect)).isTrue();
+        });
+    }
+
+    @Test
     public void testPaths() {
         Assertions.assertThat(TelegrafConfigUtil.metricsConfigPath.equals(
                 "/concord/config-public/metrics_config.yaml")).isTrue();
