@@ -31,8 +31,6 @@ import java.util.stream.Stream;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
 import com.vmware.blockchain.deployment.services.configservice.ConfigServiceInvoker;
 import com.vmware.blockchain.deployment.services.futureutil.ReactiveStream;
@@ -57,12 +55,9 @@ import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
-import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -345,6 +340,9 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         Map<Integer, String> wavefrontProxyUrl = new HashMap<>();
         Map<Integer, String> wavefrontProxyPort = new HashMap<>();
         Map<Integer, String> nodeIpMap = new HashMap<>();
+        Map<Integer, String> esUrl = new HashMap<>();
+        Map<Integer, String> esUser = new HashMap<>();
+        Map<Integer, String> esPwd = new HashMap<>();
 
         Wavefront wavefront = Wavefront.newBuilder().build();
         for (Map.Entry<PlacementAssignment.Entry,
@@ -359,18 +357,25 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             var nodeUuid = entry.getKey().getNode().getId();
             nodeIds.put(nodeIndex, nodeUuid);
-            loggingProperties.put(nodeIndex, getLogManagementJson(siteInfo));
+            loggingProperties.put(nodeIndex, ProvisioningServiceUtil.getLogManagementJson(siteInfo));
             concordIdentifierMap.put(entry.getKey().getNode(), nodeIndex);
 
             // PS: this keeps the provision open for multiple wavefront config in multiple zones,
             // however, taking only the last indeterministically. Need a design fix here.
             // wavefront URL and Token should be same for all zones ideally.
-            wavefront = getWavefront(siteInfo);
+            wavefront = ProvisioningServiceUtil.getWavefront(siteInfo);
 
-            var outboundProxy = getOutboundProxy(siteInfo);
+            var outboundProxy = ProvisioningServiceUtil.getOutboundProxy(siteInfo);
             if (!outboundProxy.getHttpsHost().isEmpty()) {
                 wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
                 wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
+            }
+
+            var elasticsearch = ProvisioningServiceUtil.getElasticsearch(siteInfo);
+            if (!elasticsearch.getUrl().isEmpty()) {
+                esUrl.put(nodeIndex, elasticsearch.getUrl());
+                esUser.put(nodeIndex, elasticsearch.getUsername());
+                esPwd.put(nodeIndex, elasticsearch.getPassword());
             }
 
         }
@@ -403,6 +408,15 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                          .putAllValue(wavefrontProxyPort).build());
         }
 
+        if (!esUrl.isEmpty()) {
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_URL)
+                    .putAllValue(esUrl).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_USER)
+                    .putAllValue(esUser).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.ELASTICSEARCH_PWD)
+                    .putAllValue(esPwd).build());
+        }
+
         var request = ConfigurationServiceRequest.newBuilder()
                 .setHeader(MessageHeader.getDefaultInstance())
                 .addAllHosts(nodeIps)
@@ -419,63 +433,6 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 = new CompletableFuture<>();
         configurationServiceClient.createConfiguration(request, ReactiveStream.blockedResultObserver(completable));
         return completable;
-    }
-
-    private OutboundProxyInfo getOutboundProxy(OrchestrationSiteInfo siteInfo) {
-        OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
-        switch (siteInfo.getType()) {
-            case VMC:
-                outboundProxyInfo = siteInfo.getVmc().getVsphere().getOutboundProxy();
-                break;
-            case VSPHERE:
-                outboundProxyInfo = siteInfo.getVsphere().getVsphere().getOutboundProxy();
-                break;
-            default:
-                break;
-        }
-        return outboundProxyInfo;
-    }
-
-    private Wavefront getWavefront(OrchestrationSiteInfo siteInfo) {
-        Wavefront wavefront = Wavefront.newBuilder().build();
-        switch (siteInfo.getType()) {
-            case VMC:
-                wavefront = siteInfo.getVmc().getWavefront();
-                break;
-            case VSPHERE:
-                wavefront = siteInfo.getVsphere().getWavefront();
-                break;
-            default:
-                break;
-        }
-        return wavefront;
-    }
-
-    private String getLogManagementJson(OrchestrationSiteInfo siteInfo) {
-
-        List<LogManagement> logManagements = new ArrayList<>();
-
-        switch (siteInfo.getType()) {
-            case VMC:
-                logManagements.addAll(siteInfo.getVmc().getLogManagementsList());
-                break;
-            case VSPHERE:
-                logManagements.addAll(siteInfo.getVsphere().getLogManagementsList());
-                break;
-            default:
-                break;
-        }
-
-        // TODO: It takes only the first one, subject to change if design changes.
-        if (!logManagements.isEmpty()) {
-            LogManagement logManagement = logManagements.get(0);
-            try {
-                return JsonFormat.printer().print(logManagement);
-            } catch (InvalidProtocolBufferException e) {
-                log.error("error parsing log info" + e);
-            }
-        }
-        return "";
     }
 
     /**
@@ -873,13 +830,12 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         boolean isWavefront = true;
         List<ConcordComponent.ServiceType> exclusionList = List.of(
                 ConcordComponent.ServiceType.WAVEFRONT_PROXY,
-                ConcordComponent.ServiceType.TELEGRAF,
                 ConcordComponent.ServiceType.JAEGER_AGENT);
 
         for (Map.Entry<PlacementAssignment.Entry,
                 OrchestratorData.NetworkResourceEventCreated> entry : privateNetworkAddressMap.entrySet()) {
             var siteInfo = entry.getKey().getSiteInfo();
-            Wavefront wavefront = getWavefront(siteInfo);
+            Wavefront wavefront = ProvisioningServiceUtil.getWavefront(siteInfo);
             if (wavefront.getUrl().isEmpty()
                 || wavefront.getUrl().isBlank()
                 || wavefront.getToken().isEmpty()

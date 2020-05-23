@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.services.provision;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.services.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
@@ -29,20 +32,26 @@ import com.vmware.blockchain.deployment.v1.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.ElasticSearch;
+import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.Metadata;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
+import com.vmware.blockchain.deployment.v1.Wavefront;
 
 import lombok.extern.slf4j.Slf4j;
+
 
 /**
  * Helper class for @OrchestrationSite.
  */
 
 @Slf4j
-public class ProvisioningServiceUtil {
+class ProvisioningServiceUtil {
 
     /**
      * Generate a new {@link DeploymentSessionIdentifier} based on a given request {@link MessageHeader}, or generate a
@@ -51,7 +60,7 @@ public class ProvisioningServiceUtil {
      * @param requestHeader header of the deployment request message.
      * @return a corresponding instance of the resulting deployment session ID.
      */
-    public static DeploymentSessionIdentifier newSessionId(MessageHeader requestHeader) {
+    static DeploymentSessionIdentifier newSessionId(MessageHeader requestHeader) {
         var id = requestHeader.getId();
         UUID uuid;
         if (id.isEmpty() || id.isBlank()) {
@@ -70,7 +79,7 @@ public class ProvisioningServiceUtil {
      *
      * @return a new {@link ConcordClusterIdentifier} instance.
      */
-    public static ConcordClusterIdentifier newClusterId() {
+    static ConcordClusterIdentifier newClusterId() {
         return ConcordClusterIdentifier.newBuilder().setId(UUID.randomUUID().toString()).build();
     }
 
@@ -189,7 +198,7 @@ public class ProvisioningServiceUtil {
      * @param events  events engendered by the deployment session.
      * @return a listing of {@link ConcordNode} instances.
      */
-    public static List<ConcordNode> toConcordNodes(
+    static List<ConcordNode> toConcordNodes(
             DeploymentSession session,
             Collection<OrchestratorData.OrchestrationEvent> events
     ) {
@@ -267,7 +276,7 @@ public class ProvisioningServiceUtil {
      * @param events  events engendered by the deployment session.
      * @return a listing of {@link ProvisionedResource} instances.
      */
-    public static List<ProvisionedResource> toProvisionedResources(
+    static List<ProvisionedResource> toProvisionedResources(
             DeploymentSession session,
             Collection<OrchestratorData.OrchestrationEvent> events
     ) {
@@ -336,7 +345,7 @@ public class ProvisioningServiceUtil {
      * @param sessionId identifier of the deployment session to create the session event for.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    public static DeploymentSessionEvent newInitialEvent(DeploymentSessionIdentifier sessionId) {
+    static DeploymentSessionEvent newInitialEvent(DeploymentSessionIdentifier sessionId) {
         return DeploymentSessionEvent.newBuilder().setType(DeploymentSessionEvent.Type.ACKNOWLEDGED)
                 .setSession(sessionId)
                 .setStatus(DeploymentSession.Status.ACTIVE)
@@ -355,7 +364,7 @@ public class ProvisioningServiceUtil {
      * @param status    completion status.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    public static DeploymentSessionEvent newCompleteEvent(
+    static DeploymentSessionEvent newCompleteEvent(
             DeploymentSessionIdentifier sessionId,
             DeploymentSession.Status status
     ) {
@@ -378,7 +387,7 @@ public class ProvisioningServiceUtil {
      * @param resource  data payload to set for the session event.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    public static DeploymentSessionEvent newResourceEvent(
+    static DeploymentSessionEvent newResourceEvent(
             DeploymentSessionIdentifier sessionId,
             DeploymentSession.Status status,
             ProvisionedResource resource
@@ -402,7 +411,7 @@ public class ProvisioningServiceUtil {
      * @param node      data payload to set for the session event.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    public static DeploymentSessionEvent newNodeDeploymentEvent(
+    static DeploymentSessionEvent newNodeDeploymentEvent(
             DeploymentSessionIdentifier sessionId,
             DeploymentSession.Status status,
             ConcordNode node
@@ -426,7 +435,7 @@ public class ProvisioningServiceUtil {
      * @param cluster   data payload to set for the session event.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    public static DeploymentSessionEvent newClusterDeploymentEvent(
+    static DeploymentSessionEvent newClusterDeploymentEvent(
             DeploymentSessionIdentifier sessionId,
             DeploymentSession.Status status,
             ConcordCluster cluster,
@@ -457,7 +466,7 @@ public class ProvisioningServiceUtil {
      * @param name resource name to convert into identifier.
      * @return identifier as a {@link ConcordNodeIdentifier}.
      */
-    public static ConcordNodeIdentifier toNodeIdentifier(String name) {
+    static ConcordNodeIdentifier toNodeIdentifier(String name) {
         return ConcordNodeIdentifier.newBuilder().setId(UUID.fromString(name).toString()).build();
     }
 
@@ -550,5 +559,97 @@ public class ProvisioningServiceUtil {
                 ))
                 .putAllEndpoints(endpoints)
                 .build();
+    }
+
+    /**
+     * Gets the outbound proxy information for on-prem deployment when present.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return OutboundProxyInfo
+     */
+    static OutboundProxyInfo getOutboundProxy(OrchestrationSiteInfo siteInfo) {
+        OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                outboundProxyInfo = siteInfo.getVmc().getVsphere().getOutboundProxy();
+                break;
+            case VSPHERE:
+                outboundProxyInfo = siteInfo.getVsphere().getVsphere().getOutboundProxy();
+                break;
+            default:
+                break;
+        }
+        return outboundProxyInfo;
+    }
+
+    /**
+     * Gets wavefront details.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return Wavefront
+     */
+    static Wavefront getWavefront(OrchestrationSiteInfo siteInfo) {
+        Wavefront wavefront = Wavefront.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                wavefront = siteInfo.getVmc().getWavefront();
+                break;
+            case VSPHERE:
+                wavefront = siteInfo.getVsphere().getWavefront();
+                break;
+            default:
+                break;
+        }
+        return wavefront;
+    }
+
+    /**
+     * Get elasticsearch details.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return ElasticSearch
+     */
+    static ElasticSearch getElasticsearch(OrchestrationSiteInfo siteInfo) {
+        ElasticSearch elasticSearch = ElasticSearch.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                elasticSearch = siteInfo.getVmc().getElasticsearch();
+                break;
+            case VSPHERE:
+                elasticSearch = siteInfo.getVsphere().getElasticsearch();
+                break;
+            default:
+                break;
+        }
+        return elasticSearch;
+    }
+
+    /**
+     * Gets logmanagement details.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return list of LogManagement
+     */
+    static String getLogManagementJson(OrchestrationSiteInfo siteInfo) {
+
+        List<LogManagement> logManagements = new ArrayList<>();
+
+        switch (siteInfo.getType()) {
+            case VMC:
+                logManagements.addAll(siteInfo.getVmc().getLogManagementsList());
+                break;
+            case VSPHERE:
+                logManagements.addAll(siteInfo.getVsphere().getLogManagementsList());
+                break;
+            default:
+                break;
+        }
+
+        // TODO: It takes only the first one, subject to change if design changes.
+        if (!logManagements.isEmpty()) {
+            LogManagement logManagement = logManagements.get(0);
+            try {
+                return JsonFormat.printer().print(logManagement);
+            } catch (InvalidProtocolBufferException e) {
+                log.error("error parsing log info" + e);
+            }
+        }
+        return "";
     }
 }
