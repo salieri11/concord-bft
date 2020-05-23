@@ -1,5 +1,7 @@
 import groovy.json.JsonSlurperClassic
 
+jenkinsbuilderlib = load "vars/util/jenkinsbuilderlib.groovy"
+
 String getLatestTag(){
   if (env.latest_tag) { return env.latest_tag }
 
@@ -33,7 +35,7 @@ Boolean existsInArtifactory(String path){
   resultJsonFile = "artifactoryResult.json"
   curlCommand = "curl -s -H 'X-JFrog-Art-Api: " + env.ARTIFACTORY_API_KEY + "' " + baseUrl + path
   curlCommand += " -o " + resultJsonFile
-  retryCurl(curlCommand, true)
+  jenkinsbuilderlib.retryCurl(curlCommand, true)
 
   // If it is there, we get a structure like this:
   // {
