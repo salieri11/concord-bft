@@ -30,8 +30,11 @@ class DamlKvbCommandsHandler
   log4cplus::Logger logger_;
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   bool enable_pipelined_commits_;
+  prometheus::Histogram& daml_exec_eng_dur_;
+  prometheus::Histogram& daml_hdlr_exec_dur_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
+  prometheus::Counter& failed_ops_;
   prometheus::Counter& execution_time_;
 
  public:
@@ -52,12 +55,26 @@ class DamlKvbCommandsHandler
         validator_client_(std::move(validator)),
         enable_pipelined_commits_(
             IsPipelinedCommitExecutionEnabled(node_config)),
+        daml_exec_eng_dur_{prometheus_registry->createHistogram(
+            command_handler_histograms_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"duration", "daml_external_validation_duration_ms"}},
+            {10, 20, 40, 80, 160, 320, 480, 640, 960, 1280})},
+        daml_hdlr_exec_dur_{prometheus_registry->createHistogram(
+            command_handler_histograms_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"duration", "daml_handler_duration_ms"}},
+            {10, 20, 40, 80, 160, 320, 480, 640, 960, 1280})},
+
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_writes"}})},
         read_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_reads"}})},
+        failed_ops_{prometheus_registry->createCounter(
+            command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
+                                        {"operation", "daml_failures"}})},
         execution_time_{prometheus_registry->createCounter(
             command_handler_counters_,
             {{"layer", "DamlKvbCommandsHandler"},

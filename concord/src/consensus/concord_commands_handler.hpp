@@ -48,6 +48,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
   concord::storage::ConcordBlockMetadata metadata_storage_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
+  prometheus::Family<prometheus::Histogram> &command_handler_histograms_;
   prometheus::Counter &written_blocks_;
   const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{

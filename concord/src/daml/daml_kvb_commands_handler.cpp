@@ -171,16 +171,21 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                               read_set, *execute_commit_span, concord_response);
       LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
     } else {
+      auto start1 = std::chrono::steady_clock::now();
       RecordTransaction(updates, current_block_id, correlation_id,
                         *execute_commit_span, concord_response);
       auto end = std::chrono::steady_clock::now();
       auto dur =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      LOG4CPLUS_INFO(logger_, "Done handle DAML commit command, cid: "
-                                  << correlation_id << ", time: "
-                                  << TimeUtil::ToString(record_time)
-                                  << ", dur: " << dur.count());
+      auto recordDur =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start1);
+      LOG4CPLUS_INFO(logger_,
+                     "Done handle DAML commit command, time: "
+                         << TimeUtil::ToString(record_time)
+                         << ", execDur: " << dur.count()
+                         << ", recordTransactionDur: " << recordDur.count());
       execution_time_.Increment((double)dur.count());
+      daml_hdlr_exec_dur_.Observe(dur.count());
     }
     return true;
   } else {
@@ -234,9 +239,20 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     return GetFromStorage(keys);
   };
   WriteCollectingStorageOperations storage_operations(kvb_read);
+
+  auto start = std::chrono::steady_clock::now();
+
   grpc::Status status = validator_client_->Validate(
       submission, record_time, participant_id, correlation_id, parent_span,
       read_set, storage_operations);
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() - start)
+                      .count();
+  daml_exec_eng_dur_.Observe(duration);
+
+  LOG4CPLUS_INFO(logger_, "DAML external Validate (Pipelined) duration ["
+                              << duration << "ms]");
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : storage_operations.get_updates()) {
     updates.insert(std::make_pair(
@@ -261,10 +277,28 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
       "run_daml_execution", {opentracing::ChildOf(&parent_span.context())});
   bool daml_execution_success = true;
   // Send the submission for validation.
-  grpc::Status status = validator_client_->ValidateSubmission(
+  grpc::Status status;
+
+  auto start = std::chrono::steady_clock::now();
+  status = validator_client_->ValidateSubmission(
       entryId, commit_req.submission(), record_time,
       commit_req.participant_id(), commit_req.correlation_id(),
       *run_daml_execution, &response);
+
+  auto submissionDur = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now() - start)
+                           .count();
+
+  LOG4CPLUS_DEBUG(logger_, "DAML external ValidateSubmission duration ["
+                               << submissionDur << "ms]");
+
+  // If no second gRPC call is needed, record the duration here
+  if (!response.has_need_state() || !status.ok()) {
+    daml_exec_eng_dur_.Observe(submissionDur);
+    LOG4CPLUS_INFO(logger_,
+                   "DAML external duration [" << submissionDur << "ms]");
+  }
+
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
@@ -286,9 +320,31 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
       }
 
       if (daml_execution_success) {
+        auto startPending = std::chrono::steady_clock::now();
+
         validator_client_->ValidatePendingSubmission(
             entryId, input_state_entries, commit_req.correlation_id(),
             *run_daml_execution, &response2);
+
+        auto pendingDur = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::steady_clock::now() - startPending)
+                              .count();
+
+        auto executionDur =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start)
+                .count();
+
+        // Duration from first gRPC call
+        daml_exec_eng_dur_.Observe(executionDur);
+
+        LOG4CPLUS_INFO(logger_,
+                       "DAML external Validation: PendingSubmission duration ["
+                           << pendingDur
+                           << "ms], total duration (ValidateSubmission + "
+                              "get from storage + ValidatePendingSubmission) ["
+                           << executionDur << "ms]");
+
         if (!status.ok()) {
           LOG4CPLUS_ERROR(logger_, "Validation failed "
                                        << status.error_code() << ": "
@@ -562,11 +618,15 @@ bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
                                      opentracing::Span& parent_span,
                                      ConcordResponse& response) {
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
-
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
-    return ExecuteCommand(request, flags, time_contract, parent_span, response);
+    auto success =
+        ExecuteCommand(request, flags, time_contract, parent_span, response);
+    if (!success) {
+      failed_ops_.Increment();
+    }
+    return success;
   }
 }
 

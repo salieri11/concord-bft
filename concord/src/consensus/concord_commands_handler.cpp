@@ -8,6 +8,7 @@
 
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
+#include <chrono>
 #include <utils/open_tracing_utils.hpp>
 #include <vector>
 
@@ -42,6 +43,9 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       command_handler_counters_{prometheus_registry->createCounterFamily(
           "concord_command_handler_operation_counters_total",
           "counts how many operations the command handler has done", {})},
+      command_handler_histograms_{prometheus_registry->createHistogramFamily(
+          "concord_command_handler_histograms",
+          "measure quantities such as durations", {})},
       written_blocks_{prometheus_registry->createCounter(
           command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
                                       {"operation", "written_blocks"}})},
@@ -410,13 +414,12 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
                       << updates.size());
   written_blocks_.Increment();
 
-  LOG4CPLUS_DEBUG(
-      logger_,
-      "ConcordCommandsHandler::addBlock, before TRS add block, updates: "
-          << updates.size());
+  auto start = std::chrono::steady_clock::now();
   PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
-  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::addBlock, exit, updates: "
-                               << updates.size());
+  auto end = std::chrono::steady_clock::now();
+  auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  LOG4CPLUS_INFO(logger_, "ConcordCommandsHandler::addBlock, exit, updates: "
+                              << updates.size() << ", dur: " << dur.count());
   return status;
 }
 
