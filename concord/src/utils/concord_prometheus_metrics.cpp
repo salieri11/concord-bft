@@ -102,9 +102,13 @@ PrometheusRegistry::PrometheusRegistry(const std::string& bindAddress,
               std::chrono::seconds(metricsDumpInterval))),
       gauges_custom_collector_(
           std::make_shared<ConcordCustomCollector<prometheus::Gauge>>(
+              std::chrono::seconds(metricsDumpInterval))),
+      histogram_custom_collector_(
+          std::make_shared<ConcordCustomCollector<prometheus::Histogram>>(
               std::chrono::seconds(metricsDumpInterval))) {
   exposer_.RegisterCollectable(counters_custom_collector_);
   exposer_.RegisterCollectable(gauges_custom_collector_);
+  exposer_.RegisterCollectable(histogram_custom_collector_);
 }
 
 PrometheusRegistry::PrometheusRegistry(const std::string& bindAddress)
@@ -148,6 +152,26 @@ prometheus::Gauge& PrometheusRegistry::createGauge(
     const std::string& name, const std::string& help,
     const std::map<std::string, std::string>& labels) {
   return createGauge(createGaugeFamily(name, help, labels), {});
+}
+
+prometheus::Family<prometheus::Histogram>&
+PrometheusRegistry::createHistogramFamily(
+    const std::string& name, const std::string& help,
+    const std::map<std::string, std::string>& labels) {
+  return histogram_custom_collector_->createFamily(name, help, labels);
+}
+prometheus::Histogram& PrometheusRegistry::createHistogram(
+    prometheus::Family<prometheus::Histogram>& source,
+    const std::map<std::string, std::string>& labels,
+    const std::vector<double>& buckets) {
+  return source.Add(labels, buckets);
+}
+prometheus::Histogram& PrometheusRegistry::createHistogram(
+    const std::string& name, const std::string& help,
+    const std::map<std::string, std::string>& labels,
+    const std::vector<double>& buckets) {
+  return createHistogram(createHistogramFamily(name, help, labels), {},
+                         buckets);
 }
 
 template <typename T>

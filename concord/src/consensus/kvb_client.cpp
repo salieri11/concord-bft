@@ -195,13 +195,13 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
     clients_.pop();
   }  // scope unlocks mutex
 
-  if (timeout == 0ms) {
+  if (correlation_id.size() > 0) {
     kvbc_client_pool_received_requests_.Increment();
     LOG_INFO(logger_, "Sending client request, cid: " << correlation_id);
   }
   bool result = client->send_request_sync(req, flags, timeout, parent_span,
                                           resp, correlation_id);
-  if (timeout == 0ms) {
+  if (correlation_id.size() > 0) {
     kvbc_client_pool_received_replies_.Increment();
     auto dur = (double)std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::steady_clock::now() - start)

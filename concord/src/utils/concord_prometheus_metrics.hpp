@@ -6,6 +6,7 @@
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
+#include <prometheus/histogram.h>
 #include <prometheus/registry.h>
 #include <string>
 #include <utility>
@@ -40,6 +41,8 @@ class PrometheusRegistry {
       counters_custom_collector_;
   std::shared_ptr<ConcordCustomCollector<prometheus::Gauge>>
       gauges_custom_collector_;
+  std::shared_ptr<ConcordCustomCollector<prometheus::Histogram>>
+      histogram_custom_collector_;
 
  public:
   explicit PrometheusRegistry(
@@ -73,6 +76,24 @@ class PrometheusRegistry {
   prometheus::Gauge& createGauge(
       const std::string& name, const std::string& help,
       const std::map<std::string, std::string>& labels);
+
+  prometheus::Family<prometheus::Histogram>& createHistogramFamily(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels);
+
+  // Measures distribution of quantity such as duration.
+  // User defines a list of buckets, and calls Observe
+  // With the observed quantity.
+  // As a result, the counter of the corresponding bucket is being incremented.
+  prometheus::Histogram& createHistogram(
+      prometheus::Family<prometheus::Histogram>& source,
+      const std::map<std::string, std::string>& labels,
+      const std::vector<double>& buckets);
+
+  prometheus::Histogram& createHistogram(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels,
+      const std::vector<double>& buckets);
 
  private:
   static const uint64_t defaultMetricsDumpInterval = 600;
