@@ -166,5 +166,12 @@ uint64_t ConcordClient::getClientSeqNum() const { return seq_num_; }
 void ConcordClient::generateClientSeqNum() {
   seq_num_ = seqGen_->generateUniqueSequenceNumberForRequest();
 }
+void ConcordClient::setStartRequestTime() {
+  start_job_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch())
+                        .count();
+}
+
+uint64_t ConcordClient::getStartRequestTime() const { return start_job_time_; }
 }  // namespace external_client
 }  // namespace concord
