@@ -85,13 +85,17 @@ class ConcordClientPool {
   util::SimpleThreadPool jobs_thread_pool_;
   // Clients queue mutex
   std::mutex clients_queue_lock_;
+  // Holds the sum of all requests time
+  uint64_t total_requests_time_ = 0;
   // Metric
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter>& total_requests_counters_;
   prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
+  prometheus::Family<prometheus::Gauge>& avg_request_time_gauges_;
   prometheus::Counter& requests_counter_;
   prometheus::Gauge& clients_gauge_;
+  prometheus::Gauge& avg_request_time_gauge_;
   // Logger
   log4cplus::Logger logger_;
 };

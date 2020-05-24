@@ -81,6 +81,10 @@ class ConcordClient {
 
   void generateClientSeqNum();
 
+  void setStartRequestTime();
+
+  uint64_t getStartRequestTime() const;
+
  private:
   void CreateClient(const config::ConcordConfiguration& config,
                     config_pool::ClientPoolConfig pool_config);
@@ -96,6 +100,10 @@ class ConcordClient {
   int client_id_;
   bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
   uint64_t seq_num_ = 0;
+  uint64_t start_job_time_ =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count();
 };
 
 }  // namespace external_client

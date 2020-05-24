@@ -37,6 +37,7 @@ SubmitResult ConcordClientPool::SendRequest(
                                          << client->getClientSeqNum()
                                          << " with cid=" << correlation_id
                                          << " to the job pool");
+    client->setStartRequestTime();
     std::unique_ptr<ConcordClientProcessingJob> job =
         std::make_unique<ConcordClientProcessingJob>(
             *this, move(client), request, request_size, flags, timeout_ms,
@@ -45,7 +46,7 @@ SubmitResult ConcordClientPool::SendRequest(
     this->requests_counter_.Increment();
     this->clients_gauge_.Increment();
     clients_lock.unlock();
-    jobs_thread_pool_.add(job.get());
+    jobs_thread_pool_.add(job.release());
     return SubmitResult::Acknowledged;
   }
   LOG4CPLUS_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
@@ -62,8 +63,14 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
                                 .Register(*registry_)),
-      requests_counter_(total_requests_counters_.Add({{"item", "updates"}})),
-      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})),
+      avg_request_time_gauges_(prometheus::BuildGauge()
+                                   .Name("average_time_for_requests")
+                                   .Help("calculates the average request time")
+                                   .Register(*registry_)),
+      requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
+      clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
+      avg_request_time_gauge_(
+          avg_request_time_gauges_.Add({{"item", "time_updates"}})),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
@@ -80,8 +87,14 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
                                 .Register(*registry_)),
-      requests_counter_(total_requests_counters_.Add({{"item", "updates"}})),
-      clients_gauge_(total_clients_gauges_.Add({{"item", "updates"}})),
+      avg_request_time_gauges_(prometheus::BuildGauge()
+                                   .Name("average_time_for_requests")
+                                   .Help("calculates the average request time")
+                                   .Register(*registry_)),
+      requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
+      clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
+      avg_request_time_gauge_(
+          avg_request_time_gauges_.Add({{"item", "time_updates"}})),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   std::ifstream config_file;
@@ -143,7 +156,7 @@ void ConcordClientPool::Config_Initialize(config::ConcordConfiguration &config,
 }
 
 ConcordClientPool::~ConcordClientPool() {
-  jobs_thread_pool_.stop();
+  jobs_thread_pool_.stop(true);
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   while (!clients_.empty()) {
     clients_.pop();
@@ -171,6 +184,12 @@ void ConcordClientPool::InsertClientToQueue(
                               << "has ended.returns client_id="
                               << client->getClientId() << " to the pool");
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
+  auto requestTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         std::chrono::steady_clock::now().time_since_epoch())
+                         .count();
+  requestTime -= client->getStartRequestTime();
+  total_requests_time_ += requestTime;
+  avg_request_time_gauge_.Set(total_requests_time_ / requests_counter_.Value());
   clients_.push(client);
   clients_gauge_.Decrement();
 }
