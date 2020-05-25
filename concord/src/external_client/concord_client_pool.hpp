@@ -35,6 +35,13 @@ enum SubmitResult {
   InternalError  // An internal error has occurred. Reason is recorded in logs.
 };
 
+// Represents the answer that the DAML Ledger API could get when sending a
+// request
+enum PoolStatus {
+  Serving,     // At least one client is running
+  NotServing,  // All clients not running
+};
+
 // Represents a Concord BFT client pool. The purpose of this class is to be easy
 // to use for external users. This is achieved by:
 //  * providing a simple public interface
@@ -71,6 +78,8 @@ class ConcordClientPool {
       std::shared_ptr<concord::external_client::ConcordClient>& client,
       const uint64_t seq_num, const std::string& correlation_id);
 
+  PoolStatus HealthStatus();
+
  private:
   void CreatePool(std::istream& config_stream,
                   config::ConcordConfiguration& config);
@@ -80,7 +89,7 @@ class ConcordClientPool {
                          config_pool::ClientPoolConfig& pool_config,
                          std::istream& config_stream);
   // Clients that are available for use (i.e. not already in use).
-  std::queue<std::shared_ptr<external_client::ConcordClient>> clients_;
+  std::deque<std::shared_ptr<external_client::ConcordClient>> clients_;
   // Thread pool, on each thread on client will run
   util::SimpleThreadPool jobs_thread_pool_;
   // Clients queue mutex

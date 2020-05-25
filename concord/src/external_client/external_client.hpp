@@ -85,6 +85,8 @@ class ConcordClient {
 
   uint64_t getStartRequestTime() const;
 
+  bool isRunning() const;
+
  private:
   void CreateClient(const config::ConcordConfiguration& config,
                     config_pool::ClientPoolConfig pool_config);
