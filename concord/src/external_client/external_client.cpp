@@ -173,5 +173,7 @@ void ConcordClient::setStartRequestTime() {
 }
 
 uint64_t ConcordClient::getStartRequestTime() const { return start_job_time_; }
+bool ConcordClient::isRunning() const { return comm_->isRunning(); }
+
 }  // namespace external_client
 }  // namespace concord

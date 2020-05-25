@@ -30,7 +30,7 @@ SubmitResult ConcordClientPool::SendRequest(
   if (!clients_.empty()) {
     // start thread with client
     auto &client = clients_.front();
-    clients_.pop();
+    clients_.pop_front();
     client->generateClientSeqNum();
     LOG4CPLUS_INFO(logger_, "client_id=" << client->getClientId()
                                          << " allocated, insert reqSeqNum="
@@ -43,8 +43,8 @@ SubmitResult ConcordClientPool::SendRequest(
             *this, move(client), request, request_size, flags, timeout_ms,
             reply_size, out_reply, out_actual_reply_size, correlation_id,
             client->getClientSeqNum());
-    this->requests_counter_.Increment();
-    this->clients_gauge_.Increment();
+    requests_counter_.Increment();
+    clients_gauge_.Increment();
     clients_lock.unlock();
     jobs_thread_pool_.add(job.release());
     return SubmitResult::Acknowledged;
@@ -127,7 +127,7 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   LOG4CPLUS_INFO(logger_, "Creating pool of num_clients=" << num_clients);
   for (int i = 0; i < num_clients; i++) {
     LOG4CPLUS_DEBUG(logger_, "Creating client_id=" << i);
-    clients_.push(std::make_shared<external_client::ConcordClient>(
+    clients_.push_back(std::make_shared<external_client::ConcordClient>(
         config, i, *pool_config.get()));
   }
   jobs_thread_pool_.start(num_clients);
@@ -158,9 +158,7 @@ void ConcordClientPool::Config_Initialize(config::ConcordConfiguration &config,
 ConcordClientPool::~ConcordClientPool() {
   jobs_thread_pool_.stop(true);
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
-  while (!clients_.empty()) {
-    clients_.pop();
-  }
+  clients_.clear();
   LOG4CPLUS_INFO(logger_, "Clients cleanup complete");
 }
 
@@ -190,8 +188,16 @@ void ConcordClientPool::InsertClientToQueue(
   requestTime -= client->getStartRequestTime();
   total_requests_time_ += requestTime;
   avg_request_time_gauge_.Set(total_requests_time_ / requests_counter_.Value());
-  clients_.push(client);
+  clients_.push_back(client);
   clients_gauge_.Decrement();
 }
+
+PoolStatus ConcordClientPool::HealthStatus() {
+  std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
+  for (auto &client : clients_)
+    if (client->isRunning()) return PoolStatus::Serving;
+  return PoolStatus::NotServing;
+}
+
 }  // namespace concord_client_pool
 }  // namespace concord
