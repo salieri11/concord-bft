@@ -67,6 +67,8 @@ class ConcordClientPool {
   // thread pool and a positive answer is immediately returned to the
   // application. If there is no available client, a negative answer is returned
   // to the application.
+  // timeout_ms is the request time out and not the time out for waiting to
+  // available client
   SubmitResult SendRequest(const void* request, std::uint32_t request_size,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
