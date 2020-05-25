@@ -49,6 +49,7 @@ SubmitResult ConcordClientPool::SendRequest(
     jobs_thread_pool_.add(job.release());
     return SubmitResult::Acknowledged;
   }
+  rejected_counter_.Increment();
   LOG4CPLUS_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
   return SubmitResult::Overloaded;
 }
@@ -59,6 +60,10 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                    .Name("total_external_clients_requests")
                                    .Help("counts requests from external client")
                                    .Register(*registry_)),
+      rejected_requests_counters_(prometheus::BuildCounter()
+                                      .Name("total_overloaded_requests")
+                                      .Help("counts rejected requests")
+                                      .Register(*registry_)),
       total_clients_gauges_(prometheus::BuildGauge()
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
@@ -68,6 +73,7 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                    .Help("calculates the average request time")
                                    .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
+      rejected_counter_(rejected_requests_counters_.Add({{"item","counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       avg_request_time_gauge_(
           avg_request_time_gauges_.Add({{"item", "time_updates"}})),
@@ -83,6 +89,10 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                    .Name("total_external_clients_requests")
                                    .Help("counts requests from external client")
                                    .Register(*registry_)),
+      rejected_requests_counters_(prometheus::BuildCounter()
+                                   .Name("total_overloaded_requests")
+                                   .Help("counts rejected requests")
+                                   .Register(*registry_)),
       total_clients_gauges_(prometheus::BuildGauge()
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
@@ -92,6 +102,7 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                    .Help("calculates the average request time")
                                    .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
+      rejected_counter_(rejected_requests_counters_.Add({{"item","counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       avg_request_time_gauge_(
           avg_request_time_gauges_.Add({{"item", "time_updates"}})),

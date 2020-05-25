@@ -100,9 +100,11 @@ class ConcordClientPool {
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter>& total_requests_counters_;
+  prometheus::Family<prometheus::Counter>& rejected_requests_counters_;
   prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
   prometheus::Family<prometheus::Gauge>& avg_request_time_gauges_;
   prometheus::Counter& requests_counter_;
+  prometheus::Counter& rejected_counter_;
   prometheus::Gauge& clients_gauge_;
   prometheus::Gauge& avg_request_time_gauge_;
   // Logger
