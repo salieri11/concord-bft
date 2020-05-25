@@ -63,6 +63,8 @@ public class WavefrontConfigUtil {
             }
         }
 
+        Map<Integer, String> wfUrls = new HashMap<>();
+        Map<Integer, String> wfTokens = new HashMap<>();
         Map<Integer, String> wfProxyUrls = new HashMap<>();
         Map<Integer, String> wfProxyPorts = new HashMap<>();
         Map<Integer, String> wfProxyUsername = new HashMap<>();
@@ -86,6 +88,12 @@ public class WavefrontConfigUtil {
                 case NODE_IP:
                     nodeIps.putAll(nodeProperty.getValueMap());
                     break;
+                case WAVEFRONT_URL:
+                    wfUrls.putAll(nodeProperty.getValueMap());
+                    break;
+                case WAVEFRONT_TOKEN:
+                    wfTokens.putAll(nodeProperty.getValueMap());
+                    break;
                 default:
                     log.debug("property {} not relevant for wavefront", nodeProperty.getName());
             }
@@ -93,14 +101,13 @@ public class WavefrontConfigUtil {
 
         content = content
                 .replace("$BLOCKCHAIN_ID",
-                        properties.getValuesOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
-                .replace("$SERVER",
-                        properties.getValuesOrDefault(NodeProperty.Name.WAVEFRONT_URL.toString(), ""))
-                .replace("$TOKEN",
-                        properties.getValuesOrDefault(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), ""));
+                        properties.getValuesOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""));
 
         for (Map.Entry<Integer, String> nodeIp : nodeIps.entrySet()) {
-            String hostConfigCopy = content.replace("$HOSTNAME", nodeIp.getValue());
+            String hostConfigCopy = content
+                    .replace("$HOSTNAME", nodeIp.getValue())
+                    .replace("$SERVER", wfUrls.getOrDefault(nodeIp.getKey(), ""))
+                    .replace("$TOKEN", wfTokens.getOrDefault(nodeIp.getKey(), ""));
             if (!wfProxyUrls.isEmpty()) {
                 hostConfigCopy = hostConfigCopy.replace("#proxyHost=localhost",
                         "proxyHost=" + wfProxyUrls.get(nodeIp.getKey()))

@@ -337,6 +337,8 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         List<String> nodeIps = new ArrayList<>();
         Map<Integer, String> nodeIds = new HashMap<>();
         Map<Integer, String> loggingProperties = new HashMap<>();
+        Map<Integer, String> wavefrontUrl = new HashMap<>();
+        Map<Integer, String> wavefrontToken = new HashMap<>();
         Map<Integer, String> wavefrontProxyUrl = new HashMap<>();
         Map<Integer, String> wavefrontProxyPort = new HashMap<>();
         Map<Integer, String> nodeIpMap = new HashMap<>();
@@ -360,15 +362,16 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             loggingProperties.put(nodeIndex, ProvisioningServiceUtil.getLogManagementJson(siteInfo));
             concordIdentifierMap.put(entry.getKey().getNode(), nodeIndex);
 
-            // PS: this keeps the provision open for multiple wavefront config in multiple zones,
-            // however, taking only the last indeterministically. Need a design fix here.
-            // wavefront URL and Token should be same for all zones ideally.
             wavefront = ProvisioningServiceUtil.getWavefront(siteInfo);
+            if (!wavefront.getUrl().isEmpty()) {
+                wavefrontUrl.put(nodeIndex, wavefront.getUrl());
+                wavefrontToken.put(nodeIndex, wavefront.getToken());
 
-            var outboundProxy = ProvisioningServiceUtil.getOutboundProxy(siteInfo);
-            if (!outboundProxy.getHttpsHost().isEmpty()) {
-                wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
-                wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
+                var outboundProxy = ProvisioningServiceUtil.getOutboundProxy(siteInfo);
+                if (!outboundProxy.getHttpsHost().isEmpty()) {
+                    wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
+                    wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
+                }
             }
 
             var elasticsearch = ProvisioningServiceUtil.getElasticsearch(siteInfo);
@@ -382,8 +385,6 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
         Map<String, String> properties = new HashMap<>(session.getSpecification().getProperties().getValuesMap());
         properties.put(NodeProperty.Name.CONSORTIUM_ID.toString(), session.getSpecification().getConsortium());
-        properties.put(NodeProperty.Name.WAVEFRONT_URL.toString(), wavefront.getUrl());
-        properties.put(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), wavefront.getToken());
 
         if (!properties.containsKey(NodeProperty.Name.BLOCKCHAIN_ID.toString())) {
             var blockchainId = session.getCluster().getId();
@@ -400,6 +401,13 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
         List<NodeProperty> nodePropertyList
                 = new ArrayList(Arrays.asList(nodeProperty, nodeIpProperty, loggingProperty));
+
+        if (!wavefrontUrl.isEmpty()) {
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_URL)
+                    .putAllValue(wavefrontUrl).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                    .putAllValue(wavefrontToken).build());
+        }
 
         if (!wavefrontProxyUrl.isEmpty()) {
             nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
