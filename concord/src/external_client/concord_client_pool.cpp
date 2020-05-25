@@ -44,7 +44,7 @@ SubmitResult ConcordClientPool::SendRequest(
             reply_size, out_reply, out_actual_reply_size, correlation_id,
             client->getClientSeqNum());
     requests_counter_.Increment();
-    clients_gauge_.Increment();
+    clients_gauge_.Decrement();
     clients_lock.unlock();
     jobs_thread_pool_.add(job.release());
     return SubmitResult::Acknowledged;
@@ -124,6 +124,7 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   Prometheus_Initialize(config, *pool_config.get());
   uint16_t num_clients =
       config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
+  clients_gauge_.Set(num_clients);
   LOG4CPLUS_INFO(logger_, "Creating pool of num_clients=" << num_clients);
   for (int i = 0; i < num_clients; i++) {
     LOG4CPLUS_DEBUG(logger_, "Creating client_id=" << i);
@@ -189,7 +190,7 @@ void ConcordClientPool::InsertClientToQueue(
   total_requests_time_ += requestTime;
   avg_request_time_gauge_.Set(total_requests_time_ / requests_counter_.Value());
   clients_.push_back(client);
-  clients_gauge_.Decrement();
+  clients_gauge_.Increment();
 }
 
 PoolStatus ConcordClientPool::HealthStatus() {
