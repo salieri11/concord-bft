@@ -1,41 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
-        <target>System.err</target>
-        <encoder>
-            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>daml-execution-engine.log</file>
-        <encoder>
-            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="FILE"/>
-    </appender>
-
-    <logger name="io.netty" level="WARN">
-        <appender-ref ref="STDERR"/>
-    </logger>
-    <logger name="io.grpc.netty" level="WARN">
-        <appender-ref ref="STDERR"/>
-    </logger>
-    <logger name="org.eclipse.jetty" level="WARN">
-        <appender-ref ref="STDERR"/>
-    </logger>
+    <property name="application_name" value="daml-execution-engine" />
+    <include resource="logback-common.xml" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="ASYNC"/>
+        <appender-ref ref="ASYNC_FILE"/>
     </root>
 </configuration>

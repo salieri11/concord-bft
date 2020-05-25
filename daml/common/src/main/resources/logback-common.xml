@@ -1,0 +1,37 @@
+<included>
+    <jmxConfigurator />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${application_name}.log</file>
+        <encoder>
+            <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSS", UTC} [%thread] %highlight(%-5level) %cyan(%logger{5}) - %msg %mdc%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <logger name="io.netty" level="WARN">
+        <appender-ref ref="STDERR"/>
+    </logger>
+    <logger name="io.grpc.netty" level="WARN">
+        <appender-ref ref="STDERR"/>
+    </logger>
+    <logger name="org.eclipse.jetty" level="WARN">
+        <appender-ref ref="STDERR"/>
+    </logger>
+</included>
