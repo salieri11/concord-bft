@@ -518,10 +518,6 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
             expected["outbound_proxy"][port] == None:
             expected["outbound_proxy"][port] = 0
 
-   # TODO: Add test for elasticsearch instead
-   if "elasticsearch" not in expected:
-         expected["elasticsearch"] = None
-
       # Handle a test case where we provide an int for a host. Helen puts it
       # into a string.
       for host in ["http_host", "https_host"]:
