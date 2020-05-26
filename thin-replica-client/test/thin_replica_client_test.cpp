@@ -1,10 +1,10 @@
 // Copyright 2020 VMware, all rights reserved
 
+#include "thin_replica_client.hpp"
+
 #include <log4cplus/configurator.h>
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "thin_replica_client_facade.hpp"
-#include "thin_replica_client_facade_impl.hpp"
 #include "thin_replica_client_mocks.hpp"
 #include "thin_replica_mock.grpc.pb.h"
 #include "trc_hash.hpp"
@@ -23,44 +23,26 @@ using grpc::StatusCode;
 using std::condition_variable;
 using std::list;
 using std::lock_guard;
+using std::make_shared;
 using std::make_unique;
 using std::min;
 using std::mutex;
 using std::out_of_range;
 using std::pair;
+using std::shared_ptr;
 using std::string;
 using std::to_string;
 using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
 using testing::Invoke;
+using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::HashUpdate;
 using thin_replica_client::ThinReplicaClient;
-using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::Update;
+using thin_replica_client::UpdateQueue;
 
 // Helper functions and classes to the unit tests.
-
-// Implementation of ThinReplicaClientFacade's templated friend function to
-// access its private constructor in order to construct a facade with mock
-// server objects.
-template <typename ThinReplicaServer>
-unique_ptr<ThinReplicaClientFacade>
-thin_replica_client::ConstructThinReplicaClientFacade(
-    const string& client_id, uint16_t max_faulty, const string& private_key,
-    vector<pair<string, ThinReplicaServer>>& mock_servers,
-    const uint16_t max_read_data_timeout, const uint16_t max_read_hash_timeout,
-    const std::string& jaeger_agent) {
-  unique_ptr<ThinReplicaClientFacade::Impl> impl(
-      new ThinReplicaClientFacade::Impl);
-  impl->trc.reset(new ThinReplicaClient(
-      client_id, impl->update_queue, max_faulty, private_key,
-      mock_servers.begin(), mock_servers.end(), max_read_data_timeout,
-      max_read_hash_timeout, jaeger_agent));
-  return unique_ptr<ThinReplicaClientFacade>(
-      new ThinReplicaClientFacade(move(impl)));
-}
-using thin_replica_client::ConstructThinReplicaClientFacade;
 
 Data FilterUpdate(const Data& raw_update, const string& filter) {
   Data filtered_update;
@@ -234,17 +216,19 @@ TEST(thin_replica_client_test, test_receive_one_initial_update) {
   }
   SetMockServerInitialState(mock_servers, stream_preparer, hasher);
 
-  unique_ptr<ThinReplicaClientFacade> trc =
-      ConstructThinReplicaClientFacade("0",           // cient id
-                                       1,             // max faulty replicas
-                                       "",            // private key
-                                       mock_servers,  // replicas
-                                       5,             // max read data timeout
-                                       5,             // max read hash timeout
-                                       "127.0.0.1:6831");  // jaeger
+  auto update_queue = make_shared<BasicUpdateQueue>();
+  auto trc =
+      make_unique<ThinReplicaClient>("0",  // client id
+                                     update_queue,
+                                     1,   // max faulty replicas
+                                     "",  // private key
+                                     mock_servers.begin(), mock_servers.end(),
+                                     5,  // max read data timeout
+                                     5,  // max read hash timeout
+                                     "127.0.0.1:6831");  // jaeger
   trc->Subscribe("");
 
-  unique_ptr<Update> update = trc->TryPop();
+  unique_ptr<Update> update = update_queue->TryPop();
   ASSERT_TRUE((bool)update)
       << "Thin Replica Client did not return an update after Subscribe was "
          "called when initial state was available.";
