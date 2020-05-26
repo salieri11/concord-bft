@@ -12,6 +12,9 @@
 // file.
 
 #pragma once
+#include <bftclient/include/bftclient/base_types.h>
+#include <bftclient/include/bftclient/config.h>
+#include <bftclient/include/bftclient/quorums.h>
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/registry.h>
@@ -20,7 +23,6 @@
 #include <mutex>
 #include <queue>
 #include "external_client.hpp"
-
 namespace concord {
 namespace external_client {
 class ConcordClient;
@@ -74,6 +76,12 @@ class ConcordClientPool {
                            std::uint32_t* out_actual_reply_size,
                            const std::string& correlation_id = {});
 
+  SubmitResult SendRequest(const bft::client::WriteConfig& config,
+                           bft::client::Msg&& request);
+
+  SubmitResult SendRequest(const bft::client::ReadConfig& config,
+                           bft::client::Msg&& request);
+
   void InsertClientToQueue(
       std::shared_ptr<concord::external_client::ConcordClient>& client,
       const uint64_t seq_num, const std::string& correlation_id);
@@ -96,6 +104,8 @@ class ConcordClientPool {
   std::mutex clients_queue_lock_;
   // Holds the sum of all requests time
   uint64_t total_requests_time_ = 0;
+  // Vector to pass for reply's
+  std::shared_ptr<std::vector<char>> reply_;
   // Metric
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;

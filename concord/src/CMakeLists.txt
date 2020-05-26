@@ -34,6 +34,7 @@ add_subdirectory("reconfiguration")
 add_subdirectory("storage")
 add_subdirectory("time")
 add_subdirectory("utils")
+add_subdirectory("bftclient")
 
 add_executable(concord
   ${concord_src}
