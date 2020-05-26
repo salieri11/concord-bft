@@ -83,7 +83,7 @@ class ConcordClient {
 
   void setStartRequestTime();
 
-  uint64_t getStartRequestTime() const;
+  std::chrono::steady_clock::time_point getStartRequestTime() const;
 
   bool isRunning() const;
 
@@ -102,10 +102,8 @@ class ConcordClient {
   int client_id_;
   bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
   uint64_t seq_num_ = 0;
-  uint64_t start_job_time_ =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now().time_since_epoch())
-          .count();
+  std::chrono::steady_clock::time_point start_job_time_ =
+      std::chrono::steady_clock::now();
 };
 
 }  // namespace external_client

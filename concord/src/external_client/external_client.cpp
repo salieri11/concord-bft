@@ -167,12 +167,14 @@ void ConcordClient::generateClientSeqNum() {
   seq_num_ = seqGen_->generateUniqueSequenceNumberForRequest();
 }
 void ConcordClient::setStartRequestTime() {
-  start_job_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now().time_since_epoch())
-                        .count();
+  start_job_time_ = std::chrono::steady_clock::now();
 }
 
-uint64_t ConcordClient::getStartRequestTime() const { return start_job_time_; }
+std::chrono::steady_clock::time_point ConcordClient::getStartRequestTime()
+    const {
+  return start_job_time_;
+}
+
 bool ConcordClient::isRunning() const { return comm_->isRunning(); }
 
 }  // namespace external_client

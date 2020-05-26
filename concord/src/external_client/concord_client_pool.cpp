@@ -74,15 +74,15 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
                                 .Register(*registry_)),
-      avg_request_time_gauges_(prometheus::BuildGauge()
-                                   .Name("average_time_for_requests")
-                                   .Help("calculates the average request time")
-                                   .Register(*registry_)),
+      last_request_time_gauges_(prometheus::BuildGauge()
+                                    .Name("average_time_for_requests")
+                                    .Help("calculates the average request time")
+                                    .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
-      avg_request_time_gauge_(
-          avg_request_time_gauges_.Add({{"item", "time_updates"}})),
+      last_request_time_gauge_(
+          last_request_time_gauges_.Add({{"item", "time_updates"}})),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
@@ -103,15 +103,15 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                 .Name("total_used_external_clients")
                                 .Help("counts used clients")
                                 .Register(*registry_)),
-      avg_request_time_gauges_(prometheus::BuildGauge()
-                                   .Name("average_time_for_requests")
-                                   .Help("calculates the average request time")
-                                   .Register(*registry_)),
+      last_request_time_gauges_(prometheus::BuildGauge()
+                                    .Name("average_time_for_requests")
+                                    .Help("calculates the average request time")
+                                    .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
-      avg_request_time_gauge_(
-          avg_request_time_gauges_.Add({{"item", "time_updates"}})),
+      last_request_time_gauge_(
+          last_request_time_gauges_.Add({{"item", "time_updates"}})),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   std::ifstream config_file;
@@ -195,18 +195,19 @@ void ConcordClientProcessingJob::execute() {
 void ConcordClientPool::InsertClientToQueue(
     std::shared_ptr<concord::external_client::ConcordClient> &client,
     const uint64_t seq_num, const std::string &correlation_id) {
+  {
+    std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
+    clients_.push_back(client);
+  }
   LOG4CPLUS_INFO(logger_,
                  "reqSeqNum=" << seq_num << "with cid=" << correlation_id
                               << "has ended.returns client_id="
                               << client->getClientId() << " to the pool");
-  std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
-  auto requestTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                         std::chrono::steady_clock::now().time_since_epoch())
-                         .count();
-  requestTime -= client->getStartRequestTime();
-  total_requests_time_ += requestTime;
-  avg_request_time_gauge_.Set(total_requests_time_ / requests_counter_.Value());
-  clients_.push_back(client);
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  last_request_time_gauge_.Set(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          end - client->getStartRequestTime())
+          .count());
   clients_gauge_.Increment();
 }
 
