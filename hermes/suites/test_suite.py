@@ -52,6 +52,7 @@ class TestSuite(ABC):
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                       self.getName() + ".json")
       self._userConfig = helper.loadConfigFile(self._args)
+      self._zoneConfig = helper.loadZoneConfig(self._args)
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch

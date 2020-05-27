@@ -40,6 +40,7 @@ class PersephoneTests(test_suite.TestSuite):
       super().__init__(cmdlineArgs, product)
       self.args = self._args
       self.args.userConfig = self._userConfig
+      self.args.zoneConfig = self._zoneConfig
       self.concord_ips = []
       self.session_ids_to_retain = []
 

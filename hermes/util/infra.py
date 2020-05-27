@@ -61,14 +61,14 @@ def getConnection(sddcName):
       which get injected to `user_config.json` in `gitlabBuildSteps.groovy` 
    '''
    # get config from user_config.json
-   configObject = helper.getUserConfig()
+   zoneConfigObject = helper.getZoneConfig()
    try:
       if sddcName not in INFRA:
-         if sddcName not in configObject["infra"]:
+         if sddcName not in zoneConfigObject["infra"]:
            log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
            return None
          
-         sddcInfo = configObject["infra"][sddcName]
+         sddcInfo = zoneConfigObject["infra"][sddcName]
          
          if not sddcInfo["active"]:
            log.debug("Cannot open session to {}, this SDDC is inactive".format(sddcName))
@@ -100,7 +100,7 @@ def getListFromConfig(configObject = None):
       :param configObject: (optional), if not given, auto-resolved by loadConfigFile
   '''
   if configObject is None:
-    configObject = helper.getUserConfig()
+    configObject = helper.getZoneConfig()
   sddcs = []
   # Can be vSphere SDDC or other on-prem locations
   #  e.g. Other on-prem location name with any string val

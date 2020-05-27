@@ -45,7 +45,8 @@ CMDLINE_ARGS = {}
 
 # The config file contains information about how to run things, as opposed to
 # command line parameters, which are about running tests.
-CONFIG_JSON = "resources/user_config.json"
+CONFIG_USER_FILE = "resources/user_config.json"
+CONFIG_ZONE_FILE = "resources/zone_config.json"
 
 # CONFIG_CACHED["data"] is populated by `loadConfigFile`
 # (containing data from user_config.json OR command line argument overrides)
@@ -1040,7 +1041,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                                                  support_bundle_binary_name)
    remote_support_bundle_binary_path = os.path.join(tempfile.gettempdir(),
                                                   support_bundle_binary_name)
-   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
+   user_config = json_helper_util.readJsonFile(CONFIG_USER_FILE)
    concord_memeber_credentials = \
       user_config["persephoneTests"]["provisioningService"]["concordNode"]
    concord_username = concord_memeber_credentials["username"]
@@ -1176,10 +1177,10 @@ def loadConfigFile(args=None, filepath=None):
       configObject = json_helper_util.readJsonFile(args.config)
    elif filepath:
       configObject = json_helper_util.readJsonFile(filepath)
-   elif os.path.exists(CONFIG_JSON):
-      configObject = json_helper_util.readJsonFile(CONFIG_JSON)
-   elif jenkinsWorkspace is not None and os.path.exists(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_JSON):
-      configObject = json_helper_util.readJsonFile(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_JSON)
+   elif os.path.exists(CONFIG_USER_FILE):
+      configObject = json_helper_util.readJsonFile(CONFIG_USER_FILE)
+   elif jenkinsWorkspace is not None and os.path.exists(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_USER_FILE):
+      configObject = json_helper_util.readJsonFile(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_USER_FILE)
    else:
       log.info("Cannot find user config source in any of the locations.")
       return None
@@ -1219,9 +1220,42 @@ def loadConfigFile(args=None, filepath=None):
    return configObject
 
 
+def loadZoneConfig(args=None, filepath=None):
+   """
+   Given cmdline args or filepath, load the zones from zones config file
+   :param args: cmdline arguments
+   :param filepath: file to load zones from
+   :return: zone config object
+   """
+   zone_config_object = None
+
+   if args and args.zoneConfig:
+      zone_config_object = json_helper_util.readJsonFile(args.zoneConfig)
+   elif filepath:
+      zone_config_object = json_helper_util.readJsonFile(filepath)
+   elif os.path.exists(CONFIG_ZONE_FILE):
+      zone_config_object = json_helper_util.readJsonFile(CONFIG_ZONE_FILE)
+   else:
+      log.warning("Cannot find zone config source in either cmdline args, filepath, or default file {}"
+                  .format(CONFIG_ZONE_FILE))
+      return None
+
+   CONFIG_CACHED['zones'] = zone_config_object
+   return zone_config_object
+
+
 def getUserConfig():
   configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile()
   return configObject
+
+
+def getZoneConfig(args=None, filepath=None):
+   """
+   Get zone config object from cache if available, else loads from default file
+   :return: Zone config object
+   """
+   zone_config_object = CONFIG_CACHED["zones"] if "zones" in CONFIG_CACHED else loadZoneConfig(args, filepath)
+   return zone_config_object
 
 
 def getNodeCredentials():
@@ -1322,7 +1356,7 @@ def getReplicaContainers(replicaType):
    Given the name of a replica, as defined in persephoneTests["modelService"]["defaults"]["deployment_components"],
    return a list of the names of the docker containers which are expected to be in that replica.
    '''
-   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
+   user_config = json_helper_util.readJsonFile(CONFIG_USER_FILE)
 
    if replicaType in user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]:
       return list(user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"][replicaType].values())
@@ -1767,7 +1801,7 @@ def getDefaultDeploymentComponents():
    Make a list of all deployment components from user_config.json and fetch
    the repo:tag for each from the various places we define them.
    '''
-   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
+   user_config = json_helper_util.readJsonFile(CONFIG_USER_FILE)
    cfg_model_service = user_config["persephoneTests"]["modelService"]
    cfg_components_to_find = cfg_model_service["deployment_component_ids"].values()
    cfg_deployment_components = cfg_model_service["defaults"]["deployment_components"]

@@ -4,21 +4,16 @@
 # Wrapper for ReST API calls to Helen.
 #########################################################################
 import json
-import util.json_helper
-import logging
 import os
 import pprint
 import subprocess
-from subprocess import CompletedProcess, PIPE
 import threading
-import time
-
-from util.debug import pp as pp
 
 from util.auth import getAccessToken, tokens
+import util.json_helper
 import util.product
 import util.generate_zones_migration as migration
-
+import util.helper as helper
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
@@ -219,7 +214,7 @@ class Request():
       return self._send(verb="GET")
 
    def createBlockchain(self, consortiumId,  siteIds, f=1, c=0,
-                        blockchainType=util.helper.TYPE_ETHEREUM.upper()):
+                        blockchainType=helper.TYPE_ETHEREUM.upper()):
       '''
       Create a blockchain.  Values are simply passed through to persephone.
       consortiumId: The consoritum UUID.
@@ -621,15 +616,14 @@ class Request():
       return self._send()
 
 
-   def addUserConfigZones(self, blockchainLocation):
+   def addUserConfigZones(self, zones, blockchainLocation):
       '''
       Add the zones in user_config.json.
       '''
       ids_added = []
-      cfgZones = self._userConfig["persephoneTests"]["provisioningService"]["zones"][blockchainLocation]
 
       # Helen only supports adding onprem zones.
-      if blockchainLocation != util.helper.LOCATION_ONPREM:
+      if blockchainLocation != helper.LOCATION_ONPREM:
          raise Exception("The Helen API only supports creation of on prem zones, not '{}'" \
                          .format(blockchainLocation))
 
@@ -648,21 +642,17 @@ class Request():
          raise Exception("Ensure that usernames, passwords, etc... are valid in " \
                          "{}".format(util.product.persephoneConfigFile))
 
-      for cfgZone in cfgZones:
-         if cfgZone["api"]["credential"]["passwordCredential"]["password"].startswith("<") and \
-            cfgZone["api"]["credential"]["passwordCredential"]["password"].endswith(">"):
+      for zone in zones:
+         if zone["api"]["credential"]["passwordCredential"]["password"].startswith("<") and \
+            zone["api"]["credential"]["passwordCredential"]["password"].endswith(">"):
             raise Exception("Ensure that usernames, passwords, etc... are valid for the " \
-                            "zones in user_config.json.")
+                            "zones in zone_config.json.")
 
-         if blockchainLocation == util.helper.LOCATION_ONPREM:
-            zoneInfo = migration.build_onprem_body(cfgZone)
-         else:
-            raise Exception("Adding zone type '{}' via Helen API not supported yet.".format(blockchainLocation))
-
+         zoneInfo = migration.build_onprem_body(zone)
          # At this point, zoneInfo is set up for the SQL migration used for Persephone testing.
          # Tweak for the Helen API.
          zoneInfo.update({
-            "type": util.helper.LOCATION_TO_ZONE_TYPES[blockchainLocation],
+            "type": helper.LOCATION_TO_ZONE_TYPES[blockchainLocation],
             "container_repo": {
                "url": containerAddress,
                "username": containerUser,
