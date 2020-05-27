@@ -69,6 +69,8 @@ class ConcordClientPool {
   // thread pool and a positive answer is immediately returned to the
   // application. If there is no available client, a negative answer is returned
   // to the application.
+  // timeout_ms is the request time out and not the time out for waiting to
+  // available client
   SubmitResult SendRequest(const void* request, std::uint32_t request_size,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
@@ -102,19 +104,19 @@ class ConcordClientPool {
   util::SimpleThreadPool jobs_thread_pool_;
   // Clients queue mutex
   std::mutex clients_queue_lock_;
-  // Holds the sum of all requests time
-  uint64_t total_requests_time_ = 0;
   // Vector to pass for reply's
   std::shared_ptr<std::vector<char>> reply_;
   // Metric
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter>& total_requests_counters_;
+  prometheus::Family<prometheus::Counter>& rejected_requests_counters_;
   prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
-  prometheus::Family<prometheus::Gauge>& avg_request_time_gauges_;
+  prometheus::Family<prometheus::Gauge>& last_request_time_gauges_;
   prometheus::Counter& requests_counter_;
+  prometheus::Counter& rejected_counter_;
   prometheus::Gauge& clients_gauge_;
-  prometheus::Gauge& avg_request_time_gauge_;
+  prometheus::Gauge& last_request_time_gauge_;
   // Logger
   log4cplus::Logger logger_;
 };
