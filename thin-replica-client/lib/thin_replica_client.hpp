@@ -219,8 +219,13 @@ class ThinReplicaClient final {
   std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter>& trc_requests_counters_total_;
   prometheus::Family<prometheus::Gauge>& trc_resources_gauges_total_;
+  prometheus::Family<prometheus::Gauge>& trc_failures_total_;
   prometheus::Counter& trc_updates_counter_;
   prometheus::Gauge& trc_queue_size_;
+  prometheus::Gauge& trc_read_timeouts_;
+  prometheus::Gauge& trc_read_failures_;
+  uint32_t read_timeouts_per_update_;
+  uint32_t read_failures_per_update_;
 
   typedef size_t StateHashType;
   typedef size_t UpdateHashType;
@@ -360,7 +365,17 @@ class ThinReplicaClient final {
         trc_updates_counter_(
             trc_requests_counters_total_.Add({{"item", "updates"}})),
         trc_queue_size_(
-            trc_resources_gauges_total_.Add({{"resource", "queue_size"}})) {
+            trc_resources_gauges_total_.Add({{"resource", "queue_size"}})),
+        trc_failures_total_(prometheus::BuildGauge()
+                                .Name("trc_failures_total")
+                                .Help("TRC failures")
+                                .Register(*registry_)),
+        trc_read_timeouts_(
+            trc_failures_total_.Add({{"type", "read"}, {"error", "timeout"}})),
+        trc_read_failures_(
+            trc_failures_total_.Add({{"type", "read"}, {"error", "failure"}})),
+        read_timeouts_per_update_(0),
+        read_failures_per_update_(0) {
     SetupTracing(jaeger_agent);
     exposer_.RegisterCollectable(registry_);
     while (begin_servers != end_servers) {

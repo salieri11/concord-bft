@@ -181,13 +181,15 @@ void ThinReplicaClient::ReadUpdateHashFromStream(
   if (status == future_status::timeout || status == future_status::deferred) {
     CloseStream(subscription_hash_streams_[server_index],
                 sub_hash_contexts_[server_index]);
-    LOG4CPLUS_WARN(logger_, "Hash stream " << server_index << " timed out.");
+    LOG4CPLUS_DEBUG(logger_, "Hash stream " << server_index << " timed out.");
+    read_timeouts_per_update_++;
     return;
   }
   assert(status == future_status::ready);
 
   if (!reader.get()) {
-    LOG4CPLUS_WARN(logger_, "Hash stream " << server_index << " read failed.");
+    LOG4CPLUS_DEBUG(logger_, "Hash stream " << server_index << " read failed.");
+    read_failures_per_update_++;
     return;
   }
 
@@ -241,15 +243,17 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
   });
   auto status = reader.wait_for(timeout_read_data_stream_);
   if (status == future_status::timeout || status == future_status::deferred) {
-    LOG4CPLUS_WARN(logger_,
-                   "Data stream " << current_data_source_ << " timed out");
+    LOG4CPLUS_DEBUG(logger_,
+                    "Data stream " << current_data_source_ << " timed out");
+    read_timeouts_per_update_++;
     return {false, nullptr};
   }
   assert(status == future_status::ready);
 
   if (!reader.get()) {
-    LOG4CPLUS_WARN(logger_,
-                   "Data stream " << current_data_source_ << " read failed");
+    LOG4CPLUS_DEBUG(logger_,
+                    "Data stream " << current_data_source_ << " read failed");
+    read_failures_per_update_++;
     return {false, nullptr};
   }
 
@@ -386,18 +390,20 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
     });
     auto status = reader.wait_for(timeout_read_hash_stream_);
     if (status == future_status::timeout || status == future_status::deferred) {
-      LOG4CPLUS_WARN(
+      LOG4CPLUS_DEBUG(
           logger_,
           "Read timed out on a data subscription stream (to server index "
               << server_index << ").");
+      read_timeouts_per_update_++;
       continue;
     }
     assert(status == future_status::ready);
 
     if (!reader.get()) {
-      LOG4CPLUS_WARN(
+      LOG4CPLUS_DEBUG(
           logger_, "Read failed on a data subscription stream (to server index "
                        << server_index << ").");
+      read_failures_per_update_++;
       continue;
     }
 
@@ -540,7 +546,19 @@ void ThinReplicaClient::ReceiveUpdates() {
     }
     InjectSpan(span, *update);
 
+    if (read_timeouts_per_update_ > 0 || read_failures_per_update_ > 0) {
+      LOG4CPLUS_WARN(logger_, read_timeouts_per_update_
+                                  << " timeouts and "
+                                  << read_failures_per_update_
+                                  << " failures while retrieving block id "
+                                  << update_in.block_id());
+    }
+
     // Update metrics
+    trc_read_timeouts_.Increment(read_timeouts_per_update_);
+    trc_read_failures_.Increment(read_failures_per_update_);
+    read_timeouts_per_update_ = 0;
+    read_failures_per_update_ = 0;
     trc_updates_counter_.Increment();
     trc_queue_size_.Set(update_queue_->Size());
 
