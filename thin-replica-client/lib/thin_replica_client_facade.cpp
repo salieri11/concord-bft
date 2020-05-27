@@ -176,7 +176,3 @@ void ThinReplicaClientFacade::ReleaseConsumers() {
 void ThinReplicaClientFacade::AcknowledgeBlockID(uint64_t block_id) {
   impl->trc->AcknowledgeBlockID(block_id);
 }
-
-ThinReplicaClientFacade::ThinReplicaClientFacade(
-    unique_ptr<ThinReplicaClientFacade::Impl>&& impl)
-    : impl(move(impl)) {}

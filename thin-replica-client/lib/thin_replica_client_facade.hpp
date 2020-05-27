@@ -50,24 +50,6 @@ class ThinReplicaClientFacade final {
  private:
   class Impl;
   std::unique_ptr<Impl> impl;
-
-  // Constructor to create a Thin Replica Client manually given its internal
-  // implementation object; this constructor is intended to facilitate testing
-  // by enabling the construction of a ThinReplicaClientFacade object with mock
-  // objects standing in for the Thin Replica Servers, and is not intended for
-  // direct application use.
-  ThinReplicaClientFacade(std::unique_ptr<Impl>&& impl);
-
-  // Friend function testing code may implement in order to access the private
-  // testing constructor.
-  template <typename ThinReplicaServer>
-  friend std::unique_ptr<ThinReplicaClientFacade>
-  ConstructThinReplicaClientFacade(
-      const std::string& client_id, uint16_t max_faulty,
-      const std::string& private_key,
-      std::vector<std::pair<std::string, ThinReplicaServer>>& mock_servers,
-      const uint16_t max_read_data_timeout,
-      const uint16_t max_read_hash_timeout, const std::string& jaeger_agent);
 };
 
 }  // namespace thin_replica_client
