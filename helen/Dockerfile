@@ -25,8 +25,16 @@ COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./helen/pom.xml ./helen/pom.xml
 
-# Switch to a user different than root.
+#Install provisioning service dev certs in local trustore
 USER root
+RUN sed -i -e 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list \
+    && sed -i -e 's/security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install -y wget \
+    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/ps-dev.crt \
+    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias ps-dev-cert -file /tmp/ps-dev.crt
+
+# Switch to a user different than root.
 RUN chown -R test:test .
 USER test
 
