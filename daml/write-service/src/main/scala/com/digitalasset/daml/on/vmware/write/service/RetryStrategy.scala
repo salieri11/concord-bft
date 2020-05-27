@@ -1,12 +1,11 @@
-// Copyright (c) 2019 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 
 package com.digitalasset.daml.on.vmware.write.service
 
 import java.util.{Timer, TimerTask}
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration.{Duration, DurationInt}
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -30,7 +29,6 @@ object RetryStrategy {
     override def isCompleted: Boolean = p.isCompleted
 
     override def tryComplete(result: Try[A]): Boolean = p.tryComplete(result)
-
   }
 
   private def after[T](t: Duration)(value: => Future[T])(implicit ec: ExecutionContext): Future[T] =
@@ -61,7 +59,6 @@ object RetryStrategy {
       attempts: Int,
       waitTime: Duration): RetryStrategy =
     new RetryStrategy(shouldRetry, attempts, waitTime, waitTime, identity)
-
 }
 
 final class RetryStrategy(

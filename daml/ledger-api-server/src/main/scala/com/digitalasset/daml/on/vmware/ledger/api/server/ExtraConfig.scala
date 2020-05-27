@@ -1,5 +1,8 @@
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
+import java.nio.file.{Path, Paths}
+import java.util.concurrent.TimeUnit
+
 import com.auth0.jwt.algorithms.Algorithm
 import com.daml.buildinfo.BuildInfo
 import com.daml.jwt.{ECDSAVerifier, HMAC256Verifier, JwksVerifier, RSA256Verifier}
@@ -22,9 +25,12 @@ final case class ExtraConfig(
     maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
     maxBatchWaitDuration: FiniteDuration, // Maximum duration we're willing to wait to fill a batch.
-    maxBatchConcurrentCommits: Int,
     maxTrcReadDataTimeout: Short,
     maxTrcReadHashTimeout: Short,
+    maxBatchConcurrentCommits: Int,
+    useBftClient: Boolean, // Whether to use the new BFT Concord Client Pool in the writer.
+    bftClientConfigPath: Option[Path],
+    bftClientRequestTimeout: Duration,
 )
 
 object ExtraConfig {
@@ -45,6 +51,9 @@ object ExtraConfig {
     maxBatchConcurrentCommits = 5,
     maxTrcReadDataTimeout = 0,
     maxTrcReadHashTimeout = 0,
+    useBftClient = false,
+    bftClientConfigPath = None,
+    bftClientRequestTimeout = Duration.create(30, TimeUnit.SECONDS),
   )
 
   def addCommandLineArguments(parser: OptionParser[Config[ExtraConfig]]): Unit = {
@@ -105,6 +114,34 @@ object ExtraConfig {
         s"The address of the Jaeger agent in <HOST:PORT> format. Defaults to ${ExtraConfig.Default.jaegerAgentAddress}.")
       .action((hostAndPort, config) =>
         config.copy(extra = config.extra.copy(jaegerAgentAddress = hostAndPort)))
+
+    //
+    // BFT concord client pool
+    //
+    // format: off
+    parser
+      .opt[Unit]("use-bft-client")
+      .optional()
+      .action((_, config) => config.copy(extra = config.extra.copy(useBftClient = true)))
+      .text("Use the BFT Client to submit DAML transactions to Concord.")
+    // format: on
+    implicit val pathReader: scopt.Read[Path] =
+      scopt.Read.reads(Paths.get(_))
+    parser
+      .opt[Path]("bft-client-config-path")
+      .optional()
+      .action((bftClientConfigPath, config) => {
+        sys.exit(64) // No portable exit code for wrong usage, adopting https://man.openbsd.org/sysexits.3
+
+        config.copy(extra = config.extra.copy(bftClientConfigPath = Some(bftClientConfigPath)))
+      })
+      .text("Specify the BFT Client configuration file path.")
+    parser
+      .opt[Duration]("bft-client-request-timeout")
+      .optional()
+      .action((bftClientRequestTimeout, config) =>
+        config.copy(extra = config.extra.copy(bftClientRequestTimeout = bftClientRequestTimeout)))
+      .text("Maximum time until the data write request gets cancelled by the BFT Client.")
 
     //
     // auth-* parameters.
