@@ -26,6 +26,7 @@ import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
+import com.vmware.blockchain.deployment.v1.ElasticSearch;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
 import com.vmware.blockchain.deployment.v1.LogManagement;
@@ -95,10 +96,21 @@ public class BlockchainUtils {
         Zone.Wavefront wf = zone.getWavefront();
         Wavefront wavefront = Wavefront.newBuilder().build();
 
+        Zone.Elasticsearch es = zone.getElasticsearch();
+        ElasticSearch elasticSearch = ElasticSearch.newBuilder().build();
+
         if (wf != null) {
             wavefront = Wavefront.newBuilder()
                     .setUrl(wf.getUrl())
                     .setToken(wf.getToken())
+                    .build();
+        }
+
+        if (es != null) {
+            elasticSearch = ElasticSearch.newBuilder()
+                    .setUrl(es.getUrl())
+                    .setUsername(es.getUsername())
+                    .setPassword(es.getPassword())
                     .build();
         }
 
@@ -177,6 +189,7 @@ public class BlockchainUtils {
                     .setContainerRegistry(container)
                     .setVsphere(dcInfo)
                     .setWavefront(wavefront)
+                    .setElasticsearch(elasticSearch)
                     .addAllLogManagements(toFleetLogManagements(op))
                     .build();
 
@@ -222,6 +235,7 @@ public class BlockchainUtils {
                     .setDatacenter(op.getDatacenter())
                     .setVsphere(dcInfo)
                     .setWavefront(wavefront)
+                    .setElasticsearch(elasticSearch)
                     .addAllLogManagements(toFleetLogManagements(op))
                     .build();
             return OrchestrationSiteInfo.newBuilder()
