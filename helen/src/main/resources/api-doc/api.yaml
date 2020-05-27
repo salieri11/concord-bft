@@ -1743,6 +1743,8 @@ components:
           $ref: '#/components/schemas/OnPremLogManagementsPost'
         wavefront:
           $ref: '#/components/schemas/WavefrontData'
+        elasticsearch:
+          $ref: '#/components/schemas/ElasticsearchData'
 
     OnPremZoneGet:
       type: object
@@ -1784,6 +1786,8 @@ components:
           $ref: '#/components/schemas/OnPremLogManagementsGet'
         wavefront:
           $ref: '#/components/schemas/WavefrontData'
+        elasticsearch:
+          $ref: '#/components/schemas/ElasticsearchData'
 
     # Swagger viewer does not display discriminated types correctly.  Temporarily changing this to allOf
     # just to get the fields listed
@@ -1878,6 +1882,23 @@ components:
           type: string
           description: Auth token provided by wavefront
           example: <random-token>
+
+    ElasticsearchData:
+      description: Configurations for elasticsearch setup
+      type: object
+      properties:
+        url:
+          type: string
+          description: Endpoint of elasticsearch setup.
+          example: https://example.com
+        username:
+          type: string
+          description: username with access to elasticsearch endpoint.
+          example: user1
+        password:
+          type: string
+          description: password of user for elasticsearch endpoint.
+          example: mypassword
 
     OnPremLogManagementsPost:
       description: List of configurations for logging setup

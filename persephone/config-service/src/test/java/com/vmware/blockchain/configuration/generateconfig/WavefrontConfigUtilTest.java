@@ -27,6 +27,8 @@ public class WavefrontConfigUtilTest {
     private WavefrontConfigUtil wavefrontConfigUtil;
 
     Map<Integer, String> nodeIpMap = new HashMap<>();
+    Map<Integer, String> wfUrlMap = new HashMap<>();
+    Map<Integer, String> wfTokenMap = new HashMap<>();
 
     Properties properties;
 
@@ -40,11 +42,19 @@ public class WavefrontConfigUtilTest {
         nodeIpMap.put(2, "10.0.0.3");
         nodeIpMap.put(3, "10.0.0.4");
 
+        wfUrlMap.put(0, "my.test.url");
+        wfUrlMap.put(1, "my.test.url");
+        wfUrlMap.put(2, "my.test.url");
+        wfUrlMap.put(3, "my.test.url");
+
+        wfTokenMap.put(0, "mytesttoken");
+        wfTokenMap.put(1, "mytesttoken");
+        wfTokenMap.put(2, "mytesttoken");
+        wfTokenMap.put(3, "mytesttoken");
+
         properties = Properties.newBuilder()
                 .putAllValues(Map.of(
-                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
-                        NodeProperty.Name.WAVEFRONT_URL.toString(), "my.test.url",
-                        NodeProperty.Name.WAVEFRONT_TOKEN.toString(), "mytesttoken"))
+                        NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest"))
                 .build();
     }
 
@@ -83,6 +93,12 @@ public class WavefrontConfigUtilTest {
                 NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.NODE_IP)
                         .putAllValue(nodeIpMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_URL)
+                        .putAllValue(wfUrlMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                        .putAllValue(wfTokenMap).build(),
                 NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
                         .putAllValue(wavefrontProxyUrl).build(),
@@ -127,6 +143,12 @@ public class WavefrontConfigUtilTest {
                         .setName(NodeProperty.Name.NODE_IP)
                         .putAllValue(nodeIpMap).build(),
                 NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_URL)
+                        .putAllValue(wfUrlMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                        .putAllValue(wfTokenMap).build(),
+                NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
                         .putAllValue(wavefrontProxyUrl).build(),
                 NodeProperty.newBuilder()
@@ -169,6 +191,12 @@ public class WavefrontConfigUtilTest {
                         .setName(NodeProperty.Name.NODE_IP)
                         .putAllValue(nodeIpMap).build(),
                 NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_URL)
+                        .putAllValue(wfUrlMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                        .putAllValue(wfTokenMap).build(),
+                NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
                         .putAllValue(wavefrontProxyUrl).build(),
                 NodeProperty.newBuilder()
@@ -193,7 +221,13 @@ public class WavefrontConfigUtilTest {
         List<NodeProperty> propertyList = List.of(
                 NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.NODE_IP)
-                        .putAllValue(nodeIpMap).build());
+                        .putAllValue(nodeIpMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_URL)
+                        .putAllValue(wfUrlMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                        .putAllValue(wfTokenMap).build());
 
         Map<Integer, String> actual = wavefrontConfigUtil.getWavefrontConfig(properties, propertyList);
 
@@ -226,6 +260,12 @@ public class WavefrontConfigUtilTest {
                 NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.NODE_IP)
                         .putAllValue(nodeIpMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_URL)
+                        .putAllValue(wfUrlMap).build(),
+                NodeProperty.newBuilder()
+                        .setName(NodeProperty.Name.WAVEFRONT_TOKEN)
+                        .putAllValue(wfTokenMap).build(),
                 NodeProperty.newBuilder()
                         .setName(NodeProperty.Name.WAVEFRONT_PROXY_USER)
                         .putAllValue(wavefrontProxyUser).build(),

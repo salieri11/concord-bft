@@ -125,6 +125,19 @@ public class Zone extends AbstractEntity {
         String token;
     }
 
+    /**
+     * Elasticsearch Endpoint Config.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Elasticsearch {
+        String url;
+        String username;
+        String password;
+    }
+
 
     @LinkedEntityId
     UUID orgId;
@@ -134,6 +147,7 @@ public class Zone extends AbstractEntity {
     String longitude;
     Type type;
     Wavefront wavefront;
+    Elasticsearch elasticsearch;
 
     /**
      * Default constructor.

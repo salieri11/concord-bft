@@ -60,6 +60,31 @@ SubmitResult ConcordClientPool::SendRequest(
   return SubmitResult::Acknowledged;
 }
 
+SubmitResult ConcordClientPool::SendRequest(
+    const bft::client::WriteConfig &config, bft::client::Msg &&request) {
+  if (config.request.pre_execute)
+    return SendRequest(request.data(), request.size(),
+                       ClientMsgFlag::PRE_PROCESS_REQ, config.request.timeout,
+                       config.request.max_reply_size, reply_->data(),
+                       reinterpret_cast<uint32_t *>(reply_->size()),
+                       config.request.correlation_id);
+  else
+    return SendRequest(request.data(), request.size(),
+                       ClientMsgFlag::EMPTY_FLAGS_REQ, config.request.timeout,
+                       config.request.max_reply_size, reply_->data(),
+                       reinterpret_cast<uint32_t *>(reply_->size()),
+                       config.request.correlation_id);
+}
+
+SubmitResult ConcordClientPool::SendRequest(
+    const bft::client::ReadConfig &config, bft::client::Msg &&request) {
+  return SendRequest(request.data(), request.size(),
+                     ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
+                     config.request.max_reply_size, reply_->data(),
+                     reinterpret_cast<uint32_t *>(reply_->size()),
+                     config.request.correlation_id);
+}
+
 ConcordClientPool::ConcordClientPool(std::istream &config_stream)
     : registry_(std::make_shared<prometheus::Registry>()),
       total_requests_counters_(prometheus::BuildCounter()
