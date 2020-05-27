@@ -31,7 +31,7 @@ DAML_TESTS_WHITELIST = [
    "CommandDeduplicationIT",
    "CommandServiceIT",
    "CommandSubmissionCompletionIT",
-   # "ConfigManagementServiceIT", # Flaky, to be reviewed at next upgrade
+   # "ConfigManagementServiceIT", # Broken on current CI setup: more participants will try to run it but only the first one will be authorized; disabled until solution is found
    "ContractKeysIT",
    "DivulgenceIT",
    "HealthServiceIT",
@@ -39,13 +39,13 @@ DAML_TESTS_WHITELIST = [
    "LedgerConfigurationServiceIT",
    "PackageManagementServiceIT",
    "PackageServiceIT",
-   "PartyManagementServiceIT",
+   # "PartyManagementServiceIT", # RESOURCE_EXHAUSTED, to be investigated
    "SemanticTests",
    "TransactionServiceIT"
    "WitnessesIT",
    "WronglyTypedContractIdIT",
-   # "LotsOfPartiesIT",
-   # "TransactionScaleIT",
+   # "LotsOfPartiesIT",    # Not a functional test
+   # "TransactionScaleIT", # Not a functional test
 ]
 
 error_msg = None

@@ -24,6 +24,7 @@ RUN sbt update
 
 COPY daml/entrypoint.sh /doc/daml/entrypoint.sh
 COPY concord/proto /doc/concord/proto
+COPY communication/src/main/proto /doc/communication/src/main/proto
 COPY daml/common /doc/daml/common
 COPY daml/write-service /doc/daml/write-service
 COPY daml/ledger-api-server /doc/daml/ledger-api-server

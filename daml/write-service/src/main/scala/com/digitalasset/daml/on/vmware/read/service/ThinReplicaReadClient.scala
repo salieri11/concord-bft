@@ -1,16 +1,15 @@
-// Copyright (c) 2019 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 
-package com.digitalasset.daml.on.vmware.write.service
+package com.digitalasset.daml.on.vmware.read.service
 
-import com.digitalasset.daml.on.vmware.thin.replica.client.core.Library
-import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
-import com.digitalasset.daml.on.vmware.common.Constants
-import com.codahale.metrics.MetricRegistry
-import org.slf4j.LoggerFactory
 import akka.NotUsed
 import akka.stream.scaladsl.Source
+import com.codahale.metrics.MetricRegistry
+import com.digitalasset.daml.on.vmware.common.Constants
+import com.digitalasset.daml.on.vmware.thin.replica.client.core.{Library, Update}
+import org.slf4j.LoggerFactory
 
-class TRClient(
+class ThinReplicaReadClient(
     clientId: String,
     maxFaulty: Short,
     privateKey: String,
@@ -19,7 +18,7 @@ class TRClient(
     maxReadHashTimeout: Short,
     jaegerAgent: String,
     metricRegistry: MetricRegistry) {
-  import TRClient._
+  import ThinReplicaReadClient._
 
   private object Metrics {
     val prefix = "daml.trc"
@@ -75,6 +74,6 @@ class TRClient(
       Source.empty
 }
 
-object TRClient {
+object ThinReplicaReadClient {
   type Block = Update
 }

@@ -19,7 +19,7 @@ resolvers in Global ++=
 
 lazy val commonSettings = Seq()
 
-lazy val protos = (project in file("protos"))
+lazy val damlProtos = (project in file("protos"))
   .settings(
     commonSettings,
     libraryDependencies ++=
@@ -29,6 +29,21 @@ lazy val protos = (project in file("protos"))
       baseDirectory.value / "../../concord/proto",
     ),
     includeFilter in PB.generate := "daml*.proto",
+    PB.targets in Compile := Seq(
+      scalapb.gen() -> (sourceManaged in Compile).value
+    ),
+  )
+
+lazy val concordProtos = (project in file("concord-protos"))
+  .settings(
+    commonSettings,
+    libraryDependencies ++=
+      Seq(protobuf, scalapb_runtime, scalapb_runtime_grpc),
+    PB.protoSources in Compile := Seq(
+      target.value / "protobuf_external" / "protobuf",
+      baseDirectory.value / "../../communication/src/main/proto",
+    ),
+    includeFilter in PB.generate := "concord.proto",
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
     ),
@@ -102,7 +117,7 @@ lazy val execution_engine = (project in file("execution-engine"))
       "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
     ),
   )
-  .dependsOn(protos, common)
+  .dependsOn(damlProtos, common)
 
 lazy val write_service = (project in file("write-service"))
   .settings(
@@ -139,7 +154,7 @@ lazy val write_service = (project in file("write-service"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
     ),
   )
-  .dependsOn(protos, common, trc_core)
+  .dependsOn(damlProtos, concordProtos, common, trc_core)
 
 
 lazy val ledger_api_server = (project in file("ledger-api-server"))
@@ -178,7 +193,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % Test,
     ),
   )
-  .dependsOn(protos, write_service, common, trc_core, trc_native % Runtime)
+  .dependsOn(write_service, common, trc_core, trc_native % Runtime)
 
 lazy val trc_core = (project in file("thin-replica-client-core")) // regular scala code with @native methods
   .enablePlugins(JavaAppPackaging)

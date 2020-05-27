@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.participant.state
 
 import akka.NotUsed
@@ -6,8 +8,8 @@ import com.daml.ledger.participant.state.kvutils.KVOffset
 import com.daml.ledger.participant.state.pkvutils.api.{KeyValueLedgerReader, LedgerBlockContent}
 import com.daml.ledger.participant.state.v1.{LedgerId, Offset}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
-import com.digitalasset.daml.on.vmware.write.service.TRClient
 import com.daml.ledger.api.health.{HealthStatus, Healthy}
+import com.digitalasset.daml.on.vmware.read.service.ThinReplicaReadClient
 import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
 
@@ -49,6 +51,6 @@ class ConcordKeyValueLedgerReader(
 object ConcordKeyValueLedgerReader {
   private[state] val StartIndex: Long = 0
 
-  def create(ledgerId: LedgerId, client: TRClient): ConcordKeyValueLedgerReader =
+  def create(ledgerId: LedgerId, client: ThinReplicaReadClient): ConcordKeyValueLedgerReader =
     new ConcordKeyValueLedgerReader(client.committedBlocks, ledgerId, () => Healthy)
 }

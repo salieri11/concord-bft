@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.participant.state
 
 import akka.NotUsed
