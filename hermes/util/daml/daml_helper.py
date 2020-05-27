@@ -277,6 +277,7 @@ def verify_ledger_api_test_tool(host='localhost', port='6861', run_all_tests=Fal
              "--include", test,
              "--timeout-scale-factor", "20",
              "--no-wait-for-parties",
+             "--concurrent-test-runs", "1",
              "{}:{}".format(host, port)]
       log.info("")
       log.info("#### Run test '{}'... ####".format(test))
