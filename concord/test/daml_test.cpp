@@ -7,6 +7,7 @@
 #include <log4cplus/hierarchy.h>
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
+#include "OpenTracing.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
@@ -120,9 +121,10 @@ TEST(daml_test, successful_commit_creates_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::EMPTY_FLAGS, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -168,9 +170,10 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -237,9 +240,10 @@ TEST(daml_test, valid_pre_execution_creates_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -289,9 +293,10 @@ TEST(daml_test, conflicting_pre_execution_fails_but_adds_conflict_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -349,9 +354,10 @@ TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -406,9 +412,10 @@ TEST(daml_test, conflicting_write_set_fails_but_adds_conflict_block) {
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
+  concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
@@ -467,9 +474,10 @@ TEST(daml_test, conflicting_write_of_new_key) {
   ConcordResponse concord_response;
 
   pre_execution_response_1.SerializeToString(&req_string);
+  concordUtils::SpanWrapper span;
   result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
   concord_response.ParseFromArray(reply_buffer, reply_size);
   ASSERT_EQ(result, 0);
 
@@ -478,7 +486,7 @@ TEST(daml_test, conflicting_write_of_new_key) {
 
   result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
   concord_response.ParseFromArray(reply_buffer, reply_size);
   ASSERT_EQ(result, 1);

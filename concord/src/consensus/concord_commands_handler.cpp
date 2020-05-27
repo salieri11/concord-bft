@@ -9,6 +9,7 @@
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
+#include <string>
 #include <utils/open_tracing_utils.hpp>
 #include <vector>
 
@@ -71,7 +72,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     const char *request_buffer,
                                     uint32_t max_response_size,
                                     char *response_buffer,
-                                    uint32_t &out_response_size) {
+                                    uint32_t &out_response_size,
+                                    concordUtils::SpanWrapper &parent_span) {
   executing_bft_sequence_num_ = sequence_num;
   LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
                                << client_id << ", seq: " << sequence_num);
@@ -99,21 +101,18 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     request_context_->sequence_num = sequence_num;
     request_context_->max_response_size = max_response_size;
 
-    if (request_.has_trace_context()) {
-      std::istringstream tc_stream(request_.trace_context());
-      auto trace_context = tracer->Extract(tc_stream);
-      if (trace_context.has_value()) {
-        execute_span = tracer->StartSpan(
-            "execute", {opentracing::ChildOf(trace_context.value().get())});
-      } else {
-        LOG4CPLUS_WARN(logger_, "Command has corrupted trace context");
-        execute_span = tracer->StartSpan("execute");
-      }
+    if (parent_span) {
+      const auto &ctx = parent_span.impl()->context();
+      execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
     } else {
-      LOG4CPLUS_DEBUG(logger_, "Command is missing trace context");
+      LOG4CPLUS_DEBUG(logger_, "Empty span from Conocrd-BFT");
       execute_span = tracer->StartSpan("execute");
     }
 
+    execute_span->SetTag(concord::utils::kRequestSeqNumTag, sequence_num);
+    execute_span->SetTag(concord::utils::kClientIdTag, client_id);
+    execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);
+    execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
     if (time_ && request_.has_time_request() &&
         request_.time_request().has_sample()) {
       if (!read_only) {
@@ -146,10 +145,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
     // Stashing this span in our state, so that if the subclass calls addBlock,
     // we can use it as the parent for the add_block span.
-    execute_span->SetTag(concord::utils::kRequestSeqNumTag, sequence_num);
-    execute_span->SetTag(concord::utils::kClientIdTag, client_id);
-    execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
-    execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);
 
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});

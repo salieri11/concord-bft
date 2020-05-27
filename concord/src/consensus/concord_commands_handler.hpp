@@ -10,6 +10,7 @@
 #include <prometheus/counter.h>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "KVBCInterfaces.h"
+#include "OpenTracing.hpp"
 #include "concord.pb.h"
 #include "db_interfaces.h"
 #include "kv_types.hpp"
@@ -80,7 +81,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   int execute(uint16_t client_id, uint64_t sequence_num, uint8_t flags,
               uint32_t request_size, const char *request,
               uint32_t max_reply_size, char *out_reply,
-              uint32_t &out_reply_size) override;
+              uint32_t &out_reply_size,
+              concordUtils::SpanWrapper &parent_span) override;
 
   // Parses the request buffer in case it contains a pre-execution response
   static bool parseFromPreExecutionResponse(
