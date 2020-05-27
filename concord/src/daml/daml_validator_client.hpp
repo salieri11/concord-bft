@@ -8,7 +8,8 @@
 #include <opentracing/span.h>
 #include <map>
 #include <string>
-
+#include <utils/concord_prometheus_metrics.hpp>
+#include "Logger.hpp"
 #include "daml_validator.grpc.pb.h"
 
 namespace concord {
@@ -79,6 +80,8 @@ class DamlValidatorClient : public IDamlValidatorClient {
                         KeyValueStorageOperations& storage_operations) override;
 
  private:
+  log4cplus::Logger logger_ =
+      concordlogger::Log::getLogger("concord.daml.validator");
   static void HandleReadEvent(
       const com::digitalasset::kvbc::EventFromValidator::Read& read_event,
       KeyValueStorageOperations& storage_operations,

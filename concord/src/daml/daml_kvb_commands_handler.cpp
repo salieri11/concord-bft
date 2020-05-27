@@ -130,13 +130,12 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   BlockId current_block_id = storage_.getLastBlock();
   google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
 
-  LOG4CPLUS_INFO(logger_,
-                 "Handle DAML commit command, cid: "
-                     << correlation_id << ", time: "
-                     << TimeUtil::ToString(record_time) << ",elapsed: "
-                     << std::chrono::duration_cast<std::chrono::milliseconds>(
-                            start - std::chrono::steady_clock::now())
-                            .count());
+  LOG4CPLUS_INFO(
+      logger_,
+      "Handle DAML commit command, cid: "
+          << correlation_id << ", time: " << TimeUtil::ToString(record_time)
+          << ", clock: "
+          << std::chrono::steady_clock::now().time_since_epoch().count());
 
   if (has_pre_executed && request_.has_pre_execution_result()) {
     return CommitPreExecutionResult(current_block_id, record_time,
@@ -179,11 +178,12 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
       auto recordDur =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start1);
-      LOG4CPLUS_INFO(logger_,
-                     "Done handle DAML commit command, time: "
-                         << TimeUtil::ToString(record_time)
-                         << ", execDur: " << dur.count()
-                         << ", recordTransactionDur: " << recordDur.count());
+      LOG4CPLUS_INFO(
+          logger_,
+          "Done handle DAML commit command, time: "
+              << TimeUtil::ToString(record_time) << ", execDur: " << dur.count()
+              << ", recordTransactionDur: " << recordDur.count() << ", clock: "
+              << std::chrono::steady_clock::now().time_since_epoch().count());
       execution_time_.Increment((double)dur.count());
       daml_hdlr_exec_dur_.Observe(dur.count());
     }

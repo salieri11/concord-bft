@@ -418,8 +418,11 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
   auto end = std::chrono::steady_clock::now();
   auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  LOG4CPLUS_INFO(logger_, "ConcordCommandsHandler::addBlock, exit, updates: "
-                              << updates.size() << ", dur: " << dur.count());
+  LOG4CPLUS_INFO(
+      logger_,
+      "ConcordCommandsHandler::addBlock, exit, updates: "
+          << updates.size() << ", dur: " << dur.count() << ", clock: "
+          << std::chrono::steady_clock::now().time_since_epoch().count());
   return status;
 }
 

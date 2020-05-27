@@ -100,19 +100,20 @@ KVBClientPool::KVBClientPool(
           prometheus_registry->createGaugeFamily(
               "concord_KVBClientPool_queued_requests_total",
               "num of queued requests in KVBClientPool", {})),
-      kvbc_client_pool_external_requests_dur_gauge_(
-          prometheus_registry->createGaugeFamily(
-              "concord_KVBClientPool_external_requests_duration",
+      kvbc_client_pool_external_requests_dur_hist_(
+          prometheus_registry->createHistogramFamily(
+              "concord_KVBClientPool_external_requests_duration_hist",
               "duration of external requests in KVBClientPool", {})),
       kvbc_client_pool_received_requests_(prometheus_registry->createCounter(
           kvbc_client_pool_requests_counters_, {{"action", "received"}})),
       kvbc_client_pool_received_replies_(prometheus_registry->createCounter(
-          kvbc_client_pool_replies_counters_, {{"action", "received"}})),
+          kvbc_client_pool_replies_counters_, {{"action", "replied"}})),
       kvbc_client_pool_queued_requests_(prometheus_registry->createGauge(
-          kvbc_client_pool_queued_requests_gauge_, {{"action", "received"}})),
-      kvbc_client_external_requests_dur_(prometheus_registry->createGauge(
-          kvbc_client_pool_external_requests_dur_gauge_,
-          {{"action", "received"}})) {
+          kvbc_client_pool_queued_requests_gauge_, {{"count", "queued"}})),
+      kvbc_client_external_requests_dur_{prometheus_registry->createHistogram(
+          kvbc_client_pool_external_requests_dur_hist_,
+          {{"layer", "KVBClient"}, {"duration", "end_to_end_ext_req_duration"}},
+          {200.0, 400.0, 600.0, 800.0, 1600.0, 1800.0, 2000.0})} {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
   }
@@ -197,7 +198,11 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
 
   if (correlation_id.size() > 0) {
     kvbc_client_pool_received_requests_.Increment();
-    LOG_INFO(logger_, "Sending client request, cid: " << correlation_id);
+    LOG_INFO(
+        logger_,
+        "Sending client request, cid: "
+            << correlation_id << " clock: "
+            << std::chrono::steady_clock::now().time_since_epoch().count());
   }
   bool result = client->send_request_sync(req, flags, timeout, parent_span,
                                           resp, correlation_id);
@@ -206,8 +211,12 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
     auto dur = (double)std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::steady_clock::now() - start)
                    .count();
-    kvbc_client_external_requests_dur_.Set(dur);
-    LOG_INFO(logger_, "Received client response, cid: " << correlation_id);
+    kvbc_client_external_requests_dur_.Observe((double)dur);
+    LOG_INFO(
+        logger_,
+        "Received client response, cid: "
+            << correlation_id << ", dur: " << dur << ", clock: "
+            << std::chrono::steady_clock::now().time_since_epoch().count());
   }
 
   {

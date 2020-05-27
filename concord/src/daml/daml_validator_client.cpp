@@ -3,6 +3,7 @@
 #include "daml_validator_client.hpp"
 
 #include <opentracing/tracer.h>
+#include <chrono>
 #include <sstream>
 
 using std::map;
@@ -95,8 +96,23 @@ grpc::Status DamlValidatorClient::Validate(
     switch (event.from_validator_case()) {
       case da_kvbc::EventFromValidator::kRead: {
         da_kvbc::EventToValidator output_event;
+        auto start = std::chrono::steady_clock::now();
         HandleReadEvent(event.read(), storage_operations, &output_event);
+        auto readDur = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now() - start)
+                           .count();
         stream->Write(output_event);
+        auto writeDur = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - start)
+                            .count();
+        LOG_INFO(
+            logger_,
+            "Done handling DAML read, cid: "
+                << correlation_id << ", readDur: " << readDur
+                << ", writeDur: " << writeDur << ", read set size: "
+                << output_event.read_result().key_value_pairs_size()
+                << ", clock: "
+                << std::chrono::steady_clock::now().time_since_epoch().count());
         break;
       }
 
