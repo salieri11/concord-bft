@@ -4,7 +4,8 @@ import java.time.Instant
 
 import akka.stream.Materializer
 import com.daml.ledger.participant.state.v1.ParticipantId
-import com.daml.ledger.validator.batch.BatchValidator
+import com.daml.ledger.validator.batch.BatchedSubmissionValidator
+import com.daml.ledger.validator.caching.ImmutablesOnlyCacheUpdatePolicy
 import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
   PrivacyAwareSubmissionValidator
@@ -30,7 +31,7 @@ import scala.util.control.NonFatal
   * @param materializer   materializer to be used during parallel validation
   */
 class PipelinedValidator(
-    validator: BatchValidator[Unit],
+    validator: BatchedSubmissionValidator[Unit],
     readerCommitterFactory: (Long, LedgerStateOperationsWithAccessControl) => (
         DamlLedgerStateReader with QueryableReadSet,
         CommitStrategy[Unit]),
@@ -120,6 +121,9 @@ object PipelinedValidator {
       implicit executionContext: ExecutionContext)
     : (DamlLedgerStateReader with QueryableReadSet, CommitStrategy[Unit]) = {
     val cache = cachePerReplica.getOrElseUpdate(replicaId, cacheFactory())
-    PrivacyAwareSubmissionValidator.cachingReaderAndCommitStrategyFrom(ledgerStateOperations, cache)
+    PrivacyAwareSubmissionValidator.cachingReaderAndCommitStrategyFrom(
+      ledgerStateOperations,
+      cache,
+      ImmutablesOnlyCacheUpdatePolicy)
   }
 }

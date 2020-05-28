@@ -6,7 +6,7 @@ ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com
 
 lazy val akkaVersion = "2.6.1"
 lazy val sdkVersion = "1.2.0-snapshot.20200513.4172.0.021f4af3"
-lazy val integrationKitVersion = "0.0.9-snapshot.20200515.336.0.8f1767ba"
+lazy val integrationKitVersion = "0.0.9-snapshot.20200528.354.0.95b89746"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
