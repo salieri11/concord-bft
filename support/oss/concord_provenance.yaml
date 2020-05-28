@@ -164,23 +164,11 @@ other:zlib1g-dev:1.2.11:
  repository: Other
  url: https://packages.ubuntu.com/bionic/zlib1g-dev
 
-other:libbz2-dev:1.0.6:
- name: libbz2-dev
- version: 1.0.6
- repository: Other
- url: https://packages.ubuntu.com/bionic/libbz2-dev
-
 other:liblz4-dev:1.8.0:
  name: liblz4-dev
  version: 1.8.0
  repository: Other
  url: https://packages.ubuntu.com/bionic/liblz4-dev
-
-other:libzstd-dev:1.4:
- name: libzstd-dev
- version: 1.4
- repository: Other
- url: https://github.com/facebook/zstd/tree/v1.4.0
 
 other:cmake:3.10.2:
  name: cmake
@@ -196,37 +184,11 @@ other:clang-format-7:7.0.0:
  repository: Other
  url: https://packages.ubuntu.com/bionic-updates/clang-format-7
 
-other:clang-7:7.0.0:
- name: clang-7
- version: 7.0.0
- license: LLVM Release License
- repository: Other
- url: https://packages.ubuntu.com/bionic-updates/clang-7
-
-other:g++:7.5.0:
- name: g++
- version: 7.5.0
- license: GNU GENERAL PUBLIC LICENSE Version 3
- repository: Other
- url: https://packages.ubuntu.com/bionic/g++-7
-
 other:libyaml-cpp-dev:0.5.2:
  name: libyaml-cpp-dev
  version: 0.5.2
  repository: Other
  url: https://packages.ubuntu.com/bionic/libyaml-cpp-dev
-
-other:libcurl4-openssl-dev:7.58.0:
- name: libcurl4-openssl-dev
- version: 7.58.0
- repository: Other
- url: https://packages.ubuntu.com/bionic/libcurl4-openssl-dev
-
-other:libgmp3-dev:6.1.2:
- name: libgmp3
- version: 6.1.2
- repository: Other
- url: https://packages.ubuntu.com/bionic/libgmp3-dev
 
 other:bzip2:1.0.8:
  name: bzip2
@@ -255,9 +217,3 @@ other:rapidcheck:258d907da00a0855f92c963d8f76eef115531716:
  repository: Other
  license: BSD 2-Clause
  url: https://github.com/emil-e/rapidcheck
-
-other:Libtool:2.4.6
- name: Libtool
- version: 2.4.6
- repository: Other
- url: https://launchpad.net/ubuntu/+source/libtool/2.4.6-2
