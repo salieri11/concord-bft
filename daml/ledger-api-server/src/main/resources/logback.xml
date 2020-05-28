@@ -3,6 +3,8 @@
     <property name="application_name" value="daml-ledger-api" />
     <include resource="logback-common.xml" />
 
+    <logger name="com.daml.ledger.participant.state.kvutils.api.BatchingLedgerWriter" level="TRACE" />
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="ASYNC_FILE"/>
