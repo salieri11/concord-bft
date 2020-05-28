@@ -508,6 +508,10 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
    if "log_managements" not in expected:
       expected["log_managements"] = []
 
+   # TODO: Add test for elasticsearch instead
+   if "elasticsearch" not in expected:
+      expected["elasticsearch"] = None
+
    # If the outbound_proxy section was missing in the creation
    # request, it is supposed to be present but empty in the response.
    if "outbound_proxy" not in expected:
