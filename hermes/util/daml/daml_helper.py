@@ -107,7 +107,7 @@ def get_ledger_api_version(host):
                break
             else:
                if num_attempts >= max_attempts:
-                  raise("Unable to get the ledger api version from host '{}'".format(host))
+                  raise Exception("Unable to get the ledger api version from host '{}'".format(host))
                else:
                   log.info("Unable to get the ledger api version.  Retrying.")
 

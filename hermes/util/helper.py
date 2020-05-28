@@ -957,6 +957,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
                                                             test_set["testname"].replace(' ', '_')))
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
+
          testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config
          test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
 
@@ -994,18 +995,24 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
   temp_json_path = "/tmp/healthd_recent.json"
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
+
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
     if blockchain_type == TYPE_DAML_PARTICIPANT:
       typeName = "Participant" if not concise else "p"
+
     for i, replica_ip in enumerate(replica_ips):
       try:
+        log.info("Retrieving stats for replica '{}', user '{}', password '{}', file '{}', to "
+                 "local file '{}'".format(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
+                                          temp_json_path))
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
           with open(temp_json_path, "r", encoding="utf-8") as f:
             stat = json.load(f)
             stat["type"] = blockchain_type
             all_reports["json"][replica_ip] = stat
+
             if blockchain_type == TYPE_DAML_COMMITTER:
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
@@ -1017,8 +1024,15 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
               all_reports["message_format"].append("{} {}{} | {}% | {}% | {}%".format(
                 status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"]
               ))
+        else:
+           raise Exception("Failed retrieving stats for replica '{}', user '{}', password '{}', file '{}', to "
+                           "local file '{}'".format(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
+                                                    temp_json_path))
       except Exception as e:
+        log.error(str(e))
         hermesNonCriticalTrace(e)
+
+
   standardDeviation = statistics.stdev(all_committers_mem)
   if standardDeviation > 5.0: # STDEV usually is < 5, high deviation is indication of malfunction
     all_reports["message_format"].append(
@@ -1530,10 +1544,11 @@ def hermesNonCriticalTraceFinalize():
     pass
 
 
-def parseReplicasConfig(replicasConfig):
-  with open(replicasConfig, 'r') as f:
+def parseReplicasConfig(replicasConfigFile):
+  with open(replicasConfigFile, 'r') as f:
     result = {}
     replicas = json.loads(f.read())
+
     for nodeType in replicas:
       nodeWithThisType = replicas[nodeType]
       if nodeType not in result: result[nodeType] = []
@@ -1655,7 +1670,7 @@ def installHealthDaemon(all_replicas_and_type):
 
     for thd in threads: thd.join() # wait for all installations to return
     for result in results: log.info(result)
-    log.info("Sleep for 30 second so health daemon initializes")
+    log.info("Sleep for 30 seconds so health daemon initializes")
     time.sleep(30)
     return True
 
@@ -1687,7 +1702,8 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
     "docker network rm blockchain-fabric"
   ]
   wipeOutDeleteData = [] if keepData else [
-    "rm -rf /config/concord/rocksdbdata", "rm -rf /config/daml_index_db"
+    "rm -rf /config/concord/rocksdbdata", "rm -rf /config/daml-index-db/db",
+    "rm -rf /var/log/deployment_support_logs"
   ]
   wipeOutConcordConfigSet = []
   if concordConfig:

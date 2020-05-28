@@ -20,7 +20,7 @@ error() {
 }
 
 check_usage() {
-    if [ -z "$LEDGER_HOST" -o -z "$DAML_SDK_VERSION" -o -z "$SPIDER_IMAGE_TAG" -o -z "$MARKET_FLAVOUR" ]
+    if [ -z "$LEDGER_HOST" -o -z "$DAML_SDK_VERSION" -o -z "$SPIDER_IMAGE_TAG" -o -z "$MARKET_FLAVOUR" -o -z "$WORK_SUBDIR" ]
     then
         error "Missing parameters"
         cat << EOF
@@ -30,6 +30,7 @@ Usage: $0 <OPTIONS>
           --marketFlavor <Market flavor>
           --damlSDKVersion <DAML SDK version>
           --concurrency <Concurrency throttles the number of in-flight trades between the submission and the response of the first hop>
+          --runSubdir <Subdirectory of resultsDir into which logs specific to this run are placed>
 EOF
 
         exit 1
@@ -66,7 +67,7 @@ execute_command() {
         exit 1
     else
         CMD_AS_FILE_NAME=`echo "${COMMAND_TO_RUN}" | tr '/' '_'`
-        LOG_FILE="${WORK_DIR}/${CMD_AS_FILE_NAME}".log
+        LOG_FILE="${WORK_SUBDIR}/${CMD_AS_FILE_NAME}_${LEDGER_HOST}".log
         IS_CMD_TO_BE_INITIALIZED_ONCE_FILE="${WORK_DIR}/${CMD_AS_FILE_NAME}.${LEDGER_HOST}"
 
         info "****************************************"
@@ -83,30 +84,29 @@ execute_command() {
             then
                 touch "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
             fi
-        fi
 
-        info ""
+            info ""
 
-        if [ "${RC}" == "0" -o -f "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}" ]
-        then
-            if [ ! -z "${VALIDATE_STRING}" ]
+            if [ "${RC}" == "0" ]
             then
-                keyword_matched=`cat "${LOG_FILE}" | grep "${VALIDATE_STRING}"`
-                if [ ! -z "${keyword_matched}" ]
+                if [ ! -z "${VALIDATE_STRING}" ]
                 then
-                    info "**** Command ${COMMAND_TO_RUN} execution/validation completed sucessfully"
+                    keyword_matched=`cat "${LOG_FILE}" | grep "${VALIDATE_STRING}"`
+                    if [ ! -z "${keyword_matched}" ]
+                    then
+                        info "**** Command ${COMMAND_TO_RUN} execution/validation completed sucessfully"
+                    else
+                        error "**** Command ${COMMAND_TO_RUN} execution failed"
+                        trap_ctrlc
+                    fi
                 else
-                    error "**** Command ${COMMAND_TO_RUN} execution failed"
-                    trap_ctrlc
+                    info "**** Command execution completed sucessfully"
                 fi
             else
-                info "**** Command execution completed sucessfully"
+                error "**** Command execution failed"
+                trap_ctrlc
             fi
-        else
-            error "**** Command execution failed"
-            trap_ctrlc
         fi
-        info ""
     fi
 }
 
@@ -170,19 +170,32 @@ while [ "$1" != "" ] ; do
             shift
             WORK_DIR="$1"
             ;;
+        "--runSubdir")
+            shift
+            WORK_SUBDIR="$1"
+            ;;
 
     esac
     shift
 done
 
 check_usage
+
 if  [ ! -d "${WORK_DIR}" ]
 then
     mkdir -p "${WORK_DIR}"
 fi
+
+WORK_SUBDIR="${WORK_SUBDIR}/${LEDGER_HOST}"
+
+if  [ ! -d "${WORK_SUBDIR}" ]
+then
+    mkdir -p "${WORK_SUBDIR}"
+fi
+
 cd "${WORK_DIR}"
 
-CHESS_PLUS_RUN_LOG_FILE="${WORK_DIR}/run.log"
+CHESS_PLUS_RUN_LOG_FILE="${WORK_SUBDIR}/run_${LEDGER_HOST}.log"
 export SPIDER_IMAGE_TAG="$SPIDER_IMAGE_TAG"
 export DAML_SDK_VERSION="$DAML_SDK_VERSION"
 export LEDGER_HOST="$LEDGER_HOST"
