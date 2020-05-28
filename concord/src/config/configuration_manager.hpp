@@ -107,6 +107,20 @@ class ConfigurationResourceNotFoundException : public ConfigurationException {
   std::string message;
 };
 
+// Exception type thrown by YAMLConfigurationInput when a value for a parameter
+// it has been asked to load is found in the configuration input, and it
+// attempts to load it, but the ConcordConfiguration it tries to load it to
+// reports the value is invalid.
+class InvalidConfigurationInputException : public ConfigurationException {
+ public:
+  explicit InvalidConfigurationInputException(const std::string& what)
+      : ConfigurationException(what), message(what) {}
+  virtual const char* what() const noexcept override { return message.c_str(); }
+
+ private:
+  std::string message;
+};
+
 // struct for referring to specific parameters or scopes within a
 // ConcordConfiguration. ConcordConfiguration provides for the definition of
 // instantiable scopes that may contain configuration parameters or other scopes
@@ -1251,25 +1265,35 @@ class YAMLConfigurationInput {
   // MESSAGE>".
   // - overwrite: loadConfiguration will only overwrite existing values in
   // config if true is given for the overwrite parameter.
-  // Returns: true if this YAMLConfigurationInput was able to successfully parse
-  // the specified YAML configuration file and false otherwise. Note
-  //  loadClusterSizeParameters(yamlInput, config, &(std::cout));
+  // Returns: true if this YAMLConfigurationInput successfully parsed
+  // the specified YAML configuration file, or false otherwise. Note
+  // loadClusterSizeParameters(yamlInput, config, &(std::cout));
   // YAMLConfigurationInput only considers failures to consist of either (a)
   // parseInput was never called for this YAMLConfiguraitonInput or (b)
   // parseInput was exited before it returned normally due to an exception
   // occuring while trying to parse its input; it does not consider it a failure
   // if the YAML parse contains unexpected extra information or if the parse is
-  // missing requested parameter(s). If false is returned, this function will
-  // not have loaded any values to config. If true is returned, this function
-  // will have loaded values from the configuration file it parsed to config for
-  // any parameter that meets the following requirements:
+  // missing requested parameter(s).
+  // Throws: an InvalidConfigurationInputException if any value this function
+  // attempts to load from the input file is rejected by config as invalid. Note
+  // this function will only attempt to load parameters from the input for which
+  // the following requirements are met:
   // - iterator returned a path to this parameter.
   // - This parameter exists (was declared) in config.
   // - The input configuration file had a value for this parameter.
   // - config has no value already loaded for this parameter or overwrite is
-  // true.
+  //   true.
+  // If false is returned, this function will not have loaded any values to
+  // config. If true is returned, this function will have loaded values from the
+  // configuration file it parsed to config for any parameter that meets the
+  // following requirements:
+  // - All requirements for this function to attempt to load this parameter
+  //   (listed above under "Throws:") are met.
   // - config did not reject the loaded value of the parameter due to validator
-  // rejection.
+  //   rejection.
+  // If this function throws an exception rather than returning a bool, it may
+  // have loaded any subset of the parameters that meet the requirements for it
+  // to attempt to load them (as described above under "Throws:").
   template <class Iterator>
   bool loadConfiguration(ConcordConfiguration& config, Iterator iterator,
                          Iterator end, log4cplus::Logger* errorOut = nullptr,
@@ -1390,7 +1414,8 @@ void specifyConfiguration(ConcordConfiguration& config);
 // YAML for its input file, and that the. Throws a
 // ConfigurationResourceNotFoundException if values for any required cluster
 // sizing parameters cannot be found in the input or cannot be loaded to the
-// configuration.
+// configuration. Throws an InvalidConfigurationInputException if an invalid
+// value is found for any required cluster sizing parameters.
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
                                ConcordConfiguration& config,
                                bool is_client = false);
@@ -1411,6 +1436,9 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
 // correctly handling cases where parameter values are given in places that mix
 // scope templates and instances (For example, if the input includes a setting
 // specific to the first client proxy on each node).
+//
+// Throws an InvalidConfigurationInputException if an invalid value is found for
+// any parameter this function attempts to load.
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config);
 
@@ -1424,9 +1452,10 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
 // this configuration (which can be done with
 // instantiateTemplatedConfiguration). Furthermore, it is expected that the
 // YAMLConfigurationInput given has already parsed its input file and cached the
-// YAML values. This function will throw a
-// ConfigurationResourceNotFoundException if any required input parameter is not
-// available in the input.
+// YAML values. Throws a ConfigurationResourceNotFoundException if any required
+// input parameter is not available in the input. Throws an
+// InvalidConfigurationInputException if an invalid value is found for any
+// parameter whose value this function attempts to load.
 void loadConfigurationInputParameters(YAMLConfigurationInput& input,
                                       ConcordConfiguration& config);
 
@@ -1492,9 +1521,10 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
 // function also expects that the YAMLConfigurationInput has already parsed its
 // input file and cached the YAML values. Furthermore, this function expects
 // that the logging system has been initialized so that it can log any issues it
-// finds with the configuration. This function will throw a
-// ConfigurationResourceNotFoundException if any required configuration
-// parameters are missing from the input.
+// finds with the configuration. Throws a ConfigurationResourceNotFoundException
+// if any required configuration parameters are missing from the input. Throws
+// an InvalidConfigurationInputException if an invalid value is found for any
+// parameter this function attempts to load.
 void loadNodeConfiguration(ConcordConfiguration& config,
                            YAMLConfigurationInput& input);
 

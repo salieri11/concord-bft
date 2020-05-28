@@ -1775,10 +1775,14 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
     string failureMessage;
     ConcordConfiguration::ParameterStatus status = config.loadValue(
         path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
-    if (errorOut &&
-        (status == ConcordConfiguration::ParameterStatus::INVALID)) {
-      LOG4CPLUS_ERROR((*errorOut), "Cannot load value for parameter " +
-                                       path.name + ": " + failureMessage);
+    if (status == ConcordConfiguration::ParameterStatus::INVALID) {
+      if (errorOut) {
+        LOG4CPLUS_ERROR((*errorOut), "Cannot load value for parameter " +
+                                         path.name + ": " + failureMessage);
+      }
+      throw InvalidConfigurationInputException(
+          "Rejected input value for parameter " + path.name + ": " +
+          failureMessage);
     }
   }
 }
