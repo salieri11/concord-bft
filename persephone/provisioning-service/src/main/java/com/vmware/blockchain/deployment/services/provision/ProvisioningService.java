@@ -928,16 +928,13 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         // Generate Concord node models based on orchestration events.
         var nodes = ProvisioningServiceUtil.toConcordNodes(session, events);
 
-
-
-
         log.info("Concord version in ProvisioningService.toDeploymentSessionEvents {}",
                 session.getSpecification().getModel().getVersion());
         var clusterEvent = ProvisioningServiceUtil.newClusterDeploymentEvent(
-                session.getId(), session.getStatus(),
-                ConcordCluster.newBuilder().setId(session.getCluster())
-                        .setInfo(ConcordClusterInfo.newBuilder().addAllMembers(nodes).build()).build(),
-                session.getSpecification().getModel().getVersion());
+                                session.getId(), session.getStatus(),
+                                ConcordCluster.newBuilder().setId(session.getCluster())
+                                        .setInfo(ConcordClusterInfo.newBuilder().addAllMembers(nodes).build()).build(),
+                                session.getSpecification().getModel().getVersion());
 
         // Concatenate every event together.
         // (Existing events, all node events, cluster event, and completion event)

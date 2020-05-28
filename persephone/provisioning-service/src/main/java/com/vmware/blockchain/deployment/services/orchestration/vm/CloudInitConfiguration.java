@@ -24,6 +24,7 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -45,6 +46,7 @@ public class CloudInitConfiguration {
     private Endpoint configServiceEndpoint;
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
+    @Getter
     private String vmPassword;
 
     /**

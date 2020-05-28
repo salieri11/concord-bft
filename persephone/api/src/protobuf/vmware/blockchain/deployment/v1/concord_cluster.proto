@@ -34,6 +34,7 @@ message ConcordNodeInfo {
     ConcordModelIdentifier model = 1;
     map<string, int32> ipv4_addresses = 2;
     ConcordModelSpecification.BlockchainType blockchain_type = 3;
+    string node_password = 4;
 }
 
 /**

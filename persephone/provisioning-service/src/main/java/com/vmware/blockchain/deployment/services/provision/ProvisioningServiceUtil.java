@@ -99,7 +99,8 @@ class ProvisioningServiceUtil {
             ConcordModelSpecification.BlockchainType blockchainType
     ) {
         return ConcordNode.newBuilder().setId(event.getNode())
-                .setInfo(ConcordNodeInfo.newBuilder().setBlockchainType(blockchainType).build())
+                .setInfo(ConcordNodeInfo.newBuilder().setBlockchainType(blockchainType)
+                                        .setNodePassword(event.getNodePassword()).build())
                 .setHostInfo(toConcordNodeHostInfo(event, placementEntryByNodeName)).build();
     }
 
@@ -145,7 +146,8 @@ class ProvisioningServiceUtil {
                 ).collect(Collectors.toMap(Map.Entry::getKey,
                                            Map.Entry::getValue, (oldEntry, newEntry) -> oldEntry // Preserve exis value.
                 )))
-                .setBlockchainType(first.getBlockchainType()).build();
+                .setBlockchainType(first.getBlockchainType())
+                .setNodePassword(first.getNodePassword()).build();
     }
 
     /**

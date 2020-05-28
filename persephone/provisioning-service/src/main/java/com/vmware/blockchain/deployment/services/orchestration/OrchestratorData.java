@@ -146,11 +146,16 @@ public class OrchestratorData {
     public static final class ComputeResourceEventCreated extends ComputeResourceEvent {
 
         ConcordNodeIdentifier node;
+        String nodePassword;
 
+        /**
+         * Constructor.
+         */
         @Builder
-        public ComputeResourceEventCreated(URI resource, ConcordNodeIdentifier node) {
+        public ComputeResourceEventCreated(URI resource, ConcordNodeIdentifier node, String password) {
             super(resource);
             this.node = node;
+            this.nodePassword = password;
         }
     }
 

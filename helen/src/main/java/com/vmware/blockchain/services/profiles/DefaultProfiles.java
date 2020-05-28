@@ -228,7 +228,7 @@ public class DefaultProfiles {
                 Replica r = new Replica(n.getIp(),
                                         p.getAddress().split(":")[0],
                                         p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), replicaType,
-                                        b.getId());
+                                        b.getId(), "Password!23");
                 r.setId(n.getNodeId());
                 replicaService.put(r);
             }

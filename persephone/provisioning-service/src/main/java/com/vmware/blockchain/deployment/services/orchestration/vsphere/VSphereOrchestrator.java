@@ -86,31 +86,33 @@ public class VSphereOrchestrator implements Orchestrator {
             val resourcePool = getResourcePool.get();
             val controlNetwork = getControlNetwork.get();
             val libraryItem = getLibraryItem.get();
+            val cloudInit = new CloudInitConfiguration(
+                                    info.getContainerRegistry(),
+                                    request.getModel(),
+                                    request.getPrivateNetworkAddress(),
+                                    InetAddress.getByName(String.valueOf(network.getGateway()))
+                                            .getHostAddress(),
+                                    network.getNameServersList(),
+                                    network.getSubnet(),
+                                    request.getCluster(),
+                                    request.getConcordId(),
+                                    request.getConfigurationSessionIdentifier(),
+                                    request.getConfigServiceEndpoint(),
+                                    request.getConfigServiceRestEndpoint(),
+                                    info.getVsphere().getOutboundProxy()
+                                );
 
             val instance = vSphereHttpClient
                     .createVirtualMachine(request.getCluster().getId() + "-" + request.getNode().getId(),
                                           libraryItem, datastore, resourcePool, folder,
-                                          Map.entry("blockchain-network", controlNetwork),
-                                          new CloudInitConfiguration(
-                                                  info.getContainerRegistry(),
-                                                  request.getModel(),
-                                                  request.getPrivateNetworkAddress(),
-                                                  InetAddress.getByName(String.valueOf(network.getGateway()))
-                                                          .getHostAddress(),
-                                                  network.getNameServersList(),
-                                                  network.getSubnet(),
-                                                  request.getCluster(),
-                                                  request.getConcordId(),
-                                                  request.getConfigurationSessionIdentifier(),
-                                                  request.getConfigServiceEndpoint(),
-                                                  request.getConfigServiceRestEndpoint(),
-                                                  info.getVsphere().getOutboundProxy()
-                                          )
-                    );
+                                          Map.entry("blockchain-network", controlNetwork), cloudInit);
 
             vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L);
             return OrchestratorData.ComputeResourceEventCreated.builder()
-                    .resource(vSphereHttpClient.vmIdAsUri(instance)).node(request.getNode()).build();
+                    .resource(vSphereHttpClient.vmIdAsUri(instance))
+                    .node(request.getNode())
+                    .password(cloudInit.getVmPassword())
+                    .build();
         } catch (Exception e) {
             throw new PersephoneException(e, "Error creating/starting the VM");
         }
