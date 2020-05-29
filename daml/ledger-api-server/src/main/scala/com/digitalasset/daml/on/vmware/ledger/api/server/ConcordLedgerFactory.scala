@@ -175,7 +175,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
 
   private[this] def waitForConcordToBeReady(clients: Seq[ConcordWriteClient], f: Int): Unit = {
     // The first client is used to send requests to and therefore we need a working connection.
-    while (clients.head.ready) {
+    while (!clients.head.ready) {
       logger.info("Waiting for first Concord to be ready")
       Thread.sleep(1000)
     }
