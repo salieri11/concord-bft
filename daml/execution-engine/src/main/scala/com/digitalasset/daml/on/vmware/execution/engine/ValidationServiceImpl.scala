@@ -6,7 +6,11 @@ import akka.stream.Materializer
 import com.codahale.metrics.{InstrumentedExecutorService, MetricRegistry}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
-import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, ConflictDetection}
+import com.daml.ledger.validator.batch.{
+  BatchedSubmissionValidator,
+  BatchedSubmissionValidatorParameters,
+  ConflictDetection
+}
 import com.daml.lf.engine.Engine
 import com.daml.metrics.{MetricName, Metrics}
 import com.digitalasset.kvbc.daml_validator._
@@ -26,8 +30,8 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
     PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
 
   private val batchValidator =
-    BatchValidator[Unit](
-      BatchValidatorParameters.default,
+    BatchedSubmissionValidator[Unit](
+      BatchedSubmissionValidatorParameters.default,
       new KeyValueCommitting(engine, metrics),
       new ConflictDetection(metrics),
       metrics,

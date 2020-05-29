@@ -5,7 +5,7 @@ import com.daml.dec.DirectExecutionContext
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.daml.ledger.participant.state.kvutils.DamlKvutils
 import com.daml.ledger.validator.LedgerStateOperations.Key
-import com.daml.ledger.validator.batch.BatchValidator
+import com.daml.ledger.validator.batch.BatchedSubmissionValidator
 import com.daml.ledger.validator.privacy.LedgerStateOperationsWithAccessControl
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, QueryableReadSet}
 import com.digitalasset.daml.on.vmware.execution.engine
@@ -39,7 +39,7 @@ class PipelinedValidatorSpec
       }
       val expectedReadSet = Set(ByteString.copyFromUtf8("key2"), ByteString.copyFromUtf8("key1"))
       when(mockQueryableReadSet.getReadSet).thenReturn(expectedReadSet)
-      val mockValidator = mock[BatchValidator[Unit]]
+      val mockValidator = mock[BatchedSubmissionValidator[Unit]]
       val submissionCaptor =
         ArgumentCaptor.forClass(classOf[ByteString]).asInstanceOf[ArgumentCaptor[ByteString]]
       when(
@@ -70,7 +70,7 @@ class PipelinedValidatorSpec
 
     "throw in case recordTime is not specified in request" in {
       val mockQueryableReadSet = mock[DamlLedgerStateReader with QueryableReadSet]
-      val mockValidator = mock[BatchValidator[Unit]]
+      val mockValidator = mock[BatchedSubmissionValidator[Unit]]
       when(mockValidator.validateAndCommit(any(), any(), any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.unit)
       val mockStreamObserver = mock[StreamObserver[EventFromValidator]]
@@ -87,7 +87,7 @@ class PipelinedValidatorSpec
 
     "report validation error via onError() callback" in {
       val mockQueryableReadSet = mock[DamlLedgerStateReader with QueryableReadSet]
-      val mockValidator = mock[BatchValidator[Unit]]
+      val mockValidator = mock[BatchedSubmissionValidator[Unit]]
       when(mockValidator.validateAndCommit(any(), any(), any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.failed(new IllegalArgumentException("something is not right")))
       val mockStreamObserver = mock[StreamObserver[EventFromValidator]]

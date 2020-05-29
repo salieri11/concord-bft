@@ -11,7 +11,11 @@ import com.daml.ledger.participant.state.kvutils.{Envelope, KeyValueCommitting, 
 import com.daml.ledger.participant.state.pkvutils
 import com.daml.ledger.participant.state.pkvutils.Fragmenter
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
-import com.daml.ledger.validator.batch.{BatchValidator, BatchValidatorParameters, ConflictDetection}
+import com.daml.ledger.validator.batch.{
+  BatchedSubmissionValidator,
+  BatchedSubmissionValidatorParameters,
+  ConflictDetection
+}
 import com.daml.lf.data.{Ref, Time}
 import com.daml.lf.engine.Engine
 import com.daml.metrics.Metrics
@@ -226,8 +230,8 @@ class KVBCValidator(metrics: Metrics)(implicit materializer: Materializer)
     PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
 
   private val batchValidator =
-    BatchValidator[Unit](
-      BatchValidatorParameters.default,
+    BatchedSubmissionValidator[Unit](
+      BatchedSubmissionValidatorParameters.default,
       keyValueCommitting,
       new ConflictDetection(metrics),
       metrics,
