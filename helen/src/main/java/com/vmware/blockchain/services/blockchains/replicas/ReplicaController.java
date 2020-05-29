@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains.replicas;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -116,6 +117,16 @@ public class ReplicaController {
         UUID zoneId;
     }
 
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ReplicaGetCredentialsResponse {
+        // TODO: username is a placeholder if it ever needs to be non-root.
+        String username;
+        String password;
+    }
+
     /**
      * Get the list of replicas, and their status.
      */
@@ -217,7 +228,7 @@ public class ReplicaController {
      * @param nodeId    node ID.
      * @param action    start/stop
      * @return          202 with Task
-     * @throws Exception BadRequest if paramenter are wrong
+     * @throws Exception BadRequest if parameters are wrong
      */
     @RequestMapping(method = RequestMethod.POST, path = {"/nodes/{nodeId}", "/replicas/{nodeId}"})
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
@@ -239,7 +250,7 @@ public class ReplicaController {
      * @param nodeList  List of node ids.
      * @param action    start/stop
      * @return          202 with TaskList
-     * @throws Exception BadReqest
+     * @throws Exception BadRequest
      */
     @RequestMapping(method = RequestMethod.POST, path = {"/nodes", "/replicas"})
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
@@ -261,6 +272,27 @@ public class ReplicaController {
                 uuidList.stream().map(n -> startStopNode(bid, n, action)).map(t -> t.getId()).collect(
                 Collectors.toList());
         return new ResponseEntity<>(new TaskList(taskIds), HttpStatus.ACCEPTED);
+    }
+
+    /**
+     * Get credentials for a given replica.
+     * @param bid       Blockchain ID
+     * @param replicaId Replica ID for which credentials are requested
+     * @return          200 with ReplicaGetCredentialsResponse
+     */
+    @RequestMapping(method = RequestMethod.GET, path = {"/replicas/{replicaId}/credentials"})
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    public ResponseEntity<ReplicaGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
+                                                                               @PathVariable UUID replicaId) {
+        Optional<Replica> replicaOpt = blockchainService.getReplicas(bid).stream()
+                                                        .filter(r -> r.getId().equals(replicaId)).findFirst();
+        if (replicaOpt.isEmpty()) {
+            throw new NotFoundException(ErrorCode.NOT_FOUND);
+        }
+        Replica replica = replicaOpt.get();
+
+        return new ResponseEntity<>(ReplicaGetCredentialsResponse.builder()
+                                        .username("root").password(replica.password).build(), HttpStatus.OK);
     }
 
 

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
- * Replica Service.  Handle replica persistance.
+ * Replica Service. Handle replica persistence.
  */
 @Service
 public class ReplicaService {

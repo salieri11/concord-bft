@@ -49,6 +49,7 @@ import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaGetCredentialsResponse;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaGetResponse;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.Consortium;
@@ -71,6 +72,9 @@ class ReplicaControllerTest {
 
     private static UUID B1 = UUID.fromString("6d2bc86f-8556-4092-a9d6-5436f6c113d1");
     private static UUID Z1 = UUID.fromString("112e5c35-5d69-474b-a742-62bb3fc9396b");
+
+    private static String N1Password = "TestPassword!11";
+    private static String N2Password = "TestPassword!22";
 
     @Autowired
     WebApplicationContext context;
@@ -194,12 +198,25 @@ class ReplicaControllerTest {
 
     }
 
+    @Test
+    void testGetReplicaCredentials() throws Exception {
+        String url = String.format("/api/blockchains/%s/replicas/%s/credentials", B1.toString(), N1.toString());
+        when(blockchainService.getReplicas(B1)).thenReturn(nodeEntries());
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ReplicaGetCredentialsResponse replicaCredentials =
+                objectMapper.readValue(body, new TypeReference<ReplicaGetCredentialsResponse>() {});
+        Assertions.assertEquals("root", replicaCredentials.username);
+        Assertions.assertEquals(N1Password, replicaCredentials.password);
+    }
+
     private List<Replica> nodeEntries() {
         Replica r1 = new Replica("1.2.3.4", "4.3.2.1", "localhost", "http://localhost", "cert1", Z1,
-                Replica.ReplicaType.NONE, B1, "testPassword");
+                Replica.ReplicaType.NONE, B1, N1Password);
         r1.setId(N1);
         Replica r2 = new Replica("1.2.3.5", "4.3.2.2", "localhost", "http://localhost", "cert2", Z1,
-                Replica.ReplicaType.NONE, B1, "testPassword");
+                Replica.ReplicaType.NONE, B1, N2Password);
         r2.setId(N2);
         return ImmutableList.of(r1, r2);
     }

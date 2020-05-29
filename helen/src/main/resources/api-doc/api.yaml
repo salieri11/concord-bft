@@ -429,6 +429,41 @@ paths:
                   task_id:
                     type: string
                     format: uuid
+  /blockchains/{bid}/replicas/{replica_id}/credentials:
+    get:
+      tags:
+        - blockchains
+      summary: Get credentials for given replica
+      operationId: getReplicaCredentials
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: replica_id
+          required: true
+          in: path
+          description: Replica ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Replica credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                    description: Replica username
+                  password:
+                    type: string
+                    description: Replica password
   /blockchains/{bid}/concord/blocks:
     summary: Blockchain Blocks
     get:
