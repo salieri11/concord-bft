@@ -508,6 +508,10 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
    if "log_managements" not in expected:
       expected["log_managements"] = []
 
+   # TODO: Add test for elasticsearch instead
+   if "elasticsearch" not in expected:
+      expected["elasticsearch"] = None
+
    # If the outbound_proxy section was missing in the creation
    # request, it is supposed to be present but empty in the response.
    if "outbound_proxy" not in expected:
@@ -517,10 +521,6 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
          if port not in expected["outbound_proxy"] or \
             expected["outbound_proxy"][port] == None:
             expected["outbound_proxy"][port] = 0
-
-   # TODO: Add test for elasticsearch instead
-   if "elasticsearch" not in expected:
-         expected["elasticsearch"] = None
 
       # Handle a test case where we provide an int for a host. Helen puts it
       # into a string.
