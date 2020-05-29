@@ -26,7 +26,9 @@
 #include "external_client.hpp"
 
 // the parameters are sequence number and cid
-typedef std::function<void(const uint64_t&, const std::string&)>
+typedef std::function<void(const uint64_t& /* seq_num */,
+                           const std::string /* cid */,
+                           uint32_t /*reply_size*/)>
     EXT_DONE_CALLBACK;
 
 namespace concord {
@@ -107,11 +109,11 @@ class ConcordClientPool {
 
   void InsertClientToQueue(
       std::shared_ptr<concord::external_client::ConcordClient>& client,
-      uint64_t seq_num, const std::string& correlation_id);
+      uint64_t seq_num, const std::string& correlation_id, uint32_t reply_size);
 
   PoolStatus HealthStatus();
 
-  void Done(uint64_t sn, const std::string cid);
+  void Done(uint64_t sn, const std::string cid, uint32_t reply_size);
 
   void SetDoneCallback(EXT_DONE_CALLBACK cb);
 

@@ -251,28 +251,29 @@ void ConcordClientPool::SetDoneCallback(EXT_DONE_CALLBACK cb) {
   done_callback_ = std::move(cb);
 }
 
-void ConcordClientPool::Done(const uint64_t sn, const std::string cid) {
+void ConcordClientPool::Done(const uint64_t sn, const std::string cid,
+                             uint32_t reply_size) {
   if (done_callback_) {
-    done_callback_(sn, cid);
+    done_callback_(sn, cid, reply_size);
   }
 }
 
 void ConcordClientProcessingJob::execute() {
-  processing_client_->SendRequest(request_.data(), request_.size(), flags_,
-                                  timeout_ms_, reply_size_, seq_num_,
-                                  correlation_id_);
+  uint32_t reply_size = processing_client_->SendRequest(
+      request_.data(), request_.size(), flags_, timeout_ms_, reply_size_,
+      seq_num_, correlation_id_);
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
-                                    correlation_id_);
+                                    correlation_id_, reply_size);
 }
 
 void ConcordClientPool::InsertClientToQueue(
     std::shared_ptr<concord::external_client::ConcordClient> &client,
-    uint64_t seq_num, const std::string &correlation_id) {
+    uint64_t seq_num, const std::string &correlation_id, uint32_t reply_size) {
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
     clients_.push_back(client);
   }
-  Done(seq_num, correlation_id);
+  Done(seq_num, correlation_id, reply_size);
   LOG_INFO(logger_, "reqSeqNum=" << seq_num << "with cid=" << correlation_id
                                  << "has ended.returns client_id="
                                  << client->getClientId() << " to the pool");

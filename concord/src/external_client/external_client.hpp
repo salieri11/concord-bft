@@ -64,11 +64,11 @@ class ConcordClient {
   //  string
   // This method doesn't allocate or deallocate memory. All buffers should be
   // managed by the user.
-  void SendRequest(const void* request, std::uint32_t request_size,
-                   bftEngine::ClientMsgFlag flags,
-                   std::chrono::milliseconds timeout_ms,
-                   std::uint32_t reply_size, uint64_t seq_num,
-                   const std::string correlation_id = {});
+  uint32_t SendRequest(const void* request, std::uint32_t request_size,
+                       bftEngine::ClientMsgFlag flags,
+                       std::chrono::milliseconds timeout_ms,
+                       std::uint32_t reply_size, uint64_t seq_num,
+                       const std::string correlation_id = {});
 
   int getClientId() const;
 
