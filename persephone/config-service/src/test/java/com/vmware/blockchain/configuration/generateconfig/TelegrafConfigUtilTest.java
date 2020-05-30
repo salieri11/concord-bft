@@ -131,10 +131,10 @@ public class TelegrafConfigUtilTest {
     @Test
     public void testTelegrafConfigElasticSearch() throws IOException {
         Map<Integer, String> esUrls = new HashMap<>();
-        esUrls.put(0, "\"myurl0.com\"");
-        esUrls.put(1, "\"myurl1.com\"");
-        esUrls.put(2, "\"myurl2.com\"");
-        esUrls.put(3, "\"myurl3.com\"");
+        esUrls.put(0, "myurl0.com");
+        esUrls.put(1, "myurl1.com");
+        esUrls.put(2, "myurl2.com");
+        esUrls.put(3, "myurl3.com");
 
         Map<Integer, String> esUsername = new HashMap<>();
         esUsername.put(0, "myusername0");
@@ -207,10 +207,10 @@ public class TelegrafConfigUtilTest {
         Map<Integer, String> esUsername = new HashMap<>();
         Map<Integer, String> espassword = new HashMap<>();
 
-        esUrls.put(0, "\"myurl0.com\"");
-        esUrls.put(1, "\"myurl1.com\"");
-        esUrls.put(2, "\"myurl2.com\"");
-        esUrls.put(3, "\"myurl3.com\"");
+        esUrls.put(0, "myurl0.com");
+        esUrls.put(1, "myurl1.com");
+        esUrls.put(2, "myurl2.com");
+        esUrls.put(3, "myurl3.com");
 
         var esList = List.of(
                 NodeProperty.newBuilder()

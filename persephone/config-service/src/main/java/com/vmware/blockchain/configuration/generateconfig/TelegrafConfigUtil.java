@@ -194,9 +194,9 @@ public class TelegrafConfigUtil {
     private String getElasticsearchConfig(String urls, String username, String password) {
         StringBuilder config = new StringBuilder()
                 .append("[[outputs.elasticsearch]]\n")
-                .append("  urls = [ ")
+                .append("  urls = [ \"")
                 .append(urls)
-                .append(" ]\n  timeout = \"5s\"")
+                .append("\" ]\n  timeout = \"5s\"")
                 .append("\n  enable_sniffer = false")
                 .append("\n  health_check_interval = \"10s\"");
 
