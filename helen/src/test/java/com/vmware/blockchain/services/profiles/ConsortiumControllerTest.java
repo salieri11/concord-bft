@@ -297,7 +297,7 @@ public class ConsortiumControllerTest {
         List<OrgGetResponse> list = objectMapper.readValue(body, new TypeReference<List<OrgGetResponse>>() {
         });
         Assertions.assertEquals(1, list.size());
-        Assertions.assertEquals(O_1, list.get(0).getOrgId());
+        Assertions.assertEquals(O_1, list.get(0).getOrganizationId());
     }
 
 

@@ -171,7 +171,7 @@ public class OrganizationContollerTest {
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
         // Assert known details for ORG_1
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Assertions.assertEquals("One", res.organizationName);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Test", "wow");
@@ -194,7 +194,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("hello", "world");
         properties.put("Test", "wow");
@@ -217,7 +217,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_NO_PROPERTIES, res.orgId);
+        Assertions.assertEquals(ORG_NO_PROPERTIES, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("soda", "pops");
         Assertions.assertEquals(properties, res.organizationProperties);
@@ -239,7 +239,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         Assertions.assertEquals(properties, res.organizationProperties);
     }
@@ -263,7 +263,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Orbital", "Beat");
         Assertions.assertEquals(properties, res.organizationProperties);
@@ -288,7 +288,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_NO_PROPERTIES, res.orgId);
+        Assertions.assertEquals(ORG_NO_PROPERTIES, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Orbital", "Beat");
         Assertions.assertEquals(properties, res.organizationProperties);
@@ -308,7 +308,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Test", "wow");
         Assertions.assertEquals(properties, res.organizationProperties);
@@ -332,7 +332,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Test", "SUGOI");
         Assertions.assertEquals(properties, res.organizationProperties);
@@ -358,7 +358,7 @@ public class OrganizationContollerTest {
 
         OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
 
-        Assertions.assertEquals(ORG_1, res.orgId);
+        Assertions.assertEquals(ORG_1, res.organizationId);
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Test", "SUGOI");
         properties.put("Platinum", "Disco");
