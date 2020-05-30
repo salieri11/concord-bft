@@ -35,7 +35,7 @@ public class OrganizationContoller {
     @NoArgsConstructor
     @AllArgsConstructor
     static class OrgGetResponse {
-        UUID orgId;
+        UUID organizationId;
         String organizationName;
         Map<String, String> organizationProperties;
     }

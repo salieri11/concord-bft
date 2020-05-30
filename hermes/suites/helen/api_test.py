@@ -2313,9 +2313,9 @@ def test_patch_consortium_add_org(fxConnection, fxInitializeOrgs):
    assert len(patchResponse["members"]) == 2, "Expected two organizations."
 
    for m in patchResponse["members"]:
-      assert m["org_id"] in [util.auth.getOrgId(originalOrg),
+      assert m["organization_id"] in [util.auth.getOrgId(originalOrg),
                              util.auth.getOrgId("hermes_org1")]
-      if m["org_id"] == util.auth.getOrgId(originalOrg):
+      if m["organization_id"] == util.auth.getOrgId(originalOrg):
          assert m["organization_name"] == originalOrg
       else:
          assert m["organization_name"] == "hermes_org1"
@@ -2341,10 +2341,10 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
    assert len(getOrgsResponse) == 2, "Expected 2 orgs"
 
    for org in getOrgsResponse:
-      assert org["org_id"] in [util.auth.getOrgId(originalOrg),
+      assert org["organization_id"] in [util.auth.getOrgId(originalOrg),
                                util.auth.getOrgId("hermes_org1")]
 
-      if org["org_id"] == util.auth.getOrgId(originalOrg):
+      if org["organization_id"] == util.auth.getOrgId(originalOrg):
          assert org["organization_name"] == originalOrg
       else:
          assert org["organization_name"] == "hermes_org1"
