@@ -29,7 +29,7 @@ services:
       - 6832:6832/udp
       - 5778:5778/tcp
     environment:
-      REPORTER_TCHANNEL_HOST_PORT: wavefront-proxy:14267
+      REPORTER_TCHANNEL_HOST_PORT: wavefront:14267
       REPORTER_TYPE: tchannel
     depends_on:
       - wavefront
@@ -43,17 +43,3 @@ services:
     ports:
       - 2878:2878
       - 14267:14267
-
-  jaeger-agent:
-    image: jaegertracing/jaeger-agent:1.11
-    ports:
-      - 5775:5775/udp
-      - 6831:6831/udp
-      - 6832:6832/udp
-      - 5778:5778/tcp
-    environment:
-      - REPORTER_TCHANNEL_HOST_PORT=wavefront-proxy:14267
-      - REPORTER_TYPE=tchannel
-    depends_on:
-      - wavefront
-
