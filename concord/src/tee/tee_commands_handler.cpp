@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 
+#include "OpenTracing.hpp"
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
 #include "tee.pb.h"
@@ -172,10 +173,11 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
   char reply_buffer[max_response_size];
   memset(reply_buffer, 0, max_response_size);
 
+  concordUtils::SpanWrapper span;
   int result = skvbc_commands_handler_.execute(
       request_context_->client_id, request_context_->sequence_num, flags,
       request_content.size(), request_content.c_str(), max_response_size,
-      reply_buffer, reply_size);
+      reply_buffer, reply_size, span);
 
   if (result != 0) {
     LOG4CPLUS_ERROR(logger_, "Failed to process SKVBC request.");

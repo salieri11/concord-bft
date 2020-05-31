@@ -57,11 +57,14 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
   uint32_t actualReplySize = 0;
-  LOG4CPLUS_DEBUG(logger_, "Invoking command with flags: "
-                               << flags << ", timeout: " << timeout.count());
+  LOG4CPLUS_INFO(logger_, "Invoking command with flags: "
+                              << flags << ", timeout: " << timeout.count());
+  std::ostringstream req_context;
+  span->tracer().Inject(span->context(), req_context);
+  const auto &span_context = req_context.str();
   concordUtils::Status status = client_->invokeCommandSynch(
       command.c_str(), command.size(), flags, timeout, OUT_BUFFER_SIZE,
-      m_outBuffer, &actualReplySize, correlation_id);
+      m_outBuffer, &actualReplySize, correlation_id, span_context);
 
   if (status.isOK() && actualReplySize) {
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
