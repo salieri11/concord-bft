@@ -26,7 +26,7 @@ class DamlMock {
     bft::client::Msg request_(msg_.begin(), msg_.end());
     return client_tls_.SendRequest(config_, std::move(request_));
   }
-  
+
   void BuildRequest() {
     config_.request.pre_execute = false;
     config_.request.correlation_id = std::to_string(cid_);
@@ -100,8 +100,7 @@ TEST(mock_integration_test, mock_daml_request_acknowledged_situation) {
       "              - client_port: 3511\n"
       "                principal_id: 13\n";
   auto stream = std::stringstream{conf};
-  std::unique_ptr<DamlMock> da_mock =
-      std::make_unique<DamlMock>(stream);
+  std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
   da_mock->BuildRequest();
   auto res = da_mock->SendRequest();
   ASSERT_EQ(res, SubmitResult::Acknowledged);
@@ -161,8 +160,7 @@ TEST(mock_integration_test, mock_daml_request_internal_error_situation) {
       "              - client_port: 3511\n"
       "                principal_id: 13\n";
   auto stream = std::stringstream{conf};
-  std::unique_ptr<DamlMock> da_mock =
-      std::make_unique<DamlMock>(stream);
+  std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
   da_mock->BuildRequest();
   auto res = da_mock->SendRequest();
   sleep(7);
@@ -224,8 +222,7 @@ TEST(mock_integration_test, mock_daml_request_overload_situation) {
       "              - client_port: 3511\n"
       "                principal_id: 13\n";
   auto stream = std::stringstream{conf};
-  std::unique_ptr<DamlMock> da_mock =
-      std::make_unique<DamlMock>(stream);
+  std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
   da_mock->BuildRequest();
   auto res = da_mock->SendRequest();
   res = da_mock->SendRequest();

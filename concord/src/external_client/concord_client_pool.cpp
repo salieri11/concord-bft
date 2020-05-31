@@ -26,6 +26,7 @@ SubmitResult ConcordClientPool::SendRequest(
     std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
     void *out_reply, std::uint32_t *out_actual_reply_size,
     const std::string &correlation_id) {
+  if (internalError_) return SubmitResult::InternalError;
   std::shared_ptr<external_client::ConcordClient> client = nullptr;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -206,13 +207,11 @@ ConcordClientPool::~ConcordClientPool() {
 }
 
 void ConcordClientProcessingJob::execute() {
-  try {
-    processing_client_->SendRequest(
-        request_, request_size_, flags_, timeout_ms_, reply_size_, out_reply_,
-        out_actual_reply_size_, seq_num_, correlation_id_);
-  } catch (external_client::ClientRequestException &e) {
-    throw InternalError;
-  }
+  auto res = processing_client_->SendRequest(
+      request_.c_str(), request_size_, flags_, timeout_ms_, reply_size_,
+      out_reply_, out_actual_reply_size_, seq_num_, correlation_id_);
+  result_ = res;
+  if (res != 0) clients_pool_.turnInternalErrorOn();
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
                                     correlation_id_);
 }
@@ -242,6 +241,8 @@ PoolStatus ConcordClientPool::HealthStatus() {
     if (client->isRunning()) return PoolStatus::Serving;
   return PoolStatus::NotServing;
 }
+
+void ConcordClientPool::turnInternalErrorOn() { internalError_ = true; }
 
 }  // namespace concord_client_pool
 }  // namespace concord

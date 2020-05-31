@@ -39,17 +39,16 @@ ConcordClient::~ConcordClient() noexcept {
   }
 }
 
-void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
-                                ClientMsgFlag flags,
-                                std::chrono::milliseconds timeout_ms,
-                                std::uint32_t reply_size, void* out_reply,
-                                std::uint32_t* out_actual_reply_size,
-                                uint64_t seq_num,
-                                const std::string& correlation_id) {
-  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
-                                  request_size, seq_num, timeout_ms.count(),
-                                  reply_size, static_cast<char*>(out_reply),
-                                  *out_actual_reply_size, correlation_id);
+int ConcordClient::SendRequest(const char* request, std::uint32_t request_size,
+                               ClientMsgFlag flags,
+                               std::chrono::milliseconds timeout_ms,
+                               std::uint32_t reply_size, void* out_reply,
+                               std::uint32_t* out_actual_reply_size,
+                               uint64_t seq_num,
+                               const std::string& correlation_id) {
+  auto res = client_->sendRequest(
+      flags, request, request_size, seq_num, timeout_ms.count(), reply_size,
+      static_cast<char*>(out_reply), *out_actual_reply_size, correlation_id);
 
   assert(res >= -2 && res < 1);
 
@@ -57,14 +56,7 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
     LOG4CPLUS_ERROR(logger_, "reqSeqNum=" << seq_num
                                           << " cid=" << correlation_id
                                           << " has failed to invoke");
-  if (res == -1)
-    throw ClientRequestException{
-        concordUtils::Status::GeneralError("timeout"),
-        "ConcordClient failed to send a synchronous request"};
-  else if (res == -2)
-    throw ClientRequestException{
-        concordUtils::Status::InvalidArgument("small buffer"),
-        "ConcordClient failed to send a synchronous request"};
+  return res;
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
