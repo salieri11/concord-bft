@@ -104,6 +104,8 @@ class ConcordClient {
   uint64_t seq_num_ = 0;
   std::chrono::steady_clock::time_point start_job_time_ =
       std::chrono::steady_clock::now();
+  uint16_t f_val_ = 0;
+  uint16_t c_val_ = 0;
 };
 
 }  // namespace external_client

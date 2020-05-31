@@ -146,6 +146,8 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
       bftEngine::SimpleClient::createSimpleClient(
           comm_.get(), client_config.clientId, client_config.fVal,
           client_config.cVal)};
+  f_val_ = client_config.fVal;
+  c_val_ = client_config.cVal;
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);
@@ -167,7 +169,15 @@ std::chrono::steady_clock::time_point ConcordClient::getStartRequestTime()
   return start_job_time_;
 }
 
-bool ConcordClient::isRunning() const { return comm_->isRunning(); }
+bool ConcordClient::isRunning() const {
+  int connected = 0;
+  for (int i = 0; i < 3 * f_val_ + 2 * c_val_ + 1; i++) {
+    if (comm_->getCurrentConnectionStatus(i) == ConnectionStatus::Connected)
+      connected++;
+    if (connected == 2 * f_val_ + 1) return true;
+  }
+  return false;
+}
 
 }  // namespace external_client
 }  // namespace concord
