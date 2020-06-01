@@ -23,8 +23,8 @@ class DamlMock {
       : client_tls_(ConcordClientPool(config_stream)), config_() {}
 
   SubmitResult SendRequest() {
-    bft::client::Msg request_(msg_.begin(), msg_.end());
-    return client_tls_.SendRequest(config_, std::move(request_));
+    bft::client::Msg* request_ = new bft::client::Msg(msg_.begin(), msg_.end());
+    return client_tls_.SendRequest(config_, std::move(*request_));
   }
 
   void BuildRequest() {
@@ -45,6 +45,7 @@ class DamlMock {
   bft::client::ReadConfig config_;
   uint32_t cid_ = 0;
 };
+
 // Pre-integration tests
 TEST(mock_integration_test, mock_daml_request_acknowledged_situation) {
   const auto conf =
@@ -111,7 +112,7 @@ TEST(mock_integration_test, mock_daml_request_internal_error_situation) {
       "f_val: 1\n"
       "c_val: 0\n"
       "num_replicas: 4\n"
-      "clients_per_participant_node: 1\n"
+      "clients_per_participant_node: -1\n"
       "comm_to_use: tls\n"
       "prometheus_port: 9873\n"
       "tls_certificates_folder_path: resources/tls_certs\n"
@@ -160,12 +161,11 @@ TEST(mock_integration_test, mock_daml_request_internal_error_situation) {
       "              - client_port: 3511\n"
       "                principal_id: 13\n";
   auto stream = std::stringstream{conf};
-  std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
-  da_mock->BuildRequest();
-  auto res = da_mock->SendRequest();
-  sleep(7);
-  res = da_mock->SendRequest();
-  ASSERT_EQ(res, SubmitResult::InternalError);
+  EXPECT_THROW(
+      {
+        std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
+      },
+      Internalerror);
 }
 
 TEST(mock_integration_test, mock_daml_request_overload_situation) {
@@ -292,8 +292,7 @@ TEST(external_client_configuration_test, num_external_clients_le_to_0) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); },
-               ConfigurationException);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
 }
 
 TEST(external_client_configuration_test, num_external_clients_gt_4096) {
@@ -351,8 +350,7 @@ TEST(external_client_configuration_test, num_external_clients_gt_4096) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); },
-               ConfigurationException);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
 }
 
 TEST(external_client_configuration_test,
@@ -469,8 +467,7 @@ TEST(external_client_configuration_test, undefined_client_port) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); },
-               ConfigurationResourceNotFoundException);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
 }
 
 TEST(external_client_configuration_test, undefined_client_principal_id) {
@@ -528,8 +525,7 @@ TEST(external_client_configuration_test, undefined_client_principal_id) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); },
-               ConfigurationResourceNotFoundException);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
 }
 }  // namespace
 

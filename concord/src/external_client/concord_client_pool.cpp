@@ -26,7 +26,6 @@ SubmitResult ConcordClientPool::SendRequest(
     std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
     void *out_reply, std::uint32_t *out_actual_reply_size,
     const std::string &correlation_id) {
-  if (internalError_) return SubmitResult::InternalError;
   std::shared_ptr<external_client::ConcordClient> client = nullptr;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -112,7 +111,26 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
-  CreatePool(config_stream, config);
+  try {
+    CreatePool(config_stream, config);
+  } catch (config::ConfigurationResourceNotFoundException e) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Could not parse the configuration file, one of the "
+                    "field's are missing");
+    throw Internalerror();
+  } catch (std::invalid_argument &e) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Communication module="
+                        << config.getValue<std::string>(
+                               config_pool::ClientPoolConfig().COMM_PROTOCOL)
+                        << " is not supported");
+    throw Internalerror();
+  } catch (config::InvalidConfigurationInputException &e) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Could not parse the configuration file, one of the fields "
+                    "are invalid");
+    throw Internalerror();
+  }
 }
 
 ConcordClientPool::ConcordClientPool(std::string config_file_path)
@@ -149,14 +167,19 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
   } catch (config::ConfigurationResourceNotFoundException e) {
     LOG4CPLUS_ERROR(logger_, "Could not parse the configuration file at path="
                                  << config_file_path);
-    throw InternalError;
+    throw Internalerror();
   } catch (std::invalid_argument &e) {
     LOG4CPLUS_ERROR(
         logger_, "Communication module="
                      << config.getValue<std::string>(
                             config_pool::ClientPoolConfig().COMM_PROTOCOL)
                      << " on file=" << config_file_path << " is not supported");
-    throw InternalError;
+    throw Internalerror();
+  } catch (config::InvalidConfigurationInputException &e) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Could not parse the configuration file, one of the fields "
+                    "are invalid");
+    throw Internalerror();
   }
 }
 
@@ -207,11 +230,10 @@ ConcordClientPool::~ConcordClientPool() {
 }
 
 void ConcordClientProcessingJob::execute() {
-  auto res = processing_client_->SendRequest(
-      request_.c_str(), request_size_, flags_, timeout_ms_, reply_size_,
-      out_reply_, out_actual_reply_size_, seq_num_, correlation_id_);
-  result_ = res;
-  if (res != 0) clients_pool_.turnInternalErrorOn();
+  processing_client_->SendRequest(
+      request_, request_size_, flags_, timeout_ms_, reply_size_, out_reply_,
+      out_actual_reply_size_, seq_num_, correlation_id_);
+  delete (static_cast<const char *>(request_));
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
                                     correlation_id_);
 }
@@ -238,11 +260,9 @@ void ConcordClientPool::InsertClientToQueue(
 PoolStatus ConcordClientPool::HealthStatus() {
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   for (auto &client : clients_)
-    if (client->isRunning()) return PoolStatus::Serving;
+    if (client->isServing()) return PoolStatus::Serving;
   return PoolStatus::NotServing;
 }
-
-void ConcordClientPool::turnInternalErrorOn() { internalError_ = true; }
 
 }  // namespace concord_client_pool
 }  // namespace concord

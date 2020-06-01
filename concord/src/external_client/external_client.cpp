@@ -39,16 +39,17 @@ ConcordClient::~ConcordClient() noexcept {
   }
 }
 
-int ConcordClient::SendRequest(const char* request, std::uint32_t request_size,
-                               ClientMsgFlag flags,
-                               std::chrono::milliseconds timeout_ms,
-                               std::uint32_t reply_size, void* out_reply,
-                               std::uint32_t* out_actual_reply_size,
-                               uint64_t seq_num,
-                               const std::string& correlation_id) {
-  auto res = client_->sendRequest(
-      flags, request, request_size, seq_num, timeout_ms.count(), reply_size,
-      static_cast<char*>(out_reply), *out_actual_reply_size, correlation_id);
+void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
+                                ClientMsgFlag flags,
+                                std::chrono::milliseconds timeout_ms,
+                                std::uint32_t reply_size, void* out_reply,
+                                std::uint32_t* out_actual_reply_size,
+                                uint64_t seq_num,
+                                const std::string& correlation_id) {
+  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
+                                  request_size, seq_num, timeout_ms.count(),
+                                  reply_size, static_cast<char*>(out_reply),
+                                  *out_actual_reply_size, correlation_id);
 
   assert(res >= -2 && res < 1);
 
@@ -56,7 +57,6 @@ int ConcordClient::SendRequest(const char* request, std::uint32_t request_size,
     LOG4CPLUS_ERROR(logger_, "reqSeqNum=" << seq_num
                                           << " cid=" << correlation_id
                                           << " has failed to invoke");
-  return res;
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
@@ -146,8 +146,8 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
       bftEngine::SimpleClient::createSimpleClient(
           comm_.get(), client_config.clientId, client_config.fVal,
           client_config.cVal)};
-  f_val_ = client_config.fVal;
-  c_val_ = client_config.cVal;
+  num_of_replicas_ = 3 * client_config.fVal + 2 * client_config.cVal + 1;
+  min_num_of_replicas_ = 2 * client_config.fVal + 1;
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);
@@ -169,12 +169,12 @@ std::chrono::steady_clock::time_point ConcordClient::getStartRequestTime()
   return start_job_time_;
 }
 
-bool ConcordClient::isRunning() const {
+bool ConcordClient::isServing() const {
   int connected = 0;
-  for (int i = 0; i < 3 * f_val_ + 2 * c_val_ + 1; i++) {
+  for (int i = 0; i < num_of_replicas_; i++) {
     if (comm_->getCurrentConnectionStatus(i) == ConnectionStatus::Connected)
       connected++;
-    if (connected == 2 * f_val_ + 1) return true;
+    if (connected == min_num_of_replicas_) return true;
   }
   return false;
 }

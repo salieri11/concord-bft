@@ -37,6 +37,14 @@ enum SubmitResult {
   InternalError  // An internal error has occurred. Reason is recorded in logs.
 };
 
+class Internalerror : public std::exception {
+ public:
+  Internalerror(){};
+  virtual const char* what() const noexcept override {
+    return "Internal error occurred, please check the log files";
+  }
+};
+
 // Represents the answer that the DAML Ledger API could get when sending a
 // request
 enum PoolStatus {
@@ -90,8 +98,6 @@ class ConcordClientPool {
 
   PoolStatus HealthStatus();
 
-  void turnInternalErrorOn();
-
  private:
   void CreatePool(std::istream& config_stream,
                   config::ConcordConfiguration& config);
@@ -109,8 +115,6 @@ class ConcordClientPool {
   // Vector to pass for reply's
   std::shared_ptr<std::vector<char>> reply_ =
       std::make_shared<std::vector<char>>(64 * 1024);
-  // flag to examine internal errors
-  bool internalError_ = false;
   // Metric
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
@@ -138,7 +142,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
       const uint64_t seq_num)
       : clients_pool_{clients},
         processing_client_{std::move(client)},
-        request_(static_cast<const char*>(request)),
+        request_(request),
         request_size_{request_size},
         flags_{flags},
         timeout_ms_{timeout_ms},
@@ -157,7 +161,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
  private:
   concord_client_pool::ConcordClientPool& clients_pool_;
   std::shared_ptr<external_client::ConcordClient> processing_client_;
-  std::string request_;
+  const void* request_;
   std::uint32_t request_size_;
   bftEngine::ClientMsgFlag flags_;
   std::chrono::milliseconds timeout_ms_;
@@ -166,7 +170,6 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   std::uint32_t* out_actual_reply_size_;
   const std::string& correlation_id_;
   const uint64_t seq_num_;
-  int result_ = -3;
 };
 }  // namespace concord_client_pool
 
