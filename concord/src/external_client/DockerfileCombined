@@ -1,0 +1,145 @@
+# Copyright 2020 VMware, all rights reserved
+
+ARG ext_lib_repo="client-pool-lib"
+ARG ext_lib_tag="latest"
+FROM ${ext_lib_repo}:${ext_lib_tag}
+
+FROM "trc-lib":"latest"
+
+## Base Run image
+FROM ubuntu:18.04
+LABEL Description="Concord"
+
+RUN apt-get update \
+    && apt-get -y install bind9-host \
+    gosu \
+    dnsutils \
+    libboost-atomic1.65.1 \
+    libboost-chrono1.65.1 \
+    libboost-date-time1.65.1 \
+    libboost-filesystem1.65.1 \
+    libboost-program-options1.65.1 \
+    libboost-system1.65.1 \
+    libboost-thread1.65.1 \
+    libbz2-1.0 \
+    libgmp10 \
+    liblz4-1 \
+    libsnappy1v5 \
+    libzstd1-dev \
+    libyaml-cpp0.5v5 \
+    llvm-5.0 \
+    gdb \
+    lldb \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
+# of the target file to a new file, doubling the space used in the
+# image.
+
+COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
+RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5
+RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus.so
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-core.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-core.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-pull.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-pull.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-push.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
+
+# gRPC
+COPY --from=0 /opt/protobuf/include /opt/protobuf/include
+COPY --from=0 /opt/grpc/include /opt/grpc/include
+COPY --from=0 /opt/grpc/bin /opt/grpc/bin
+
+# Copy libraries and create symlinks (docker copies instead of sym linking)
+COPY --from=0 /opt/protobuf/lib/*.so.3.11.2.0 /opt/protobuf/lib/
+RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
+        ln -s $x ${x%%.3.11.2.0}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.1.28.1 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.28.1; do \
+        ln -s $x ${x%%.28.1} && \
+        ln -s $x ${x%%.1.28.1}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.9.0.0; do \
+        ln -s $x ${x%%.0.0} && \
+        ln -s $x ${x%%.9.0.0}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.1.2.11 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.2.11; do \
+        ln -s $x ${x%%.2.11} && \
+        ln -s $x ${x%%.1.2.11}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+
+
+# Go is required because chaincode installation will
+# compile the chaincode source file to binary.
+COPY --from=0 /usr/local/go /usr/local/go
+ENV GOPATH=/concord
+ENV PATH=$PATH:/usr/local/go/bin
+
+# HLF
+# copy peer executable
+# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
+# this peer is for cli calls for sending chaincode commands from c++ concord
+# to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
+# built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
+COPY --from=athena-docker-local.artifactory.eng.vmware.com/fabric-tools:prereqs-v1 /usr/local/bin/peer /concord/
+
+# HLF_HARDCODED_CONFIG
+COPY ./docker/hlf/crypto-config/ /concord/crypto-config
+COPY ./docker/hlf/core.yaml /concord
+# _HLF_HARDCODED_CONFIG
+
+# evmjit is statically compiled, so we don't need to copy
+
+COPY --from=0 /usr/local/lib/librelic.so /usr/local/lib/
+
+COPY --from=0 /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5.7
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so
+
+COPY --from=0 /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
+RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
+RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so
+
+COPY --from=0 /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib
+RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.so.1
+RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.so
+
+COPY --from=0 /usr/local/lib/libthrift-0.11.0.so /usr/local/lib
+RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
+
+# Copy default Concord logger configuration so logging will be sanely configured
+# if no custom configuration was provided when the cluster was set up.
+COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
+COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
+
+COPY --from=1 /thin-replica-client /thin-replica-client
+
+COPY --from=0 /concord /Externalclient
+
+WORKDIR /
+
