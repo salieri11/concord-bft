@@ -6,8 +6,27 @@ services:
     container_name: fluentd
     logging:
       driver: local
+    environment:
+      - LOG_DESTINATION=LOG_INSIGHT
+      - LOG_INSIGHT_HOST=${LOG_INSIGHT_HOST}
+      - LOG_INSIGHT_PORT=${LOG_INSIGHT_PORT]
+      - LOG_INSIGHT_USERNAME=${LOG_INSIGHT_USERNAME}
+      - LOG_INSIGHT_PASSWORD=${LOG_INSIGHT_PASSWORD}
+      - CONSORTIUM_ID=${CONSORTIUM_ID}
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers
-      - ./logging.env:/config/fluentd/logging.env
-      - ./fluent-log-file.conf:/fluentd/etc/fluent-log-insight.conf
+      - ./fluent-log-file.conf:/fluentd/etc/fluent-log-insight.conf:ro
       - ./logs:/var/log/fluent
+
+  telegraf:
+    image: telegraf
+    container_name: telegraf
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+  wavefront:
+    image: wavefronthq/proxy
+    container_name: wavefront
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN}
