@@ -36,6 +36,7 @@ class DamlKvbCommandsHandler
   prometheus::Counter& read_ops_;
   prometheus::Counter& failed_ops_;
   prometheus::Counter& execution_time_;
+  prometheus::Summary& daml_kv_size_summary_;
 
  public:
   static const char* kFeaturePipelinedCommitExecution;
@@ -76,9 +77,12 @@ class DamlKvbCommandsHandler
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_failures"}})},
         execution_time_{prometheus_registry->createCounter(
-            command_handler_counters_,
-            {{"layer", "DamlKvbCommandsHandler"},
-             {"operation", "daml_execution_time"}})} {}
+            command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
+                                        {"operation", "daml_execution_time"}})},
+        daml_kv_size_summary_{prometheus_registry->createSummary(
+            command_handler_summaries_,
+            {{"item", "daml_kv_size"}, {"layer", "DamlKvbCommandsHandler"}},
+            {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                uint8_t flags, concord::time::TimeContract* time_contract,
@@ -103,7 +107,7 @@ class DamlKvbCommandsHandler
       std::optional<google::protobuf::Timestamp>* max_record_time,
       std::vector<std::string>& read_set, kvbc::SetOfKeyValuePairs& updates,
       kvbc::SetOfKeyValuePairs& updates_on_timeout,
-      kvbc::SetOfKeyValuePairs& updates_on_conflict);
+      kvbc::SetOfKeyValuePairs& updates_on_conflict, bool isPreExecution);
 
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
@@ -111,7 +115,8 @@ class DamlKvbCommandsHandler
                          const std::string& correlation_id,
                          opentracing::Span& parent_span,
                          std::vector<std::string>& read_set,
-                         kvbc::SetOfKeyValuePairs& updates);
+                         kvbc::SetOfKeyValuePairs& updates,
+                         bool isPreExecution);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
                       uint8_t flags, concord::time::TimeContract* time_contract,
@@ -155,7 +160,7 @@ class DamlKvbCommandsHandler
       const com::digitalasset::kvbc::Result& result, const string& entryId,
       kvbc::SetOfKeyValuePairs& updates,
       kvbc::SetOfKeyValuePairs& timeout_updates,
-      kvbc::SetOfKeyValuePairs& conflict_updates) const;
+      kvbc::SetOfKeyValuePairs& conflict_updates, bool isPreExecution) const;
 
   void BuildWriteSetsFromUpdates(
       const kvbc::SetOfKeyValuePairs& updates,
@@ -174,7 +179,7 @@ class DamlKvbCommandsHandler
   void GetUpdatesFromRawUpdates(
       const google::protobuf::RepeatedPtrField<
           ::com::digitalasset::kvbc::ProtectedKeyValuePair>& raw_updates,
-      kvbc::SetOfKeyValuePairs& updates) const;
+      kvbc::SetOfKeyValuePairs& updates, bool isPreExecution) const;
 };
 
 using DamlKvbReadFunc = std::function<std::map<std::string, std::string>(

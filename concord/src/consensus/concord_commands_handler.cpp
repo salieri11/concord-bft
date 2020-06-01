@@ -47,9 +47,16 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       command_handler_histograms_{prometheus_registry->createHistogramFamily(
           "concord_command_handler_histograms",
           "measure quantities such as durations", {})},
+      command_handler_summaries_{prometheus_registry->createSummaryFamily(
+          "concord_command_handler_summaries",
+          "summarizes quantities such as key-values size", {})},
       written_blocks_{prometheus_registry->createCounter(
           command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
                                       {"operation", "written_blocks"}})},
+      internal_kv_size_summary_{prometheus_registry->createSummary(
+          command_handler_summaries_,
+          {{"item", "internal_kv_size"}, {"layer", "ConcordCommandsHandler"}},
+          {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     if (time_contract) {
@@ -385,7 +392,9 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
       LOG4CPLUS_TRACE(
           logger_, "ConcordCommandsHandler::addBlock, time changed1, updates: "
                        << updates.size());
-      amended_updates.insert(time_->Serialize());
+      auto time_data = time_->Serialize();
+      amended_updates.insert(time_data);
+      internal_kv_size_summary_.Observe(time_data.second.length());
       LOG4CPLUS_TRACE(
           logger_, "ConcordCommandsHandler::addBlock, time changed2, updates: "
                        << updates.size());
