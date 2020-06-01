@@ -4,7 +4,6 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <algorithm>
-#include <unordered_map>
 #include <vector>
 
 #include "concord_storage.pb.h"
@@ -122,8 +121,7 @@ Timestamp TimeContract::SummarizeTime() {
 }
 
 // Get the list of samples.
-const std::unordered_map<string, TimeContract::SampleBody>
-    &TimeContract::GetSamples() {
+const std::map<string, TimeContract::SampleBody> &TimeContract::GetSamples() {
   LoadLatestSamples();
   return *samples_;
 }
@@ -156,7 +154,7 @@ void TimeContract::LoadLatestSamples() {
     return;
   }
 
-  samples_ = new std::unordered_map<string, SampleBody>();
+  samples_ = new std::map<string, SampleBody>();
 
   Sliver raw_time;
   Status read_status = storage_.get(time_samples_key_, raw_time);
