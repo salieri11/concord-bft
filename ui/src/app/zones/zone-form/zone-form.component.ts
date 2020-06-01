@@ -184,6 +184,17 @@ export class ZoneFormComponent implements AfterViewInit {
         ),
         token: new FormControl('', { updateOn: 'blur' }),
       }),
+      elasticsearch: new FormGroup({
+        url: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        username: new FormControl('', { updateOn: 'blur' }),
+        password: new FormControl('', { updateOn: 'blur' })
+      }),
       outbound_proxy: new FormGroup({
         http_host: new FormControl(
           '',

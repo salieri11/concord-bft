@@ -47,7 +47,7 @@
       <label class="nav-header">
         {{ 'nav.consortium' | translate }}
       </label>
-      <div name="consortiums-select-wrapper">
+      <div name="consortiums-select-wrapper" class="consortiums-select-wrapper">
         <select clrSelect name="consortiums" [(ngModel)]="selectedConsortium" class="consortium-select"
           (change)="consortiumChange()">
           <option *ngFor="let consortium of blockchains" [value]="consortium.id">
@@ -56,102 +56,101 @@
         </select>
       </div>
       <ng-container>
-        <div class="nav-overlay-container">
-          <div class="nav-overlay" *ngIf="!selectedConsortium"></div>
-        </div>
-        <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
-          {{'nav.dashboard' | translate}}
-        </a>
-        <a clrVerticalNavLink [routerLink]="['nodes']" links="['nodes']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
-          {{'nav.nodeList' | translate}}
-        </a>
-
-        <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
-          {{'nav.organizations' | translate}}
-        </a>
-        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['smart-contracts']"
-          routerLinkActive="active" id="smartContracts">
-          <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
-          {{'nav.smartContracts' | translate}}
-        </a>
-        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
-          {{'nav.blockList' | translate}}
-        </a>
-        <div class="nav-divider"></div>
-        <label class="nav-header">
-          {{'nav.developer.header' | translate}}
-        </label>
-        <!-- To be used once docs are in production -->
-        <!-- <a clrVerticalNavLink (click)="onClickToHelp()">
-          <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
-          {{'nav.developer.docs' | translate}}
-        </a> -->
-        <!-- Logging NAV -->
-        <ng-container *ngIf="!isOnPrem">
-          <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging"
-            *concordFeatureFlag="'developer_logging'">
-            <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
-            {{'nav.developer.logs' | translate}}
+        <div class="nav-overlay-container" [ngClass]="{'sidemanu-disable':!selectedConsortium}">
+          <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
+            <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
+            {{'nav.dashboard' | translate}}
           </a>
-        </ng-container>
-        <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
-          <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
-          {{'nav.developer.api' | translate}}
-        </a>
-        <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
-          {{'nav.developer.samples' | translate}}
-        </a>
-        <ng-container>
-          <!-- TODO - ADD TO FEATURE FLAG - UNDER DEVELOPMENT -->
-            <!-- <ng-container *ngIf="!env.csp"> -->
-          <!-- <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-            <div class="nav-divider"></div>
-            <label class="nav-header">
-              {{'nav.sysadmin.header' | translate}}
-            </label>
+          <a clrVerticalNavLink [routerLink]="['nodes']" links="['nodes']" routerLinkActive="active">
+            <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
+            {{'nav.nodeList' | translate}}
+          </a>
 
-            consortiums
-            <a clrVerticalNavLink [routerLink]="['system/consortiums']" routerLinkActive="active"
-              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
-              {{'nav.sysadmin.consortiums' | translate}}
+          <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+            <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
+            {{'nav.organizations' | translate}}
+          </a>
+          <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['smart-contracts']"
+            routerLinkActive="active" id="smartContracts">
+            <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
+            {{'nav.smartContracts' | translate}}
+          </a>
+          <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active">
+            <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+            {{'nav.blockList' | translate}}
+          </a>
+          <div class="nav-divider"></div>
+          <label class="nav-header">
+            {{'nav.developer.header' | translate}}
+          </label>
+          <!-- To be used once docs are in production -->
+          <!-- <a clrVerticalNavLink (click)="onClickToHelp()">
+            <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
+            {{'nav.developer.docs' | translate}}
+          </a> -->
+          <!-- Logging NAV -->
+          <ng-container *ngIf="!isOnPrem">
+            <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging"
+              *concordFeatureFlag="'developer_logging'">
+              <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
+              {{'nav.developer.logs' | translate}}
             </a>
+          </ng-container>
+          <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
+            <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
+            {{'nav.developer.api' | translate}}
+          </a>
+          <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">
+            <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
+            {{'nav.developer.samples' | translate}}
+          </a>
+          <ng-container>
+            <!-- TODO - ADD TO FEATURE FLAG - UNDER DEVELOPMENT -->
+              <!-- <ng-container *ngIf="!env.csp"> -->
+            <!-- <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+              <div class="nav-divider"></div>
+              <label class="nav-header">
+                {{'nav.sysadmin.header' | translate}}
+              </label>
 
-            active tasks
-            <a clrVerticalNavLink [routerLink]="['system/tasks']" routerLinkActive="active"
-              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <clr-icon clrVerticalNavIcon shape="tasks"></clr-icon>
-              {{'nav.sysadmin.tasks' | translate}}
-            </a>
+              consortiums
+              <a clrVerticalNavLink [routerLink]="['system/consortiums']" routerLinkActive="active"
+                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+                <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
+                {{'nav.sysadmin.consortiums' | translate}}
+              </a>
 
-            features
-            <a clrVerticalNavLink [routerLink]="['system/features']" routerLinkActive="active"
-              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <clr-icon clrVerticalNavIcon shape="list"></clr-icon>
-              {{'nav.sysadmin.features' | translate}}
-            </a>
+              active tasks
+              <a clrVerticalNavLink [routerLink]="['system/tasks']" routerLinkActive="active"
+                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+                <clr-icon clrVerticalNavIcon shape="tasks"></clr-icon>
+                {{'nav.sysadmin.tasks' | translate}}
+              </a>
 
-            roles
-            <a clrVerticalNavLink [routerLink]="['system/roles']" routerLinkActive="active"
-              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
-              tourAnchor="onboardingTour.userManagement">
-              <clr-icon clrVerticalNavIcon shape="users"></clr-icon>
-              {{'nav.sysadmin.roles' | translate}}
-            </a>
+              features
+              <a clrVerticalNavLink [routerLink]="['system/features']" routerLinkActive="active"
+                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+                <clr-icon clrVerticalNavIcon shape="list"></clr-icon>
+                {{'nav.sysadmin.features' | translate}}
+              </a>
 
-            environment
-            <a clrVerticalNavLink [routerLink]="['system/environment']" routerLinkActive="active"
-              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <clr-icon clrVerticalNavIcon shape="network-settings"></clr-icon>
-              {{'nav.sysadmin.env' | translate}}
-            </a>
-          </ng-container> -->
-        </ng-container>
+              roles
+              <a clrVerticalNavLink [routerLink]="['system/roles']" routerLinkActive="active"
+                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
+                tourAnchor="onboardingTour.userManagement">
+                <clr-icon clrVerticalNavIcon shape="users"></clr-icon>
+                {{'nav.sysadmin.roles' | translate}}
+              </a>
+
+              environment
+              <a clrVerticalNavLink [routerLink]="['system/environment']" routerLinkActive="active"
+                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+                <clr-icon clrVerticalNavIcon shape="network-settings"></clr-icon>
+                {{'nav.sysadmin.env' | translate}}
+              </a>
+            </ng-container> -->
+          </ng-container>
+        </div>
       </ng-container>
       <div class="sidemenu-bottom-buttons">
         <concord-theme-switch-button class="bottom-button theme-switch-button" simple-button="true">

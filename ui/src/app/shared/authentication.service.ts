@@ -238,6 +238,9 @@ export class AuthenticationService {
         if (res.organization_properties === null) {
           res.organization_properties = {max_chains: 1};
         }
+        if (res.organization_properties.max_chains === undefined) {
+          res.organization_properties.max_chains = 1;
+        }
         res.organization_properties.max_chains = Number(res.organization_properties.max_chains);
         this.orgProps = res.organization_properties;
 

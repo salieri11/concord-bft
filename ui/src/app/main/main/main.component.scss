@@ -77,15 +77,11 @@
 .nav-overlay-container {
   position: relative;
   overflow: visible;
+}
 
-  .nav-overlay {
-    background-color: white;
-    height: 100000px;
-    opacity: 0.5;
-    position: absolute;
-    width: 100%;
-    top: 0;
-  }
+.sidemanu-disable {
+  pointer-events: none;
+  opacity: 0.7;
 }
 
 a.disable {
@@ -124,4 +120,8 @@ a.disable {
   a:hover {
     background-color: inherit !important;
   }
+}
+
+.consortiums-select-wrapper{
+  margin-bottom: 0.2rem;
 }

@@ -515,6 +515,9 @@
     "wavefront": {
       "title": "Wavefront"
     },
+    "elk": {
+      "title": "ELK Stack"
+    },
     "onPremConnSucc": "Connection successful to your on premises vCenter.",
     "onPremConnError": "Cannot connect to your on premises vCenter, please ensure your configuration below is accurate.",
     "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",

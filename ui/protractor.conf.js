@@ -61,7 +61,9 @@ exports.config = {
   baseUrl: 'https://localhost.vmware.com/',
   framework: 'jasmine',
   jasmineNodeOpts: {
+    random: false,
     showColors: true,
+    captureExceptions: true,
     defaultTimeoutInterval: 3 * 60 * 1000, // 3 minutes, needed for deploying.
     print: function() { }
   },

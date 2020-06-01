@@ -21,7 +21,8 @@ export class NodesComponent implements OnInit {
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      if (params['nodeTypeOrId'].toString().length === 36) { // UUID
+      // UUID?
+      if (params['nodeTypeOrId'] && params['nodeTypeOrId'].toString().length === 36) {
         this.replicaId = params['nodeTypeOrId'];
         this.viewTypeList = false;
       } else { // Node types (Committer, Client, Object Store, etc.)
