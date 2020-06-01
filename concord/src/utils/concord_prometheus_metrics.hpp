@@ -8,6 +8,7 @@
 #include <prometheus/gauge.h>
 #include <prometheus/histogram.h>
 #include <prometheus/registry.h>
+#include <prometheus/summary.h>
 #include <string>
 #include <utility>
 #include "Metrics.hpp"
@@ -43,6 +44,8 @@ class PrometheusRegistry {
       gauges_custom_collector_;
   std::shared_ptr<ConcordCustomCollector<prometheus::Histogram>>
       histogram_custom_collector_;
+  std::shared_ptr<ConcordCustomCollector<prometheus::Summary>>
+      summary_custom_collector_;
 
  public:
   explicit PrometheusRegistry(
@@ -94,6 +97,24 @@ class PrometheusRegistry {
       const std::string& name, const std::string& help,
       const std::map<std::string, std::string>& labels,
       const std::vector<double>& buckets);
+
+  prometheus::Family<prometheus::Summary>& createSummaryFamily(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels);
+
+  prometheus::Summary& createSummary(
+      prometheus::Family<prometheus::Summary>& source,
+      const std::map<std::string, std::string>& labels,
+      const prometheus::Summary::Quantiles& quantiles,
+      std::chrono::milliseconds max_age = std::chrono::seconds{60},
+      int age_buckets = 5);
+
+  prometheus::Summary& createSummary(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels,
+      const prometheus::Summary::Quantiles& quantiles,
+      std::chrono::milliseconds max_age = std::chrono::seconds{60},
+      int age_buckets = 5);
 
  private:
   static const uint64_t defaultMetricsDumpInterval = 600;

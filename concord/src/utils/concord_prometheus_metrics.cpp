@@ -105,10 +105,14 @@ PrometheusRegistry::PrometheusRegistry(const std::string& bindAddress,
               std::chrono::seconds(metricsDumpInterval))),
       histogram_custom_collector_(
           std::make_shared<ConcordCustomCollector<prometheus::Histogram>>(
+              std::chrono::seconds(metricsDumpInterval))),
+      summary_custom_collector_(
+          std::make_shared<ConcordCustomCollector<prometheus::Summary>>(
               std::chrono::seconds(metricsDumpInterval))) {
   exposer_.RegisterCollectable(counters_custom_collector_);
   exposer_.RegisterCollectable(gauges_custom_collector_);
   exposer_.RegisterCollectable(histogram_custom_collector_);
+  exposer_.RegisterCollectable(summary_custom_collector_);
 }
 
 PrometheusRegistry::PrometheusRegistry(const std::string& bindAddress)
@@ -172,6 +176,28 @@ prometheus::Histogram& PrometheusRegistry::createHistogram(
     const std::vector<double>& buckets) {
   return createHistogram(createHistogramFamily(name, help, labels), {},
                          buckets);
+}
+prometheus::Family<prometheus::Summary>&
+PrometheusRegistry::createSummaryFamily(
+    const std::string& name, const std::string& help,
+    const std::map<std::string, std::string>& labels) {
+  return summary_custom_collector_->createFamily(name, help, labels);
+}
+prometheus::Summary& PrometheusRegistry::createSummary(
+    prometheus::Family<prometheus::Summary>& source,
+    const std::map<std::string, std::string>& labels,
+    const prometheus::Summary::Quantiles& quantiles,
+    std::chrono::milliseconds max_age, int age_buckets) {
+  return source.Add(labels, quantiles, max_age, age_buckets);
+}
+
+prometheus::Summary& PrometheusRegistry::createSummary(
+    const std::string& name, const std::string& help,
+    const std::map<std::string, std::string>& labels,
+    const prometheus::Summary::Quantiles& quantiles,
+    std::chrono::milliseconds max_age, int age_buckets) {
+  return createSummary(createSummaryFamily(name, help, labels), {}, quantiles,
+                       max_age, age_buckets);
 }
 
 template <typename T>

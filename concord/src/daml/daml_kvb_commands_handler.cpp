@@ -154,13 +154,14 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   std::optional<google::protobuf::Timestamp> max_record_time;
   bool success = false;
   if (enable_pipelined_commits_) {
-    success = DoCommitPipelined(commit_req.submission(), record_time,
-                                commit_req.participant_id(), correlation_id,
-                                *execute_commit_span, read_set, updates);
+    success = DoCommitPipelined(
+        commit_req.submission(), record_time, commit_req.participant_id(),
+        correlation_id, *execute_commit_span, read_set, updates, pre_execute);
   } else {
     success = DoCommitSingle(commit_req, current_block_id, record_time,
                              *execute_commit_span, &max_record_time, read_set,
-                             updates, updates_on_timeout, updates_on_conflict);
+                             updates, updates_on_timeout, updates_on_conflict,
+                             pre_execute);
   }
 
   if (success) {
@@ -204,7 +205,7 @@ bool DamlKvbCommandsHandler::DoCommitSingle(
     std::optional<google::protobuf::Timestamp>* max_record_time,
     std::vector<std::string>& read_set, SetOfKeyValuePairs& updates,
     SetOfKeyValuePairs& updates_on_timeout,
-    SetOfKeyValuePairs& updates_on_conflict) {
+    SetOfKeyValuePairs& updates_on_conflict, bool isPreExecution) {
   // Since we're not batching, lets keep it simple and use the next block id as
   // the DAML log entry id.
   string entry_id = std::to_string(current_block_id + 1);
@@ -221,7 +222,7 @@ bool DamlKvbCommandsHandler::DoCommitSingle(
               std::back_inserter(read_set));
 
     GetUpdatesFromExecutionResult(result, entry_id, updates, updates_on_timeout,
-                                  updates_on_conflict);
+                                  updates_on_conflict, isPreExecution);
     return true;
   } else {
     return false;
@@ -233,7 +234,7 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     const google::protobuf::Timestamp& record_time,
     const std::string& participant_id, const std::string& correlation_id,
     opentracing::Span& parent_span, std::vector<std::string>& read_set,
-    SetOfKeyValuePairs& updates) {
+    SetOfKeyValuePairs& updates, bool isPreExecution) {
   // Callback for reading from storage.
   DamlKvbReadFunc kvb_read = [&](const auto& keys) {
     return GetFromStorage(keys);
@@ -255,9 +256,11 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
                               << duration << "ms]");
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : storage_operations.get_updates()) {
-    updates.insert(std::make_pair(
-        CreateDamlKvbKey(entry.first),
-        CreateDamlKvbValue(entry.second.value, entry.second.thin_replica_ids)));
+    auto key = CreateDamlKvbKey(entry.first);
+    auto val =
+        CreateDamlKvbValue(entry.second.value, entry.second.thin_replica_ids);
+    if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
+    updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
@@ -368,24 +371,28 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
 void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
     const com::digitalasset::kvbc::Result& result, const string& entryId,
     SetOfKeyValuePairs& updates, SetOfKeyValuePairs& timeout_updates,
-    SetOfKeyValuePairs& conflict_updates) const {
+    SetOfKeyValuePairs& conflict_updates, bool isPreExecution) const {
   vector<string> no_trids;
 
   // Insert the key-value updates into the store.
-  GetUpdatesFromRawUpdates(result.updates(), updates);
-  GetUpdatesFromRawUpdates(result.updates_on_timeout(), timeout_updates);
-  GetUpdatesFromRawUpdates(result.updates_on_conflict(), conflict_updates);
+  GetUpdatesFromRawUpdates(result.updates(), updates, isPreExecution);
+  GetUpdatesFromRawUpdates(result.updates_on_timeout(), timeout_updates,
+                           isPreExecution);
+  GetUpdatesFromRawUpdates(result.updates_on_conflict(), conflict_updates,
+                           isPreExecution);
 }
 
 void DamlKvbCommandsHandler::GetUpdatesFromRawUpdates(
     const google::protobuf::RepeatedPtrField<da_kvbc::ProtectedKeyValuePair>&
         raw_updates,
-    SetOfKeyValuePairs& updates) const {
+    SetOfKeyValuePairs& updates, bool isPreExecution) const {
   for (const auto& kv : raw_updates) {
     const auto& protoTrids = kv.trids();
     std::vector<string> trids(protoTrids.begin(), protoTrids.end());
-    updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
-                                CreateDamlKvbValue(kv.value(), trids)));
+    auto key = CreateDamlKvbKey(kv.key());
+    auto val = CreateDamlKvbValue(kv.value(), trids);
+    if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
+    updates.insert(KeyValuePair(std::move(key), std::move(val)));
   }
 }
 
@@ -476,11 +483,12 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
 
   auto& kv_writes = *write_set->mutable_kv_writes();
   for (auto& kv : kv_writes) {
-    auto key = std::unique_ptr<std::string>{kv.release_key()};
-    auto val = std::unique_ptr<std::string>{kv.release_value()};
-
-    updates.insert(
-        kvbc::KeyValuePair(Sliver{std::move(*key)}, Sliver{std::move(*val)}));
+    auto key =
+        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_key()})};
+    auto val =
+        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_value()})};
+    updates.insert(kvbc::KeyValuePair(key, val));
+    daml_kv_size_summary_.Observe(val.length());
   }
 
   RecordTransaction(updates, current_block_id, correlation_id,
@@ -501,12 +509,13 @@ void DamlKvbCommandsHandler::RecordTransaction(
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
   auto cid = correlation_id;
   SetOfKeyValuePairs amended_updates(updates);
-  amended_updates.insert({cid_key_, kvbc::Value(std::move(cid))});
+  auto cid_val = kvbc::Value(std::move(cid));
+  internal_kv_size_summary_.Observe(cid_val.length());
+  amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
   concordUtils::Status res = addBlock(amended_updates, new_block_id);
   assert(res.isOK());
   assert(new_block_id == current_block_id + 1);
-
   commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);
   commit_response->set_block_id(new_block_id);
 
