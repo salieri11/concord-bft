@@ -50,33 +50,36 @@ describe('concord-ui Add Zone', () => {
 
     // Safely injected credentials fron Jenkins (See BC-2712 for more information)
     const zoneCreds = browser.params.credentials.zone;
-
-    expect(values[0]).toEqual('test');
-    expect(values[1]).toEqual('A');
-    expect(values[2]).toEqual('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
-    expect(values[3]).toEqual(zoneCreds.vcenter.username);
-    expect(values[4]).toEqual(zoneCreds.vcenter.password);
-    expect(values[5]).toEqual('Compute-ResourcePool');
-    expect(values[6]).toEqual('WorkloadDatastore');
-    expect(values[7]).toEqual('HermesTesting');
-    expect(values[8]).toEqual('vmware-vpn-4b');
-    expect(values[9]).toEqual('10.70.30.1');
-    expect(values[10]).toEqual('23');
-    expect(values[11]).toEqual('1.1.1.1,1.1.1.1');
-    expect(values[12]).toEqual('1.1.1.1-1.1.1.1');
-    expect(values[13]).toEqual('10.78.20.10');
-    expect(values[14]).toEqual('9543');
-    expect(values[15]).toEqual('fluentd');
-    expect(values[16]).toEqual(zoneCreds.logInsight.password);
-    expect(values[17]).toEqual('https://vmware.wavefront.com');
-    expect(values[18]).toEqual(zoneCreds.wavefront.token);
-    expect(values[19]).toEqual('https://vmware-docker-blockchainsaas.bintray.io');
-    expect(values[20]).toEqual(zoneCreds.bintray.username);
-    expect(values[21]).toEqual(zoneCreds.bintray.password);
-    expect(values[22]).toEqual('127.0.0.1');
-    expect(values[23]).toEqual('80');
-    expect(values[24]).toEqual('127.0.0.1');
-    expect(values[25]).toEqual('443');
+    let i = 0;
+    expect(values[i++]).toEqual('test');
+    expect(values[i++]).toEqual('A');
+    expect(values[i++]).toEqual('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
+    expect(values[i++]).toEqual(zoneCreds.vcenter.username);
+    expect(values[i++]).toEqual(zoneCreds.vcenter.password);
+    expect(values[i++]).toEqual('Compute-ResourcePool');
+    expect(values[i++]).toEqual('WorkloadDatastore');
+    expect(values[i++]).toEqual('HermesTesting');
+    expect(values[i++]).toEqual('vmware-vpn-4b');
+    expect(values[i++]).toEqual('10.70.30.1');
+    expect(values[i++]).toEqual('23');
+    expect(values[i++]).toEqual('1.1.1.1,1.1.1.1');
+    expect(values[i++]).toEqual('1.1.1.1-1.1.1.1');
+    expect(values[i++]).toEqual('10.78.20.10');
+    expect(values[i++]).toEqual('9543');
+    expect(values[i++]).toEqual('fluentd');
+    expect(values[i++]).toEqual(zoneCreds.logInsight.password);
+    expect(values[i++]).toEqual('https://vmware.wavefront.com');
+    expect(values[i++]).toEqual(zoneCreds.wavefront.token);
+    expect(values[i++]).toEqual('https://my.elk.com');
+    expect(values[i++]).toEqual('TestELKUser');
+    expect(values[i++]).toEqual('TestELKPass');
+    expect(values[i++]).toEqual('https://vmware-docker-blockchainsaas.bintray.io');
+    expect(values[i++]).toEqual(zoneCreds.bintray.username);
+    expect(values[i++]).toEqual(zoneCreds.bintray.password);
+    expect(values[i++]).toEqual('127.0.0.1');
+    expect(values[i++]).toEqual('80');
+    expect(values[i++]).toEqual('127.0.0.1');
+    expect(values[i++]).toEqual('443');
   });
 
 

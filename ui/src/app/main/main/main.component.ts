@@ -263,11 +263,8 @@ export class MainComponent implements OnInit, OnDestroy {
       return this.enableDeploy;
     }
 
-    if (maxChain !== undefined || maxChain !== null) {
-      this.enableDeploy = (maxChain === 0) || (maxChain > blockchainCount);
-    } else {
-      this.enableDeploy = (blockchainCount < 1);
-    }
+    this.enableDeploy = (maxChain === 0) || (maxChain > blockchainCount);
+    this.blockchainService.canDeploy.next(this.enableDeploy);
 
     return this.enableDeploy;
   }

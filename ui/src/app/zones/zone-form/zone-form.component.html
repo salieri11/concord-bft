@@ -144,6 +144,23 @@
           <input clrInput type="text" [placeholder]="'common.token' | translate" class="clr-col-12 clr-col-md-6" formControlName="token" id="wfToken" />
         </clr-input-container>
       </div>
+      <div formGroupName="elasticsearch">
+        <div class="divider"></div>
+        <h6>{{ 'onPrem.elk.title' | translate }}</h6>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
+          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" id="elkUrl" />
+          <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'common.username' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'common.usernamePh' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" id="elkUsername"/>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'common.password' | translate }}</label>
+          <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" id="elkPassword" />
+        </clr-input-container>
+      </div>
       <div formGroupName="container_repo">
         <div class="divider"></div>
         <h6>{{'onPrem.containerReg.title' | translate}}</h6>

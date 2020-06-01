@@ -38,6 +38,7 @@ export class BlockchainService {
   type: ContractEngines;
 
   notify: BehaviorSubject<any> = new BehaviorSubject(null);
+  canDeploy: BehaviorSubject<boolean> = new BehaviorSubject(null);
 
   constructor(
     private http: HttpClient,
@@ -298,6 +299,7 @@ export class BlockchainResolver implements Resolve<boolean> {
 
 export class MockBlockchainsService {
   notify = new BehaviorSubject({ message: '', type: '' });
+  canDeploy = new BehaviorSubject(true);
   selectedBlockchain = { consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
   blockchains = [];
   zones = fakeZones;

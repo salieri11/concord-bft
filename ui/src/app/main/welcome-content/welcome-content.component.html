@@ -27,7 +27,13 @@
   </div>
   <div class="deploy-wrapper">
     <div class="clr-col-12 deploy-wrapper">
-      <button id="deploy" class="btn btn-primary" (click)="deploy()">{{ 'welcome.deploy' | translate }}</button>
+      <div *ngIf="canDeploy">
+        <button id="deploy" class="btn btn-primary" (click)="deploy()">{{ 'welcome.deploy' | translate }}</button>
+      </div>
+      <div *ngIf="!canDeploy">
+        Your organization has reached maximum number of deployments.<br>
+        (You may be able to lift the limit by contacting support.)
+      </div>
     </div>
     <div *ngIf="hasJoinedConsortium" class="clr-col-12">
       <button id="go" class="btn btn-outline" (click)="go()">Go to Consortium</button>

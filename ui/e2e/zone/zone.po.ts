@@ -46,6 +46,9 @@ export class Zone {
     element(by.css('#liPasswor')).sendKeys(zoneCreds.logInsight.password);
     element(by.css('#wfUrl')).sendKeys('https://vmware.wavefront.com');
     element(by.css('#wfToken')).sendKeys(zoneCreds.wavefront.token);
+    element(by.css('#elkUrl')).sendKeys('https://my.elk.com');
+    element(by.css('#elkUsername')).sendKeys('TestELKUser');
+    element(by.css('#elkPassword')).sendKeys('TestELKPass');
     element(by.css('#conUrl')).sendKeys('https://vmware-docker-blockchainsaas.bintray.io');
     element(by.css('#conUsername')).sendKeys(zoneCreds.bintray.username);
     element(by.css('#conPassword')).sendKeys(zoneCreds.bintray.password);
@@ -76,6 +79,9 @@ export class Zone {
         element(by.css('#liPasswor')).getAttribute('value'),
         element(by.css('#wfUrl')).getAttribute('value'),
         element(by.css('#wfToken')).getAttribute('value'),
+        element(by.css('#elkUrl')).getAttribute('value'),
+        element(by.css('#elkUsername')).getAttribute('value'),
+        element(by.css('#elkPassword')).getAttribute('value'),
         element(by.css('#conUrl')).getAttribute('value'),
         element(by.css('#conUsername')).getAttribute('value'),
         element(by.css('#conPassword')).getAttribute('value'),
