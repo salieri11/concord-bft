@@ -46,3 +46,161 @@ baseos:deb:libtool:2.4.6-2:ubuntu:
     version: '2.4.6-2'
     baseos-style: deb
     baseos-osname: 'ubuntu'
+baseos:deb:libsnappy-dev:1.1.7-1:ubuntu:
+    repository: BaseOS
+    name: 'libsnappy-dev'
+    version: '1.1.7-1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'snappy'
+baseos:deb:zlib1g-dev:1:1.2.11.dfsg-0ubuntu2:ubuntu:
+    repository: BaseOS
+    name: 'zlib1g-dev'
+    version: '1:1.2.11.dfsg-0ubuntu2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'zlib'
+baseos:deb:liblz4-dev:0.0~r131-2ubuntu3:ubuntu:
+    repository: BaseOS
+    name: 'liblz4-dev'
+    version: '0.0~r131-2ubuntu3'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'lz4'
+baseos:deb:cmake:3.10.2-1ubuntu2.18.04.1:ubuntu:
+    repository: BaseOS
+    name: 'cmake'
+    version: '3.10.2-1ubuntu2.18.04.1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+baseos:deb:clang-format-9:1:9-2~ubuntu18.04.2:ubuntu:
+    repository: BaseOS
+    name: 'clang-format-9'
+    version: '1:9-2~ubuntu18.04.2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'llvm-toolchain-9'
+baseos:deb:libyaml-cpp-dev:0.5.2-4ubuntu1:ubuntu:
+    repository: BaseOS
+    name: 'libyaml-cpp-dev'
+    version: '0.5.2-4ubuntu1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'yaml-cpp'
+baseos:deb:libs3-dev:2.0-3:ubuntu:
+    repository: BaseOS
+    name: 'libs3-dev'
+    version: '2.0-3'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'libs3'
+baseos:deb:autoconf:2.69-11:ubuntu:
+    repository: BaseOS
+    name: 'autoconf'
+    version: '2.69-11'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+baseos:deb:automake:1:1.15.1-3ubuntu2:ubuntu:
+    repository: BaseOS
+    name: 'automake'
+    version: '1:1.15.1-3ubuntu2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'automake-1.15'
+baseos:deb:libyaml-cpp0.5v5:0.5.2-4ubuntu1:ubuntu:
+    repository: BaseOS
+    name: 'libyaml-cpp0.5v5'
+    version: '0.5.2-4ubuntu1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'yaml-cpp'
+baseos:deb:libllvm5.0:1:5.0.1-4:ubuntu:
+    repository: BaseOS
+    name: 'libllvm5.0'
+    version: '1:5.0.1-4'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'llvm-toolchain-5.0'
+baseos:deb:llvm-5.0-dev:1:5.0.1-4:ubuntu:
+    repository: BaseOS
+    name: 'llvm-5.0-dev'
+    version: '1:5.0.1-4'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'llvm-toolchain-5.0'
+baseos:deb:parallel:20161222-1:ubuntu:
+    repository: BaseOS
+    name: 'parallel'
+    version: '20161222-1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+baseos:deb:libboost1.65-dev:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost1.65-dev'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-program-options1.65-dev:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-program-options1.65-dev'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-program-options1.65.1:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-program-options1.65.1'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-system1.65-dev:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-system1.65-dev'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-system1.65.1:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-system1.65.1'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-thread1.65-dev:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-thread1.65-dev'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-filesystem1.65-dev:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-filesystem1.65-dev'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libboost-thread1.65.1:1.65.1+dfsg-0ubuntu5:ubuntu:
+    repository: BaseOS
+    name: 'libboost-thread1.65.1'
+    version: '1.65.1+dfsg-0ubuntu5'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'boost1.65.1'
+baseos:deb:libprotobuf-dev:3.0.0-9.1ubuntu1:ubuntu:
+    repository: BaseOS
+    name: 'libprotobuf-dev'
+    version: '3.0.0-9.1ubuntu1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'protobuf'
+baseos:deb:protobuf-compiler:3.0.0-9.1ubuntu1:ubuntu:
+    repository: BaseOS
+    name: 'protobuf-compiler'
+    version: '3.0.0-9.1ubuntu1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'protobuf'
