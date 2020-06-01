@@ -1832,7 +1832,7 @@ void announceSDDCCleanupFailures(failures){
       # For testing
       # python3 invoke.py slackDM --param your_id@vmware.com "${cleanup_fail_msg}"
 
-      python3 invoke.py slackPost --param blockchain-build-fail "${cleanup_fail_msg}"
+      python3 invoke.py slackPost --param blockchain-concierge "${cleanup_fail_msg}"
       deactivate
     '''
   }
