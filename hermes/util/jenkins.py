@@ -26,6 +26,9 @@ JOB_NAME_REPLACE_WITH = {
 }
 JENKINS_USER_OVERRIDE = os.getenv("JENKINS_USER")
 JENKINS_TOKEN_OVERRIDE = os.getenv("JENKINS_TOKEN")
+JENKINS_SUMMARY_LOG_HTML = '<span style="display:none">SUMMARY_LOG</span>'
+JENKINS_TEST_LOG_HTML = '<span style="display:none">TEST_LOG</span>'
+JENKINS_ERRORS_ONLY_HTML = '<span style="display:none">ERRORS_ONLY</span>'
 
 
 def publishRunsMaster(limit=100, startFromBuildNumber=None):
@@ -372,9 +375,11 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
     return True
   else: return None
 
+
 def autoSetRunDescription():
   metadata = getRunMetadata()
   prevDesc = metadata["description"]
+  if not prevDesc: prevDesc = ""
   newDesc = ""
   if "GitLab Merge Request #" in prevDesc: # From MR
     # e.g. Desc set by Gitlab kick off
@@ -390,10 +395,42 @@ def autoSetRunDescription():
       jiraStoryLink = '<a href="{}">{}</a>'.format(jiraStoryURL, jiraId)
       branchInfo = branchInfo.replace(jiraId, jiraStoryLink)
     mrURL = helper.GITLAB_BASE_URL + "/merge_requests/" + mrNumber
-    newDesc += '[ <a href="{}">{}</a> ]: {}<br>'.format(mrURL, 'MR ' + mrNumber, branchInfo)
+    newDesc += '[ <a href="{}">{}</a> ]:\n{}<br>\n'.format(mrURL, 'MR ' + mrNumber, branchInfo)
 
-  newDesc += '[ <a href="{}">Racetrack</a> ]'.format(racetrack.getResultSetLink())
+  defaultDesc = ("[\n" +
+                  '<a href="{}">Racetrack</a>\n'.format(racetrack.getResultSetLink()) +
+                  JENKINS_SUMMARY_LOG_HTML + '\n' + 
+                  JENKINS_TEST_LOG_HTML + '\n' + 
+                  JENKINS_ERRORS_ONLY_HTML + '\n' + 
+                "]")
+  newDesc += defaultDesc
   configSubmit(description=newDesc)
+
+
+def setFailureSummaryInDescription():
+  with open(os.getenv("WORKSPACE") + '/summary/failure_summary.json', 'r') as f:
+    metadata = getRunMetadata()
+    currentDescription = metadata["description"]
+    if not currentDescription: return
+    newDescription = currentDescription
+    summaryObj = json.loads(f.read(), strict=False)
+    hasErrorLines = False
+    with open(summaryObj["log_path_local"], 'r') as f2:
+      with open(os.getenv("WORKSPACE") + '/summary/errors_only.log', 'w+') as w:
+        for line in f2: 
+          if "ERROR" in line:
+            hasErrorLines = True; w.write(line)
+    summaryFileHTML = '| <a href="{}">Summary</a>'.format(summaryObj["summary_url"])
+    logFileHTML = '| <a href="{}">Logs</a>'.format(summaryObj["log_path"])
+    newDescription = newDescription.replace(JENKINS_SUMMARY_LOG_HTML, summaryFileHTML)
+    newDescription = newDescription.replace(JENKINS_TEST_LOG_HTML, logFileHTML)
+    if hasErrorLines: # file with lines contaning ERROR
+      errorsOnlyHTML = '| <a href="{}">Filtered</a>'.format(summaryObj["filtered_url"])
+      newDescription = newDescription.replace(JENKINS_ERRORS_ONLY_HTML, errorsOnlyHTML)
+    configSubmit(description=newDescription)
+    
+
+
 
 
 #========================================================================================

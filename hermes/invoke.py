@@ -56,6 +56,7 @@ def racetrackSetEnd(args, options, secret):
     firstRunOverrideWith = a[0],
     verbose = False
   )
+  jenkins.setFailureSummaryInDescription()
 
 def racetrackCaseFailed(args, options, secret):
   a = prepareArgs(args)

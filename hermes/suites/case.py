@@ -263,12 +263,16 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     testArgsSummary = "\n".join(testArgsSummary)
     
     # If from Jenkins, output directly to workspace, otherwise defulat log path
+    artifactSummaryLogPath = ""
+    artifactFilteredLogPath = ""
     if helper.thisHermesIsFromJenkins():
       run = helper.getJenkinsJobNameAndBuildNumber()
       # link to test log should be changed to Jenkins artifacts path
-      testLogPath = jenkins.getJenkinRunBaseUrl(run["jobName"], run["buildNumber"])
-      testLogPath += '/artifact/testLogs/' + helper.CURRENT_SUITE_LOG_FILE.split('/testLogs/')[1]
-      testLogPath = urllib.parse.quote_plus(testLogPath) # encodeURL
+      basePath = jenkins.getJenkinRunBaseUrl(run["jobName"], run["buildNumber"])
+      testLogPath = '/artifact/testLogs/' + helper.CURRENT_SUITE_LOG_FILE.split('/testLogs/')[1]
+      testLogPath = basePath + testLogPath.replace(' ', '%20') # encodeURL
+      artifactSummaryLogPath = basePath + '/artifact/summary/' + FAILURE_SUMMARY_FILENAME + '.log'
+      artifactFilteredLogPath = basePath + '/artifact/summary/errors_only.log'
       outputPath = helper.getJenkinsWorkspace() + '/summary/' # summary folder
     elif helper.CURRENT_SUITE_LOG_FILE:
       testLogPath = helper.CURRENT_SUITE_LOG_FILE
@@ -310,7 +314,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     else:
       stackTrace = "".join(stackTraceList)
 
-    failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n\n".format(
+    failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n".format(
       "{}{} :: {}\n{}".format(
         "=============================================== Context =================================================================\n",
         helper.CURRENT_SUITE_NAME, func.__name__,
@@ -332,10 +336,6 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
         "=========================================== Cmdline Arguments ===========================================================\n",
         json.dumps(helper.CMDLINE_ARGS, indent=4, default=str)
       ),
-      "{}{}".format(
-        "============================================== User Config ==============================================================\n",
-        json.dumps(helper.getUserConfig(), indent=2, default=str)
-      ),
     )
 
     failureSummaryJson = {
@@ -350,7 +350,11 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "log_path": testLogPath,
       "sig": { "long": longSignature, "short": shortSignature },
       "cmdline_args": helper.CMDLINE_ARGS,
-      "user_config": helper.getUserConfig()
+      "user_config": helper.getUserConfig(),
+      "zone_config": helper.getZoneConfig(),
+      "log_path_local": helper.CURRENT_SUITE_LOG_FILE,
+      "summary_url": artifactSummaryLogPath,
+      "filtered_url": artifactFilteredLogPath,
     }
 
     # There may be multiple failures per run or test suite
