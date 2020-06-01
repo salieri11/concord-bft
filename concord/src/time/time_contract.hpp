@@ -42,7 +42,7 @@
 #define TIME_TIME_CONTRACT_HPP
 
 #include <google/protobuf/timestamp.pb.h>
-#include <unordered_map>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -190,14 +190,14 @@ class TimeContract {
   // verified sample known from that source. Throws a TimeException if this
   // operation causes the TimeContract to load state from its persistent storage
   // but the data loaded is corrupted or otherwise invalid.
-  const std::unordered_map<std::string, SampleBody>& GetSamples();
+  const std::map<std::string, SampleBody>& GetSamples();
 
  private:
   log4cplus::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
-  std::unordered_map<std::string, SampleBody>* samples_;
+  std::map<std::string, SampleBody>* samples_;
   bool changed_;
   const concordUtils::Sliver time_samples_key_;
   const concordUtils::Sliver summarized_time_key_;
