@@ -202,19 +202,19 @@ public class ClientControllerTest extends RuntimeException {
                 .build();
 
         final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1_ZONE,
-                                             Replica.ReplicaType.NONE, BC_DAML);
+                                             Replica.ReplicaType.NONE, BC_DAML, "testPassword");
         replica1.setId(REPLICA_1);
 
         final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2_ZONE,
-                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML);
+                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML, "testPassword");
         replica2.setId(REPLICA_2);
 
         final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3_ZONE,
-                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML);
+                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML, "testPassword");
         replica3.setId(REPLICA_3);
 
         final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4_ZONE,
-                                             Replica.ReplicaType.NONE, BC_DAML);
+                                             Replica.ReplicaType.NONE, BC_DAML, "testPassword");
         replica4.setId(REPLICA_4);
 
         when(blockchainService.getReplicas(BC_DAML))

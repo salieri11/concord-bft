@@ -45,4 +45,5 @@ public class Replica extends AbstractEntity {
     ReplicaType replicaType;
     @LinkedEntityId
     UUID blockchainId;
+    String password;
 }
