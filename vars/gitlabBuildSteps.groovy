@@ -1431,7 +1431,9 @@ void pushToArtifactory(){
     env.internal_daml_execution_engine_repo,
     env.internal_daml_index_db_repo,
     env.internal_trc_lib_repo,
-    env.internal_trc_test_app_repo
+    env.internal_trc_test_app_repo,
+    env.internal_client_pool_lib_repo,
+    env.internal_participant_lib_repo
   ]
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
@@ -1494,6 +1496,8 @@ void tagImagesForRelease(){
     docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
     docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
     docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
+    docker tag ${internal_client_pool_lib_repo}:${docker_tag} ${release_client_pool_lib_repo}:${docker_tag}
+    docker tag ${internal_participant_lib_repo}:${docker_tag} ${release_participant_lib_repo}:${docker_tag}
   ''')
 }
 
@@ -1696,6 +1700,9 @@ void setUpRepoVariables(){
   env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
   env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
   env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
+  env.release_client_pool_lib_repo = env.release_repo + "/client-pool-lib"
+  env.release_participant_lib_repo = env.release_repo + "/participant-lib"
+
 
   // These are constants which mirror the internal artifactory repos.  We put all merges
   // to master in the internal VMware artifactory.
@@ -1714,6 +1721,9 @@ void setUpRepoVariables(){
   env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_client_pool_lib_repo = env.release_client_pool_lib_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_participant_lib_repo = env.release_participant_lib_repo.replace(env.release_repo, env.internal_repo)
+
 
   // Note the Thin Replica Client Library (trc-lib) image is given only an
   // internal repo and not a release repo; this is because this image is not a
@@ -1950,6 +1960,10 @@ trc_lib_repo=${internal_trc_lib_repo}
 trc_lib_tag=${docker_tag}
 trc_test_app_repo=${internal_trc_test_app_repo}
 trc_test_app_tag=${docker_tag}
+client_pool_lib_repo=${internal_client_pool_lib_repo}
+client_pool_lib_tag=${docker_tag}
+participant_lib_repo=${internal_participant_lib_repo}
+participant_lib_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
@@ -2145,6 +2159,12 @@ void pushConcordComponentsToDockerHub(){
 
   env_file_tag = getTagFromEnv(env.internal_fluentd_repo)
   dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_client_pool_lib_repo)
+  dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.release_client_pool_lib_repo, env_file_tag)
+
+  env_file_tag = getTagFromEnv(env.internal_participant_lib_repo)
+  dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.release_participant_lib_repo, env_file_tag)
 }
 
 // Given a component like "athena-docker-local.artifactory.eng.vmware.com/concord-core", return its tag from the .env file.

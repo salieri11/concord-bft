@@ -265,9 +265,19 @@ trc-lib() {
     docker_build . thin-replica-client/Dockerfile ${trc_lib_repo} ${trc_lib_tag}
 }
 
+client-pool-lib() {
+    info "Build BFT Client Pool Library..."
+    docker_build . concord/src/external_client/DockerfileExternal ${client_pool_lib_repo} ${client_pool_lib_tag}
+}
+
 trc-test-app() {
     info "Build Thin Replica Client Test Application..."
     docker_build . thin-replica-client/DockerfileTestApp ${trc_test_app_repo} ${trc_test_app_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
+}
+
+participant-lib() {
+    info "Build BFT Client Pool Library and Thin Replica Client..."
+    docker_build . concord/src/external_client/DockerfileCombined ${participant_lib_repo} ${participant_lib_tag}  --build-arg "ext_lib_repo=${client_pool_lib_repo}" --build-arg "ext_lib_tag=${client_pool_lib_tag}" --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
 }
 
 PerformanceTests() {
@@ -336,6 +346,7 @@ then
     ethereum
     helen
     trc-lib
+    client-pool-lib
     waitForProcesses
 
     memleak_concord # concord should be built as a pre-req
@@ -343,6 +354,7 @@ then
 
     daml
     trc-test-app
+    participant-lib
     waitForProcesses
 
     reverse-proxy
