@@ -2,9 +2,11 @@
 
 ARG ext_lib_repo="client-pool-lib"
 ARG ext_lib_tag="latest"
-FROM ${ext_lib_repo}:${ext_lib_tag}
+ARG trc_lib_repo="trc-lib"
+ARG trc_lib_tag="latest"
 
-FROM "trc-lib":"latest"
+FROM ${ext_lib_repo}:${ext_lib_tag}
+FROM ${trc_lib_repo}:${trc_lib_tag}
 
 ## Base Run image
 FROM ubuntu:18.04
