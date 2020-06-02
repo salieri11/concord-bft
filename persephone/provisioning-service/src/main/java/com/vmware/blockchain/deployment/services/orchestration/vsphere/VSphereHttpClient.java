@@ -35,11 +35,14 @@ import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.Ovf
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.OvfProperty;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerState;
+import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachineUpdate;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
 import com.vmware.blockchain.deployment.services.restclient.RestClientBuilder;
 import com.vmware.blockchain.deployment.services.restclient.RestClientUtils;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.LoggingInterceptor;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.retry.DefaultHttpRequestRetryInterceptor;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.Properties;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -252,6 +255,7 @@ public class VSphereHttpClient {
         // TODO Remove after stability.
         try {
             ObjectMapper mapper = new ObjectMapper();
+            log.info("******************* CreateVirtualMachine request********************");
             log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
         } catch (Exception e) {
             log.warn(e.toString());
@@ -266,6 +270,74 @@ public class VSphereHttpClient {
         }
 
         throw new PersephoneException("Error creating VM", name);
+    }
+
+    private boolean updateVmHardware(String name, Properties properties) {
+        long memoryMb = Long.parseLong(properties
+                .getValuesOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
+        boolean mem = updateVirtualMachineMemory(name, memoryMb);
+
+        int cpuCount = Integer.parseInt(properties
+                .getValuesOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
+        int coresPerSocket = Integer.parseInt(properties
+                .getValuesOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "2"));
+        boolean cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
+
+        return mem && cpu;
+
+    }
+
+    /**
+     * Update virtual machine memory.
+     */
+    public boolean updateVirtualMachineMemory(String name, long memory) {
+        val updateRequest = VirtualMachineUpdate.VirtualMachineUpdateRequest.builder()
+                .spec(
+                        VirtualMachineUpdate.VirtualMachineUpdateSpec.builder()
+                                .hotAddEnabled(true)
+                                .sizeMiB(memory).build())
+                .build();
+        HttpEntity<VirtualMachineUpdate.VirtualMachineUpdateRequest> requests =
+                new HttpEntity<>(updateRequest, httpHeaders);
+        String uri = VsphereEndpoints.VSPHERE_VM_MEMORY_UPDATE.getPath().replace("{vm}", name);
+        try {
+            log.info("******************* updateVirtualMachineMemory request********************");
+            ObjectMapper mapper = new ObjectMapper();
+            log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
+        } catch (Exception e) {
+            log.warn(e.toString());
+        }
+
+        var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
+        return responseEntity.getStatusCode() == HttpStatus.OK;
+    }
+
+    /**
+     * Update virtual machine vcpu and cores per cpu.
+     */
+    public boolean updateVirtualMachineCpu(String name, int cpuCount, int coresPerSocket) {
+        val updateRequest = VirtualMachineUpdate.VirtualMachineUpdateRequest.builder()
+                .spec(
+                        VirtualMachineUpdate.VirtualMachineUpdateSpec.builder()
+                                .count(cpuCount)
+                                .coresPerSocket(coresPerSocket)
+                                .hotAddEnabled(true)
+                                .hotRemoveEnabled(true)
+                                .build())
+                .build();
+        HttpEntity<VirtualMachineUpdate.VirtualMachineUpdateRequest> requests =
+                new HttpEntity<>(updateRequest, httpHeaders);
+        String uri = VsphereEndpoints.VSPHERE_VM_CPU_UPDATE.getPath().replace("{vm}", name);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            log.info("******************* updateVirtualMachineCpu request********************");
+            log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
+        } catch (Exception e) {
+            log.warn(e.toString());
+        }
+
+        var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
+        return responseEntity.getStatusCode() == HttpStatus.OK;
     }
 
     /**
@@ -340,12 +412,16 @@ public class VSphereHttpClient {
      * @return `true` if the power state of the virtual machine is on at some point during the execution of the
      * function, `false` otherwise.
      */
-    public boolean ensureVirtualMachinePowerStart(String name, Long retryInterval) {
+    public boolean ensureVirtualMachinePowerStart(String name, Long retryInterval, Properties properties) {
         var confirmed = false;
         var iterating = true;
         while (iterating) {
             // The typical case.
             log.info("Iterating.");
+            if (!updateVmHardware(name, properties)) {
+                log.error("Updating VM hardware failed.");
+                return false;
+            }
             updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON);
             VirtualMachinePowerState state = getVirtualMachinePower(name);
             if (state == VirtualMachinePowerState.POWERED_OFF || state == VirtualMachinePowerState.SUSPEND) {
