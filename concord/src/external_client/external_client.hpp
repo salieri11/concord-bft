@@ -71,8 +71,7 @@ class ConcordClient {
   void SendRequest(const void* request, std::uint32_t request_size,
                    bftEngine::ClientMsgFlag flags,
                    std::chrono::milliseconds timeout_ms,
-                   std::uint32_t reply_size, void* out_reply,
-                   std::uint32_t* out_actual_reply_size, uint64_t seq_num,
+                   std::uint32_t reply_size, uint64_t seq_num,
                    const std::string& correlation_id = {});
 
   int getClientId() const;
@@ -86,6 +85,9 @@ class ConcordClient {
   std::chrono::steady_clock::time_point getStartRequestTime() const;
 
   bool isServing() const;
+
+  static void setStatics(uint16_t required_num_of_replicas,
+                         uint16_t num_of_replicas, uint16_t max_reply_size);
 
  private:
   void CreateClient(const config::ConcordConfiguration& config,
@@ -104,8 +106,11 @@ class ConcordClient {
   uint64_t seq_num_ = 0;
   std::chrono::steady_clock::time_point start_job_time_ =
       std::chrono::steady_clock::now();
-  uint16_t num_of_replicas_ = 0;
-  uint16_t min_num_of_replicas_ = 0;
+  static uint16_t num_of_replicas_;
+  static uint16_t required_num_of_replicas_;
+  // A shared memory for all clients to return reply because for now the reply
+  // is not important
+  static std::shared_ptr<std::vector<char>> reply_;
 };
 
 }  // namespace external_client

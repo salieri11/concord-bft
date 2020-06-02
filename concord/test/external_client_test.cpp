@@ -165,7 +165,7 @@ TEST(mock_integration_test, mock_daml_request_internal_error_situation) {
       {
         std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
       },
-      Internalerror);
+      InternalError);
 }
 
 TEST(mock_integration_test, mock_daml_request_overload_situation) {
@@ -225,6 +225,11 @@ TEST(mock_integration_test, mock_daml_request_overload_situation) {
   std::unique_ptr<DamlMock> da_mock = std::make_unique<DamlMock>(stream);
   da_mock->BuildRequest();
   auto res = da_mock->SendRequest();
+  da_mock->BuildRequest();
+  res = da_mock->SendRequest();
+  da_mock->BuildRequest();
+  res = da_mock->SendRequest();
+  da_mock->BuildRequest();
   res = da_mock->SendRequest();
   ASSERT_EQ(res, SubmitResult::Overloaded);
 }
@@ -292,7 +297,7 @@ TEST(external_client_configuration_test, num_external_clients_le_to_0) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, InternalError);
 }
 
 TEST(external_client_configuration_test, num_external_clients_gt_4096) {
@@ -350,7 +355,7 @@ TEST(external_client_configuration_test, num_external_clients_gt_4096) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, InternalError);
 }
 
 TEST(external_client_configuration_test,
@@ -467,7 +472,7 @@ TEST(external_client_configuration_test, undefined_client_port) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, InternalError);
 }
 
 TEST(external_client_configuration_test, undefined_client_principal_id) {
@@ -525,7 +530,7 @@ TEST(external_client_configuration_test, undefined_client_principal_id) {
       "                principal_id: 13\n";
 
   auto stream = std::stringstream{conf};
-  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, Internalerror);
+  EXPECT_THROW({ ConcordClientPool client_tls(stream); }, InternalError);
 }
 }  // namespace
 

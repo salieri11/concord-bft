@@ -12,6 +12,7 @@
 // file.
 
 #include "client_pool_config.hpp"
+
 namespace concord {
 
 namespace config_pool {
