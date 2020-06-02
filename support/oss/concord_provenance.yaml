@@ -138,13 +138,6 @@ other:prometheus-cpp:0.8.0:
  license: The MIT License
  url: https://github.com/jupp0r/prometheus-cpp/tree/v0.8.0
 
-other:autoconf:
- name: autoconf
- version: 1.0
- repository: Other
- license: GNU GENERAL PUBLIC LICENSE Version 2
- url: https://github.com/autotools-mirror/autoconf
-
 other:llvm-project:5.0:
  name: llvm-project
  version: 5.0
@@ -152,57 +145,12 @@ other:llvm-project:5.0:
  license: LLVM license
  url: https://github.com/llvm/llvm-project
 
-other:libsnappy-dev:1.1.7:
- name: libsnappy-dev
- version: 1.1.7
- repository: Other
- url: https://packages.ubuntu.com/bionic/libsnappy-dev
-
-other:zlib1g-dev:1.2.11:
- name: zlibg1-dev
- version: 1.2.11
- repository: Other
- url: https://packages.ubuntu.com/bionic/zlib1g-dev
-
-other:liblz4-dev:1.8.0:
- name: liblz4-dev
- version: 1.8.0
- repository: Other
- url: https://packages.ubuntu.com/bionic/liblz4-dev
-
-other:cmake:3.10.2:
- name: cmake
- version: 3.10.2
- license: BSD 3-clause
- repository: Other
- url: https://packages.ubuntu.com/bionic/cmake
-
-other:clang-format-7:7.0.0:
- name: clang-format-7
- version: 7.0.0
- license: LLVM Release License
- repository: Other
- url: https://packages.ubuntu.com/bionic-updates/clang-format-7
-
-other:libyaml-cpp-dev:0.5.2:
- name: libyaml-cpp-dev
- version: 0.5.2
- repository: Other
- url: https://packages.ubuntu.com/bionic/libyaml-cpp-dev
-
 other:bzip2:1.0.8:
  name: bzip2
  version: 1.0.8
  repository: Other
  license: The MIT License
  url: https://github.com/conan-community/conan-bzip2
-
-other:libs3-dev:2.0:
- name: libs3-dev
- version: 2.0
- repository: Other
- license: GNU GENERAL PUBLIC LICENSE Version 3
- url: https://packages.ubuntu.com/bionic/libs3-dev
 
 other:hdr_histogram:0.9.12:
  name: hdr_histogram
