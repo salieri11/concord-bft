@@ -156,7 +156,9 @@ public class TelegrafConfigUtil {
                 String username = esUsername.getOrDefault(nodeIp.getKey(), "");
                 String pwd = espassword.getOrDefault(nodeIp.getKey(), "");
 
-                hostConfigCopy = hostConfigCopy.concat("\n\n" + getElasticsearchConfig(url, username, pwd));
+                hostConfigCopy = hostConfigCopy.concat("\n\n" + getElasticsearchConfig(url, username, pwd,
+                        properties.getValuesMap().getOrDefault(
+                                NodeProperty.Name.BLOCKCHAIN_ID.toString(), "vmware-blockchain")));
             }
             configMap.put(nodeIp.getKey(), hostConfigCopy);
         }
@@ -191,7 +193,7 @@ public class TelegrafConfigUtil {
         return writer.toString();
     }
 
-    private String getElasticsearchConfig(String urls, String username, String password) {
+    private String getElasticsearchConfig(String urls, String username, String password, String blockchain) {
         StringBuilder config = new StringBuilder()
                 .append("[[outputs.elasticsearch]]\n")
                 .append("  urls = [ \"")
@@ -212,9 +214,9 @@ public class TelegrafConfigUtil {
                     .append("\"");
         }
 
-        config.append("\n  index_name = \"telegraf-%Y.%m.%d\"")
+        config.append("\n  index_name = \"" + blockchain + "-%Y.%m.%d\"")
                 .append("\n  manage_template = true")
-                .append("\n  template_name = \"telegraf\"")
+                .append("\n  template_name = \"vmware-blockchain\"")
                 .append("\n  overwrite_template = false");
 
         return config.toString();
