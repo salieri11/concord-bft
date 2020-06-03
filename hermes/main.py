@@ -251,7 +251,8 @@ def main():
                                      help="Public IP of the DAML participant to upload DAR and run tests",
                                      default='localhost')
    nonLocalDeployConfig.add_argument("--replicasConfig",
-                                     help="Replias config obtained after a helen/persephone deployment",
+                                     help="Replicas config file obtained after a helen/persephone deployment. "
+                                     'Sample format: { "daml_committer": [ { "ip": "10.73.232.56", ... }, ... ], "daml_participant": [ { "ip": "10.73.232.65", ... } ] }',
                                      default=None)
 
    args = parser.parse_args()

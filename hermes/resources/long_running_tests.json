@@ -4,6 +4,10 @@
       {
         "testname": "Daml Test",
         "test": "./main.py DamlTests"
+      },
+      {
+        "testname": "CHESS+",
+        "test": "./run_chess_plus.py"
       }
     ],
     "additional_tests": [

@@ -93,7 +93,7 @@ def ownAllJenkinsNodesWorkspace(args, options, secret):
 
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
-  helper.resetBlockchain(replicasConfigPath=a[0])
+  helper.resetBlockchain(replicasConfig=a[0])
 
 
 # Registry of callable standalone functions
