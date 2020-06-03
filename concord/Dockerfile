@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v17
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v18
 
 ## Install gtest - patch for backward compatibility until conan is supported
 RUN make -C /googletest/_build install
@@ -100,10 +100,10 @@ RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
         ln -s $x ${x%%.3.11.2.0}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.1.28.1 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.1.28.1; do \
-        ln -s $x ${x%%.28.1} && \
-        ln -s $x ${x%%.1.28.1}; \
+COPY --from=0 /opt/grpc/lib/*.so.1.28.2 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.28.2; do \
+        ln -s $x ${x%%.28.2} && \
+        ln -s $x ${x%%.1.28.2}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
@@ -146,10 +146,10 @@ COPY ./docker/hlf/core.yaml /concord
 
 COPY --from=0 /usr/local/lib/librelic.so /usr/local/lib/
 
-COPY --from=0 /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/
-RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5.7
-RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5
-RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so
+COPY --from=0 /usr/local/lib/librocksdb.so.6.8.1 /usr/local/lib/
+RUN ln -s /usr/local/lib/librocksdb.so.6.8.1 /usr/local/lib/librocksdb.so.6.8
+RUN ln -s /usr/local/lib/librocksdb.so.6.8.1 /usr/local/lib/librocksdb.so.6
+RUN ln -s /usr/local/lib/librocksdb.so.6.8.1 /usr/local/lib/librocksdb.so
 
 COPY --from=0 /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
 RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
