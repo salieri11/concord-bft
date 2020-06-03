@@ -15,8 +15,6 @@ import tarfile
 import tempfile
 import time
 
-deployment_support_bundle_base_dir = "/var/log/deployment_support_logs"
-
 files_folders_to_backup = [
    "/config",
    "/var/log/healthd.log",
@@ -173,6 +171,8 @@ def bundle_support_logs(src_dir, dest_file):
 
 if __name__ == '__main__':
    parser = argparse.ArgumentParser()
+   parser.add_argument("--supportBundleBaseDir", required=True,
+                       help="Support bundle base path on blockchain nodes/replicas")
    parser.add_argument("--concordIP", required=True,
                        help="concord node/replica IP")
    parser.add_argument("--dockerContainers", nargs='+', required=True,
@@ -186,6 +186,7 @@ if __name__ == '__main__':
    log = logging.getLogger(__name__)
 
    time_stamp=time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+   deployment_support_bundle_base_dir = args.supportBundleBaseDir
    if not os.path.exists(deployment_support_bundle_base_dir):
       os.makedirs(deployment_support_bundle_base_dir)
    deployment_support_bundle_name = "deployment-support-bundle_{}_{}".format(
