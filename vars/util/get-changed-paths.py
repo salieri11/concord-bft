@@ -54,7 +54,7 @@ def main():
 
     # Bring map of known components/folders
     componentsMap = {}
-    with open("../components_affected.json", "r") as f:
+    with open("components_affected.json", "r") as f:
       componentsMap = json.loads(f.read())
 
     # subComponents, e.g. concord/src/daml, concord/src/hlf, concord/src/ethereum
@@ -99,7 +99,7 @@ def main():
     print("================================================================================")
 
     # Flush the changed components map to file
-    with open("../components_affected.json", "w") as f:
+    with open("components_affected.json", "w") as f:
       f.write(json.dumps(componentsMap, indent = 4))
 
   except Exception as e:
