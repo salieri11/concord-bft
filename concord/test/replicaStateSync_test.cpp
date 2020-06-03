@@ -212,6 +212,6 @@ int main(int argc, char **argv) {
   dbClient = databaseSet.dataDBClient;
 
   int res = RUN_ALL_TESTS();
-
+  dbClient.reset();
   return res;
 }
