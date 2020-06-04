@@ -68,7 +68,7 @@ Sliver CreateDamlKvbValue(const string& value, vector<string> trid_list) {
 
   size_t size = proto.ByteSizeLong();
   char* data = new char[size];
-  proto.SerializeWithCachedSizesToArray(reinterpret_cast<unsigned char*>(data));
+  proto.SerializeToArray(data, size);
 
   return Sliver(data, size);
 }
