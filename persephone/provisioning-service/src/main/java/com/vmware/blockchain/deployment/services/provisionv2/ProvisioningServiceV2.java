@@ -85,6 +85,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
     public void createDeployment(DeploymentRequest request,
                                  StreamObserver<DeploymentRequestResponse> responseObserver)     {
 
+        /// ---- Validation and input manipulation/extraction ----
         val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
         val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
@@ -94,13 +95,13 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var orchestrators = createOrchestratorsFromSites(request.getSpec().getSites());
         var siteMap = ProvisioningServiceUtil.convertToSiteIdMap(request.getSpec().getSites());
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
-
-        // Inject Model definitions
         var baseNodeTypeComponent = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
                                                                         nodeTypeMap);
         var componentsByNode = ProvisioningServiceUtil.generateComponentsPerNode(nodeAssignment, orchestrators,
                                                                                  baseNodeTypeComponent);
         //TODO add site specific restriction.
+
+        /// ---- No input manipulation/extraction beyond this point ----
 
         var deploymentSession = DeploymentExecutionContext.builder()
                 .id(sessionId)

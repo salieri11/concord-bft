@@ -106,9 +106,7 @@ def main():
                     )]
                 )
             ),
-            properties=core.Properties(
-                values={"BLOCKCHAIN_ID":"testBlockchain"}
-            )
+            #properties=core.Properties()
         )
     )
     log.info("Create Deployment(): request\n{}".format(create_deployment_request))

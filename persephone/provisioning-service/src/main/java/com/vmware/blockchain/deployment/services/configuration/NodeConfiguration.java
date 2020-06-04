@@ -110,21 +110,22 @@ public class NodeConfiguration {
      * @return components.
      */
     List<ConcordComponent> getComponentsByNodeType(BlockchainType blockchainType,
-                                                          NodeType nodeType, Properties properties,
-                                                          String baseVersion) {
+                                                          NodeType nodeType, Properties properties) {
 
         var componentsByNode = componentListForBlockchainNodeType.get(blockchainType);
         if (componentsByNode == null) {
             throw new BadRequestPersephoneException(
                     "Invalid node type: " + nodeType + " for blockchain: " + blockchainType);
         }
+        String dockerVersionToUse = properties.getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
+                                                                    dockerImageBaseVersion);
         return componentsByNode.get(nodeType).stream()
                 .map(k ->
                              ConcordComponent.newBuilder()
                                      .setType(ConcordComponent.Type.CONTAINER_IMAGE)
                                      .setServiceType(k)
                                      .setName(getImageTag(k, properties.getValuesOrDefault(k.name(),
-                                                                                                  baseVersion)))
+                                                                                           dockerVersionToUse)))
                                      .build()
                 ).collect(Collectors.toList());
     }
@@ -142,10 +143,8 @@ public class NodeConfiguration {
 
         nodeTypeEntries.entrySet().stream()
                 .forEach(k -> {
-                    String dockerVersionToUse = k.getValue().getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
-                                                                                   dockerImageBaseVersion);
                     output.put(k.getKey(),
-                               getComponentsByNodeType(blockchainType, k.getKey(), k.getValue(), dockerVersionToUse));
+                               getComponentsByNodeType(blockchainType, k.getKey(), k.getValue()));
                 });
         return output;
     }

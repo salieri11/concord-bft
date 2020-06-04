@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 
 import lombok.extern.slf4j.Slf4j;
@@ -162,7 +163,9 @@ public class VSphereOrchestrator implements Orchestrator {
                                           Map.entry("blockchain-network", controlNetwork),
                                           cloudInit);
 
-            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L);
+            // Temp for now
+            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L, Properties.newBuilder()
+                    .build());
             return OrchestratorData.ComputeResourceEventCreatedV2.builder()
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .password(cloudInit.getVmPassword())
