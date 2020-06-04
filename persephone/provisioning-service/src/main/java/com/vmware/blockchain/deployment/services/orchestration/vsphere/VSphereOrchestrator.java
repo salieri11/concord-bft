@@ -107,7 +107,7 @@ public class VSphereOrchestrator implements Orchestrator {
                                           libraryItem, datastore, resourcePool, folder,
                                           Map.entry("blockchain-network", controlNetwork), cloudInit);
 
-            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L);
+            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L, request.getProperties());
             return OrchestratorData.ComputeResourceEventCreated.builder()
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .node(request.getNode())

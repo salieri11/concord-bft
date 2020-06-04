@@ -19,11 +19,13 @@ public enum VsphereEndpoints {
     VSPHERE_RESOURCE_POOLS("/rest/vcenter/resource-pool"),
     VSPHERE_OVF_LIBRARY_ITEM("/rest/com/vmware/vcenter/ovf/library-item/id:{library_item}"),
     VSPHERE_NETWORKS("/rest/vcenter/network"),
-    // KAshfat
+
     VSPHERE_VM("rest/vcenter/vm/{vm}"),
     VSPHERE_VM_POWER("/rest/vcenter/vm/{vm}/power"),
     VSPHERE_VM_POWER_START("/rest/vcenter/vm/{vm}/power/start"),
-    VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop");
+    VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop"),
+    VSPHERE_VM_CPU_UPDATE("/rest/vcenter/vm/{vm}/hardware/cpu"),
+    VSPHERE_VM_MEMORY_UPDATE("/rest/vcenter/vm/{vm}/hardware/memory");
 
     @Getter
     private String path;
