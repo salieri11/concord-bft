@@ -79,7 +79,7 @@ def main():
     print("================================================================================")
 
     # Flush the processed result
-    with open("vars/util/commits_authors.json", "w") as f:
+    with open("commits_authors.json", "w") as f:
       f.write(json.dumps(commitsAuthors, indent = 4))
   
   except Exception as e:
