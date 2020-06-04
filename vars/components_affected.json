@@ -89,21 +89,6 @@
         "test_suites": [],
         "build_targets": []
     },
-    "persephone/agent": {
-        "changed": true,
-        "test_suites": [],
-        "build_targets": []
-    },
-    "persephone/ip-allocation-service": {
-        "changed": true,
-        "test_suites": [],
-        "build_targets": []
-    },
-    "persephone/provisioning-service": {
-        "changed": true,
-        "test_suites": [],
-        "build_targets": []
-    },
     "support": {
         "changed": true,
         "test_suites": [],
