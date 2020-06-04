@@ -16,12 +16,21 @@ option java_multiple_files = true;
 
 /* [START messages] */
 
+/**
+ * Model definition list of site info.
+ */
 message Sites {
     repeated OrchestrationSite info_list = 1 [packed=false];
 }
 
+/**
+ * Model definition for holding node requests.
+ */
 message NodeAssignment {
 
+    /**
+     * Model definition for the request specification to create blockchain.
+     */
     message Entry {
         OrchestrationSiteIdentifier site = 1;
         NodeType type = 2;
@@ -31,6 +40,9 @@ message NodeAssignment {
     repeated Entry entries = 1 [packed=false];
 }
 
+/**
+ * Model definition for the request specification to create blockchain.
+ */
 message DeploymentSpec {
     string consortium_id = 1;
     string blockchain_id = 2;
@@ -39,14 +51,11 @@ message DeploymentSpec {
     NodeAssignment nodeAssignment = 5;
     Properties properties = 6;
     map<string, Properties> node_properties = 7; // Key is reserved to NodeTypeEnum
-
-    enum DeploymentSpecPropertyKey {
-        NOOP = 0;
-        VERSION = 1;
-        TEMPLATE_ID = 2;
-    }
 }
 
+/**
+ * Model definition for the request specification to create blockchain.
+ */
 message DeploymentExecutionEvent {
     /**
      * Type of [DeploymentExecutionEvent] emitted.
@@ -72,6 +81,9 @@ message DeploymentExecutionEvent {
     string consortium_id = 6;
 }
 
+/**
+ * Model to hold resources.
+ */
 message DeployedResource {
     enum Type {
         NOOP = 0; // Default value, denoting an unspecified resource type.
@@ -95,7 +107,6 @@ message DeployedResource {
     string node_id = 4;
     Properties additional_info = 5;
 }
-
 
 message DeploymentRequest {
     MessageHeader header = 1;
@@ -122,11 +133,17 @@ message DeploymentRequestResponse {
     string id = 1;
 }
 
+/**
+ * Enum List of various key attributes used in Provisioning service only.
+ */
 enum DeploymentAttributes {
     GENERIC = 0;
     IMAGE_TAG = 1;
     TEMPLATE_ID = 2;
     GENERATE_PASSWORD = 3;
+    VM_CPU_COUNT = 4;
+    VM_CORES_PER_SOCKET = 5;
+    VM_MEMORY = 6;
 }
 
 /* [END messages] */
