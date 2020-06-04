@@ -18,6 +18,7 @@ import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
+import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,11 +42,6 @@ public class VSphereOrchestrator implements Orchestrator {
         this.info = info;
         this.ipamClient = ipamClient;
         this.vSphereHttpClient = vSphereHttpClient;
-    }
-
-    @Override
-    public void initialize() {
-
     }
 
     @Override
@@ -119,6 +115,64 @@ public class VSphereOrchestrator implements Orchestrator {
     }
 
     @Override
+    public OrchestratorData.ComputeResourceEventCreatedV2 createDeploymentV2(
+            OrchestratorData.CreateComputeResourceRequestV2 request) {
+        val compute = info.getVsphere().getResourcePool();
+        val storage = info.getVsphere().getDatastore();
+        val network = info.getVsphere().getNetwork();
+
+        try {
+            val getFolder = CompletableFuture
+                    .supplyAsync(() -> vSphereHttpClient.getFolder(info.getVsphere().getFolder()));
+            val getDatastore = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getDatastore(storage));
+            val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
+            val getControlNetwork =
+                    CompletableFuture
+                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName(), "OPAQUE_NETWORK"));
+            val getLibraryItem =
+                    CompletableFuture
+                            .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getCloudInitData()
+                                                                                        .getModel().getTemplate()));
+            // Collect all information and deploy.
+            val folder = getFolder.get();
+            val datastore = getDatastore.get();
+            val resourcePool = getResourcePool.get();
+            val controlNetwork = getControlNetwork.get();
+            val libraryItem = getLibraryItem.get();
+            val cloudInit = new CloudInitConfiguration(
+                    info.getContainerRegistry(),
+                    request.getCloudInitData().getModel(),
+                    request.getCloudInitData().getPrivateIp(),
+                    InetAddress.getByName(String.valueOf(network.getGateway()))
+                            .getHostAddress(),
+                    network.getNameServersList(),
+                    network.getSubnet(),
+                    ConcordClusterIdentifier.newBuilder()
+                            .setId(request.getBlockchainId().toString())
+                            .build(),
+                    request.getCloudInitData().getNodeId(),
+                    request.getCloudInitData().getConfigGenId(),
+                    request.getCloudInitData().getConfigServiceEndpoint(),
+                    request.getCloudInitData().getConfigServiceRestEndpoint(),
+                    info.getVsphere().getOutboundProxy()
+            );
+            val instance = vSphereHttpClient
+                    .createVirtualMachine(request.getVmId(),
+                                          libraryItem, datastore, resourcePool, folder,
+                                          Map.entry("blockchain-network", controlNetwork),
+                                          cloudInit);
+
+            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L);
+            return OrchestratorData.ComputeResourceEventCreatedV2.builder()
+                    .resource(vSphereHttpClient.vmIdAsUri(instance))
+                    .password(cloudInit.getVmPassword())
+                    .nodeId(request.getNodeId()).build();
+        } catch (Exception e) {
+            throw new PersephoneException(e, "Error creating/starting the VM");
+        }
+    }
+
+    @Override
     public OrchestratorData.ComputeResourceEvent deleteDeployment(
             OrchestratorData.DeleteComputeResourceRequest request) {
 
@@ -166,6 +220,21 @@ public class VSphereOrchestrator implements Orchestrator {
             }
             publisher.onComplete();
         };
+    }
+
+    @Override
+    public OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
+            OrchestratorData.CreateNetworkResourceRequest request) {
+
+        val privateIpAddress = ipamClient.allocatedPrivateIp(info.getVsphere().getNetwork().getName());
+        log.info("Assigned private IP {}", privateIpAddress);
+
+        return OrchestratorData.NetworkResourceEventCreated.builder()
+                .name(request.getName())
+                .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
+                .publicResource(false)
+                .resource(URI.create("/" + privateIpAddress.getName()))
+                .build();
     }
 
     @Override

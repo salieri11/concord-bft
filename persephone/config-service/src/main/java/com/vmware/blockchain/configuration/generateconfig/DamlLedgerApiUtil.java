@@ -4,10 +4,9 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
-import java.util.List;
-
 import com.google.common.base.Strings;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 
 import lombok.NoArgsConstructor;
@@ -31,15 +30,8 @@ public class DamlLedgerApiUtil {
      *
      * @return json string
      */
-    public String generateConfig(Properties properties, List<NodeProperty> nodeProperties) {
-
-        var nodeId = nodeProperties.stream().filter(nodeProperty ->
-                                                            nodeProperty.getName().equals(NodeProperty.Name.NODE_ID))
-                .findFirst();
-
-        // Assuming user sends one client per configuration.
-        // TODO: might require a change when multiple clients deploys together.
-        var nodeName = nodeId.get().getValueMap().get(0).replace("-", "_");
+    public String generateConfig(NodesInfo.Entry nodeInfo) {
+        var nodeName = convertToParticipantId(nodeInfo.getId());
 
         StringBuilder builder = new StringBuilder();
         builder.append("export INDEXDB_HOST=daml_index_db");
@@ -48,15 +40,15 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export INDEXDB_USER=indexdb");
         builder.append(System.getProperty("line.separator"));
-        builder.append("export REPLICAS=" + getReplicas(properties));
+        builder.append("export REPLICAS=" + getReplicas(nodeInfo.getProperties()));
         builder.append(System.getProperty("line.separator"));
-        builder.append("export PARTICIPANT_ID=p" + nodeName);
+        builder.append("export PARTICIPANT_ID=" + nodeName);
         builder.append(System.getProperty("line.separator"));
         builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G "
                        + "-XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
         builder.append(System.getProperty("line.separator"));
         builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831\"");
-        addAuthJwt(builder, properties);
+        addAuthJwt(builder, nodeInfo.getProperties());
 
         return builder.toString();
     }
@@ -82,5 +74,14 @@ public class DamlLedgerApiUtil {
             builder.append(System.getProperty("line.separator"));
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
         }
+    }
+
+    /**
+     * Temp work-around.
+     * @param nodeId id
+     * @return pid
+     */
+    public static String convertToParticipantId(String nodeId) {
+        return "p" + nodeId.replace("-", "_");
     }
 }

@@ -6,7 +6,6 @@ import "vmware/blockchain/deployment/v1/concord_cluster.proto";
 import "vmware/blockchain/deployment/v1/concord_model.proto";
 import "vmware/blockchain/deployment/v1/core.proto";
 import "vmware/blockchain/deployment/v1/configuration_service.proto";
-import "vmware/blockchain/deployment/v1/orchestration.proto";
 /* [END declaration] */
 
 option go_package = "vmware.com/blockchain/deployment/v1;deployment";

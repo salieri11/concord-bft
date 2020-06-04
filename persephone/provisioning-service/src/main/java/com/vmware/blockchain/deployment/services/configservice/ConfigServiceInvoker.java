@@ -43,4 +43,24 @@ public class ConfigServiceInvoker {
         }
         return ConfigurationServiceGrpc.newStub(channel);
     }
+
+    /**
+     * Generates CS Future stub.
+     * @return stub
+     */
+    public ConfigurationServiceGrpc.ConfigurationServiceFutureStub generateConfigServiceFutureStub() {
+        ManagedChannel channel = null;
+        if (endpoint.getTransportSecurity().getType()
+            == TransportSecurity.Type.NONE) {
+            channel = ManagedChannelBuilder
+                    .forTarget(endpoint.getAddress())
+                    .usePlaintext()
+                    .build();
+        } else {
+            channel = ManagedChannelBuilder
+                    .forTarget(endpoint.getAddress())
+                    .build();
+        }
+        return ConfigurationServiceGrpc.newFutureStub(channel);
+    }
 }

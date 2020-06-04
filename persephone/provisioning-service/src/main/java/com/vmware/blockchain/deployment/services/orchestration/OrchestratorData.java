@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.orchestration;
 
 import java.net.URI;
+import java.util.UUID;
 
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -55,6 +56,36 @@ public class OrchestratorData {
         Endpoint configServiceEndpoint;
         Endpoint configServiceRestEndpoint;
         Properties properties;
+    }
+
+    /**
+     * Temp v2 request.
+     */
+    @Data
+    @AllArgsConstructor
+    public static class CreateComputeResourceRequestV2 {
+
+        UUID blockchainId;
+        UUID nodeId;
+        CloudInitData cloudInitData;
+
+        /**
+         * Temp v2 request.
+         */
+        @Data
+        @AllArgsConstructor
+        public static class CloudInitData {
+            ConcordModelSpecification model;
+            String privateIp;
+            int nodeId;
+            ConfigurationSessionIdentifier configGenId;
+            Endpoint configServiceEndpoint;
+            Endpoint configServiceRestEndpoint;
+        }
+
+        public String getVmId() {
+            return blockchainId + "-" + nodeId;
+        }
     }
 
     /**
@@ -110,7 +141,7 @@ public class OrchestratorData {
          */
         @Builder
         public NetworkResourceEventCreated(URI resource, String name,
-                                           String address, Boolean publicResource) {
+                                           String address, boolean publicResource) {
             super(resource);
             this.name = name;
             this.address = address;
@@ -136,7 +167,6 @@ public class OrchestratorData {
     @NoArgsConstructor
     @EqualsAndHashCode(callSuper = false)
     public static class ComputeResourceEvent extends OrchestrationEvent {
-
         URI resource;
     }
 
@@ -145,6 +175,7 @@ public class OrchestratorData {
      */
     @Data
     @EqualsAndHashCode(callSuper = true, doNotUseGetters = true)
+    @Deprecated
     public static final class ComputeResourceEventCreated extends ComputeResourceEvent {
 
         ConcordNodeIdentifier node;
@@ -157,6 +188,27 @@ public class OrchestratorData {
         public ComputeResourceEventCreated(URI resource, ConcordNodeIdentifier node, String password) {
             super(resource);
             this.node = node;
+            this.nodePassword = password;
+        }
+    }
+
+    /**
+     * Temp v2 request.
+     */
+    @Data
+    @EqualsAndHashCode(callSuper = true, doNotUseGetters = true)
+    public static final class ComputeResourceEventCreatedV2 extends ComputeResourceEvent {
+
+        UUID nodeId;
+        String nodePassword;
+
+        /**
+         * Temp v2 request.
+         */
+        @Builder
+        public ComputeResourceEventCreatedV2(URI resource, UUID nodeId, String password) {
+            super(resource);
+            this.nodeId = nodeId;
             this.nodePassword = password;
         }
     }
@@ -181,6 +233,18 @@ public class OrchestratorData {
     }
 
     /**
+     * Allocation request to assign a network resource to a given deployment.
+     */
+    @Data
+    @AllArgsConstructor
+    public static class CreateNetworkAllocationRequestV2 {
+
+        String name;
+        String publicIp;
+        String privateIp;
+    }
+
+    /**
      * Network allocation de-provisioning request specification.
      *
      * @param[resource] network allocation resource to be de-provisioned.
@@ -200,7 +264,6 @@ public class OrchestratorData {
     @NoArgsConstructor
     @EqualsAndHashCode(callSuper = false)
     public static class NetworkAllocationEvent extends OrchestrationEvent {
-
         URI resource;
     }
 
@@ -209,6 +272,7 @@ public class OrchestratorData {
      */
     @Data
     @EqualsAndHashCode(callSuper = false)
+    @Deprecated
     public static final class NetworkAllocationEventCreated extends NetworkAllocationEvent {
 
         String name;

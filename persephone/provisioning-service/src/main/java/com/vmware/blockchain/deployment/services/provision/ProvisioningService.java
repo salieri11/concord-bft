@@ -39,6 +39,7 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vmware.OrchestratorFactory;
+import com.vmware.blockchain.deployment.services.orchestrationsite.OrchestrationSites;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
@@ -80,6 +81,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @GRpcService
 @Slf4j
+@Deprecated
 public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningServiceImplBase {
 
     /**
@@ -359,22 +361,22 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             var nodeUuid = entry.getKey().getNode().getId();
             nodeIds.put(nodeIndex, nodeUuid);
-            loggingProperties.put(nodeIndex, ProvisioningServiceUtil.getLogManagementJson(siteInfo));
+            loggingProperties.put(nodeIndex, OrchestrationSites.getLogManagementJson(siteInfo));
             concordIdentifierMap.put(entry.getKey().getNode(), nodeIndex);
 
-            wavefront = ProvisioningServiceUtil.getWavefront(siteInfo);
+            wavefront = OrchestrationSites.getWavefront(siteInfo);
             if (!wavefront.getUrl().isEmpty()) {
                 wavefrontUrl.put(nodeIndex, wavefront.getUrl());
                 wavefrontToken.put(nodeIndex, wavefront.getToken());
 
-                var outboundProxy = ProvisioningServiceUtil.getOutboundProxy(siteInfo);
+                var outboundProxy = OrchestrationSites.getOutboundProxy(siteInfo);
                 if (!outboundProxy.getHttpsHost().isEmpty()) {
                     wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
                     wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
                 }
             }
 
-            var elasticsearch = ProvisioningServiceUtil.getElasticsearch(siteInfo);
+            var elasticsearch = OrchestrationSites.getElasticsearch(siteInfo);
             if (!elasticsearch.getUrl().isEmpty()) {
                 esUrl.put(nodeIndex, elasticsearch.getUrl());
                 esUser.put(nodeIndex, elasticsearch.getUsername());
@@ -843,7 +845,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         for (Map.Entry<PlacementAssignment.Entry,
                 OrchestratorData.NetworkResourceEventCreated> entry : privateNetworkAddressMap.entrySet()) {
             var siteInfo = entry.getKey().getSiteInfo();
-            Wavefront wavefront = ProvisioningServiceUtil.getWavefront(siteInfo);
+            Wavefront wavefront = OrchestrationSites.getWavefront(siteInfo);
             if (wavefront.getUrl().isEmpty()
                 || wavefront.getUrl().isBlank()
                 || wavefront.getToken().isEmpty()

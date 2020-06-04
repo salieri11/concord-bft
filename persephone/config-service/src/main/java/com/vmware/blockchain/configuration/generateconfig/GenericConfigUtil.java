@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
@@ -28,6 +29,7 @@ public class GenericConfigUtil {
 
     /**
      * Generates the generic config file with node ids.
+     *
      * @param nodeProperties Map of node properties.
      * @return map of host ips vs configs.
      */
@@ -75,4 +77,25 @@ public class GenericConfigUtil {
         return configMap;
     }
 
+    /**
+     * Generates the generic config file with node ids.
+     *
+     * @param consortiumId id
+     * @param blockchainId id
+     * @param nodeInfo     info
+     * @return config
+     */
+    public String getGenericConfig(String consortiumId, String blockchainId, NodesInfo.Entry nodeInfo) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("NODE_UUID=")
+                .append(nodeInfo.getId())
+                .append("\n")
+                .append("BLOCKCHAIN_ID=")
+                .append(blockchainId)
+                .append("\n")
+                .append("CONSORTIUM_ID=")
+                .append(consortiumId);
+
+        return builder.toString();
+    }
 }

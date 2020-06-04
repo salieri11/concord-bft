@@ -1,0 +1,156 @@
+/* [START declaration] */
+syntax = "proto3";
+package vmware.blockchain.deployment.v1;
+
+import "vmware/blockchain/deployment/v1/core.proto";
+import "vmware/blockchain/deployment/v1/orchestration.proto";
+
+/* [END declaration] */
+
+option go_package = "vmware.com/blockchain/deployment/v1;deployment";
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.v1";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+
+message Sites {
+    repeated OrchestrationSite info_list = 1 [packed=false];
+}
+
+message NodeAssignment {
+
+    message Entry {
+        OrchestrationSiteIdentifier site = 1;
+        NodeType type = 2;
+        Properties properties = 3;
+        string node_id = 4;
+    }
+    repeated Entry entries = 1 [packed=false];
+}
+
+message DeploymentSpec {
+    string consortium_id = 1;
+    string blockchain_id = 2;
+    BlockchainType blockchain_type = 3;
+    Sites sites = 4;
+    NodeAssignment nodeAssignment = 5;
+    Properties properties = 6;
+    map<string, Properties> node_properties = 7; // Key is reserved to NodeTypeEnum
+
+    enum DeploymentSpecPropertyKey {
+        NOOP = 0;
+        VERSION = 1;
+        TEMPLATE_ID = 2;
+    }
+}
+
+message DeploymentExecutionEvent {
+    /**
+     * Type of [DeploymentExecutionEvent] emitted.
+     */
+    enum Type {
+        NOOP = 0; // Default value, should not be used.
+        ACKNOWLEDGED = 1; // Request acknowledged (session associated with [deployment] is recorded).
+        COMPLETED = 2; // Session completed (plan associated with [deployment] is marked complete).
+        RESOURCE = 3; // Resource provisioned event. (INTERNAL USE FOR INFRASTRUCTURE MANAGEMENT)
+    }
+
+    enum Status {
+        ACTIVE = 0; // Session is still on-going and has not reached final state.
+        SUCCESS = 1; // Session has completed without error.
+        FAILURE = 2; // Session has completed with error.
+    }
+
+    string session_id = 1;
+    Type type = 2;
+    Status status = 3;
+    DeployedResource resource = 4;
+    string blockchain_id = 5;
+    string consortium_id = 6;
+}
+
+message DeployedResource {
+    enum Type {
+        NOOP = 0; // Default value, denoting an unspecified resource type.
+        COMPUTE_RESOURCE = 1; // Compute resource (e.g. VM, kubernetes POD).
+        NETWORK_RESOURCE = 2; // Network resource (e.g. IP address).
+        NETWORK_ALLOCATION = 3; // Network allocation (e.g. NAT rules, kubernetes cluster IP).
+        GENERIC = 4;
+    }
+
+    enum DeployedResourcePropertyKey {
+        DEFAULT = 0;
+        PRIVATE_IP = 1;
+        PUBLIC_IP = 2;
+        CLIENT_ENDPOINT = 3;
+        NODE_LOGIN = 4;
+    }
+
+    Type type = 1;
+    string name = 2;
+    string site_id = 3;
+    string node_id = 4;
+    Properties additional_info = 5;
+}
+
+
+message DeploymentRequest {
+    MessageHeader header = 1;
+    DeploymentSpec spec = 2;
+}
+
+message StreamDeploymentSessionEventRequest {
+    MessageHeader header = 1;
+    string session_id = 2;
+}
+
+message DeprovisionDeploymentRequest {
+    MessageHeader header = 1;
+    string session_id = 2;
+    Sites sites = 3;
+    repeated DeployedResource resource = 4 [packed = false];
+}
+
+message DeprovisionDeploymentResponse {
+    MessageHeader header = 1;
+}
+
+message DeploymentRequestResponse {
+    string id = 1;
+}
+
+enum DeploymentAttributes {
+    GENERIC = 0;
+    IMAGE_TAG = 1;
+    TEMPLATE_ID = 2;
+    GENERATE_PASSWORD = 3;
+}
+
+/* [END messages] */
+
+/* [START services] */
+/**
+ * Service definition pertaining to operations on blockchain creation.
+ */
+service ProvisioningServiceV2 {
+    /**
+     * Operation to create a cluster based on a [CreateClusterRequest].
+     */
+    rpc CreateDeployment (DeploymentRequest) returns (DeploymentRequestResponse) {};
+
+    /**
+     * Operation to retrieve [DeploymentSessionEvent]s of a [DeploymentSession] as a stream.
+     */
+    rpc StreamDeploymentSessionEvents (StreamDeploymentSessionEventRequest)
+        returns (stream DeploymentExecutionEvent) {};
+
+    /**
+    * Operation to de-provision based on a [DeprovisionClusterRequest]
+    */
+    rpc DeprovisionDeployment (DeprovisionDeploymentRequest)
+	    returns (DeprovisionDeploymentResponse) {};
+}
+/* [END services] */

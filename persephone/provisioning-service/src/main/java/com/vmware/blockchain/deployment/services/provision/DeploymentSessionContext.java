@@ -14,6 +14,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 /**
  * Data object which stored session.
  */
+@Deprecated
 public class DeploymentSessionContext {
 
     @NotNull

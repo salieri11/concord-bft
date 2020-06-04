@@ -24,6 +24,7 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -32,6 +33,7 @@ import lombok.val;
  * Initialization script run either on first-boot of a deployed virtual machine.
  */
 @Slf4j
+@Data
 public class CloudInitConfiguration {
 
     private Endpoint containerRegistry;

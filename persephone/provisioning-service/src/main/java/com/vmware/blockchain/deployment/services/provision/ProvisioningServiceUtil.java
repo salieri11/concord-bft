@@ -6,7 +6,6 @@ package com.vmware.blockchain.deployment.services.provision;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -16,8 +15,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.services.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
@@ -32,16 +29,11 @@ import com.vmware.blockchain.deployment.v1.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.ElasticSearch;
-import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.Metadata;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
-import com.vmware.blockchain.deployment.v1.Wavefront;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +43,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
+@Deprecated
 class ProvisioningServiceUtil {
 
     /**
@@ -561,97 +554,5 @@ class ProvisioningServiceUtil {
                 ))
                 .putAllEndpoints(endpoints)
                 .build();
-    }
-
-    /**
-     * Gets the outbound proxy information for on-prem deployment when present.
-     * @param siteInfo OrchestrationSiteInfo
-     * @return OutboundProxyInfo
-     */
-    static OutboundProxyInfo getOutboundProxy(OrchestrationSiteInfo siteInfo) {
-        OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
-        switch (siteInfo.getType()) {
-            case VMC:
-                outboundProxyInfo = siteInfo.getVmc().getVsphere().getOutboundProxy();
-                break;
-            case VSPHERE:
-                outboundProxyInfo = siteInfo.getVsphere().getVsphere().getOutboundProxy();
-                break;
-            default:
-                break;
-        }
-        return outboundProxyInfo;
-    }
-
-    /**
-     * Gets wavefront details.
-     * @param siteInfo OrchestrationSiteInfo
-     * @return Wavefront
-     */
-    static Wavefront getWavefront(OrchestrationSiteInfo siteInfo) {
-        Wavefront wavefront = Wavefront.newBuilder().build();
-        switch (siteInfo.getType()) {
-            case VMC:
-                wavefront = siteInfo.getVmc().getWavefront();
-                break;
-            case VSPHERE:
-                wavefront = siteInfo.getVsphere().getWavefront();
-                break;
-            default:
-                break;
-        }
-        return wavefront;
-    }
-
-    /**
-     * Get elasticsearch details.
-     * @param siteInfo OrchestrationSiteInfo
-     * @return ElasticSearch
-     */
-    static ElasticSearch getElasticsearch(OrchestrationSiteInfo siteInfo) {
-        ElasticSearch elasticSearch = ElasticSearch.newBuilder().build();
-        switch (siteInfo.getType()) {
-            case VMC:
-                elasticSearch = siteInfo.getVmc().getElasticsearch();
-                break;
-            case VSPHERE:
-                elasticSearch = siteInfo.getVsphere().getElasticsearch();
-                break;
-            default:
-                break;
-        }
-        return elasticSearch;
-    }
-
-    /**
-     * Gets logmanagement details.
-     * @param siteInfo OrchestrationSiteInfo
-     * @return list of LogManagement
-     */
-    static String getLogManagementJson(OrchestrationSiteInfo siteInfo) {
-
-        List<LogManagement> logManagements = new ArrayList<>();
-
-        switch (siteInfo.getType()) {
-            case VMC:
-                logManagements.addAll(siteInfo.getVmc().getLogManagementsList());
-                break;
-            case VSPHERE:
-                logManagements.addAll(siteInfo.getVsphere().getLogManagementsList());
-                break;
-            default:
-                break;
-        }
-
-        // TODO: It takes only the first one, subject to change if design changes.
-        if (!logManagements.isEmpty()) {
-            LogManagement logManagement = logManagements.get(0);
-            try {
-                return JsonFormat.printer().print(logManagement);
-            } catch (InvalidProtocolBufferException e) {
-                log.error("error parsing log info" + e);
-            }
-        }
-        return "";
     }
 }
