@@ -312,7 +312,7 @@ def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
                #    userOrg, username, role, getConsortiumOrgsResult))
                assert len(getConsortiumOrgsResult) == 2, "Expected a list of two items, not {}".format(getConsortiumOrgsResult)
                for o in getConsortiumOrgsResult:
-                  assert o["org_id"] in con0OrgIds
+                  assert o["organization_id"] in con0OrgIds
 
                # Only users from org1 can get the orgs in consortium1.
                getConsortiumOrgsResult = req.getConsortiumOrgs(consortium1)
@@ -323,7 +323,7 @@ def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
                                   "/api/consortiums/{}/organizations".format(consortium1))
                elif userOrg == "hermes_org1":
                   assert len(getConsortiumOrgsResult) == 1, "Expected one item, not {}".format(getConsortiumOrgsResult)
-                  assert getConsortiumOrgsResult[0]["org_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
+                  assert getConsortiumOrgsResult[0]["organization_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
 
 
 @describe()
@@ -375,13 +375,13 @@ def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
 
                # Make sure everything returned is part of the expected list.
                for o in getConsortiumOrgsResult:
-                  returnedOrgIds.append(o["org_id"])
+                  returnedOrgIds.append(o["organization_id"])
 
-                  assert o["org_id"] in expectedOrgIds, "Expected {} in {}".format(o["org_id"], expectedOrgIds)
+                  assert o["organization_id"] in expectedOrgIds, "Expected {} in {}".format(o["organization_id"], expectedOrgIds)
 
-                  if o["org_id"] == expectedOrgIds[0]:
+                  if o["organization_id"] == expectedOrgIds[0]:
                      assert o["organization_name"] == expectedOrgNames[0]
-                  elif o["org_id"] == expectedOrgIds[1]:
+                  elif o["organization_id"] == expectedOrgIds[1]:
                      assert o["organization_name"] == expectedOrgNames[1]
 
                # Make sure everything expected is in the returned list.
