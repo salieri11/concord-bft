@@ -55,24 +55,31 @@ lazy val common = (project in file("common"))
     commonSettings,
     name := "DAML on VMware Common",
     libraryDependencies ++= Seq(
-      protobuf,
-      "com.daml" %% "build-info" % sdkVersion,
-      // Uses extended Prometheus metrics exporter
-      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
-      // Logging and monitoring
-      "org.slf4j" % "slf4j-api" % "1.7.26",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "ch.qos.logback" % "logback-core" % "1.2.3",
+      "com.daml" %% "build-info" % sdkVersion,
+      "com.daml" %% "testing-utils" % sdkVersion % Test,
+      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
       "io.dropwizard.metrics" % "metrics-core" % "4.1.2",
       "io.dropwizard.metrics" % "metrics-jvm" % "4.1.2",
       "io.dropwizard.metrics" % "metrics-servlets" % "4.1.2",
+      "io.grpc" % "grpc-testing" % "1.29.0" % Test,
+      "io.opentracing" % "opentracing-api" % "0.33.0",
+      "io.opentracing" % "opentracing-mock" % "0.33.0",
+      "io.opentracing" % "opentracing-util" % "0.33.0",
+      "io.opentracing.contrib" % "opentracing-grpc" % "0.2.1",
       "io.prometheus" % "simpleclient" % "0.8.1",
       "io.prometheus" % "simpleclient_dropwizard" % "0.8.1",
       "io.prometheus" % "simpleclient_servlet" % "0.8.1",
-      "org.eclipse.jetty"   %   "jetty-webapp"      % "9.4.20.v20190813",
-      "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
+      "org.eclipse.jetty" % "jetty-servlets" % "9.4.20.v20190813",
+      "org.eclipse.jetty" % "jetty-webapp" % "9.4.20.v20190813",
+      "org.mockito" % "mockito-core" % "2.24.0" % Test,
+      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+      "org.slf4j" % "slf4j-api" % "1.7.26",
+      protobuf,
     ),
   )
+  .dependsOn(damlProtos)
 
 lazy val execution_engine = (project in file("execution-engine"))
   .enablePlugins(JavaAppPackaging)
