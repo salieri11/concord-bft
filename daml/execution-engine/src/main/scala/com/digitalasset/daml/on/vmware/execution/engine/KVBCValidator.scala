@@ -24,7 +24,14 @@ import com.digitalasset.kvbc.daml_validator._
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
-import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
+import io.grpc.{
+  BindableService,
+  Context,
+  Metadata,
+  ServerServiceDefinition,
+  Status,
+  StatusRuntimeException
+}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._

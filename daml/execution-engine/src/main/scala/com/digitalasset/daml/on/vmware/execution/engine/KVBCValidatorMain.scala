@@ -13,31 +13,33 @@ import com.digitalasset.daml.on.vmware.common.{
   KVBCMetricsRegistry,
   KVBCPrometheusMetricsEndpoint
 }
+import com.digitalasset.daml.on.vmware.tracing.TracingHelper
 import io.grpc.protobuf.services.ProtoReflectionService
 import io.grpc.{Server, ServerBuilder}
+import io.opentracing.Tracer
+import io.opentracing.util.GlobalTracer
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 
 object KVBCValidatorMain extends App {
-
-  val server = new KVBCValidatorServer()
+  val server = new KVBCValidatorServer(GlobalTracer.get())
   server.start()
   server.blockUntilShutdown()
-
 }
 
-class KVBCValidatorServer() {
-  private[this] var server: Server = null
-  private[this] val port = 55000
+class KVBCValidatorServer(tracer: Tracer) {
+  private[this] var server: Server = _
+
+  private val GrpcPort = 55000
+  private val MaxInboundMessageSize: Int = 50 * 1024 * 1024 // 50 MiBytes
 
   private val metricsRegistry = new KVBCMetricsRegistry("kvutils")
   private val httpServer = new KVBCHttpServer()
   KVBCPrometheusMetricsEndpoint.createEndpoint(metricsRegistry.registry, httpServer.context)
-  private val graphEndpoint =
+  private val _ =
     new KVBCGraphMetricsEndpoint(metricsRegistry.registry, httpServer.context)
   private val logger = LoggerFactory.getLogger(this.getClass)
-  private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
 
   // Use the global execution context. This uses threads proportional to
   // available processors.
@@ -54,15 +56,16 @@ class KVBCValidatorServer() {
 
   def start(): Unit = {
     httpServer.start()
+    val tracingInterceptor = TracingHelper.createTracingInterceptor(tracer)
     server = ServerBuilder
-      .forPort(port)
-      .addService(validator)
+      .forPort(GrpcPort)
+      .addService(tracingInterceptor.intercept(validator))
       .addService(apiHealthService)
       .addService(apiReflectionService)
-      .maxInboundMessageSize(ledgerInboundMessageSizeMax)
+      .maxInboundMessageSize(MaxInboundMessageSize)
       .build
       .start
-    logger.info("Server started, port=" + port)
+    logger.info("Server started, port=" + GrpcPort)
     sys.addShutdownHook {
       System.err.println("Shutting down...")
       stop()
