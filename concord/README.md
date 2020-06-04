@@ -201,10 +201,10 @@ Build and install RocksDB:
 
 ```shell
 cd
-wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz
-tar -xzf v5.7.3.tar.gz
-cd rocksdb-5.7.3
-make shared_lib
+wget https://github.com/facebook/rocksdb/archive/v6.8.1.tar.gz
+tar -xzf v6.8.1.tar.gz
+cd rocksdb-6.8.1
+make USE_RTTI=1 shared_lib
 sudo make install-shared
 ```
 
