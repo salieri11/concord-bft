@@ -21,6 +21,7 @@ public class GenesisUtil {
      * Utility to generate concord config.
      * @return json string of genesis block
      */
+    @Deprecated
     public String getGenesis(Genesis genesis) {
         try {
             return JsonFormat.printer().print(genesis);

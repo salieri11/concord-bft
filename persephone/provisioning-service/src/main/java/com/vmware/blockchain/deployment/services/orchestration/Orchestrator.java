@@ -14,14 +14,6 @@ import java.util.concurrent.Flow;
 public interface Orchestrator {
 
     /**
-     * Initialize the [Orchestrator] instance. Note: Specific [Orchestrator] implementation may choose to emit 0 or more
-     * `onNext()` signals. The only contract between an [Orchestrator] and a calling subscriber of this method is that
-     * either `onComplete()` or `onError()` will be signaled eventually to mark the completion of the initialization
-     * process.
-     */
-    void initialize();
-
-    /**
      * Test connectivity/sanity of the orchestration site.
      *
      * @return a [Publisher] of [Boolean] corresponding to the result of validating the orchestration site associated
@@ -40,6 +32,11 @@ public interface Orchestrator {
     OrchestratorData.ComputeResourceEvent createDeployment(
             OrchestratorData.CreateComputeResourceRequest request);
 
+    default OrchestratorData.ComputeResourceEventCreatedV2 createDeploymentV2(
+            OrchestratorData.CreateComputeResourceRequestV2 request) {
+        throw new UnsupportedOperationException("Validation operation is unsupported");
+    }
+
     /**
      * Delete a Concord deployment based on a given [DeleteComputeResourceRequest].
      *
@@ -55,8 +52,17 @@ public interface Orchestrator {
      * @return a [Publisher] of [NetworkResourceEvent] corresponding to side-effects engendered by the request.
      * @param[request] network address creation request specification.
      */
+    @Deprecated
     Flow.Publisher<OrchestratorData.NetworkResourceEvent> createNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request);
+
+    OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
+            OrchestratorData.CreateNetworkResourceRequest request);
+
+    default OrchestratorData.NetworkResourceEvent createPublicNetworkAddress(
+            OrchestratorData.CreateNetworkResourceRequest request) {
+        throw new UnsupportedOperationException("Validation operation is unsupported");
+    }
 
     /**
      * Delete a reachable network address based on a given [DeleteNetworkResourceRequest].
@@ -73,8 +79,15 @@ public interface Orchestrator {
      * @param[request] network address allocation request specification.
      * @return [Publisher] of [NetworkAllocationEvent] corresponding to side-effects engendered by the request.
      */
+    @Deprecated
     Flow.Publisher<OrchestratorData.NetworkAllocationEvent> createNetworkAllocation(
             OrchestratorData.CreateNetworkAllocationRequest request);
+
+    //TODO this can be moved to VMC specific.
+    default OrchestratorData.NetworkAllocationEvent createVmcNetworkAllocation(
+            OrchestratorData.CreateNetworkAllocationRequestV2 request) {
+        return null;
+    }
 
     /**
      * Deallocate a network address to a deployed compute resource.

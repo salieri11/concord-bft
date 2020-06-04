@@ -47,6 +47,9 @@ public class BootstrapComponent {
     @Value("${provisioning.features.generatedPassword.enabled}")
     public boolean useGeneratedPassword;
 
+    @Value("${ova.template:8abc7fda-9576-4b13-9beb-06f867cf2c7c}")
+    public String template;
+
     public Endpoint configService;
 
     public Endpoint configServiceRest;

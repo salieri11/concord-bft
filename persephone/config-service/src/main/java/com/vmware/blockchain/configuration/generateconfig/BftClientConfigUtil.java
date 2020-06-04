@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -27,18 +25,18 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
- * Utility class for generating the input for Configuration Yaml file.
+ * Utility class for generating the input for BFT client Configuration Yaml file.
  */
+@Slf4j
+public class BftClientConfigUtil {
 
-public class ConcordConfigUtil {
+    private String configTemplatePath;
 
-    private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
-
-    private String concordConfigTemplatePath;
-
-    public ConcordConfigUtil(String concordConfigTemplatePath) {
-        this.concordConfigTemplatePath = concordConfigTemplatePath;
+    public BftClientConfigUtil(String configTemplatePath) {
+        this.configTemplatePath = configTemplatePath;
     }
 
     /**
@@ -71,7 +69,7 @@ public class ConcordConfigUtil {
     /**
      * file path.
      */
-    public static final String configPath = "/concord/config-local/concord.config";
+    public static final String configPath = "/daml-ledger-api/config-local/bftclient.config";
 
     /**
      * persistence.
@@ -103,15 +101,14 @@ public class ConcordConfigUtil {
     /**
      * Utility to generate concord config.
      */
-    @Deprecated
-    public Map<Integer, String> getConcordConfig(List<String> hostIps,
+    public Map<Integer, String> getClientConfig(List<String> hostIps,
                                                  BlockchainType blockchainType) {
         try {
             var result = new HashMap<Integer, String>();
 
             var outputPath = Files.createTempDirectory(null);
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
-            var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
+            var inputYamlPath = Paths.get(outputPath.toString(), "dockerClientConfigInput.yaml").toString();
 
             generateInputConfigYaml(hostIps, inputYamlPath, blockchainType);
 
@@ -119,7 +116,8 @@ public class ConcordConfigUtil {
                                                   "--configuration-input",
                                                   inputYamlPath,
                                                   "--report-principal-locations",
-                                                  principalsMapFile)
+                                                  principalsMapFile,
+                                                  "--client-conf true")
                     .directory(outputPath.toFile())
                     .start()
                     .onExit();
@@ -144,68 +142,6 @@ public class ConcordConfigUtil {
                         for (int num = 0; num < hostIps.size(); num++) {
                             var path = outputPath.resolve("concord" + (num + 1) + ".config");
                             result.put(num, Files.readString(path));
-                        }
-                    } catch (Throwable collectError) {
-                        log.error("Cannot collect generated cluster configuration",
-                                  collectError);
-                    }
-                } else {
-                    log.error("Cannot run config generation process", error);
-                }
-            });
-
-            work.join();
-            return result;
-
-        } catch (IOException e) {
-            log.error("Exception while generating concord config {}", e.getLocalizedMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Utility to generate concord config.
-     */
-    public Map<String, String> getConcordConfig(List<String> nodeIds, List<String> hostIps,
-                                                 BlockchainType blockchainType) {
-        try {
-            var result = new HashMap<String, String>();
-
-            var outputPath = Files.createTempDirectory(null);
-            var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
-            var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
-
-            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType);
-
-            var configFuture = new ProcessBuilder("/app/conc_genconfig",
-                                                  "--configuration-input",
-                                                  inputYamlPath,
-                                                  "--report-principal-locations",
-                                                  principalsMapFile)
-                    .directory(outputPath.toFile())
-                    .start()
-                    .onExit();
-
-            var work = configFuture.whenCompleteAsync((process, error) -> {
-                if (error == null) {
-                    try {
-                        var principalStr = Files.readString(Path.of(principalsMapFile));
-                        if (principalStr.isBlank() || principalStr.isEmpty()) {
-                            throw new Exception("PrincipalIds are not generated by concord config");
-                        }
-
-                        TypeReference<Map<Integer, List<Integer>>> typeRef
-                                = new TypeReference<>() {};
-
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-                        var principalsMap = objectMapper.readValue(principalStr, typeRef);
-                        principalsMap.forEach((key, value) -> nodePrincipal.putIfAbsent(key - 1, value));
-
-
-                        for (int num = 0; num < hostIps.size(); num++) {
-                            var path = outputPath.resolve("concord" + (num + 1) + ".config");
-                            result.put(nodeIds.get(0), Files.readString(path));
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated cluster configuration",
@@ -270,11 +206,11 @@ public class ConcordConfigUtil {
         Yaml yaml = new Yaml();
         Map<String, Object> configInput;
         try {
-            configInput = yaml.load(new FileInputStream(concordConfigTemplatePath));
+            configInput = yaml.load(new FileInputStream(configTemplatePath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
             log.warn("File {} does not exist: {}\n Using localized config yaml input template",
-                    concordConfigTemplatePath, e.getLocalizedMessage());
+                     configTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));
         }

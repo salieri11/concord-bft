@@ -25,11 +25,6 @@ public class InactiveOrchestrator implements Orchestrator {
     }
 
     @Override
-    public void initialize() {
-
-    }
-
-    @Override
     public OrchestratorData.ComputeResourceEvent createDeployment(
             OrchestratorData.CreateComputeResourceRequest request) {
         throw new UnsupportedOperationException(errorMessage);
@@ -43,6 +38,12 @@ public class InactiveOrchestrator implements Orchestrator {
 
     @Override
     public Flow.Publisher<OrchestratorData.NetworkResourceEvent> createNetworkAddress(
+            OrchestratorData.CreateNetworkResourceRequest request) {
+        throw new UnsupportedOperationException(errorMessage);
+    }
+
+    @Override
+    public OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request) {
         throw new UnsupportedOperationException(errorMessage);
     }

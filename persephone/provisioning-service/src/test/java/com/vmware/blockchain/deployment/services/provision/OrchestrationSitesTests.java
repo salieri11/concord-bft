@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.provision;
+package com.vmware.blockchain.deployment.services.provision;
 
 import static org.mockito.Mockito.mock;
 
@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vmware.blockchain.deployment.services.provision.OrchestrationSites;
+import com.vmware.blockchain.deployment.services.orchestrationsite.OrchestrationSites;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 
@@ -20,7 +20,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
  * Tests for the concord config provider.
  */
 @ExtendWith(SpringExtension.class)
-public class OrchestrationSitesTest {
+public class OrchestrationSitesTests {
 
     OrchestrationSiteInfo originalSiteInfo;
 

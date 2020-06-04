@@ -4,6 +4,10 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_PWD;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_URL;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_USER;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,6 +26,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
@@ -57,6 +62,7 @@ public class TelegrafConfigUtil {
      * @param servicesList services list.
      * @return map of host ips vs configs.
      */
+    @Deprecated
     public Map<Integer, String> getTelegrafConfig(List<NodeProperty> nodeProperties,
                                                   Properties properties,
                                                   List<ConcordComponent.ServiceType> servicesList) {
@@ -137,8 +143,8 @@ public class TelegrafConfigUtil {
             String hostConfigCopy = content.replace("$REPLICA", nodeIp.getValue());
 
             if (servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
-                var nodeName = nodeIds.get(nodeIp.getKey()).replace("-", "_");
-                String indexDbAddr = indexDbInput.replace("$DBNAME", "p" + nodeName);
+                var nodeName = DamlLedgerApiUtil.convertToParticipantId(nodeIds.get(nodeIp.getKey()));
+                String indexDbAddr = indexDbInput.replace("$DBNAME", nodeName);
                 String postgressPlugin = postgressPluginStr.replace("#", "");
                 hostConfigCopy = hostConfigCopy
                         .replace("#$DBINPUT", indexDbAddr)
@@ -164,6 +170,83 @@ public class TelegrafConfigUtil {
         }
 
         return configMap;
+    }
+
+    /**
+     * Generate telegraf configurations.
+     * @param consortiumId id
+     * @param blockchainId id
+     * @param nodeInfo info
+     * @param servicesList components
+     * @return config
+     */
+    public String getTelegrafConfig(String consortiumId, String blockchainId, NodesInfo.Entry nodeInfo,
+                                                  List<ConcordComponent.ServiceType> servicesList) {
+
+        String content = "";
+        try {
+            InputStream inputStream = new FileInputStream(telegrafTemplatePath);
+            content = new String(inputStream.readAllBytes());
+        } catch (IOException e) {
+            // For unit tests only.
+            log.warn("File {} does not exist: {}\n Using localized telegraf config input template",
+                     telegrafTemplatePath, e.getLocalizedMessage());
+            ClassLoader classLoader = getClass().getClassLoader();
+            try {
+                File file = new File(classLoader.getResource("TelegrafConfigTemplate.conf").getFile());
+                content = new String(Files.readAllBytes(file.toPath()));
+            } catch (IOException | NullPointerException ex) {
+                log.warn("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());
+                return null;
+            }
+        }
+
+        var prometheusUrlList = getPrometheusUrls(servicesList);
+        String prometheusUrls = "";
+        if (!prometheusUrlList.isEmpty()) {
+            prometheusUrls = String.join(",", prometheusUrlList);
+        }
+
+        content = content
+                .replace("$BLOCKCHAIN_ID", blockchainId)
+                .replace("$CONSORTIUM_ID", consortiumId)
+                .replace("$URL", "[" + prometheusUrls + "]");
+
+        String postgressPluginStr = "#[[inputs.postgresql]]";
+        String indexDbInput = "address = \"postgres://indexdb@daml_index_db/$DBNAME\"";
+
+        // TODO : remove after concord name unification
+        List<ConcordComponent.ServiceType> committerList = List.of(
+                ConcordComponent.ServiceType.CONCORD,
+                ConcordComponent.ServiceType.DAML_CONCORD,
+                ConcordComponent.ServiceType.HLF_CONCORD);
+
+        String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
+
+        if (servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
+            var nodeName = DamlLedgerApiUtil.convertToParticipantId(nodeInfo.getId());
+            String indexDbAddr = indexDbInput.replace("$DBNAME", nodeName);
+            String postgressPlugin = postgressPluginStr.replace("#", "");
+            hostConfigCopy = hostConfigCopy
+                    .replace("#$DBINPUT", indexDbAddr)
+                    .replace(postgressPluginStr, postgressPlugin);
+        }
+
+        if (servicesList.stream().anyMatch(element -> committerList.contains(element))) {
+            hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
+        } else {
+            hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
+        }
+
+        var esUrl = nodeInfo.getProperties().getValuesOrDefault(ELASTICSEARCH_URL.name(), "");
+        if (!esUrl.isEmpty()) {
+            String username = nodeInfo.getProperties().getValuesOrDefault(ELASTICSEARCH_USER.name(), "");
+            String pwd = nodeInfo.getProperties().getValuesOrDefault(ELASTICSEARCH_PWD.name(), "");
+
+            hostConfigCopy = hostConfigCopy.concat("\n\n" + getElasticsearchConfig(esUrl, username, pwd, blockchainId));
+        }
+
+        return hostConfigCopy;
     }
 
     /**

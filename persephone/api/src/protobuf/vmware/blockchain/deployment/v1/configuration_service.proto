@@ -58,33 +58,6 @@ message ConfigurationServiceRequest {
 }
 
 /**
- * Model definition for DeleteConfiguration request.
- *
- * @property[header]
- *   message header.
- * @property[id]
- *   ConfigurationSessionIdentifier to be deleted
- */
-message DeleteConfigurationRequest {
-    MessageHeader header = 1;
-    ConfigurationSessionIdentifier id = 2;
-}
-
-
-/**
- * Model definition for metadata server configuration settings.
- *
- * @property[port]
- *   port number to use for server instance.
- * @property[transport_security]
- *   transport security setting.
- */
-message ConfigurationServerConfiguration {
-    int32 port = 1;
-    TransportSecurity transport_security = 2;
-}
-
-/**
  * Denote the identifier of a configuration session.
  *
  * @property[identifier]
@@ -92,6 +65,7 @@ message ConfigurationServerConfiguration {
  */
 message ConfigurationSessionIdentifier {
     int64 identifier = 1;
+    string id = 2;
 }
 
 /**
@@ -116,20 +90,32 @@ message NodeConfigurationRequest {
     MessageHeader header = 1;
     ConfigurationSessionIdentifier identifier = 2;
     int32 node = 3;
+    string node_id = 4;
 }
 
-/**
-* Denotes a delete configuration response.
-* This is subject to modification later
-*
-* @property[MessageHeader]
-*   message header containing any information needed
-*/
-message DeleteConfigurationResponse {
+message NodesInfo {
+
+    message Entry {
+        string id = 1;
+        NodeType type = 2;
+        string node_ip = 3;
+        repeated ConcordComponent.ServiceType services = 4 [packed=false];
+        Properties properties = 5;
+    }
+    repeated Entry entries = 1 [packed=false];
+}
+
+message ConfigurationServiceRequestV2 {
     MessageHeader header = 1;
+    string consortium_id = 2;
+    string blockchain_id = 3;
+    BlockchainType blockchain_type = 4;
+    Properties generic_properties = 5;
+    map<string, NodesInfo> nodes = 7;
 }
-
 /* [END messages] */
+
+
 /* [START services] */
 /**
  * Service definition pertaining to operations on Concord configurations.
@@ -146,9 +132,6 @@ service ConfigurationService {
     */
     rpc GetNodeConfiguration (NodeConfigurationRequest) returns (NodeConfigurationResponse);
 
-    /**
-    * Operation to delete configuration for given identifier
-    */
-    rpc DeleteConfiguration (DeleteConfigurationRequest) returns (DeleteConfigurationResponse);
+    rpc CreateConfigurationV2 (ConfigurationServiceRequestV2) returns (ConfigurationSessionIdentifier);
 }
 /* [END services] */

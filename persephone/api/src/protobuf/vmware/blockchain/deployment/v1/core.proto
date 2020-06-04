@@ -173,7 +173,7 @@ message NodeProperty {
         CLIENT_GROUP_ID = 4;
         LOGGING_CONFIG = 5;
         CONSORTIUM_ID = 6;
-        VM_PROFILE = 7;
+        GENESIS = 7;
         WAVEFRONT_URL = 8;
         WAVEFRONT_TOKEN = 9;
         WAVEFRONT_PROXY_HOST = 10;
@@ -200,4 +200,17 @@ message NodeProperty {
  */
 message Properties {
     map<string, string> values = 1 [packed=false];
+}
+
+enum BlockchainType {
+    DAML = 0;
+    ETHEREUM = 1;
+    HLF = 2;
+}
+
+enum NodeType {
+    REPLICA = 0;
+    CLIENT = 1;
+    OPERATOR = 2;
+    READ_REPLICA = 3;
 }
