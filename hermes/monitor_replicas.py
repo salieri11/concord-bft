@@ -14,22 +14,27 @@
 
 import argparse
 import json
-import logging
 import os
 import sys
 import time
 from tempfile import NamedTemporaryFile
 from util import helper
+import util.hermes_logging as hermes_logging
 
+log = hermes_logging.getMainLogger()
 DEFAULT_SUPPORT_LOGS_DEST="/var/log/blockchain_support"
 
 def main(args):
    parser = argparse.ArgumentParser()
+   parser.add_argument("--logLevel",
+                       help="Set the log level.  Valid values:"
+                       "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
+                       default="INFO")
    parser.add_argument("--replicas", action='append', nargs='*',
                        help="Repeated set of blockchain type:<comma separated list of IPs>")
    parser.add_argument("--replicasConfig",
                        help="If replicas are not passed via --replicas, pass in replicas.json file via this option")
-   parser.add_argument("--saveSupportLogsTo",
+   parser.add_argument("--resultsDir",
                        default="{}/logs_{}".format(DEFAULT_SUPPORT_LOGS_DEST,
                                                    time.strftime(
                                                       "%Y-%m-%d-%H-%M-%S",
@@ -62,6 +67,11 @@ def main(args):
 
    args = parser.parse_args()
 
+   if not os.path.exists(args.resultsDir):
+      os.makedirs(args.resultsDir)
+
+   hermes_logging.setUpLogging(args)
+
    if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
    if not args.replicasConfig and not args.replicas:
       log.error("Usage: pass either --replicas (or) --replicasConfig")
@@ -91,7 +101,7 @@ def main(args):
       replica_json_data))
    log.info("Run Duration: {} hrs".format(args.runDuration))
    log.info("Load Interval: {} mins".format(args.loadInterval))
-   log.info("Support bundle destination: {}".format(args.saveSupportLogsTo))
+   log.info("Support bundle destination: {}".format(args.resultsDir))
 
    log.info("")
    log.info("************************************************************")
@@ -102,7 +112,7 @@ def main(args):
       if helper.monitor_replicas(replicas_config,
                                  args.runDuration,
                                  args.loadInterval,
-                                 args.saveSupportLogsTo,
+                                 args.resultsDir,
                                  args.testlistFile,
                                  args.testset,
                                  args.notifyTarget,
@@ -127,9 +137,4 @@ def main(args):
       sys.exit(1)
 
 if __name__ == '__main__':
-   logging.basicConfig(level=logging.INFO,
-                       format='%(asctime)s %(levelname)s %(message)s',
-                       datefmt='%Y-%m-%d %H:%M:%S')
-   log = logging.getLogger(__name__)
-
    main(sys.argv)

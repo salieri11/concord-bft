@@ -57,6 +57,10 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-tee.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
+  "ChessPlusTestsOnPredeployedBlockchain": [
+    "enabled": false,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ChessPlusTests --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}"'
+  ],
   "DamlTestsOnPredeployedBlockchain": [
     "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --damlParticipantIP "${concord_ips}"'
@@ -338,7 +342,7 @@ def call(){
       string defaultValue: "",
              description: "To collect deployment support bundle, or for Daml/chess plus test on pre-deployed blockchain, enter comma separated list of concord node IPs",
              name: "concord_ips"
-      string defaultValue: "${env.DEFAULT_SPIDER_IMAGE_TAG}",
+      string defaultValue: "autoFetch",
              description: "For chess plus test on pre-deployed blockchain, enter Spider image tag",
              name: "spider_image_tag"
       choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
@@ -743,7 +747,6 @@ def call(){
                   script {
                     // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
-                    env.chess_plus_test_logs = new File(env.test_log_root, "ChessPlusTest").toString()
                     env.concord_deployment_test_logs = new File(env.test_log_root, "ConcordDeploymentTest").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
                     env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
@@ -795,6 +798,9 @@ def call(){
                         }
                       }
                       runTests()
+                    } else if (env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name)) {
+                      selectOnlySuites(["ChessPlusTestsOnPredeployedBlockchain"])
+                      runTests()
                     } else if (env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name)) {
                       selectOnlySuites(["DamlTestsOnPredeployedBlockchain"])
                       runTests()
@@ -831,7 +837,7 @@ def call(){
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
                         echo "Running script to monitor health and status of replicas..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Long-running test"
+                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --resultsDir "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Long-running test"
                       '''
                     }
 
@@ -853,7 +859,7 @@ def call(){
                       env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Monitoring job"
+                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --resultsDir "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Monitoring job"
                       '''
                       customathenautil.saveTimeEvent("Monitor health and status of replicas", "End")
                     }
@@ -871,22 +877,6 @@ def call(){
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --blockchainType ${concord_type} --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
                       '''
                       customathenautil.saveTimeEvent("Concord deployment test", "End")
-                    }
-                    if (env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name)) {
-                      saveTimeEvent("Standalone Chess plus run", "Start")
-                      withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD')]) {
-                        script{
-                          command = "docker login -u " + env.DOCKERHUB_REPO_READER_USERNAME + " -p '" + env.DOCKERHUB_REPO_READER_PASSWORD + "'"
-                          jenkinsbuilderlib.retryCommand(command, true)
-                        }
-                      }
-
-                      sh '''
-                        echo "Running Chess plus on a pre-deployed Blockchain..."
-                        mkdir -p "${chess_plus_test_logs}"
-                        "${python}" run_chess_plus.py --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --testTimeout 1800 --resultsDir "${chess_plus_test_logs}"
-                      '''
-                      saveTimeEvent("Standalone Chess plus run", "End")
                     }
                   }
                 }

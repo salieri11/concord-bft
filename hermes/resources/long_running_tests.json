@@ -7,7 +7,7 @@
       },
       {
         "testname": "CHESS+",
-        "test": "./run_chess_plus.py"
+        "test": "./main.py ChessPlusTests"
       }
     ],
     "additional_tests": [

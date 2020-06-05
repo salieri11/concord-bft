@@ -33,11 +33,13 @@ from suites import (
 from suites.case import catchFailurePoint
 from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
+import util.chessplus.chessplus_helper as chessplus_helper
 
 sys.path.append("lib/persephone")
 
 log = None
 suiteList = [
+   "ChessPlusTests",
    "ContractCompilerTests",
    "EthCoreVmTests",
    "DamlTests",
@@ -196,6 +198,22 @@ def main():
    parser.add_argument("--su",
                        action="store_true", # implies default=False
                        help="Super user privilege with all Jenkins injected credentials available.")
+   parser.add_argument("--spiderImageTag", default=None,
+                       help="Spider image tag, optional. If not passed in, an appropriate one will be determined.")
+   parser.add_argument("--marketFlavor", default=chessplus_helper.DEFAULT_MARKET_FLAVOR,
+                       help="market flavor (sample, cde7, etc)")
+   parser.add_argument("--concurrency", default=chessplus_helper.DEFAULT_CONCURRENCY,
+                       help="Concurrency")
+   parser.add_argument("--noOfRequests", default=chessplus_helper.DEFAULT_NO_OF_REQUESTS,
+                       help="No. of requests from chess+")
+   parser.add_argument("--dockerHubUser", default="blockchainrepositoryreader",
+                       help="DockerHub user which has read access to the digitalasset private repos. " \
+                       "Only needed if the DAML SDK version is not one of {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
+   parser.add_argument("--dockerHubPassword",
+                       help="DockerHub password which has read access to the digitalasset private repos. " \
+                       "Only needed if the DAML SDK version is not in {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
+
+
 
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
@@ -313,6 +331,20 @@ def main():
 
          try:
             suiteSuccess, suiteSuccessMessage = processResults(resultFile)
+
+            #TODO Add support for localhost logs too
+            all_replicas_and_type = None
+            if args.replicasConfig:
+               all_replicas_and_type = helper.parseReplicasConfig(args.replicasConfig)
+            elif args.damlParticipantIP != "localhost":
+               all_replicas_and_type = {helper.TYPE_DAML_PARTICIPANT: [args.damlParticipantIP]}
+
+            if not suiteSuccess and all_replicas_and_type:
+               log.info("*************************************")
+               log.info("Collecting support bundle(s)...")
+               for blockchain_type, replica_ips in all_replicas_and_type.items():
+                  helper.create_concord_support_bundle(replica_ips, blockchain_type, args.resultsDir)
+               log.info("*************************************")
          except Exception:
             suiteSuccess = False
             suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultFile, suiteName)
@@ -379,6 +411,8 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
 def createTestSuite(args, suiteName, product):
    if (suiteName == "SampleDAppTests"):
       return sample_dapp_tests.SampleDAppTests(args, product)
+   elif (suiteName == "ChessPlusTests"):
+      return pytest_suite.PytestSuite(args, "suites/chess_plus_tests.py", product)
    elif (suiteName == "ContractCompilerTests"):
        return contract_compiler_tests.ContractCompilerTests(args, product)
    elif (suiteName == "EthCoreVmTests"):
@@ -485,7 +519,7 @@ def processResults(resultFile):
 
    log.info(msg)
 
-   return failCount == 0, msg
+   return failCount == 0 and passCount != 0, msg
 
 def tallyResults(results):
    '''
