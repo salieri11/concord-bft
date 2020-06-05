@@ -89,9 +89,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
         val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
-        var nodeAssignment = ProvisioningServiceUtil.allocateNodeIdIfApplicable(request.getSpec().getNodeAssignment());
         var nodeTypeMap = ProvisioningServiceUtil.convertToNodeTypeMap(request.getSpec().getNodePropertiesMap(),
                                                                        request.getSpec().getProperties());
+        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
+                                                                                nodeTypeMap);
         var orchestrators = createOrchestratorsFromSites(request.getSpec().getSites());
         var siteMap = ProvisioningServiceUtil.convertToSiteIdMap(request.getSpec().getSites());
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());

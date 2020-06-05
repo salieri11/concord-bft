@@ -28,6 +28,7 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 
 /**
@@ -45,7 +46,7 @@ public class ComputeHelperTest {
     UUID blockchainId;
 
     BlockchainType blockchainType;
-    NodeType nodeType;
+    NodeAssignment.Entry node;
 
     @Mock
     DeploymentExecutionContext.LocalNodeDetails nodeDetails;
@@ -72,7 +73,7 @@ public class ComputeHelperTest {
 
         model = Arrays.asList(ConcordComponent.newBuilder().build());
         blockchainType = BlockchainType.DAML;
-        nodeType = NodeType.REPLICA;
+        node = NodeAssignment.Entry.newBuilder().setType(NodeType.REPLICA).build();
 
         when(orchestrator.createDeploymentV2(any())).thenReturn(mock(OrchestratorData.ComputeResourceEventCreatedV2
                                                                              .class));
@@ -84,7 +85,7 @@ public class ComputeHelperTest {
         var output = computeHelper.deployNode(nodeId,
                                               blockchainId,
                                               blockchainType,
-                                              nodeType,
+                                              node,
                                               nodeDetails,
                                               orchestrator,
                                               model,

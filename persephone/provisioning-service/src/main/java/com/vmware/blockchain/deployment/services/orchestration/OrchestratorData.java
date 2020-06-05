@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.orchestration;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.UUID;
 
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
@@ -12,7 +13,6 @@ import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Endpoint;
-import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
 import lombok.AllArgsConstructor;
@@ -55,7 +55,7 @@ public class OrchestratorData {
         int concordId;
         Endpoint configServiceEndpoint;
         Endpoint configServiceRestEndpoint;
-        Properties properties;
+        Map<String, String> properties;
     }
 
     /**
@@ -68,6 +68,7 @@ public class OrchestratorData {
         UUID blockchainId;
         UUID nodeId;
         CloudInitData cloudInitData;
+        Map<String, String> properties;
 
         /**
          * Temp v2 request.

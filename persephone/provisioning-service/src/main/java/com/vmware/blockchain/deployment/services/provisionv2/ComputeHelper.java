@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.Properties;
 
@@ -48,7 +49,7 @@ public class ComputeHelper {
             UUID nodeId,
             UUID blockchainId,
             BlockchainType blockchainType,
-            NodeType nodeType,
+            NodeAssignment.Entry node,
             DeploymentExecutionContext.LocalNodeDetails nodeDetails,
             Orchestrator orchestrator,
             List<ConcordComponent> model,
@@ -60,9 +61,9 @@ public class ComputeHelper {
                 .setBlockchainType(ConcordModelSpecification.BlockchainType.valueOf(blockchainType.name()));
 
         if (blockchainType == BlockchainType.DAML) {
-            if (nodeType == NodeType.REPLICA) {
+            if (node.getType() == NodeType.REPLICA) {
                 modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER);
-            } else if (nodeType == NodeType.CLIENT) {
+            } else if (node.getType() == NodeType.CLIENT) {
                 modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
             }
         }
@@ -79,7 +80,8 @@ public class ComputeHelper {
                                                                                          bootstrapComponent
                                                                                                  .configService,
                                                                                          bootstrapComponent
-                                                                                                 .configServiceRest));
+                                                                                                 .configServiceRest),
+                                                                                 node.getProperties().getValuesMap());
 
         return orchestrator.createDeploymentV2(computeRequest);
     }
@@ -93,7 +95,7 @@ public class ComputeHelper {
                     var computeEvent = deployNode(nodeId,
                                                                 session.blockchainId,
                                                                 session.blockchainType,
-                                                                placement.getType(),
+                                                                placement,
                                                                 session.localNodeDetailsMap.get(nodeId),
                                                                 session.orchestrators.get(placement.getSite()),
                                                                 session.componentsByNode.get(nodeId),
