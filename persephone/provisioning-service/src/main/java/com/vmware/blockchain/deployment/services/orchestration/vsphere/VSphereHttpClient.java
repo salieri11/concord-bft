@@ -42,7 +42,6 @@ import com.vmware.blockchain.deployment.services.restclient.RestClientUtils;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.LoggingInterceptor;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.retry.DefaultHttpRequestRetryInterceptor;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
-import com.vmware.blockchain.deployment.v1.Properties;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -272,15 +271,15 @@ public class VSphereHttpClient {
         throw new PersephoneException("Error creating VM", name);
     }
 
-    private boolean updateVmHardware(String name, Properties properties) {
+    private boolean updateVmHardware(String name, Map<String, String> properties) {
         long memoryMb = Long.parseLong(properties
-                .getValuesOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
+                .getOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
         boolean mem = updateVirtualMachineMemory(name, memoryMb);
 
         int cpuCount = Integer.parseInt(properties
-                .getValuesOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
+                .getOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
         int coresPerSocket = Integer.parseInt(properties
-                .getValuesOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "2"));
+                .getOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "2"));
         boolean cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
 
         return mem && cpu;
@@ -412,7 +411,7 @@ public class VSphereHttpClient {
      * @return `true` if the power state of the virtual machine is on at some point during the execution of the
      * function, `false` otherwise.
      */
-    public boolean ensureVirtualMachinePowerStart(String name, Long retryInterval, Properties properties) {
+    public boolean ensureVirtualMachinePowerStart(String name, Long retryInterval, Map<String, String> properties) {
         var confirmed = false;
         var iterating = true;
         while (iterating) {

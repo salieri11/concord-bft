@@ -22,7 +22,6 @@ import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfi
 import com.vmware.blockchain.deployment.services.orchestration.vsphere.VSphereHttpClient;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
-import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
 
 import lombok.extern.slf4j.Slf4j;
@@ -189,8 +188,7 @@ public class VmcOrchestrator implements Orchestrator {
                                           cloudInit);
 
             // Temp for now
-            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L, Properties.newBuilder()
-                    .build());
+            vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L, request.getProperties());
             return OrchestratorData.ComputeResourceEventCreatedV2.builder()
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .password(cloudInit.getVmPassword())

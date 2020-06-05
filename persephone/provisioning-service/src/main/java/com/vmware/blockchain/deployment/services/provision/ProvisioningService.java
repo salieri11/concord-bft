@@ -902,7 +902,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 concordIdentifierMap.get(nodeId),
                 bootstrapComponent.configService,
                 bootstrapComponent.configServiceRest,
-                properties
+                properties.getValuesMap()
         );
 
         return orchestrator.createDeployment(computeRequest);
