@@ -338,7 +338,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         // Error out if no configurations are generated.
         if (nodeComponent.isEmpty()) {
-            String msg = "No configurations were generated for servive type(s)" + request.getServicesList();
+            String msg = "No configurations were generated for service type(s)" + request.getServicesList();
             log.error(msg);
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(msg)));
         } else {
@@ -371,18 +371,18 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             if (!request.getNodeId().isEmpty()) {
                 var components = cacheByNodeId.getIfPresent(request.getIdentifier());
                 log.info("Configurations found for session id {}", request.getIdentifier());
-                log.info("List of node ids supported: " + components.keySet());
-                nodeComponents = components.get(request.getNodeId());
+                log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
+                nodeComponents = components != null ? components.get(request.getNodeId()) : null;
             } else {
                 var components = cache.getIfPresent(ConfigurationSessionIdentifier.newBuilder()
                                                             .setIdentifier(request.getIdentifier().getIdentifier())
                                                             .build());
                 log.info("Configurations found for session id {}", request.getIdentifier());
-                log.info("List of node ids supported: " + components.keySet());
-                nodeComponents = components.get(request.getNode());
+                log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
+                nodeComponents = components != null ? components.get(request.getNode()) : null;
             }
 
-            if (nodeComponents.size() != 0) {
+            if (nodeComponents != null && nodeComponents.size() != 0) {
                 NodeConfigurationResponse.Builder builder = NodeConfigurationResponse.newBuilder();
                 builder.addAllConfigurationComponent(nodeComponents);
 
@@ -397,7 +397,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                          request.getIdentifier(), e.getLocalizedMessage());
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(errorMsg)));
         }
-
     }
 
     /**
