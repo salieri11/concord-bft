@@ -34,5 +34,5 @@ services:
     image: wavefronthq/proxy
     container_name: wavefront
     environment:
-      - WAVEFRONT_URL=${WAVEFRONT_URL}
+      - WAVEFRONT_URL=${WAVEFRONT_URL}/api/
       - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN}

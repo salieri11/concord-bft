@@ -4,7 +4,7 @@
 _do_ssh() {
   local login=$1
   local command=$2
-  sshpass -p "$SSHPASS" ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" "$login" "$command"
+  sshpass -p "$SSHPASS" ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -o "PubkeyAuthentication no" "$login" "$command"
 }
 
 # SCP without prompting for password.
@@ -12,7 +12,7 @@ _do_scp() {
   local passwd=$1
   local source=$2
   local target=$3
-  sshpass -p "$passwd" scp -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -r "$source" "$target"
+  sshpass -p "$passwd" scp -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -o "PubkeyAuthentication no" -r "$source" "$target"
 }
 
 # Find all committer nodes.
@@ -46,8 +46,8 @@ _scp_log() {
   local container=$2
   local login="$SSHUSER@$node"
 
-  src_path=$(_log_path "$login" "$container")
-  dst_path="./$BASE_PATH/logs/$node/$container"
+  local src_path=$(_log_path "$login" "$container")
+  local dst_path="./$BASE_PATH/logs/$node/$container"
 
   mkdir -p "$dst_path"
   # Remove asterisk to avoid collecting rolled logs.
@@ -59,7 +59,7 @@ bundle_logs() {
   _scp_log "$SSHHOST" daml_ledger_api
   _scp_log "$SSHHOST" daml_index_db
 
-  for committer in $(_find_committers); do
+  for committer in $REPLICAS; do
     _scp_log "$committer" concord
     _scp_log "$committer" daml_execution_engine
   done
@@ -68,9 +68,9 @@ bundle_logs() {
 # Zip logs after converting from JSON to text.
 zip_logs() {
   for i in ./"$BASE_PATH"/logs/*/*/*-json.log*; do
-    ext=$(basename "$i" | cut -d '.' -f 2,3)
-    name=$(basename "$(dirname "$i")")
-    dir=$(dirname "$i")
+    local ext=$(basename "$i" | cut -d '.' -f 2,3)
+    local name=$(basename "$(dirname "$i")")
+    local dir=$(dirname "$i")
     jq -r -j .log "$i" | gzip >"$dir/$name.$ext.gz"
     rm "$i"
   done
@@ -84,27 +84,20 @@ bundle_reports() {
 
 # Upload logs and reports.
 upload_bundle() {
-  source=$(dirname "./$BASE_PATH")
-  target=$APACHE_SERVER_USERNAME@$APACHE_SERVER_HOST:/mnt/newlog/$APACHE_SERVER_BASE_DIR
+  local source=$(dirname "./$BASE_PATH")
+  local target=$APACHE_SERVER_USERNAME@$APACHE_SERVER_HOST:/mnt/newlog/$APACHE_SERVER_BASE_DIR
   _do_scp "$APACHE_SERVER_PASSWORD" "$source" "$target"
-
-  echo "Uploaded to http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/"
 }
 
-# Export environment variables.
-export_env() {
-  source=$(_find_tag "source")
-  blockchain=$(_find_tag "blockchain")
-  consortium=$(_find_tag "consortium")
-  vm_ip=$(hostname -I | cut -d ' ' -f 1)
+# Dynamic variables.
+init_env() {
+  WAVEFRONT_SOURCE=$(_find_tag "source")
+  BLOCKCHAIN_ID=$(_find_tag "blockchain")
+  CONSORTIUM_ID=$(_find_tag "consortium")
 
-  export WAVEFRONT_SOURCE="$source"
-  export BLOCKCHAIN_ID="$blockchain"
-  export CONSORTIUM_ID="$consortium"
-  export VM_IP="$vm_ip"
-
+  VM_IP=$(hostname -I | cut -d ' ' -f 1)
+  REPLICAS=$(_find_committers)
   BASE_PATH=$BLOCKCHAIN_ID/$(date +%Y-%m-%d_%H-%M_%Z)
-  export BASE_PATH
 }
 
 # Start docker-compose
@@ -118,3 +111,11 @@ start-sidecars() {
 stop-sidecars() {
   docker-compose down
 }
+
+# Send slack message
+slack_msg() {
+  local file="$1"
+  envsubst <"$file" | curl -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+}
+
+# shellcheck disable=SC2155

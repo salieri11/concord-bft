@@ -1,9 +1,13 @@
 #!/bin/bash
 
 ## Export variables and functions
+set -aeu
 source .env
-source .helper_functions.sh
-export_env
+source .functions.sh
+init_env
+
+## Notify
+slack_msg .msg.1.json
 
 ## Bootstrap
 source /dev/stdin <<<"$(docker run --rm digitalasset/spider-application:${SPIDER_IMAGE_TAG} vdaml-bootstrap | sed 's/--rm//g')"
@@ -17,7 +21,6 @@ allocate-ledger-party 00001
 
 ## Upload dar file to ledger
 upload-dar
-sleep 10
 
 # Remove the local copy
 rm spider-modules-*.dar
@@ -75,5 +78,8 @@ zip_logs
 
 ## Upload bundle to Apache server
 upload_bundle
+
+## Notify
+slack_msg .msg.1.json
 
 # shellcheck disable=SC2086
