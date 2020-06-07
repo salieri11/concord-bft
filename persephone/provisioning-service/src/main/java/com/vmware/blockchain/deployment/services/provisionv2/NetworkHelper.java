@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
@@ -76,6 +77,7 @@ public class NetworkHelper {
             CompletableFuture.allOf(networkAddressPromises).get(30L, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("Error waiting for private ip creation", e);
+            throw new PersephoneException(e, "Error allocating private ip.");
         }
         return privateNetworkAddressMap;
     }

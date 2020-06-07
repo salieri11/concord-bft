@@ -54,7 +54,8 @@ public class ProvisioningServiceUtil {
      * random value as ID if request does not contain sufficient parametric data.
      *
      */
-    static NodeAssignment updateNodeAssignment(NodeAssignment nodeAssignment, Map<NodeType, Properties> properties) {
+    static NodeAssignment updateNodeAssignment(NodeAssignment nodeAssignment, Properties globalProperties,
+                                               Map<String, Properties> nodeProperties) {
 
         return NodeAssignment.newBuilder()
                 .addAllEntries(nodeAssignment.getEntriesList().stream()
@@ -63,8 +64,12 @@ public class ProvisioningServiceUtil {
                                            if (Strings.isNullOrEmpty(nodeId)) {
                                                nodeId = UUID.randomUUID().toString();
                                            }
-                                           Properties.Builder propertiesBuilder =
-                                                   Properties.newBuilder(properties.get(entry.getType()));
+                                           Properties.Builder propertiesBuilder = Properties.newBuilder();
+                                           propertiesBuilder.putAllValues(globalProperties.getValuesMap());
+                                           if (nodeProperties.containsKey(entry.getType().name())) {
+                                               propertiesBuilder.putAllValues(
+                                                       nodeProperties.get(entry.getType().name()).getValuesMap());
+                                           }
                                            propertiesBuilder.putAllValues(entry.getProperties().getValuesMap());
                                            return NodeAssignment.Entry.newBuilder(entry)
                                                    .setProperties(propertiesBuilder)
