@@ -15,8 +15,7 @@ class PerformanceServiceImp final
     : public com::vmware::concord::performance::PerformanceService::Service {
  public:
   explicit PerformanceServiceImp(concord::consensus::KVBClientPool& p)
-      : logger_{concordlogger::Log::getLogger("concord.perf.service")},
-        pool_{p} {}
+      : logger_{logging::getLogger("concord.perf.service")}, pool_{p} {}
 
   virtual ::grpc::Status PerfInit(
       ::grpc::ServerContext* context,
@@ -34,7 +33,7 @@ class PerformanceServiceImp final
       override;
 
  private:
-  concordlogger::Logger logger_;
+  logging::Logger logger_;
   concord::consensus::KVBClientPool& pool_;
   ::grpc::Status Send(::com::vmware::concord::PerfRequest_PerfRequestType type,
                       std::string& inData, std::string& outData);

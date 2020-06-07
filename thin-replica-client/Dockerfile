@@ -3,7 +3,7 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v17
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v18
 
 # Base runtime image.
 FROM ubuntu:18.04
@@ -60,10 +60,10 @@ RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
         ln -s $x ${x%%.3.11.2.0}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.1.28.1 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.1.28.1; do \
-        ln -s $x ${x%%.28.1} && \
-        ln -s $x ${x%%.1.28.1}; \
+COPY --from=0 /opt/grpc/lib/*.so.1.28.2 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.28.2; do \
+        ln -s $x ${x%%.28.2} && \
+        ln -s $x ${x%%.1.28.2}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
