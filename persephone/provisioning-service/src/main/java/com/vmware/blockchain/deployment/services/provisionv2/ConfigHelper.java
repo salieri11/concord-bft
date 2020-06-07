@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.services.provisionv2;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -59,8 +60,11 @@ public class ConfigHelper {
             NodesInfo.Builder infosBuilder = NodesInfo.newBuilder();
             value.forEach(
                 eachNode -> {
+                    var components = context.getComponentsByNode().get(UUID.fromString(eachNode.getNodeId()))
+                            .stream().map(each -> each.getServiceType()).collect(Collectors.toList());
                     var nodeInfoBuilder = NodesInfo.Entry.newBuilder().setId(eachNode.getNodeId())
                             .setType(eachNode.getType())
+                            .addAllServices(components)
                             .setProperties(Properties.newBuilder()
                                                    .putAllValues(eachNode.getProperties().getValuesMap()));
                     addLogAndMetricProperties(context, eachNode, nodeInfoBuilder.getPropertiesBuilder());
@@ -74,11 +78,14 @@ public class ConfigHelper {
                 eachNode -> eachNode.getPropertiesBuilder().putValues(NodeProperty.Name.GENESIS.name(),
                                                                       EthereumConfiguration.getGenesisObject()));
         } else if (context.blockchainType == BlockchainType.DAML) {
-            var replicaIp = nodeInfo.get(NodeType.REPLICA)
-                    .getEntriesBuilderList().stream()
-                    .map(NodesInfo.Entry.Builder::getNodeIp).collect(Collectors.joining(","));
-            nodeInfo.get(NodeType.CLIENT).getEntriesBuilderList().forEach(
-                eachNode -> eachNode.getPropertiesBuilder().putValues(NodeProperty.Name.COMMITTERS.name(), replicaIp));
+            if (nodeInfo.get(NodeType.CLIENT) != null) {
+                var replicaIp = nodeInfo.get(NodeType.REPLICA)
+                        .getEntriesBuilderList().stream()
+                        .map(NodesInfo.Entry.Builder::getNodeIp).collect(Collectors.joining(","));
+                nodeInfo.get(NodeType.CLIENT).getEntriesBuilderList().forEach(
+                    eachNode -> eachNode.getPropertiesBuilder().putValues(NodeProperty.Name.COMMITTERS.name(),
+                                                                          replicaIp));
+            }
         }
 
         var requestBuilder = ConfigurationServiceRequestV2.newBuilder()

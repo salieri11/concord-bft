@@ -19,6 +19,7 @@ import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.W
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,6 +32,7 @@ import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneE
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.Properties;
 
@@ -113,7 +115,7 @@ public class NodeConfiguration {
                                                           NodeType nodeType, Properties properties) {
 
         var componentsByNode = componentListForBlockchainNodeType.get(blockchainType);
-        if (componentsByNode == null) {
+        if (componentsByNode == null || componentsByNode.get(nodeType) == null) {
             throw new BadRequestPersephoneException(
                     "Invalid node type: " + nodeType + " for blockchain: " + blockchainType);
         }
@@ -133,18 +135,18 @@ public class NodeConfiguration {
     /**
      * Generate Model Specification.
      * @param blockchainType type
-     * @param nodeTypeEntries node
+     * @param nodeAssignment node
      * @return map
      */
-    public Map<NodeType, List<ConcordComponent>> generateModelSpec(BlockchainType blockchainType,
-                                                                   Map<NodeType, Properties> nodeTypeEntries) {
+    public Map<UUID, List<ConcordComponent>> generateModelSpec(BlockchainType blockchainType,
+                                                               NodeAssignment nodeAssignment) {
 
-        Map<NodeType, List<ConcordComponent>> output = new HashMap<>();
+        Map<UUID, List<ConcordComponent>> output = new HashMap<>();
 
-        nodeTypeEntries.entrySet().stream()
+        nodeAssignment.getEntriesList().stream()
                 .forEach(k -> {
-                    output.put(k.getKey(),
-                               getComponentsByNodeType(blockchainType, k.getKey(), k.getValue()));
+                    output.put(UUID.fromString(k.getNodeId()),
+                               getComponentsByNodeType(blockchainType, k.getType(), k.getProperties()));
                 });
         return output;
     }

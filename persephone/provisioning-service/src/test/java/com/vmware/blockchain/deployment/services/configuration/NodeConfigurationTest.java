@@ -5,20 +5,20 @@
 package com.vmware.blockchain.deployment.services.configuration;
 
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 import org.junit.Assert;
-import org.junit.Rule;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.rules.ExpectedException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.Properties;
 
@@ -32,70 +32,83 @@ public class NodeConfigurationTest {
 
     private String dockerImageBaseVersion = "latest";
 
-    private BlockchainType blockchainType;
+    private NodeAssignment nodeAssignment;
 
-    private Properties globalProperties;
-
-    private Map<NodeType, Properties> nodeTypeEntries;
-
-    @Rule
-    ExpectedException e = ExpectedException.none();
+    private static final UUID NODE_ID_1 = UUID.randomUUID();
+    private static final UUID NODE_ID_2 = UUID.randomUUID();
 
     /**
      * Initialize various mocks.
      */
     @BeforeEach
     void init() {
-        globalProperties = Properties.newBuilder().build();
-        nodeTypeEntries = ImmutableMap.of(NodeType.CLIENT, Properties.newBuilder().build(),
-                                          NodeType.REPLICA, Properties.newBuilder().build());
+
+        nodeAssignment = NodeAssignment.newBuilder()
+                .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_1.toString())
+                                    .setType(NodeType.CLIENT).build())
+                .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_2.toString())
+                                    .setType(NodeType.REPLICA).build())
+                .build();
         nodeConfiguration = new NodeConfiguration(dockerImageBaseVersion);
     }
 
     @Test
     void testDefault() {
-        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeTypeEntries);
-        Assert.assertEquals(nodeTypeEntries.size(), output.size());
-        for (var eachNodeType : nodeTypeEntries.entrySet()) {
+        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeAssignment);
+        Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
+        for (var eachNodeType : nodeAssignment.getEntriesList()) {
 
             Assert.assertNotNull("ServiceType component missing for node type",
-                                 output.get(eachNodeType.getKey()));
-            assertResponse(output.get(eachNodeType.getKey()), dockerImageBaseVersion);
+                                 output.get(UUID.fromString(eachNodeType.getNodeId())));
+            assertResponse(output.get(UUID.fromString(eachNodeType.getNodeId())), dockerImageBaseVersion);
         }
     }
 
     @Test
     void testDefaultEtheruem() {
-        nodeTypeEntries = ImmutableMap.of(NodeType.REPLICA, Properties.newBuilder().build());
 
-        var output = nodeConfiguration.generateModelSpec(BlockchainType.ETHEREUM, nodeTypeEntries);
-        Assert.assertEquals(nodeTypeEntries.size(), output.size());
-        for (var eachNodeType : nodeTypeEntries.entrySet()) {
+        nodeAssignment = NodeAssignment.newBuilder()
+                .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_2.toString())
+                                    .setType(NodeType.REPLICA).build())
+                .build();
+
+        var output = nodeConfiguration.generateModelSpec(BlockchainType.ETHEREUM, nodeAssignment);
+        Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
+        for (var eachNodeType : nodeAssignment.getEntriesList()) {
 
             Assert.assertNotNull("ServiceType component missing for node type",
-                                 output.get(eachNodeType.getKey()));
-            assertResponse(output.get(eachNodeType.getKey()), dockerImageBaseVersion);
+                                 output.get(UUID.fromString(eachNodeType.getNodeId())));
+            assertResponse(output.get(UUID.fromString(eachNodeType.getNodeId())), dockerImageBaseVersion);
         }
 
     }
 
     @Test
     void testUnsupportedNodeType() {
-        e.expect(BadRequestPersephoneException.class);
-        nodeTypeEntries = ImmutableMap.of(NodeType.READ_REPLICA, Properties.newBuilder().build());
+        nodeAssignment = NodeAssignment.newBuilder()
+                .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_1.toString())
+                                    .setType(NodeType.READ_REPLICA).build())
+                .build();
+        Assertions.assertThrows(BadRequestPersephoneException.class, () -> {
+            nodeConfiguration.generateModelSpec(BlockchainType.ETHEREUM, nodeAssignment);
+        });
     }
 
     @Test
     void testDamlWithTag() {
-        globalProperties = Properties.newBuilder()
-                .putValues("docker.image.base.version", "test").build();
-        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeTypeEntries);
-        Assert.assertEquals(nodeTypeEntries.size(), output.size());
-        for (var eachNodeType : nodeTypeEntries.entrySet()) {
+        nodeAssignment = NodeAssignment.newBuilder()
+                .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_1.toString())
+                                    .setType(NodeType.CLIENT).setProperties(Properties.newBuilder()
+                                .putValues(DeploymentAttributes.IMAGE_TAG.name(), "dummy")
+                                                                                    .build()).build())
+                .build();
+        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeAssignment);
+        Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
+        for (var eachNodeType : nodeAssignment.getEntriesList()) {
 
             Assert.assertNotNull("ServiceType component missing for node type",
-                                 output.get(eachNodeType.getKey()));
-            assertResponse(output.get(eachNodeType.getKey()), "test");
+                                 output.get(UUID.fromString(eachNodeType.getNodeId())));
+            assertResponse(output.get(UUID.fromString(eachNodeType.getNodeId())), "dummy");
         }
     }
 

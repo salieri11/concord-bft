@@ -89,17 +89,16 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
         val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
-        var nodeTypeMap = ProvisioningServiceUtil.convertToNodeTypeMap(request.getSpec().getNodePropertiesMap(),
-                                                                       request.getSpec().getProperties());
         var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
-                                                                                nodeTypeMap);
+                                                                          request.getSpec().getProperties(),
+                                                                          request.getSpec().getNodePropertiesMap());
+
         var orchestrators = createOrchestratorsFromSites(request.getSpec().getSites());
         var siteMap = ProvisioningServiceUtil.convertToSiteIdMap(request.getSpec().getSites());
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
-        var baseNodeTypeComponent = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
-                                                                        nodeTypeMap);
-        var componentsByNode = ProvisioningServiceUtil.generateComponentsPerNode(nodeAssignment, orchestrators,
-                                                                                 baseNodeTypeComponent);
+
+        var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
+                                                                        nodeAssignment);
         //TODO add site specific restriction.
 
         /// ---- No input manipulation/extraction beyond this point ----
