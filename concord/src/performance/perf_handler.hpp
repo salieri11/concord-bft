@@ -43,13 +43,13 @@ class PerformanceCommandsHandler
       shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler{config, node_config,     ros,
                                ba,     subscriber_list, prometheus_registry},
-        logger_{concordlogger::Log::getLogger("concord.perf.handler")} {}
+        logger_{logging::getLogger("concord.perf.handler")} {}
 
   virtual void WriteEmptyBlock(
       concord::time::TimeContract* time_contract) override {}
 
  private:
-  concordlogger::Logger logger_;
+  logging::Logger logger_;
   PerfInitData init_data_;
 
   void ExecuteInitRequest(const PerfInitRequest& request,

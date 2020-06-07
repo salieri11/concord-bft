@@ -40,8 +40,7 @@ struct MultiBlockData {
 
 class PerfInitData {
  public:
-  PerfInitData()
-      : logger_(concordlogger::Log::getLogger("concord.perf.initdata")) {}
+  PerfInitData() : logger_(logging::getLogger("concord.perf.initdata")) {}
 
   string GetInfo() {
     lock_guard lock(data_lock_);
@@ -145,7 +144,7 @@ class PerfInitData {
 
   unordered_map<string, shared_ptr<MultiBlockData>> blocks_data_;
   uint64_t total_size_ = 0;
-  concordlogger::Logger logger_;
+  logging::Logger logger_;
   mutex data_lock_;
 };
 
