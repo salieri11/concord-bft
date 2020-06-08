@@ -78,7 +78,7 @@ public class TaskController {
     }
 
     @RequestMapping(path = "/api/tasks/{id}", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<TaskGetResponse> getTask(@PathVariable UUID id) {
         return new ResponseEntity<>(new TaskGetResponse(taskService.get(id)), HttpStatus.OK);
     }
@@ -88,7 +88,7 @@ public class TaskController {
      * by default, so not including it will produce a 400 error.
 \     */
     @RequestMapping(path = "/api/tasks", method = RequestMethod.POST, params = {"get_states"})
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<TaskListResponse> getTaskStates(@RequestBody TaskIdList idList) {
         List<TaskGetResponse> states = idList.getTaskIds().stream()
                 .map(taskService::get).map(TaskGetResponse::new)

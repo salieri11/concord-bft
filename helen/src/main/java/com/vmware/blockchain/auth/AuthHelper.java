@@ -128,9 +128,13 @@ public class AuthHelper {
         return security.hasAnyAuthority(authorities);
     }
 
+    /**
+     * Back compat with old system.
+     */
     public boolean canAccessChain(UUID id) {
         logger.info("can access chain {}", id);
-        return hasAnyAuthority(Roles.systemAdmin()) || getAccessChains().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || (getAccessChains().contains(id)
+                && hasAnyAuthority(Roles.hasAnyRole()));
     }
 
     /**
@@ -138,7 +142,15 @@ public class AuthHelper {
      */
     public boolean canAccessChain(Optional<UUID> oid) {
         UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
-        return hasAnyAuthority(Roles.systemAdmin()) || getAccessChains().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || (getAccessChains().contains(id)
+                && hasAnyAuthority(Roles.hasAnyRole()));
+    }
+
+    /**
+     * Is Authenticated, has a role.
+     */
+    public boolean isAuthenticated() {
+        return hasAnyAuthority(Roles.hasAnyRole());
     }
 
     /**
@@ -160,7 +172,8 @@ public class AuthHelper {
     }
 
     public boolean canAccessConsortium(UUID id) {
-        return hasAnyAuthority(Roles.systemAdmin()) || getAccessConsortiums().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin())
+                || (getAccessConsortiums().contains(id) && hasAnyAuthority(Roles.hasAnyRole()));
     }
 
     public boolean canUpdateConsortium(UUID id) {
@@ -169,7 +182,8 @@ public class AuthHelper {
     }
 
     public boolean canAccessOrg(UUID id) {
-        return hasAnyAuthority(Roles.systemAdmin()) || getOrganizationId().equals(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || (getOrganizationId().equals(id)
+                && hasAnyAuthority(Roles.hasAnyRole()));
     }
 
     public boolean canUpdateOrg(UUID id) {
@@ -191,7 +205,7 @@ public class AuthHelper {
     }
 
     public boolean isDeveloper() {
-        return hasAnyAuthority(Roles.devloper());
+        return hasAnyAuthority(Roles.developer());
     }
 
     public boolean isCspOrgOwner() {

@@ -95,18 +95,18 @@ def test_role_list_consortiums(fxConnection):
             response = req.getConsortiums()
             conIds = []
 
-            for c in response:
-               conIds.append(c["consortium_id"])
+
 
             if role == "no_roles":
-               # VB-1274: User with no service roles can list consortiums.
-               # Should probably be an empty list.
-               #assert len(response) == 0, "Expected an empty list for a user with no roles."
-               pass
+               rest.test_methods.validateAccessDeniedResponse(response, "/api/consortiums/")
             elif org == "hermes_org0":
+               for c in response:
+                  conIds.append(c["consortium_id"])
                assert orgACon["consortium_id"] in conIds, "Expected consortium not present."
                assert orgBCon["consortium_id"] not in conIds, "Unexpected consortium present."
             else:
+               for c in response:
+                  conIds.append(c["consortium_id"])
                assert orgBCon["consortium_id"] in conIds, "Expected consortium not present."
                assert orgACon["consortium_id"] not in conIds, "Unexpected consortium present."
 
@@ -361,10 +361,8 @@ def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
             getConsortiumOrgsResult = req.getConsortiumOrgs(consortium)
 
             if role == "no_roles":
-               # VB-1274
-               # rest.test_methods.validateAccessDeniedResponse(getConsortiumOrgsResult,
-               #                              "/api/consortiums/{}/organizations".format(consortium))
-               pass
+               rest.test_methods.validateAccessDeniedResponse(getConsortiumOrgsResult,
+                                            "/api/consortiums/{}/organizations".format(consortium))
             else:
                returnedOrgIds = []
 

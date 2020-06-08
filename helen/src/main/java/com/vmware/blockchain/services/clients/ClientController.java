@@ -162,58 +162,6 @@ public class ClientController {
     }
 
     /**
-     * The actual call which will contact server to add the participant.
-     */
-    private DeploymentSessionIdentifier createParticipantCluster(ProvisioningServiceGrpc.ProvisioningServiceStub client,
-                                                                 List<UUID> zoneIds, UUID consortiumId,
-                                                                 Properties properties) throws Exception {
-        List<PlacementSpecification.Entry> list;
-
-        list = zoneIds.stream()
-                .map(zoneService::get)
-                .map(z -> PlacementSpecification.Entry.newBuilder()
-                        .setType(PlacementSpecification.Type.FIXED)
-                        .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                .setId(z.getId().toString())
-                                         .build())
-                        .setSiteInfo(toInfo(z))
-                        .build())
-                .collect(Collectors.toList());
-
-        var placementSpec = PlacementSpecification.newBuilder()
-                .addAllEntries(list)
-                .build();
-
-        var components = concordConfiguration
-                .getComponentsByNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
-
-        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
-                .setVersion(concordConfiguration.getVersion())
-                .setTemplate(concordConfiguration.getTemplate())
-                .addAllComponents(components)
-                .setBlockchainType(ConcordModelSpecification.BlockchainType.DAML)
-                .setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
-                .build();
-
-        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
-                .setModel(spec)
-                .setPlacement(placementSpec)
-                .setConsortium(consortiumId.toString())
-                .setProperties(properties)
-                .build();
-
-        var request = CreateClusterRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().setId("").build())
-                .setSpecification(deploySpec)
-                .build();
-
-        // Check that the API can be serviced normally after service initialization.
-        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
-        return promise.get();
-    }
-
-    /**
      * Deploy a DAML Participant node for given DAML blockchain.
      */
     @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
@@ -277,4 +225,55 @@ public class ClientController {
         return new ResponseEntity<>(new BlockchainController.BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
 
+    /**
+     * The actual call which will contact server to add the participant.
+     */
+    private DeploymentSessionIdentifier createParticipantCluster(ProvisioningServiceGrpc.ProvisioningServiceStub client,
+                                                                 List<UUID> zoneIds, UUID consortiumId,
+                                                                 Properties properties) throws Exception {
+        List<PlacementSpecification.Entry> list;
+
+        list = zoneIds.stream()
+                .map(zoneService::get)
+                .map(z -> PlacementSpecification.Entry.newBuilder()
+                        .setType(PlacementSpecification.Type.FIXED)
+                        .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                .setId(z.getId().toString())
+                                .build())
+                        .setSiteInfo(toInfo(z))
+                        .build())
+                .collect(Collectors.toList());
+
+        var placementSpec = PlacementSpecification.newBuilder()
+                .addAllEntries(list)
+                .build();
+
+        var components = concordConfiguration
+                .getComponentsByNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
+
+        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
+                .setVersion(concordConfiguration.getVersion())
+                .setTemplate(concordConfiguration.getTemplate())
+                .addAllComponents(components)
+                .setBlockchainType(ConcordModelSpecification.BlockchainType.DAML)
+                .setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
+                .build();
+
+        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
+                .setModel(spec)
+                .setPlacement(placementSpec)
+                .setConsortium(consortiumId.toString())
+                .setProperties(properties)
+                .build();
+
+        var request = CreateClusterRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().setId("").build())
+                .setSpecification(deploySpec)
+                .build();
+
+        // Check that the API can be serviced normally after service initialization.
+        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
+        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
+        return promise.get();
+    }
 }

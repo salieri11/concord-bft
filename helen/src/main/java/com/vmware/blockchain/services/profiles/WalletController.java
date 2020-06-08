@@ -41,7 +41,7 @@ public class WalletController {
      * @return the list of wallet addresses
      */
     @RequestMapping(path = "/api/users/{user_id}/wallet", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<List<String>> getWalletsForUser(@PathVariable("user_id") UUID userId) {
         List<String> wallets =
                 krm.getWalletsForUser(userId).stream().map(Keystore::getAddress).collect(Collectors.toList());
@@ -55,7 +55,7 @@ public class WalletController {
      * @return the wallet
      */
     @RequestMapping(path = "/api/users/{user_id}/wallet/{address}", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<String> getWalletFromAddress(@PathVariable("user_id") UUID userId,
                                                    @PathVariable("address") String address) {
         return new ResponseEntity<>(krm.getWalletByAddress(address), HttpStatus.OK);

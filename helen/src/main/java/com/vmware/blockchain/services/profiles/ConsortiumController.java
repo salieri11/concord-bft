@@ -85,7 +85,7 @@ public class ConsortiumController {
      * @return the list of consortium
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<List<ConGetResponse>> listCons() {
         List<Consortium> orgs = consortiumService.list();
         List<ConGetResponse> rList = orgs.stream().map(c -> new ConGetResponse(c.getId(),

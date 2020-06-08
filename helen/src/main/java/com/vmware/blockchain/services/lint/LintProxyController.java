@@ -136,7 +136,7 @@ public class LintProxyController {
      * We do the following:
      */
     @RequestMapping("/**")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<String> proxyToLint(@RequestBody(required = false) String body,
             @RequestParam(name = "replica_id", required = false) String replicaId,
             HttpMethod method, HttpServletRequest request, HttpServletResponse response) throws IllegalAccessException {

@@ -278,110 +278,6 @@ public class BlockchainController {
     }
 
     /**
-     * The actual call which will contact server and add the model request.
-     */
-    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
-                                                               int clusterSize,
-                                                               PlacementSpecification.Type placementType,
-                                                               List<UUID> zoneIds,
-                                                               BlockchainType blockchainType,
-                                                               UUID consortiumId,
-                                                               boolean deployDamlCommitter) throws Exception {
-        List<Entry> list;
-        if (zoneIds.size() != clusterSize) {
-            logger.info("Number of zones not equal to cluster size");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
-        }
-        list = zoneIds.stream()
-                .map(zoneService::get)
-                .map(z -> Entry.newBuilder()
-                        .setType(placementType)
-                        .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                .setId(z.getId().toString())
-                                .build())
-                        .setSiteInfo(toInfo(z))
-                        .build())
-                .collect(Collectors.toList());
-
-        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
-                : enumMapForBlockchainType.get(blockchainType);
-
-        ConcordModelSpecification spec;
-
-        logger.info("Concord version in Blockchain Controller {}", concordConfiguration.getVersion());
-
-        if (deployDamlCommitter) {
-            var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
-                    .NodeType.DAML_COMMITTER);
-
-            spec = ConcordModelSpecification.newBuilder()
-                    .setVersion(concordConfiguration.getVersion())
-                    .setTemplate(concordConfiguration.getTemplate())
-                    .addAllComponents(components)
-                    .setBlockchainType(blockChainType)
-                    .setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER)
-                    .build();
-        } else {
-            var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
-
-            spec = ConcordModelSpecification.newBuilder()
-                    .setVersion(concordConfiguration.getVersion())
-                    .setTemplate(concordConfiguration.getTemplate())
-                    .addAllComponents(components)
-                    .setBlockchainType(blockChainType)
-                    .setNodeType(ConcordModelSpecification.NodeType.NONE)
-                    .build();
-        }
-
-        var genesis = ConcordConfiguration.getGenesisObject();
-        var placementSpec = PlacementSpecification.newBuilder()
-                .addAllEntries(list)
-                .build();
-
-        Map<String, String> properties = new HashMap<>();
-
-        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
-                .setModel(spec)
-                .setPlacement(placementSpec)
-                .setGenesis(genesis)
-                .setConsortium(consortiumId.toString())
-                .setProperties(
-                        Properties.newBuilder()
-                                .putAllValues(properties)
-                                .build()
-                )
-                .build();
-
-        var request = CreateClusterRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder()
-                                   .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
-                .setSpecification(deploySpec)
-                .build();
-
-        // Check that the API can be serviced normally after service initialization.
-        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
-        return promise.get();
-    }
-
-    private int getMaxChains(UUID orgId) {
-        // admins can create any number
-        if (authHelper.isSystemAdmin()) {
-            return Integer.MAX_VALUE;
-        }
-
-        Organization organization = organizationService.get(orgId);
-        // default to one
-        int m = 1;
-        if (organization.getOrganizationProperties() != null) {
-            String s = organization.getOrganizationProperties().getOrDefault(Constants.ORG_MAX_CHAINS, "1");
-            m = Integer.parseInt(s);
-        }
-        // m == 0 means no limit
-        return m == 0 ? Integer.MAX_VALUE : m;
-    }
-
-    /**
      * Create a new blockchain in the given consortium, with the specified nodes.
      * Note that after deployment we must remove the authtoken from the cache, since the user will
      * now have access to this blockchain
@@ -504,5 +400,109 @@ public class BlockchainController {
         } else {
             throw new BadRequestException(String.format("Blockchain %s is already de-registered.", bid.toString()));
         }
+    }
+
+    /**
+     * The actual call which will contact server and add the model request.
+     */
+    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
+                                                               int clusterSize,
+                                                               PlacementSpecification.Type placementType,
+                                                               List<UUID> zoneIds,
+                                                               BlockchainType blockchainType,
+                                                               UUID consortiumId,
+                                                               boolean deployDamlCommitter) throws Exception {
+        List<Entry> list;
+        if (zoneIds.size() != clusterSize) {
+            logger.info("Number of zones not equal to cluster size");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+        list = zoneIds.stream()
+                .map(zoneService::get)
+                .map(z -> Entry.newBuilder()
+                        .setType(placementType)
+                        .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                .setId(z.getId().toString())
+                                .build())
+                        .setSiteInfo(toInfo(z))
+                        .build())
+                .collect(Collectors.toList());
+
+        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
+                : enumMapForBlockchainType.get(blockchainType);
+
+        ConcordModelSpecification spec;
+
+        logger.info("Concord version in Blockchain Controller {}", concordConfiguration.getVersion());
+
+        if (deployDamlCommitter) {
+            var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
+                    .NodeType.DAML_COMMITTER);
+
+            spec = ConcordModelSpecification.newBuilder()
+                    .setVersion(concordConfiguration.getVersion())
+                    .setTemplate(concordConfiguration.getTemplate())
+                    .addAllComponents(components)
+                    .setBlockchainType(blockChainType)
+                    .setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER)
+                    .build();
+        } else {
+            var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
+
+            spec = ConcordModelSpecification.newBuilder()
+                    .setVersion(concordConfiguration.getVersion())
+                    .setTemplate(concordConfiguration.getTemplate())
+                    .addAllComponents(components)
+                    .setBlockchainType(blockChainType)
+                    .setNodeType(ConcordModelSpecification.NodeType.NONE)
+                    .build();
+        }
+
+        var genesis = ConcordConfiguration.getGenesisObject();
+        var placementSpec = PlacementSpecification.newBuilder()
+                .addAllEntries(list)
+                .build();
+
+        Map<String, String> properties = new HashMap<>();
+
+        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
+                .setModel(spec)
+                .setPlacement(placementSpec)
+                .setGenesis(genesis)
+                .setConsortium(consortiumId.toString())
+                .setProperties(
+                        Properties.newBuilder()
+                                .putAllValues(properties)
+                                .build()
+                )
+                .build();
+
+        var request = CreateClusterRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder()
+                        .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
+                .setSpecification(deploySpec)
+                .build();
+
+        // Check that the API can be serviced normally after service initialization.
+        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
+        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
+        return promise.get();
+    }
+
+    private int getMaxChains(UUID orgId) {
+        // admins can create any number
+        if (authHelper.isSystemAdmin()) {
+            return Integer.MAX_VALUE;
+        }
+
+        Organization organization = organizationService.get(orgId);
+        // default to one
+        int m = 1;
+        if (organization.getOrganizationProperties() != null) {
+            String s = organization.getOrganizationProperties().getOrDefault(Constants.ORG_MAX_CHAINS, "1");
+            m = Integer.parseInt(s);
+        }
+        // m == 0 means no limit
+        return m == 0 ? Integer.MAX_VALUE : m;
     }
 }
