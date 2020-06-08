@@ -28,6 +28,7 @@ services:
       - BLOCKCHAIN_ID=${BLOCKCHAIN_ID}
       - CONSORTIUM_ID=${CONSORTIUM_ID}
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
   wavefront:

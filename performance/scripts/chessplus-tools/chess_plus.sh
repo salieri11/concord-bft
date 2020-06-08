@@ -80,6 +80,6 @@ zip_logs
 upload_bundle
 
 ## Notify
-slack_msg .msg.1.json
+slack_msg .msg.2.json
 
 # shellcheck disable=SC2086
