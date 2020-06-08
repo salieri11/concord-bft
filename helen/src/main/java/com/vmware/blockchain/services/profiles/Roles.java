@@ -123,7 +123,7 @@ public enum Roles implements GrantedAuthority {
         return lookup.get(name);
     }
 
-    public static String[] devloper() {
+    public static String[] developer() {
         String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name, ORG_ADMIN.name, ORG_DEVELOPER.name};
         return r;
     }
@@ -163,4 +163,16 @@ public enum Roles implements GrantedAuthority {
         return r;
     }
 
+    /**
+     * Make sure there is at least some role attached to the caller.
+     * @return r: Role list.
+     */
+    public static String[] hasAnyRole() {
+        String[] r = {ORG_USER.name, ORG_DEVELOPER.name, ORG_ADMIN.name,
+            CONSORTIUM_ADMIN.name, CONSORTIUM_OPERATOR.name, CONSORTIUM_PARTICIPANT.name,
+            SYSTEM_ADMIN.name, INFRA_ADMIN.name, CSP_ORG_OWNER.name, ROLE_SYSTEM_ADMIN.name,
+            SYSTEM.name
+        };
+        return r;
+    }
 }

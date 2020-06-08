@@ -91,6 +91,7 @@ public class ConsortiumControllerTest {
 
     private AuthenticationContext adminAuth;
     private AuthenticationContext userAuth;
+    private AuthenticationContext noAuth;
 
     @BeforeEach
     void init() throws Exception {
@@ -123,10 +124,12 @@ public class ConsortiumControllerTest {
         userAuth = createContext("operator", O_1,
                                  ImmutableList.of(Roles.ORG_USER),
                                  ImmutableList.of(C_1),
-                                 Collections.emptyList(),
-                                 Collections.emptyList(),
                                  Collections.emptyList(), "");
 
+        noAuth = createContext("operator", O_1,
+                Collections.emptyList(),
+                ImmutableList.of(C_1),
+                Collections.emptyList(), "");
     }
 
     @Test
@@ -142,9 +145,17 @@ public class ConsortiumControllerTest {
     }
 
     @Test
+    void testListNoRoles() throws Exception {
+        mockMvc.perform(get("/api/consortiums").with(authentication(noAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden()).andReturn();
+    }
+
+    @Test
     void testGet() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/consortiums/" + C_1.toString()).with(authentication(userAuth))
-                                                   .contentType(MediaType.APPLICATION_JSON))
+        MvcResult result = mockMvc.perform(get("/api/consortiums/" + C_1.toString())
+                .with(authentication(userAuth))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ConGetResponse con = objectMapper.readValue(body, ConGetResponse.class);
@@ -152,6 +163,13 @@ public class ConsortiumControllerTest {
         Assertions.assertEquals("Test", con.getConsortiumName());
     }
 
+    @Test
+    void testGetNoRoles() throws Exception {
+        mockMvc.perform(get("/api/consortiums/" + C_1.toString())
+                .with(authentication(noAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden()).andReturn();
+    }
 
     @Test
     void testPost() throws Exception {
@@ -288,7 +306,7 @@ public class ConsortiumControllerTest {
     }
 
     @Test
-    void testgetOrgs() throws Exception {
+    void testGetOrgs() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/consortiums/" + C_1.toString() + "/organizations")
                                                    .with(authentication(userAuth))
                                                    .contentType(MediaType.APPLICATION_JSON))
@@ -300,5 +318,11 @@ public class ConsortiumControllerTest {
         Assertions.assertEquals(O_1, list.get(0).getOrganizationId());
     }
 
-
+    @Test
+    void testGetOrgsNoRoles() throws Exception {
+        mockMvc.perform(get("/api/consortiums/" + C_1.toString() + "/organizations")
+                .with(authentication(noAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden()).andReturn();
+    }
 }
