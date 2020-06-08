@@ -58,7 +58,6 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
   "ChessPlusTestsOnPredeployedBlockchain": [
-    "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ChessPlusTests --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}"'
   ],
   "DamlTestsOnPredeployedBlockchain": [
@@ -128,7 +127,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
   "SimpleStateTransferTest": [
-    "enabled": false,
+    "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
   ],
   "ContractCompilerTests": [

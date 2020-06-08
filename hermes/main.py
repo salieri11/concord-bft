@@ -519,7 +519,7 @@ def processResults(resultFile):
 
    log.info(msg)
 
-   return failCount == 0 and passCount != 0, msg
+   return failCount == 0, msg
 
 def tallyResults(results):
    '''
