@@ -128,7 +128,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
   "SimpleStateTransferTest": [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
   ],
   "ContractCompilerTests": [
