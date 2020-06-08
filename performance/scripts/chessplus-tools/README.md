@@ -41,13 +41,34 @@ Load Runner sends live progress of trade requests to InfluxDB, which could be vi
 
 ### Test Result
 
-At the end of a test, all logs and reports on the local file system are sent to Apache HTTP server using SCP.
+At the end of a test, the entire bundle of result on the local file system is sent to Apache HTTP server using SCP.
+Following is the format of the bundle.
+
+```bash
+<blockchain-id>
+|  
+│
+└───<test-date>
+    │   file011.txt
+    │   file012.txt
+    │
+    └───logs
+        │
+        | <IP 1>
+        │ <IP 2>
+        │ ...
+        |
+    -───reports
+        |
+        | load-runner-XXX
+        | load-runner-XXX    
+```
 
 ### Notification
 
 Slack Incoming Webhooks are used to send notifications related to start and end of a test.
 
-### Usage
+## Usage
 
 Configure [.env](.env) and execute the script.
 
@@ -55,4 +76,21 @@ Configure [.env](.env) and execute the script.
 ./chess_plus.sh
 ```
 
+## Limitations and Workaround
 
+### Delete directory
+
+Since fluentd docker container runs as root user, the files it creates on host file system are owned by the root and therefore not deleted as part of the script.
+
+```bash
+sudo rm -rf <blockchain-id>
+```
+
+### Remove containers
+
+The script takes care of removing all the docker containers, but in case it is terminated abruptly, the containers need to be removed manually.
+
+```bash
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+```

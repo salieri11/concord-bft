@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Export variables and functions
-set -aeu
+set -ae
 source .env
 source .functions.sh
 init_env
@@ -21,9 +21,6 @@ allocate-ledger-party 00001
 
 ## Upload dar file to ledger
 upload-dar
-
-# Remove the local copy
-rm spider-modules-*.dar
 
 ## Ensure dar file is loaded
 warm-package
