@@ -9,6 +9,9 @@
 #include <strstream>
 #include "storage/kvb_key_types.h"
 
+using opentracing::expected;
+using opentracing::string_view;
+
 namespace {
 // Note: they key is not stored in the final KVB
 const ::concordUtils::Sliver kSpanContextKey =
@@ -88,6 +91,24 @@ void InjectSpan(const SpanPtr& span, OpenTracingKeyValMap& kv) {
   std::ostringstream context;
   span->tracer().Inject(span->context(), context);
   kv[kSpanContextKey] = context.str();
+}
+
+struct GrpcMetadataCarrier : opentracing::TextMapWriter {
+  GrpcMetadataCarrier(grpc::ClientContext& client_context)
+      : client_context_(client_context) {}
+
+  expected<void> Set(string_view key, string_view value) const override {
+    client_context_.AddMetadata(key, value);
+    return {};
+  }
+
+  grpc::ClientContext& client_context_;
+};
+
+void InjectSpanAsMetadata(const opentracing::Span& span,
+                          grpc::ClientContext* context) {
+  GrpcMetadataCarrier metadata_carrier(*context);
+  span.tracer().Inject(span.context(), metadata_carrier);
 }
 
 }  // namespace concord::utils

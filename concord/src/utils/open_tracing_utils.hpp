@@ -5,12 +5,14 @@
 #ifndef OPEN_TRACING_UTILS_HPP
 #define OPEN_TRACING_UTILS_HPP
 
+#include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/span.h>
 #include <opentracing/tracer.h>
+#include <unordered_map>
+
 #include "sliver.hpp"
 #include "storage/kvb_key_types.h"
-
-#include <unordered_map>
 
 using SpanPtr = std::unique_ptr<opentracing::Span>;
 
@@ -43,6 +45,9 @@ SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
                     bool create_span_on_failure = true);
 
 void InjectSpan(const SpanPtr& span, OpenTracingKeyValMap& kv);
+
+void InjectSpanAsMetadata(const opentracing::Span& span,
+                          grpc::ClientContext* context);
 
 }  // namespace concord::utils
 
