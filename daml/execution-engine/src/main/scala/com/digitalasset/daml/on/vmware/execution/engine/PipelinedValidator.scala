@@ -17,8 +17,8 @@ import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidato
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
-import scala.util.Failure
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 /**
@@ -63,25 +63,29 @@ class PipelinedValidator(
                 recordingLedgerStateReader,
                 commitStrategy
               )
-              .andThen {
+              .flatMap { _ =>
+                ledgerStateOperations.flushWrites()
+              }
+              .transformWith {
                 case Failure(NonFatal(exception)) =>
                   responseObserver.onError(exception)
                   logger.info(
                     s"Batch validation failed, correlationId=${request.correlationId} " +
                       s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
                       s"exception=${exception.getLocalizedMessage}")
-              }
-              .foreach { _ =>
-                logger.debug(s"Submission with correlationId=${request.correlationId} validated")
-                val sortedReadSet =
-                  recordingLedgerStateReader.getReadSet.toSeq.sorted
-                responseObserver.onNext(
-                  EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
-                responseObserver.onCompleted()
-                logger.info(
-                  s"Batch validation completed, correlationId=${request.correlationId} " +
-                    s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
-                    s"readSetSize=${sortedReadSet.size}")
+                  Future.failed(exception)
+                case Success(_) =>
+                  logger.debug(s"Submission with correlationId=${request.correlationId} validated")
+                  val sortedReadSet =
+                    recordingLedgerStateReader.getReadSet.toSeq.sorted
+                  responseObserver.onNext(
+                    EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
+                  responseObserver.onCompleted()
+                  logger.info(
+                    s"Batch validation completed, correlationId=${request.correlationId} " +
+                      s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
+                      s"readSetSize=${sortedReadSet.size}")
+                  Future.unit
               }
           case EventToValidator.ToValidator.ReadResult(result) =>
             ledgerStateOperations.handleReadResult(result)

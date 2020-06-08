@@ -114,13 +114,30 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
   }
 
   "write" should {
-    "send write event" in {
+    "buffer key-value pairs" in {
       val mockEventSender = mock[SendEventFunction]
       val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
       val expectedKey = aKey()
       val expectedValue = ByteString.copyFromUtf8("some value")
 
       instance.write(Seq((expectedKey, expectedValue, PublicAccess))).map { _ =>
+        instance.pendingWrites should have size 1
+        instance.pendingWrites shouldBe Seq((expectedKey, expectedValue, PublicAccess))
+      }
+    }
+  }
+
+  "flushing writes" should {
+    "send write event" in {
+      val mockEventSender = mock[SendEventFunction]
+      val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
+      val expectedKey = aKey()
+      val expectedValue = ByteString.copyFromUtf8("some value")
+
+      for {
+        _ <- instance.write(Seq((expectedKey, expectedValue, PublicAccess)))
+        _ <- instance.flushWrites()
+      } yield {
         val expectedAccessControlList =
           ConcordLedgerStateOperations.accessControlListToThinReplicaIds(PublicAccess)
         val expectedProtectedKeyValuePair = ProtectedKeyValuePair()
@@ -132,7 +149,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
             .Write()
             .withUpdates(Seq(expectedProtectedKeyValuePair)))
         verify(mockEventSender, times(1)).sendEvent(expectedEvent)
-        succeed
+        instance.pendingWrites should have size 0
       }
     }
 
@@ -149,7 +166,10 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
       val expectedKey = aKey()
       val expectedValue = ByteString.copyFromUtf8("some value")
 
-      instance.write(Seq((expectedKey, expectedValue, PublicAccess))).map { _ =>
+      for {
+        _ <- instance.write(Seq((expectedKey, expectedValue, PublicAccess)))
+        _ <- instance.flushWrites()
+      } yield {
         val capturedEvent = eventCaptor.getValue
         val expectedWrittenBytes = capturedEvent.getWrite.serializedSize
         metrics.bytesWritten.getSnapshot.getValues shouldBe Array(expectedWrittenBytes)
