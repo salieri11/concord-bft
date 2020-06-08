@@ -33,6 +33,7 @@ class ConcordLedgerStateOperations(
 
   private[engine] val nextReadTag = new AtomicInteger
   private[engine] val pendingReads = mutable.Map.empty[Int, PendingRead]
+  private[engine] val pendingWrites = mutable.Buffer[(Key, Value, AccessControlList)]()
   private[engine] val correlationId = new mutable.StringBuilder()
 
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -92,15 +93,35 @@ class ConcordLedgerStateOperations(
   }
 
   override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] = Future {
-    val protectedKeyValuePairs =
-      data.sortBy(_._1).map {
-        case (key, value, acl) =>
-          ProtectedKeyValuePair(
-            key,
-            value,
-            accessControlListToThinReplicaIds(acl)
-          )
+    scala.concurrent.blocking {
+      this.synchronized {
+        pendingWrites.appendAll(data)
       }
+      ()
+    }
+  }
+
+  /**
+    * Sends all buffered key-value pairs to the Command Handler and clears the buffer.
+    * Key-value pairs are sent ordered according to their key.
+    */
+  def flushWrites(): Future[Unit] = Future {
+    val protectedKeyValuePairs = scala.concurrent.blocking {
+      this.synchronized {
+        val sortedKeyValuePairs =
+          pendingWrites.sortBy(_._1).map {
+            case (key, value, acl) =>
+              ProtectedKeyValuePair(
+                key,
+                value,
+                accessControlListToThinReplicaIds(acl)
+              )
+          }
+        pendingWrites.clear()
+        sortedKeyValuePairs
+      }
+    }
+    logger.trace(s"Sending write-set of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
     val writeSet = Write(protectedKeyValuePairs)
     sendEvent(EventFromValidator().withWrite(writeSet))
     metrics.bytesWritten.update(writeSet.serializedSize)
