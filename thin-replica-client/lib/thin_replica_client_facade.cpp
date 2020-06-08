@@ -40,32 +40,19 @@ const static seconds kMaxTimeToWaitForServerConnectivity = 60s;
 const static string kMaxTimeToWaitForServerConnectivityUnitLabel = "seconds";
 const static seconds kTimeToSleepBetweenConnectionAttempts = 1s;
 
-// A global instance of LoggerInitializer class is created when the thin
-// replica client library is loaded into process and destroyed when it is
-// unloaded. It follows the steps suggested for code using log4cplus
-// versions prior to 2.0:
-// https://sourceforge.net/p/log4cplus/wiki/CodeExamples/
-// LoggerInitializer is responsible for calling log4cplus::initialize in
-// the constructor followed by a one-time configuration based on the settings
-// from a file pointed to by the LOG4CPLUS_CONFIGURATION environment variable.
-class LoggerInitializer {
- public:
-  LoggerInitializer() {
-    log4cplus::initialize();
-    if (const char* log_properties = std::getenv("LOG4CPLUS_CONFIGURATION")) {
-      log4cplus::PropertyConfigurator::doConfigure(log_properties);
-    } else {
-      log4cplus::BasicConfigurator cfg;
-      cfg.configure();
-    }
-  }
-  ~LoggerInitializer() { log4cplus::Logger::shutdown(); }
-  LoggerInitializer(LoggerInitializer const&) = delete;
-  LoggerInitializer(LoggerInitializer&&) = delete;
-  LoggerInitializer& operator=(LoggerInitializer const&) = delete;
-  LoggerInitializer& operator=(LoggerInitializer&&) = delete;
-};
-LoggerInitializer loggerInitializer;
+// HACK: Log initialization should happen in the "main" function
+// Re-read the log4cplus configuration at runtime. Given that we integrate with
+// JAVA and a different log framework, let's define a global variable here to
+// make sure this thread will stay alive as long as the process is alive. If we
+// integrate this library into C++ code then the application should do this.
+const static int kLogConfigRefreshIntervalInMs = 60 * 1000;
+
+const static char* GetLog4CplusConfigLocation() {
+  auto log_location = std::getenv("LOG4CPLUS_CONFIGURATION");
+  return log_location ? log_location : "LOG4CPLUS_CONFIGURATION_NOT_SET";
+}
+const static log4cplus::ConfigureAndWatchThread kLogConfigThread(
+    GetLog4CplusConfigLocation(), kLogConfigRefreshIntervalInMs);
 
 ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::string& client_id, uint16_t max_faulty,
