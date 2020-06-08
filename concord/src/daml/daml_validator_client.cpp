@@ -6,6 +6,9 @@
 #include <chrono>
 #include <sstream>
 
+#include "utils/open_tracing_utils.hpp"
+
+using concord::utils::InjectSpanAsMetadata;
 using std::map;
 using std::string;
 using std::vector;
@@ -28,14 +31,10 @@ grpc::Status DamlValidatorClient::ValidateSubmission(
   req.set_replica_id(replica_id_);
   req.set_participant_id(participant_id);
   req.set_correlation_id(correlation_id);
-
-  std::ostringstream span_context;
-  validate_span->tracer().Inject(validate_span->context(), span_context);
-  req.set_span_context(span_context.str());
-
   *req.mutable_record_time() = record_time;
 
   grpc::ClientContext context;
+  InjectSpanAsMetadata(*validate_span, &context);
   return stub_->ValidateSubmission(&context, req, out);
 }
 
@@ -50,16 +49,13 @@ grpc::Status DamlValidatorClient::ValidatePendingSubmission(
   req.set_replica_id(replica_id_);
   req.set_correlation_id(correlation_id);
 
-  std::ostringstream span_context;
-  validate_span->tracer().Inject(validate_span->context(), span_context);
-  req.set_span_context(span_context.str());
-
   for (auto const& entry : input_state_entries) {
     da_kvbc::KeyValuePair* kvpair = req.add_input_state();
     kvpair->set_key(entry.first);
     kvpair->set_value(entry.second);
   }
   grpc::ClientContext context;
+  InjectSpanAsMetadata(*validate_span, &context);
   return stub_->ValidatePendingSubmission(&context, req, out);
 }
 
@@ -72,6 +68,7 @@ grpc::Status DamlValidatorClient::Validate(
       "daml_validate", {opentracing::ChildOf(&parent_span.context())});
 
   grpc::ClientContext context;
+  InjectSpanAsMetadata(*validate_span, &context);
   std::unique_ptr<grpc::ClientReaderWriterInterface<
       da_kvbc::EventToValidator, da_kvbc::EventFromValidator>>
       stream(stub_->Validate(&context));
