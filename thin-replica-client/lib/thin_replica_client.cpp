@@ -199,15 +199,17 @@ void ThinReplicaClient::ReadUpdateHashFromStream(
                        << server_index
                        << " gave an update with decreasing block number: "
                        << hash.block_id());
+    read_ignored_per_update_++;
     return;
   }
 
   if (hash.hash().length() > sizeof(UpdateHashType)) {
-    LOG4CPLUS_WARN(logger_,
-                   "Hash stream "
-                       << server_index
-                       << " gave a hash update with an unexpectedly long hash: "
-                       << hash.hash().length());
+    LOG4CPLUS_WARN(logger_, "Hash stream "
+                                << server_index << " gave an update (block "
+                                << hash.block_id()
+                                << ") with an unexpectedly long hash: "
+                                << hash.hash().length());
+    read_ignored_per_update_++;
     return;
   }
 
@@ -260,9 +262,11 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
   auto span = GetSpan(update_in, "trc_read_block");
   if (update_in.block_id() < latest_verified_block_id_) {
     LOG4CPLUS_WARN(logger_,
-                   "Data subscription stream (to server index "
+                   "Data stream "
                        << current_data_source_
-                       << ") gave a data update with decreasing block number.");
+                       << " gave an update with decreasing block number: "
+                       << update_in.block_id());
+    read_ignored_per_update_++;
     return {false, nullptr};
   }
 
@@ -406,24 +410,29 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
     }
 
     if (update_in.block_id() != most_agreed_block.first) {
-      LOG4CPLUS_WARN(logger_,
-                     "Data subscription stream (to server index "
-                         << server_index
-                         << ") gave a data update with a block number in "
-                            "disagreement with the consensus and "
-                            "contradicting its own hash update.");
+      LOG4CPLUS_WARN(logger_, "Data stream "
+                                  << server_index
+                                  << " gave an update with a block number ("
+                                  << update_in.block_id()
+                                  << ") in "
+                                     "disagreement with the consensus and "
+                                     "contradicting its own hash update.");
+      read_ignored_per_update_++;
       continue;
     }
 
     UpdateHashType update_data_hash = HashUpdate(update_in);
     if (update_data_hash != most_agreed_block.second) {
       LOG4CPLUS_WARN(logger_,
-                     "Data subscription stream (to server index "
+                     "Data stream "
                          << server_index
-                         << ") gave a data update hashing to a value "
+                         << " gave an update hashing to a value "
                             "in disagreement with the consensus on the "
-                            "hash for this block and contradicting the "
+                            "hash for this block ("
+                         << update_in.block_id()
+                         << ") and contradicting the "
                             "server's own hash update.");
+      read_ignored_per_update_++;
       continue;
     }
 
@@ -544,19 +553,23 @@ void ThinReplicaClient::ReceiveUpdates() {
     }
     InjectSpan(span, *update);
 
-    if (read_timeouts_per_update_ > 0 || read_failures_per_update_ > 0) {
+    if (read_timeouts_per_update_ > 0 || read_failures_per_update_ > 0 ||
+        read_ignored_per_update_ > 0) {
       LOG4CPLUS_WARN(logger_, read_timeouts_per_update_
-                                  << " timeouts and "
-                                  << read_failures_per_update_
-                                  << " failures while retrieving block id "
+                                  << " timeouts, " << read_failures_per_update_
+                                  << " failures, and "
+                                  << read_ignored_per_update_
+                                  << " ignored while retrieving block id "
                                   << update_in.block_id());
     }
 
     // Update metrics
     trc_read_timeouts_.Increment(read_timeouts_per_update_);
     trc_read_failures_.Increment(read_failures_per_update_);
+    trc_read_ignored_.Increment(read_ignored_per_update_);
     read_timeouts_per_update_ = 0;
     read_failures_per_update_ = 0;
+    read_ignored_per_update_ = 0;
     trc_updates_counter_.Increment();
     trc_queue_size_.Set(update_queue_->Size());
 

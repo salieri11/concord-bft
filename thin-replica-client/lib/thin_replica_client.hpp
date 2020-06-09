@@ -224,8 +224,10 @@ class ThinReplicaClient final {
   prometheus::Gauge& trc_queue_size_;
   prometheus::Gauge& trc_read_timeouts_;
   prometheus::Gauge& trc_read_failures_;
+  prometheus::Gauge& trc_read_ignored_;
   uint32_t read_timeouts_per_update_;
   uint32_t read_failures_per_update_;
+  uint32_t read_ignored_per_update_;
 
   typedef size_t StateHashType;
   typedef size_t UpdateHashType;
@@ -374,8 +376,11 @@ class ThinReplicaClient final {
             trc_failures_total_.Add({{"type", "read"}, {"error", "timeout"}})),
         trc_read_failures_(
             trc_failures_total_.Add({{"type", "read"}, {"error", "failure"}})),
+        trc_read_ignored_(
+            trc_failures_total_.Add({{"type", "read"}, {"error", "ignored"}})),
         read_timeouts_per_update_(0),
-        read_failures_per_update_(0) {
+        read_failures_per_update_(0),
+        read_ignored_per_update_(0) {
     SetupTracing(jaeger_agent);
     exposer_.RegisterCollectable(registry_);
     while (begin_servers != end_servers) {
