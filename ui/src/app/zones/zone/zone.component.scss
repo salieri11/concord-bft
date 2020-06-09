@@ -1,8 +1,88 @@
-.card {
-  margin-top: 0;
-  max-width: 1100px;
+@import "../../../styles/theme.scss";
+$soft-border-bottom: 1px solid rgba(140, 140, 140, 0.4);
+$topbar-height: 75px;
 
+.back-link {
+  height: 0;
+  margin-left: 0.8rem;
+  text-align: left;
+  white-space: nowrap;
+  transform: translate(0, 0.05rem);
+  font-size: 0.5rem;
+}
+
+.bar-title {
+  margin-left: 0.8rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-align: left;
+  height: 0;
+  transform: translate(0, 1.05rem);
+}
+
+.card-footer-container {
+  width: 100%;
+  height: calc(#{$topbar-height} + 4px);
+  position: fixed;
+  z-index: 100;
+  overflow: hidden;
   .card-footer {
+    border-bottom: $soft-border-bottom;
+    width: calc(100% - 240px);
+    padding-right: 1.8rem;
+    height: $topbar-height;
+    transition: background-color 100ms ease-out;
     text-align: right;
+    box-shadow: 0px 1px 3px rgba(0,0,0,0.05);
+    .buttons-wrapper {
+      display: inline-block;
+      transform: translate(0, 0.4rem);
+      button {
+        padding-right: 0.9rem;
+        padding-left: 0.9rem;
+      }
+    }
   }
+}
+
+.bg-light {
+  background-color: $bg-light;
+}
+
+.bg-dark {
+  background-color: $bg-dark;
+}
+
+.card-footer-margin-left {
+  margin-left: 2rem;
+}
+
+.inner-content {
+  margin-top: calc(#{$topbar-height} + 1px);
+  height: calc(100% - #{$topbar-height} - 1px);
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.margin-bottom {
+  width: 1;
+  height: 4rem;
+}
+
+.no-change-msg {
+  display: inline-block;
+  vertical-align: middle;
+  opacity: 0.6;
+  font-size: 0.5rem;
+  margin-right: 0.5rem;
+  transform: translate(0, 0.2rem);
+}
+
+.error-msg {
+  margin-right: 0.75rem;
+  color: #c72100;
+}
+
+.delete-button-container {
+  display: inline-block;
 }

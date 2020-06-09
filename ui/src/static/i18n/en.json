@@ -29,7 +29,9 @@
     "urlPh": "https://<endpoint>",
     "username": "Username",
     "usernamePh": "username",
-    "verify": "Verify"
+    "verify": "Verify",
+    "skip": "Skip",
+    "clone": "Clone"
   },
   "error": {
     "title": "Error",
@@ -467,8 +469,11 @@
       "type": "Type"
     },
     "actions": {
-      "new": "New On Premises Zone",
+      "new": "+ New On-premises Zone",
       "delete": "delete",
+      "deleted": "Zone Deleted Successfully",
+      "deleteAsk": "Are you sure you want to delete zone 'TARGET_ZONE'?",
+      "deleteMsg": "Deleted ",
       "updated": "Zone Updated Successfully",
       "onPre": "Zone Updated Successfully",
       "added": "Zone Added Successfully"
@@ -478,6 +483,32 @@
     }
   },
   "onPrem": {
+    "sections":{
+      "basic": {
+        "title": "Location & Name",
+        "description": "Choose an autocomplete location with latitude/longitude"
+      },
+      "vcenter": {
+        "title": "vCenter",
+        "description": "Add vCenter auth, resource, storage, and network info"
+      },
+      "metrics": {
+        "title": "Metrics",
+        "description": "Add metrics provider type and credentials"
+      },
+      "logging": {
+        "title": "Logging",
+        "description": "Add logging provider type and credentials"
+      },
+      "outboundProxy": {
+        "title": "Outbound Proxy",
+        "description": "Proxy from on-prem to external resources"
+      },
+      "containerReg": {
+        "title": "Container Registry",
+        "description": "Where product containers will be located"
+      }
+    },
     "help": {
       "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
     },
@@ -487,11 +518,11 @@
     "namePH": "A",
     "vcenter": {
       "title": "vCenter",
-      "url": "URL",
-      "urlPH": "https://<endpoint>",
-      "username": "Username",
+      "url": "vCenter URL",
+      "urlPH": "https://<vcenter-endpoint>",
+      "username": "vCenter Username",
       "usernamePH": "admin@onprem",
-      "password": "Password"
+      "password": "vCenter Password"
     },
     "resourcePool": "Resource Pool",
     "resourcePoolPH": "My Resource",
@@ -518,8 +549,10 @@
     "elk": {
       "title": "ELK Stack"
     },
+    "onPremConnChecking": "Checking vCenter credentials and provided resources...",
     "onPremConnSucc": "Connection successful to your on premises vCenter.",
-    "onPremConnError": "Cannot connect to your on premises vCenter, please ensure your configuration below is accurate.",
+    "onPremConnFail": "Validation has failed; please ensure your configuration below is accurate.",
+    "onPremConnError": "Error has occurred while validating the configuration.",
     "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",
     "logInsight": {
       "title": "Log Insight",
@@ -553,7 +586,16 @@
     "urlError": "Please add a valid url.",
     "ipDnsError": "Please add a valid IP or DNS without protocol.",
     "listIpsError": "Please enter a comma separated list of IPs.",
-    "rangeIpsError": "Please enter a - separated range of IPs."
+    "rangeIpsError": "Please enter a - separated range of IPs.",
+    "nothingChanged": "Nothing to update",
+    "someValidationsFailed": "Form has errors",
+    "updateZone": "Update Zone",
+    "addZone": "Add On-premises Zone",
+    "deleteZone": "Delete",
+    "backToList": "« Back to Zones List",
+    "optional": "optional",
+    "optionalRequirement": "Not enabled. All fields must be populated for this component to take effect.",
+    "metricsProvider": "Metrics Provider"
   },
   "organization": {
     "title": "Organizations",

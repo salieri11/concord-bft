@@ -3,6 +3,9 @@
  */
 
 import { browser, by, element } from 'protractor';
+import { waitFor } from '../helpers/utils';
+
+const stepperExpandDelay = 1000;
 
 export class Zone {
   progressEl = '#deployProgress';
@@ -15,11 +18,12 @@ export class Zone {
   fillOutVcenter() {
     // Safely injected credentials fron Jenkins (See BC-2712 for more information)
     const zoneCreds = browser.params.credentials.zone;
-    // zone location
+    // zone location name & designation
     element(by.css('#location')).sendKeys('test');
-    // zone designation
     element(by.css('#locationDesignation')).sendKeys('A');
-    // zone designation
+    element(by.css('#nextButtonNameLocation')).click();
+    browser.sleep(stepperExpandDelay);
+    // zone vcenter credentials and resources
     element(by.css('#vcUrl')).sendKeys('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
     element(by.css('#vcUsername')).sendKeys(zoneCreds.vcenter.username);
     element(by.css('#vcPassword')).sendKeys(zoneCreds.vcenter.password);
@@ -31,7 +35,6 @@ export class Zone {
     element(by.css('#netSubnet')).sendKeys('23');
     element(by.css('#netNS')).sendKeys('1.1.1.1,1.1.1.1');
     element(by.css('#netPool')).sendKeys('1.1.1.1-1.1.1.1');
-    element(by.css('#liUrl')).sendKeys('10.78.20.10');
   }
 
   getSuccessMessage() {
@@ -41,24 +44,45 @@ export class Zone {
   fillOutRest() {
     // Safely injected credentials fron Jenkins (See BC-2712 for more information)
     const zoneCreds = browser.params.credentials.zone;
+    // Log management
+    element(by.css('#liUrl')).sendKeys('10.78.20.10');
     element(by.css('#liPort')).sendKeys('9543');
     element(by.css('#liUsername')).sendKeys('fluentd');
     element(by.css('#liPasswor')).sendKeys(zoneCreds.logInsight.password);
+    element(by.css('#nextButtonLogManagement')).click();
+    browser.sleep(stepperExpandDelay);
+    // Metrics management
+    element(by.css('#metricsSelect')).sendKeys('wavefront');
     element(by.css('#wfUrl')).sendKeys('https://vmware.wavefront.com');
     element(by.css('#wfToken')).sendKeys(zoneCreds.wavefront.token);
+    // Elasticsearch
+    element(by.css('#metricsSelect')).sendKeys('elasticsearch');
+    browser.sleep(stepperExpandDelay / 2);
     element(by.css('#elkUrl')).sendKeys('https://my.elk.com');
     element(by.css('#elkUsername')).sendKeys('TestELKUser');
     element(by.css('#elkPassword')).sendKeys('TestELKPass');
+    element(by.css('#nextButtonMetricsManagement')).click();
+    browser.sleep(stepperExpandDelay);
+    // Container Registry
     element(by.css('#conUrl')).sendKeys('https://vmware-docker-blockchainsaas.bintray.io');
     element(by.css('#conUsername')).sendKeys(zoneCreds.bintray.username);
     element(by.css('#conPassword')).sendKeys(zoneCreds.bintray.password);
+    element(by.css('#nextButtonContainerRegistry')).click();
+    browser.sleep(stepperExpandDelay);
+    // Outbound Proxy
     element(by.css('#opHttpHost')).sendKeys('127.0.0.1');
     element(by.css('#opHttpPort')).sendKeys('80');
     element(by.css('#opHttpsHost')).sendKeys('127.0.0.1');
     element(by.css('#opHttpsPort')).sendKeys('443');
+    element(by.css('#nextButtonOutboundProxy')).click();
+    browser.sleep(stepperExpandDelay);
   }
 
   getValues(): any[] {
+    element.all(by.css('button[id^=clr-accordion-header]')).each((matched, _) => {
+      matched.click();
+      browser.sleep(1000);
+    });
     return [
         element(by.css('#location')).getAttribute('value'),
         element(by.css('#locationDesignation')).getAttribute('value'),

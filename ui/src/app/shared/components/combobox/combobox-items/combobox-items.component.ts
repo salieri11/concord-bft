@@ -17,6 +17,7 @@ export class VmwComboboxItemsComponent implements OnChanges {
   @Input() position: string;
   @Input() multiSelect = false;
   @Input() filterIncludes = false;
+  @Input() showLoading = false;
 
   /**
    * Emits an array of items when multiSelect === true. Otherwise emits a ComboboxItem.

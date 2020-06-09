@@ -11,6 +11,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { ZoneListComponent } from './zone-list.component';
 import { ZonesService } from '../shared/zones.service';
+import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 
 describe('ZoneListComponent', () => {
   let component: ZoneListComponent;
@@ -23,7 +24,11 @@ describe('ZoneListComponent', () => {
         HttpClientTestingModule,
         RouterTestingModule
       ],
-      declarations: [ ZoneListComponent, CanViewDirective ],
+      declarations: [
+        ZoneListComponent,
+        ConfirmModalComponent,
+        CanViewDirective
+      ],
       providers: [ZonesService]
     })
     .compileComponents();
