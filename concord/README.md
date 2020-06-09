@@ -15,6 +15,16 @@ run into trouble with the following steps, compare them to the steps in
 (./DockerfilePrereqs) and (./Dockerfile), which are used to build concord for
 deployment.
 
+**Local build**
+
+```
+cd ~/vmwathena_blockchain/concord/
+make run-c
+make build-s
+make test
+make build-docker-image
+```
+
 ### Dependencies
 
 #### Pre-built libraries and tools
