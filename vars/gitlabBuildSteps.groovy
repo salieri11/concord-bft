@@ -293,7 +293,7 @@ def call(){
   } else if (env.JOB_NAME.contains(long_tests_job_name)) {
     agentLabel = "LongRunTest"
   } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
-    agentLabel = "MemoryLeakTesting"
+    agentLabel = "MemleakTest"
   }
 
   pipeline {
