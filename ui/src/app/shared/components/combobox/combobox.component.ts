@@ -24,6 +24,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
   @Input() items: Array<VmwComboboxItem>;
   @Input() placeholder = '';
   @Input() showSuggestionsOnFocus = true;
+  @Input() onFocusMinInputLength = 0;
   @Input() isAddNewAllowed = true;
   @Input() filterItemsWhenTyping = false;
   @Input() autoComplete = false;
@@ -34,6 +35,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
   @Input() filterIncludes = false;
   @Input() position = 'bottom-left';
   @Input() showTooltip = true;
+  @Input() showLoading = false;
 
   public showSuggestions = false;
 
@@ -54,23 +56,24 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
 
   set displayValue(value: string) {
     if (this.filterItemsWhenTyping) {
-      this.comboboxItems.filter(value);
+      if (this.comboboxItems) { this.comboboxItems.filter(value); }
     }
-    if (!this.isAddNewAllowed &&
+    if (!this.isAddNewAllowed && this.comboboxItems &&
       !this.comboboxItems.findByDisplayValue(value) &&
       value) {
       return;
     }
     if (value !== this._displayValue) {
       this._displayValue = value;
-      let comboboxItem = this.comboboxItems.findByDisplayValue(value);
+      let comboboxItem = !this.comboboxItems ? null
+                        : this.comboboxItems.findByDisplayValue(value);
       if (!comboboxItem) {
         // Create a fake item if isAddNewAllowed is true and the
         // matching item is not found.
         comboboxItem = new VmwComboboxItem(value, value);
       }
 
-      this.changeDetectorRef.detectChanges();
+      try { this.changeDetectorRef.detectChanges(); } catch (e) {}
 
       if (this.onChangeCallback) {
         this.onChangeCallback(comboboxItem);
@@ -124,7 +127,8 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
   }
 
   onFocus() {
-    if (this.showSuggestionsOnFocus) {
+    if (this.showSuggestionsOnFocus
+        && this.input.nativeElement.value.length >= this.onFocusMinInputLength) {
       this.showSuggestions = true;
     }
     if (this.multiSelect) {
@@ -145,7 +149,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
       if (this.onTouchedCallback) {
         this.onTouchedCallback();
       }
-      this.changeDetectorRef.markForCheck();
+      try { this.changeDetectorRef.markForCheck(); } catch (e) {}
     }, TIMEOUT);
   }
 
@@ -154,7 +158,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
       this.displayValue = selection.map((item: VmwComboboxItem) => {
         return item.displayValue;
       }).join(', ');
-      this.onChangeCallback(selection);
+      if (this.onChangeCallback) { this.onChangeCallback(selection); }
     } else {
       this.displayValue = selection.displayValue;
     }
@@ -176,7 +180,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
   }
 
   // ControlValueAccessor interface implementation.
-  writeValue(value: VmwComboboxItem|Array<VmwComboboxItem>) {
+  writeValue(value: VmwComboboxItem | Array<VmwComboboxItem>) {
     if (!value) {
       this._displayValue = '';
       if (this.comboboxItems) {
@@ -186,9 +190,9 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
     }
     if (Array.isArray(value)) {
       this.setDisplayValue(value);
-      this.comboboxItems.selectItems(value);
-    } else if (value instanceof VmwComboboxItem) {
-      if (!this.isAddNewAllowed &&
+      if (this.comboboxItems) { this.comboboxItems.selectItems(value); }
+    } else if (value instanceof VmwComboboxItem || value['displayValue']) {
+      if (!this.isAddNewAllowed && this.comboboxItems &&
         !this.comboboxItems.findByDisplayValue(value.displayValue)) {
         throw new Error(
           'The item with the given displayValue does not exist: ' +
@@ -201,7 +205,7 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
         }
       }
     } else {
-      throw new Error('The type should be an instanc eof ComboboxItem');
+      throw new Error('The type should be an instance of ComboboxItem');
     }
   }
 

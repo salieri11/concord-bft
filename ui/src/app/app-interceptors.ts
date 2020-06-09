@@ -73,6 +73,12 @@ export class RequestInterceptor implements HttpInterceptor {
               }
             }
 
+            // Used for distinguishing vCenter zone registration test from validation vs connection error
+            if (request.url.indexOf('api/blockchains/zones?action=test') >= 0
+                && error.error.error_message.indexOf('io.grpc.StatusRuntimeException: UNKNOWN') >= 0) {
+              return of(new HttpResponse<any>({ status: 206, body: { result: 'UNKNOWN' } }));
+            }
+
             switch ((<HttpErrorResponse>error).status) {
               case 401:
                 this.cspErrors.push(error);

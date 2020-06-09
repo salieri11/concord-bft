@@ -6,6 +6,7 @@
         }">
 
   <input type="text" #inputControl
+         autocomplete="off"
          tabindex="0" role="combobox" aria-owns="combobox-items" aria-autocomplete="list"
          id="location"
          class="clr-input"
@@ -18,13 +19,15 @@
          [ngClass]="{'multi-select': multiSelect, 'active': showSuggestions}"/>
 
   <concord-combobox-items
-    [hidden]="!showSuggestions || items.length === 0"
+    [hidden]="!showLoading && !showSuggestions"
     [items]="items"
     (selectionChange)="setDisplayValue($event)"
     [noItemsFoundString]="noItemsFoundString"
     [multiSelect]="multiSelect"
     [position]="position"
-    [filterIncludes]="filterIncludes">
+    [filterIncludes]="filterIncludes"
+    [showLoading]="showLoading"
+    >
   </concord-combobox-items>
 
   <clr-icon

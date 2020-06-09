@@ -1,27 +1,35 @@
-<h2 class="page-title">
-  {{ (isNewZoneState ? 'onPrem.pageTitle' : 'zones.titleDetail') | translate }} {{ zoneName }}
-</h2>
-<div class="clr-row">
-  <div class="clr-col-12">
-    <div class="card">
-      <div class="card-block">
-        <concord-zone-form #form></concord-zone-form>
-      </div>
-      <div class="card-footer" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <button *ngIf="!isNewZoneState" (click)="update()" [clrLoading]="saving" class="btn btn-primary" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid" id="updateZone">
-          {{ 'common.update' | translate }}
+<div class="card-footer-container">
+  <div [ngClass]="{'card-footer':true, 'bg-dark':themeDark, 'bg-light':!themeDark}" 
+    *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+    <div class="bar-title">
+      {{ (isNewZoneState ? 'onPrem.pageTitle' : 'zones.titleDetail') | translate }} {{ zoneName }}
+    </div>
+    <div class="back-link"><a [routerLink]="['../']">{{ 'onPrem.backToList' | translate }}</a></div>
+    <div class="card-footer-margin-left">
+      <div class="buttons-wrapper">
+        <div id="zoneNothingToUpdate" class="no-change-msg" *ngIf="!isNewZoneState && !zoneForm.changedFromOriginalValue">{{ 'onPrem.nothingChanged' | translate }}</div>
+      <div class="no-change-msg error-msg" *ngIf="!isNewZoneState && zoneForm.changedFromOriginalValue && zoneForm.otherValidationsFailed">{{ 'onPrem.someValidationsFailed' | translate }}</div>
+        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-success" [clrLoading]="saving" id="addZone"
+          [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.otherValidationsFailed">
+          {{ 'onPrem.addZone' | translate }}
         </button>
-        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-primary" [clrLoading]="saving" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid" id="addZone">
-          {{ 'common.add' | translate }}
+        <button *ngIf="!isNewZoneState" (click)="update()" class="btn btn-primary" [clrLoading]="saving" id="updateZone"
+          [disabled]="saving || !zoneForm.onPremConnectionSuccessful || zoneForm.otherValidationsFailed || !zoneForm.changedFromOriginalValue">
+          {{ 'onPrem.updateZone' | translate }}
         </button>
-        <ng-container *ngIf="!isNewZoneState">
-          <button (click)="openConfirmDelete()" [clrLoading]="deleting" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" class="btn btn-outline-danger" id="deleteZone">
-            {{ 'common.delete' | translate }}
+        <div *ngIf="!isNewZoneState" class="delete-button-container">
+          <button (click)="openConfirmDelete()" [clrLoading]="deleting" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" 
+                    class="btn btn-outline-danger" id="deleteZone">
+            {{ 'onPrem.deleteZone' | translate }}
           </button>
-        </ng-container>
+        </div>
       </div>
     </div>
   </div>
+</div>
+<div class="p-2 inner-content">
+  <concord-zone-form #form [formVisible]="zoneFormVisible"></concord-zone-form>
+  <div class="margin-bottom"></div>
 </div>
 
 <concord-confirm-modal #confirm></concord-confirm-modal>

@@ -1,10 +1,16 @@
 <div class="combobox-items-container dropdown" [ngClass]="position">
-  <div *ngIf="!filteredItems || !filteredItems.length" class="dropdown-menu">
-        <span class="dropdown-item">
-            {{noItemsFoundString || 'No items found.'}}
-        </span>
+  <div *ngIf="showLoading" class="dropdown-menu">
+    <div class="dropdown-item">
+      <clr-spinner class="loading-spinner" clrSmall></clr-spinner>
+      Loading...
+    </div>
   </div>
-  <ul *ngIf="!!filteredItems && filteredItems.length > 0"
+  <div *ngIf="!showLoading && (!filteredItems || !filteredItems.length)" class="dropdown-menu">
+    <span class="dropdown-item">
+      {{noItemsFoundString || 'No items found.'}}
+    </span>
+  </div>
+  <ul *ngIf="!showLoading && !!filteredItems && filteredItems.length > 0"
       class="dropdown-menu"
       tabindex="-1"
       role="listbox"

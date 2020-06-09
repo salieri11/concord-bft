@@ -1,205 +1,310 @@
-<div clrForm [formGroup]="form" class="form-block blockchain-form clr-form-compact">
-  <div class="clr-row">
-    <div class="clr-col-lg-12">
-      <clr-alert *ngIf="onPremConnectionSuccessful" [clrAlertClosable]="false" [clrAlertType]="'success'" id="onPremSuccess">
-        <clr-alert-item>
-          <span class="alert-text">
-            {{'onPrem.onPremConnSucc' | translate}}
-          </span>
-        </clr-alert-item>
-      </clr-alert>
-      <clr-alert *ngIf="addedOnPrem" [clrAlertClosable]="false" [clrAlertType]="'success'">
-        <clr-alert-item>
-          <span class="alert-text">
-            {{'onPrem.addedSuccessfully' | translate}}
-          </span>
-        </clr-alert-item>
-      </clr-alert>
-      <clr-alert *ngIf="onPremError" [clrAlertClosable]="false" [clrAlertType]="'danger'">
-        <clr-alert-item>
-          <span class="alert-text">
-            {{'onPrem.onPremConnError' | translate}}
-          </span>
-        </clr-alert-item>
-      </clr-alert>
-    </div>
-    <div class="clr-col-lg-6">
-      <div formGroupName="onPremLocation">
-        <!-- <h6>{{'onPrem.locationTitle' | translate}}</h6> -->
-        <div class="clr-row clr-form-control">
-          <label class="clr-col-12 clr-col-md-4 clr-control-label" for="location">{{ 'onPrem.location' | translate }}</label>
-          <concord-combobox #ipInput formControlName="location" class="clr-col-12 clr-col-md-6" [items]="locations" [filterItemsWhenTyping]="true" [placeholder]="'onPrem.locationPH' | translate">
+<div *ngIf="!formVisible" class="spinner-container">
+  <clr-spinner class="spinner-middle">_</clr-spinner>
+</div>
+<form [ngClass]="{'form-hidden':!formVisible}" clrStepper [formGroup]="form">
+  <clr-stepper-panel formGroupName="onPremLocation">
+    <clr-step-title>{{ 'onPrem.sections.basic.title' | translate }}</clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.basic.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <div class="location-select-to-top">
+        <div class="clr-form-control">
+          <label class="clr-control-label" for="location">{{ 'onPrem.location' | translate }}</label>
+          <concord-combobox
+            #locationInput
+            class="dropdown-input"
+            formControlName="location" 
+            [items]="locations"
+            [onFocusMinInputLength]="4"
+            [filterItemsWhenTyping]="true"
+            [placeholder]="'onPrem.locationPH' | translate">
           </concord-combobox>
         </div>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.name' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="name" id="locationDesignation" />
-          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-        </clr-input-container>
       </div>
-      <div formGroupName="onPrem">
-        <div class="divider"></div>
+      <clr-input-container>
+        <label>{{ 'onPrem.name' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" 
+              formControlName="name" id="locationDesignation" (keyup)="onchange($event,'onPremLocation.name')"/>
+        <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+      </clr-input-container>
+      <button id="nextButtonNameLocation" clrStepButton="next">{{ 'common.next' | translate }}</button>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="onPrem">
+    <clr-step-title>{{ 'onPrem.sections.vcenter.title' | translate }}</clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.vcenter.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <div name="onPremVCenterCredentialCheckMessages">
+        <clr-alert *ngIf="onPremConnectionSuccessful" [clrAlertClosable]="false" [clrAlertType]="'success'" id="onPremSuccess">
+          <clr-alert-item><span class="alert-text">{{'onPrem.onPremConnSucc' | translate}}</span></clr-alert-item>
+        </clr-alert>
+        <clr-alert *ngIf="addedOnPrem" [clrAlertClosable]="false" [clrAlertType]="'success'">
+          <clr-alert-item><span class="alert-text">{{'onPrem.addedSuccessfully' | translate}}</span></clr-alert-item>
+        </clr-alert>
+        <clr-alert *ngIf="onPremFailed" [clrAlertClosable]="false" [clrAlertType]="'danger'">
+          <clr-alert-item><span class="alert-text">{{'onPrem.onPremConnFail' | translate}}</span></clr-alert-item>
+        </clr-alert>
+        <clr-alert *ngIf="onPremError" [clrAlertClosable]="false" [clrAlertType]="'danger'">
+          <clr-alert-item><span class="alert-text">{{'onPrem.onPremConnError' | translate}}</span></clr-alert-item>
+        </clr-alert>
+      </div>
+      <div class="zero-height">
+        <div *ngIf="onPremConnectionInProgress" class="spinner-container-vcenter">
+          <clr-spinner class="spinner-middle">_</clr-spinner>
+        </div>
+      </div>
+      <div [ngClass]="{'disabled-for-checking':onPremConnectionInProgress}">
         <div formGroupName="vcenter">
-          <h6>{{'onPrem.vcenter.title' | translate}}</h6>
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.url' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" id="vcUrl" />
+            <label>{{ 'onPrem.vcenter.url' | translate }}</label>
+            <input clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate"
+                  (keyup)="onchange($event,'onPrem.vcenter.url')" (blur)="handleOnPremTesting()"
+                  formControlName="url" id="vcUrl" [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.username' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" id="vcUsername"/>
+            <label>{{ 'onPrem.vcenter.username' | translate }}</label>
+            <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate"
+                  (keyup)="onchange($event,'onPrem.vcenter.username')" (blur)="handleOnPremTesting()"
+                  formControlName="username" id="vcUsername" [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.password' | translate }}</label>
-            <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" id="vcPassword"/>
+            <label>{{ 'onPrem.vcenter.password' | translate }}</label>
+            <input clrInput type="password" formControlName="password" id="vcPassword"
+                    (keyup)="onchange($event,'onPrem.vcenter.password')" (blur)="handleOnPremTesting()"
+                    [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
           </clr-input-container>
         </div>
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.resourcePool' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="resource_pool" id="vcRp"/>
+          <label>{{ 'onPrem.resourcePool' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate"
+                  formControlName="resource_pool" id="vcRp"
+                  (keyup)="onchange($event,'onPrem.resource_pool')" (blur)="handleOnPremTesting()"
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.storage' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.storagePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="storage" id="vcStorage" />
+          <label>{{ 'onPrem.storage' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.storagePH' | translate"
+                  formControlName="storage" id="vcStorage"
+                  (keyup)="onchange($event,'onPrem.storage')" (blur)="handleOnPremTesting()"
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.folder' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="folder" id="vcFolder"/>
+          <label>{{ 'onPrem.folder' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" formControlName="folder" id="vcFolder"
+                  (keyup)="onchange($event,'onPrem.folder')" (blur)="handleOnPremTesting()"
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
-        <div class="divider"></div>
-        <div formGroupName="network">
-          <h6>{{'onPrem.network.title' | translate}}</h6>
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.compNetwork' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="name" id="netName" />
-            <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-          </clr-input-container>
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.gatewayIp' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.network.gatewayIpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="gateway" id="netGateway" />
-            <clr-control-error>{{ 'onPrem.ipError' | translate }}</clr-control-error>
-          </clr-input-container>
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.subnet' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.network.subnetPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="subnet" id="netSubnet" />
-            <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-          </clr-input-container>
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.nameServers' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.network.nameServersPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="name_servers" id="netNS" />
-            <clr-control-helper>{{ 'formCommon.commaSeperated' | translate }}</clr-control-helper>
-            <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
-          </clr-input-container>
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.ipPool' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.network.ipPoolPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="ip_pool" id="netPool" />
-            <clr-control-error>{{ 'onPrem.rangeIpsError' | translate }}</clr-control-error>
-          </clr-input-container>
-        </div>
       </div>
-    </div>
-    <div class="clr-col-lg-6">
-      <div formArrayName="log_managements">
-        <div *ngFor="let l of log_managements['controls']; let i=index">
-          <div [formGroupName]="i">
-          <h6>{{'onPrem.logInsight.title' | translate}}</h6>
+      <div class="divider"></div>
+      <div formGroupName="network">
+        <clr-input-container>
+          <label>{{ 'onPrem.network.compNetwork' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate"
+                  formControlName="name" id="netName" (keyup)="onchange($event,'onPrem.network.name')"/>
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label>{{ 'onPrem.network.gatewayIp' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.gatewayIpPH' | translate"
+                  formControlName="gateway" id="netGateway" (keyup)="onchange($event,'onPrem.network.gateway')"/>
+          <clr-control-error>{{ 'onPrem.ipError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label>{{ 'onPrem.network.subnet' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.subnetPH' | translate"
+                  formControlName="subnet" id="netSubnet" (keyup)="onchange($event,'onPrem.network.subnet')"/>
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label>{{ 'onPrem.network.nameServers' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.nameServersPH' | translate"
+                  formControlName="name_servers" id="netNS" (keyup)="onchange($event,'onPrem.network.name_servers')"/>
+          <clr-control-helper>{{ 'formCommon.commaSeperated' | translate }}</clr-control-helper>
+          <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label>{{ 'onPrem.network.ipPool' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.ipPoolPH' | translate"
+                  formControlName="ip_pool" id="netPool" (keyup)="onchange($event,'onPrem.network.ip_pool')"/>
+          <clr-control-error>{{ 'onPrem.rangeIpsError' | translate }}</clr-control-error>
+        </clr-input-container>
+      </div>
+      <button id="nextButtonVCenter" clrStepButton="next"
+        [disabled]="onPremConnectionInProgress || !onPremConnectionSuccessful">
+        {{ 'common.next' | translate }}
+      </button>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="log_managements">
+    <clr-step-title>
+      {{ 'onPrem.sections.logging.title' | translate }}
+      <div class="label-more">{{ 'onPrem.optional' | translate }}</div>
+    </clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.logging.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <div *ngFor="let l of log_managements['controls']; let i=index">
+        <div [formGroupName]="i">
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'common.url' | translate }}</label>
-            <input #ipInput clrInput type="text" [placeholder]="'onPrem.logInsight.ipPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="address" id="liUrl" />
+            <label>{{ 'common.url' | translate }}</label>
+            <input clrInput type="text" [placeholder]="'onPrem.logInsight.ipPH' | translate" 
+                  formControlName="address" id="liUrl" (keyup)="onchange($event,'log_managements.'+i+'.address')"/>
             <clr-control-helper>{{ 'onPrem.logInsight.ipHelper' | translate }}</clr-control-helper>
             <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'common.port' | translate }}</label>
-            <input clrInput type="number" class="clr-col-12 clr-col-md-6" [placeholder]="'common.portPh' | translate" formControlName="port" id="liPort" />
-          </clr-input-container>
-
-          <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'common.username' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'common.usernamePh' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" id="liUsername"/>
+            <label>{{ 'common.port' | translate }}</label>
+            <input clrInput type="number" [placeholder]="'common.portPh' | translate" 
+                  formControlName="port" id="liPort" (keyup)="onchange($event,'log_managements.'+i+'.port')"/>
           </clr-input-container>
           <clr-input-container>
-            <label class="clr-col-12 clr-col-md-4">{{ 'common.password' | translate }}</label>
-            <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" id="liPasswor" />
+            <label>{{ 'common.username' | translate }}</label>
+            <input clrInput type="text" [placeholder]="'common.usernamePh' | translate"
+                  formControlName="username" id="liUsername" (keyup)="onchange($event,'log_managements.'+i+'.username')"/>
+          </clr-input-container>
+          <clr-input-container>
+            <label>{{ 'common.password' | translate }}</label>
+            <input clrInput type="password"
+                  formControlName="password" id="liPasswor" (keyup)="onchange($event,'log_managements.'+i+'.password')"/>
           </clr-input-container>
         </div>
-        </div>
       </div>
-      <div formGroupName="wavefront">
-        <div class="divider"></div>
-        <h6>{{ 'onPrem.wavefront.title' | translate }}</h6>
+      <div class="form-next">
+        <button id="nextButtonLogManagement" [ngClass]="{'grayscale':insufficientSection.logging}" clrStepButton="next">
+          <span *ngIf="insufficientSection.logging">{{ 'common.skip' | translate }}</span>
+          <span *ngIf="!insufficientSection.logging">{{ 'common.next' | translate }}</span>
+        </button>
+        <div *ngIf="insufficientSection.logging && someValueMap.logging" class="skip-msg">{{ 'onPrem.optionalRequirement' | translate }}</div>
+      </div>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="metrics">
+    <clr-step-title>
+      {{ 'onPrem.sections.metrics.title' | translate }}
+      <div class="label-more">{{ 'onPrem.optional' | translate }}</div>
+    </clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.metrics.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <clr-select-container class="select-container">
+        <label>{{ 'onPrem.metricsProvider' | translate }}</label>
+        <select clrSelect id="metricsSelect" class="input-margin-left" (change)="onMetricsSelect($event)">
+          <option value="wavefront">Wavefront</option>
+          <option value="elasticsearch">ElasticSearch (ELK)</option>
+        </select>
+      </clr-select-container>
+      <div class="zero-height"></div>
+      <div formGroupName="elasticsearch" [ngClass]="{'section-hidden':metricSelected!=='elasticsearch'}">
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
-          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" id="wfUrl" />
+          <label>{{ 'onPrem.containerReg.url' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+                  formControlName="url" id="elkUrl" (keyup)="onchange($event,'metrics.elasticsearch.url')"/>
           <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'common.token' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'common.token' | translate" class="clr-col-12 clr-col-md-6" formControlName="token" id="wfToken" />
+          <label>{{ 'common.username' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'common.usernamePh' | translate"
+                  formControlName="username" id="elkUsername" (keyup)="onchange($event,'metrics.elasticsearch.username')"/>
+        </clr-input-container>
+        <clr-input-container>
+          <label>{{ 'common.password' | translate }}</label>
+          <input clrInput type="password" 
+                  formControlName="password" id="elkPassword" (keyup)="onchange($event,'metrics.elasticsearch.password')"/>
         </clr-input-container>
       </div>
-      <div formGroupName="elasticsearch">
-        <div class="divider"></div>
-        <h6>{{ 'onPrem.elk.title' | translate }}</h6>
+      <div formGroupName="wavefront" [ngClass]="{'section-hidden':metricSelected!=='wavefront'}">
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
-          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" id="elkUrl" />
+          <label>{{ 'onPrem.containerReg.url' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+                formControlName="url" id="wfUrl" (keyup)="onchange($event,'metrics.wavefront.url')"/>
           <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'common.username' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'common.usernamePh' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" id="elkUsername"/>
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'common.password' | translate }}</label>
-          <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" id="elkPassword" />
+          <label>{{ 'common.token' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'common.token' | translate" 
+                formControlName="token" id="wfToken" (keyup)="onchange($event,'metrics.wavefront.token')"/>
         </clr-input-container>
       </div>
-      <div formGroupName="container_repo">
-        <div class="divider"></div>
-        <h6>{{'onPrem.containerReg.title' | translate}}</h6>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
-          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" id="conUrl" />
-          <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.username' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" id="conUsername" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.password' | translate }}</label>
-          <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" id="conPassword" />
-        </clr-input-container>
+      <div class="form-next">
+        <button id="nextButtonMetricsManagement" [ngClass]="{'grayscale':insufficientSection.metrics}" clrStepButton="next">
+          <span *ngIf="insufficientSection.metrics">{{ 'common.skip' | translate }}</span>
+          <span *ngIf="!insufficientSection.metrics">{{ 'common.next' | translate }}</span>
+        </button>
+        <div *ngIf="insufficientSection.metrics && someValueMap.metrics" class="skip-msg">{{ 'onPrem.optionalRequirement' | translate }}</div>
       </div>
-      <div formGroupName="outbound_proxy">
-        <div class="divider"></div>
-        <h6>{{'onPrem.outboundProxy.title' | translate}}</h6>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpHost' | translate }}</label>
-          <input #ipInput clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="http_host" id="opHttpHost" />
-          <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpPort' | translate }}</label>
-          <input clrInput type="number" class="clr-col-12 clr-col-md-6" [placeholder]="'onPrem.outboundProxy.httpPortPH' | translate" formControlName="http_port" id="opHttpPort" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpsHost' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="https_host" id="opHttpsHost" />
-          <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpsPort' | translate }}</label>
-          <input clrInput type="number" class="clr-col-12 clr-col-md-6" [placeholder]="'onPrem.outboundProxy.httpsPortPH' | translate" formControlName="https_port" id="opHttpsPort"/>
-        </clr-input-container>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="container_repo">
+    <clr-step-title>
+      {{ 'onPrem.sections.containerReg.title' | translate }}
+      <div class="label-more">{{ 'onPrem.optional' | translate }}</div>
+    </clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.containerReg.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <clr-input-container>
+        <label>{{ 'onPrem.containerReg.url' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+                formControlName="url" id="conUrl" (keyup)="onchange($event,'container_repo.url')"/>
+        <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+      </clr-input-container>
+      <clr-input-container>
+        <label>{{ 'onPrem.containerReg.username' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate" 
+                formControlName="username" id="conUsername" (keyup)="onchange($event,'container_repo.username')"/>
+      </clr-input-container>
+      <clr-input-container>
+        <label>{{ 'onPrem.containerReg.password' | translate }}</label>
+        <input clrInput type="password" 
+                formControlName="password" id="conPassword" (keyup)="onchange($event,'container_repo.password')"/>
+      </clr-input-container>
+      <div class="form-next">
+        <button id="nextButtonContainerRegistry" [ngClass]="{'grayscale':insufficientSection.containerReg}" clrStepButton="next">
+          <span *ngIf="insufficientSection.containerReg">{{ 'common.skip' | translate }}</span>
+          <span *ngIf="!insufficientSection.containerReg">{{ 'common.next' | translate }}</span>
+        </button>
+        <div *ngIf="insufficientSection.containerReg && someValueMap.containerReg" class="skip-msg">{{ 'onPrem.optionalRequirement' | translate }}</div>
       </div>
-    </div>
-  </div>
-</div>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="outbound_proxy">
+    <clr-step-title>
+      {{ 'onPrem.sections.outboundProxy.title' | translate }}
+      <div class="label-more">{{ 'onPrem.optional' | translate }}</div>
+    </clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.outboundProxy.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <clr-input-container>
+        <label>{{ 'onPrem.outboundProxy.httpHost' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" 
+                formControlName="http_host" id="opHttpHost" (keyup)="onchange($event,'outbound_proxy.http_host')"/>
+        <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
+      </clr-input-container>
+      <clr-input-container>
+        <label>{{ 'onPrem.outboundProxy.httpPort' | translate }}</label>
+        <input clrInput type="number" [placeholder]="'onPrem.outboundProxy.httpPortPH' | translate"
+                formControlName="http_port" id="opHttpPort" (keyup)="onchange($event,'outbound_proxy.http_port')"/>
+      </clr-input-container>
+      <clr-input-container>
+        <label>{{ 'onPrem.outboundProxy.httpsHost' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate"
+               formControlName="https_host" id="opHttpsHost" (keyup)="onchange($event,'outbound_proxy.https_host')"/>
+        <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
+      </clr-input-container>
+      <clr-input-container>
+        <label>{{ 'onPrem.outboundProxy.httpsPort' | translate }}</label>
+        <input clrInput type="number" [placeholder]="'onPrem.outboundProxy.httpsPortPH' | translate"
+                formControlName="https_port" id="opHttpsPort" (keyup)="onchange($event,'outbound_proxy.https_port')"/>
+      </clr-input-container>
+      <div class="form-next">
+        <button id="nextButtonOutboundProxy" [ngClass]="{'grayscale':insufficientSection.outboundProxy}" clrStepButton="next">
+          <span *ngIf="insufficientSection.outboundProxy">{{ 'common.skip' | translate }}</span>
+          <span *ngIf="!insufficientSection.outboundProxy">{{ 'common.next' | translate }}</span>
+        </button>
+        <div *ngIf="insufficientSection.outboundProxy && someValueMap.outboundProxy" class="skip-msg">{{ 'onPrem.optionalRequirement' | translate }}</div>
+      </div>
+    </clr-step-content>
+  </clr-stepper-panel>
+</form>
