@@ -272,18 +272,23 @@ public class VSphereHttpClient {
     }
 
     private boolean updateVmHardware(String name, Map<String, String> properties) {
-        long memoryMb = Long.parseLong(properties
-                .getOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
-        boolean mem = updateVirtualMachineMemory(name, memoryMb);
 
-        int cpuCount = Integer.parseInt(properties
-                .getOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
-        int coresPerSocket = Integer.parseInt(properties
-                .getOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "2"));
-        boolean cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
+        boolean mem = true;
+        boolean cpu = true;
+        if (properties.containsKey(NodeProperty.Name.VM_MEMORY.toString())) {
+            long memoryMb = Long.parseLong(properties
+                    .getOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
+            mem = updateVirtualMachineMemory(name, memoryMb);
+        }
 
+        if (properties.containsKey(NodeProperty.Name.VM_CPU_COUNT.toString())) {
+            int cpuCount = Integer.parseInt(properties
+                    .getOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
+            int coresPerSocket = Integer.parseInt(properties
+                    .getOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "1"));
+            cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
+        }
         return mem && cpu;
-
     }
 
     /**
