@@ -3,7 +3,7 @@
  */
 
 import { browser, by, element } from 'protractor';
-import { waitFor, waitForURLContains } from '../helpers/utils';
+import { waitFor, waitInteractableFor } from '../helpers/utils';
 
 // Safely injected credentials fron Jenkins (See BC-2712 for more information)
 const CSP_LOGIN_EMAIL = browser.params.credentials.login.username;
@@ -19,8 +19,15 @@ export class CSPLogin {
   // login with email address
   fillInEmail() {
     const el = '#discovery_username';
-    waitFor(el);
+    // Wait for email input to be interactable;
+    // CSP decided to include input element in HTML while loading gif is going on.
+    // So we have to actually wait for the login element to become interactable
+    waitInteractableFor(el);
+    browser.sleep(300);
+    element(by.css(el)).click();
+    browser.sleep(300);
     element(by.css(el)).sendKeys(CSP_LOGIN_EMAIL);
+    browser.sleep(100);
     element(by.css('#next-btn-text')).click();
   }
 
@@ -29,12 +36,12 @@ export class CSPLogin {
   // CHANGED to https://csp-local.vidmpreview.com/authcontrol/auth/request (See BC-2697)
   fillInPassword() {
     const el = '#password';
-    waitFor(el);
-    browser.sleep(1000);
+    waitInteractableFor(el);
+    browser.sleep(300);
     element(by.css(el)).click();
     browser.sleep(300);
     element(by.css(el)).sendKeys(CSP_PASSWORD);
-    browser.sleep(1000);
+    browser.sleep(100);
     // #signIn id in button is gone (See BC-2697)
     // element(by.css('#signIn')).click();
     element(by.css('[type="submit"]')).click();
