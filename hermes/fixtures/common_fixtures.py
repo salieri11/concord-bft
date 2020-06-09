@@ -417,10 +417,8 @@ def fxProduct(request, fxHermesRunSettings):
 
       endpoint_hosts = ["localhost"]
       try:
-         waitForStartupFunction = None
-         waitForStartupParams = {}
-         checkProductStatusParams = {"retries": 1}
-         productType = getattr(request.module, "productType", helper.TYPE_ETHEREUM)
+         productType = getattr(request.module, "productType",
+                               helper.TYPE_ETHEREUM)
 
          if productType == helper.TYPE_DAML:
             credentials = \
@@ -452,10 +450,20 @@ def fxProduct(request, fxHermesRunSettings):
                "endpoint_hosts": endpoint_hosts,
                "endpoint_port": endpoint_port, "max_tries": 1}
 
-         if productType == helper.TYPE_TEE:
-             waitForStartupFunction = helper.verify_connectivity
-             waitForStartupParams = {"ip": "localhost", "port": 50051}
-             checkProductStatusParams = {"ip": "localhost", "port": 50051, "max_tries": 1}
+         elif productType == helper.TYPE_TEE:
+            waitForStartupFunction = helper.verify_connectivity
+            waitForStartupParams = {"ip": "localhost", "port": 50051}
+            checkProductStatusParams = {"ip": "localhost", "port": 50051, "max_tries": 1}
+
+         elif productType == helper.TYPE_CHESSPLUS:
+            waitForStartupFunction = helper.verify_chessplus_test_ready
+            waitForStartupParams = {}
+            checkProductStatusParams = {"max_tries": 1}
+
+         else:
+            waitForStartupFunction = None
+            waitForStartupParams = {}
+            checkProductStatusParams = {"retries": 1}
 
          # Run migration generation script before starting the product
          log.info("Generating Helen DB migration")

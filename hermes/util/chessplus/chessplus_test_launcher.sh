@@ -5,11 +5,9 @@ EXIT_STATUS=1
 MARKET_FLAVOUR=sample
 LEDGER_HOST=localhost
 LEDGER_PORT=6865
-CONCURRENCY=3
 
 TMP=/tmp
-TIME_STAMP=`date +%m%d%Y_%H%M%S`
-WORK_DIR="${TMP}/chess_plus_on_daml_${TIME_STAMP}"
+TIME_STAMP=`date +%Y%m%d_%H%M%S`
 
 info() {
     echo `date`: INFO: "${1}"
@@ -20,7 +18,7 @@ error() {
 }
 
 check_usage() {
-    if [ -z "$LEDGER_HOST" -o -z "$DAML_SDK_VERSION" -o -z "$SPIDER_IMAGE_TAG" -o -z "$MARKET_FLAVOUR" -o -z "$WORK_SUBDIR" ]
+    if [ -z "${LEDGER_HOST}" -o -z "${DAML_SDK_VERSION}" -o -z "${SPIDER_IMAGE_TAG}" -o -z "${MARKET_FLAVOUR}" -o -z "${NO_OF_REQUESTS}" -o -z "${CONCURRENCY}" -o -z "$WORK_DIR" ]
     then
         error "Missing parameters"
         cat << EOF
@@ -30,7 +28,8 @@ Usage: $0 <OPTIONS>
           --marketFlavor <Market flavor>
           --damlSDKVersion <DAML SDK version>
           --concurrency <Concurrency throttles the number of in-flight trades between the submission and the response of the first hop>
-          --runSubdir <Subdirectory of resultsDir into which logs specific to this run are placed>
+          --noOfRequests <No. of requests>
+          --resultsDir <Results/log directory path>
 EOF
 
         exit 1
@@ -67,8 +66,8 @@ execute_command() {
         exit 1
     else
         CMD_AS_FILE_NAME=`echo "${COMMAND_TO_RUN}" | tr '/' '_'`
-        LOG_FILE="${WORK_SUBDIR}/${CMD_AS_FILE_NAME}_${LEDGER_HOST}".log
-        IS_CMD_TO_BE_INITIALIZED_ONCE_FILE="${WORK_DIR}/${CMD_AS_FILE_NAME}.${LEDGER_HOST}"
+        LOG_FILE="${WORK_SUBDIR}/${CMD_AS_FILE_NAME}".log
+        IS_CMD_TO_BE_INITIALIZED_ONCE_FILE="${WORK_DIR}/../${CMD_AS_FILE_NAME}.${LEDGER_HOST}"
 
         info "****************************************"
         info "Command: ${COMMAND_TO_RUN}..."
@@ -125,7 +124,7 @@ run_chess_plus_test() {
     execute_command --commandToRun market-genesis --validateString "Create: 1" --initializeOnce
     execute_command --commandToRun "import-data-set ${MARKET_FLAVOUR}" --validateString "Failure: 0" --initializeOnce
     execute_command --commandToRun "load-runner --simulation bmw.open-market" --validateString "failed[' ']*0"
-    execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file /home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv --loop-file --trade-timeout 60s --requests 1 --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
+    execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file /home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv --loop-file --trade-timeout 60s --requests ${NO_OF_REQUESTS} --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
     execute_command --commandToRun stop-spider
     EXIT_STATUS=0
 }
@@ -166,15 +165,14 @@ while [ "$1" != "" ] ; do
             shift
             CONCURRENCY="$1"
             ;;
+        "--noOfRequests")
+            shift
+            NO_OF_REQUESTS="$1"
+            ;;
         "--resultsDir")
             shift
             WORK_DIR="$1"
             ;;
-        "--runSubdir")
-            shift
-            WORK_SUBDIR="$1"
-            ;;
-
     esac
     shift
 done
@@ -186,16 +184,14 @@ then
     mkdir -p "${WORK_DIR}"
 fi
 
-WORK_SUBDIR="${WORK_SUBDIR}/${LEDGER_HOST}"
-
+WORK_SUBDIR="${WORK_DIR}/${TIME_STAMP}_${LEDGER_HOST}"
 if  [ ! -d "${WORK_SUBDIR}" ]
 then
     mkdir -p "${WORK_SUBDIR}"
 fi
+cd "${WORK_SUBDIR}"
 
-cd "${WORK_DIR}"
-
-CHESS_PLUS_RUN_LOG_FILE="${WORK_SUBDIR}/run_${LEDGER_HOST}.log"
+CHESS_PLUS_RUN_LOG_FILE="${WORK_SUBDIR}/run.log"
 export SPIDER_IMAGE_TAG="$SPIDER_IMAGE_TAG"
 export DAML_SDK_VERSION="$DAML_SDK_VERSION"
 export LEDGER_HOST="$LEDGER_HOST"

@@ -53,6 +53,10 @@ def test_ledger_api_test_tool(fxProduct, fxHermesRunSettings):
       log.info("Starting DAR upload on {}:{}".format(ledger_api_host, upload_port))
       daml_helper.upload_test_tool_dars(host=ledger_api_host, port=upload_port)
       log.info("Starting DAML verification tests on {}:{}".format(ledger_api_host, test_port))
-      daml_helper.verify_ledger_api_test_tool(host=ledger_api_host, port=test_port, run_all_tests=True)
+      daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
+                                              port=test_port,
+                                              run_all_tests=True,
+                                              results_dir=fxHermesRunSettings[
+                                                 "hermesCmdlineArgs"].resultsDir)
       log.info("DAR upload and verification successful on {}".format(ledger_api_host))
       log.info("DAML tests passed.")

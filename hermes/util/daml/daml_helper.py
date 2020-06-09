@@ -274,14 +274,17 @@ def get_list_of_tests(host, run_all_tests=False):
 
    return tests
 
-
-def verify_ledger_api_test_tool(host='localhost', port='6861', run_all_tests=False):
+def verify_ledger_api_test_tool(host='localhost', port='6861',
+                                 run_all_tests=False, results_dir=None):
    '''
    Helper method to perform sanity check with uploaded dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
    log.info("Performing DAML sanity checks...")
+
+   if results_dir:
+      results_sub_dir = helper.create_results_sub_dir(results_dir, host)
 
    overall_test_status = None
    for test in get_list_of_tests(host, run_all_tests=run_all_tests):
@@ -294,26 +297,24 @@ def verify_ledger_api_test_tool(host='localhost', port='6861', run_all_tests=Fal
       log.info("")
       log.info("#### Run test '{}'... ####".format(test))
       log.debug("Command: {}".format(cmd))
-      try:
-         subprocess.check_call(cmd, timeout=360)
-      except subprocess.TimeoutExpired as e:
-         msg = "Ledger API test tool timed out: {}".format(e)
-         msg += "\n{}".format(e.output)
-         log.error(msg)
-         overall_test_status = False
-         continue
-      except subprocess.CalledProcessError as e:
-         msg = "Ledger API test tool returned an error: {}".format(e)
-         msg += "\noutput: {}".format(e.output)
-         msg += "\nstderr: {}".format(e.stderr)
-         msg += "\nstdout: {}".format(e.stdout)
-         log.error(msg)
-         overall_test_status = False
-         continue
 
+      status, output = helper.execute_ext_command(cmd, timeout=360)
+
+      if results_dir:
+         file_prefix = "pass" if status else "fail"
+         log_file = os.path.join(results_sub_dir,
+                                 "{}_{}.log".format(file_prefix, test))
+         log.info("**** test log file: {}".format(log_file))
+         with open(log_file, "w") as fp:
+            fp.write(output)
+
+      if status:
          log.info("Test '{}' passed.".format(test))
       else:
-         log.info("#### Ignoring test '{}'".format(test))
+         log.info("Test '{}' failed.".format(test))
+         log.error(output)
+         overall_test_status = False
+         continue
 
    if overall_test_status is False:
       raise Exception("Overall DAML testsuite Status: Fail")

@@ -70,6 +70,7 @@ LOCATION_TO_ZONE_TYPES = {
 
 # These are command line options for --blockchainType.
 # These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
+TYPE_CHESSPLUS = "chessplus"
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
 TYPE_DAML_COMMITTER = "daml_committer"
@@ -420,32 +421,35 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command, display_output_on_success=True):
+def execute_ext_command(command, display_output_on_stdout=True, timeout=None):
    '''
    Helper method to execute an external command
    :param command: command to be executed
-   :param display_output_on_success: Whether to display output on success.
+   :param display_output_on_stdout: Whether to display output on stdout.
    :return: True if command exit status is 0, else False
    '''
    log.debug("Executing external command: {}".format(command))
 
    completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
-                                     universal_newlines=True)
+                                     universal_newlines=True,
+                                     timeout=timeout)
    try:
       completedProcess.check_returncode()
 
-      if display_output_on_success:
+      if display_output_on_stdout:
          log.debug("stdout: {}".format(
             completedProcess.stdout))
          if completedProcess.stderr:
             log.info("stderr: {}".format(completedProcess.stderr))
+   except subprocess.TimeoutExpired as e:
+      log.error("Command timed out after {} seconds".format(timeout))
+      return False, completedProcess.stdout
    except subprocess.CalledProcessError as e:
-      log.error(
-         "Command '{}' failed to execute: {}".format(command, e.returncode))
-      log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
-                                                    completedProcess.stderr))
-      return False, completedProcess.stderr
+      if display_output_on_stdout:
+         log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
+                                                       completedProcess.stderr))
+      return False, completedProcess.stdout
 
    return True, completedProcess.stdout
 
@@ -594,6 +598,15 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
 
    log.debug("Port forwarding failed")
    return False
+
+
+def verify_chessplus_test_ready(max_tries=10):
+   '''
+   Checks the connectivity of endpoints for chessplus
+   '''
+   # TODO: PLACE HOLDER for local deployment
+   return True
+
 
 def verify_daml_test_ready(endpoint_hosts, endpoint_port, max_tries=10):
    '''
@@ -852,7 +865,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                      overall_run_status = True
                else:
                   log.warning(
-                     "**** Tests have failed - continuing to monitor...")
+                     "**** Testsuites have failed, but continuing to monitor...")
                   overall_run_status = False
 
                   if all_tests_failed:
@@ -861,6 +874,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                      no_of_times_all_tests_failed = 0
 
                if no_of_times_all_tests_failed == 3:
+                  log.error("All testsuites have failed consecutively for the 3rd time; aborting the entire run")
                   replica_status = False
 
                log.info("**** Testrun status for this iteration: {}".format(result))
@@ -879,7 +893,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
           jobNameShort=notify_job
         ) # Add to reply thread instead of channel
         slack_last_reported = time.time()
-              
+
       if not replica_status:
          duration = str(int((time.time() - start_time) / 3600))
          remaining_time = str(int((end_time - time.time()) / 3600))
@@ -998,18 +1012,15 @@ def run_long_running_tests(tests, replica_config, log_dir):
          testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config
          test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
 
-         log.info("Running test '{}. {}'".format(test_count+1, test_cmd))
-         status, msg = execute_ext_command(test_cmd)
+         log.info("{}. {}...".format(test_count+1, test_set["testname"]))
+         status, msg = execute_ext_command(test_cmd, display_output_on_stdout=False)
          log.debug("Run output: {}".format(msg))
-         if not status:
-            collect_support_logs_for_long_running_tests(
-               parseReplicasConfig(replica_config), results_dir)
          test_result = status
       except Exception as e:
-         log.error(e)
+         log.error("Error running testsuite: {}".format(e))
          test_result = False
 
-      log.info("Test result: {}".format(test_result))
+      log.info("   ** {}".format("PASS" if test_result else "FAIL"))
       test_results[test_count+1] = test_result
       testset_result.append(test_results)
 
@@ -1038,11 +1049,9 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
     if blockchain_type == TYPE_DAML_PARTICIPANT:
       typeName = "Participant" if not concise else "p"
 
+    log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
       try:
-        log.info("Retrieving stats for replica '{}', user '{}', password '{}', file '{}', to "
-                 "local file '{}'".format(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
-                                          temp_json_path))
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
           with open(temp_json_path, "r", encoding="utf-8") as f:
@@ -1062,8 +1071,8 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
                 status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"]
               ))
         else:
-           raise Exception("Failed retrieving stats for replica '{}', user '{}', password '{}', file '{}', to "
-                           "local file '{}'".format(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
+           raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
+                           "local file '{}'".format(replica_ip, HEALTHD_RECENT_REPORT_PATH,
                                                     temp_json_path))
       except Exception as e:
         log.error(str(e))
@@ -1253,7 +1262,7 @@ def loadConfigFile(args=None, filepath=None):
         log.info("Privilege invoked from --su flag; will run Hermes with Jenkins injected credentials...")
         from . import jenkins
         configFromJenkins = jenkins.getUserConfigFromLatestGoodMaster()
-        if configFromJenkins: 
+        if configFromJenkins:
           configObject = jenkins.overrideOnlyDefaultConfig(configObject, configFromJenkins)
           configObject["metainf"]["env"]["jobName"] = "None"
           configObject["metainf"]["env"]["buildNumber"] = "None"
@@ -1629,7 +1638,7 @@ def longRunningTestDashboardLink(replicasConfig=None):
   elif len(committers) == 7 and len(participants) == 3: dashName = "Blockchain-LRT-c7-p3"
   return (
     "{}{}#".format(dashBaseUrl, dashName) + # base url
-    "_v01(" + 
+    "_v01(" +
       "g:(d:1800,ls:!t,w:'30m')," + # last 30 minutes, live
       "p:({})".format(",".join(params)) + # params comma-separated
     ")"
@@ -1683,7 +1692,7 @@ def installHealthDaemon(all_replicas_and_type):
                   'logFile={}\n'.format(HEALTHD_LOG_PATH) +
                   'crashReportFile={}\n'.format(HEALTHD_CRASH_FILE) +
                   'reportingInterval={}\n'.format(reportingInterval) +
-                  'recentReportFile={}\n'.format(HEALTHD_RECENT_REPORT_PATH) + 
+                  'recentReportFile={}\n'.format(HEALTHD_RECENT_REPORT_PATH) +
                   'announceInterval={}\n'.format(announceInterval) +
                   'componentsWatchList={}\n'.format(componentsWatchList) +
                   'wavefrontUrl={}\n'.format(wavefrontUrl) +
@@ -1733,7 +1742,7 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
     Reset blockchain and remove all its persisted data
     `replicasConfig` can be fxBlockchain, path to replicas.json, or replicasInfo
     Only covers DAML network for now.
-    
+
     e.g.: helper.resetBlockchain(fxBlockchain, concordConfig={
       "concord-bft_max_num_of_reserved_pages": 8192,
       "view_change_timeout": 20000,
@@ -1760,7 +1769,7 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
         "sed -i '/{}/c\\{}: {}' /config/concord/config-local/concord.config".format(configParam, configParam, configParamValue),
       )
   wipeOutPost = [
-    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",  
+    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",
     "cp \"{}\" \"{}\"".format(HEALTHD_LOG_PATH, HEALTHD_LOG_PATH.replace(".log", "2.log")), # copy healthd.log => healthd2.log
   ]
   nodeWipeOutCommand = '; '.join(wipeOutPre + wipeOutDeleteData + wipeOutConcordConfigSet + wipeOutPost)
@@ -1790,7 +1799,7 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
   committerIPs = replicas[TYPE_DAML_COMMITTER]
   participantIPs = replicas[TYPE_DAML_PARTICIPANT]
   allNodesIPs = committerIPs + participantIPs
-  
+
   log.info("Resetting blockchain...")
   log.info("Wiping out participant nodes: {}".format(participantIPs))
   results = parallelSSH(participantIPs, nodeWipeOutCommand)
@@ -1811,7 +1820,7 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
   initializationGracePeriod = 30
   log.info("Giving another {}s for all nodes to initialize...".format(initializationGracePeriod))
   time.sleep(initializationGracePeriod)
-  
+
   log.info("Resetting crash status of the nodes...")
   results = parallelSSH(allNodesIPs, nodeResetCrashStatusCommand)
   for result in results: log.debug("\n\n[Reset crashed status] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
@@ -1825,7 +1834,7 @@ def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
       primaryInfo["ip"] = result["ip"]
       primaryInfo["index"] = committerIPs.index(result["ip"])
     log.debug("\n\n[Primary search] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-  
+
   log.info("Blockchain network reset completed.")
   return primaryInfo
 
@@ -1918,3 +1927,54 @@ def getDefaultDeploymentComponents():
             raise Exception("Could not find deployment component {}".format(component_to_find))
 
    return ret
+
+
+def create_work_subdir(results_dir):
+   subdir_nums = []
+   work_subdir_prefix = "run_"
+   new_dir_created = False
+   new_subdir = None
+
+   lock = threading.Lock()
+   lock.acquire()
+
+   while not new_dir_created:
+       dir_entries = os.scandir(results_dir)
+
+       for dir_entry in dir_entries:
+           if dir_entry.is_dir():
+               dir_only = os.path.basename(dir_entry.path)
+
+               if dir_only.startswith(work_subdir_prefix):
+                   dir_num = dir_only.split(work_subdir_prefix)[-1]
+
+                   if dir_num:
+                       try:
+                           subdir_nums.append(int(dir_num))
+                       except ValueError:
+                           pass
+
+       if subdir_nums:
+          subdir_nums.sort()
+          new_subdir = os.path.join(results_dir, work_subdir_prefix + str(subdir_nums[-1] + 1))
+       else:
+          new_subdir = os.path.join(results_dir, work_subdir_prefix + "0")
+
+       try:
+           log.info("Creating subdir {}".format(new_subdir))
+           os.makedirs(new_subdir, exist_ok = False)
+           new_dir_created = True
+       except FileExistsError:
+           # We are protected for multiple threads, but maybe another process created it.  Try again.
+           log.debug("Tried to create {}, but something else created it. Trying a new dir.".format(new_subdir))
+
+   lock.release()
+   return new_subdir
+
+
+def create_results_sub_dir(results_dir, host):
+   results_sub_dir = os.path.join(results_dir, "{}_{}".format(
+      time.strftime("%Y%m%d_%H%M%S", time.localtime()), host))
+   if not os.path.exists(results_sub_dir):
+      os.makedirs(results_sub_dir)
+   return results_sub_dir
