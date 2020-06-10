@@ -27,7 +27,7 @@ concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
 class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   bool enable_pipelined_commits_;
   prometheus::Histogram& daml_exec_eng_dur_;
@@ -52,7 +52,7 @@ class DamlKvbCommandsHandler
       concord::time::TimeContract* time_contract = nullptr)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry, time_contract),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
+        logger_(logging::getLogger("com.vmware.concord.daml")),
         validator_client_(std::move(validator)),
         enable_pipelined_commits_(
             IsPipelinedCommitExecutionEnabled(node_config)),

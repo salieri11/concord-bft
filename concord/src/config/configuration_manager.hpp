@@ -36,12 +36,11 @@
 #include <utility>
 
 #include <cryptopp/dll.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
 #include <csignal>
 #include <fstream>
 #include <iostream>
+#include "Logger.hpp"
 
 #include "yaml-cpp/yaml.h"
 
@@ -1230,7 +1229,7 @@ class YAMLConfigurationInput {
 
   void loadParameter(ConcordConfiguration& config,
                      const ConfigurationPath& path, const YAML::Node& obj,
-                     log4cplus::Logger* errorOut, bool overwrite);
+                     logging::Logger* errorOut, bool overwrite);
 
  public:
   // Constructor for YAMLConfigurationInput; it accepts an std::istream. It is
@@ -1296,7 +1295,7 @@ class YAMLConfigurationInput {
   // to attempt to load them (as described above under "Throws:").
   template <class Iterator>
   bool loadConfiguration(ConcordConfiguration& config, Iterator iterator,
-                         Iterator end, log4cplus::Logger* errorOut = nullptr,
+                         Iterator end, logging::Logger* errorOut = nullptr,
                          bool overwrite = true) {
     if (!success) {
       return false;

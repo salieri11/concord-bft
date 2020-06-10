@@ -3,8 +3,8 @@
 #ifndef CONCORD_HLF_CHAINCODE_INVOKER_H_
 #define CONCORD_HLF_CHAINCODE_INVOKER_H_
 
-#include <log4cplus/loggingmacros.h>
 #include <iostream>
+#include "Logger.hpp"
 #include "config/configuration_manager.hpp"
 #include "status.hpp"
 #include "stdio.h"
@@ -45,7 +45,7 @@ class ChaincodeInvoker {
   std::string hlf_local_msp_id_;
   std::string hlf_local_msp_dir_;
 
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 };
 }  // namespace hlf
 }  // namespace concord

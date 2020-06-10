@@ -51,7 +51,7 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : ConcordCommandsHandler(config, node_config, ro_storage, block_appender,
                              subscriber_list, prometheus_registry),
-      logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
+      logger_(logging::getLogger("com.vmware.concord.hlf.handler")),
       chaincode_invoker_(chaincode_invoker),
       node_config_(node_config) {}
 
@@ -67,8 +67,7 @@ bool HlfKvbCommandsHandler::Execute(const ConcordRequest& request,
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
 
   if (pre_execute) {
-    LOG4CPLUS_ERROR(logger_,
-                    "Pre-execution not supported for Hyperledger requests.");
+    LOG_ERROR(logger_, "Pre-execution not supported for Hyperledger requests.");
     // TODO: the HLF chaincode runner doesn't seem to return the read set, which
     // is essential for pre-execution
     return false;
@@ -97,7 +96,7 @@ bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
   } else {
     std::string pbtext;
     google::protobuf::TextFormat::PrintToString(command, &pbtext);
-    LOG4CPLUS_ERROR(logger_, "Unknown read-only command: " << pbtext);
+    LOG_ERROR(logger_, "Unknown read-only command: " << pbtext);
     ErrorResponse* resp = command_response.add_error_response();
     resp->set_description("Internal concord Error");
     return false;
@@ -117,7 +116,7 @@ bool HlfKvbCommandsHandler::ExecuteCommand(const ConcordRequest& command,
   } else {
     std::string pbtext;
     google::protobuf::TextFormat::PrintToString(command, &pbtext);
-    LOG4CPLUS_DEBUG(logger_, "Unknown command: " << pbtext);
+    LOG_DEBUG(logger_, "Unknown command: " << pbtext);
     // We have to silently ignore this command if there is nothing in it we
     // recognize. It might be a request that only contained something like a
     // time update, which is handled by the calling layer.
@@ -129,7 +128,7 @@ bool HlfKvbCommandsHandler::ExecuteCommand(const ConcordRequest& command,
 bool HlfKvbCommandsHandler::HandleHlfRequest(
     const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
-  LOG4CPLUS_INFO(logger_, "Triggered hlf request");
+  LOG_INFO(logger_, "Triggered hlf request");
 
   if (command.hlf_request(0).type() == "ping")
     return HandleHlfPing(command, kvb_hlf_storage, command_response);
@@ -160,7 +159,7 @@ bool HlfKvbCommandsHandler::HandleHlfPing(
   HlfResponse* response = command_response.add_hlf_response();
   response->set_status(0);
   response->set_data("Pong");
-  LOG4CPLUS_INFO(logger_, "Triggered hlf ping/pong");
+  LOG_INFO(logger_, "Triggered hlf ping/pong");
   return true;
 }
 
@@ -169,7 +168,7 @@ bool HlfKvbCommandsHandler::HandleHlfRequestReadOnly(
     ConcordResponse& command_response) const {
   switch (command.hlf_request(0).method()) {
     case HlfRequest_HlfMethod_QUERY:
-      LOG4CPLUS_DEBUG(logger_, "Triggered the chaincode query operation");
+      LOG_DEBUG(logger_, "Triggered the chaincode query operation");
       return HandleHlfQueryChaincode(command, command_response);
 
     default:
@@ -186,7 +185,7 @@ Status HlfKvbCommandsHandler::StorageUpdate(
   if (status_transaction.isOK() && status_block.isOK()) {
     return Status::OK();
   } else {
-    LOG4CPLUS_ERROR(logger_, "Failed to write block");
+    LOG_ERROR(logger_, "Failed to write block");
     return Status::NotFound("undable to update storage");
   }
 }
@@ -320,8 +319,8 @@ Status HlfKvbCommandsHandler::HandleIntermediateChaincodeFile(
       boost::filesystem::path(request.path());
   chaincode_file = golang_chaincode_path / relative_file_path;
 
-  LOG4CPLUS_DEBUG(logger_, "Writting temporary chaincode file to: "
-                               << chaincode_file.string());
+  LOG_DEBUG(logger_, "Writting temporary chaincode file to: "
+                         << chaincode_file.string());
 
   const char* content = request.chaincode_source_bytes().c_str();
   size_t content_length = request.chaincode_source_bytes().length();
@@ -342,8 +341,8 @@ Status HlfKvbCommandsHandler::HandleIntermediateChaincodeFile(
         output_file.close();
 
         status = Status::OK();
-        LOG4CPLUS_DEBUG(logger_, "Successfully uploaded chaincode "
-                                     << chaincode_file.string());
+        LOG_DEBUG(logger_, "Successfully uploaded chaincode "
+                               << chaincode_file.string());
       } else {
         error_msg = "Unable to write chaincode file.";
       }

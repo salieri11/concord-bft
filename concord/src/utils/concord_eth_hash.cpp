@@ -5,7 +5,7 @@
 #include "concord_eth_hash.hpp"
 
 #include <keccak.h>
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 
 #include "evm.h"
 

@@ -36,8 +36,8 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
     if (!verifier_ ||
         (verifier_->VerifyReceivedUpdate(source, client_id, time, signature))) {
       if (time > old_sample->second.time) {
-        LOG4CPLUS_DEBUG(logger_,
-                        "Applying time " << time << " from source " << source);
+        LOG_DEBUG(logger_,
+                  "Applying time " << time << " from source " << source);
         old_sample->second.time = time;
         if (verifier_ && signature && verifier_->UsesSignatures()) {
           old_sample->second.signature.reset(new vector<uint8_t>(*signature));
@@ -45,14 +45,14 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
         changed_ = true;
       }
     } else {
-      LOG4CPLUS_WARN(logger_,
-                     "Received a possibly-illegitimate time sample claiming to "
-                     "be from source \""
-                         << source << "\" that failed time verification.");
+      LOG_WARN(logger_,
+               "Received a possibly-illegitimate time sample claiming to "
+               "be from source \""
+                   << source << "\" that failed time verification.");
     }
   } else {
-    LOG4CPLUS_WARN(logger_,
-                   "Ignoring sample from uknown source \"" << source << "\"");
+    LOG_WARN(logger_,
+             "Ignoring sample from uknown source \"" << source << "\"");
   }
 
   return SummarizeTime();
@@ -72,13 +72,13 @@ Timestamp TimeContract::GetSummarizedTimeAtBlock(BlockId id) const {
   const auto read_status =
       storage_.get(id, summarized_time_key_, raw_time, out_block_id);
   if (!read_status.isOK() || raw_time.empty()) {
-    LOG4CPLUS_ERROR(logger_, "Failed to read summarized time from storage");
+    LOG_ERROR(logger_, "Failed to read summarized time from storage");
     throw TimeException{"Failed to read summarized time from storage"};
   }
 
   Timestamp time;
   if (!time.ParseFromArray(raw_time.data(), raw_time.length())) {
-    LOG4CPLUS_ERROR(logger_, "Failed to parse summarized time storage");
+    LOG_ERROR(logger_, "Failed to parse summarized time storage");
     throw TimeException{"Failed to parse summarized time storage"};
   }
 
@@ -163,8 +163,8 @@ void TimeContract::LoadLatestSamples() {
     com::vmware::concord::kvb::Time time_storage;
     if (time_storage.ParseFromArray(raw_time.data(), raw_time.length())) {
       if (time_storage.version() == kTimeStorageVersion) {
-        LOG4CPLUS_DEBUG(logger_, "Loading " << time_storage.sample_size()
-                                            << " time samples");
+        LOG_DEBUG(logger_,
+                  "Loading " << time_storage.sample_size() << " time samples");
         if (!verifier_) {
           // This const_cast is ugly. We don't actually change the config
           // values, but the iterator registers itself with the config object,
@@ -185,7 +185,7 @@ void TimeContract::LoadLatestSamples() {
               samples_->emplace(sample.source(), SampleBody());
               samples_->at(sample.source()).time = sample.time();
             } else {
-              LOG4CPLUS_ERROR(
+              LOG_ERROR(
                   logger_,
                   "Time storage contained sample from unrecognized source: \""
                       << sample.source() << "\".");
@@ -208,11 +208,11 @@ void TimeContract::LoadLatestSamples() {
                         sample.signature().begin(), sample.signature().end()));
               }
             } else {
-              LOG4CPLUS_ERROR(logger_,
-                              "Time storage contained invalid time sample "
-                              "claimed to be from source: "
-                                  << sample.source()
-                                  << " (the sample failed time verification).");
+              LOG_ERROR(logger_,
+                        "Time storage contained invalid time sample "
+                        "claimed to be from source: "
+                            << sample.source()
+                            << " (the sample failed time verification).");
               throw TimeException(
                   "Cannot load time storage: a recorded time update failed "
                   "time verification.");
@@ -220,12 +220,12 @@ void TimeContract::LoadLatestSamples() {
           }
         }
       } else {
-        LOG4CPLUS_ERROR(logger_, "Unknown time storage version: "
-                                     << time_storage.version());
+        LOG_ERROR(logger_,
+                  "Unknown time storage version: " << time_storage.version());
         throw TimeException("Unknown time storage version");
       }
     } else {
-      LOG4CPLUS_ERROR(logger_, "Unable to parse time storage");
+      LOG_ERROR(logger_, "Unable to parse time storage");
       throw TimeException("Unable to parse time storage");
     }
   } else {
@@ -236,13 +236,13 @@ void TimeContract::LoadLatestSamples() {
         const_cast<ConcordConfiguration &>(config_), TimeSourceIdSelector,
         nullptr);
     for (auto id : time_source_ids) {
-      LOG4CPLUS_DEBUG(logger_, "source id: " << config_.getValue<string>(id));
+      LOG_DEBUG(logger_, "source id: " << config_.getValue<string>(id));
       samples_->emplace(config_.getValue<string>(id), SampleBody());
       samples_->at(config_.getValue<string>(id)).time = TimeUtil::GetEpoch();
     }
 
-    LOG4CPLUS_INFO(logger_, "Initializing time contract with "
-                                << samples_->size() << " sources");
+    LOG_INFO(logger_, "Initializing time contract with " << samples_->size()
+                                                         << " sources");
   }
 }
 
@@ -262,7 +262,7 @@ std::pair<Sliver, Sliver> TimeContract::Serialize() {
         sample->set_signature(s.second.signature->data(),
                               s.second.signature->size());
       } else {
-        LOG4CPLUS_WARN(
+        LOG_WARN(
             logger_,
             "Serializing sample with no signature in a TimeContract configured "
             "with a time verification scheme that uses signatures.");

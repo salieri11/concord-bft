@@ -80,7 +80,7 @@ class DamlValidatorClient : public IDamlValidatorClient {
                         KeyValueStorageOperations& storage_operations) override;
 
  private:
-  log4cplus::Logger logger_ = logging::getLogger("concord.daml.validator");
+  logging::Logger logger_ = logging::getLogger("concord.daml.validator");
   static void HandleReadEvent(
       const com::digitalasset::kvbc::EventFromValidator::Read& read_event,
       KeyValueStorageOperations& storage_operations,

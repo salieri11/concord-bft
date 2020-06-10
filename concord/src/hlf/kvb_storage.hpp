@@ -3,7 +3,7 @@
 #ifndef CONCORD_HLF_KVB_STORAGE_H_
 #define CONCORD_HLF_KVB_STORAGE_H_
 
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 #include "common/concord_types.hpp"
 #include "concord.pb.h"
 #include "concord_storage.pb.h"
@@ -27,7 +27,7 @@ class HlfKvbStorage {
   static concord::kvbc::SetOfKeyValuePairs updates_;
   std::vector<com::vmware::concord::hlf::storage::HlfTransaction>
       pending_hlf_transactions_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 
  public:
   // This is used for adding block id to the

@@ -1,9 +1,8 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "reconfiguration_sm.hpp"
-#include <utils/concord_logging.hpp>
 #include <utils/openssl_crypto_utils.hpp>
-
+#include "Logger.hpp"
 using namespace concord::reconfiguration;
 using namespace com::vmware::concord;
 
@@ -23,19 +22,19 @@ IReconfigurationPlugin* ReconfigurationSM::GetPlugin(
 void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
                                ConcordResponse& response, bool readOnly,
                                opentracing::Span& parent_span) {
-  concord::utils::RAIIMDC raiimdc("r.p.id", std::to_string(request.pluginid()));
+  SCOPED_MDC("r.p.id", std::to_string(request.pluginid()));
   auto reconfiguration_span = opentracing::Tracer::Global()->StartSpan(
       "reconfiguration_request",
       {opentracing::ChildOf(&parent_span.context())});
   if (!ValidateReconfigurationRequest(request)) {
-    LOG4CPLUS_WARN(logger_, "Reconfiguration request validation failed");
+    LOG_WARN(logger_, "Reconfiguration request validation failed");
     response.mutable_reconfiguration_sm_response()->set_success(false);
     return;
   }
 
   auto plugin = GetPlugin(request.pluginid());
   if (!plugin) {
-    LOG4CPLUS_WARN(logger_, "Invalid plugin number");
+    LOG_WARN(logger_, "Invalid plugin number");
     response.mutable_reconfiguration_sm_response()->set_success(false);
     return;
   }
@@ -55,7 +54,7 @@ void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
  * the blockchain.
  */
 ReconfigurationSM::ReconfigurationSM(const config::ConcordConfiguration& config)
-    : logger_(log4cplus::Logger::getInstance("concord.reconfiguration")),
+    : logger_(logging::getLogger("concord.reconfiguration")),
       operator_public_key_(utils::openssl_crypto::DeserializePublicKey(
           config.getValue<std::string>(
               "reconfiguration_operator_public_key"))) {}

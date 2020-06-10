@@ -34,19 +34,18 @@ SubmitResult ConcordClientPool::SendRequest(
       clients_.pop_front();
     } else {
       rejected_counter_.Increment();
-      LOG4CPLUS_ERROR(logger_,
-                      "Cannot allocate client for cid=" << correlation_id);
+      LOG_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
       return SubmitResult::Overloaded;
     }
   }
   client->generateClientSeqNum();
-  LOG4CPLUS_INFO(
-      logger_,
-      "client_id=" << client->getClientId() << " allocated, insert reqSeqNum="
-                   << client->getClientSeqNum() << " with cid="
-                   << correlation_id << " with request size of=" << reply_size
-                   << " and time out on ms=" << timeout_ms.count()
-                   << " to the job pool");
+  LOG_INFO(logger_, "client_id=" << client->getClientId()
+                                 << " allocated, insert reqSeqNum="
+                                 << client->getClientSeqNum()
+                                 << " with cid=" << correlation_id
+                                 << " with request size of=" << reply_size
+                                 << " and time out on ms=" << timeout_ms.count()
+                                 << " to the job pool");
   client->setStartRequestTime();
   std::unique_ptr<ConcordClientProcessingJob> job =
       std::make_unique<ConcordClientProcessingJob>(
@@ -98,8 +97,7 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       last_request_time_gauge_(
           last_request_time_gauges_.Add({{"item", "time_updates"}})),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
+      logger_(logging::getLogger("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
   try {
     CreatePool(config_stream, config);
@@ -140,8 +138,7 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       last_request_time_gauge_(
           last_request_time_gauges_.Add({{"item", "time_updates"}})),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
+      logger_(logging::getLogger("com.vmware.external_client_pool")) {
   std::ifstream config_file;
   config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
   config_file.open(config_file_path.data());
@@ -149,15 +146,15 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
   try {
     CreatePool(config_file, config);
   } catch (config::ConfigurationResourceNotFoundException &e) {
-    LOG4CPLUS_ERROR(logger_, "Could not find the configuration file at path="
-                                 << config_file_path);
+    LOG_ERROR(logger_, "Could not find the configuration file at path="
+                           << config_file_path);
     throw InternalError();
   } catch (std::invalid_argument &e) {
-    LOG4CPLUS_ERROR(
-        logger_, "Communication module="
-                     << config.getValue<std::string>(
-                            config_pool::ClientPoolConfig().COMM_PROTOCOL)
-                     << " on file=" << config_file_path << " is not supported");
+    LOG_ERROR(logger_, "Communication module="
+                           << config.getValue<std::string>(
+                                  config_pool::ClientPoolConfig().COMM_PROTOCOL)
+                           << " on file=" << config_file_path
+                           << " is not supported");
     throw InternalError();
   } catch (config::InvalidConfigurationInputException &e) {
     throw InternalError();
@@ -172,14 +169,14 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   uint16_t num_clients =
       config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
   clients_gauge_.Set(num_clients);
-  LOG4CPLUS_INFO(logger_, "Creating pool of num_clients=" << num_clients);
+  LOG_INFO(logger_, "Creating pool of num_clients=" << num_clients);
   uint16_t f_val = config.getValue<uint16_t>(pool_config->F_VAL);
   uint16_t c_val = config.getValue<uint16_t>(pool_config->C_VAL);
   external_client::ConcordClient::setStatics(
       3 * f_val + 2 * c_val + 1, 2 * f_val + 1,
       stoi(config.getValue<std::string>(pool_config->COMM_BUFF_LEN)));
   for (int i = 0; i < num_clients; i++) {
-    LOG4CPLUS_DEBUG(logger_, "Creating client_id=" << i);
+    LOG_DEBUG(logger_, "Creating client_id=" << i);
     clients_.push_back(std::make_shared<external_client::ConcordClient>(
         config, i, *pool_config));
   }
@@ -198,8 +195,8 @@ void ConcordClientPool::PrometheusInit(
       bind_port;
   exposer_ = std::make_shared<prometheus::Exposer>(bind_address, "/metrics", 1);
   exposer_->RegisterCollectable(registry_);
-  LOG4CPLUS_INFO(logger_, "BFT-Client pool metrics will expose to "
-                              << bind_address << "/metrics");
+  LOG_INFO(logger_, "BFT-Client pool metrics will expose to " << bind_address
+                                                              << "/metrics");
 }
 
 void ConcordClientPool::ConfigInit(config::ConcordConfiguration &config,
@@ -212,7 +209,7 @@ ConcordClientPool::~ConcordClientPool() {
   jobs_thread_pool_.stop(true);
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   clients_.clear();
-  LOG4CPLUS_INFO(logger_, "Clients cleanup complete");
+  LOG_INFO(logger_, "Clients cleanup complete");
 }
 
 void ConcordClientProcessingJob::execute() {
@@ -230,10 +227,9 @@ void ConcordClientPool::InsertClientToQueue(
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
     clients_.push_back(client);
   }
-  LOG4CPLUS_INFO(logger_,
-                 "reqSeqNum=" << seq_num << "with cid=" << correlation_id
-                              << "has ended.returns client_id="
-                              << client->getClientId() << " to the pool");
+  LOG_INFO(logger_, "reqSeqNum=" << seq_num << "with cid=" << correlation_id
+                                 << "has ended.returns client_id="
+                                 << client->getClientId() << " to the pool");
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   last_request_time_gauge_.Set(
       std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -74,13 +74,13 @@ ApiConnection::pointer ApiConnection::create(
 tcp::socket &ApiConnection::socket() { return socket_; }
 
 void ApiConnection::start_async() {
-  LOG4CPLUS_TRACE(logger_, "start_async enter");
+  LOG_TRACE(logger_, "start_async enter");
   remotePeer_ = socket_.remote_endpoint();
-  LOG4CPLUS_INFO(logger_, "Connection to " << remotePeer_ << " opened by peer");
+  LOG_INFO(logger_, "Connection to " << remotePeer_ << " opened by peer");
 
   read_async_header();
 
-  LOG4CPLUS_TRACE(logger_, "start_async exit");
+  LOG_TRACE(logger_, "start_async exit");
 }
 
 uint16_t ApiConnection::get_message_length(const char *buffer) {
@@ -96,10 +96,10 @@ uint16_t ApiConnection::get_message_length(const char *buffer) {
 bool ApiConnection::check_async_error(const boost::system::error_code &ec) {
   bool res = false;
   if (boost::asio::error::eof == ec) {
-    LOG4CPLUS_INFO(logger_, "connection closed by peer");
+    LOG_INFO(logger_, "connection closed by peer");
     res = true;
   } else if (boost::asio::error::operation_aborted == ec) {
-    LOG4CPLUS_ERROR(logger_, ec.message());
+    LOG_ERROR(logger_, ec.message());
     res = true;
   }
   return res;
@@ -107,31 +107,29 @@ bool ApiConnection::check_async_error(const boost::system::error_code &ec) {
 
 void ApiConnection::on_read_async_header_completed(
     const boost::system::error_code &ec, const size_t bytesRead) {
-  LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed enter");
+  LOG_TRACE(logger_, "on_read_async_header_completed enter");
   auto err = check_async_error(ec);
   if (err) {
-    LOG4CPLUS_DEBUG(logger_,
-                    "on_read_async_header_completed, ec: " << ec.message());
+    LOG_DEBUG(logger_, "on_read_async_header_completed, ec: " << ec.message());
     close();
     return;
   }
 
   auto msgLen = get_message_length(inMsgBuffer_);
   if (msgLen == 0) {
-    LOG4CPLUS_FATAL(logger_, "on_read_async_header_completed, msgLen=0");
+    LOG_FATAL(logger_, "on_read_async_header_completed, msgLen=0");
     return;
   }
 
-  LOG4CPLUS_DEBUG(logger_,
-                  "on_read_async_header_completed, msgLen: " << msgLen);
+  LOG_DEBUG(logger_, "on_read_async_header_completed, msgLen: " << msgLen);
 
   read_async_message(MSG_LENGTH_BYTES, msgLen);
 
-  LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed exit");
+  LOG_TRACE(logger_, "on_read_async_header_completed exit");
 }
 
 void ApiConnection::read_async_header() {
-  LOG4CPLUS_TRACE(logger_, "read_async_header enter");
+  LOG_TRACE(logger_, "read_async_header enter");
 
   // clean all previous data
   memset(inMsgBuffer_, 0, BUFFER_LENGTH);
@@ -145,14 +143,14 @@ void ApiConnection::read_async_header() {
                          shared_from_this(), boost::asio::placeholders::error,
                          boost::asio::placeholders::bytes_transferred));
 
-  LOG4CPLUS_TRACE(logger_, "read_async exit");
+  LOG_TRACE(logger_, "read_async exit");
 }
 
 void ApiConnection::read_async_message(uint16_t offset,
                                        uint16_t expectedBytes) {
-  LOG4CPLUS_TRACE(logger_, "read_async_message enter");
-  LOG4CPLUS_DEBUG(logger_,
-                  "offset: " << offset << ", expectedBytes: " << expectedBytes);
+  LOG_TRACE(logger_, "read_async_message enter");
+  LOG_DEBUG(logger_,
+            "offset: " << offset << ", expectedBytes: " << expectedBytes);
 
   // async operation will finish when either expectedBytes are read
   // or error occured
@@ -161,27 +159,26 @@ void ApiConnection::read_async_message(uint16_t offset,
                          shared_from_this(), boost::asio::placeholders::error,
                          boost::asio::placeholders::bytes_transferred));
 
-  LOG4CPLUS_TRACE(logger_, "read_async_message exit");
+  LOG_TRACE(logger_, "read_async_message exit");
 }
 
 // this is the handler to async_read, it will be called only if the
 // supplied data buffer for read is full OR error occured
 void ApiConnection::on_read_async_message_completed(
     const boost::system::error_code &ec, const size_t bytesRead) {
-  LOG4CPLUS_TRACE(logger_, "on_read_async_completed enter");
+  LOG_TRACE(logger_, "on_read_async_completed enter");
 
   auto err = check_async_error(ec);
   if (err) {
-    LOG4CPLUS_DEBUG(logger_,
-                    "on_read_async_message_completed, ec: " << ec.message());
+    LOG_DEBUG(logger_, "on_read_async_message_completed, ec: " << ec.message());
     return;
   }
 
-  LOG4CPLUS_DEBUG(logger_, "msg data read, msgLen: " << bytesRead);
+  LOG_DEBUG(logger_, "msg data read, msgLen: " << bytesRead);
   process_incoming();
   read_async_header();
 
-  LOG4CPLUS_TRACE(logger_, "on_read_async_completed exit");
+  LOG_TRACE(logger_, "on_read_async_completed exit");
 }
 
 void ApiConnection::close() {
@@ -189,15 +186,15 @@ void ApiConnection::close() {
   // so the current api_connetion object and its socket_ object should be
   // destroyed automatically. However, this should be profiled during
   // stress tests for memory leaks
-  LOG4CPLUS_DEBUG(logger_, "closing connection");
+  LOG_DEBUG(logger_, "closing connection");
   connManager_.close_connection(shared_from_this());
 }
 
 void ApiConnection::on_write_completed(const boost::system::error_code &ec) {
   if (!ec) {
-    LOG4CPLUS_DEBUG(logger_, "sent completed");
+    LOG_DEBUG(logger_, "sent completed");
   } else {
-    LOG4CPLUS_ERROR(logger_, "sent failed with error: " << ec.message());
+    LOG_ERROR(logger_, "sent failed with error: " << ec.message());
   }
 }
 
@@ -207,12 +204,12 @@ void ApiConnection::on_write_completed(const boost::system::error_code &ec) {
  */
 void ApiConnection::process_incoming() {
   std::string pb;
-  LOG4CPLUS_TRACE(logger_, "process_incoming enter");
+  LOG_TRACE(logger_, "process_incoming enter");
 
   // Parse the protobuf
   if (concordRequest_.ParseFromArray(inMsgBuffer_ + MSG_LENGTH_BYTES,
                                      get_message_length(inMsgBuffer_))) {
-    LOG4CPLUS_DEBUG(logger_, "Parsed!");
+    LOG_DEBUG(logger_, "Parsed!");
 
     // TODO: add correlation ID and/or tracing context from request
     span_ = opentracing::Tracer::Global()->StartSpan("api_request");
@@ -240,14 +237,14 @@ void ApiConnection::process_incoming() {
   memcpy(outMsgBuffer_, &msgLen, MSG_LENGTH_BYTES);
   memcpy(outMsgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
 
-  LOG4CPLUS_DEBUG(logger_, "sending back " << to_string(msgLen) << " bytes");
+  LOG_DEBUG(logger_, "sending back " << to_string(msgLen) << " bytes");
   boost::asio::async_write(
       socket_, boost::asio::buffer(outMsgBuffer_, msgLen + MSG_LENGTH_BYTES),
       boost::bind(&ApiConnection::on_write_completed, shared_from_this(),
                   boost::asio::placeholders::error));
 
-  LOG4CPLUS_DEBUG(logger_, "responded!");
-  LOG4CPLUS_TRACE(logger_, "process_incoming exit");
+  LOG_DEBUG(logger_, "responded!");
+  LOG_TRACE(logger_, "process_incoming exit");
 }
 
 /*
@@ -319,11 +316,11 @@ void ApiConnection::dispatch() {
  * client version might be considered a ping for keep-alive purposes.
  */
 void ApiConnection::handle_protocol_request() {
-  LOG4CPLUS_TRACE(logger_, "protocol_request enter");
+  LOG_TRACE(logger_, "protocol_request enter");
 
   const ProtocolRequest request = concordRequest_.protocol_request();
-  LOG4CPLUS_DEBUG(logger_, "protocol_request, client_version: "
-                               << request.client_version());
+  LOG_DEBUG(logger_,
+            "protocol_request, client_version: " << request.client_version());
 
   // create a response even if the request does not have a client
   // version, as this could be used as a keep-alive ping
@@ -349,7 +346,7 @@ void ApiConnection::handle_protocol_request() {
   // Regarding chain vs network IDs, see:
   // https://github.com/ethereumproject/go-ethereum/wiki/FAQ
   response->set_net_version(DEFAULT_NETWORK_ID);
-  LOG4CPLUS_TRACE(logger_, "protocol_request exit");
+  LOG_TRACE(logger_, "protocol_request exit");
 }
 
 /*
@@ -358,7 +355,7 @@ void ApiConnection::handle_protocol_request() {
  * (add/remove members).
  */
 void ApiConnection::handle_peer_request() {
-  LOG4CPLUS_TRACE(logger_, "handle_peer_request");
+  LOG_TRACE(logger_, "handle_peer_request");
 
   const PeerRequest request = concordRequest_.peer_request();
   PeerResponse *response = concordResponse_.mutable_peer_response();
@@ -385,7 +382,7 @@ void ApiConnection::handle_peer_request() {
  * system).
  */
 void ApiConnection::handle_reconfiguration_request() {
-  LOG4CPLUS_TRACE(logger_, "handle_reconfiguration_request");
+  LOG_TRACE(logger_, "handle_reconfiguration_request");
 
   const ReconfigurationRequest request =
       concordRequest_.reconfiguration_request();
@@ -400,7 +397,7 @@ void ApiConnection::handle_reconfiguration_request() {
       // pusher) to be logically equivalent to (whether the time service is
       // enabled and this node is a time source).
       if (!clientPool_.HasTimePusher()) {
-        LOG4CPLUS_WARN(
+        LOG_WARN(
             logger_,
             "Received request to reconfigure the time pusher period, but the "
             "time service is not enabled or this node is not a time source.");
@@ -416,12 +413,11 @@ void ApiConnection::handle_reconfiguration_request() {
             time_pusher_period_request.time_pusher_period_ms();
         try {
           clientPool_.SetTimePusherPeriod(new_period);
-          LOG4CPLUS_INFO(logger_,
-                         "Reconfigured time pusher period to "
-                             << TimeUtil::DurationToMilliseconds(new_period)
-                             << " milliseconds.");
+          LOG_INFO(logger_, "Reconfigured time pusher period to "
+                                << TimeUtil::DurationToMilliseconds(new_period)
+                                << " milliseconds.");
         } catch (const exception &e) {
-          LOG4CPLUS_WARN(
+          LOG_WARN(
               logger_,
               "Failed to service request to reconfigure time pusher period.");
           response->set_successful(false);
@@ -451,7 +447,7 @@ void ApiConnection::handle_eth_request(int i) {
   if (request.has_sig_v()) {
     sigV = request.sig_v();
     if (sigV == 27 || sigV == 28) {
-      LOG4CPLUS_DEBUG(logger_, "Request uses conventional signature");
+      LOG_DEBUG(logger_, "Request uses conventional signature");
       // No support for conventioanl signature's without replay protection
       // The only way this can be done is if the chainID is 1
       if (chainID_ != 1) {
@@ -538,7 +534,7 @@ void ApiConnection::handle_eth_request(int i) {
                                       internalResponse)) {
       concordResponse_.MergeFrom(internalResponse);
     } else {
-      LOG4CPLUS_ERROR(logger_, "Error parsing response");
+      LOG_ERROR(logger_, "Error parsing response");
       ErrorResponse *resp = concordResponse_.add_error_response();
       resp->set_description("Internal concord Error");
     }
@@ -620,7 +616,7 @@ void ApiConnection::handle_block_request() {
                                     *span_.get(), internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+    LOG_ERROR(logger_, "Error parsing read-only response");
     ErrorResponse *resp = concordResponse_.add_error_response();
     resp->set_description("Internal concord Error");
   }
@@ -647,7 +643,7 @@ void ApiConnection::handle_transaction_request() {
                                     *span_.get(), internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+    LOG_ERROR(logger_, "Error parsing read-only response");
     ErrorResponse *resp = concordResponse_.add_error_response();
     resp->set_description("Internal concord Error");
   }
@@ -667,7 +663,7 @@ void ApiConnection::handle_transaction_list_request() {
                                     internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+    LOG_ERROR(logger_, "Error parsing read-only response");
     ErrorResponse *resp = concordResponse_.add_error_response();
     resp->set_description("Internal concord Error");
   }
@@ -685,7 +681,7 @@ void ApiConnection::handle_logs_request() {
                                     internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+    LOG_ERROR(logger_, "Error parsing read-only response");
     ErrorResponse *resp = concordResponse_.add_error_response();
     resp->set_description("Internal concord Error");
   }
@@ -856,8 +852,7 @@ ApiConnection::ApiConnection(
     uint64_t chainID, bool ethEnabled,
     const concord::config::ConcordConfiguration &nodeConfig)
     : socket_(io_service),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
+      logger_(logging::getLogger("com.vmware.concord.ApiConnection")),
       connManager_(manager),
       clientPool_(clientPool),
       sag_(sag),

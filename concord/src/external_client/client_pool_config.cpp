@@ -27,7 +27,7 @@ using config::kConcordExternalClientConfigurationStateLabel;
 using config::YAMLConfigurationInput;
 
 ClientPoolConfig::ClientPoolConfig() {
-  logger_ = log4cplus::Logger::getInstance("com.vmware.external_client_pool");
+  logger_ = logging::getLogger("com.vmware.external_client_pool");
 }
 void ClientPoolConfig::ParseConfig(std::istream& config_stream,
                                    config::ConcordConfiguration& config) {
@@ -59,9 +59,9 @@ void ClientPoolConfig::ParseConfig(std::istream& config_stream,
                          config.end(ConcordConfiguration::kIterateAll));
 
   if (config.validateAll() != ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_ERROR(logger_, "Configuration file="
-                                 << config.getValue<std::string>(FILE_NAME)
-                                 << " validation failed");
+    LOG_ERROR(logger_,
+              "Configuration file=" << config.getValue<std::string>(FILE_NAME)
+                                    << " validation failed");
     throw ConfigurationResourceNotFoundException{
         "Node configuration complete validation failed."};
   }
@@ -69,10 +69,9 @@ void ClientPoolConfig::ParseConfig(std::istream& config_stream,
 
 std::unique_ptr<ICommunication> ClientPoolConfig::ToCommunication(
     const CommConfig& comm_config) {
-  LOG4CPLUS_DEBUG(logger_,
-                  "client_id=" << comm_config.selfId
-                               << " initiating communication module of type="
-                               << comm_config.commType);
+  LOG_DEBUG(logger_, "client_id=" << comm_config.selfId
+                                  << " initiating communication module of type="
+                                  << comm_config.commType);
   if (comm_config.commType == "tls") {
     const auto tls_config =
         TlsTcpConfig{comm_config.listenIp,
@@ -92,9 +91,8 @@ std::unique_ptr<ICommunication> ClientPoolConfig::ToCommunication(
                        comm_config.selfId,       comm_config.statusCallback};
     return std::unique_ptr<ICommunication>{CommFactory::create(udp_config)};
   }
-  LOG4CPLUS_ERROR(
-      logger_,
-      comm_config.commType << " is not a supported communication module type");
+  LOG_ERROR(logger_, comm_config.commType
+                         << " is not a supported communication module type");
   throw std::invalid_argument{"Unknown communication module type=" +
                               comm_config.commType};
 }

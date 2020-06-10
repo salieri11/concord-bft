@@ -106,14 +106,14 @@ const int64_t code_storage_version = 1;
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage)
     : roStorage_(roStorage),
       blockAppender_(nullptr),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
+      logger(logging::getLogger("com.vmware.concord.kvb")) {}
 
 // read-write mode
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage,
                              IBlocksAppender *blockAppender)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
+      logger(logging::getLogger("com.vmware.concord.kvb")) {}
 
 EthKvbStorage::~EthKvbStorage() {
   // Any Slivers in updates will release their memory automatically.
@@ -259,9 +259,9 @@ Status EthKvbStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
   BlockId outBlockId;
   Status status = blockAppender_->addBlock(updates, outBlockId);
   if (status.isOK()) {
-    LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
+    LOG_INFO(logger, "Appended block number " << outBlockId);
   } else {
-    LOG4CPLUS_ERROR(logger, "Failed to append block");
+    LOG_ERROR(logger, "Failed to append block");
   }
 
   // Prepare to stage another block
@@ -412,9 +412,9 @@ EthBlock EthKvbStorage::get_block(uint64_t number) {
   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
   Status status = roStorage_.getBlockData(1 + number, outBlockData);
 
-  LOG4CPLUS_DEBUG(logger, "Getting block number "
-                              << number << " status: " << status
-                              << " value.size: " << outBlockData.size());
+  LOG_DEBUG(logger, "Getting block number "
+                        << number << " status: " << status
+                        << " value.size: " << outBlockData.size());
   if (status.isOK()) {
     for (auto kvp : outBlockData) {
       if (kvp.first.data()[0] == kKvbKeyEthBlock) {
@@ -430,9 +430,9 @@ EthBlock EthKvbStorage::get_block(const evm_uint256be &hash) {
   Sliver value;
   Status status = get(kvbkey, value);
 
-  LOG4CPLUS_DEBUG(logger, "Getting block "
-                              << hash << " status: " << status << " key: "
-                              << kvbkey << " value.length: " << value.length());
+  LOG_DEBUG(logger, "Getting block " << hash << " status: " << status
+                                     << " key: " << kvbkey
+                                     << " value.length: " << value.length());
 
   if (status.isOK() && value.length() > 0) {
     // TODO: we may store less for block, by using this part to get the number,
@@ -448,9 +448,9 @@ EthTransaction EthKvbStorage::get_transaction(const evm_uint256be &hash) {
   Sliver value;
   Status status = get(kvbkey, value);
 
-  LOG4CPLUS_DEBUG(logger, "Getting transaction "
-                              << hash << " status: " << status << " key: "
-                              << kvbkey << " value.length: " << value.length());
+  LOG_DEBUG(logger, "Getting transaction "
+                        << hash << " status: " << status << " key: " << kvbkey
+                        << " value.length: " << value.length());
 
   if (status.isOK() && value.length() > 0) {
     // TODO: lookup block hash and number as well
@@ -472,12 +472,11 @@ evm_uint256be EthKvbStorage::get_balance(const evm_address &addr,
   BlockId outBlock;
   Status status = get(block_number, kvbkey, value, outBlock);
 
-  LOG4CPLUS_DEBUG(logger, "Getting balance "
-                              << addr
-                              << " lookup block starting at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
+  LOG_DEBUG(logger, "Getting balance "
+                        << addr << " lookup block starting at: " << block_number
+                        << " status: " << status << " key: " << kvbkey
+                        << " value.length: " << value.length()
+                        << " out block at: " << outBlock);
 
   evm_uint256be out;
   if (status.isOK() && value.length() > 0) {
@@ -491,7 +490,7 @@ evm_uint256be EthKvbStorage::get_balance(const evm_address &addr,
         throw EVMException("Unknown balance storage version");
       }
     } else {
-      LOG4CPLUS_ERROR(logger, "Unable to decode balance for addr " << addr);
+      LOG_ERROR(logger, "Unable to decode balance for addr " << addr);
       throw EVMException("Corrupt balance storage");
     }
   }
@@ -512,12 +511,11 @@ uint64_t EthKvbStorage::get_nonce(const evm_address &addr,
   BlockId outBlock;
   Status status = get(block_number, kvbkey, value, outBlock);
 
-  LOG4CPLUS_DEBUG(logger, "Getting nonce "
-                              << addr
-                              << " lookup block starting at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
+  LOG_DEBUG(logger, "Getting nonce "
+                        << addr << " lookup block starting at: " << block_number
+                        << " status: " << status << " key: " << kvbkey
+                        << " value.length: " << value.length()
+                        << " out block at: " << outBlock);
 
   if (status.isOK() && value.length() > 0) {
     com::vmware::concord::kvb::Nonce nonce;
@@ -539,9 +537,9 @@ bool EthKvbStorage::account_exists(const evm_address &addr) {
   Sliver value;
   Status status = get(kvbkey, value);
 
-  LOG4CPLUS_DEBUG(logger, "Getting balance "
-                              << addr << " status: " << status << " key: "
-                              << kvbkey << " value.length: " << value.length());
+  LOG_DEBUG(logger, "Getting balance " << addr << " status: " << status
+                                       << " key: " << kvbkey
+                                       << " value.length: " << value.length());
 
   if (status.isOK() && value.length() > 0) {
     // if there was a balance recorded, the account exists
@@ -578,12 +576,11 @@ bool EthKvbStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
   BlockId outBlock;
   Status status = get(block_number, kvbkey, value, outBlock);
 
-  LOG4CPLUS_DEBUG(logger, "Getting code "
-                              << addr
-                              << " lookup block starting at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
+  LOG_DEBUG(logger, "Getting code "
+                        << addr << " lookup block starting at: " << block_number
+                        << " status: " << status << " key: " << kvbkey
+                        << " value.length: " << value.length()
+                        << " out block at: " << outBlock);
 
   if (status.isOK() && value.length() > 0) {
     com::vmware::concord::kvb::Code code;
@@ -594,13 +591,11 @@ bool EthKvbStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
         std::copy(code.hash().begin(), code.hash().end(), hash.bytes);
         return true;
       } else {
-        LOG4CPLUS_ERROR(logger,
-                        "Unknown code storage version" << code.version());
+        LOG_ERROR(logger, "Unknown code storage version" << code.version());
         throw EVMException("Unknown code storage version");
       }
     } else {
-      LOG4CPLUS_ERROR(logger,
-                      "Unable to decode storage for contract at " << addr);
+      LOG_ERROR(logger, "Unable to decode storage for contract at " << addr);
       throw EVMException("Corrupt code storage");
     }
   }
@@ -624,21 +619,21 @@ evm_uint256be EthKvbStorage::get_storage(const evm_address &addr,
 
   // (IG): when running ST tests, logs are full of this line. Changed to Debug
   // level
-  LOG4CPLUS_DEBUG(logger, "Getting storage "
-                              << addr << " at " << location
-                              << " lookup block starting at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
+  LOG_DEBUG(logger, "Getting storage "
+                        << addr << " at " << location
+                        << " lookup block starting at: " << block_number
+                        << " status: " << status << " key: " << kvbkey
+                        << " value.length: " << value.length()
+                        << " out block at: " << outBlock);
 
   evm_uint256be out;
   if (status.isOK() && value.length() > 0) {
     if (value.length() == sizeof(evm_uint256be)) {
       std::copy(value.data(), value.data() + value.length(), out.bytes);
     } else {
-      LOG4CPLUS_ERROR(logger, "Contract " << addr << " storage " << location
-                                          << " only had " << value.length()
-                                          << " bytes.");
+      LOG_ERROR(logger, "Contract " << addr << " storage " << location
+                                    << " only had " << value.length()
+                                    << " bytes.");
       throw EVMException("Corrupt contract storage");
     }
   } else {

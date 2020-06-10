@@ -6,7 +6,6 @@
 #include <grpcpp/resource_quota.h>
 #include <jaegertracing/Tracer.h>
 #include <log4cplus/configurator.h>
-#include <log4cplus/loggingmacros.h>
 #include <sys/stat.h>
 #include <MetricsServer.hpp>
 #include <boost/asio.hpp>
@@ -68,7 +67,7 @@ using namespace std;
 using boost::asio::io_service;
 using boost::asio::ip::address;
 using boost::asio::ip::tcp;
-using log4cplus::Logger;
+using logging::Logger;
 using std::chrono::milliseconds;
 
 using concord::api::ApiAcceptor;
@@ -139,26 +138,26 @@ static unique_ptr<concordMetrics::Server> bft_metrics_server = nullptr;
 static void signalHandler(int signum) {
   try {
     Logger logger = Logger::getInstance("com.vmware.concord.main");
-    LOG4CPLUS_INFO(logger, "Signal received (" << signum << ")");
+    LOG_INFO(logger, "Signal received (" << signum << ")");
 
     if (api_service) {
-      LOG4CPLUS_INFO(logger, "Stopping API service");
+      LOG_INFO(logger, "Stopping API service");
       api_service->stop();
     }
     if (daml_grpc_server) {
-      LOG4CPLUS_INFO(logger, "Stopping DAML gRPC service");
+      LOG_INFO(logger, "Stopping DAML gRPC service");
       daml_grpc_server->Shutdown();
     }
     if (tee_grpc_server) {
-      LOG4CPLUS_INFO(logger, "Stopping TEE gRPC service");
+      LOG_INFO(logger, "Stopping TEE gRPC service");
       tee_grpc_server->Shutdown();
     }
     if (bft_metrics_server) {
-      LOG4CPLUS_INFO(logger, "Stopping BFT metrics server");
+      LOG_INFO(logger, "Stopping BFT metrics server");
       bft_metrics_server->Stop();
     }
     if (perf_grpc_server) {
-      LOG4CPLUS_INFO(logger, "Stopping Performance gRPC service");
+      LOG_INFO(logger, "Stopping Performance gRPC service");
       perf_grpc_server->Shutdown();
     }
   } catch (exception &e) {
@@ -169,16 +168,14 @@ static void signalHandler(int signum) {
 // Directs Jaeger log messages to Log4cpp
 class JaegerLogger : public jaegertracing::logging::Logger {
  private:
-  log4cplus::Logger logger = log4cplus::Logger::getInstance("jaeger");
+  logging::Logger logger = logging::getLogger("jaeger");
 
  public:
   void error(const std::string &message) override {
-    LOG4CPLUS_ERROR(logger, message);
+    LOG_ERROR(logger, message);
   }
 
-  void info(const std::string &message) override {
-    LOG4CPLUS_INFO(logger, message);
-  }
+  void info(const std::string &message) override { LOG_INFO(logger, message); }
 };
 
 const std::string kDefaultJaegerAgent = "127.0.0.1:6831";
@@ -222,7 +219,7 @@ void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
     jaeger_agent = resolve_host(jaeger_agent, logger);
   }
 
-  LOG4CPLUS_INFO(logger, "Tracing to jaeger agent: " << jaeger_agent);
+  LOG_INFO(logger, "Tracing to jaeger agent: " << jaeger_agent);
 
   // No sampling for now - report all traces
   jaegertracing::samplers::Config sampler_config(
@@ -243,7 +240,7 @@ void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
 std::unique_ptr<IStorageFactory> create_storage_factory(
     const ConcordConfiguration &nodeConfig, Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
-    LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
+    LOG_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
   }
 
@@ -256,11 +253,11 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
 
   if (db_impl_name == "memory") {
     if (storage_type == "basic") {
-      LOG4CPLUS_INFO(logger, "Using in-memory basic blockchain storage");
+      LOG_INFO(logger, "Using in-memory basic blockchain storage");
       return std::make_unique<
           concord::kvbc::v1DirectKeyValue::MemoryDBStorageFactory>();
     }
-    LOG4CPLUS_INFO(logger, "Using in-memory merkle blockchain storage");
+    LOG_INFO(logger, "Using in-memory merkle blockchain storage");
     return std::make_unique<
         concord::kvbc::v2MerkleTree::MemoryDBStorageFactory>();
 #ifdef USE_ROCKSDB
@@ -268,16 +265,16 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
     const auto rocks_path =
         nodeConfig.getValue<std::string>("blockchain_db_path");
     if (storage_type == "basic") {
-      LOG4CPLUS_INFO(logger, "Using rocksdb basic blockchain storage");
+      LOG_INFO(logger, "Using rocksdb basic blockchain storage");
       return std::make_unique<
           concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory>(rocks_path);
     }
-    LOG4CPLUS_INFO(logger, "Using rocksdb merkle blockchain storage");
+    LOG_INFO(logger, "Using rocksdb merkle blockchain storage");
     return std::make_unique<concord::kvbc::v2MerkleTree::RocksDBStorageFactory>(
         rocks_path);
 #endif
   } else {
-    LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
+    LOG_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
     throw EVMException("Unknown blockchain_db_impl");
   }
 }
@@ -305,7 +302,7 @@ class IdleBlockAppender : public IBlocksAppender {
 static concordUtils::Status create_daml_genesis_block(
     IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
-    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
   if (!nodeConfig.hasValue<std::string>("genesis_block")) {
@@ -314,8 +311,8 @@ static concordUtils::Status create_daml_genesis_block(
   const auto &genesis_file_path =
       nodeConfig.getValue<std::string>("genesis_block");
   if (access(genesis_file_path.c_str(), F_OK) == -1) {
-    LOG4CPLUS_WARN(logger, "Genesis config specified but doesn't exist: "
-                               << genesis_file_path);
+    LOG_WARN(logger, "Genesis config specified but doesn't exist: "
+                         << genesis_file_path);
     return concordUtils::Status::OK();
   }
   concord::daml::DamlInitParams init_params(genesis_file_path);
@@ -337,7 +334,7 @@ static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
   EthKvbStorage kvbStorage(storage, &blockAppender);
 
   if (storage.getLastBlock() > 0) {
-    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
 
@@ -367,9 +364,9 @@ static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
         (chainID * 2 + 35)  // sig_v
     };
     evm_uint256be txhash = tx.hash();
-    LOG4CPLUS_INFO(logger, "Created genesis transaction "
-                               << txhash << " to address " << it->first
-                               << " with value = " << tx.value);
+    LOG_INFO(logger, "Created genesis transaction "
+                         << txhash << " to address " << it->first
+                         << " with value = " << tx.value);
     kvbStorage.add_transaction(tx);
 
     // also set the balance record
@@ -388,7 +385,7 @@ static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
 static concordUtils::Status create_tee_genesis_block(
     IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
-    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
 
@@ -398,8 +395,7 @@ static concordUtils::Status create_tee_genesis_block(
         nodeConfig.getValue<std::string>("genesis_block");
     std::ifstream genesis_stream(genesis_file_path);
     if (!genesis_stream.good()) {
-      LOG4CPLUS_WARN(logger,
-                     "Error reading genesis file at " << genesis_file_path);
+      LOG_WARN(logger, "Error reading genesis file at " << genesis_file_path);
     } else {
       nlohmann::json genesis_block;
       genesis_stream >> genesis_block;
@@ -413,7 +409,7 @@ static concordUtils::Status create_tee_genesis_block(
       SetOfKeyValuePairs{{key, std::string{genesis_string}}});
 
   if (status.isOK()) {
-    LOG4CPLUS_INFO(logger, "Successfully loaded TEE genesis block");
+    LOG_INFO(logger, "Successfully loaded TEE genesis block");
   } else {
     throw "Unable to add TEE genesis block";
   }
@@ -428,7 +424,7 @@ static concordUtils::Status create_tee_genesis_block(
  */
 void start_worker_threads(int number) {
   Logger logger = Logger::getInstance("com.vmware.concord.main");
-  LOG4CPLUS_INFO(logger, "Starting " << number << " new API worker threads");
+  LOG_INFO(logger, "Starting " << number << " new API worker threads");
   assert(api_service);
   for (int i = 0; i < number; i++) {
     boost::thread *t = new boost::thread(
@@ -462,7 +458,7 @@ void RunDamlGrpcServer(
 
   daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
-  LOG4CPLUS_INFO(logger, "DAML gRPC server listening on " << server_address);
+  LOG_INFO(logger, "DAML gRPC server listening on " << server_address);
   daml_grpc_server->Wait();
 }
 
@@ -486,7 +482,7 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
 
   tee_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
-  LOG4CPLUS_INFO(logger, "TEE gRPC server listening on " << server_address);
+  LOG_INFO(logger, "TEE gRPC server listening on " << server_address);
   tee_grpc_server->Wait();
 }
 
@@ -511,8 +507,7 @@ void RunPerfGrpcServer(std::string server_address, KVBClientPool &pool,
 
   perf_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
-  LOG4CPLUS_INFO(logger,
-                 "Performance gRPC server listening on " << server_address);
+  LOG_INFO(logger, "Performance gRPC server listening on " << server_address);
   perf_grpc_server->Wait();
 }
 
@@ -534,10 +529,9 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
           : 600;
   std::string host = config.getValue<std::string>("service_host");
   std::string prom_bindaddress = host + ":" + std::to_string(prometheus_port);
-  LOG4CPLUS_INFO(
-      logger, "prometheus metrics address is: " << prom_bindaddress
-                                                << " dumping metrics interval: "
-                                                << dump_time_interval);
+  LOG_INFO(logger, "prometheus metrics address is: "
+                       << prom_bindaddress
+                       << " dumping metrics interval: " << dump_time_interval);
   return std::make_shared<concord::utils::PrometheusRegistry>(
       prom_bindaddress, dump_time_interval);
 }
@@ -545,7 +539,7 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
 static concordUtils::Status create_perf_genesis_block(
     IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
-    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
 
@@ -555,8 +549,7 @@ static concordUtils::Status create_perf_genesis_block(
         nodeConfig.getValue<std::string>("genesis_block");
     std::ifstream genesis_stream(genesis_file_path);
     if (!genesis_stream.good()) {
-      LOG4CPLUS_WARN(logger,
-                     "Error reading genesis file at " << genesis_file_path);
+      LOG_WARN(logger, "Error reading genesis file at " << genesis_file_path);
     } else {
       nlohmann::json genesis_block;
       genesis_stream >> genesis_block;
@@ -570,7 +563,7 @@ static concordUtils::Status create_perf_genesis_block(
       SetOfKeyValuePairs{{key, std::string{genesis_string}}});
 
   if (status.isOK()) {
-    LOG4CPLUS_INFO(logger, "Successfully loaded performance genesis block");
+    LOG_INFO(logger, "Successfully loaded performance genesis block");
   } else {
     throw std::runtime_error("Unable to add performance genesis block");
   }
@@ -600,9 +593,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
   if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled, tee_enabled,
                    perf_enabled)) {
-    LOG4CPLUS_WARN(logger,
-                   "Make sure one and only one execution engine (DAML, Eth, "
-                   "HLF, TEE or Perf) is set");
+    LOG_WARN(logger,
+             "Make sure one and only one execution engine (DAML, Eth, "
+             "HLF, TEE or Perf) is set");
     return 0;
   }
   auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
@@ -616,15 +609,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       if (nodeConfig.hasValue<std::string>("genesis_block")) {
         string genesis_file_path =
             nodeConfig.getValue<std::string>("genesis_block");
-        LOG4CPLUS_INFO(logger,
-                       "Reading genesis block from " << genesis_file_path);
+        LOG_INFO(logger, "Reading genesis block from " << genesis_file_path);
         params = EVMInitParams(genesis_file_path);
         chainID = params.get_chainID();
         // throws an exception if it fails
         concevm = unique_ptr<EVM>(new EVM(params));
         ethVerifier = unique_ptr<EthSign>(new EthSign());
       } else {
-        LOG4CPLUS_WARN(logger, "No genesis block provided");
+        LOG_WARN(logger, "No genesis block provided");
       }
     }
 
@@ -638,10 +630,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                                                nullptr, 0, &replicaConfig);
     assert(success);
 
-    LOG4CPLUS_INFO(
-        logger, "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
-                                          << " and C=" << replicaConfig.cVal);
-    LOG4CPLUS_INFO(logger, "Direct proofs are not supported");
+    LOG_INFO(logger,
+             "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
+                                       << " and C=" << replicaConfig.cVal);
+    LOG_INFO(logger, "Direct proofs are not supported");
 
     // Replica
     //
@@ -676,12 +668,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           std::make_unique<concordMetrics::Server>(bft_metrics_udp_port);
       bft_metrics_aggregator = bft_metrics_server->GetAggregator();
       bft_metrics_server->Start();
-      LOG4CPLUS_INFO(logger,
-                     "Exposing BFT metrics via UDP server, listening on port "
-                         << bft_metrics_udp_port);
+      LOG_INFO(logger, "Exposing BFT metrics via UDP server, listening on port "
+                           << bft_metrics_udp_port);
     } else {
       bft_metrics_aggregator = prometheus_for_concordbft->getAggregator();
-      LOG4CPLUS_INFO(logger, "Exposing BFT metrics via Prometheus.");
+      LOG_INFO(logger, "Exposing BFT metrics via Prometheus.");
     }
 
     ReplicaImp replica(icomm, replicaConfig,
@@ -708,13 +699,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       const auto &status =
           create_daml_genesis_block(&replica, nodeConfig, logger);
       if (status.isOK()) {
-        LOG4CPLUS_INFO(logger, "Successfully loaded DAML genesis block");
+        LOG_INFO(logger, "Successfully loaded DAML genesis block");
       } else {
         throw concord::daml::DamlInitParamException(
             "Unable to load DAML genesis block: " + status.toString());
       }
     } else if (hlf_enabled) {
-      LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
+      LOG_INFO(logger, "Hyperledger Fabric feature is enabled");
 
       // HLF
       //
@@ -724,7 +715,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // custom parameter
       // TODO(JB): debug issue & create task for time service with HLF
       if (concord::time::IsTimeServiceEnabled(config)) {
-        LOG4CPLUS_WARN(
+        LOG_WARN(
             logger,
             "Time Service Enabled ignored..not supported with HLF enabled");
         config.loadValue("FEATURE_time_service", "false");
@@ -760,8 +751,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       concordUtils::Status genesis_status =
           create_ethereum_genesis_block(&replica, params, logger);
       if (!genesis_status.isOK()) {
-        LOG4CPLUS_FATAL(logger,
-                        "Unable to load genesis block: " << genesis_status);
+        LOG_FATAL(logger, "Unable to load genesis block: " << genesis_status);
         throw EVMException("Unable to load genesis block");
       }
     }
@@ -885,7 +875,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
     ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
                          eth_enabled, nodeConfig);
-    LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
+    LOG_INFO(logger, "API Listening on " << endpoint);
 
     start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") - 1);
 
@@ -903,7 +893,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     replica.stop();
   } catch (std::exception &ex) {
-    LOG4CPLUS_FATAL(logger, ex.what());
+    LOG_FATAL(logger, ex.what());
     return -1;
   }
 
@@ -955,7 +945,7 @@ int main(int argc, char **argv) {
 
     // say hello
     Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
-    LOG4CPLUS_INFO(mainLogger, "VMware Project concord starting");
+    LOG_INFO(mainLogger, "VMware Project concord starting");
 
     initialize_tracing(nodeConfig, mainLogger);
     tracingInitialized = true;
@@ -963,11 +953,11 @@ int main(int argc, char **argv) {
     // service has shutdown
     result = run_service(config, nodeConfig, mainLogger);
 
-    LOG4CPLUS_INFO(mainLogger, "VMware Project concord halting");
+    LOG_INFO(mainLogger, "VMware Project concord halting");
   } catch (const error &ex) {
     if (loggerInitialized) {
       Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
-      LOG4CPLUS_FATAL(mainLogger, ex.what());
+      LOG_FATAL(mainLogger, ex.what());
     } else {
       std::cerr << ex.what() << std::endl;
     }
@@ -980,11 +970,11 @@ int main(int argc, char **argv) {
 
   if (loggerInitialized) {
     Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
-    LOG4CPLUS_INFO(mainLogger, "Shutting down");
+    LOG_INFO(mainLogger, "Shutting down");
   }
 
   // cleanup required for properties-watching thread
-  log4cplus::Logger::shutdown();
+  logging::Logger::shutdown();
 
   return result;
 }

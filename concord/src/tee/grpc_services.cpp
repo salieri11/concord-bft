@@ -1,9 +1,9 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "grpc_services.hpp"
-#include <log4cplus/mdc.h>
 #include <opentracing/tracer.h>
 #include <string>
+#include "Logger.hpp"
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
@@ -36,7 +36,7 @@ grpc::Status TeeServiceImpl::RunTest(grpc::ServerContext* context,
 
   if (!pool_.send_request_sync(conc_request, test_input->flags(), *span.get(),
                                conc_response)) {
-    LOG4CPLUS_ERROR(logger_, "RunTest transaction failed");
+    LOG_ERROR(logger_, "RunTest transaction failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
@@ -61,7 +61,7 @@ grpc::Status TeeServiceImpl::WriteBlock(::grpc::ServerContext* context,
 
   if (!pool_.send_request_sync(conc_request, false, *span.get(),
                                conc_response)) {
-    LOG4CPLUS_ERROR(logger_, "WriteBlock transaction failed");
+    LOG_ERROR(logger_, "WriteBlock transaction failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
@@ -85,7 +85,7 @@ grpc::Status TeeServiceImpl::SkvbcRead(
 
   if (!pool_.send_request_sync(conc_request, bftEngine::READ_ONLY_REQ,
                                *span.get(), conc_response)) {
-    LOG4CPLUS_ERROR(logger_, "SKVBC read failed");
+    LOG_ERROR(logger_, "SKVBC read failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
@@ -110,7 +110,7 @@ grpc::Status TeeServiceImpl::SkvbcWrite(
 
   if (!pool_.send_request_sync(conc_request, request->flags(), *span.get(),
                                conc_response)) {
-    LOG4CPLUS_ERROR(logger_, "SKVBC write failed");
+    LOG_ERROR(logger_, "SKVBC write failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }

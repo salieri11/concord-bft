@@ -5,7 +5,6 @@ add_library(concord_utils STATIC
   "concord_eth_hash.cpp" "concord_eth_hash.hpp"
   "concord_eth_sign.cpp" "concord_eth_sign.hpp"
   "concord_prometheus_metrics.hpp" "concord_prometheus_metrics.cpp"
-  "concord_logging.hpp"
   "openssl_crypto_utils.hpp" "openssl_crypto_utils.cpp"
 )
 target_link_libraries(concord_utils secp256k1 util prometheus-cpp::core

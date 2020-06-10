@@ -6,8 +6,8 @@
 #ifndef CONSENSUS_CONCORD_TIMING_STAT_H_
 #define CONSENSUS_CONCORD_TIMING_STAT_H_
 
-#include <log4cplus/loggingmacros.h>
 #include <chrono>
+#include "Logger.hpp"
 #include "Metrics.hpp"
 #include "hdr_histogram.h"
 
@@ -41,10 +41,9 @@ class TimingStat {
       int init_result =
           hdr_init(min_value, max_value, significant_figures, &histogram_);
       if (init_result != 0) {
-        LOG4CPLUS_WARN(log4cplus::Logger::getInstance("consensus.TimingStat"),
-                       "Unable to init hdrhistogram " + name + " ("
-                           << init_result << ": " << strerror(init_result)
-                           << ")");
+        LOG_WARN(logging::getLogger("consensus.TimingStat"),
+                 "Unable to init hdrhistogram " + name + " ("
+                     << init_result << ": " << strerror(init_result) << ")");
       }
     }
   }

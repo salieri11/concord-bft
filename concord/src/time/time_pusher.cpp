@@ -3,11 +3,11 @@
 #include "time_pusher.hpp"
 
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/tracer.h>
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include "Logger.hpp"
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
@@ -29,7 +29,7 @@ using namespace bft::communication;
 
 TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
                        const concord::config::ConcordConfiguration &nodeConfig)
-    : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),
+    : logger_(logging::getLogger("concord.time.pusher")),
       stop_(false),
       lastPublishTime_(TimeUtil::GetEpoch()),
       signer_(std::unique_ptr<TimeSigner>{}) {
@@ -131,25 +131,23 @@ void TimePusher::DoStart(KVBClientPool *clientPool) {
 
   clientPool_ = clientPool;
   if (!clientPool_) {
-    LOG4CPLUS_ERROR(logger_,
-                    "Not starting thread: no clientPool to push with.");
+    LOG_ERROR(logger_, "Not starting thread: no clientPool to push with.");
     return;
   }
 
   if (timeSourceId_.empty()) {
-    LOG4CPLUS_INFO(logger_,
-                   "Not starting thread: no time_source_id configured.");
+    LOG_INFO(logger_, "Not starting thread: no time_source_id configured.");
     return;
   }
 
   if (TimeUtil::DurationToMilliseconds(period_) <= 0) {
-    LOG4CPLUS_INFO(logger_, "TimePusher thread not running: period is "
-                                << period_ << " (less than or equal to zero).");
+    LOG_INFO(logger_, "TimePusher thread not running: period is "
+                          << period_ << " (less than or equal to zero).");
     return;
   }
 
   if (pusherThread_.joinable()) {
-    LOG4CPLUS_INFO(logger_, "Ignoring duplicate start request.");
+    LOG_INFO(logger_, "Ignoring duplicate start request.");
     return;
   }
 
@@ -158,7 +156,7 @@ void TimePusher::DoStart(KVBClientPool *clientPool) {
 
 void TimePusher::DoStop() {
   if (!pusherThread_.joinable()) {
-    LOG4CPLUS_INFO(logger_, "Ignoring stop request - nothing to stop");
+    LOG_INFO(logger_, "Ignoring stop request - nothing to stop");
     return;
   }
 
@@ -170,7 +168,7 @@ void TimePusher::DoStop() {
 }
 
 void TimePusher::ThreadFunction() {
-  LOG4CPLUS_INFO(logger_, "Thread started with period " << period_ << ".");
+  LOG_INFO(logger_, "Thread started with period " << period_ << ".");
   ConcordRequest req;
   ConcordResponse resp;
 
@@ -203,7 +201,7 @@ void TimePusher::ThreadFunction() {
       // down, because we don't have anything monitoring to restart it if it
       // does. So we'll swallow all exceptions and just yell into the log about
       // any problems and wait for an admin to notice.
-      LOG4CPLUS_ERROR(logger_, "Unable to send time update");
+      LOG_ERROR(logger_, "Unable to send time update");
     }
   }
 }

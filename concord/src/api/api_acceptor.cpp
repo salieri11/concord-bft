@@ -24,7 +24,7 @@ ApiAcceptor::ApiAcceptor(
     const concord::config::ConcordConfiguration &nodeConfig)
     : acceptor_(io_service, endpoint),
       clientPool_(clientPool),
-      logger_(log4cplus::Logger::getInstance("com.vmware.concord.ApiAcceptor")),
+      logger_(logging::getLogger("com.vmware.concord.ApiAcceptor")),
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
@@ -37,7 +37,7 @@ ApiAcceptor::ApiAcceptor(
 }
 
 void ApiAcceptor::start_accept() {
-  LOG4CPLUS_TRACE(logger_, "start_accept enter");
+  LOG_TRACE(logger_, "start_accept enter");
 
   ApiConnection::pointer new_connection = ApiConnection::create(
       acceptor_.get_io_service(), connManager_, clientPool_, sag_, gasLimit_,
@@ -47,24 +47,24 @@ void ApiAcceptor::start_accept() {
       new_connection->socket(),
       boost::bind(&ApiAcceptor::handle_accept, this, new_connection,
                   boost::asio::placeholders::error));
-  LOG4CPLUS_TRACE(logger_, "start_accept exit");
+  LOG_TRACE(logger_, "start_accept exit");
 }
 
 void ApiAcceptor::handle_accept(ApiConnection::pointer new_connection,
                                 const boost::system::error_code &error) {
-  LOG4CPLUS_TRACE(logger_, "handle_accept enter, thread id: "
-                               << boost::this_thread::get_id());
+  LOG_TRACE(logger_,
+            "handle_accept enter, thread id: " << boost::this_thread::get_id());
   if (!error) {
     connManager_.start_connection(new_connection);
   } else if (error == error::operation_aborted) {
     // Exit here in case operation aborted - shutdown is ongoing.
-    LOG4CPLUS_ERROR(logger_, error.message());
+    LOG_ERROR(logger_, error.message());
     return;
   }
 
-  LOG4CPLUS_DEBUG(logger_, "handle_accept before start_accept");
+  LOG_DEBUG(logger_, "handle_accept before start_accept");
   start_accept();
-  LOG4CPLUS_TRACE(logger_, "handle_accept exit");
+  LOG_TRACE(logger_, "handle_accept exit");
 }
 
 }  // namespace api

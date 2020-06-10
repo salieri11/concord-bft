@@ -5,11 +5,11 @@
 #ifndef CONCORD_STORAGE_KVB_APP_FILTER_H_
 #define CONCORD_STORAGE_KVB_APP_FILTER_H_
 
-#include <log4cplus/logger.h>
 #include <atomic>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <future>
 #include <set>
+#include "Logger.hpp"
 
 #include "db_interfaces.h"
 #include "kv_types.hpp"
@@ -45,7 +45,7 @@ class KvbAppFilter {
   KvbAppFilter(const concord::kvbc::ILocalKeyValueStorageReadOnly *rostorage,
                const std::set<KvbAppFilter::AppType> &app_types,
                const std::string &client_id, const std::string &key_prefix)
-      : logger_(log4cplus::Logger::getInstance("concord.storage.KvbFilter")),
+      : logger_(logging::getLogger("concord.storage.KvbFilter")),
         rostorage_(rostorage),
         types_(app_types),
         client_id_(client_id),
@@ -76,7 +76,7 @@ class KvbAppFilter {
   KvbStateHash ReadBlockHash(kvbc::BlockId block_id);
 
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly *rostorage_;
   const std::set<KvbAppFilter::AppType> types_;
   const std::string client_id_;

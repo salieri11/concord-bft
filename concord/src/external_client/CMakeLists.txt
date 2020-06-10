@@ -11,7 +11,6 @@ target_include_directories(concord_external_client PRIVATE ${thresh_include})
 target_link_libraries(concord_external_client PUBLIC
     ${Boost_LIBRARIES}
     ${yaml-cpp_LIBRARIES}
-    log4cplus
     concord_utils
     bftclient
     kvbc

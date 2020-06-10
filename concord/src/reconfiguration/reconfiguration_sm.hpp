@@ -39,7 +39,7 @@ class IReconfigurationPlugin {
 
 class ReconfigurationSM {
   std::vector<std::unique_ptr<IReconfigurationPlugin>> plugins_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
       operator_public_key_{nullptr};
 

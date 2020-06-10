@@ -73,7 +73,7 @@ class ClientPoolConfig {
 
  private:
   // Logger
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 };
 
 }  // namespace config_pool

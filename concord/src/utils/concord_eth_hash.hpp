@@ -5,7 +5,7 @@
 #ifndef UTILS_CONCORD_ETH_HASH_HPP
 #define UTILS_CONCORD_ETH_HASH_HPP
 
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 #include "evm.h"
 
 namespace concord {

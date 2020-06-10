@@ -6,9 +6,9 @@
 #include <sstream>
 #include <string>
 #include <strstream>
-#include "utils/concord_logging.hpp"
 #include "utils/open_tracing_utils.hpp"
 
+#include "Logger.hpp"
 #include "concord_storage.pb.h"
 #include "daml/daml_kvb_commands_handler.hpp"
 
@@ -40,7 +40,7 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   Command cmd;
   cmd.mutable_commit()->CopyFrom(*request);
 
-  concord::utils::RAIIMDC mdc("cid", request->correlation_id());
+  SCOPED_MDC_CID(request->correlation_id());
 
   auto span =
       concord::utils::ExtractSpan(request->span_context(), "commit_transaction",
@@ -59,20 +59,20 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     flags |= bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   }
 
-  LOG4CPLUS_INFO(logger_, "Received DAML commit command cid="
-                              << request->correlation_id());
+  LOG_INFO(logger_,
+           "Received DAML commit command cid=" << request->correlation_id());
   if (!pool.send_request_sync(req, flags, *span.get(), resp,
                               request->correlation_id())) {
-    LOG4CPLUS_ERROR(logger_, "DAML commit command cid="
-                                 << request->correlation_id() << " failed");
+    LOG_ERROR(logger_, "DAML commit command cid=" << request->correlation_id()
+                                                  << " failed");
     return grpc::Status::CANCELLED;
   }
 
   if (resp.error_response_size() >= 1) {
-    LOG4CPLUS_ERROR(logger_, "DAML commit command cid="
-                                 << request->correlation_id()
-                                 << " failed with concord error: "
-                                 << resp.error_response(0).description());
+    LOG_ERROR(logger_, "DAML commit command cid="
+                           << request->correlation_id()
+                           << " failed with concord error: "
+                           << resp.error_response(0).description());
     return grpc::Status::CANCELLED;
   }
 
@@ -83,8 +83,8 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   assert(resp.daml_response().has_command_reply());
   CommandReply cmd_reply;
   if (!cmd_reply.ParseFromString(resp.daml_response().command_reply())) {
-    LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/CommandReply cid="
-                                 << request->correlation_id());
+    LOG_ERROR(logger_, "Failed to parse DAML/CommandReply cid="
+                           << request->correlation_id());
     return grpc::Status::CANCELLED;
   }
   assert(cmd_reply.has_commit());

@@ -5,10 +5,10 @@
 #ifndef ETHEREUM_CONCORD_EVM_HPP
 #define ETHEREUM_CONCORD_EVM_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <map>
 #include <memory>
 #include <vector>
+#include "Logger.hpp"
 #include "common/concord_types.hpp"
 #include "evm.h"
 #include "evm_init_params.hpp"
@@ -35,7 +35,7 @@ typedef struct concord_context {
   class EVM* conc_object;
   class EthKvbStorage* kvbStorage;
   std::vector<::concord::common::EthLog>* evmLogs;
-  log4cplus::Logger* logger;
+  logging::Logger* logger;
   uint64_t timestamp;
 
   // Stash to answer ORIGIN opcode. This starts with the same value as
@@ -112,7 +112,7 @@ class EVM {
 
  private:
   evm_instance* evminst;
-  log4cplus::Logger logger;
+  logging::Logger logger;
 
   // chain to which we are connected
   uint64_t chainId;

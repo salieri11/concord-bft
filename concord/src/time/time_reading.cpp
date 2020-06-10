@@ -3,8 +3,8 @@
 #include "time_reading.hpp"
 
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/loggingmacros.h>
 #include <chrono>
+#include "Logger.hpp"
 
 #include "config/configuration_manager.hpp"
 

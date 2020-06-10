@@ -21,21 +21,20 @@ const ::concordUtils::Sliver kSpanContextKey =
 namespace concord::utils {
 
 SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
-                    log4cplus::Logger logger) {
+                    logging::Logger logger) {
   return ExtractSpan(context, child_name, logger, "", false);
 }
 
 SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
-                    log4cplus::Logger logger, const std::string correlation_id,
+                    logging::Logger logger, const std::string correlation_id,
                     bool create_span_on_failure) {
   std::istringstream context_stream{context};
   auto parent_span_context =
       opentracing::Tracer::Global()->Extract(context_stream);
   if (!parent_span_context) {
     if (create_span_on_failure) {
-      LOG4CPLUS_WARN(logger,
-                     "Failed to extract span, creating a new one, error:"
-                         << parent_span_context.error());
+      LOG_WARN(logger, "Failed to extract span, creating a new one, error:"
+                           << parent_span_context.error());
       return opentracing::Tracer::Global()->StartSpan(
           child_name, {opentracing::SetTag{kCorrelationIdTag, correlation_id}});
     } else {
@@ -49,12 +48,11 @@ SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
 }
 
 SpanPtr ExtractSpan(const OpenTracingKeyValMap& kv,
-                    const std::string& child_name, log4cplus::Logger logger,
+                    const std::string& child_name, logging::Logger logger,
                     const std::string& correlation_id) {
   auto res = kv.find(kSpanContextKey);
   if (res == kv.end()) {
-    LOG4CPLUS_WARN(logger,
-                   "Update does not contain a span, creating a new one");
+    LOG_WARN(logger, "Update does not contain a span, creating a new one");
     return opentracing::Tracer::Global()->StartSpan(
         child_name, {opentracing::SetTag{kCorrelationIdTag, correlation_id}});
   }
@@ -63,18 +61,17 @@ SpanPtr ExtractSpan(const OpenTracingKeyValMap& kv,
 }
 
 SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
-                    log4cplus::Logger logger) {
+                    logging::Logger logger) {
   return ExtractSpan(kv, child_name, logger, "", false);
 }
 
 SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
-                    log4cplus::Logger logger, const std::string& correlation_id,
+                    logging::Logger logger, const std::string& correlation_id,
                     bool create_span_on_failure) {
   auto res = kv.find(kSpanContextKey);
   if (res == kv.end()) {
     if (create_span_on_failure) {
-      LOG4CPLUS_DEBUG(logger,
-                      "Update does not contain a span, creating a new one");
+      LOG_DEBUG(logger, "Update does not contain a span, creating a new one");
       return opentracing::Tracer::Global()->StartSpan(
           child_name, {opentracing::SetTag{kCorrelationIdTag, correlation_id}});
     } else {

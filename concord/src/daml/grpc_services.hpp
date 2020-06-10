@@ -4,7 +4,7 @@
 #define CONCORD_DAML_GRPC_SERVICES_HPP_
 
 #include <grpcpp/grpcpp.h>
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 
 #include "consensus/kvb_client.hpp"
 #include "daml_commit.grpc.pb.h"
@@ -16,7 +16,7 @@ namespace daml {
 class CommitServiceImpl final
     : public com::digitalasset::kvbc::CommitService::Service {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   concord::consensus::KVBClientPool& pool;
   std::mutex mutex;
 
@@ -29,8 +29,7 @@ class CommitServiceImpl final
   explicit CommitServiceImpl(
       concord::consensus::KVBClientPool& p,
       const concord::config::ConcordConfiguration& config)
-      : logger_(
-            log4cplus::Logger::getInstance("com.vmware.concord.daml.commit")),
+      : logger_(logging::getLogger("com.vmware.concord.daml.commit")),
         pool(p),
         pre_execute_all_requests(IsPreExecuteAllRequestsEnabled(config)) {}
 

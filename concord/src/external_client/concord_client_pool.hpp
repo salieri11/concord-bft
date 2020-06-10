@@ -125,7 +125,7 @@ class ConcordClientPool {
   prometheus::Gauge& clients_gauge_;
   prometheus::Gauge& last_request_time_gauge_;
   // Logger
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 };
 
 class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {

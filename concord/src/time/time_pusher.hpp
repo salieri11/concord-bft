@@ -12,9 +12,9 @@
 
 #include <google/protobuf/duration.pb.h>
 #include <google/protobuf/timestamp.pb.h>
-#include <log4cplus/loggingmacros.h>
 #include <mutex>
 #include <thread>
+#include "Logger.hpp"
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
@@ -78,7 +78,7 @@ class TimePusher {
   void DoStop();
 
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   concord::consensus::KVBClientPool *clientPool_;
   bool run_requested_;
   bool stop_;

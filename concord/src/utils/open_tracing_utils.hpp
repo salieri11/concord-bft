@@ -6,10 +6,10 @@
 #define OPEN_TRACING_UTILS_HPP
 
 #include <grpcpp/grpcpp.h>
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
 #include <opentracing/tracer.h>
 #include <unordered_map>
+#include "Logger.hpp"
 
 #include "sliver.hpp"
 #include "storage/kvb_key_types.h"
@@ -31,17 +31,17 @@ using OpenTracingKeyValMap =
     std::unordered_map<concordUtils::Sliver, concordUtils::Sliver>;
 
 SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
-                    log4cplus::Logger logger);
+                    logging::Logger logger);
 
 SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
-                    log4cplus::Logger logger, const std::string correlation_id,
+                    logging::Logger logger, const std::string correlation_id,
                     bool create_span_on_failure = true);
 
 SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
-                    log4cplus::Logger logger);
+                    logging::Logger logger);
 
 SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
-                    log4cplus::Logger logger, const std::string& correlation_id,
+                    logging::Logger logger, const std::string& correlation_id,
                     bool create_span_on_failure = true);
 
 void InjectSpan(const SpanPtr& span, OpenTracingKeyValMap& kv);

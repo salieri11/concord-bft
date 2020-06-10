@@ -8,9 +8,9 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-#include <log4cplus/loggingmacros.h>
 #include <boost/filesystem.hpp>
 #include <iostream>
+#include "Logger.hpp"
 #include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
 #include "hlf/kvb_storage.hpp"
@@ -24,7 +24,7 @@ class HlfKeyValueServiceImpl final
     : public com::vmware::concord::hlf::services::HlfKeyValueService::Service {
  private:
   concord::hlf::HlfKvbStorage kvb_storage_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 
  public:
   // restrict the max chaincode size to 1 MB
@@ -32,8 +32,7 @@ class HlfKeyValueServiceImpl final
 
   HlfKeyValueServiceImpl(concord::hlf::HlfKvbStorage& kvb_storage)
       : kvb_storage_(kvb_storage),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
-  }
+        logger_(logging::getLogger("com.vmware.concord.hlf.grpc")) {}
 
   ~HlfKeyValueServiceImpl() {}
 
@@ -54,13 +53,12 @@ class HlfChaincodeServiceImpl final
     : public com::vmware::concord::hlf::services::HlfChaincodeService::Service {
  private:
   concord::consensus::KVBClientPool& pool_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 
  public:
   HlfChaincodeServiceImpl(concord::consensus::KVBClientPool& pool)
       : pool_(pool),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
-  }
+        logger_(logging::getLogger("com.vmware.concord.hlf.grpc")) {}
 
   ~HlfChaincodeServiceImpl() {}
 

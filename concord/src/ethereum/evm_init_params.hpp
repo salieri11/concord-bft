@@ -5,12 +5,12 @@
 #ifndef ETHEREUM_EVM_INIT_PARAMS_HPP
 #define ETHEREUM_EVM_INIT_PARAMS_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <cstdlib>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <vector>
+#include "Logger.hpp"
 #include "common/concord_types.hpp"
 #include "evm.h"
 #include "utils/concord_utils.hpp"
@@ -51,7 +51,7 @@ class EVMInitParams {
   // The map of initial accounts with their preset balance values
   std::map<evm_address, evm_uint256be> initial_accounts;
 
-  log4cplus::Logger logger;
+  logging::Logger logger;
 };
 
 }  // namespace ethereum

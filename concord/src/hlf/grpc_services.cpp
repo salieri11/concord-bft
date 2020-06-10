@@ -18,7 +18,7 @@ using grpc::ServerWriter;
 
 using concord::consensus::KVBClientPool;
 using concord::hlf::HlfKvbStorage;
-using log4cplus::Logger;
+using logging::Logger;
 using std::endl;
 using std::string;
 
@@ -52,7 +52,7 @@ grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
       value = kvb_storage_.GetHlfState(request->key());
     }
 
-    LOG4CPLUS_DEBUG(logger_, "[GET] " << request->key() << ":" << value);
+    LOG_DEBUG(logger_, "[GET] " << request->key() << ":" << value);
 
     response->set_value(value);
     response->set_state(KvbMessage_type_VALID);
@@ -70,8 +70,7 @@ grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
     concordUtils::Status status =
         kvb_storage_.SetHlfState(request->key(), request->value());
 
-    LOG4CPLUS_DEBUG(logger_,
-                    "[PUT] " << request->key() << ":" << request->value());
+    LOG_DEBUG(logger_, "[PUT] " << request->key() << ":" << request->value());
 
     if (status.isOK()) {
       response->set_state(KvbMessage_type_VALID);
@@ -173,7 +172,7 @@ grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
                                   internal_response)) {
         concord_response->MergeFrom(internal_response);
       } else {
-        LOG4CPLUS_ERROR(logger_, "Error parsing response");
+        LOG_ERROR(logger_, "Error parsing response");
         ErrorResponse* resp = concord_response->add_error_response();
         resp->set_description("Internal concord Error");
       }
@@ -202,7 +201,7 @@ bool HlfChaincodeServiceImpl::IsValidInvokeOpt(
 bool HlfChaincodeServiceImpl::VerifyChaincodeBytes(HlfRequest& hlf_request,
                                                    string& msg) {
   if (!hlf_request.has_chaincode_source_bytes()) {
-    LOG4CPLUS_ERROR(logger_, "chaincode is empty");
+    LOG_ERROR(logger_, "chaincode is empty");
     msg = "Failed to upload since the chaincode field empty";
     return false;
   }
@@ -210,12 +209,11 @@ bool HlfChaincodeServiceImpl::VerifyChaincodeBytes(HlfRequest& hlf_request,
   // check size of chaincode
   if (hlf_request.chaincode_source_bytes().length() >
       HlfKeyValueServiceImpl::kMaxChaincodeBytesize) {
-    LOG4CPLUS_ERROR(
-        logger_,
-        "Size of Chaincode file is too large."
-            << " The chaincode size is "
-            << std::to_string(hlf_request.chaincode_source_bytes().length())
-            << " Bytes");
+    LOG_ERROR(logger_, "Size of Chaincode file is too large."
+                           << " The chaincode size is "
+                           << std::to_string(
+                                  hlf_request.chaincode_source_bytes().length())
+                           << " Bytes");
 
     msg =
         "Failed to upload because the chaincode size is larger "
@@ -262,7 +260,7 @@ void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,
                       KVBClientPool& kvb_client_pool,
                       string key_value_service_address,
                       string chaincode_service_address) {
-  log4cplus::Logger logger;
+  logging::Logger logger;
 
   logger = Logger::getInstance("com.vmware.concord.hlf");
 
@@ -294,11 +292,11 @@ void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,
   std::unique_ptr<Server> chaincode_server(
       chaincode_service_builder.BuildAndStart());
 
-  LOG4CPLUS_INFO(logger,
-                 "Concord HLF chaincode gRPC service is listening on: "
-                     << chaincode_service_address << endl
-                     << " Concord HLF Key Value gRPC service is listening on: "
-                     << key_value_service_address << endl);
+  LOG_INFO(logger,
+           "Concord HLF chaincode gRPC service is listening on: "
+               << chaincode_service_address << endl
+               << " Concord HLF Key Value gRPC service is listening on: "
+               << key_value_service_address << endl);
 
   chaincode_server->Wait();
 }

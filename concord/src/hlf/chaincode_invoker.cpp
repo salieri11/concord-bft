@@ -4,7 +4,7 @@
 
 using concord::config::ConcordConfiguration;
 using concordUtils::Status;
-using log4cplus::Logger;
+using logging::Logger;
 using std::endl;
 using std::string;
 
@@ -24,17 +24,17 @@ ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
   hlf_kv_service_address_ =
       node_config.getValue<string>("hlf_kv_service_address");
 
-  LOG4CPLUS_INFO(
-      logger_,
-      "Got peer command tool path: "
-          << hlf_peer_tool_ << endl
-          << "Got config of peer command tool path: " << hlf_peer_tool_config_
-          << endl
-          << "Got peer address: " << hlf_peer_address_ << endl
-          << "Got orderer address: " << hlf_orderer_address_ << endl
-          << "Got local msp id: " << hlf_local_msp_id_ << endl
-          << "Got local msp dir: " << hlf_local_msp_dir_ << endl
-          << "Got concord kv service: " << hlf_kv_service_address_ << endl);
+  LOG_INFO(logger_, "Got peer command tool path: "
+                        << hlf_peer_tool_ << endl
+                        << "Got config of peer command tool path: "
+                        << hlf_peer_tool_config_ << endl
+                        << "Got peer address: " << hlf_peer_address_ << endl
+                        << "Got orderer address: " << hlf_orderer_address_
+                        << endl
+                        << "Got local msp id: " << hlf_local_msp_id_ << endl
+                        << "Got local msp dir: " << hlf_local_msp_dir_ << endl
+                        << "Got concord kv service: " << hlf_kv_service_address_
+                        << endl);
 }
 
 ChaincodeInvoker::ChaincodeInvoker(string hlf_peer_tool_Path)
@@ -55,7 +55,7 @@ string ChaincodeInvoker::SubProcess(string cmd) {
   fp = popen(cmd.c_str(), "r");
 
   if (fp == nullptr) {
-    LOG4CPLUS_ERROR(logger_, "Failed to execute command: " << cmd);
+    LOG_ERROR(logger_, "Failed to execute command: " << cmd);
     return result;
   }
 
@@ -98,7 +98,7 @@ Status ChaincodeInvoker::SendInvoke(string chaincode_name, string input) {
 
   string result = SubProcess(command);
 
-  LOG4CPLUS_DEBUG(logger_, "Result from chaincode invoke" << result);
+  LOG_DEBUG(logger_, "Result from chaincode invoke" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -115,7 +115,7 @@ Status ChaincodeInvoker::SendInstall(string chaincode_name, string path,
   string result = SubProcess(command);
 
   // should be logged
-  LOG4CPLUS_DEBUG(logger_, "Result from chaincode install" << result);
+  LOG_DEBUG(logger_, "Result from chaincode install" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -133,7 +133,7 @@ Status ChaincodeInvoker::SendInstantiate(string chaincode_name, string input,
                    hlf_orderer_address_ + " -n " + chaincode_name + " -c " +
                    "\'" + input + "\'" + " -v " + version;
   string result = SubProcess(command);
-  LOG4CPLUS_DEBUG(logger_, "Result from chaincode instantiate" << result);
+  LOG_DEBUG(logger_, "Result from chaincode instantiate" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -152,7 +152,7 @@ Status ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
                    "\'" + input + "\'" + " -v " + version;
 
   string result = SubProcess(command);
-  LOG4CPLUS_DEBUG(logger_, "Result from chaincode upgrade" << result);
+  LOG_DEBUG(logger_, "Result from chaincode upgrade" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
