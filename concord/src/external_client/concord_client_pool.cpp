@@ -24,9 +24,8 @@ using namespace config_pool;
 SubmitResult ConcordClientPool::SendRequest(
     const void *request, std::uint32_t request_size, ClientMsgFlag flags,
     std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-    void *out_reply, std::uint32_t *out_actual_reply_size,
     const std::string &correlation_id) {
-  std::shared_ptr<external_client::ConcordClient> client = nullptr;
+  std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
     if (!clients_.empty()) {
@@ -52,8 +51,7 @@ SubmitResult ConcordClientPool::SendRequest(
   std::unique_ptr<ConcordClientProcessingJob> job =
       std::make_unique<ConcordClientProcessingJob>(
           *this, move(client), request, request_size, flags, timeout_ms,
-          reply_size, out_reply, out_actual_reply_size, correlation_id,
-          client->getClientSeqNum());
+          reply_size, correlation_id, client->getClientSeqNum());
   requests_counter_.Increment();
   clients_gauge_.Decrement();
   jobs_thread_pool_.add(job.release());
@@ -62,26 +60,18 @@ SubmitResult ConcordClientPool::SendRequest(
 
 SubmitResult ConcordClientPool::SendRequest(
     const bft::client::WriteConfig &config, bft::client::Msg &&request) {
-  if (config.request.pre_execute)
-    return SendRequest(request.data(), request.size(),
-                       ClientMsgFlag::PRE_PROCESS_REQ, config.request.timeout,
-                       config.request.max_reply_size, reply_->data(),
-                       reinterpret_cast<uint32_t *>(reply_->size()),
-                       config.request.correlation_id);
-  else
-    return SendRequest(request.data(), request.size(),
-                       ClientMsgFlag::EMPTY_FLAGS_REQ, config.request.timeout,
-                       config.request.max_reply_size, reply_->data(),
-                       reinterpret_cast<uint32_t *>(reply_->size()),
-                       config.request.correlation_id);
+  auto request_flag = ClientMsgFlag::EMPTY_FLAGS_REQ;
+  if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
+  return SendRequest(request.data(), request.size(), request_flag,
+                     config.request.timeout, config.request.max_reply_size,
+                     config.request.correlation_id);
 }
 
 SubmitResult ConcordClientPool::SendRequest(
     const bft::client::ReadConfig &config, bft::client::Msg &&request) {
   return SendRequest(request.data(), request.size(),
                      ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
-                     config.request.max_reply_size, reply_->data(),
-                     reinterpret_cast<uint32_t *>(reply_->size()),
+                     config.request.max_reply_size,
                      config.request.correlation_id);
 }
 
@@ -111,7 +101,20 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
       logger_(
           log4cplus::Logger::getInstance("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
-  CreatePool(config_stream, config);
+  try {
+    CreatePool(config_stream, config);
+  } catch (config::ConfigurationResourceNotFoundException &e) {
+    throw InternalError();
+  } catch (std::invalid_argument &e) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Communication protocol="
+                        << config.getValue<std::string>(
+                               config_pool::ClientPoolConfig().COMM_PROTOCOL)
+                        << " is not supported");
+    throw InternalError();
+  } catch (config::InvalidConfigurationInputException &e) {
+    throw InternalError();
+  }
 }
 
 ConcordClientPool::ConcordClientPool(std::string config_file_path)
@@ -145,38 +148,45 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
   ConcordConfiguration config;
   try {
     CreatePool(config_file, config);
-  } catch (config::ConfigurationResourceNotFoundException e) {
-    LOG4CPLUS_ERROR(logger_, "Could not parse the configuration file at path="
+  } catch (config::ConfigurationResourceNotFoundException &e) {
+    LOG4CPLUS_ERROR(logger_, "Could not find the configuration file at path="
                                  << config_file_path);
-    throw InternalError;
+    throw InternalError();
   } catch (std::invalid_argument &e) {
     LOG4CPLUS_ERROR(
         logger_, "Communication module="
                      << config.getValue<std::string>(
                             config_pool::ClientPoolConfig().COMM_PROTOCOL)
                      << " on file=" << config_file_path << " is not supported");
-    throw InternalError;
+    throw InternalError();
+  } catch (config::InvalidConfigurationInputException &e) {
+    throw InternalError();
   }
 }
 
 void ConcordClientPool::CreatePool(std::istream &config_stream,
                                    ConcordConfiguration &config) {
   auto pool_config = std::make_unique<config_pool::ClientPoolConfig>();
-  Config_Initialize(config, *pool_config.get(), config_stream);
-  Prometheus_Initialize(config, *pool_config.get());
+  ConfigInit(config, *pool_config, config_stream);
+  PrometheusInit(config, *pool_config);
   uint16_t num_clients =
       config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
   clients_gauge_.Set(num_clients);
   LOG4CPLUS_INFO(logger_, "Creating pool of num_clients=" << num_clients);
+  uint16_t f_val = config.getValue<uint16_t>(pool_config->F_VAL);
+  uint16_t c_val = config.getValue<uint16_t>(pool_config->C_VAL);
+  external_client::ConcordClient::setStatics(
+      3 * f_val + 2 * c_val + 1, 2 * f_val + 1,
+      stoi(config.getValue<std::string>(pool_config->COMM_BUFF_LEN)));
   for (int i = 0; i < num_clients; i++) {
     LOG4CPLUS_DEBUG(logger_, "Creating client_id=" << i);
     clients_.push_back(std::make_shared<external_client::ConcordClient>(
-        config, i, *pool_config.get()));
+        config, i, *pool_config));
   }
   jobs_thread_pool_.start(num_clients);
 }
 
-void ConcordClientPool::Prometheus_Initialize(
+void ConcordClientPool::PrometheusInit(
     const config::ConcordConfiguration &config,
     const config_pool::ClientPoolConfig &pool_config) {
   std::string bind_port =
@@ -192,9 +202,9 @@ void ConcordClientPool::Prometheus_Initialize(
                               << bind_address << "/metrics");
 }
 
-void ConcordClientPool::Config_Initialize(config::ConcordConfiguration &config,
-                                          ClientPoolConfig &pool_config,
-                                          std::istream &config_stream) {
+void ConcordClientPool::ConfigInit(config::ConcordConfiguration &config,
+                                   ClientPoolConfig &pool_config,
+                                   std::istream &config_stream) {
   pool_config.ParseConfig(config_stream, config);
 }
 
@@ -206,20 +216,16 @@ ConcordClientPool::~ConcordClientPool() {
 }
 
 void ConcordClientProcessingJob::execute() {
-  try {
-    processing_client_->SendRequest(
-        request_, request_size_, flags_, timeout_ms_, reply_size_, out_reply_,
-        out_actual_reply_size_, seq_num_, correlation_id_);
-  } catch (external_client::ClientRequestException &e) {
-    throw InternalError;
-  }
+  processing_client_->SendRequest(request_, request_size_, flags_, timeout_ms_,
+                                  reply_size_, seq_num_, correlation_id_);
+  delete (static_cast<const char *>(request_));
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
                                     correlation_id_);
 }
 
 void ConcordClientPool::InsertClientToQueue(
     std::shared_ptr<concord::external_client::ConcordClient> &client,
-    const uint64_t seq_num, const std::string &correlation_id) {
+    uint64_t seq_num, const std::string &correlation_id) {
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
     clients_.push_back(client);
@@ -239,7 +245,7 @@ void ConcordClientPool::InsertClientToQueue(
 PoolStatus ConcordClientPool::HealthStatus() {
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   for (auto &client : clients_)
-    if (client->isRunning()) return PoolStatus::Serving;
+    if (client->isServing()) return PoolStatus::Serving;
   return PoolStatus::NotServing;
 }
 

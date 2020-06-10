@@ -23,10 +23,13 @@
 #include <mutex>
 #include <queue>
 #include "external_client.hpp"
+
 namespace concord {
+
 namespace external_client {
 class ConcordClient;
 }
+
 namespace concord_client_pool {
 // Represents the answer that the DAML Ledger API could get when sending a
 // request
@@ -34,7 +37,14 @@ enum SubmitResult {
   Acknowledged,  // The request has been queued for submission
   Overloaded,    // There is no available client to the moment to process the
   // request
-  InternalError  // An internal error has occurred. Reason is recorded in logs.
+};
+// An internal error has occurred. Reason is recorded in logs.
+class InternalError : public std::exception {
+ public:
+  InternalError(){};
+  virtual const char* what() const noexcept override {
+    return "Internal error occurred, please check the log files";
+  }
 };
 
 // Represents the answer that the DAML Ledger API could get when sending a
@@ -60,7 +70,7 @@ class ConcordClientPool {
   ConcordClientPool(std::string config_file_path);
   // constructor that gets the configuration on istream type,
   // helps on testing
-  ConcordClientPool(std::istream& config_stream);
+  explicit ConcordClientPool(std::istream& config_stream);
 
   ~ConcordClientPool();
   // This method is responsible to deal with requests in an asynchronous way,
@@ -74,8 +84,7 @@ class ConcordClientPool {
   SubmitResult SendRequest(const void* request, std::uint32_t request_size,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
-                           std::uint32_t reply_size, void* out_reply,
-                           std::uint32_t* out_actual_reply_size,
+                           std::uint32_t reply_size,
                            const std::string& correlation_id = {});
 
   SubmitResult SendRequest(const bft::client::WriteConfig& config,
@@ -86,16 +95,16 @@ class ConcordClientPool {
 
   void InsertClientToQueue(
       std::shared_ptr<concord::external_client::ConcordClient>& client,
-      const uint64_t seq_num, const std::string& correlation_id);
+      uint64_t seq_num, const std::string& correlation_id);
 
   PoolStatus HealthStatus();
 
  private:
   void CreatePool(std::istream& config_stream,
                   config::ConcordConfiguration& config);
-  void Prometheus_Initialize(const config::ConcordConfiguration& config,
-                             const config_pool::ClientPoolConfig& pool_config);
-  void Config_Initialize(config::ConcordConfiguration& config,
+  void PrometheusInit(const config::ConcordConfiguration& config,
+                      const config_pool::ClientPoolConfig& pool_config);
+  static void ConfigInit(config::ConcordConfiguration& config,
                          config_pool::ClientPoolConfig& pool_config,
                          std::istream& config_stream);
   // Clients that are available for use (i.e. not already in use).
@@ -104,8 +113,6 @@ class ConcordClientPool {
   util::SimpleThreadPool jobs_thread_pool_;
   // Clients queue mutex
   std::mutex clients_queue_lock_;
-  // Vector to pass for reply's
-  std::shared_ptr<std::vector<char>> reply_;
   // Metric
   std::shared_ptr<prometheus::Exposer> exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
@@ -128,22 +135,19 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
       std::shared_ptr<external_client::ConcordClient> client,
       const void* request, std::uint32_t request_size,
       bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
-      std::uint32_t reply_size, void* out_reply,
-      std::uint32_t* out_actual_reply_size, const std::string& correlation_id,
+      std::uint32_t reply_size, const std::string& correlation_id,
       uint64_t seq_num)
       : clients_pool_{clients},
         processing_client_{std::move(client)},
-        request_{request},
+        request_(request),
         request_size_{request_size},
         flags_{flags},
         timeout_ms_{timeout_ms},
         reply_size_{reply_size},
-        out_reply_{out_reply},
-        out_actual_reply_size_{out_actual_reply_size},
         correlation_id_{const_cast<std::string&>(correlation_id)},
         seq_num_{seq_num} {};
 
-  virtual ~ConcordClientProcessingJob() {}
+  virtual ~ConcordClientProcessingJob() = default;
 
   void release() override { delete this; }
 
@@ -157,10 +161,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   bftEngine::ClientMsgFlag flags_;
   std::chrono::milliseconds timeout_ms_;
   std::uint32_t reply_size_;
-  void* out_reply_;
-  std::uint32_t* out_actual_reply_size_;
   const std::string& correlation_id_;
-  const uint64_t seq_num_;
+  uint64_t seq_num_;
 };
 }  // namespace concord_client_pool
 

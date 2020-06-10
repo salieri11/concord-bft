@@ -13,8 +13,7 @@
 
 #include "external_client.hpp"
 
-namespace concord {
-namespace external_client {
+namespace concord::external_client {
 
 using bftEngine::ClientMsgFlag;
 using concord::kvbc::ClientConfig;
@@ -24,6 +23,11 @@ using config::ConcordConfiguration;
 using namespace config_pool;
 
 using namespace bft::communication;
+
+std::shared_ptr<std::vector<char>> ConcordClient::reply_ =
+    std::make_shared<std::vector<char>>(0);
+uint16_t ConcordClient::required_num_of_replicas_ = 0;
+uint16_t ConcordClient::num_of_replicas_ = 0;
 
 ConcordClient::ConcordClient(const ConcordConfiguration& config, int client_id,
                              const ClientPoolConfig& pool_config) {
@@ -42,29 +46,26 @@ ConcordClient::~ConcordClient() noexcept {
 void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
                                 ClientMsgFlag flags,
                                 std::chrono::milliseconds timeout_ms,
-                                std::uint32_t reply_size, void* out_reply,
-                                std::uint32_t* out_actual_reply_size,
-                                uint64_t seq_num,
+                                std::uint32_t reply_size, uint64_t seq_num,
                                 const std::string& correlation_id) {
-  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
-                                  request_size, seq_num, timeout_ms.count(),
-                                  reply_size, static_cast<char*>(out_reply),
-                                  *out_actual_reply_size, correlation_id);
+  auto size = reply_->size();
+  auto res = client_->sendRequest(
+      flags, static_cast<const char*>(request), request_size, seq_num,
+      timeout_ms.count(), reply_size, static_cast<char*>(reply_->data()),
+      reinterpret_cast<uint32_t&>(size), correlation_id);
 
   assert(res >= -2 && res < 1);
 
-  if (res != 0)
-    LOG4CPLUS_ERROR(logger_, "reqSeqNum=" << seq_num
-                                          << " cid=" << correlation_id
-                                          << " has failed to invoke");
   if (res == -1)
-    throw ClientRequestException{
-        concordUtils::Status::GeneralError("timeout"),
-        "ConcordClient failed to send a synchronous request"};
+    LOG4CPLUS_ERROR(logger_,
+                    "reqSeqNum=" << seq_num << " cid=" << correlation_id
+                                 << " has failed to invoke, timeout="
+                                 << timeout_ms.count() << " ms has reached");
   else if (res == -2)
-    throw ClientRequestException{
-        concordUtils::Status::InvalidArgument("small buffer"),
-        "ConcordClient failed to send a synchronous request"};
+    LOG4CPLUS_ERROR(logger_,
+                    "reqSeqNum=" << seq_num << " cid=" << correlation_id
+                                 << " has failed to invoke, buffer size="
+                                 << reply_size << " is too small");
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
@@ -175,7 +176,22 @@ std::chrono::steady_clock::time_point ConcordClient::getStartRequestTime()
   return start_job_time_;
 }
 
-bool ConcordClient::isRunning() const { return comm_->isRunning(); }
+bool ConcordClient::isServing() const {
+  int connected = 0;
+  for (int i = 0; i < num_of_replicas_; i++) {
+    if (comm_->getCurrentConnectionStatus(i) == ConnectionStatus::Connected)
+      connected++;
+    if (connected == required_num_of_replicas_) return true;
+  }
+  return false;
+}
 
-}  // namespace external_client
-}  // namespace concord
+void ConcordClient::setStatics(uint16_t required_num_of_replicas,
+                               uint16_t num_of_replicas,
+                               uint16_t max_reply_size) {
+  ConcordClient::reply_->resize(max_reply_size);
+  ConcordClient::required_num_of_replicas_ = required_num_of_replicas;
+  ConcordClient::num_of_replicas_ = num_of_replicas;
+}
+
+}  // namespace concord::external_client
