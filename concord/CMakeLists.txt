@@ -21,6 +21,9 @@ option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
 # Default BUILD_COMM_TCP_TLS to true
 option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" TRUE)
 
+# Default EXTERNAL_CLIENTS_TEST to false
+option(EXTERNAL_CLIENTS_TEST "Run BFT client pool unit tests" FALSE)
+
 # Our CMake helper modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
