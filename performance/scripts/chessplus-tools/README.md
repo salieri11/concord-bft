@@ -76,16 +76,6 @@ Configure [.env](.env) and execute the script.
 
 ## Limitations and Workaround
 
-
-### Remove containers
-
-The script takes care of removing all the docker containers, but in case it is terminated abruptly (CTRL-C), the containers need to be removed.
-
-```bash
-docker stop $(docker ps -aq)
-docker rm $(docker ps -aq)
-```
-
 ### Delete directory
 
 As fluentd docker container runs as root user, the files it creates on the host file system cannot be deleted by a non-root user.
@@ -93,5 +83,5 @@ To enable using sudo in the script, sudo password prompt needs to be disabled.
 
 ```bash
 sudo visudo
-$USER ALL=(ALL) NOPASSWD:ALL
+# $USER ALL=(ALL) NOPASSWD:ALL
 ```

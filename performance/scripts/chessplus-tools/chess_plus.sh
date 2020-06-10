@@ -6,6 +6,10 @@ source .env
 source .functions.sh
 init_env
 
+## Stop and remove all containers
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+
 ## Notify
 slack_msg .msg.1.json
 
@@ -26,6 +30,7 @@ upload-dar
 warm-package
 
 ## Start spider application
+export SPIDER_AUTH_DOCKER_ARGS='-e JVM_XMS=4g -e JVM_XMX=8g'
 start-spider
 sleep 10
 
@@ -62,7 +67,7 @@ stop-spider
 stop-sidecars
 
 ## Remove stopped containers
-docker rm $(docker ps -a -q)
+docker rm $(docker ps -aq)
 
 ## Bundle load-runner reports
 bundle_reports
