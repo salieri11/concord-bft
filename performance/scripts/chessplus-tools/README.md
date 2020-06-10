@@ -18,7 +18,7 @@ Install [jq](https://stedolan.github.io/jq/) to convert JSON logs to plain text.
 sudo apt install jq
 ```
 
-[Log in to Docker registry](https://docs.docker.com/engine/reference/commandline/login/) to access blockchain fluentd image.
+Use [docker login](https://docs.docker.com/engine/reference/commandline/login/) command to enable access to fluentd image.
 
 ```bash
 docker login -u <username>
@@ -39,29 +39,27 @@ Telegraf collects metrics (refer [telegraf.conf](telegraf.conf)) at a regular in
 
 Load Runner sends live progress of trade requests to InfluxDB, which could be viewed using Grafana dashboard. 
 
-### Test Result
+### Bundle
 
-At the end of a test, the entire bundle of result on the local file system is sent to Apache HTTP server using SCP.
-Following is the format of the bundle.
+At the end of a test, the entire bundle with logs and test report on the local file system is sent in the following format to Apache server using SCP.
+The bundle is identified by blockchain id, and date & time of the test.
 
 ```bash
 <blockchain-id>
 |  
-│
 └───<test-date>
-    │   file011.txt
-    │   file012.txt
     │
-    └───logs
-        │
-        | <IP 1>
-        │ <IP 2>
-        │ ...
-        |
-    -───reports
-        |
-        | load-runner-XXX
-        | load-runner-XXX    
+    │─── logs
+    │    │
+    │    │ <IP>
+    │    │ <IP>
+    │    │ ...
+    │
+    └─── reports
+         │
+         │ load-runner-XXX
+         │ load-runner-XXX
+         │ ...
 ```
 
 ### Notification
@@ -78,19 +76,22 @@ Configure [.env](.env) and execute the script.
 
 ## Limitations and Workaround
 
-### Delete directory
-
-Since fluentd docker container runs as root user, the files it creates on host file system are owned by the root and therefore not deleted as part of the script.
-
-```bash
-sudo rm -rf <blockchain-id>
-```
 
 ### Remove containers
 
-The script takes care of removing all the docker containers, but in case it is terminated abruptly, the containers need to be removed manually.
+The script takes care of removing all the docker containers, but in case it is terminated abruptly (CTRL-C), the containers need to be removed.
 
 ```bash
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
+```
+
+### Delete directory
+
+As fluentd docker container runs as root user, the files it creates on the host file system cannot be deleted by a non-root user.
+To enable using sudo in the script, sudo password prompt needs to be disabled.
+
+```bash
+sudo visudo
+$USER ALL=(ALL) NOPASSWD:ALL
 ```

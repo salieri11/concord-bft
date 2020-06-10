@@ -104,7 +104,7 @@ init_env() {
 start-sidecars() {
   # Default owner is root if created by container.
   mkdir -p "./$BASE_PATH/logs"
-  docker-compose up -d
+  docker-compose --compatibility up -d
 }
 
 # stop docker-compose

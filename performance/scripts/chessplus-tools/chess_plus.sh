@@ -79,4 +79,8 @@ upload_bundle
 ## Notify
 slack_msg .msg.2.json
 
+# Delete local data
+rm spider-modules-*.dar
+sudo rm -rf $BLOCKCHAIN_ID
+
 # shellcheck disable=SC2086

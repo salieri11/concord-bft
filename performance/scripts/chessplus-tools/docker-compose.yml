@@ -30,6 +30,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - wavefront
 
   wavefront:
     image: wavefronthq/proxy
@@ -37,3 +39,8 @@ services:
     environment:
       - WAVEFRONT_URL=${WAVEFRONT_URL}/api/
       - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN}
+      - JAVA_HEAP_USAGE=2G
+    deploy:
+      resources:
+        limits:
+          memory: 3G
