@@ -7,8 +7,8 @@ source .functions.sh
 init_env
 
 ## Stop and remove all containers
-docker stop $(docker ps -aq)
-docker rm $(docker ps -aq)
+docker stop $(docker ps -aq) || true
+docker rm $(docker ps -aq) || true
 
 ## Notify
 slack_msg .msg.1.json
