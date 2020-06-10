@@ -57,8 +57,9 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
   uint32_t actualReplySize = 0;
-  LOG4CPLUS_INFO(logger_, "Invoking command with flags: "
-                              << flags << ", timeout: " << timeout.count());
+  LOG4CPLUS_INFO(logger_, "Invoking command with flags: " << (int)flags
+                                                          << ", timeout: "
+                                                          << timeout.count());
   std::ostringstream req_context;
   span->tracer().Inject(span->context(), req_context);
   const auto &span_context = req_context.str();
@@ -70,8 +71,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
   } else {
     LOG4CPLUS_ERROR(logger_, "Error invoking command with flags: "
-                                 << flags << " Status: " << status
-                                 << " Reply size: " << actualReplySize);
+                                 << (int)flags << " status: " << status);
     ErrorResponse *err = resp.add_error_response();
     err->set_description("Internal concord Error");
     return true;
