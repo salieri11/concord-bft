@@ -5,10 +5,10 @@
 #ifndef API_API_CONNECTION_HPP
 #define API_API_CONNECTION_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
+#include "Logger.hpp"
 
 #include "common/status_aggregator.hpp"
 #include "concord.pb.h"
@@ -133,7 +133,7 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
   std::unique_ptr<opentracing::Span> span_;
 
   /* Logger. */
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
 
   ConnectionManager &connManager_;
 

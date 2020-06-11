@@ -26,7 +26,7 @@ concordUtils::Sliver CreateTeeKvbKey(const std::string& content);
 
 class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   logging::Logger internal_logger_ =
       logging::getLogger("skvbc.internal.handler");
   InternalCommandsHandler skvbc_commands_handler_;
@@ -44,7 +44,7 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord.tee")),
+        logger_(logging::getLogger("com.vmware.concord.tee")),
         skvbc_commands_handler_(&ros, &ba, &metadata_storage_,
                                 internal_logger_),
         write_ops_{prometheus_registry->createCounter(

@@ -5,8 +5,8 @@
 #ifndef UTILS_CONCORD_ETH_SIGN_HPP
 #define UTILS_CONCORD_ETH_SIGN_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <secp256k1.h>
+#include "Logger.hpp"
 
 #include "evm.h"
 
@@ -25,7 +25,7 @@ class EthSign {
                         const evm_uint256be r, const evm_uint256be s) const;
 
  private:
-  log4cplus::Logger logger;
+  logging::Logger logger;
   secp256k1_context *ctx;
 };
 

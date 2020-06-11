@@ -7,8 +7,8 @@
 #ifndef ETHEREUM_ETH_KVB_STORAGE_HPP
 #define ETHEREUM_ETH_KVB_STORAGE_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <vector>
+#include "Logger.hpp"
 
 #include "common/concord_types.hpp"
 #include "db_interfaces.h"
@@ -25,7 +25,7 @@ class EthKvbStorage {
   concord::kvbc::IBlocksAppender *blockAppender_;
   concord::kvbc::SetOfKeyValuePairs updates;
   std::vector<concord::common::EthTransaction> pending_transactions;
-  log4cplus::Logger logger;
+  logging::Logger logger;
 
   concordUtils::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                                size_t length) const;

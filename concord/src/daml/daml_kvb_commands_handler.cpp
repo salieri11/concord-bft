@@ -3,12 +3,11 @@
 #include "daml_kvb_commands_handler.hpp"
 
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/tracer.h>
 #include <chrono>
 #include <map>
 #include <string>
-#include "utils/concord_logging.hpp"
+#include "Logger.hpp"
 
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
@@ -76,7 +75,7 @@ Sliver CreateDamlKvbValue(const string& value, vector<string> trid_list) {
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
   read_ops_.Increment();
-  LOG4CPLUS_WARN(logger_, "NOT IMPLEMENTED");
+  LOG_WARN(logger_, "NOT IMPLEMENTED");
   return false;
 }
 
@@ -130,12 +129,11 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   BlockId current_block_id = storage_.getLastBlock();
   google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
 
-  LOG4CPLUS_INFO(
-      logger_,
-      "Handle DAML commit command, cid: "
-          << correlation_id << ", time: " << TimeUtil::ToString(record_time)
-          << ", clock: "
-          << std::chrono::steady_clock::now().time_since_epoch().count());
+  LOG_INFO(logger_,
+           "Handle DAML commit command, cid: "
+               << correlation_id
+               << ", time: " << TimeUtil::ToString(record_time) << ", clock: "
+               << std::chrono::steady_clock::now().time_since_epoch().count());
 
   if (has_pre_executed && request_.has_pre_execution_result()) {
     return CommitPreExecutionResult(current_block_id, record_time,
@@ -169,7 +167,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
       BuildPreExecutionResult(updates, updates_on_timeout, updates_on_conflict,
                               current_block_id, max_record_time, correlation_id,
                               read_set, *execute_commit_span, concord_response);
-      LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+      LOG_DEBUG(logger_, "Done: Pre-execution of DAML command.");
     } else {
       auto start1 = std::chrono::steady_clock::now();
       RecordTransaction(updates, current_block_id, correlation_id,
@@ -179,7 +177,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
       auto recordDur =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start1);
-      LOG4CPLUS_INFO(
+      LOG_INFO(
           logger_,
           "Done handle DAML commit command, time: "
               << TimeUtil::ToString(record_time) << ", execDur: " << dur.count()
@@ -190,9 +188,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     }
     return true;
   } else {
-    LOG4CPLUS_INFO(logger_, "Failed handle DAML commit command, cid: "
-                                << correlation_id << ", time: "
-                                << TimeUtil::ToString(record_time));
+    LOG_INFO(logger_, "Failed handle DAML commit command, cid: "
+                          << correlation_id
+                          << ", time: " << TimeUtil::ToString(record_time));
     return false;
   }
 }
@@ -252,8 +250,8 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
                       .count();
   daml_exec_eng_dur_.Observe(duration);
 
-  LOG4CPLUS_INFO(logger_, "DAML external Validate (Pipelined) duration ["
-                              << duration << "ms]");
+  LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
+                                                                    << "ms]");
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : storage_operations.get_updates()) {
     auto key = CreateDamlKvbKey(entry.first);
@@ -263,8 +261,8 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
   if (!status.ok()) {
-    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
-                                                  << status.error_message());
+    LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                            << status.error_message());
     return false;
   } else {
     return true;
@@ -292,23 +290,22 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
                            std::chrono::steady_clock::now() - start)
                            .count();
 
-  LOG4CPLUS_DEBUG(logger_, "DAML external ValidateSubmission duration ["
-                               << submissionDur << "ms]");
+  LOG_DEBUG(logger_, "DAML external ValidateSubmission duration ["
+                         << submissionDur << "ms]");
 
   // If no second gRPC call is needed, record the duration here
   if (!response.has_need_state() || !status.ok()) {
     daml_exec_eng_dur_.Observe(submissionDur);
-    LOG4CPLUS_INFO(logger_,
-                   "DAML external duration [" << submissionDur << "ms]");
+    LOG_INFO(logger_, "DAML external duration [" << submissionDur << "ms]");
   }
 
   if (!status.ok()) {
-    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
-                                                  << status.error_message());
+    LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                            << status.error_message());
     daml_execution_success = false;
   } else {
     if (response.has_need_state()) {
-      LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
+      LOG_DEBUG(logger_, "Validator requested input state");
       // The submission failed due to missing input state, retrieve the inputs
       // and retry.
       std::map<string, string> input_state_entries;
@@ -318,7 +315,7 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
             {opentracing::ChildOf(&run_daml_execution->context())});
         input_state_entries = GetFromStorage(response.need_state().keys());
       } catch (const std::exception& e) {
-        LOG4CPLUS_ERROR(logger_, e.what());
+        LOG_ERROR(logger_, e.what());
         daml_execution_success = false;
       }
 
@@ -341,17 +338,16 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
         // Duration from first gRPC call
         daml_exec_eng_dur_.Observe(executionDur);
 
-        LOG4CPLUS_INFO(logger_,
-                       "DAML external Validation: PendingSubmission duration ["
-                           << pendingDur
-                           << "ms], total duration (ValidateSubmission + "
-                              "get from storage + ValidatePendingSubmission) ["
-                           << executionDur << "ms]");
+        LOG_INFO(logger_,
+                 "DAML external Validation: PendingSubmission duration ["
+                     << pendingDur
+                     << "ms], total duration (ValidateSubmission + "
+                        "get from storage + ValidatePendingSubmission) ["
+                     << executionDur << "ms]");
 
         if (!status.ok()) {
-          LOG4CPLUS_ERROR(logger_, "Validation failed "
-                                       << status.error_code() << ": "
-                                       << status.error_message());
+          LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                                  << status.error_message());
           daml_execution_success = false;
         } else {
           if (!response2.has_result()) {
@@ -360,7 +356,7 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
         }
       }
     } else if (!response.has_result()) {
-      LOG4CPLUS_ERROR(logger_, "Validation missing result!");
+      LOG_ERROR(logger_, "Validation missing result!");
       daml_execution_success = false;
     }
   }
@@ -467,16 +463,16 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
 
   com::vmware::concord::WriteSet* write_set = nullptr;
   if (max_record_time.has_value() && record_time > max_record_time.value()) {
-    LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
-                                 << correlation_id << " due to timeout.");
+    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
+                           << correlation_id << " due to timeout.");
     write_set = pre_execution_result->mutable_timeout_write_set();
   } else if (HasPreExecutionConflicts(request_.pre_execution_result())) {
-    LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
-                                 << correlation_id << " due to conflicts.");
+    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
+                           << correlation_id << " due to conflicts.");
     write_set = pre_execution_result->mutable_conflict_write_set();
   } else {
-    LOG4CPLUS_DEBUG(logger_, "Recording successfully pre-executed DAML command "
-                                 << correlation_id << ".");
+    LOG_DEBUG(logger_, "Recording successfully pre-executed DAML command "
+                           << correlation_id << ".");
     write_set = pre_execution_result->mutable_write_set();
     commit_pre_execution_result = true;
   }
@@ -554,19 +550,19 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     const std::string correlation_id =
         concord_req.pre_execution_result().request_correlation_id();
     commit_req.set_correlation_id(correlation_id);
-    concord::utils::RAIIMDC mdc("cid", correlation_id);
+    SCOPED_MDC_CID(correlation_id);
     return ExecuteCommit(commit_req, flags, time_contract, parent_span,
                          response);
   } else {
     daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {
-      LOG4CPLUS_ERROR(logger_, "No Command specified in DAML request");
+      LOG_ERROR(logger_, "No Command specified in DAML request");
       return false;
     }
 
     da_kvbc::Command cmd;
     if (!cmd.ParseFromString(daml_req.command())) {
-      LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
+      LOG_ERROR(logger_, "Failed to parse DAML/Command request");
       return false;
     }
 
@@ -576,14 +572,14 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
 
       case da_kvbc::Command::kCommit: {
         const auto& commit_req = cmd.commit();
-        concord::utils::RAIIMDC mdc("cid", commit_req.correlation_id());
+        SCOPED_MDC_CID(commit_req.correlation_id());
         bool result = ExecuteCommit(commit_req, flags, time_contract,
                                     parent_span, response);
         return result;
       }
 
       default:
-        LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");
+        LOG_ERROR(logger_, "Neither commit nor read command");
         return false;
     }
   }
@@ -594,19 +590,19 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
   DamlRequest daml_req;
 
   if (!concord_req.has_daml_request()) {
-    LOG4CPLUS_ERROR(logger_, "No legit Concord / DAML request");
+    LOG_ERROR(logger_, "No legit Concord / DAML request");
     return false;
   }
 
   daml_req = concord_req.daml_request();
   if (!daml_req.has_command()) {
-    LOG4CPLUS_ERROR(logger_, "No Command specified in DAML request");
+    LOG_ERROR(logger_, "No Command specified in DAML request");
     return false;
   }
 
   da_kvbc::Command cmd;
   if (!cmd.ParseFromString(daml_req.command())) {
-    LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
+    LOG_ERROR(logger_, "Failed to parse DAML/Command request");
     return false;
   }
 
@@ -614,7 +610,7 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
     case da_kvbc::Command::kRead:
       return ExecuteRead(cmd.read(), response);
     case da_kvbc::Command::kCommit:
-      LOG4CPLUS_ERROR(logger_, "ExecuteReadOnlyCommand got write command!");
+      LOG_ERROR(logger_, "ExecuteReadOnlyCommand got write command!");
       return false;
     default:
       return false;
@@ -653,10 +649,10 @@ google::protobuf::Timestamp DamlKvbCommandsHandler::RecordTimeForTimeContract(
   google::protobuf::Timestamp record_time;
   if (time_contract) {
     record_time = time_contract->GetTime();
-    LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
+    LOG_DEBUG(logger_, "Using time service time " << record_time);
   } else {
     record_time = google::protobuf::util::TimeUtil::GetEpoch();
-    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
+    LOG_DEBUG(logger_, "Using epoch time " << record_time);
   }
   return record_time;
 }

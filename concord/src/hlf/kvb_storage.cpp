@@ -38,16 +38,14 @@ const int64_t KHlfStateStorageVersion = 1;
 HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage)
     : ro_storage_(ro_storage),
       ptr_block_appender_(nullptr),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
+      logger_(logging::getLogger("com.vmware.concord.hlf.storage")) {}
 
 // read-write mode
 HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage,
                              IBlocksAppender *ptr_block_appender)
     : ro_storage_(ro_storage),
       ptr_block_appender_(ptr_block_appender),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
+      logger_(logging::getLogger("com.vmware.concord.hlf.storage")) {}
 
 HlfKvbStorage::~HlfKvbStorage() {}
 
@@ -139,9 +137,9 @@ com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
 
   Status status = ro_storage_.getBlockData(blockNumber, out_blockData);
 
-  LOG4CPLUS_DEBUG(logger_, "Getting block number "
-                               << blockNumber << " status: " << status
-                               << " value.size: " << out_blockData.size());
+  LOG_DEBUG(logger_, "Getting block number "
+                         << blockNumber << " status: " << status
+                         << " value.size: " << out_blockData.size());
 
   if (status.isOK()) {
     for (auto kvp : out_blockData) {
@@ -167,8 +165,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
   block.set_number(next_block_number());
   block.set_version(KHlfStateStorageVersion);
 
-  LOG4CPLUS_INFO(logger_,
-                 "Get Current Block number: " << current_block_number());
+  LOG_INFO(logger_, "Get Current Block number: " << current_block_number());
   // it means no block has been committed yet
   if (block.number() == 1) {
     block.set_parent_hash(zero_hash.bytes, sizeof(evm_uint256be));
@@ -222,15 +219,15 @@ Status HlfKvbStorage::WriteHlfBlock() {
   BlockId out_blockId;
   Status status = ptr_block_appender_->addBlock(updates_, out_blockId);
   if (status.isOK()) {
-    LOG4CPLUS_DEBUG(logger_, "Appended block number " << out_blockId);
+    LOG_DEBUG(logger_, "Appended block number " << out_blockId);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Failed to append block");
+    LOG_ERROR(logger_, "Failed to append block");
   }
 
   // Prepare to stage another block
-  LOG4CPLUS_DEBUG(logger_, "ready to reset");
+  LOG_DEBUG(logger_, "ready to reset");
   reset();
-  LOG4CPLUS_DEBUG(logger_, "finished the reset");
+  LOG_DEBUG(logger_, "finished the reset");
   return status;
 }
 
@@ -283,11 +280,11 @@ std::string HlfKvbStorage::GetHlfState(const std::string &key,
   // get concord's lastest block
   Status status = get(block_number, kvbkey, value, out_block);
   // convert proto binary to string
-  LOG4CPLUS_DEBUG(logger_, "Getting HLF State by Key:"
-                               << key << " looking block at: " << block_number
-                               << " status: " << status << " key: " << kvbkey
-                               << " value.length: " << value.length()
-                               << " out block at: " << out_block);
+  LOG_DEBUG(logger_, "Getting HLF State by Key:"
+                         << key << " looking block at: " << block_number
+                         << " status: " << status << " key: " << kvbkey
+                         << " value.length: " << value.length()
+                         << " out block at: " << out_block);
 
   if (status.isOK() && value.length() > 0) {
     com::vmware::concord::hlf::storage::HlfState state;

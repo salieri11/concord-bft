@@ -4,13 +4,12 @@
 
 #include "kvb_app_filter.h"
 
-#include <log4cplus/logger.h>
-#include <log4cplus/loggingmacros.h>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <cassert>
 #include <chrono>
 #include <exception>
 #include <sstream>
+#include "Logger.hpp"
 
 #include "concord_storage.pb.h"
 #include "kv_types.hpp"
@@ -124,8 +123,8 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
 
   SetOfKeyValuePairs kvb_kvs;
 
-  LOG4CPLUS_DEBUG(
-      logger_, "ReadBlockRange block " << block_id << " to " << block_id_end);
+  LOG_DEBUG(logger_,
+            "ReadBlockRange block " << block_id << " to " << block_id_end);
 
   for (; block_id <= block_id_end; ++block_id) {
     Status status = rostorage_->getBlockData(block_id, kvb_kvs);
@@ -143,7 +142,7 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
     }
 
     if (stop_execution) {
-      LOG4CPLUS_WARN(logger_, "ReadBlockRange was stopped");
+      LOG_WARN(logger_, "ReadBlockRange was stopped");
       break;
     }
   }
@@ -163,8 +162,8 @@ KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
 
   SetOfKeyValuePairs kvb_kvs;
 
-  LOG4CPLUS_DEBUG(logger_, "ReadBlockRangeHash block " << block_id << " to "
-                                                       << block_id_end);
+  LOG_DEBUG(logger_,
+            "ReadBlockRangeHash block " << block_id << " to " << block_id_end);
 
   size_t hash_out = 0;
   for (; block_id <= block_id_end; ++block_id) {

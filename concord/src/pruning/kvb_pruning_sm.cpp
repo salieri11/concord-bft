@@ -34,7 +34,7 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
                            const config::ConcordConfiguration& config,
                            const config::ConcordConfiguration& node_config,
                            TimeContract* time_contract)
-    : logger_{log4cplus::Logger::getInstance("concord.pruning")},
+    : logger_{logging::getLogger("concord.pruning")},
       signer_{node_config},
       verifier_{config},
       ro_storage_{ro_storage},
@@ -94,12 +94,12 @@ void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
     response.CopyFrom(internal_response);
   } catch (const std::exception& e) {
     response.add_error_response()->set_description(e.what());
-    LOG4CPLUS_ERROR(
-        logger_, "KVBPruningSM encountered an exception: [" << e.what() << ']');
+    LOG_ERROR(logger_,
+              "KVBPruningSM encountered an exception: [" << e.what() << ']');
   } catch (...) {
     response.add_error_response()->set_description(
         "KVBPruningSM encountered an unknown exception");
-    LOG4CPLUS_ERROR(logger_, "KVBPruningSM encountered an unknown exception");
+    LOG_ERROR(logger_, "KVBPruningSM encountered an unknown exception");
   }
 }
 
@@ -191,15 +191,15 @@ void KVBPruningSM::Handle(
       "prune_request", {opentracing::ChildOf(&parent_span.context())});
 
   if (read_only) {
-    LOG4CPLUS_WARN(logger_,
-                   "KVBPruningSM ignoring PruneRequest in a read-only command");
+    LOG_WARN(logger_,
+             "KVBPruningSM ignoring PruneRequest in a read-only command");
     return;
   }
 
   if (!pruning_enabled_) {
     const auto msg =
         "KVBPruningSM pruning is disabled, returning an error on PruneRequest";
-    LOG4CPLUS_WARN(logger_, msg);
+    LOG_WARN(logger_, msg);
     concord_response.add_error_response()->set_description(msg);
     return;
   }
@@ -210,17 +210,17 @@ void KVBPruningSM::Handle(
   if (!request.has_signature() ||
       !operator_public_key_->Verify(GetSignablePruneCommandData(request),
                                     request.signature())) {
-    LOG4CPLUS_WARN(
-        logger_, "KVBPruingSM failed to verify PruneRequest from principal_id "
-                     << sender
-                     << " on the grounds that it did not have a verifiable "
-                        "legitimate signature from an/the operator authorized "
-                        "to issue a pruning command.");
+    LOG_WARN(logger_,
+             "KVBPruingSM failed to verify PruneRequest from principal_id "
+                 << sender
+                 << " on the grounds that it did not have a verifiable "
+                    "legitimate signature from an/the operator authorized "
+                    "to issue a pruning command.");
     return;
   }
 
   if (!verifier_.Verify(request)) {
-    LOG4CPLUS_WARN(
+    LOG_WARN(
         logger_,
         "KVBPruningSM failed to verify PruneRequest from principal_id "
             << sender

@@ -5,7 +5,6 @@
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/status.h>
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/tracer.h>
 #include <storage/kvb_key_types.h>
 #include <chrono>
@@ -14,9 +13,9 @@
 #include <stdexcept>
 #include <string>
 #include <strstream>
-#include <utils/concord_logging.hpp>
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/open_tracing_utils.hpp>
+#include "Logger.hpp"
 
 #include "db_interfaces.h"
 #include "kv_types.hpp"
@@ -48,8 +47,7 @@ class ThinReplicaImpl {
       SubBufferList& subscriber_list,
       std::optional<std::shared_ptr<concord::utils::PrometheusRegistry>>
           prometheus_registry = {})
-      : logger_(
-            log4cplus::Logger::getInstance("com.vmware.concord.thin_replica")),
+      : logger_(logging::getLogger("com.vmware.concord.thin_replica")),
         rostorage_(rostorage),
         subscriber_list_(subscriber_list) {
     if (prometheus_registry) {
@@ -80,7 +78,7 @@ class ThinReplicaImpl {
       return status;
     }
 
-    LOG4CPLUS_DEBUG(logger_, "ReadState");
+    LOG_DEBUG(logger_, "ReadState");
 
     // TODO: Determine oldest block available (pruning)
     kvbc::BlockId start = 1;
@@ -90,8 +88,7 @@ class ThinReplicaImpl {
     } catch (StreamCancelled& error) {
       return grpc::Status(grpc::StatusCode::CANCELLED, error.what());
     } catch (std::exception& error) {
-      LOG4CPLUS_ERROR(logger_,
-                      "Failed to read and send state: " << error.what());
+      LOG_ERROR(logger_, "Failed to read and send state: " << error.what());
       return grpc::Status(grpc::StatusCode::UNKNOWN,
                           "Failed to read and send state");
     }
@@ -109,7 +106,7 @@ class ThinReplicaImpl {
       return status;
     }
 
-    LOG4CPLUS_DEBUG(logger_, "ReadStateHash");
+    LOG_DEBUG(logger_, "ReadStateHash");
 
     // TODO: Determine oldest block available (pruning)
     kvbc::BlockId block_id_start = 1;
@@ -119,7 +116,7 @@ class ThinReplicaImpl {
     try {
       kvb_hash = kvb_filter->ReadBlockRangeHash(block_id_start, block_id_end);
     } catch (std::exception& error) {
-      LOG4CPLUS_ERROR(logger_, error.what());
+      LOG_ERROR(logger_, error.what());
       std::stringstream msg;
       msg << "Reading StateHash for block " << block_id_end << " failed";
       return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
@@ -180,7 +177,7 @@ class ThinReplicaImpl {
       live_updates->RemoveAllUpdates();
       return grpc::Status(grpc::StatusCode::CANCELLED, error.what());
     } catch (std::exception& error) {
-      LOG4CPLUS_ERROR(logger_, error.what());
+      LOG_ERROR(logger_, error.what());
       subscriber_list_.RemoveBuffer(live_updates);
       live_updates->RemoveAllUpdates();
 
@@ -213,7 +210,7 @@ class ThinReplicaImpl {
                    kvb_filter->HashUpdate(filtered_update));
         }
       } catch (std::exception& error) {
-        LOG4CPLUS_INFO(logger_, "Subscription stream closed: " << error.what());
+        LOG_INFO(logger_, "Subscription stream closed: " << error.what());
         break;
       }
     }
@@ -238,7 +235,7 @@ class ThinReplicaImpl {
  private:
   template <typename ServerContextT, typename ServerWriterT>
   void ReadFromKvbAndSendData(
-      log4cplus::Logger logger, ServerContextT* context, ServerWriterT* stream,
+      logging::Logger logger, ServerContextT* context, ServerWriterT* stream,
       kvbc::BlockId start, kvbc::BlockId end,
       std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     using namespace std::chrono_literals;
@@ -262,8 +259,7 @@ class ThinReplicaImpl {
           correlation_id = ExtractCid(kv);
           SendData(stream, kvb_update, correlation_id);
         } catch (StreamClosed& error) {
-          LOG4CPLUS_WARN(logger,
-                         "Data stream closed at block " << kvb_update.first);
+          LOG_WARN(logger, "Data stream closed at block " << kvb_update.first);
 
           // Stop kvb_reader and empty queue
           close_stream = true;
@@ -282,7 +278,7 @@ class ThinReplicaImpl {
 
   template <typename ServerContextT, typename ServerWriterT>
   void ReadFromKvbAndSendHashes(
-      log4cplus::Logger logger, ServerContextT* context, ServerWriterT* stream,
+      logging::Logger logger, ServerContextT* context, ServerWriterT* stream,
       kvbc::BlockId start, kvbc::BlockId end,
       std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     for (auto block_id = start; block_id <= end; ++block_id) {
@@ -296,7 +292,7 @@ class ThinReplicaImpl {
 
   // Read from KVB and send to the given stream depending on the data type
   template <typename ServerContextT, typename ServerWriterT, typename DataT>
-  inline void ReadAndSend(log4cplus::Logger logger, ServerContextT* context,
+  inline void ReadAndSend(logging::Logger logger, ServerContextT* context,
                           ServerWriterT* stream, kvbc::BlockId start,
                           kvbc::BlockId end,
                           std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
@@ -326,8 +322,7 @@ class ThinReplicaImpl {
 
     // Let's not wait for a live update yet due to there might be lots of
     // history we have to catch up with first
-    LOG4CPLUS_INFO(logger_,
-                   "Sync reading from KVB [" << start << ", " << end << "]");
+    LOG_INFO(logger_, "Sync reading from KVB [" << start << ", " << end << "]");
     ReadAndSend<ServerContextT, ServerWriterT, DataT>(logger_, context, stream,
                                                       start, end, kvb_filter);
 
@@ -350,8 +345,7 @@ class ThinReplicaImpl {
       start = end + 1;
       end = live_updates->NewestBlockId();
 
-      LOG4CPLUS_INFO(logger_,
-                     "Sync filling gap [" << start << ", " << end << "]");
+      LOG_INFO(logger_, "Sync filling gap [" << start << ", " << end << "]");
       ReadAndSend<ServerContextT, ServerWriterT, DataT>(
           logger_, context, stream, start, end, kvb_filter);
     }
@@ -363,7 +357,7 @@ class ThinReplicaImpl {
     SubUpdate update;
     do {
       update = live_updates->Pop();
-      LOG4CPLUS_INFO(logger_, "Sync dropping " << update.first);
+      LOG_INFO(logger_, "Sync dropping " << update.first);
     } while (update.first < end);
   }
 
@@ -426,7 +420,7 @@ class ThinReplicaImpl {
     } catch (std::exception& error) {
       std::stringstream msg;
       msg << "Failed to set up filter: " << error.what();
-      LOG4CPLUS_ERROR(logger_, msg.str());
+      LOG_ERROR(logger_, msg.str());
       return {grpc::Status(grpc::StatusCode::UNKNOWN, msg.str()), nullptr};
     }
     return {grpc::Status::OK, kvb_filter};
@@ -450,7 +444,7 @@ class ThinReplicaImpl {
   }
 
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
   std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_{};

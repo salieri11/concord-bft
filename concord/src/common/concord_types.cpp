@@ -5,8 +5,8 @@
 #include "concord_types.hpp"
 
 #include <keccak.h>
-#include <log4cplus/loggingmacros.h>
 #include <string.h>
+#include "Logger.hpp"
 
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
@@ -173,8 +173,8 @@ struct EthTransaction EthTransaction::deserialize(Sliver &input) {
               outtx.block_hash.bytes);
 
     if (intx.from().size() != sizeof(outtx.from)) {
-      LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.concord"),
-                      "Invalid address length " << intx.from().size());
+      LOG_ERROR(logging::getLogger("com.vmware.concord"),
+                "Invalid address length " << intx.from().size());
       throw EVMException("Invalid from address length");
     }
     std::copy(intx.from().begin(), intx.from().end(), outtx.from.bytes);
@@ -263,8 +263,8 @@ struct EthTransaction EthTransaction::deserialize(Sliver &input) {
 
     return outtx;
   } else {
-    LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.concord"),
-                    "Unknown transaction storage version " << intx.version());
+    LOG_ERROR(logging::getLogger("com.vmware.concord"),
+              "Unknown transaction storage version " << intx.version());
     throw EVMException("Unkown transaction storage version");
   }
 }
@@ -337,8 +337,8 @@ struct EthBlock EthBlock::deserialize(Sliver &input) {
     for (int i = 0; i < inblk.transaction_size(); i++) {
       std::string txhashstr = inblk.transaction(i);
       if (txhashstr.size() != sizeof(evm_uint256be)) {
-        LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.concord"),
-                        "Invalid hash length " << txhashstr.size());
+        LOG_ERROR(logging::getLogger("com.vmware.concord"),
+                  "Invalid hash length " << txhashstr.size());
         throw EVMException("Invalid transaction hash length");
       }
       evm_uint256be txhash;
@@ -360,8 +360,8 @@ struct EthBlock EthBlock::deserialize(Sliver &input) {
 
     return outblk;
   } else {
-    LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.concord"),
-                    "Unknown block storage version " << inblk.version());
+    LOG_ERROR(logging::getLogger("com.vmware.concord"),
+              "Unknown block storage version " << inblk.version());
     throw EVMException("Unkown block storage version");
   }
 }

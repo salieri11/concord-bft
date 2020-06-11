@@ -5,9 +5,9 @@
 #ifndef API_API_ACCEPTOR_HPP
 #define API_API_ACCEPTOR_HPP
 
-#include <log4cplus/loggingmacros.h>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include "Logger.hpp"
 #include "api/api_connection.hpp"
 #include "api/connection_manager.hpp"
 #include "common/status_aggregator.hpp"
@@ -29,7 +29,7 @@ class ApiAcceptor {
  private:
   boost::asio::ip::tcp::acceptor acceptor_;
   concord::consensus::KVBClientPool &clientPool_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   ConnectionManager connManager_;
   concord::common::StatusAggregator sag_;
   uint64_t gasLimit_;

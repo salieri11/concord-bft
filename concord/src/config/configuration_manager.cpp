@@ -21,7 +21,7 @@ using boost::program_options::command_line_parser;
 using boost::program_options::options_description;
 using boost::program_options::variables_map;
 
-using log4cplus::Logger;
+using logging::Logger;
 
 using nlohmann::json;
 
@@ -1777,8 +1777,8 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
         path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
     if (status == ConcordConfiguration::ParameterStatus::INVALID) {
       if (errorOut) {
-        LOG4CPLUS_ERROR((*errorOut), "Cannot load value for parameter " +
-                                         path.name + ": " + failureMessage);
+        LOG_ERROR((*errorOut), "Cannot load value for parameter " + path.name +
+                                   ": " + failureMessage);
       }
       throw InvalidConfigurationInputException(
           "Rejected input value for parameter " + path.name + ": " +
@@ -3709,9 +3709,9 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   for (auto&& parameter : requiredParameters) {
     if (!config.hasValue<uint16_t>(parameter)) {
       missingValue = true;
-      LOG4CPLUS_ERROR(
-          logger, "Value not found for required cluster sizing parameter: " +
-                      parameter.toString());
+      LOG_ERROR(logger,
+                "Value not found for required cluster sizing parameter: " +
+                    parameter.toString());
     }
   }
   if (missingValue) {
@@ -3834,9 +3834,8 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
       if (subscope.loadValue(instancePath.subpath->subpath->name, value,
                              &failureMessage, true) ==
           ConcordConfiguration::ParameterStatus::INVALID) {
-        LOG4CPLUS_ERROR(logger, "Cannot load value " + value +
-                                    " to parameter " + instancePath.toString() +
-                                    ": " + failureMessage);
+        LOG_ERROR(logger, "Cannot load value " + value + " to parameter " +
+                              instancePath.toString() + ": " + failureMessage);
       }
     }
   }
@@ -3917,9 +3916,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
       if (subscope.loadValue(instancePath.subpath->subpath->name, value,
                              &failureMessage, true) ==
           ConcordConfiguration::ParameterStatus::INVALID) {
-        LOG4CPLUS_ERROR(logger, "Cannot load value " + value +
-                                    " to parameter " + instancePath.toString() +
-                                    ": " + failureMessage);
+        LOG_ERROR(logger, "Cannot load value " + value + " to parameter " +
+                              instancePath.toString() + ": " + failureMessage);
       }
     }
   }
@@ -3989,10 +3987,10 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
         !config.hasValue<string>(path)) {
       missingParameter = true;
       parameters_missing.push_back(path.toString());
-      LOG4CPLUS_ERROR(logger,
-                      "Configuration input is missing value for required input "
-                      "parameter: " +
-                          path.toString());
+      LOG_ERROR(logger,
+                "Configuration input is missing value for required input "
+                "parameter: " +
+                    path.toString());
     }
   }
   if (missingParameter) {
@@ -4071,22 +4069,22 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
                        optimisticCommitCryptoSelection.second, numSigners,
                        optimisticCommitThreshold));
 
-  LOG4CPLUS_INFO(logger,
-                 "Generating threshold cryptographic keys for slow path commit "
-                 "cryptosystem...");
+  LOG_INFO(logger,
+           "Generating threshold cryptographic keys for slow path commit "
+           "cryptosystem...");
   auxState->slowCommitCryptosys->generateNewPseudorandomKeys();
-  LOG4CPLUS_INFO(
+  LOG_INFO(
       logger,
       "Generating threshold cryptographic keys for commit cryptosystem...");
   auxState->commitCryptosys->generateNewPseudorandomKeys();
-  LOG4CPLUS_INFO(logger,
-                 "Generating threshold cryptographic keys for optimistic fast "
-                 "path commit cryptosystem...");
+  LOG_INFO(logger,
+           "Generating threshold cryptographic keys for optimistic fast "
+           "path commit cryptosystem...");
   auxState->optimisticCommitCryptosys->generateNewPseudorandomKeys();
 
   auxState->replicaRSAKeys.clear();
 
-  LOG4CPLUS_INFO(logger, "Generating Concord-BFT replica RSA keys...");
+  LOG_INFO(logger, "Generating Concord-BFT replica RSA keys...");
   CryptoPP::AutoSeededRandomPool randomPool;
   for (uint16_t i = 0; i < numReplicas; ++i) {
     auxState->replicaRSAKeys.push_back(generateRSAKeyPair(randomPool));
@@ -4126,9 +4124,8 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
        iterator != requiredConfiguration.end(); ++iterator) {
     ConfigurationPath path = *iterator;
     if (!config.hasValue<string>(path)) {
-      LOG4CPLUS_ERROR(logger,
-                      "Missing value for required configuration parameter: " +
-                          path.toString() + ".");
+      LOG_ERROR(logger, "Missing value for required configuration parameter: " +
+                            path.toString() + ".");
       hasAllRequired = false;
     }
   }
@@ -4322,8 +4319,8 @@ void loadNodeConfiguration(ConcordConfiguration& config,
         string failureMessage;
         if (containingScope->generate(name, &failureMessage) !=
             ConcordConfiguration::ParameterStatus::VALID) {
-          LOG4CPLUS_ERROR(logger, "Cannot generate value for " +
-                                      path.toString() + ": " + failureMessage);
+          LOG_ERROR(logger, "Cannot generate value for " + path.toString() +
+                                ": " + failureMessage);
         }
       }
     }
@@ -4336,9 +4333,9 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   // in their validation.
   if (config.validateAll(true, false) ==
       ConcordConfiguration::ParameterStatus::INVALID) {
-    LOG4CPLUS_ERROR(logger,
-                    "Node configuration was found to contain some invalid "
-                    "value(s) on final validation.");
+    LOG_ERROR(logger,
+              "Node configuration was found to contain some invalid "
+              "value(s) on final validation.");
     throw ConfigurationResourceNotFoundException(
         "Node configuration complete validation failed.");
   }
@@ -4356,10 +4353,10 @@ void loadNodeConfiguration(ConcordConfiguration& config,
       if (!(containingScope->isTagged(path.getLeaf().name, "optional"))) {
         hasAllRequired = false;
         parameters_missing.push_back((*iterator).toString());
-        LOG4CPLUS_ERROR(logger,
-                        "Concord node configuration is missing a value for a "
-                        "required parameter: " +
-                            (*iterator).toString());
+        LOG_ERROR(logger,
+                  "Concord node configuration is missing a value for a "
+                  "required parameter: " +
+                      (*iterator).toString());
       }
     }
   }
@@ -4464,7 +4461,7 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     if (!config.hasValue<string>(path)) {
       hasRequired = false;
       parameters_missing.push_back(path.toString());
-      LOG4CPLUS_ERROR(
+      LOG_ERROR(
           logger,
           "Configuration missing value for required cryptosystem parameter: " +
               path.toString());
@@ -4530,10 +4527,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       hasRequired = false;
       parameters_missing.push_back("node[" + to_string(i) +
                                    "]/replica[0]/slow_commit_verification_key");
-      LOG4CPLUS_ERROR(logger,
-                      "Configuration missing required threshold verification "
-                      "key: slow_commit_verification_key for replica " +
-                          to_string(i) + ".");
+      LOG_ERROR(logger,
+                "Configuration missing required threshold verification "
+                "key: slow_commit_verification_key for replica " +
+                    to_string(i) + ".");
     } else {
       slowCommitVerificationKeys[replicaID + 1] =
           replicaConfig.getValue<string>("slow_commit_verification_key");
@@ -4542,10 +4539,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       hasRequired = false;
       parameters_missing.push_back("node[" + to_string(i) +
                                    "]/replica[0]/commit_verification_key");
-      LOG4CPLUS_ERROR(logger,
-                      "Configuration missing required threshold verification "
-                      "key: commit_verification_key for replica " +
-                          to_string(i) + ".");
+      LOG_ERROR(logger,
+                "Configuration missing required threshold verification "
+                "key: commit_verification_key for replica " +
+                    to_string(i) + ".");
     } else {
       commitVerificationKeys[replicaID + 1] =
           replicaConfig.getValue<string>("commit_verification_key");
@@ -4555,10 +4552,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       parameters_missing.push_back(
           "node[" + to_string(i) +
           "]/replica[0]/optimistic_commit_verification_key");
-      LOG4CPLUS_ERROR(logger,
-                      "Configuration missing required threshold verification "
-                      "key: optimistic_commit_verification_key for replica " +
-                          to_string(i) + ".");
+      LOG_ERROR(logger,
+                "Configuration missing required threshold verification "
+                "key: optimistic_commit_verification_key for replica " +
+                    to_string(i) + ".");
     } else {
       optimisticCommitVerificationKeys[replicaID + 1] =
           replicaConfig.getValue<string>("optimistic_commit_verification_key");
@@ -4590,9 +4587,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     hasRequired = false;
     parameters_missing.push_back("node[" + to_string(local_node) +
                                  "]/replica[0]/slow_commit_private_key");
-    LOG4CPLUS_ERROR(logger,
-                    "Configuration missing required threshold private key: "
-                    "slow_commit_private_key for this node.");
+    LOG_ERROR(logger,
+              "Configuration missing required threshold private key: "
+              "slow_commit_private_key for this node.");
   } else {
     auxState->slowCommitCryptosys->loadPrivateKey(
         (localReplicaID + 1),
@@ -4602,9 +4599,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     hasRequired = false;
     parameters_missing.push_back("node[" + to_string(local_node) +
                                  "]/replica[0]/commit_private_key");
-    LOG4CPLUS_ERROR(logger,
-                    "Configuration missing required threshold private key: "
-                    "commit_private_key for this node.");
+    LOG_ERROR(logger,
+              "Configuration missing required threshold private key: "
+              "commit_private_key for this node.");
   } else {
     auxState->commitCryptosys->loadPrivateKey(
         (localReplicaID + 1),
@@ -4614,9 +4611,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     hasRequired = false;
     parameters_missing.push_back("node[" + to_string(local_node) +
                                  "]/replica[0]/optimistic_commit_private_key");
-    LOG4CPLUS_ERROR(logger,
-                    "Configuration missing required threshold private key: "
-                    "optimistic_commit_private_key for this node.");
+    LOG_ERROR(logger,
+              "Configuration missing required threshold private key: "
+              "optimistic_commit_private_key for this node.");
   } else {
     auxState->optimisticCommitCryptosys->loadPrivateKey(
         (localReplicaID + 1),

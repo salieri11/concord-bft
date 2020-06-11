@@ -2,10 +2,9 @@
 #include "tee_commands_handler.hpp"
 
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/loggingmacros.h>
-#include <log4cplus/mdc.h>
 #include <map>
 #include <string>
+#include "Logger.hpp"
 
 #include "OpenTracing.hpp"
 #include "concord_storage.pb.h"
@@ -163,7 +162,7 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
 bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
                                              uint8_t flags,
                                              TeeResponse* tee_response) {
-  LOG4CPLUS_DEBUG(logger_, "Processing SKVBC request...");
+  LOG_DEBUG(logger_, "Processing SKVBC request...");
   const std::string& request_content =
       tee_request.skvbc_request().request_content();
 
@@ -180,7 +179,7 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
       reply_buffer, reply_size, span);
 
   if (result != 0) {
-    LOG4CPLUS_ERROR(logger_, "Failed to process SKVBC request.");
+    LOG_ERROR(logger_, "Failed to process SKVBC request.");
     return false;
   }
 
@@ -189,7 +188,7 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
 
   tee_response->mutable_skvbc_response()->MergeFrom(skvbc_response);
 
-  LOG4CPLUS_DEBUG(logger_, "Successfully processed SKVBC request.");
+  LOG_DEBUG(logger_, "Successfully processed SKVBC request.");
   return true;
 }
 

@@ -5,8 +5,8 @@
 #ifndef ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
 #define ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
 
-#include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
+#include "Logger.hpp"
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
@@ -23,7 +23,7 @@ namespace ethereum {
 class EthKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
  private:
-  log4cplus::Logger logger;
+  logging::Logger logger;
   concord::ethereum::EVM &concevm_;
   concord::utils::EthSign &verifier_;
   const concord::config::ConcordConfiguration &nodeConfiguration;

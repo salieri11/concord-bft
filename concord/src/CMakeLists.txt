@@ -51,7 +51,6 @@ target_compile_definitions(concord PRIVATE __BASE=1 SPARSE_STATE=1 USE_TLS=1)
 target_link_libraries(concord
   proto
   ${Boost_LIBRARIES}
-  log4cplus
   ${yaml-cpp_LIBRARIES}
   jaegertracing
   opentracing

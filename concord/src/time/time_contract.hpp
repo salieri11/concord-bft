@@ -73,7 +73,7 @@ class TimeContract {
   explicit TimeContract(
       const concord::kvbc::ILocalKeyValueStorageReadOnly& storage,
       const concord::config::ConcordConfiguration& config)
-      : logger_(log4cplus::Logger::getInstance("concord.time")),
+      : logger_(logging::getLogger("concord.time")),
         storage_(storage),
         config_(config),
         verifier_(),
@@ -193,7 +193,7 @@ class TimeContract {
   const std::map<std::string, SampleBody>& GetSamples();
 
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;

@@ -2,7 +2,6 @@
 
 #ifndef UTILS_CONCORD_PROMETHEUS_METRICS_HPP
 #define UTILS_CONCORD_PROMETHEUS_METRICS_HPP
-#include <log4cplus/logger.h>
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
@@ -11,13 +10,14 @@
 #include <prometheus/summary.h>
 #include <string>
 #include <utility>
+#include "Logger.hpp"
 #include "Metrics.hpp"
 
 namespace concord::utils {
 class PrometheusRegistry;
 template <typename T>
 class ConcordCustomCollector : public prometheus::Collectable {
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   std::vector<std::shared_ptr<prometheus::Family<T>>> metrics_;
   std::chrono::seconds dumpInterval_;
   std::chrono::seconds last_dump_time_;
@@ -28,8 +28,7 @@ class ConcordCustomCollector : public prometheus::Collectable {
 
  public:
   ConcordCustomCollector(std::chrono::seconds dumpInterval)
-      : logger_(
-            log4cplus::Logger::getInstance("com.vmware.concord.prometheus")),
+      : logger_(logging::getLogger("com.vmware.concord.prometheus")),
         dumpInterval_(dumpInterval),
         last_dump_time_(0) {}
   std::vector<prometheus::MetricFamily> Collect() override;

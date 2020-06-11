@@ -31,7 +31,7 @@ uint16_t ConcordClient::num_of_replicas_ = 0;
 
 ConcordClient::ConcordClient(const ConcordConfiguration& config, int client_id,
                              const ClientPoolConfig& pool_config) {
-  logger_ = log4cplus::Logger::getInstance("com.vmware.external_client_pool");
+  logger_ = logging::getLogger("com.vmware.external_client_pool");
   client_id_ = client_id;
   CreateClient(config, pool_config);
 }
@@ -57,15 +57,13 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
   assert(res >= -2 && res < 1);
 
   if (res == -1)
-    LOG4CPLUS_ERROR(logger_,
-                    "reqSeqNum=" << seq_num << " cid=" << correlation_id
-                                 << " has failed to invoke, timeout="
-                                 << timeout_ms.count() << " ms has reached");
+    LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
+                                    << " has failed to invoke, timeout="
+                                    << timeout_ms.count() << " ms has reached");
   else if (res == -2)
-    LOG4CPLUS_ERROR(logger_,
-                    "reqSeqNum=" << seq_num << " cid=" << correlation_id
-                                 << " has failed to invoke, buffer size="
-                                 << reply_size << " is too small");
+    LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
+                                    << " has failed to invoke, buffer size="
+                                    << reply_size << " is too small");
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
@@ -141,10 +139,10 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   }
   // Ensure exception safety by creating local pointers and only moving to
   // object members if construction and startup haven't thrown.
-  LOG4CPLUS_DEBUG(
-      logger_, "Client_id=" << client_id_ << " Creating communication module");
+  LOG_DEBUG(logger_,
+            "Client_id=" << client_id_ << " Creating communication module");
   auto comm = pool_config.ToCommunication(comm_config);
-  LOG4CPLUS_DEBUG(
+  LOG_DEBUG(
       logger_,
       "Client_id="
           << client_id_
@@ -158,7 +156,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);
-  LOG4CPLUS_INFO(logger_, "client_id=" << client_id_ << " creation succeeded");
+  LOG_INFO(logger_, "client_id=" << client_id_ << " creation succeeded");
 }
 int ConcordClient::getClientId() const { return client_id_; }
 

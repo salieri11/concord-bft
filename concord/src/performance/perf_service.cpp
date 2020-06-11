@@ -1,9 +1,9 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "perf_service.hpp"
-#include <log4cplus/mdc.h>
 #include <opentracing/tracer.h>
 #include <string>
+#include "Logger.hpp"
 #include "kv_types.hpp"
 
 using com::vmware::concord::ConcordRequest;

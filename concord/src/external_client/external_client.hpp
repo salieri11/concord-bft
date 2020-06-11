@@ -100,7 +100,7 @@ class ConcordClient {
   std::unique_ptr<bft::communication::ICommunication> comm_;
   std::unique_ptr<bftEngine::SimpleClient> client_;
   // Logger
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   int client_id_;
   bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
   uint64_t seq_num_ = 0;

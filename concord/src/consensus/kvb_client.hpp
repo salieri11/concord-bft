@@ -5,7 +5,6 @@
 #ifndef CONCORD_CONSENSUS_KVB_CLIENT_HPP_
 #define CONCORD_CONSENSUS_KVB_CLIENT_HPP_
 
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
 #include <prometheus/gauge.h>
@@ -15,6 +14,7 @@
 #include <mutex>
 #include <queue>
 #include <vector>
+#include "Logger.hpp"
 
 #include "ClientImp.h"
 #include "KVBCInterfaces.h"
@@ -37,7 +37,7 @@ class KVBClient {
  private:
   std::unique_ptr<IClient> client_;
   std::shared_ptr<concord::time::TimePusher> timePusher_;
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
   char m_outBuffer[OUT_BUFFER_SIZE];
 
@@ -46,8 +46,7 @@ class KVBClient {
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
         timePusher_(timePusher),
-        logger_(
-            log4cplus::Logger::getInstance("com.vmware.concord.kvbclient")) {}
+        logger_(logging::getLogger("com.vmware.concord.kvbclient")) {}
 
   ~KVBClient() { client_->stop(); }
 
@@ -60,7 +59,7 @@ class KVBClient {
 
 class KVBClientPool {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   std::shared_ptr<concord::time::TimePusher> time_pusher_;
 
   // Total number of clients under control of this pool.

@@ -1,11 +1,11 @@
 // Copyright 2018 VMware, all rights reserved
 
 #include "concord_prometheus_metrics.hpp"
-#include <log4cplus/loggingmacros.h>
 #include <prometheus/serializer.h>
 #include <prometheus/text_serializer.h>
 #include <map>
 #include <tuple>
+#include "Logger.hpp"
 
 using namespace prometheus;
 using namespace concordMetrics;
@@ -224,8 +224,8 @@ std::vector<prometheus::MetricFamily> ConcordCustomCollector<T>::Collect() {
         std::chrono::steady_clock::now().time_since_epoch());
     if (currTime - last_dump_time_ >= dumpInterval_) {
       last_dump_time_ = currTime;
-      LOG4CPLUS_INFO(logger_, "prometheus metrics dump: " +
-                                  prometheus::TextSerializer().Serialize(res));
+      LOG_INFO(logger_, "prometheus metrics dump: " +
+                            prometheus::TextSerializer().Serialize(res));
     }
   }
 

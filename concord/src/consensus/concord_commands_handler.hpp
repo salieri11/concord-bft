@@ -5,11 +5,11 @@
 #ifndef CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 #define CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 
-#include <log4cplus/logger.h>
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "KVBCInterfaces.h"
+#include "Logger.hpp"
 #include "OpenTracing.hpp"
 #include "concord.pb.h"
 #include "db_interfaces.h"
@@ -32,7 +32,7 @@ struct ConcordRequestContext {
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
 

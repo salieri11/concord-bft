@@ -11,7 +11,7 @@ RUN make -C /googletest/_build install
 COPY ./concord /concord
 COPY ./communication/src/main/proto /communication/src/main/proto
 
-ENV LOG4CPLUS_CONFIGURATION /src/Example/log4cplus.properties
+ENV LOG_CONFIGURATION /src/Example/log4cplus.properties
 WORKDIR /concord/build
 RUN cmake -DUSE_CONAN=OFF -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
      -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \

@@ -448,6 +448,6 @@ int main(int argc, char** argv) {
   hierarchy.disableDebug();
   log4cplus::BasicConfigurator config{hierarchy, false};
   config.configure();
-  auto logger = log4cplus::Logger::getInstance("thin_replica_test");
+  auto logger = logging::getLogger("thin_replica_test");
   return RUN_ALL_TESTS();
 }

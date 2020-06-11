@@ -57,9 +57,8 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
   uint32_t actualReplySize = 0;
-  LOG4CPLUS_INFO(logger_, "Invoking command with flags: " << (int)flags
-                                                          << ", timeout: "
-                                                          << timeout.count());
+  LOG_INFO(logger_, "Invoking command with flags: " << flags << ", timeout: "
+                                                    << timeout.count());
   std::ostringstream req_context;
   span->tracer().Inject(span->context(), req_context);
   const auto &span_context = req_context.str();
@@ -70,8 +69,8 @@ bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
   if (status.isOK() && actualReplySize) {
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error invoking command with flags: "
-                                 << (int)flags << " status: " << status);
+    LOG_ERROR(logger_, "Error invoking command with flags: "
+                           << (int)flags << " status: " << status);
     ErrorResponse *err = resp.add_error_response();
     err->set_description("Internal concord Error");
     return true;
@@ -82,8 +81,7 @@ KVBClientPool::KVBClientPool(
     std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
     std::shared_ptr<TimePusher> time_pusher,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
-    : logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
+    : logger_(logging::getLogger("com.vmware.concord.KVBClientPool")),
       time_pusher_(time_pusher),
       client_count_{clients.size()},
       clients_(),
@@ -132,13 +130,13 @@ KVBClientPool::~KVBClientPool() {
     clients_condition_.wait(clients_lock,
                             [this] { return !this->clients_.empty(); });
 
-    LOG4CPLUS_DEBUG(logger_, "Stopping and deleting client");
+    LOG_DEBUG(logger_, "Stopping and deleting client");
     KVBClient *client = clients_.front();
     clients_.pop();
     delete client;
     client_count_--;
   }
-  LOG4CPLUS_INFO(logger_, "Client cleanup complete");
+  LOG_INFO(logger_, "Client cleanup complete");
 }
 
 bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
@@ -172,14 +170,14 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
     };
 
     if (timeout > max_timeout_millis_) {
-      LOG4CPLUS_WARN(logger_, "Timeout: " << timeout.count()
-                                          << " > max_timeout_millis_: "
-                                          << max_timeout_millis_.count());
+      LOG_WARN(logger_, "Timeout: " << timeout.count()
+                                    << " > max_timeout_millis_: "
+                                    << max_timeout_millis_.count());
       timeout = max_timeout_millis_;
     }
     if (timeout > 0ms) {
       if (!clients_condition_.wait_for(clients_lock, timeout, predicate)) {
-        LOG4CPLUS_WARN(logger_, "Unable to claim a client in time.");
+        LOG_WARN(logger_, "Unable to claim a client in time.");
         ErrorResponse *err = resp.add_error_response();
         err->set_description("Internal concord Error");
         return true;
@@ -237,9 +235,9 @@ void KVBClientPool::SetTimePusherPeriod(const Duration &period) {
   if (time_pusher_) {
     time_pusher_->SetPeriod(period);
   } else {
-    LOG4CPLUS_WARN(logger_,
-                   "Received request to reconfigure time pusher period to "
-                   "client pool with no time pusher.");
+    LOG_WARN(logger_,
+             "Received request to reconfigure time pusher period to "
+             "client pool with no time pusher.");
   }
 }
 

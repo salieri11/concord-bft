@@ -68,7 +68,7 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : ConcordCommandsHandler(config, nodeConfig, storage, appender,
                              subscriber_list, prometheus_registry),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord")),
+      logger(logging::getLogger("com.vmware.concord")),
       concevm_(concevm),
       verifier_(verifier),
       nodeConfiguration(nodeConfig),
@@ -93,8 +93,7 @@ bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
   bool result;
 
   if (pre_execute) {
-    LOG4CPLUS_ERROR(logger,
-                    "Pre-execution not supported for Ethereum requests.");
+    LOG_ERROR(logger, "Pre-execution not supported for Ethereum requests.");
     // TODO: the EVM doesn't seem to return the read set, which is essential for
     // pre-execution
     result = false;
@@ -118,7 +117,7 @@ bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
   } else {
     std::string pbtext;
     google::protobuf::TextFormat::PrintToString(request, &pbtext);
-    LOG4CPLUS_DEBUG(logger, "Unknown command: " << pbtext);
+    LOG_DEBUG(logger, "Unknown command: " << pbtext);
     // We have to silently ignore this command if there is nothing in it we
     // recognize. It might be a request that only contained something like a
     // time update, which is handled by the calling layer.
@@ -506,8 +505,8 @@ bool EthKvbCommandsHandler::handle_block_list_request(
     count = latest + 1;
   }
 
-  LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest << " to "
-                                                     << (latest - count));
+  LOG_DEBUG(logger,
+            "Getting block list from " << latest << " to " << (latest - count));
 
   BlockListResponse *response = concresp.mutable_block_list_response();
   for (uint64_t i = 0; i < count; i++) {
@@ -586,8 +585,8 @@ bool EthKvbCommandsHandler::handle_block_request(
         TransactionResponse *txresp = response->add_transaction();
         build_transaction_response(t, tx, txresp);
       } catch (...) {
-        LOG4CPLUS_ERROR(logger, "Error fetching block transaction "
-                                    << t << " from block " << block.number);
+        LOG_ERROR(logger, "Error fetching block transaction "
+                              << t << " from block " << block.number);
 
         // we can still fill out some of the info, though, which may help an
         // operator debug
@@ -944,14 +943,14 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
       recover_from(request, &sig_from);
 
       if (sig_from == zero_address) {
-        LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+        LOG_DEBUG(logger, "Signature was invalid");
         result.status_code = EVM_REJECTED;
         txhash = zero_hash;
         return result;
       }
 
       if (message.sender != sig_from) {
-        LOG4CPLUS_DEBUG(logger, "Message sender does not match signature");
+        LOG_DEBUG(logger, "Message sender does not match signature");
         result.status_code = EVM_REJECTED;
         txhash = zero_hash;
         return result;
@@ -960,7 +959,7 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
   } else if (request.method() != EthRequest_EthMethod_CALL_CONTRACT) {
     recover_from(request, &message.sender);
     if (message.sender == zero_address) {
-      LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+      LOG_DEBUG(logger, "Signature was invalid");
       result.status_code = EVM_REJECTED;
       txhash = zero_hash;
       return result;
@@ -1045,10 +1044,10 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
                              logs, message.sender);
   }
 
-  LOG4CPLUS_DEBUG(logger, "Execution result -"
-                              << " status_code: " << result.status_code
-                              << " gas_left: " << result.gas_left
-                              << " output_size: " << result.output_size);
+  LOG_DEBUG(logger, "Execution result -"
+                        << " status_code: " << result.status_code
+                        << " gas_left: " << result.gas_left
+                        << " output_size: " << result.output_size);
 
   if (result.status_code != EVM_SUCCESS) {
     // If the transaction failed, don't record any of its side effects.
@@ -1124,7 +1123,7 @@ evm_uint256be EthKvbCommandsHandler::record_transaction(
   kvbStorage.set_nonce(message.sender, nonce + 1);
 
   evm_uint256be txhash = tx.hash();
-  LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
+  LOG_DEBUG(logger, "Recording transaction " << txhash);
 
   assert(message.depth == 0);
   kvbStorage.write_block(timestamp, message.gas);

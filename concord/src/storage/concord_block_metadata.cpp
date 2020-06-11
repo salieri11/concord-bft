@@ -38,18 +38,18 @@ uint64_t ConcordBlockMetadata::getSequenceNum(const Sliver& key) const {
       if (blockMetadata.version() == kBlockMetadataVersion) {
         sequenceNum = blockMetadata.bft_sequence_num();
       } else {
-        LOG4CPLUS_ERROR(logger_, "Unknown block metadata version :"
-                                     << blockMetadata.version());
+        LOG_ERROR(logger_, "Unknown block metadata version :"
+                               << blockMetadata.version());
         throw ConcordStorageException("Unknown block metadata version");
       }
     } else {
-      LOG4CPLUS_ERROR(logger_, "Unable to decode block metadata" << outValue);
+      LOG_ERROR(logger_, "Unable to decode block metadata" << outValue);
       throw ConcordStorageException("Corrupted block metadata");
     }
   } else {
-    LOG4CPLUS_WARN(logger_, "Unable to get block or has zero-length; status = "
-                                << status
-                                << ", outValue.length = " << outValue.length());
+    LOG_WARN(logger_, "Unable to get block or has zero-length; status = "
+                          << status
+                          << ", outValue.length = " << outValue.length());
   }
   LOG_DEBUG(logger_, "key = " << key << ", sequenceNum = " << sequenceNum);
   return sequenceNum;

@@ -32,8 +32,7 @@ class ConcordBlockMetadata : public concord::kvbc::IBlockMetadata {
  public:
   ConcordBlockMetadata(const ILocalKeyValueStorageReadOnly &storage)
       : IBlockMetadata(storage) {
-    logger_ = log4cplus::Logger::getInstance(
-        "concord.storage.ConcordMetadataStorage");
+    logger_ = logging::getLogger("concord.storage.ConcordMetadataStorage");
   }
   virtual uint64_t getSequenceNum(
       const concordUtils::Sliver &key) const override;

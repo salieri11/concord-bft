@@ -4,11 +4,11 @@
 
 #include "concord_evm.hpp"
 
-#include <log4cplus/loggingmacros.h>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include "Logger.hpp"
 
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
@@ -25,7 +25,7 @@
 #endif
 
 using boost::multiprecision::uint256_t;
-using log4cplus::Logger;
+using logging::Logger;
 
 using concord::common::EthBlock;
 using concord::common::EthLog;
@@ -54,10 +54,10 @@ EVM::EVM(EVMInitParams params)
 #endif
 
   if (!evminst) {
-    LOG4CPLUS_FATAL(logger, "Could not create EVM instance");
+    LOG_FATAL(logger, "Could not create EVM instance");
     throw EVMException("Could not create EVM instance");
   }
-  LOG4CPLUS_INFO(logger, "EVM started");
+  LOG_INFO(logger, "EVM started");
 }
 
 /**
@@ -65,7 +65,7 @@ EVM::EVM(EVMInitParams params)
  */
 EVM::~EVM() {
   evminst->destroy(evminst);
-  LOG4CPLUS_INFO(logger, "EVM stopped");
+  LOG_INFO(logger, "EVM stopped");
 }
 
 void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
@@ -82,15 +82,15 @@ void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
     if (!kvbStorage.account_exists(message.sender)) {
       // Don't allow if source account does not exist.
       result.status_code = EVM_FAILURE;
-      LOG4CPLUS_DEBUG(logger, "Source account with address "
-                                  << message.sender << ", does not exist.");
+      LOG_DEBUG(logger, "Source account with address " << message.sender
+                                                       << ", does not exist.");
     } else if (sender_balance < transfer_val) {
       // Don't allow if source account has insufficient balance.
       result.status_code = EVM_FAILURE;
-      LOG4CPLUS_DEBUG(logger, "Account with address "
-                                  << message.sender
-                                  << ", does not have sufficient funds ("
-                                  << sender_balance << ").");
+      LOG_DEBUG(logger, "Account with address "
+                            << message.sender
+                            << ", does not have sufficient funds ("
+                            << sender_balance << ").");
     } else {
       destination_balance += transfer_val;
       sender_balance -= transfer_val;
@@ -98,14 +98,14 @@ void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
                              from_uint256_t(&destination_balance));
       kvbStorage.set_balance(message.sender, from_uint256_t(&sender_balance));
       result.status_code = EVM_SUCCESS;
-      LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val << " units to: "
-                                              << message.destination << " ("
-                                              << destination_balance << ")"
-                                              << " from: " << message.sender
-                                              << " (" << sender_balance << ")");
+      LOG_DEBUG(logger, "Transferred  " << transfer_val
+                                        << " units to: " << message.destination
+                                        << " (" << destination_balance << ")"
+                                        << " from: " << message.sender << " ("
+                                        << sender_balance << ")");
     }
   } catch (...) {
-    LOG4CPLUS_DEBUG(logger, "Failed to decode balances");
+    LOG_DEBUG(logger, "Failed to decode balances");
     result.status_code = EVM_FAILURE;
   }
 }
@@ -133,7 +133,7 @@ evm_result EVM::run(evm_message& message, uint64_t timestamp,
   result.create_address = {0};
   result.release = nullptr;
   if (kvbStorage.get_code(message.destination, code, hash)) {
-    LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
+    LOG_DEBUG(logger, "Loaded code from " << message.destination);
     message.code_hash = hash;
 
     try {
@@ -146,25 +146,24 @@ evm_result EVM::run(evm_message& message, uint64_t timestamp,
         }
       }
     } catch (EVMException e) {
-      LOG4CPLUS_ERROR(logger, "EVM execution exception: '"
-                                  << e.what() << "'. "
-                                  << "Contract: " << message.destination);
+      LOG_ERROR(logger, "EVM execution exception: '"
+                            << e.what() << "'. "
+                            << "Contract: " << message.destination);
       result.status_code = EVM_FAILURE;
     }
   } else if (message.input_size == 0) {
-    LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
+    LOG_DEBUG(logger, "No code found at " << message.destination);
     memset(&result, 0, sizeof(result));
 
     if (!kvbStorage.is_read_only()) {
       transfer_fund(message, kvbStorage, result);
     } else {
-      LOG4CPLUS_DEBUG(logger, "Balance transfer attempted in read-only mode.");
+      LOG_DEBUG(logger, "Balance transfer attempted in read-only mode.");
       result.status_code = EVM_FAILURE;
     }
   } else {
-    LOG4CPLUS_DEBUG(logger, "Input data, but no code at "
-                                << message.destination
-                                << ", returning error code.");
+    LOG_DEBUG(logger, "Input data, but no code at "
+                          << message.destination << ", returning error code.");
     // attempted to run a contract that doesn't exist
     memset(&result, 0, sizeof(result));
     result.status_code = EVM_FAILURE;
@@ -187,7 +186,7 @@ evm_result EVM::create(evm_address& contract_address, evm_message& message,
   evm_uint256be hash{{0}};
   evm_result result;
   if (!kvbStorage.get_code(contract_address, code, hash)) {
-    LOG4CPLUS_DEBUG(logger, "Creating contract at " << contract_address);
+    LOG_DEBUG(logger, "Creating contract at " << contract_address);
 
     std::vector<uint8_t> create_code = std::vector<uint8_t>(
         message.input_data, message.input_data + message.input_size);
@@ -203,9 +202,9 @@ evm_result EVM::create(evm_address& contract_address, evm_message& message,
     // TODO: check if the new contract is zero bytes in length;
     //       return error, not success in that case
     if (result.status_code == EVM_SUCCESS) {
-      LOG4CPLUS_DEBUG(logger, "Contract created at "
-                                  << contract_address << " with "
-                                  << result.output_size << "bytes of code.");
+      LOG_DEBUG(logger, "Contract created at " << contract_address << " with "
+                                               << result.output_size
+                                               << "bytes of code.");
       kvbStorage.set_code(contract_address, result.output_data,
                           result.output_size);
 
@@ -241,9 +240,8 @@ evm_result EVM::create(evm_address& contract_address, evm_message& message,
       result.create_address = contract_address;
     }
   } else {
-    LOG4CPLUS_DEBUG(logger, "Existing code found at "
-                                << message.destination
-                                << ", returning error code.");
+    LOG_DEBUG(logger, "Existing code found at " << message.destination
+                                                << ", returning error code.");
     // attempted to call a contract that doesn't exist
     memset(&result, 0, sizeof(result));
     result.status_code = EVM_FAILURE;
@@ -319,8 +317,8 @@ const concord_context* conc_context(const struct evm_context* evmctx) {
 
 int conc_account_exists(struct evm_context* evmctx,
                         const struct evm_address* address) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::account_exists called, address: " << *address);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::account_exists called, address: " << *address);
 
   if (conc_context(evmctx)->kvbStorage->account_exists(*address)) {
     return 1;
@@ -331,11 +329,10 @@ int conc_account_exists(struct evm_context* evmctx,
 void conc_get_storage(struct evm_uint256be* result, struct evm_context* evmctx,
                       const struct evm_address* address,
                       const struct evm_uint256be* key) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::get_storage called, contract address: "
-                      << *address << " storage contract: "
-                      << conc_context(evmctx)->storage_contract
-                      << " key: " << *key);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::get_storage called, contract address: "
+                << *address << " storage contract: "
+                << conc_context(evmctx)->storage_contract << " key: " << *key);
 
   *result = conc_context(evmctx)->kvbStorage->get_storage(
       conc_context(evmctx)->storage_contract, *key);
@@ -345,11 +342,11 @@ void conc_set_storage(struct evm_context* evmctx,
                       const struct evm_address* address,
                       const struct evm_uint256be* key,
                       const struct evm_uint256be* value) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::set_storage called, contract address: "
-                      << *address << " storage contract: "
-                      << conc_context(evmctx)->storage_contract
-                      << " key: " << *key << " value: " << *value);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::set_storage called, contract address: "
+                << *address << " storage contract: "
+                << conc_context(evmctx)->storage_contract << " key: " << *key
+                << " value: " << *value);
 
   conc_context(evmctx)->kvbStorage->set_storage(
       conc_context(evmctx)->storage_contract, *key, *value);
@@ -357,8 +354,8 @@ void conc_set_storage(struct evm_context* evmctx,
 
 void conc_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
                       const struct evm_address* address) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::get_balance called, address: " << *address);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::get_balance called, address: " << *address);
 
   evm_uint256be balance =
       conc_context(evmctx)->kvbStorage->get_balance(*address);
@@ -367,8 +364,8 @@ void conc_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
 
 size_t conc_get_code_size(struct evm_context* evmctx,
                           const struct evm_address* address) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "conc_get_code_size called, address: " << *address);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "conc_get_code_size called, address: " << *address);
   std::vector<uint8_t> code;
   evm_uint256be hash;
   if (conc_context(evmctx)->kvbStorage->get_code(*address, code, hash)) {
@@ -380,8 +377,8 @@ size_t conc_get_code_size(struct evm_context* evmctx,
 
 size_t conc_get_code(const uint8_t** result_code, struct evm_context* evmctx,
                      const struct evm_address* address) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "conc_get_code called, address: " << *address);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "conc_get_code called, address: " << *address);
 
   std::vector<uint8_t> stored_code;
   evm_uint256be hash;
@@ -400,9 +397,9 @@ size_t conc_get_code(const uint8_t** result_code, struct evm_context* evmctx,
 void conc_selfdestruct(struct evm_context* evmctx,
                        const struct evm_address* address,
                        const struct evm_address* beneficiary) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "conc_selfdestruct called, address: "
-                      << *address << " beneficiary: " << *beneficiary);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "conc_selfdestruct called, address: "
+                << *address << " beneficiary: " << *beneficiary);
 
   // TODO: Actually self-destruct contract.
 }
@@ -411,10 +408,10 @@ void conc_emit_log(struct evm_context* evmctx,
                    const struct evm_address* address, const uint8_t* data,
                    size_t data_size, const struct evm_uint256be topics[],
                    size_t topics_count) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::emit_log called, address: "
-                      << *address << " topics_count: " << topics_count
-                      << " data_size: " << data_size);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::emit_log called, address: " << *address << " topics_count: "
+                                              << topics_count
+                                              << " data_size: " << data_size);
 
   EthLog log;
   log.address = *address;
@@ -432,8 +429,7 @@ void conc_call(struct evm_result* result, struct evm_context* evmctx,
   // call function needs non-const message object
   evm_message call_msg = *msg;
 
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::call called: " << call_msg);
+  LOG_DEBUG(*(conc_context(evmctx)->logger), "EVM::call called: " << call_msg);
 
   // our block-creation scheme will get confused if the EVM isn't
   // incrementing the depth for us
@@ -474,8 +470,8 @@ void conc_call(struct evm_result* result, struct evm_context* evmctx,
 
 void conc_get_block_hash(struct evm_uint256be* result,
                          struct evm_context* evmctx, int64_t number) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::get_block_hash called, block: " << number);
+  LOG_DEBUG(*(conc_context(evmctx)->logger),
+            "EVM::get_block_hash called, block: " << number);
 
   try {
     if (number < 0 ||
@@ -495,8 +491,7 @@ void conc_get_block_hash(struct evm_uint256be* result,
 
 void conc_get_tx_context(struct evm_tx_context* result,
                          struct evm_context* evmctx) {
-  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
-                  "EVM::get_tx_context called");
+  LOG_DEBUG(*(conc_context(evmctx)->logger), "EVM::get_tx_context called");
 
   memset(result, 0, sizeof(*result));
 

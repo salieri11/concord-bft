@@ -4,9 +4,9 @@
 
 #include "concord_eth_sign.hpp"
 
-#include <log4cplus/loggingmacros.h>
 #include <secp256k1_recovery.h>
 #include <iostream>
+#include "Logger.hpp"
 
 #include "concord_eth_hash.hpp"
 
@@ -16,8 +16,7 @@ namespace utils {
 // TODO: sort out build structure, to pull this from concord_types
 const evm_address zero_address{{0}};
 
-EthSign::EthSign()
-    : logger(log4cplus::Logger::getInstance("com.vmware.concord.eth_sign")) {
+EthSign::EthSign() : logger(logging::getLogger("com.vmware.concord.eth_sign")) {
   ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
                                  SECP256K1_CONTEXT_VERIFY);
 }

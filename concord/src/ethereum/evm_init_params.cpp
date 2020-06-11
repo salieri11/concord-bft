@@ -8,7 +8,7 @@
 #include "common/concord_log.hpp"
 #include "utils/concord_utils.hpp"
 
-using log4cplus::Logger;
+using logging::Logger;
 using json = nlohmann::json;
 using boost::multiprecision::uint256_t;
 using boost::multiprecision::uint512_t;
@@ -31,15 +31,15 @@ EVMInitParams::EVMInitParams(const std::string genesis_file_path)
     json config = genesis_block["config"];
     if (config.find("chainId") != config.end()) chainID = config["chainId"];
   }
-  LOG4CPLUS_INFO(logger, "Connecting to Chain " << chainID);
+  LOG_INFO(logger, "Connecting to Chain " << chainID);
 
   if (genesis_block.find("alloc") != genesis_block.end()) {
     json alloc = genesis_block["alloc"];
     for (json::iterator it = alloc.begin(); it != alloc.end(); it++) {
       std::vector<uint8_t> address_v = dehex(it.key());
       if (address_v.size() != sizeof(evm_address)) {
-        LOG4CPLUS_ERROR(
-            logger, "Invalid account address: " << HexPrintVector{address_v});
+        LOG_ERROR(logger,
+                  "Invalid account address: " << HexPrintVector{address_v});
         throw EVMInitParamException("Invalid 'alloc' section in genesis file");
       }
       evm_address address;
@@ -54,11 +54,10 @@ EVMInitParams::EVMInitParams(const std::string genesis_file_path)
         throw EVMInitParamException("Invalid 'balance' in genesis file");
       }
       initial_accounts[address] = from_uint256_t(&balance);
-      LOG4CPLUS_TRACE(logger,
-                      "New initial account added with balance: " << balance);
+      LOG_TRACE(logger, "New initial account added with balance: " << balance);
     }
   }
-  LOG4CPLUS_INFO(logger, initial_accounts.size() << " initial accounts added.");
+  LOG_INFO(logger, initial_accounts.size() << " initial accounts added.");
 
   if (genesis_block.find("timestamp") != genesis_block.end()) {
     std::string time_str = genesis_block["timestamp"];
@@ -81,8 +80,8 @@ json EVMInitParams::parse_genesis_block(std::string genesis_file_path) {
   if (genesis_stream.good()) {
     genesis_stream >> genesis_block;
   } else {
-    LOG4CPLUS_ERROR(logger, "Error reading genesis file at "
-                                << genesis_file_path << " Exiting.");
+    LOG_ERROR(logger, "Error reading genesis file at " << genesis_file_path
+                                                       << " Exiting.");
     throw EVMInitParamException("Unable to read genesis file at: " +
                                 genesis_file_path);
   }

@@ -4,11 +4,11 @@
 #ifndef CONCORD_HLF_KVB_COMMANDS_HANDLER_H_
 #define CONCORD_HLF_KVB_COMMANDS_HANDLER_H_
 
-#include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
+#include "Logger.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
@@ -26,7 +26,7 @@ namespace hlf {
 class HlfKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   concord::hlf::ChaincodeInvoker* chaincode_invoker_ = nullptr;
 
   concord::config::ConcordConfiguration& node_config_;

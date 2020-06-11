@@ -36,8 +36,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     concord::thin_replica::SubBufferList &subscriber_list,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
     concord::time::TimeContract *time_contract)
-    : logger_(log4cplus::Logger::getInstance(
-          "concord.consensus.ConcordCommandsHandler")),
+    : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
       subscriber_list_(subscriber_list),
       storage_(storage),
       metadata_storage_(storage),
@@ -82,8 +81,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     uint32_t &out_response_size,
                                     concordUtils::SpanWrapper &parent_span) {
   executing_bft_sequence_num_ = sequence_num;
-  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
-                               << client_id << ", seq: " << sequence_num);
+  LOG_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
+                         << client_id << ", seq: " << sequence_num);
 
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
@@ -112,7 +111,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       const auto &ctx = parent_span.impl()->context();
       execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
     } else {
-      LOG4CPLUS_DEBUG(logger_, "Empty span from Conocrd-BFT");
+      LOG_DEBUG(logger_, "Empty span from Conocrd-BFT");
       execute_span = tracer->StartSpan("execute");
     }
 
@@ -134,7 +133,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                          ts.signature().end());
           time_->Update(ts.source(), client_id, ts.time(), &signature);
         } else {
-          LOG4CPLUS_WARN(
+          LOG_WARN(
               logger_,
               "Time Sample is missing:"
                   << " [" << (ts.has_source() ? " " : "X") << "] source"
@@ -145,8 +144,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                           : ""));
         }
       } else {
-        LOG4CPLUS_INFO(logger_,
-                       "Ignoring time sample sent in read-only command");
+        LOG_INFO(logger_, "Ignoring time sample sent in read-only command");
       }
     }
 
@@ -187,9 +185,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
             // the update in this function is broken, or the subclass's Execute
             // function modified timeContract_. Log an error for us to deal
             // with, but otherwise ignore.
-            LOG4CPLUS_ERROR(
-                logger_,
-                "Time Contract was modified during read-only operation");
+            LOG_ERROR(logger_,
+                      "Time Contract was modified during read-only operation");
 
             ErrorResponse *err = response_.add_error_response();
             err->set_description(
@@ -200,8 +197,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
             time_->Reset();
           }
         } else {
-          LOG4CPLUS_WARN(logger_,
-                         "Ignoring time update because Execute failed.");
+          LOG_WARN(logger_, "Ignoring time update because Execute failed.");
 
           ErrorResponse *err = response_.add_error_response();
           err->set_description(
@@ -259,7 +255,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                               {opentracing::ChildOf(&execute_span->context())});
 
   if (response_.ByteSizeLong() == 0) {
-    LOG4CPLUS_ERROR(logger_, "Request produced empty response.");
+    LOG_ERROR(logger_, "Request produced empty response.");
     ErrorResponse *err = response_.add_error_response();
     err->set_description("Request produced empty response.");
   }
@@ -269,13 +265,12 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   } else {
     size_t response_size = response_.ByteSizeLong();
 
-    LOG4CPLUS_ERROR(
-        logger_,
-        "Cannot send response to a client request: Response is too large "
-        "(size of this response: " +
-            std::to_string(response_size) +
-            ", maximum size allowed for this response: " +
-            std::to_string(max_response_size) + ").");
+    LOG_ERROR(logger_,
+              "Cannot send response to a client request: Response is too large "
+              "(size of this response: " +
+                  std::to_string(response_size) +
+                  ", maximum size allowed for this response: " +
+                  std::to_string(max_response_size) + ").");
 
     response_.Clear();
     ErrorResponse *err = response_.add_error_response();
@@ -293,7 +288,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       // size for the communication buffer size that Concord-BFT is configured
       // with, and this minimum should be significantly higher than the size of
       // this error messsage.
-      LOG4CPLUS_FATAL(
+      LOG_FATAL(
           logger_,
           "Cannot send error response indicating response is too large: The "
           "error response itself is too large (error response size: " +
@@ -309,8 +304,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   execute_span->SetTag(concord::utils::kExecResultTag, result);
   execute_span->SetTag(concord::utils::kExecRespSizeTag, out_response_size);
 
-  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::execute done, clientId: "
-                               << client_id << ", seq: " << sequence_num);
+  LOG_DEBUG(logger_, "ConcordCommandsHandler::execute done, clientId: "
+                         << client_id << ", seq: " << sequence_num);
   return result ? 0 : 1;
 }
 
@@ -378,26 +373,25 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,
   // or allow addBlock to take a list of const sets.
-  LOG4CPLUS_DEBUG(logger_, "ConcordCommandsHandler::addBlock, enter, updates: "
-                               << updates.size());
+  LOG_DEBUG(logger_, "ConcordCommandsHandler::addBlock, enter, updates: "
+                         << updates.size());
   SetOfKeyValuePairs amended_updates(updates);
-  LOG4CPLUS_TRACE(logger_, "ConcordCommandsHandler::addBlock, copied, updates: "
-                               << updates.size());
+  LOG_TRACE(logger_, "ConcordCommandsHandler::addBlock, copied, updates: "
+                         << updates.size());
 
   if (time_) {
-    LOG4CPLUS_TRACE(logger_,
-                    "ConcordCommandsHandler::addBlock, time enter, updates: "
-                        << updates.size());
+    LOG_TRACE(logger_, "ConcordCommandsHandler::addBlock, time enter, updates: "
+                           << updates.size());
     if (time_->Changed()) {
-      LOG4CPLUS_TRACE(
-          logger_, "ConcordCommandsHandler::addBlock, time changed1, updates: "
-                       << updates.size());
+      LOG_TRACE(logger_,
+                "ConcordCommandsHandler::addBlock, time changed1, updates: "
+                    << updates.size());
       auto time_data = time_->Serialize();
       amended_updates.insert(time_data);
       internal_kv_size_summary_.Observe(time_data.second.length());
-      LOG4CPLUS_TRACE(
-          logger_, "ConcordCommandsHandler::addBlock, time changed2, updates: "
-                       << updates.size());
+      LOG_TRACE(logger_,
+                "ConcordCommandsHandler::addBlock, time changed2, updates: "
+                    << updates.size());
     }
     // amended_updates.insert(time_->SerializeSummarizedTime());
   }
@@ -405,28 +399,27 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   amended_updates[metadata_storage_.getKey()] =
       metadata_storage_.serialize(executing_bft_sequence_num_);
 
-  LOG4CPLUS_DEBUG(
-      logger_, "ConcordCommandsHandler::addBlock, before add block, updates: "
-                   << updates.size());
+  LOG_DEBUG(logger_,
+            "ConcordCommandsHandler::addBlock, before add block, updates: "
+                << updates.size());
   concordUtils::Status status =
       appender_.addBlock(amended_updates, out_block_id);
   if (!status.isOK()) {
     return status;
   }
-  LOG4CPLUS_DEBUG(logger_,
-                  "ConcordCommandsHandler::addBlock, after add block, updates: "
-                      << updates.size());
+  LOG_DEBUG(logger_,
+            "ConcordCommandsHandler::addBlock, after add block, updates: "
+                << updates.size());
   written_blocks_.Increment();
 
   auto start = std::chrono::steady_clock::now();
   PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
   auto end = std::chrono::steady_clock::now();
   auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  LOG4CPLUS_INFO(
-      logger_,
-      "ConcordCommandsHandler::addBlock, exit, updates: "
-          << updates.size() << ", dur: " << dur.count() << ", clock: "
-          << std::chrono::steady_clock::now().time_since_epoch().count());
+  LOG_INFO(logger_,
+           "ConcordCommandsHandler::addBlock, exit, updates: "
+               << updates.size() << ", dur: " << dur.count() << ", clock: "
+               << std::chrono::steady_clock::now().time_since_epoch().count());
   return status;
 }
 

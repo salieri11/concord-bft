@@ -3,7 +3,7 @@
 #ifndef CONCORD_PRUNING_KVB_PRUNING_SM_HPP
 #define CONCORD_PRUNING_KVB_PRUNING_SM_HPP
 
-#include <log4cplus/logger.h>
+#include "Logger.hpp"
 
 #include "rsa_pruning_signer.hpp"
 #include "rsa_pruning_verifier.hpp"
@@ -108,7 +108,7 @@ class KVBPruningSM {
   kvbc::BlockId LatestBasedOnTimeRange() const;
 
  private:
-  log4cplus::Logger logger_;
+  logging::Logger logger_;
   RSAPruningSigner signer_;
   RSAPruningVerifier verifier_;
   const kvbc::ILocalKeyValueStorageReadOnly& ro_storage_;

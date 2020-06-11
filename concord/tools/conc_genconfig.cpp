@@ -10,7 +10,9 @@
 
 #include <iostream>
 
+#include <log4cplus/configurator.h>
 #include <boost/program_options.hpp>
+#include "Logger.hpp"
 #include "config/configuration_manager.hpp"
 
 using std::exception;
@@ -74,12 +76,12 @@ void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
 
 int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
                                 ConcordConfiguration& config, bool clientFlag,
-                                const log4cplus::Logger& concGenconfigLogger) {
+                                const logging::Logger& concGenconfigLogger) {
   try {
     loadClusterSizeParameters(yamlInput, config, clientFlag);
   } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load required parameters from input.");
+    LOG_FATAL(concGenconfigLogger,
+              "Failed to load required parameters from input.");
     return -1;
   }
   try {
@@ -88,79 +90,76 @@ int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
     else
       instantiateTemplatedConfiguration(yamlInput, config);
   } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "Failed to size configuration for the requested dimensions.");
+    LOG_FATAL(concGenconfigLogger,
+              "Failed to size configuration for the requested dimensions.");
     return -1;
   }
 
   try {
     loadConfigurationInputParameters(yamlInput, config);
   } catch (ConfigurationResourceNotFoundException& e) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load required input parameters.");
+    LOG_FATAL(concGenconfigLogger, "Failed to load required input parameters.");
     return -1;
   }
   if (config.loadAllDefaults(false, false) !=
       ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load default values for configuration "
-                    "parameters not included in input.");
+    LOG_FATAL(concGenconfigLogger,
+              "Failed to load default values for configuration "
+              "parameters not included in input.");
     return -1;
   }
   if (!clientFlag) {
     try {
-      LOG4CPLUS_INFO(concGenconfigLogger,
-                     "Beginning key generation for the requested cluster. "
-                     "Depending on the cluster size, this may take a while...");
+      LOG_INFO(concGenconfigLogger,
+               "Beginning key generation for the requested cluster. "
+               "Depending on the cluster size, this may take a while...");
       generateConfigurationKeys(config);
-      LOG4CPLUS_INFO(concGenconfigLogger, "Key generation complete.");
+      LOG_INFO(concGenconfigLogger, "Key generation complete.");
     } catch (std::exception& e) {
-      LOG4CPLUS_FATAL(
-          concGenconfigLogger,
-          "An exception occurred while attempting key generation for "
-          "the requested configuration.");
-      LOG4CPLUS_FATAL(concGenconfigLogger,
-                      "Exception message: " + std::string(e.what()));
+      LOG_FATAL(concGenconfigLogger,
+                "An exception occurred while attempting key generation for "
+                "the requested configuration.");
+      LOG_FATAL(concGenconfigLogger,
+                "Exception message: " + std::string(e.what()));
       return -1;
     }
   }
   if (config.generateAll(true, false) !=
       ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to generate and load values for implicit and "
-                    "generated configuration parameters.");
+    LOG_FATAL(concGenconfigLogger,
+              "Failed to generate and load values for implicit and "
+              "generated configuration parameters.");
     return -1;
   }
   return 0;
 }
 
 int valideConfig(ConcordConfiguration& config,
-                 const log4cplus::Logger& concGenconfigLogger) {
+                 const logging::Logger& concGenconfigLogger) {
   if (!config.scopeIsInstantiated("node")) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "conc_genconfig failed to determine the number of nodes "
-                    "for which configuration files should be output.");
+    LOG_FATAL(concGenconfigLogger,
+              "conc_genconfig failed to determine the number of nodes "
+              "for which configuration files should be output.");
     return -1;
   }
 
   if (config.validateAll(true, false) !=
       ConcordConfiguration::ParameterStatus::VALID) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "conc_genconfig failed to verify the all parameters that "
-                    "will be written to the configuratioin files are valid.");
+    LOG_FATAL(concGenconfigLogger,
+              "conc_genconfig failed to verify the all parameters that "
+              "will be written to the configuratioin files are valid.");
     return -1;
   }
   if (!hasAllParametersRequiredAtConfigurationGeneration(config)) {
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Parameters required for configuration files are missing.");
+    LOG_FATAL(concGenconfigLogger,
+              "Parameters required for configuration files are missing.");
     return -1;
   }
   return 0;
 }
 
 int outputConfig(ConcordConfiguration& config,
-                 const log4cplus::Logger& concGenconfigLogger, bool clientFlag,
+                 const logging::Logger& concGenconfigLogger, bool clientFlag,
                  const string nodeMapFilename,
                  const variables_map& optionsInput, string& outputPrefix) {
   if (clientFlag) {
@@ -186,18 +185,18 @@ int outputConfig(ConcordConfiguration& config,
       try {
         outputConcordNodeConfiguration(config, yamlOutput, i);
       } catch (std::exception& e) {
-        LOG4CPLUS_FATAL(
+        LOG_FATAL(
             concGenconfigLogger,
             "An exception occurred while trying to write configuraiton file " +
                 outputFilename + ".");
-        LOG4CPLUS_FATAL(concGenconfigLogger,
-                        "Exception message: " + std::string(e.what()));
+        LOG_FATAL(concGenconfigLogger,
+                  "Exception message: " + std::string(e.what()));
         return -1;
       }
-      LOG4CPLUS_INFO(concGenconfigLogger,
-                     "Configuration file " + outputFilename + " (" +
-                         std::to_string(i + 1) + " of " +
-                         std::to_string(numNodes) + ") written.");
+      LOG_INFO(concGenconfigLogger, "Configuration file " + outputFilename +
+                                        " (" + std::to_string(i + 1) + " of " +
+                                        std::to_string(numNodes) +
+                                        ") written.");
     }
 
     if (optionsInput.count("report-principal-locations")) {
@@ -205,10 +204,10 @@ int outputConfig(ConcordConfiguration& config,
       try {
         outputPrincipalLocationsMappingJSON(config, nodeMapOutput);
       } catch (const exception& e) {
-        LOG4CPLUS_FATAL(concGenconfigLogger,
-                        "An exception occurred while trying to write principal "
-                        "locations mapping. Exception message: " +
-                            string(e.what()));
+        LOG_FATAL(concGenconfigLogger,
+                  "An exception occurred while trying to write principal "
+                  "locations mapping. Exception message: " +
+                      string(e.what()));
         return -1;
       }
     }
@@ -223,8 +222,8 @@ int main(int argc, char** argv) {
   log4cplus::initialize();
   log4cplus::BasicConfigurator loggerConfig;
   loggerConfig.configure();
-  log4cplus::Logger concGenconfigLogger =
-      log4cplus::Logger::getInstance("com.vmware.concord.conc_genconfig");
+  logging::Logger concGenconfigLogger =
+      logging::getLogger("com.vmware.concord.conc_genconfig");
 
   std::string inputFilename;
   std::string outputPrefix;
@@ -247,19 +246,18 @@ int main(int argc, char** argv) {
     return 0;
   }
   notify(optionsInput);
-  LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig launched.");
+  LOG_INFO(concGenconfigLogger, "conc_genconfig launched.");
 
   if (optionsInput.count("configuration-input") < 1) {
-    LOG4CPLUS_FATAL(
+    LOG_FATAL(
         concGenconfigLogger,
         "No input file specified. Please use --configuration-input options.");
     return -1;
   }
   std::ifstream fileInput(inputFilename);
   if (!(fileInput.is_open())) {
-    LOG4CPLUS_FATAL(
-        concGenconfigLogger,
-        "Could not open specified input file: \"" + inputFilename + "\".");
+    LOG_FATAL(concGenconfigLogger, "Could not open specified input file: \"" +
+                                       inputFilename + "\".");
     return -1;
   }
 
@@ -267,14 +265,14 @@ int main(int argc, char** argv) {
   try {
     yamlInput.parseInput();
   } catch (std::exception& e) {
-    LOG4CPLUS_FATAL(
+    LOG_FATAL(
         concGenconfigLogger,
         "An exception occurred while trying to parse the input to "
         "conc_genconfig. This likely suggests the requested input file (" +
             inputFilename +
             ") is inexistent, unreadable, malformed, or otherwise unusable.");
-    LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Exception message: " + std::string(e.what()));
+    LOG_FATAL(concGenconfigLogger,
+              "Exception message: " + std::string(e.what()));
     return -1;
   }
   ConcordConfiguration config;
@@ -286,6 +284,6 @@ int main(int argc, char** argv) {
   if (outputConfig(config, concGenconfigLogger, clientFlag, nodeMapFilename,
                    optionsInput, outputPrefix) == -1)
     return -1;
-  LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
+  LOG_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
   return 0;
 }
