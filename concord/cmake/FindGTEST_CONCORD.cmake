@@ -1,3 +1,4 @@
+# NOTE: The original name GTEST causes to problems on osfx since it is case insensitive
 # Before monorepo, googletest was located at ../googletest. After
 # monorepo, it's located at ../../googletest ... except in Docker
 # building, where it's still at ../googletest. (TODO)

@@ -87,6 +87,6 @@ add_subdirectory("tools")
 add_subdirectory("scripts")
 
 ## Unit tests with googletest
-find_package(GTEST REQUIRED)
+find_package(GTEST_CONCORD REQUIRED)
 add_subdirectory("test")
 enable_testing()
