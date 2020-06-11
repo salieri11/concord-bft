@@ -46,13 +46,19 @@ void tagAndPushDockerImage(orig_repo, new_repo, docker_tag) {
 // containers.  That should never happen anyway, but just in case.
 void removeContainers(){
   echo "Removing docker containers"
-  sh(script: '''docker rm -f $(docker ps -aq) > /dev/null''', returnStatus: true)
+  sh(script: '''
+    set +e
+    docker rm -f $(docker ps -aq) > /dev/null
+  ''', returnStatus: true)
 }
 
-// Remove unused images.
-void pruneImages(){
-  echo "Pruning docker images"
-  sh(script: "docker system prune --force > /dev/null", returnStatus: true)
+// Remove all images.
+void removeImages(){
+  echo "Removing docker images"
+  sh(script: '''
+    set +e
+    docker image rm -f $(docker images -q) > /dev/null
+  ''', returnStatus: true)
 }
 
 return this
