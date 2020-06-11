@@ -1,0 +1,1 @@
+export JAVA_OPTS="-XX:+UseG1GC -Xmx10G

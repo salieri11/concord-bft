@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
@@ -27,6 +28,7 @@ import com.vmware.blockchain.deployment.v1.Identity;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -117,6 +119,15 @@ public class ConfigurationServiceHelper {
         for (ServiceType serviceType : serviceTypes) {
 
             switch (serviceType) {
+                case DAML_EXECUTION_ENGINE:
+                    DamlExecutionEngineUtil executionEngineUtil = new DamlExecutionEngineUtil();
+                    nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                            .setType(serviceType)
+                            .setComponentUrl(DamlLedgerApiUtil.envVarPath)
+                            .setComponent(executionEngineUtil.generateConfig())
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                    break;
                 case DAML_LEDGER_API:
                     DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil();
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()

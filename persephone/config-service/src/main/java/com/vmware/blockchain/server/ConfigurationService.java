@@ -26,6 +26,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
@@ -201,6 +202,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         for (ServiceType serviceType : request.getServicesList()) {
 
             switch (serviceType) {
+                case DAML_EXECUTION_ENGINE:
+                    DamlExecutionEngineUtil executionEngineUtil = new DamlExecutionEngineUtil();
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                                    .setType(serviceType)
+                                    .setComponentUrl(DamlLedgerApiUtil.envVarPath)
+                                    .setComponent(executionEngineUtil.generateConfig())
+                                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                    .build());
+                    break;
                 case DAML_LEDGER_API:
                     DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil();
                     var nodeIdLedger = request
