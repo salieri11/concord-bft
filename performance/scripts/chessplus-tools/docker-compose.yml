@@ -39,6 +39,7 @@ services:
     environment:
       - WAVEFRONT_URL=${WAVEFRONT_URL}/api/
       - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN}
+      - WAVEFRONT_HOSTNAME=${VM_IP}
       - JAVA_HEAP_USAGE=3G
     deploy:
       resources:
