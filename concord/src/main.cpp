@@ -33,6 +33,8 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
+#include "diagnostics.h"
+#include "diagnostics_server.h"
 #include "direct_kv_storage_factory.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
@@ -758,6 +760,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     replica.set_command_handler(kvb_commands_handler.get());
     replica.start();
+
+    // Start the diagnostics server
+    concord::diagnostics::Server diagnostics_server;
+    diagnostics_server.start(
+        concord::diagnostics::RegistrarSingleton::getInstance());
+
     // Clients
 
     std::shared_ptr<TimePusher> timePusher;
