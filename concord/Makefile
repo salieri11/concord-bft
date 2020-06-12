@@ -12,7 +12,7 @@ CONCORD_CMAKE_FLAGS:= \
 			  -DUSE_CONAN=OFF
 CONCORD_CTEST_TIMEOUT:=3000
 
-.PHONY: help
+.PHONY: help build test
 
 help: ## The Makefile helps to build Concord in a docker container
 	@cat $(MAKEFILE_LIST) | grep -E '^[a-zA-Z_-]+:.*?## .*$$' | \
@@ -43,7 +43,7 @@ stop-c: ## Stop the container
 remove-c: ## Remove the container
 	docker container rm -f ${CONCORD_BUILD_CONTAINER}
 
-build-s: ## Build Concord source. Note: this command is mostly for developers
+build: ## Build Concord source. Note: this command is mostly for developers
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
@@ -51,7 +51,7 @@ build-s: ## Build Concord source. Note: this command is mostly for developers
 		cmake ${CONCORD_CMAKE_FLAGS} .. && \
 		make -j $$(nproc) all"
 
-test-s: ## Run all tests
+test: ## Run all tests
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \

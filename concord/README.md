@@ -20,7 +20,7 @@ deployment.
 ```
 cd ~/vmwathena_blockchain/concord/
 make run-c
-make build-s
+make build
 make test
 make build-docker-image
 ```
