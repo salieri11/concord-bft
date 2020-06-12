@@ -113,8 +113,10 @@ class SampleDAppTests(test_suite.TestSuite):
 
 
    def _getTests(self):
-      return [("asset_transfer", self._test_asset_transfer),
-              ("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
+      # TODO: Diabling asset transfer test due to https://jira.eng.vmware.com/browse/BC-3104
+      # return [("asset_transfer", self._test_asset_transfer),
+      #         ("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
+      return [("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
 
    def _executeInContainer(self, command):
       '''
