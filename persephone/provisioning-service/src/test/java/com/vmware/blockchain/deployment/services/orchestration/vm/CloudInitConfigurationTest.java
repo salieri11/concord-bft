@@ -69,6 +69,8 @@ public class CloudInitConfigurationTest {
 
     private Integer nodeId = 12345;
 
+    private String nodeIdString = "12345";
+
     @Mock
     private ConfigurationSessionIdentifier configGenId;
 
@@ -88,8 +90,8 @@ public class CloudInitConfigurationTest {
     void init() {
         cloudInitConfiguration =
                 new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
-                                           nodeId, configGenId, configServiceEndpoint, configServiceRestEndpoint,
-                                           outboundProxy);
+                                           nodeId, nodeIdString, configGenId, configServiceEndpoint,
+                                           configServiceRestEndpoint, outboundProxy, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
 
         Credential mockCredential = mock(Credential.class);

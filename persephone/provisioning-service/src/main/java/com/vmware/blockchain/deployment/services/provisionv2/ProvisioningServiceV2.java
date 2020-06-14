@@ -37,6 +37,7 @@ import com.vmware.blockchain.deployment.services.orchestrationsite.Orchestration
 import com.vmware.blockchain.deployment.services.provision.DeleteResource;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
@@ -45,6 +46,7 @@ import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 import com.vmware.blockchain.deployment.v1.Sites;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
@@ -83,7 +85,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
     @Override
     public void createDeployment(DeploymentRequest request,
-                                 StreamObserver<DeploymentRequestResponse> responseObserver)     {
+                                 StreamObserver<DeploymentRequestResponse> responseObserver) {
 
         /// ---- Validation and input manipulation/extraction ----
         val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
@@ -98,7 +100,19 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
 
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
-                                                                        nodeAssignment);
+                                                                   nodeAssignment);
+
+        // Info fields only
+        Properties.Builder responseInfoProperties = Properties.newBuilder();
+        responseInfoProperties.putValues(DeploymentAttributes.BLOCKCHAIN_VERSION.name(),
+                                         request.getSpec().getProperties()
+                                                 .getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
+                                                                     nodeConfiguration.getDockerImageBaseVersion()));
+
+        responseInfoProperties.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(), request.getSpec().getProperties()
+                .getValuesOrDefault(DeploymentAttributes.DAML_SDK_VERSION.name(),
+                                    nodeConfiguration.getDamlSdkVersion()));
+
         //TODO add site specific restriction.
 
         /// ---- No input manipulation/extraction beyond this point ----
@@ -114,8 +128,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                 .orchestrators(orchestrators)
                 .deploymentType(deploymentType)
                 .build();
+
         deploymentSession.events.add(generateEvent(deploymentSession, DeploymentExecutionEvent.Type.ACKNOWLEDGED,
-                                                   DeploymentExecutionEvent.Status.ACTIVE));
+                                                   DeploymentExecutionEvent.Status.ACTIVE).setResource(
+                DeployedResource.newBuilder().setAdditionalInfo(responseInfoProperties).build()).build());
 
         // If successfully recorded.
         if (!deploymentLogCache.asMap().containsKey(sessionId)) {
@@ -245,7 +261,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                                                              .setResource(each)
                                                              .setSessionId(session.id.toString())
                                                              .build()));
-            session.events.add(generateEvent(session, DeploymentExecutionEvent.Type.COMPLETED, status));
+            session.events.add(generateEvent(session, DeploymentExecutionEvent.Type.COMPLETED, status).build());
             deploymentLogCache.asMap().get(session.id).complete(session);
         }
         //session.orchestrators.values().stream().forEach(each -> each.cl);

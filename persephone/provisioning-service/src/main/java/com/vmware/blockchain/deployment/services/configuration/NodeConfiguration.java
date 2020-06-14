@@ -36,6 +36,7 @@ import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.Properties;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,11 +46,17 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeConfiguration {
 
+    @Getter
     private String dockerImageBaseVersion;
 
+    @Getter
+    private String damlSdkVersion;
+
     @Autowired
-    public NodeConfiguration(@Value("${docker.image.base.version:latest}") String dockerImageBuild) {
+    public NodeConfiguration(@Value("${docker.image.base.version:latest}") String dockerImageBuild,
+                             @Value("${daml.sdk.version:NA}") String dockerSdkVersion) {
         this.dockerImageBaseVersion = dockerImageBuild;
+        this.damlSdkVersion = dockerSdkVersion;
 
         log.info("Default Node Configuration loaded: dockerImageBuild: {}", dockerImageBuild);
     }

@@ -18,7 +18,9 @@ import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
+import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +61,7 @@ public class VSphereOrchestrator implements Orchestrator {
     }
 
     @Override
+    @Deprecated
     public OrchestratorData.ComputeResourceEvent createDeployment(
             OrchestratorData.CreateComputeResourceRequest request) {
         val compute = info.getVsphere().getResourcePool();
@@ -82,6 +85,7 @@ public class VSphereOrchestrator implements Orchestrator {
             val resourcePool = getResourcePool.get();
             val controlNetwork = getControlNetwork.get();
             val libraryItem = getLibraryItem.get();
+
             val cloudInit = new CloudInitConfiguration(
                                     info.getContainerRegistry(),
                                     request.getModel(),
@@ -92,10 +96,12 @@ public class VSphereOrchestrator implements Orchestrator {
                                     network.getSubnet(),
                                     request.getCluster(),
                                     request.getConcordId(),
+                                    null,
                                     request.getConfigurationSessionIdentifier(),
                                     request.getConfigServiceEndpoint(),
                                     request.getConfigServiceRestEndpoint(),
-                                    info.getVsphere().getOutboundProxy()
+                                    info.getVsphere().getOutboundProxy(),
+                                    "c0nc0rd"
                                 );
 
             val instance = vSphereHttpClient
@@ -107,7 +113,7 @@ public class VSphereOrchestrator implements Orchestrator {
             return OrchestratorData.ComputeResourceEventCreated.builder()
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .node(request.getNode())
-                    .password(cloudInit.getVmPassword())
+                    .password("c0nc0rd")
                     .build();
         } catch (Exception e) {
             throw new PersephoneException(e, "Error creating/starting the VM");
@@ -139,6 +145,12 @@ public class VSphereOrchestrator implements Orchestrator {
             val resourcePool = getResourcePool.get();
             val controlNetwork = getControlNetwork.get();
             val libraryItem = getLibraryItem.get();
+
+            var vmPassword = "c0nc0rd";
+            if (request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())) {
+                vmPassword = PasswordGeneratorUtil.generateCommonTextPassword();
+            }
+
             val cloudInit = new CloudInitConfiguration(
                     info.getContainerRegistry(),
                     request.getCloudInitData().getModel(),
@@ -150,11 +162,13 @@ public class VSphereOrchestrator implements Orchestrator {
                     ConcordClusterIdentifier.newBuilder()
                             .setId(request.getBlockchainId().toString())
                             .build(),
-                    request.getCloudInitData().getNodeId(),
+                    0,
+                    request.getNodeId().toString(),
                     request.getCloudInitData().getConfigGenId(),
                     request.getCloudInitData().getConfigServiceEndpoint(),
                     request.getCloudInitData().getConfigServiceRestEndpoint(),
-                    info.getVsphere().getOutboundProxy()
+                    info.getVsphere().getOutboundProxy(),
+                    vmPassword
             );
             val instance = vSphereHttpClient
                     .createVirtualMachine(request.getVmId(),
@@ -166,7 +180,7 @@ public class VSphereOrchestrator implements Orchestrator {
             vSphereHttpClient.ensureVirtualMachinePowerStart(instance, 5000L, request.getProperties());
             return OrchestratorData.ComputeResourceEventCreatedV2.builder()
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
-                    .password(cloudInit.getVmPassword())
+                    .password(vmPassword)
                     .nodeId(request.getNodeId()).build();
         } catch (Exception e) {
             throw new PersephoneException(e, "Error creating/starting the VM");

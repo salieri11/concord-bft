@@ -78,7 +78,6 @@ public class OrchestratorData {
         public static class CloudInitData {
             ConcordModelSpecification model;
             String privateIp;
-            int nodeId;
             ConfigurationSessionIdentifier configGenId;
             Endpoint configServiceEndpoint;
             Endpoint configServiceRestEndpoint;
