@@ -11,10 +11,7 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.util.Strings;
 
-import com.vmware.blockchain.deployment.server.BootstrapComponent;
-import com.vmware.blockchain.deployment.server.SpringContext;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
-import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -25,7 +22,6 @@ import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 
 import lombok.Data;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -44,11 +40,11 @@ public class CloudInitConfiguration {
     private int subnet;
     private ConcordClusterIdentifier clusterId;
     private int nodeId;
+    private String nodeIdString;
     private ConfigurationSessionIdentifier configGenId;
     private Endpoint configServiceEndpoint;
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
-    @Getter
     private String vmPassword;
 
     /**
@@ -62,10 +58,12 @@ public class CloudInitConfiguration {
                                   int subnet,
                                   ConcordClusterIdentifier clusterId,
                                   int nodeId,
+                                  String nodeIdString,
                                   ConfigurationSessionIdentifier configGenId,
                                   Endpoint configServiceEndpoint,
                                   Endpoint configServiceRestEndpoint,
-                                  OutboundProxyInfo outboundProxy) {
+                                  OutboundProxyInfo outboundProxy,
+                                  String vmPassword) {
         this.containerRegistry = containerRegistry;
         this.model = model;
         this.ipAddress = ipAddress;
@@ -74,13 +72,13 @@ public class CloudInitConfiguration {
         this.subnet = subnet;
         this.clusterId = clusterId;
         this.nodeId = nodeId;
+        this.nodeIdString = nodeIdString;
         this.configGenId = configGenId;
         this.configServiceEndpoint = configServiceEndpoint;
         this.configServiceRestEndpoint = configServiceRestEndpoint;
         this.outboundProxy = outboundProxy;
-        BootstrapComponent bootstrapComponent = SpringContext.getAppContext().getBean(BootstrapComponent.class);
-        this.vmPassword = bootstrapComponent.useGeneratedPassword ? PasswordGeneratorUtil.generateCommonTextPassword()
-                                                                  : "c0nc0rd";
+
+        this.vmPassword = vmPassword;
     }
 
     private String agentImageName() {
@@ -131,7 +129,7 @@ public class CloudInitConfiguration {
      * Concord agent startup configuration parameters.
      */
     ConcordAgentConfiguration getConfiguration() {
-        return ConcordAgentConfiguration.newBuilder()
+        var builder = ConcordAgentConfiguration.newBuilder()
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
                 .setNode(nodeId)
@@ -139,8 +137,12 @@ public class CloudInitConfiguration {
                 .setConfigService(outboundProxy == null || Strings.isNullOrEmpty(outboundProxy.getHttpsHost())
                                   ? configServiceEndpoint : configServiceRestEndpoint)
                 .setConfigurationSession(configGenId)
-                .setOutboundProxyInfo(outboundProxy)
-                .build();
+                .setOutboundProxyInfo(outboundProxy);
+
+        if (!Strings.isNullOrEmpty(nodeIdString)) {
+            builder.setNodeId(nodeIdString);
+        }
+        return builder.build();
     }
 
     /**

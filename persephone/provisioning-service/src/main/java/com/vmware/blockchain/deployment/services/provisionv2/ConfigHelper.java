@@ -64,6 +64,8 @@ public class ConfigHelper {
                             .stream().map(each -> each.getServiceType()).collect(Collectors.toList());
                     var nodeInfoBuilder = NodesInfo.Entry.newBuilder().setId(eachNode.getNodeId())
                             .setType(eachNode.getType())
+                            .setId(eachNode.getNodeId())
+                            .setNodeIp(context.localNodeDetailsMap.get(UUID.fromString(eachNode.getNodeId())).privateIp)
                             .addAllServices(components)
                             .setProperties(Properties.newBuilder()
                                                    .putAllValues(eachNode.getProperties().getValuesMap()));

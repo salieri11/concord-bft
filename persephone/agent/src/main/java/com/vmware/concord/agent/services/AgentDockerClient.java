@@ -315,7 +315,8 @@ public final class AgentDockerClient {
 
         if (Files.notExists(Path.of(configDownloadMarker))) {
             var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                        configuration.getNode());
+                                                                        configuration.getNode(),
+                                                                        configuration.getNodeId());
             writeConfiguration(configList);
             log.info("Populated the configurations");
         } else {

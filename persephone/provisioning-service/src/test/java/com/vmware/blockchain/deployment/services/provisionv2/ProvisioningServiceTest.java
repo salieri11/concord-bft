@@ -89,6 +89,9 @@ public class ProvisioningServiceTest {
         Whitebox.setInternalState(provisioningServiceV2, OrchestratorProvider.class, orchestratorProvider);
         Whitebox.setInternalState(provisioningServiceV2, ConfigHelper.class, configHelper);
         Whitebox.setInternalState(provisioningServiceV2, Cache.class, deploymentLogCache);
+
+        when(nodeConfiguration.getDamlSdkVersion()).thenReturn("daml");
+        when(nodeConfiguration.getDockerImageBaseVersion()).thenReturn("blockchain-version");
     }
 
     @Test

@@ -102,7 +102,7 @@ public class ProvisioningServiceUtil {
      * Create an instance of {@link DeploymentExecutionEvent}.
      * @return a new instance of {@link DeploymentSessionEvent}.
      */
-    static DeploymentExecutionEvent generateEvent(DeploymentExecutionContext deploymentSession,
+    static DeploymentExecutionEvent.Builder generateEvent(DeploymentExecutionContext deploymentSession,
                                                   DeploymentExecutionEvent.Type type,
                                                   DeploymentExecutionEvent.Status status) {
         return DeploymentExecutionEvent.newBuilder()
@@ -110,9 +110,9 @@ public class ProvisioningServiceUtil {
                 .setSessionId(deploymentSession.id.toString())
                 .setBlockchainId(deploymentSession.blockchainId.toString())
                 .setConsortiumId(deploymentSession.consortiumId.toString())
-                .setStatus(status)
-                .build();
+                .setStatus(status);
     }
+
 
     static Map<UUID, List<ConcordComponent>> generateComponentsPerNode(NodeAssignment nodeAssignment,
                                                                        Map<OrchestrationSiteIdentifier, Orchestrator>

@@ -7,6 +7,7 @@ package com.vmware.concord.agent.services.configservice;
 import java.util.Arrays;
 import java.util.List;
 
+import org.assertj.core.util.Strings;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -68,11 +69,17 @@ public class ConfigServiceInvoker {
      */
     public List<ConfigurationComponent> retrieveConfiguration(
             ConfigurationSessionIdentifier session,
-            int node
+            int node,
+            String nodeId
     ) throws Exception {
         var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
-                .setIdentifier(session).setNode(node).build();
+                .setIdentifier(session);
 
+        if (Strings.isNullOrEmpty(nodeId)) {
+            request.setNode(node);
+        } else {
+            request.setNodeId(nodeId);
+        }
         try {
             if (useRest) {
                 final RestTemplate restTemplate = new RestTemplate(Arrays.asList(new ProtobufHttpMessageConverter()));
@@ -80,7 +87,7 @@ public class ConfigServiceInvoker {
                 final HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
 
-                HttpEntity<NodeConfigurationRequest> entity = new HttpEntity<>(request, headers);
+                HttpEntity<NodeConfigurationRequest> entity = new HttpEntity<>(request.build(), headers);
 
                 ResponseEntity<NodeConfigurationResponse> result =
                         restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
@@ -90,7 +97,7 @@ public class ConfigServiceInvoker {
                 return result.getBody().getConfigurationComponentList();
 
             } else {
-                var promise = generateConfigServiceStub(endpoint).getNodeConfiguration(request);
+                var promise = generateConfigServiceStub(endpoint).getNodeConfiguration(request.build());
 
                 // Synchronously wait for result to return.
                 return promise.get().getConfigurationComponentList();

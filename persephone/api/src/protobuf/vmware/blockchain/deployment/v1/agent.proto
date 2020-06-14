@@ -19,11 +19,12 @@ option java_multiple_files = true;
 message ConcordAgentConfiguration {
     ConcordModelSpecification model = 1;
     Endpoint container_registry = 2;
-    Endpoint fleet_service = 3;
-    ConcordClusterIdentifier cluster = 4;
-    int32 node = 5;
+    Endpoint fleet_service = 3 [deprecated = false];
+    ConcordClusterIdentifier cluster = 4 [deprecated = false];
+    int32 node = 5 [deprecated = false];
     Endpoint config_service = 6;
     ConfigurationSessionIdentifier configuration_session = 7;
     OutboundProxyInfo outbound_proxy_info = 8;
+    string node_id = 9;
 }
 /* [END messages] */

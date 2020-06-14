@@ -75,7 +75,6 @@ public class ComputeHelper {
                                                                                          modelSpecBuilder.build(),
                                                                                          nodeDetails
                                                                                                  .privateIp,
-                                                                                         nodeDetails.index,
                                                                                          configGenId,
                                                                                          bootstrapComponent
                                                                                                  .configService,

@@ -49,7 +49,7 @@ public class NodeConfigurationTest {
                 .addEntries(NodeAssignment.Entry.newBuilder().setNodeId(NODE_ID_2.toString())
                                     .setType(NodeType.REPLICA).build())
                 .build();
-        nodeConfiguration = new NodeConfiguration(dockerImageBaseVersion);
+        nodeConfiguration = new NodeConfiguration(dockerImageBaseVersion, "daml");
     }
 
     @Test
