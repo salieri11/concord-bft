@@ -15,7 +15,7 @@ services:
       - CONSORTIUM_ID=${CONSORTIUM_ID}
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers
-      - ./fluent-log-file.conf:/fluentd/etc/fluent-log-insight.conf:ro
+      - ./fluent-log-insight.conf:/fluentd/etc/fluent-log-insight.conf:ro
       - ./${BASE_PATH}/logs/${VM_IP}:/var/log/fluent
 
   telegraf:
