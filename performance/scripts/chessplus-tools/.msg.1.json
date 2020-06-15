@@ -1,0 +1,32 @@
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "A test has been triggered on `$VM_IP`."
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Test config*: \n\nCHESS+ Spider: `$SPIDER_IMAGE_TAG`\nDAML SDK: `$DAML_SDK_VERSION`\nMarket Flavor: `$MARKET_FLAVOUR`\nTotal Trades: `$TRADE_COUNT`\nConcurrency: `$CONCURRENCY`"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Deployment*: \n\nClient node: `$LEDGER_HOST`\nCommitter nodes: `$REPLICAS`\nConsortium Id: `$CONSORTIUM_ID`\nBlockchain Id: `$BLOCKCHAIN_ID`\nWavefront Source: `$WAVEFRONT_SOURCE`"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Monitoring tools*:\n\nLogs: <http://$LOG_INSIGHT_HOST/|Log Insight>\nMetrics: <$WAVEFRONT_URL/|Wavefront>\nProgress: <http://$VM_IP:3000/|Grafana>\nResult: <http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/|Apache server>\n"
+      }
+    }
+  ]
+}

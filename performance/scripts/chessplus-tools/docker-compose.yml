@@ -1,0 +1,47 @@
+version: "3.3"
+
+services:
+  fluentd:
+    image: vmwblockchain/fluentd
+    container_name: fluentd
+    logging:
+      driver: local
+    environment:
+      - LOG_DESTINATION=LOG_INSIGHT
+      - LOG_INSIGHT_HOST=${LOG_INSIGHT_HOST}
+      - LOG_INSIGHT_PORT=${LOG_INSIGHT_PORT}
+      - LOG_INSIGHT_USERNAME=${LOG_INSIGHT_USERNAME}
+      - LOG_INSIGHT_PASSWORD=${LOG_INSIGHT_PASSWORD}
+      - CONSORTIUM_ID=${CONSORTIUM_ID}
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./fluent-log-insight.conf:/fluentd/etc/fluent-log-insight.conf:ro
+      - ./${BASE_PATH}/logs/${VM_IP}:/var/log/fluent
+
+  telegraf:
+    image: telegraf
+    container_name: telegraf
+    environment:
+      - VM_TYPE=chessplus
+      - VM_IP=${VM_IP}
+      - WAVEFRONT_SOURCE=${WAVEFRONT_SOURCE}
+      - BLOCKCHAIN_ID=${BLOCKCHAIN_ID}
+      - CONSORTIUM_ID=${CONSORTIUM_ID}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - wavefront
+
+  wavefront:
+    image: wavefronthq/proxy
+    container_name: wavefront
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL}/api/
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN}
+      - WAVEFRONT_HOSTNAME=${VM_IP}
+      - JAVA_HEAP_USAGE=3G
+    deploy:
+      resources:
+        limits:
+          memory: 4G
