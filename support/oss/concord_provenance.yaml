@@ -165,3 +165,73 @@ other:rapidcheck:258d907da00a0855f92c963d8f76eef115531716:
  repository: Other
  license: BSD 2-Clause
  url: https://github.com/emil-e/rapidcheck
+
+other:trio:0.16.0:
+ name: trio
+ version: 0.16.0
+ repository: Other
+ license: The MIT License
+ url: https://github.com/python-trio/trio
+
+other:cockroachdb:20.1.1:
+ name: cockroachdb
+ version: 20.1.1
+ repository: Other
+ license: The MIT License
+ url: https://github.com/cockroachdb/cockroach/tree/v20.1.1
+
+other:maven:3.6.3:
+ name: cockroachdb
+ version: 3.6.3
+ repository: Other
+ license: Apache License 2.0
+ url: https://github.com/apache/maven/tree/maven-3.6.3
+
+other:solidity:0.7.8:
+ name: solidity
+ version: 0.7.8
+ repository: Other
+ license: GNU General Public License v3.0
+ url: https://github.com/ethereum/solidity/tree/v0.7.8
+
+other:numpy:1.19.0:
+ name: numpy
+ version: 1.19.0
+ repository: Other
+ license: BSD 3-Clause
+ url: https://github.com/ethereum/solidity/tree/v0.7.8
+
+other:matplotlib:3.2.1:
+ name: matplotlib
+ version: 3.2.1
+ repository: Other
+ license: Matplotlib license
+ url: https://github.com/matplotlib/matplotlib/tree/v3.2.1
+
+other:pytest:4.3.1:
+ name: pytest
+ version: 4.3.1
+ repository: Other
+ license: MIT License
+ url: https://github.com/pytest-dev/pytest/tree/4.3.1
+
+other:pytest-json:1.2.1:
+ name: pytest
+ version: 1.2.1
+ repository: Other
+ license: MIT License
+ url: https://github.com/numirias/pytest-json-report/tree/v1.2.1
+
+other:web3:1.2.9:
+ name: web3
+ version: 1.2.9
+ repository: Other
+ license: GNU Lesser General Public License
+ url: https://github.com/numirias/pytest-json-report/tree/v1.2.1web3
+
+other:xvfbwrapper:0.2.9:
+ name: xvfbwrapper
+ version: 0.2.9
+ repository: Other
+ license: MIT License
+ url: https://github.com/cgoldberg/xvfbwrapper/tree/0.2.9
