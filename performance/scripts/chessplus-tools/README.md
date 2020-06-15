@@ -28,8 +28,8 @@ docker login -u <username>
 
 ### Logs 
 
-fluentd collects logs from all the relevant docker containers on the load driver VM. The target for these logs is either Log Insight (refer [fluent-log-insight.conf](fluent-log-insight.conf)) or local file system (refer [fluent-log-file.conf](fluent-log-file.conf)).
-Apart from that, the docker logs from all committer and client nodes get collected using SCP.
+Docker logs on the load driver VM (refer [fluent-log-insight.conf](fluent-log-insight.conf)) are collected and sent to Log Insight and uploaded to Apache server too.
+Apart from that, docker logs from all committer and client nodes get collected using SCP.
 
 ### Metrics
 

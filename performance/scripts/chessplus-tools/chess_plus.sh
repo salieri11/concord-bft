@@ -30,7 +30,6 @@ upload-dar
 warm-package
 
 ## Start spider application
-export SPIDER_AUTH_DOCKER_ARGS='-e JVM_XMS=4g -e JVM_XMX=8g'
 start-spider
 sleep 10
 
@@ -67,7 +66,7 @@ stop-spider
 stop-sidecars
 
 ## Remove stopped containers
-docker rm $(docker ps -aq)
+docker rm $(docker ps -aq) || true
 
 ## Bundle load-runner reports
 bundle_reports
