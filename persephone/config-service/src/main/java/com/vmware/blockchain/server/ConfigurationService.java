@@ -206,7 +206,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     DamlExecutionEngineUtil executionEngineUtil = new DamlExecutionEngineUtil();
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                     .setType(serviceType)
-                                    .setComponentUrl(DamlLedgerApiUtil.envVarPath)
+                                    .setComponentUrl(DamlExecutionEngineUtil.envVarPath)
                                     .setComponent(executionEngineUtil.generateConfig())
                                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                                     .build());
