@@ -121,7 +121,8 @@ class ConcordLedgerStateOperations(
         sortedKeyValuePairs
       }
     }
-    logger.trace(s"Sending write-set of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
+    logger.trace(
+      s"Sending write-set of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
     val writeSet = Write(protectedKeyValuePairs)
     sendEvent(EventFromValidator().withWrite(writeSet))
     metrics.bytesWritten.update(writeSet.serializedSize)

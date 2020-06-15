@@ -9,11 +9,12 @@ import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.daml.ledger.validator.batch.BatchedSubmissionValidator
+import com.daml.ledger.validator.caching.QueryableReadSet
 import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
   LogFragmentingCommitStrategy
 }
-import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, QueryableReadSet}
+import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
 import com.daml.lf.data.Ref.IdString
 import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator, ValidateRequest}
@@ -33,11 +34,14 @@ class PipelinedValidatorSpec
     with Matchers
     with MockitoSugar
     with AkkaBeforeAndAfterAll {
-  private trait DamlLedgerStateReaderWithQueryableReadSet extends DamlLedgerStateReader with QueryableReadSet
+  private trait DamlLedgerStateReaderWithQueryableReadSet
+      extends DamlLedgerStateReader
+      with QueryableReadSet
 
   "validateSubmissions" should {
     "validate submission and return sorted read set" in {
-      val mockDamlLedgerStateReaderWithQueryableReadSet = mock[DamlLedgerStateReaderWithQueryableReadSet]
+      val mockDamlLedgerStateReaderWithQueryableReadSet =
+        mock[DamlLedgerStateReaderWithQueryableReadSet]
       val expectedReadSet = Set(ByteString.copyFromUtf8("key2"), ByteString.copyFromUtf8("key1"))
       when(mockDamlLedgerStateReaderWithQueryableReadSet.getReadSet).thenReturn(expectedReadSet)
       val mockValidator = mock[BatchedSubmissionValidator[Unit]]
@@ -70,7 +74,8 @@ class PipelinedValidatorSpec
     }
 
     "send single write event" in {
-      val mockDamlLedgerStateReaderWithQueryableReadSet = mock[DamlLedgerStateReaderWithQueryableReadSet]
+      val mockDamlLedgerStateReaderWithQueryableReadSet =
+        mock[DamlLedgerStateReaderWithQueryableReadSet]
       when(mockDamlLedgerStateReaderWithQueryableReadSet.getReadSet).thenReturn(Set.empty[Key])
       val mockStreamObserver = mock[StreamObserver[EventFromValidator]]
       val eventCaptor = ArgumentCaptor
