@@ -29,10 +29,19 @@ fi
 if [[ $# -gt 0 ]]; then
     PRIVPATHS=("$@")
 else
-    PRIVPATHS=("./config-concord1/concord.config"
-               "./config-concord2/concord.config"
-               "./config-concord3/concord.config"
-               "./config-concord4/concord.config")
+    # Default
+    PREFIX="./config-concord"
+    SUFFIX="/concord.config"
+    for f in $(ls config-public/concord*.config); do
+        # Get the replica number
+        NUM=${f%.config}
+        NUM=${NUM##*/concord}
+
+        # Create destination directory
+        mkdir -p ${PREFIX}${NUM}
+
+        PRIVPATHS+=("${PREFIX}${NUM}${SUFFIX}")
+    done
 fi
 
 for i in $(seq 1 ${#PRIVPATHS[@]}); do
