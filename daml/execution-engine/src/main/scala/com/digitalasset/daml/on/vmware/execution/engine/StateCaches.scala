@@ -1,17 +1,16 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.codahale.metrics.MetricRegistry
+import com.daml.caching.{Cache, Configuration}
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
-import com.github.blemale.scaffeine.{Cache, Scaffeine}
+import com.daml.ledger.participant.state.kvutils.caching.`Message Weight`
+import com.daml.metrics.ValidatorCacheMetrics
 import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
 
 private[engine] object StateCaches {
   type StateCache = Cache[DamlStateKey, DamlStateValue]
 
   val DefaultCacheSize: Int = 256 * 1024 * 1024
-  val DefaultExpiry: Duration = 1.hour
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -27,16 +26,8 @@ private[engine] object StateCaches {
 
   def createDefault(metricRegistry: MetricRegistry): StateCache = {
     val cacheSize = determineCacheSize()
-    Scaffeine()
-      .recordStats({ () =>
-        new KVBCMetricsStatsCounter(metricRegistry)
-      })
-      .expireAfterWrite(DefaultExpiry)
-      .maximumWeight(cacheSize)
-      .weigher[DamlStateKey, DamlStateValue] {
-        case (key: DamlStateKey, value: DamlStateValue) =>
-          key.getSerializedSize + value.getSerializedSize
-      }
-      .build[DamlStateKey, DamlStateValue]
+    Cache.from[DamlStateKey, DamlStateValue](
+      Configuration(maximumWeight = cacheSize),
+      ValidatorCacheMetrics.create(metricRegistry))
   }
 }

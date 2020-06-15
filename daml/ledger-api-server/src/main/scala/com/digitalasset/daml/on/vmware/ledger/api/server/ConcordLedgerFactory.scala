@@ -124,9 +124,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
       config: Config[ExtraConfig]): ApiServerConfig =
     super
       .apiServerConfig(participantConfig, config)
-      .copy(
-        tlsConfig = config.tlsConfig,
-        maxInboundMessageSize = config.extra.maxInboundMessageSize)
+      .copy(tlsConfig = config.tlsConfig)
 
   override def authService(config: Config[ExtraConfig]): AuthService =
     config.extra.authService.getOrElse(super.authService(config))

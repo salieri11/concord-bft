@@ -15,7 +15,6 @@ import scopt.OptionParser
 import scala.concurrent.duration._
 
 final case class ExtraConfig(
-    maxInboundMessageSize: Int,
     replicas: Seq[String],
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
@@ -38,7 +37,6 @@ object ExtraConfig {
     ParticipantId.assertFromString("standalone-participant")
 
   val Default: ExtraConfig = ExtraConfig(
-    maxInboundMessageSize = Config.DefaultMaxInboundMessageSize,
     replicas = Seq("localhost:50051"),
     useThinReplica = false,
     maxFaultyReplicas = 1,
@@ -67,11 +65,8 @@ object ExtraConfig {
       .text("Prints the version on stdout and exit.")
     parser
       .opt[Int]("maxInboundMessageSize")
-      .action(
-        (size, config) => config.copy(extra = config.extra.copy(maxInboundMessageSize = size)))
-      .text(
-        s"Max inbound message size in bytes. Defaults to ${Config.DefaultMaxInboundMessageSize}.")
-
+      .action((size, config) => config.copy(maxInboundMessageSize = size))
+      .text(s"Deprecated parameter -- please use --max-inbound-message-size instead.")
     //
     // Thin replica client
     //

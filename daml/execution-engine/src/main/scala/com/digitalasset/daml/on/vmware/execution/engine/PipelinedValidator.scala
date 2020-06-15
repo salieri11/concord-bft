@@ -5,12 +5,12 @@ import java.time.Instant
 import akka.stream.Materializer
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.batch.BatchedSubmissionValidator
-import com.daml.ledger.validator.caching.ImmutablesOnlyCacheUpdatePolicy
+import com.daml.ledger.validator.caching.{ImmutablesOnlyCacheUpdatePolicy, QueryableReadSet}
 import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
   PrivacyAwareSubmissionValidator
 }
-import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, QueryableReadSet}
+import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
 import com.daml.lf.data.Time
 import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator}
