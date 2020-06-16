@@ -22,7 +22,7 @@ public class DamlExecutionEngineUtil {
     public String generateConfig() {
 
         StringBuilder builder = new StringBuilder();
-        builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G");
+        builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G\"");
         return builder.toString();
     }
 }
