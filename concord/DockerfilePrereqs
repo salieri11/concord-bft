@@ -72,14 +72,17 @@ RUN git clone https://github.com/weidai11/cryptopp.git && \
 
 # log4cplus
 WORKDIR /
-RUN git clone -b REL_1_2_1 --depth 1 https://github.com/log4cplus/log4cplus.git && \
-   cd /log4cplus && \
-   autoreconf && \
-   ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" --enable-static && \
-   make -j$(nproc) && \
-   make install && \
-   cd / && \
-   rm -r log4cplus
+RUN wget --no-check-certificate -q \
+    https://github.com/log4cplus/log4cplus/releases/download/REL_2_0_4/log4cplus-2.0.4.tar.gz && \
+    tar -xzf log4cplus-2.0.4.tar.gz && \
+    rm log4cplus-2.0.4.tar.gz && \
+    cd log4cplus-2.0.4 && \
+    autoreconf && \
+    ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" --enable-static && \
+    make -j$(nproc) && \
+    make install && \
+    cd / && \
+    rm -r log4cplus-2.0.4
 
 WORKDIR /
 RUN git clone https://github.com/ethereum/evmjit.git && \
