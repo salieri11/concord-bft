@@ -28,19 +28,6 @@ class KeyValueStorageOperations {
 
 class IDamlValidatorClient {
  public:
-  virtual grpc::Status ValidateSubmission(
-      std::string entryId, std::string submission,
-      const google::protobuf::Timestamp& record_time,
-      std::string participant_id, std::string correlationId,
-      opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidateResponse* out) = 0;
-
-  virtual grpc::Status ValidatePendingSubmission(
-      std::string entryId,
-      const std::map<std::string, std::string>& input_state_entries,
-      std::string correlationId, opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out) = 0;
-
   virtual grpc::Status Validate(
       const std::string& submission,
       const google::protobuf::Timestamp& record_time,
@@ -57,19 +44,6 @@ class DamlValidatorClient : public IDamlValidatorClient {
       uint16_t replica_id,
       com::digitalasset::kvbc::ValidationService::StubInterface* stub)
       : stub_(stub), replica_id_(replica_id) {}
-
-  grpc::Status ValidateSubmission(
-      std::string entryId, std::string submission,
-      const google::protobuf::Timestamp& record_time,
-      std::string participant_id, std::string correlationId,
-      opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidateResponse* out) override;
-
-  grpc::Status ValidatePendingSubmission(
-      std::string entryId,
-      const std::map<std::string, std::string>& input_state_entries,
-      std::string correlationId, opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out) override;
 
   grpc::Status Validate(const std::string& submission,
                         const google::protobuf::Timestamp& record_time,

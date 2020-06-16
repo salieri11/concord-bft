@@ -36,18 +36,6 @@ using CryptoPP::AutoSeededRandomPool;
 
 class MockDamlValidatorClient : public IDamlValidatorClient {
  public:
-  MOCK_METHOD7(ValidateSubmission,
-               grpc::Status(std::string, std::string,
-                            const google::protobuf::Timestamp&, std::string,
-                            std::string, opentracing::Span&,
-                            da_kvbc::ValidateResponse*));
-
-  MOCK_METHOD5(ValidatePendingSubmission,
-               grpc::Status(std::string,
-                            const std::map<std::string, std::string>&,
-                            std::string, opentracing::Span&,
-                            da_kvbc::ValidatePendingSubmissionResponse*));
-
   MOCK_METHOD7(Validate,
                grpc::Status(const std::string&,
                             const google::protobuf::Timestamp&,
