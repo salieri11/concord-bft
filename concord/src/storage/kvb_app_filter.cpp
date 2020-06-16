@@ -116,7 +116,7 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
                                   const std::atomic_bool &stop_execution) {
   if (block_id_start > block_id_end ||
       block_id_end > rostorage_->getLastBlock()) {
-    throw InvalidBlockRange();
+    throw InvalidBlockRange(block_id_start, block_id_end);
   }
 
   BlockId block_id(block_id_start);
@@ -156,7 +156,7 @@ KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
                                               BlockId block_id_end) {
   if (block_id_start > block_id_end ||
       block_id_end > rostorage_->getLastBlock()) {
-    throw InvalidBlockRange();
+    throw InvalidBlockRange(block_id_start, block_id_end);
   }
   BlockId block_id(block_id_start);
 

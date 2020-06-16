@@ -30,9 +30,17 @@ class KvbReadError : public std::exception {
   std::string msg;
 };
 
-class InvalidBlockRange : public std::runtime_error {
+class InvalidBlockRange : public std::exception {
  public:
-  InvalidBlockRange() : std::runtime_error("Invalid block range"){};
+  InvalidBlockRange(const concord::kvbc::BlockId begin,
+                    const concord::kvbc::BlockId end)
+      : msg_("Invalid block range") {
+    msg_ += " [" + std::to_string(begin) + ", " + std::to_string(end) + "]";
+  }
+  const char *what() const noexcept override { return msg_.c_str(); }
+
+ private:
+  std::string msg_;
 };
 
 class KvbAppFilter {
