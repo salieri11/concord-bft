@@ -1194,7 +1194,7 @@ def call(){
 
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "Start")
           dockerutillib.removeContainers()
-          dockerutillib.pruneImages()
+          dockerutillib.removeImages()
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
           if (!env.python) pythonlib.initializePython()
