@@ -388,7 +388,7 @@ def call(){
               env.eventsRecorder = env.WORKSPACE + "/blockchain/hermes/event_recorder.py"
               checkSkipTestsPassword()
               dockerutillib.removeContainers()
-              dockerutillib.pruneImages()
+              dockerutillib.removeImages()
               jenkinsbuilderlib.reportSystemStats()
               printSelectableSuites()
 
