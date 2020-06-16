@@ -172,6 +172,7 @@ COPY ./concord/test/concord.supp /concord/concord.supp
 # if no custom configuration was provided when the cluster was set up.
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
+COPY ./concord/submodules/concord-bft/diagnostics/concord-ctl /concord
 
 # Management port
 EXPOSE 5458
@@ -201,7 +202,7 @@ EXPOSE 9891
 # Mountable volumes.
 VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/cores" ]
 
-# Concord starting script 
+# Concord starting script
 COPY ./concord/scripts/concord-entrypoint.sh /concord/concord-entrypoint.sh
 
 ## Add concord user
