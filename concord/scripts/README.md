@@ -45,7 +45,7 @@ Option: `-c`
 
 Param: 
 * cmd arg: Ip of a committer node
-* Example:```./logs_helper.sh -p password -c 10.70.30.34```
+* Example:```PRP_PATH=. ./logs_helper.sh -p password -c 10.70.30.34```
 
 ## Set logger level in file
 
@@ -57,7 +57,7 @@ Params:
 * env: PRP_PATH - a path which contains the log4cplus.properties file.
 * cmd arg: 
     * logger name
-    * level {"FATAL" ERROR" "WARN" "INFO" "DEBUG" "TRACE" "OFF"} (case sensitive)
+    * level {"FATAL" "ERROR" "WARN" "INFO" "DEBUG" "TRACE" "OFF"} (case sensitive)
 * Example: ```PRP_PATH=. ./logs_helper.sh -s concord.bft.consensus DEBUG```
 
 The properties file in PRP_PATH will be overriden, the orig file will be saved with time postfix
@@ -74,21 +74,18 @@ Params:
 * env: PRP_PATH - a path which contains the log4cplus.properties file.
 * cmd arg: 
     * Full qualified logger name
-    * level {"ERROR" "WARN" "INFO" "DEBUG" "TRACE"} (case sensitive)
+    * level {"FATAL" "ERROR" "WARN" "INFO" "DEBUG" "TRACE"} (case sensitive)
 * Example: ```PRP_PATH=. ./logs_helper.sh -s concord.bft.consensus DEBUG```
 
-## Add logger to file
+## Delete logger from file
 
 Provide a full qualified name of the logger e.g. concord.bft.consensus
-The script doesn't verify that the provided logger exists in Concord. it will be added to the file.
-In case it doesn't exists, Concord logger implementation will ignore it and continue as normal.
 
-Option: `-a`
+Option: `-d`
 
 Params: 
 * env: PRP_PATH - a path which contains the log4cplus.properties file.
 * cmd arg: 
     * Full qualified logger name
-    * level {"ERROR" "WARN" "INFO" "DEBUG" "TRACE"} (case sensitive)
-* Example: ```PRP_PATH=. ./logs_helper.sh -s concord.bft.consensus DEBUG```
+* Example: ```PRP_PATH=. ./logs_helper.sh -d concord.bft.consensus```
 
