@@ -4,7 +4,13 @@ void ownWorkspace(){
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
     script {
       sh '''
+        # pushd is not available in the Jenkins shell.
+        origDir=`pwd`
+
+        cd "${WORKSPACE}"
         echo "${PASSWORD}" | sudo -S chown -R builder:builder .
+
+        cd "${origDir}"
       '''
     }
   }

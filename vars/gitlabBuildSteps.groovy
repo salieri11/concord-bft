@@ -875,6 +875,7 @@ def call(){
                         echo "**** Using concord tag: " + ${dep_comp_concord_tag}
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --blockchainType ${concord_type} --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
                       '''
+                      jenkinsbuilderlib.ownWorkspace()
                       customathenautil.saveTimeEvent("Concord deployment test", "End")
                     }
                   }
@@ -1512,94 +1513,98 @@ void deleteDatabaseFiles(){
 
 
 void runTests(){
-  sh(script:
-  '''
-    # So test suites not using sudo can write to test_logs.
-    rm -rf "${test_log_root}"
-    mkdir "${test_log_root}"
-  ''')
+  try{
+    sh(script:
+    '''
+      # So test suites not using sudo can write to test_logs.
+      rm -rf "${test_log_root}"
+      mkdir "${test_log_root}"
+    ''')
 
-  echo("The following tests will be run in this invocation of runTests:")
-  for (suite in testSuites.keySet()) {
-    if (testSuites[suite].runSuite){
-      echo("  " + suite)
-    }
-  }
-
-  testGroups = createTestGroups()
-
-  // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
-  // but we can iterate over a list of keys.
-  for (group in testGroups.keySet()){
-    echo("**** Starting group " + group + " ****")
-    env.suiteNames = groups[group]["suites"].join(",")
-    suiteParams = groups[group]["params"]
-
-    env.suiteCmd = suiteParams.baseCommand ? suiteParams.baseCommand :
-                 'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + env.suiteNames
-    env.suiteCmd += suiteParams.otherParameters ? " " + suiteParams.otherParameters : ""
-    env.suiteRunConcordConfigGeneration = suiteParams.runConcordConfigurationGeneration == false ?
-                                          "" : "--runConcordConfigurationGeneration"
-
-    if (env.JOB_NAME.contains(memory_leak_job_name)){
-      env.suiteResultsDir = env.nightly_mem_leak_test_logs
-    } else if (env.JOB_NAME.contains(performance_test_job_name)){
-      env.suiteResultsDir = env.nightly_performance_test_logs
-    }else{
-      resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
-      env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
+    echo("The following tests will be run in this invocation of runTests:")
+    for (suite in testSuites.keySet()) {
+      if (testSuites[suite].runSuite){
+        echo("  " + suite)
+      }
     }
 
-    env.suitePerformanceVotes = suiteParams.performanceVotes ?
-                              "--performanceVotes " + suiteParams.performanceVotes : ""
-    env.suiteConcordConfigInput = suiteParams.concordConfigurationInput ?
-                                "--concordConfigurationInput \"" + suiteParams.concordConfigurationInput + "\"" : ""
-    env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
-                                "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
-    env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
-    env.groupLogFileName = group + ".log"
+    testGroups = createTestGroups()
 
-    if (suiteParams.setupFunction){
-      setupFunction = suiteParams.setupFunction
-      "$setupFunction"()
+    // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
+    // but we can iterate over a list of keys.
+    for (group in testGroups.keySet()){
+      echo("**** Starting group " + group + " ****")
+      env.suiteNames = groups[group]["suites"].join(",")
+      suiteParams = groups[group]["params"]
+
+      env.suiteCmd = suiteParams.baseCommand ? suiteParams.baseCommand :
+                   'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + env.suiteNames
+      env.suiteCmd += suiteParams.otherParameters ? " " + suiteParams.otherParameters : ""
+      env.suiteRunConcordConfigGeneration = suiteParams.runConcordConfigurationGeneration == false ?
+                                            "" : "--runConcordConfigurationGeneration"
+
+      if (env.JOB_NAME.contains(memory_leak_job_name)){
+        env.suiteResultsDir = env.nightly_mem_leak_test_logs
+      } else if (env.JOB_NAME.contains(performance_test_job_name)){
+        env.suiteResultsDir = env.nightly_performance_test_logs
+      }else{
+        resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
+        env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
+      }
+
+      env.suitePerformanceVotes = suiteParams.performanceVotes ?
+                                "--performanceVotes " + suiteParams.performanceVotes : ""
+      env.suiteConcordConfigInput = suiteParams.concordConfigurationInput ?
+                                  "--concordConfigurationInput \"" + suiteParams.concordConfigurationInput + "\"" : ""
+      env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
+                                  "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
+      env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
+      env.groupLogFileName = group + ".log"
+
+      if (suiteParams.setupFunction){
+        setupFunction = suiteParams.setupFunction
+        "$setupFunction"()
+      }
+
+      withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+        sh(script:
+        '''
+          EVENTS_FILE="${eventsFullPath}"
+
+          # pushd is not available in the Jenkins shell.
+          origDir=`pwd`
+          cd "${suiteDir}"
+          mkdir "${suiteResultsDir}"
+
+          # Change to set -x for debugging the command.
+          # Keep at +x for production.
+          # set -x
+
+          # Set +e so we can grep for the result summary instead of exiting immediately on failure.
+          set +e
+
+          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${groupLogFileName}" 2>&1
+          suiteSuccess=$?
+
+          # Print a line for jenkinslogs to search for.
+          # Search for text output by hermes/main.py, processResults().
+          set +x
+          echo "Getting resultSummary"
+          resultSummary=`grep -E "tests succeeded|tests failed|tests skipped" "${suiteResultsDir}/${groupLogFileName}"`
+          echo Test result summary: "${resultSummary}"
+          cd "${origDir}"
+
+          # Now that we have finished our work, let the script fail.
+          set -e
+          if [ ${suiteSuccess} -ne 0 ]; then
+             false
+          fi
+        '''
+        )
+      }
     }
-
-    withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-      sh(script:
-      '''
-        EVENTS_FILE="${eventsFullPath}"
-
-        # pushd is not available in the Jenkins shell.
-        origDir=`pwd`
-        cd "${suiteDir}"
-        mkdir "${suiteResultsDir}"
-
-        # Change to set -x for debugging the command.
-        # Keep at +x for production.
-        # set -x
-
-        # Set +e so we can grep for the result summary instead of exiting immediately on failure.
-        set +e
-
-        eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${groupLogFileName}" 2>&1
-        suiteSuccess=$?
-
-        # Print a line for jenkinslogs to search for.
-        # Search for text output by hermes/main.py, processResults().
-        set +x
-        echo "Getting resultSummary"
-        resultSummary=`grep -E "tests succeeded|tests failed|tests skipped" "${suiteResultsDir}/${groupLogFileName}"`
-        echo Test result summary: "${resultSummary}"
-        cd "${origDir}"
-
-        # Now that we have finished our work, let the script fail.
-        set -e
-        if [ ${suiteSuccess} -ne 0 ]; then
-           false
-        fi
-      '''
-      )
-    }
+  }finally{
+    jenkinsbuilderlib.ownWorkspace()
   }
 }
 
