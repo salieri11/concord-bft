@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v18
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v19
 
 ## Install gtest - patch for backward compatibility until conan is supported
 RUN make -C /googletest/_build install
@@ -67,9 +67,9 @@ RUN apt-get update \
 # of the target file to a new file, doubling the space used in the
 # image.
 
-COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
-RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5
-RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus.so
+COPY --from=0 /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/
+RUN ln -s /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/liblog4cplus-2.0.so.3
+RUN ln -s /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/liblog4cplus.so
 
 COPY --from=0 /usr/local/lib/libprometheus-cpp-core.so.0.8.0 /usr/local/lib/
 RUN for x in /usr/local/lib/libprometheus-cpp-core.so.0.8.0; do \

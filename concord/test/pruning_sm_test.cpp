@@ -196,7 +196,7 @@ void InitBlockchainStorage(TimeContract& tc, std::size_t replica_count,
       }
     }
 
-    const auto buf_size = ts.ByteSize();
+    const auto buf_size = ts.ByteSizeLong();
     Sliver buf(new char[buf_size], buf_size);
     ts.SerializeToArray(const_cast<char*>(buf.data()), buf_size);
     const SetOfKeyValuePairs block{{std::make_pair(key, buf)}};

@@ -183,7 +183,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
                          // verify the status
 
     // calculate hash according to proto bytes
-    size_t size = tx.ByteSize();
+    size_t size = tx.ByteSizeLong();
     char *txTarget = new char[size];
     tx.SerializeToArray(txTarget, size);
 
@@ -198,7 +198,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
     block.add_transaction(txId.bytes, sizeof(evm_uint256be));
   }
 
-  size_t size = block.ByteSize();
+  size_t size = block.ByteSizeLong();
   char *blkTarget = new char[size];
 
   // set block hash
@@ -243,7 +243,7 @@ Status HlfKvbStorage::SetHlfState(std::string key, std::string value) {
   proto.set_version(KHlfStateStorageVersion);
   proto.set_state(value);
 
-  size_t sersize = proto.ByteSize();
+  size_t sersize = proto.ByteSizeLong();
   char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
   put(HlfStateKey(key), Sliver(ser, sersize));

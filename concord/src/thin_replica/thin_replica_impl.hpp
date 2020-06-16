@@ -12,7 +12,6 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <strstream>
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/open_tracing_utils.hpp>
 #include "Logger.hpp"

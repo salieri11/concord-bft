@@ -65,5 +65,5 @@ target_link_libraries(concord
   concord_utils
   kvbc
   gRPC::grpc++_reflection
-  $<TARGET_OBJECTS:logging_dev>
+  logging
 )

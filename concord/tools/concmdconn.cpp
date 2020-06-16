@@ -51,7 +51,7 @@ bool call_concord(boost::program_options::variables_map &opts,
 
   std::string pb;
   request.SerializeToString(&pb);
-  size_t msglen = request.ByteSize();
+  size_t msglen = request.ByteSizeLong();
   // only sixteen bits available
   assert(msglen < 0x10000);
   // little-endian!

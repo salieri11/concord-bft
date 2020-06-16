@@ -50,6 +50,7 @@ LABEL description="VMware Blockchain Configuration Service"
 
 WORKDIR /app
 COPY --from=concord_image /concord/conc_genconfig /app/
+COPY --from=concord_image /usr/local/lib/liblog4cplus-2.0.so.3 /usr/local/lib/
 
 WORKDIR /persephone-config-service
 COPY ./persephone/config-service/src/main/resources .

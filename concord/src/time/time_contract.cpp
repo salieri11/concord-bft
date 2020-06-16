@@ -270,7 +270,7 @@ std::pair<Sliver, Sliver> TimeContract::Serialize() {
     }
   }
 
-  size_t storage_size = proto.ByteSize();
+  size_t storage_size = proto.ByteSizeLong();
   Sliver time_storage(new char[storage_size], storage_size);
   proto.SerializeToArray(const_cast<char *>(time_storage.data()), storage_size);
 
@@ -281,7 +281,7 @@ std::pair<Sliver, Sliver> TimeContract::Serialize() {
 
 std::pair<Sliver, Sliver> TimeContract::SerializeSummarizedTime() {
   const auto current_time = GetTime();
-  const auto storage_size = current_time.ByteSize();
+  const auto storage_size = current_time.ByteSizeLong();
   Sliver storage(new char[storage_size], storage_size);
   current_time.SerializeToArray(const_cast<char *>(storage.data()),
                                 storage_size);

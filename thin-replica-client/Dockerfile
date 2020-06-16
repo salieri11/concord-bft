@@ -3,7 +3,7 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v18
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v19
 
 # Base runtime image.
 FROM ubuntu:18.04
@@ -38,9 +38,9 @@ RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
 # log4cplus
 COPY --from=0 /usr/local/include/log4cplus /usr/local/include/log4cplus
-COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
-RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5
-RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus.so
+COPY --from=0 /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/
+RUN ln -s /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/liblog4cplus-2.0.so.3
+RUN ln -s /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/liblog4cplus.so
 
 # OpenSSL
 COPY --from=0 /usr/local/include/openssl /usr/local/include/openssl

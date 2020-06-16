@@ -5,7 +5,6 @@
 #include <opentracing/tracer.h>
 #include <sstream>
 #include <string>
-#include <strstream>
 #include "utils/open_tracing_utils.hpp"
 
 #include "Logger.hpp"
