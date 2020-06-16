@@ -181,17 +181,17 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   ASSERT_EQ(result, 0);
   ASSERT_FALSE(concord_response.has_daml_response());
   ASSERT_TRUE(concord_response.has_pre_execution_result());
-  ASSERT_TRUE(concord_response.pre_execution_result().has_max_record_time());
+  ASSERT_FALSE(concord_response.pre_execution_result().has_max_record_time());
   ASSERT_EQ(
       concord_response.pre_execution_result().write_set().kv_writes_size(), 2);
   ASSERT_EQ(concord_response.pre_execution_result()
                 .conflict_write_set()
                 .kv_writes_size(),
-            1);
+            0);
   ASSERT_EQ(concord_response.pre_execution_result()
                 .timeout_write_set()
                 .kv_writes_size(),
-            1);
+            0);
   ASSERT_EQ(concord_response.pre_execution_result().read_set().keys_size(), 3);
   ASSERT_EQ(concord_response.pre_execution_result().read_set_version(),
             last_block_id);
@@ -558,53 +558,28 @@ std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
       std::make_unique<MockDamlValidatorClient>();
 
   if (expect_never) {
-    EXPECT_CALL(*daml_validator_client, ValidateSubmission(_, _, _, _, _, _, _))
-        .Times(Exactly(0));
-    EXPECT_CALL(*daml_validator_client,
-                ValidatePendingSubmission(_, _, _, _, _))
+    EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _))
         .Times(Exactly(0));
   } else {
-    auto mock_response = std::make_unique<da_kvbc::ValidateResponse>();
-    auto need_state = std::make_unique<da_kvbc::ValidateResponse_NeedState>();
-    mock_response->mutable_need_state()->MergeFrom(*need_state);
-    EXPECT_CALL(*daml_validator_client, ValidateSubmission(_, _, _, _, _, _, _))
+    EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _))
         .Times(1)
-        .WillOnce(
-            DoAll(SetArgPointee<6>(*mock_response), Return(grpc::Status())));
-
-    auto mock_response2 =
-        std::make_unique<da_kvbc::ValidatePendingSubmissionResponse>();
-    auto result2 = std::make_unique<da_kvbc::Result>();
-    mock_response2->mutable_result()->MergeFrom(*result2);
-
-    auto* result = mock_response2->mutable_result();
-    if (max_record_time) {
-      result->mutable_max_record_time()->CopyFrom(max_record_time.value());
-    }
-    auto* u1 = result->add_updates();
-    u1->set_key("wk1");
-    u1->set_value("wk1");
-    auto* u2 = result->add_updates();
-    u2->set_key("wk2");
-    u2->set_value("wv2");
-
-    auto* timeout_update = result->add_updates_on_timeout();
-    timeout_update->set_key("timeout");
-    timeout_update->set_value("detected");
-
-    auto* conflict_update = result->add_updates_on_conflict();
-    conflict_update->set_key("conflict");
-    conflict_update->set_value("detected");
-
-    result->add_read_set("rk1");
-    result->add_read_set("rk2");
-    result->add_read_set("rk3");
-
-    EXPECT_CALL(*daml_validator_client,
-                ValidatePendingSubmission(_, _, _, _, _))
-        .Times(1)
-        .WillOnce(
-            DoAll(SetArgPointee<4>(*mock_response2), Return(grpc::Status())));
+        .WillOnce(testing::Invoke(
+            [](const std::string& submission,
+               const google::protobuf::Timestamp& record_time,
+               const std::string& participant_id,
+               const std::string& correlation_id,
+               opentracing::Span& parent_span,
+               std::vector<std::string>& out_read_set,
+               KeyValueStorageOperations& storage_operations) -> grpc::Status {
+              out_read_set.push_back("rk1");
+              out_read_set.push_back("rk2");
+              out_read_set.push_back("rk3");
+              std::vector<std::string> replicas;
+              replicas.push_back("replica1");
+              storage_operations.Write("wk1", "wv1", replicas);
+              storage_operations.Write("wk2", "wv2", replicas);
+              return grpc::Status();
+            }));
   }
 
   return daml_validator_client;

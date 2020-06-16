@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import java.util.concurrent.Executors
@@ -17,7 +19,7 @@ import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
@@ -47,13 +49,6 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
   override def validate(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
     pipelinedValidator.validateSubmissions(responseObserver)
-
-  override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] =
-    Future.failed(new UnsupportedOperationException)
-
-  override def validatePendingSubmission(
-      request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] =
-    Future.failed(new UnsupportedOperationException)
 
   override def currentHealth(): HealthStatus = Healthy
 

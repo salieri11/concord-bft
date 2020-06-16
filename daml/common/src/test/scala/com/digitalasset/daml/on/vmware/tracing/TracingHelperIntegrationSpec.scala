@@ -13,8 +13,6 @@ import io.opentracing.propagation.TextMapInject
 import org.scalatest.{AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
-import scala.concurrent.Future
-
 class TracingHelperIntegrationSpec
     extends AsyncWordSpec
     with AkkaBeforeAndAfterAll
@@ -45,29 +43,6 @@ class TracingHelperIntegrationSpec
 
       tracer.finishedSpans() should not be empty
     }
-
-    "create and close new child span for RPC call" in {
-      val testParentSpan = createSpan()
-      val validationServiceImpl = validationServiceAssertingParentSpan(testParentSpan)
-      val interceptor = TracingHelper.createTracingInterceptor(tracer)
-      val serverName = InProcessServerBuilder.generateName()
-      val server = InProcessServerBuilder
-        .forName(serverName)
-        .directExecutor()
-        .addService(ServerInterceptors.intercept(validationServiceImpl, interceptor))
-        .build()
-        .start()
-      val clientChannel = InProcessChannelBuilder.forName(serverName).directExecutor().build()
-      val stub =
-        decorateStubWithTracingHeaders(ValidationServiceGrpc.stub(clientChannel), testParentSpan)
-
-      stub.validateSubmission(ValidateRequest())
-      clientChannel.shutdown()
-      server.shutdown()
-
-      tracer.finishedSpans() should not be empty
-    }
-
   }
 
   private def createSpan(): Span =
@@ -109,16 +84,6 @@ class TracingHelperIntegrationSpec
   private def validationServiceAssertingParentSpan(
       parentSpan: Span): ValidationService with BindableService =
     new ValidationService with BindableService {
-      override def validateSubmission(request: ValidateRequest): Future[ValidateResponse] =
-        Future.successful {
-          assertParentSpan(parentSpan)
-          ValidateResponse().withResponse(ValidateResponse.Response.Empty)
-        }
-
-      override def validatePendingSubmission(
-          request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] =
-        ???
-
       override def validate(responseObserver: StreamObserver[EventFromValidator])
         : StreamObserver[EventToValidator] = {
         assertParentSpan(parentSpan)

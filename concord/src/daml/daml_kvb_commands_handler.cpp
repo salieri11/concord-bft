@@ -118,9 +118,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
   auto start = std::chrono::steady_clock::now();
-  std::string span_name = enable_pipelined_commits_
-                              ? "daml_execute_commit_pipelined"
-                              : "daml_execute_commit";
+  std::string span_name = "daml_execute_commit_pipelined";
   auto execute_commit_span = parent_span.tracer().StartSpan(
       span_name, {opentracing::ChildOf(&parent_span.context())});
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
@@ -148,22 +146,14 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   // The set of keys used during validation. Includes reads of keys
   // cached by the validator.
   vector<string> read_set;
-  // Maximum record time to use when calling pre-execution.
-  std::optional<google::protobuf::Timestamp> max_record_time;
-  bool success = false;
-  if (enable_pipelined_commits_) {
-    success = DoCommitPipelined(
-        commit_req.submission(), record_time, commit_req.participant_id(),
-        correlation_id, *execute_commit_span, read_set, updates, pre_execute);
-  } else {
-    success = DoCommitSingle(commit_req, current_block_id, record_time,
-                             *execute_commit_span, &max_record_time, read_set,
-                             updates, updates_on_timeout, updates_on_conflict,
-                             pre_execute);
-  }
+  bool success = DoCommitPipelined(
+      commit_req.submission(), record_time, commit_req.participant_id(),
+      correlation_id, *execute_commit_span, read_set, updates, pre_execute);
 
   if (success) {
     if (pre_execute) {
+      // Maximum record time to use when calling pre-execution
+      std::optional<google::protobuf::Timestamp> max_record_time = std::nullopt;
       BuildPreExecutionResult(updates, updates_on_timeout, updates_on_conflict,
                               current_block_id, max_record_time, correlation_id,
                               read_set, *execute_commit_span, concord_response);
@@ -191,38 +181,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     LOG_INFO(logger_, "Failed handle DAML commit command, cid: "
                           << correlation_id
                           << ", time: " << TimeUtil::ToString(record_time));
-    return false;
-  }
-}
-
-bool DamlKvbCommandsHandler::DoCommitSingle(
-    const da_kvbc::CommitRequest& commit_request,
-    const BlockId current_block_id,
-    const google::protobuf::Timestamp& record_time,
-    opentracing::Span& parent_span,
-    std::optional<google::protobuf::Timestamp>* max_record_time,
-    std::vector<std::string>& read_set, SetOfKeyValuePairs& updates,
-    SetOfKeyValuePairs& updates_on_timeout,
-    SetOfKeyValuePairs& updates_on_conflict, bool isPreExecution) {
-  // Since we're not batching, lets keep it simple and use the next block id as
-  // the DAML log entry id.
-  string entry_id = std::to_string(current_block_id + 1);
-  da_kvbc::ValidateResponse response;
-  da_kvbc::ValidatePendingSubmissionResponse response2;
-  if (RunDamlExecution(commit_request, entry_id, record_time, parent_span,
-                       response, response2)) {
-    const da_kvbc::Result& result =
-        response.has_result() ? response.result() : response2.result();
-    *max_record_time = result.has_max_record_time()
-                           ? std::make_optional(result.max_record_time())
-                           : std::nullopt;
-    std::copy(result.read_set().begin(), result.read_set().end(),
-              std::back_inserter(read_set));
-
-    GetUpdatesFromExecutionResult(result, entry_id, updates, updates_on_timeout,
-                                  updates_on_conflict, isPreExecution);
-    return true;
-  } else {
     return false;
   }
 }
@@ -266,129 +224,6 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     return false;
   } else {
     return true;
-  }
-}
-
-bool DamlKvbCommandsHandler::RunDamlExecution(
-    const da_kvbc::CommitRequest& commit_req, const string& entryId,
-    const google::protobuf::Timestamp& record_time,
-    opentracing::Span& parent_span, da_kvbc::ValidateResponse& response,
-    da_kvbc::ValidatePendingSubmissionResponse& response2) {
-  auto run_daml_execution = parent_span.tracer().StartSpan(
-      "run_daml_execution", {opentracing::ChildOf(&parent_span.context())});
-  bool daml_execution_success = true;
-  // Send the submission for validation.
-  grpc::Status status;
-
-  auto start = std::chrono::steady_clock::now();
-  status = validator_client_->ValidateSubmission(
-      entryId, commit_req.submission(), record_time,
-      commit_req.participant_id(), commit_req.correlation_id(),
-      *run_daml_execution, &response);
-
-  auto submissionDur = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           std::chrono::steady_clock::now() - start)
-                           .count();
-
-  LOG_DEBUG(logger_, "DAML external ValidateSubmission duration ["
-                         << submissionDur << "ms]");
-
-  // If no second gRPC call is needed, record the duration here
-  if (!response.has_need_state() || !status.ok()) {
-    daml_exec_eng_dur_.Observe(submissionDur);
-    LOG_INFO(logger_, "DAML external duration [" << submissionDur << "ms]");
-  }
-
-  if (!status.ok()) {
-    LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
-                                            << status.error_message());
-    daml_execution_success = false;
-  } else {
-    if (response.has_need_state()) {
-      LOG_DEBUG(logger_, "Validator requested input state");
-      // The submission failed due to missing input state, retrieve the inputs
-      // and retry.
-      std::map<string, string> input_state_entries;
-      try {
-        auto get_from_storage = run_daml_execution->tracer().StartSpan(
-            "get_from_storage",
-            {opentracing::ChildOf(&run_daml_execution->context())});
-        input_state_entries = GetFromStorage(response.need_state().keys());
-      } catch (const std::exception& e) {
-        LOG_ERROR(logger_, e.what());
-        daml_execution_success = false;
-      }
-
-      if (daml_execution_success) {
-        auto startPending = std::chrono::steady_clock::now();
-
-        validator_client_->ValidatePendingSubmission(
-            entryId, input_state_entries, commit_req.correlation_id(),
-            *run_daml_execution, &response2);
-
-        auto pendingDur = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              std::chrono::steady_clock::now() - startPending)
-                              .count();
-
-        auto executionDur =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - start)
-                .count();
-
-        // Duration from first gRPC call
-        daml_exec_eng_dur_.Observe(executionDur);
-
-        LOG_INFO(logger_,
-                 "DAML external Validation: PendingSubmission duration ["
-                     << pendingDur
-                     << "ms], total duration (ValidateSubmission + "
-                        "get from storage + ValidatePendingSubmission) ["
-                     << executionDur << "ms]");
-
-        if (!status.ok()) {
-          LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
-                                                  << status.error_message());
-          daml_execution_success = false;
-        } else {
-          if (!response2.has_result()) {
-            daml_execution_success = false;
-          }
-        }
-      }
-    } else if (!response.has_result()) {
-      LOG_ERROR(logger_, "Validation missing result!");
-      daml_execution_success = false;
-    }
-  }
-
-  return daml_execution_success;
-}
-
-void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
-    const com::digitalasset::kvbc::Result& result, const string& entryId,
-    SetOfKeyValuePairs& updates, SetOfKeyValuePairs& timeout_updates,
-    SetOfKeyValuePairs& conflict_updates, bool isPreExecution) const {
-  vector<string> no_trids;
-
-  // Insert the key-value updates into the store.
-  GetUpdatesFromRawUpdates(result.updates(), updates, isPreExecution);
-  GetUpdatesFromRawUpdates(result.updates_on_timeout(), timeout_updates,
-                           isPreExecution);
-  GetUpdatesFromRawUpdates(result.updates_on_conflict(), conflict_updates,
-                           isPreExecution);
-}
-
-void DamlKvbCommandsHandler::GetUpdatesFromRawUpdates(
-    const google::protobuf::RepeatedPtrField<da_kvbc::ProtectedKeyValuePair>&
-        raw_updates,
-    SetOfKeyValuePairs& updates, bool isPreExecution) const {
-  for (const auto& kv : raw_updates) {
-    const auto& protoTrids = kv.trids();
-    std::vector<string> trids(protoTrids.begin(), protoTrids.end());
-    auto key = CreateDamlKvbKey(kv.key());
-    auto val = CreateDamlKvbValue(kv.value(), trids);
-    if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
-    updates.insert(KeyValuePair(std::move(key), std::move(val)));
   }
 }
 
@@ -655,15 +490,6 @@ google::protobuf::Timestamp DamlKvbCommandsHandler::RecordTimeForTimeContract(
     LOG_DEBUG(logger_, "Using epoch time " << record_time);
   }
   return record_time;
-}
-
-const char* DamlKvbCommandsHandler::kFeaturePipelinedCommitExecution =
-    "FEATURE_daml_pipelined_commits";
-
-bool DamlKvbCommandsHandler::IsPipelinedCommitExecutionEnabled(
-    const config::ConcordConfiguration& config) {
-  return config.hasValue<bool>(kFeaturePipelinedCommitExecution) &&
-         config.getValue<bool>(kFeaturePipelinedCommitExecution);
 }
 
 std::map<std::string, std::string> WriteCollectingStorageOperations::Read(
