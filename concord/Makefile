@@ -54,7 +54,7 @@ remove-c: ## Remove the container
 
 .PHONY: build
 build: ## Build Concord source. Note: this command is mostly for developers
-	docker exec -t --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -65,21 +65,21 @@ build: ## Build Concord source. Note: this command is mostly for developers
 
 .PHONY: test
 test: ## Run all tests
-	docker exec -t --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
 
 .PHONY: single-test
 single-test: ## Run single test `make single-test TEST_NAME=<test name>`
-	docker exec -t --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest -R ${TEST_NAME} --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
 
 .PHONY: clean
 clean: ## Clean Concord build directory
-	docker exec -t --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"rm -rf ${CONCORD_BUILD_DIR}"
 
