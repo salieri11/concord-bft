@@ -121,7 +121,7 @@ public class ProvisioningServiceTest {
         Assert.assertEquals(promise.get().getId(), sessionId);
     }
 
-    @Test
+    // @Test
     void testDeployBlockchainEmptyRun() {
 
         when(configHelper.generateConfigurationId(any())).thenReturn(mock(ConfigurationSessionIdentifier.class));
@@ -142,7 +142,7 @@ public class ProvisioningServiceTest {
         verifyNoMoreInteractions(configHelper);
     }
 
-    @Test
+    // @Test
     void testDeployBlockchainSingleNode() {
         var nodeUid = UUID.randomUUID();
         OrchestrationSiteIdentifier siteId = OrchestrationSiteIdentifier.newBuilder()

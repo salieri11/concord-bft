@@ -205,7 +205,7 @@ public class ConcordConfigUtil {
 
                         for (int num = 0; num < hostIps.size(); num++) {
                             var path = outputPath.resolve("concord" + (num + 1) + ".config");
-                            result.put(nodeIds.get(0), Files.readString(path));
+                            result.put(nodeIds.get(num), Files.readString(path));
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated cluster configuration",
