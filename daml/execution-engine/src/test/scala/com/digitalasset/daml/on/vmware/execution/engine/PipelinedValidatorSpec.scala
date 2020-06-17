@@ -73,7 +73,7 @@ class PipelinedValidatorSpec
       submissionCaptor.getValue shouldBe aSubmission
     }
 
-    "send single write event" in {
+    "return write-set as part of Done message" in {
       val mockDamlLedgerStateReaderWithQueryableReadSet =
         mock[DamlLedgerStateReaderWithQueryableReadSet]
       when(mockDamlLedgerStateReaderWithQueryableReadSet.getReadSet).thenReturn(Set.empty[Key])
@@ -112,11 +112,13 @@ class PipelinedValidatorSpec
       inputStream.onNext(aValidateRequest())
       inputStream.onCompleted()
 
-      verify(mockStreamObserver, times(2)).onNext(any())
+      verify(mockStreamObserver, times(1)).onNext(any())
       verify(mockStreamObserver, times(1)).onCompleted()
-      eventCaptor.getAllValues should have size 2
-      eventCaptor.getAllValues.get(0).fromValidator.isWrite should be(true)
-      eventCaptor.getAllValues.get(1).fromValidator.isDone should be(true)
+      eventCaptor.getAllValues should have size 1
+      eventCaptor.getValue.fromValidator.isDone should be(true)
+      val Some(actualDoneEvent) = eventCaptor.getValue.fromValidator.done
+      // We expect 2 log fragments and 2 party allocation entries to be written.
+      actualDoneEvent.writeSet should have size 4
     }
 
     "throw in case recordTime is not specified in request" in {

@@ -36,12 +36,13 @@ using CryptoPP::AutoSeededRandomPool;
 
 class MockDamlValidatorClient : public IDamlValidatorClient {
  public:
-  MOCK_METHOD7(Validate,
+  MOCK_METHOD8(Validate,
                grpc::Status(const std::string&,
                             const google::protobuf::Timestamp&,
                             const std::string&, const std::string&,
-                            opentracing::Span&, std::vector<std::string>&,
-                            KeyValueStorageOperations&));
+                            const opentracing::Span&, DamlKvbReadFunc,
+                            std::vector<std::string>*,
+                            std::vector<KeyValuePairWithThinReplicaIds>*));
 };
 
 class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {

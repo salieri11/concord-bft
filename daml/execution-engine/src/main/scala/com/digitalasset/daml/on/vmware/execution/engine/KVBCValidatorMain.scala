@@ -9,7 +9,11 @@ import com.daml.ledger.api.health.HealthChecks
 import com.daml.lf.engine.Engine
 import com.daml.metrics.Metrics
 import com.daml.platform.server.api.services.grpc.GrpcHealthService
-import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCMetricsRegistry, KVBCPrometheusMetricsEndpoint}
+import com.digitalasset.daml.on.vmware.common.{
+  KVBCHttpServer,
+  KVBCMetricsRegistry,
+  KVBCPrometheusMetricsEndpoint
+}
 import com.digitalasset.daml.on.vmware.tracing.TracingHelper
 import io.grpc.protobuf.services.ProtoReflectionService
 import io.grpc.{Server, ServerBuilder}

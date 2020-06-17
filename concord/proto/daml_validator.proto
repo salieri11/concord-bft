@@ -74,14 +74,10 @@ message EventFromValidator {
     repeated bytes keys = 2;
   }
 
-  message Write {
-    // Key-value updates to write to KVB. Any subsequent reads should receive
-    // these writes.
-    repeated ProtectedKeyValuePair updates = 1;
-  }
-
   message Done {
     repeated bytes read_set = 1;
+    // Key-value updates to write to KVB.
+    repeated ProtectedKeyValuePair write_set = 2;
   }
 
   oneof from_validator {
@@ -90,11 +86,8 @@ message EventFromValidator {
     // the validation.
     Read read = 1;
 
-    // Request to write data to KVB. Client does not respond to this event.
-    Write write = 2;
-
     // Signal that the validation has completed, this is the last event on
     // the stream and it can be closed by the client now.
-    Done done = 3;
+    Done done = 2;
   }
 }

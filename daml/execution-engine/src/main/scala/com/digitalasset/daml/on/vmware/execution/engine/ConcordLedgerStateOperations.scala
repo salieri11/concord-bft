@@ -11,7 +11,7 @@ import com.daml.ledger.validator.privacy.{
   RestrictedAccess
 }
 import com.daml.metrics.MetricName
-import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Read, Write}
+import com.digitalasset.kvbc.daml_validator.EventFromValidator.Read
 import com.digitalasset.kvbc.daml_validator.{
   EventFromValidator,
   EventToValidator,
@@ -102,10 +102,10 @@ class ConcordLedgerStateOperations(
   }
 
   /**
-    * Sends all buffered key-value pairs to the Command Handler and clears the buffer.
-    * Key-value pairs are sent ordered according to their key.
+    * Returns all buffered key-value pairs and clears the buffer.
+    * Key-value pairs are ordered according to their key.
     */
-  def flushWrites(): Future[Unit] = Future {
+  def getAndClearWriteSet(): Seq[ProtectedKeyValuePair] = {
     val protectedKeyValuePairs = scala.concurrent.blocking {
       this.synchronized {
         val sortedKeyValuePairs =
@@ -122,10 +122,10 @@ class ConcordLedgerStateOperations(
       }
     }
     logger.trace(
-      s"Sending write-set of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
-    val writeSet = Write(protectedKeyValuePairs)
-    sendEvent(EventFromValidator().withWrite(writeSet))
-    metrics.bytesWritten.update(writeSet.serializedSize)
+      s"Cleared write-set buffer of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
+    val writeSetSerializedSize = protectedKeyValuePairs.map(_.serializedSize).sum
+    metrics.bytesWritten.update(writeSetSerializedSize)
+    protectedKeyValuePairs
   }
 }
 

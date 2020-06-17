@@ -146,42 +146,6 @@ class DamlKvbCommandsHandler
       concord::time::TimeContract* time_contract);
 };
 
-using DamlKvbReadFunc = std::function<std::map<std::string, std::string>(
-    const google::protobuf::RepeatedPtrField<std::string>&)>;
-
-// Enables DamlValidatorClient to read from storage while collecting updates to
-// be written.
-class WriteCollectingStorageOperations : public KeyValueStorageOperations {
- public:
-  struct ValueWithThinReplicaIds {
-    ValueWithThinReplicaIds() = default;
-    ValueWithThinReplicaIds(const std::string& in_value,
-                            const std::vector<std::string>& in_thin_replica_ids)
-        : value(in_value), thin_replica_ids(in_thin_replica_ids) {}
-
-    std::string value;
-    std::vector<std::string> thin_replica_ids;
-  };
-
-  WriteCollectingStorageOperations(DamlKvbReadFunc kvb_read)
-      : kvb_read_(kvb_read) {}
-
-  std::map<std::string, std::string> Read(
-      const google::protobuf::RepeatedPtrField<std::string>& keys) override;
-
-  void Write(const std::string& key, const std::string& value,
-             const std::vector<std::string>& thin_replica_ids) override;
-
-  const std::unordered_map<std::string, ValueWithThinReplicaIds>&
-  get_updates() {
-    return updates_;
-  }
-
- private:
-  DamlKvbReadFunc kvb_read_;
-  std::unordered_map<std::string, ValueWithThinReplicaIds> updates_;
-};
-
 }  // namespace daml
 }  // namespace concord
 

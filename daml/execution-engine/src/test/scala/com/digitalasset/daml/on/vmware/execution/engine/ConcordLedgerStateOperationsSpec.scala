@@ -19,6 +19,8 @@ import org.mockito.Mockito._
 import org.scalatest.{AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
+import scala.concurrent.Future
+
 class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with MockitoSugar {
   private trait SendEventFunction {
     def sendEvent(event: EventFromValidator): Unit
@@ -127,8 +129,8 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
     }
   }
 
-  "flushing writes" should {
-    "send write event" in {
+  "clearing write set" should {
+    "return written key-value pair" in {
       val mockEventSender = mock[SendEventFunction]
       val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
       val expectedKey = aKey()
@@ -136,7 +138,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
 
       for {
         _ <- instance.write(Seq((expectedKey, expectedValue, PublicAccess)))
-        _ <- instance.flushWrites()
+        actualWriteSet <- Future.successful(instance.getAndClearWriteSet())
       } yield {
         val expectedAccessControlList =
           ConcordLedgerStateOperations.accessControlListToThinReplicaIds(PublicAccess)
@@ -144,22 +146,14 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
           .withKey(expectedKey)
           .withValue(expectedValue)
           .withTrids(expectedAccessControlList)
-        val expectedEvent = EventFromValidator().withWrite(
-          EventFromValidator
-            .Write()
-            .withUpdates(Seq(expectedProtectedKeyValuePair)))
-        verify(mockEventSender, times(1)).sendEvent(expectedEvent)
+        val expectedWriteSet = Seq(expectedProtectedKeyValuePair)
+        actualWriteSet shouldBe expectedWriteSet
         instance.pendingWrites should have size 0
       }
     }
 
     "update metric" in {
       val mockEventSender = mock[SendEventFunction]
-      val eventCaptor =
-        ArgumentCaptor
-          .forClass(classOf[EventFromValidator])
-          .asInstanceOf[ArgumentCaptor[EventFromValidator]]
-      doNothing().when(mockEventSender).sendEvent(eventCaptor.capture())
       val metricRegistry = new MetricRegistry
       val metrics = new ConcordLedgerStateOperations.Metrics(metricRegistry)
       val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
@@ -168,10 +162,9 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
 
       for {
         _ <- instance.write(Seq((expectedKey, expectedValue, PublicAccess)))
-        _ <- instance.flushWrites()
+        actualWriteSet <- Future.successful(instance.getAndClearWriteSet())
       } yield {
-        val capturedEvent = eventCaptor.getValue
-        val expectedWrittenBytes = capturedEvent.getWrite.serializedSize
+        val expectedWrittenBytes = actualWriteSet.map(_.serializedSize).sum
         metrics.bytesWritten.getSnapshot.getValues shouldBe Array(expectedWrittenBytes)
       }
     }

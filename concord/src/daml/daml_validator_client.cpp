@@ -8,6 +8,7 @@
 
 #include "utils/open_tracing_utils.hpp"
 
+using com::vmware::concord::kvb::ValueWithTrids;
 using concord::utils::InjectSpanAsMetadata;
 using std::map;
 using std::string;
@@ -21,8 +22,9 @@ namespace daml {
 grpc::Status DamlValidatorClient::Validate(
     const string& submission, const google::protobuf::Timestamp& record_time,
     const string& participant_id, const string& correlation_id,
-    opentracing::Span& parent_span, vector<string>& out_read_set,
-    KeyValueStorageOperations& storage_operations) {
+    const opentracing::Span& parent_span, DamlKvbReadFunc read_from_storage,
+    vector<string>* read_set,
+    vector<KeyValuePairWithThinReplicaIds>* write_set) {
   auto validate_span = parent_span.tracer().StartSpan(
       "daml_validate", {opentracing::ChildOf(&parent_span.context())});
 
@@ -53,7 +55,7 @@ grpc::Status DamlValidatorClient::Validate(
       case da_kvbc::EventFromValidator::kRead: {
         da_kvbc::EventToValidator output_event;
         auto start = std::chrono::steady_clock::now();
-        HandleReadEvent(event.read(), storage_operations, &output_event);
+        HandleReadEvent(event.read(), read_from_storage, &output_event);
         auto readDur = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::steady_clock::now() - start)
                            .count();
@@ -72,16 +74,12 @@ grpc::Status DamlValidatorClient::Validate(
         break;
       }
 
-      case da_kvbc::EventFromValidator::kWrite: {
-        HandleWriteEvent(event.write(), storage_operations);
-        break;
-      }
-
       case da_kvbc::EventFromValidator::kDone: {
-        auto& done_event = event.done();
-        vector<string> read_set(done_event.read_set().begin(),
-                                done_event.read_set().end());
-        out_read_set.swap(read_set);
+        auto done_event = event.mutable_done();
+        vector<string> received_read_set(done_event->read_set().begin(),
+                                         done_event->read_set().end());
+        read_set->swap(received_read_set);
+        SwapWriteSet(done_event->mutable_write_set(), write_set);
         stream->WritesDone();
         done = true;
         break;
@@ -98,10 +96,9 @@ grpc::Status DamlValidatorClient::Validate(
 
 void DamlValidatorClient::HandleReadEvent(
     const da_kvbc::EventFromValidator::Read& read_event,
-    KeyValueStorageOperations& storage_operations,
-    da_kvbc::EventToValidator* event) {
+    DamlKvbReadFunc read_from_storage, da_kvbc::EventToValidator* event) {
   auto& keys = read_event.keys();
-  const auto values = storage_operations.Read(keys);
+  const auto values = read_from_storage(keys);
   da_kvbc::EventToValidator_ReadResult* read_result =
       event->mutable_read_result();
   read_result->set_tag(read_event.tag());
@@ -112,14 +109,18 @@ void DamlValidatorClient::HandleReadEvent(
   }
 }
 
-void DamlValidatorClient::HandleWriteEvent(
-    const da_kvbc::EventFromValidator::Write& write_event,
-    KeyValueStorageOperations& storage_operations) {
-  for (const auto& kv : write_event.updates()) {
-    const auto& thin_replica_ids = kv.trids();
-    vector<string> copied_thin_replica_ids(thin_replica_ids.begin(),
-                                           thin_replica_ids.end());
-    storage_operations.Write(kv.key(), kv.value(), copied_thin_replica_ids);
+void DamlValidatorClient::SwapWriteSet(
+    google::protobuf::RepeatedPtrField<
+        com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
+    vector<KeyValuePairWithThinReplicaIds>* result) {
+  for (auto kv : *write_set) {
+    ValueWithTrids value_with_thin_replica_ids;
+    value_with_thin_replica_ids.set_value(std::move(*kv.release_value()));
+    for (auto thin_replica_id : *(kv.mutable_trids())) {
+      value_with_thin_replica_ids.add_trid(std::move(thin_replica_id));
+    }
+    result->push_back(
+        {std::move(*kv.release_key()), value_with_thin_replica_ids});
   }
 }
 

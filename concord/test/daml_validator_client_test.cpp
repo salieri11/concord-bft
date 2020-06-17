@@ -9,6 +9,7 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml_validator_mock.grpc.pb.h"
 
+using ::std::placeholders::_1;
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::DoAll;
@@ -22,8 +23,9 @@ using com::digitalasset::kvbc::EventFromValidator;
 using com::digitalasset::kvbc::EventToValidator;
 using com::digitalasset::kvbc::MockValidationServiceStub;
 using com::digitalasset::kvbc::ValidationService;
+using com::vmware::concord::kvb::ValueWithTrids;
 using concord::daml::DamlValidatorClient;
-using concord::daml::KeyValueStorageOperations;
+using concord::daml::KeyValuePairWithThinReplicaIds;
 
 namespace {
 
@@ -50,15 +52,13 @@ class MockClientReaderWriter
   MOCK_METHOD0_T(WritesDone, bool());
 };
 
-class MockKeyValueStorageOperations : public KeyValueStorageOperations {
+class MockReadingFromStorage {
  public:
-  MockKeyValueStorageOperations() = default;
+  MockReadingFromStorage() = default;
 
   MOCK_METHOD1(Read,
                std::map<std::string, std::string>(
                    const google::protobuf::RepeatedPtrField<std::string>&));
-  MOCK_METHOD3(Write, void(const std::string&, const std::string&,
-                           const std::vector<std::string>&));
 };
 
 auto test_span =
@@ -67,10 +67,14 @@ google::protobuf::Timestamp test_record_time;
 uint16_t test_replica_id = 1234;
 
 void call_validate(DamlValidatorClient* client,
-                   KeyValueStorageOperations* storage_ops,
-                   std::vector<std::string>* read_set) {
-  client->Validate("ignored submission", test_record_time, "participant ID",
-                   "correlation ID", *test_span, *read_set, *storage_ops);
+                   MockReadingFromStorage* read_from_storage,
+                   std::vector<std::string>* read_set,
+                   std::vector<KeyValuePairWithThinReplicaIds>* write_set) {
+  client->Validate(
+      "ignored submission", test_record_time, "participant ID",
+      "correlation ID", *test_span,
+      std::bind(&MockReadingFromStorage::Read, read_from_storage, _1), read_set,
+      write_set);
 }
 
 TEST(DamlValidatorTest, validate_sends_the_submission_first) {
@@ -97,14 +101,16 @@ TEST(DamlValidatorTest, validate_sends_the_submission_first) {
       .WillOnce(Return(mock_stream));
   DamlValidatorClient client(test_replica_id, validation_service_stub);
   std::vector<std::string> ignored_read_set;
-  auto ops = new MockKeyValueStorageOperations();
+  std::vector<KeyValuePairWithThinReplicaIds> ignored_write_set;
+  auto reader = new MockReadingFromStorage();
   std::string expected_submission = "a submission";
   std::string expected_participant_id = "participant ID";
   std::string expected_correlation_id = "correlation ID";
   int expected_replica_id = test_replica_id;
   client.Validate(expected_submission, test_record_time,
                   expected_participant_id, expected_correlation_id, *test_span,
-                  ignored_read_set, *ops);
+                  std::bind(&MockReadingFromStorage::Read, reader, _1),
+                  &ignored_read_set, &ignored_write_set);
 
   EXPECT_TRUE(first_message.has_validate_request());
   const ::com::digitalasset::kvbc::ValidateRequest& actual_validate_request =
@@ -119,7 +125,7 @@ TEST(DamlValidatorTest, validate_sends_the_submission_first) {
             actual_validate_request.record_time().nanos());
 }
 
-TEST(DamlValidatorTest, validate_copies_read_set_from_done) {
+TEST(DamlValidatorTest, validate_copies_read_and_write_set_from_done) {
   auto mock_stream =
       new MockClientReaderWriter<EventToValidator, EventFromValidator>();
   EventToValidator first_message;
@@ -130,6 +136,22 @@ TEST(DamlValidatorTest, validate_copies_read_set_from_done) {
   std::vector<std::string> expected_read_set = {"1", "2", "3"};
   for (auto key : expected_read_set) {
     done.mutable_done()->add_read_set(key);
+  }
+  ValueWithTrids value_with_thin_replica_ids;
+  value_with_thin_replica_ids.set_value("a value");
+  value_with_thin_replica_ids.add_trid("a");
+  value_with_thin_replica_ids.add_trid("b");
+  value_with_thin_replica_ids.add_trid("c");
+  std::vector<KeyValuePairWithThinReplicaIds> expected_write_set = {
+      {"1234", value_with_thin_replica_ids}};
+  for (auto expected_key_value_pair : expected_write_set) {
+    ::com::digitalasset::kvbc::ProtectedKeyValuePair* added_key_value_pair =
+        done.mutable_done()->add_write_set();
+    added_key_value_pair->set_key(expected_key_value_pair.first);
+    added_key_value_pair->set_value(expected_key_value_pair.second.value());
+    for (auto thin_replica_id : expected_key_value_pair.second.trid()) {
+      added_key_value_pair->add_trids(thin_replica_id);
+    }
   }
   EXPECT_CALL(*mock_stream, Read(_))
       .WillOnce(DoAll(WithArg<0>(copy(&done)), Return(true)));
@@ -144,10 +166,21 @@ TEST(DamlValidatorTest, validate_copies_read_set_from_done) {
       .WillOnce(Return(mock_stream));
   DamlValidatorClient client(test_replica_id, validation_service_stub);
   std::vector<std::string> actual_read_set;
-  MockKeyValueStorageOperations ops;
-  call_validate(&client, &ops, &actual_read_set);
+  std::vector<KeyValuePairWithThinReplicaIds> actual_write_set;
+  MockReadingFromStorage reader;
+  call_validate(&client, &reader, &actual_read_set, &actual_write_set);
 
   EXPECT_EQ(expected_read_set, actual_read_set);
+  ASSERT_EQ(1, actual_write_set.size());
+  EXPECT_EQ(expected_write_set[0].first, actual_write_set[0].first);
+  EXPECT_EQ(expected_write_set[0].second.value(),
+            actual_write_set[0].second.value());
+  auto expected_thin_replica_ids = expected_write_set[0].second.trid();
+  auto actual_thin_replica_ids = actual_write_set[0].second.trid();
+  ASSERT_EQ(expected_thin_replica_ids.size(), actual_thin_replica_ids.size());
+  for (int i = 0; i < expected_thin_replica_ids.size(); ++i) {
+    EXPECT_EQ(expected_thin_replica_ids.Get(i), actual_thin_replica_ids.Get(i));
+  }
 }
 
 TEST(DamlValidatorTest, validate_responds_to_read_event_with_multiple_keys) {
@@ -158,7 +191,7 @@ TEST(DamlValidatorTest, validate_responds_to_read_event_with_multiple_keys) {
   EXPECT_CALL(*validation_service_stub, ValidateRaw(_))
       .Times(AtLeast(1))
       .WillOnce(Return(mock_stream));
-  MockKeyValueStorageOperations mock_key_value_storage_operations;
+  MockReadingFromStorage mock_reading_from_storage;
 
   InSequence expected_validation_sequence;
   // => submission
@@ -180,7 +213,7 @@ TEST(DamlValidatorTest, validate_responds_to_read_event_with_multiple_keys) {
   for (auto expected_key : expected_keys) {
     read_result[expected_key] = expected_value;
   }
-  EXPECT_CALL(mock_key_value_storage_operations, Read(_))
+  EXPECT_CALL(mock_reading_from_storage, Read(_))
       .Times(1)
       .WillOnce(DoAll(SaveArg<0>(&actual_requested_keys), Return(read_result)));
   EventToValidator read_completed;
@@ -198,7 +231,9 @@ TEST(DamlValidatorTest, validate_responds_to_read_event_with_multiple_keys) {
 
   DamlValidatorClient client(test_replica_id, validation_service_stub);
   std::vector<std::string> ignored_read_set;
-  call_validate(&client, &mock_key_value_storage_operations, &ignored_read_set);
+  std::vector<KeyValuePairWithThinReplicaIds> ignored_write_set;
+  call_validate(&client, &mock_reading_from_storage, &ignored_read_set,
+                &ignored_write_set);
 
   EXPECT_EQ(expected_keys.size(), actual_requested_keys.size());
   for (int i = 0; i < actual_requested_keys.size(); ++i) {
@@ -214,51 +249,6 @@ TEST(DamlValidatorTest, validate_responds_to_read_event_with_multiple_keys) {
     EXPECT_EQ(expected_value,
               read_completed.read_result().key_value_pairs(i).value());
   }
-}
-
-TEST(DamlValidatorTest, validate_responds_to_write_event) {
-  auto mock_stream =
-      new MockClientReaderWriter<EventToValidator, EventFromValidator>();
-  MockValidationServiceStub* validation_service_stub =
-      new MockValidationServiceStub();
-  EXPECT_CALL(*validation_service_stub, ValidateRaw(_))
-      .Times(AtLeast(1))
-      .WillOnce(Return(mock_stream));
-  MockKeyValueStorageOperations mock_key_value_storage_operations;
-
-  InSequence expected_validation_sequence;
-  // => submission
-  EXPECT_CALL(*mock_stream, Write(_, _)).Times(1).WillOnce(Return(true));
-  // <= write request
-  EventFromValidator request_write;
-  ::com::digitalasset::kvbc::ProtectedKeyValuePair* update =
-      request_write.mutable_write()->add_updates();
-  std::string expected_key = "1234";
-  std::string expected_value = "a value";
-  std::vector<std::string> expected_thin_replica_ids = {"a", "b", "c"};
-  update->set_key(expected_key);
-  update->set_value(expected_value);
-  for (auto thin_replica_id : expected_thin_replica_ids) {
-    update->add_trids(thin_replica_id);
-  }
-  EXPECT_CALL(*mock_stream, Read(_))
-      .WillOnce(DoAll(WithArg<0>(copy(&request_write)), Return(true)));
-  // => no response
-  EXPECT_CALL(mock_key_value_storage_operations,
-              Write(expected_key, expected_value, expected_thin_replica_ids))
-      .Times(1);
-  // <= finished
-  EventFromValidator done;
-  done.mutable_done();
-  EXPECT_CALL(*mock_stream, Read(_))
-      .WillOnce(DoAll(WithArg<0>(copy(&done)), Return(true)));
-  // End of stream.
-  EXPECT_CALL(*mock_stream, WritesDone()).WillOnce(Return(true));
-  EXPECT_CALL(*mock_stream, Finish()).WillOnce(Return(grpc::Status()));
-
-  DamlValidatorClient client(test_replica_id, validation_service_stub);
-  std::vector<std::string> ignored_read_set;
-  call_validate(&client, &mock_key_value_storage_operations, &ignored_read_set);
 }
 
 }  // anonymous namespace

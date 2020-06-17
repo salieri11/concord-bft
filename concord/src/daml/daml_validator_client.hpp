@@ -10,21 +10,20 @@
 #include <string>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "Logger.hpp"
+#include "concord_storage.pb.h"
 #include "daml_validator.grpc.pb.h"
 
 namespace concord {
 namespace daml {
 
-class KeyValueStorageOperations {
- public:
-  virtual ~KeyValueStorageOperations() = default;
+typedef std::function<std::map<std::string, std::string>(
+    const google::protobuf::RepeatedPtrField<std::string>&)>
+    DamlKvbReadFunc;
 
-  virtual std::map<std::string, std::string> Read(
-      const google::protobuf::RepeatedPtrField<std::string>& keys) = 0;
-
-  virtual void Write(const std::string& key, const std::string& value,
-                     const std::vector<std::string>& thin_replica_ids) = 0;
-};
+// Represents a key-value pair with an associated access control list.
+// The access control list is defined as a list of thin replica IDs.
+typedef std::pair<std::string, com::vmware::concord::kvb::ValueWithTrids>
+    KeyValuePairWithThinReplicaIds;
 
 class IDamlValidatorClient {
  public:
@@ -32,8 +31,9 @@ class IDamlValidatorClient {
       const std::string& submission,
       const google::protobuf::Timestamp& record_time,
       const std::string& participant_id, const std::string& correlation_id,
-      opentracing::Span& parent_span, std::vector<std::string>& out_read_set,
-      KeyValueStorageOperations& storage_operations) = 0;
+      const opentracing::Span& parent_span, DamlKvbReadFunc read_from_storage,
+      std::vector<std::string>* read_set,
+      std::vector<KeyValuePairWithThinReplicaIds>* write_set) = 0;
 
   virtual ~IDamlValidatorClient() = default;
 };
@@ -45,24 +45,25 @@ class DamlValidatorClient : public IDamlValidatorClient {
       com::digitalasset::kvbc::ValidationService::StubInterface* stub)
       : stub_(stub), replica_id_(replica_id) {}
 
-  grpc::Status Validate(const std::string& submission,
-                        const google::protobuf::Timestamp& record_time,
-                        const std::string& participant_id,
-                        const std::string& correlation_id,
-                        opentracing::Span& parent_span,
-                        std::vector<std::string>& out_read_set,
-                        KeyValueStorageOperations& storage_operations) override;
+  grpc::Status Validate(
+      const std::string& submission,
+      const google::protobuf::Timestamp& record_time,
+      const std::string& participant_id, const std::string& correlation_id,
+      const opentracing::Span& parent_span, DamlKvbReadFunc read_from_storage,
+      std::vector<std::string>* read_set,
+      std::vector<KeyValuePairWithThinReplicaIds>* write_set) override;
 
  private:
   logging::Logger logger_ = logging::getLogger("concord.daml.validator");
   static void HandleReadEvent(
       const com::digitalasset::kvbc::EventFromValidator::Read& read_event,
-      KeyValueStorageOperations& storage_operations,
+      DamlKvbReadFunc read_from_storage,
       com::digitalasset::kvbc::EventToValidator* event);
 
-  static void HandleWriteEvent(
-      const com::digitalasset::kvbc::EventFromValidator::Write& write_event,
-      KeyValueStorageOperations& storage_operations);
+  static void SwapWriteSet(
+      google::protobuf::RepeatedPtrField<
+          com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
+      std::vector<KeyValuePairWithThinReplicaIds>* result);
 
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::StubInterface>
       stub_;
