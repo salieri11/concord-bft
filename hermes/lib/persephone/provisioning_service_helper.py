@@ -194,7 +194,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param replicas: List of replicas
       :return: properties proto message
       '''
-      blockchain_id = "testBlockchain-" + str(uuid.uuid4())
+      blockchain_id = str(uuid.uuid4())
       log.info("Blockchain Id is: " + blockchain_id)
       property_values = {"BLOCKCHAIN_ID": blockchain_id}
 
