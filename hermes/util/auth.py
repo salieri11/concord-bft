@@ -66,9 +66,8 @@ tokens = {
       "admin-blockchain-dev": {
          ROLE_ALL: {
             # Name in console-stg: Hermes Test Service 8 All Org and Service Roles Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "ddaGbV8PiwfUnbm747sVWJdtxD5OBRM9jAfl5UfGQ6KXebmD4MEZrRsIwhcwDQq4",
+            # Never expires.
+            "api_key": "e0HWXg5LHxJnvZxgBuHM6rXyq5rNwCY5Ppohyz1lZZiqygt1eXtS9HwVn7nPs3Vv",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -76,9 +75,8 @@ tokens = {
       "HermesUtility": {
          ROLE_ALL: {
             # Name in console-stg: Automation Tasks Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "SYarIOglbKaObl0agJ2fMRGvvqSzJo0PuDQg1RfX49lZNAWZ9IgAJb80at5zB7gw",
+            # Never expires.
+            "api_key": "w80krrkPe49VfLaXYA0v0q9kC8tMHP2DTqf8S3hbCq6oohxwAN87S9xhu6wiFobY",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -86,9 +84,8 @@ tokens = {
       "vmbc_test_con_admin": {
          ROLE_CON_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Con Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "gstELzwtdrz5AJW6P00L9XfvFPje713VnJBlq7xo3GWEWD2CgGH5ZTq8IQpG913S",
+            # Never expires.
+            "api_key": "PIxfMlDc08murFMRd0Qn77Xe8vfDLa3q0JWN4b4mcfMFPndbSQXpnmcs1unz9jJC",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -96,9 +93,8 @@ tokens = {
       "vmbc_test_con_operator": {
          ROLE_CON_OPERATOR: {
             # Name in console-stg: Hermes Test Service 8 Con Operator Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "48B919cpPOeUgqPWNWsDVwp9h7O66WHQ1Z4yjP68mbSvsXYe6oir2tRzL8Ioh8Eb",
+            # Never expires
+            "api_key": "gLy7GtyqNuVSJbjFcZZDrgf9iEKUiBHCKu9hw4XLYMT5ZTAYhuH2wSeJKShX4l1v",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -106,9 +102,8 @@ tokens = {
       "vmbc_test_con_participant": {
          ROLE_CON_PARTICIPANT: {
             # Name in console-stg: Hermes Test Service 8 Con Participant Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "wcwd8VDFDcbaf5C5zcsKB0C4Kf2OaNZJ12b13cHcprgbKJI8GeRn6lr3sUiBPlDT",
+            # Never expires.
+            "api_key": "k6FVZGiuJM53AeNUfiY47NCmtmjVDSSfk21rMiDedETB5Z0UCP1TrRKxMWl3hf1U",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -116,9 +111,8 @@ tokens = {
       "vmbc_test_org_admin": {
          ROLE_ORG_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Org Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "HkXeF8TqypFcA3G3BaxbA8bxKckTJwBqs5Q0wT44drjPIpQRLzMzY4cI6E3axKXD",
+            # Never expires.
+            "api_key": "KA1zmDXyEsWjW29AlIZsx7m1ed2MucEXET0mzinke3xW66AMYPb2OduH4GlE3jCD",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -126,9 +120,8 @@ tokens = {
       "vmbc_test_org_dev": {
          ROLE_ORG_DEVELOPER: {
             # Name in console-stg: Hermes Test Service 8 Org Dev Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "boxFwBdnWZrqsQMkQ2t9gnTrb0Ys4614EmH58iTcWWpBi21O12Duzf1f4MY3ZnTb",
+            # Never expires.
+            "api_key": "cZBXoBAZTjn2L4A6QRzfUzOMhmACsqd8132w6qxk3AMZ5SfMx11BzB7910dM947T",
             "access_token": None,
             "last_retrieved": 0
          },
@@ -136,9 +129,8 @@ tokens = {
       "vmbc_test_org_user": {
          ROLE_ORG_USER: {
             # Name in console-stg: Hermes Test Service 8 Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "yaNMNJROAwm1xmxVteEF3b6Dwky4PV1CvGJxB6EUem8CcqLtHowtz8JJ5ksm9AyY",
+            # Never expires.
+            "api_key": "sWAnSCHEX56yU4YV0H2vqjAWHttBfy8Qo0kLroi51aAZxaP88Mwx6U7KlTkbUn6i",
             "access_token": None,
             "last_retrieved": 0
          },
@@ -146,9 +138,8 @@ tokens = {
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
          ROLE_NONE: {
             # Name in console-stg: Org Member No Service Roles Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "MMYGRdm4t7OILLpO8cq8I6YXDHRcHNq3zyD2Hfqt8Q6zcROhfDB0VHFrL066Wy1u",
+            # Never expires.
+            "api_key": "xh3CeHTZuJgQUWpY9qx9o9BW5vV2Gb5gsfJQxdidykMHHjc2BPDfN0g2fOqJ51KF",
             "access_token": None,
             "last_retrieved": 0
          },
@@ -166,9 +157,8 @@ tokens = {
       "vmbc_test_con_admin": {
          ROLE_CON_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Con Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "2HcviVo4xzxw90u2UuXCoWrPtdJ5rvCb5dB6ze40nUz4T9I1ZxjdC3CNrg5J4yw0",
+            # Never expires.
+            "api_key": "DaI2xKybPAG73qD4nAsGf4DX1a0XTOeKafeTxUlxO2gqHMdyHQcXR0TBfcD77d25",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -176,9 +166,8 @@ tokens = {
       "vmbc_test_con_operator": {
          ROLE_CON_OPERATOR: {
             # Name in console-stg: Hermes Test Service 8 Con Operator Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "6zDcZ2lD5sSwm0TK282ewyadOdVV7CG7JY6jvDGS1MihY4C1wKXFQ1fsHLIoFFWR",
+            # Never expires.
+            "api_key": "TzkwJHIaxSMcZ5e9q8zAMmHFAG90js2fQrxOzaz89IYnT1iQGjK3GRZMJCUMbLlp",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -186,9 +175,8 @@ tokens = {
       "vmbc_test_con_participant": {
          ROLE_CON_PARTICIPANT: {
             # Name in console-stg: Hermes Test Service 8 Con Participant Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "SXDV4xXxXPDHQqRt09ERxoY5zte2wul0m7tn9JBrXuM4iCTRtTIRoKNHcys3OEKY",
+            # Never expires.
+            "api_key": "9G3JffeHuyo2JdGVsH79tyDSXu0rKricVElAk4LiCO5pGZc84Jx6pO3aAqxVCOXY",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -196,9 +184,8 @@ tokens = {
       "vmbc_test_org_admin": {
          ROLE_ORG_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Org Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "Mdkc4p1v5DN9s2zQYzCATU3hVUBnehHkNzwS59aN3ZTyzUyi07VsqQQt2jZ13wPy",
+            # Never expires.
+            "api_key": "52t2yK7TUIo13y73PKmgH3pWqsV73KVguwrOyECkO0MpMhAWaYy3MCXFqbAvuOcL",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -206,9 +193,8 @@ tokens = {
       "vmbc_test_org_dev": {
          ROLE_ORG_DEVELOPER: {
             # Name in console-stg: Hermes Test Service 8 Org Dev Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "Ju8dMvbQqQDuS23wop7TbJnsAupV6JAZ8MgnJqR1kTva1JaynB3rzj8P6WdAImd0",
+            # Never expires.
+            "api_key": "35O0wbC1wPo7cLhjMvcNqu0q3xHxHLVQ4B3xsU66Vnbvkosz4lfVWrmR8G9S9M5S",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -216,9 +202,8 @@ tokens = {
       "vmbc_test_org_user": {
          ROLE_ORG_USER: {
             # Name in console-stg: Hermes Test Service 8 Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "LaTcPYDAi5RbF61he6gqzjMCxf4g2C1f5p7ikVtbEQ8QieMD88PmqEbNL0kzBHsL",
+            # Never expires.
+            "api_key": "Gw1TSRuGwO5DalkU2837NQi3tt7XhEHxkcrAqaRCQe9k22h6JcE1e7EVyABUZoLC",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -226,9 +211,8 @@ tokens = {
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
          ROLE_NONE: {
             # Name in console-stg: Org Member No Service Roles Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "R09oND4YtQmw853zwUNmYFND2VMLNYcImF7Zp5m39JyfTapP8t7kpMZ3RmSrMIcU",
+            # Never expires.
+            "api_key": "84DPf07PrtliL2n9h5oT06YXIDA7TjLXKLSdg7gqX4kr59jPiuReeZ0F8DtaEvEe",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -238,9 +222,8 @@ tokens = {
       "vmbc_test_con_admin": {
          ROLE_CON_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Con Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "pE5dukMY356V2mcY7Mc2hdOhCEAQRe4GLyE3sxqbzpclxLvzathkLBLCF0lfkYqk",
+            # Never expires.
+            "api_key": "HLBXljv63RdMyjLvZwZGEafr8abl9CKJaCCXG6eveAkCGR9qFPylV1AhDzQRqN5S",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -248,9 +231,8 @@ tokens = {
       "vmbc_test_con_operator": {
          ROLE_CON_OPERATOR: {
             # Name in console-stg: Hermes Test Service 8 Con Operator Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "XiHTFTuspuPZdv5pBWfNby6UovH0oTx3aIJtRIC8HkkCPtPPBvpjK3HMQKNl38ku",
+            # Never expires.
+            "api_key": "blGX9p0ONAWpGXGNCP5TRztFOyJd0EKzozJ6GxIjegc63Qo9nTYQjbnveBkXswDj",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -258,9 +240,8 @@ tokens = {
       "vmbc_test_con_participant": {
          ROLE_CON_PARTICIPANT: {
             # Name in console-stg: Hermes Test Service 8 Con Participant Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "gnwZDtq2FryigpDRZ7W6xUmnfs1hrmWfDlFT7LNgYYeMG5KPnT1a5DzGNJvsLTcm",
+            # Never expires.
+            "api_key": "Y2bzjzmHMAa9cWgL2qu30BQq2y42eDjhuP4PG4gBNxXBLKXX6UurM5WMtWROVYBb",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -268,9 +249,8 @@ tokens = {
       "vmbc_test_org_admin": {
          ROLE_ORG_ADMIN: {
             # Name in console-stg: Hermes Test Service 8 Org Admin Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "TlDy15qkfM28eaKCezpAl4TGsXZw22wjld0SmnAJind1bzXUGW6a4BvNKRmY2X6P",
+            # Never expires.
+            "api_key": "Qar716qOXFg44q7Z5G4H0Z3kgFuAVTFzzIld2nVc6vD5Gvvzyr571skOOgPqgCeq",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -278,9 +258,8 @@ tokens = {
       "vmbc_test_org_dev": {
          ROLE_ORG_DEVELOPER: {
             # Name in console-stg: Hermes Test Service 8 Org Dev Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "dyDmsi4wxsbLXUvY2EAo2ydXnE04FSqNlAB776YKvuanGh75RS44M9uW1mxIBavH",
+            # Never expires.
+            "api_key": "nApqcLUw93vaTmjBW3rE0XisOA35s0i1AWf18MkXFE6ebKHQWTC49oXpGNIZYE45",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -288,9 +267,8 @@ tokens = {
       "vmbc_test_org_user": {
          ROLE_ORG_USER: {
             # Name in console-stg: Hermes Test Service 8 Org User Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "rjFrrr9iRybWsfcu5BEUICvLNJQXKVh32KY7LPCC9Ksa5bUfjsZukHET7TgLGG75",
+            # Never expires.
+            "api_key": "Jkf04CwGcB9AwQ5TET68mMZg1uVudKAh55z8MmW02UN26Q3LRNw7RgrBDzZ2fp2I",
             "access_token": None,
             "last_retrieved": 0
          }
@@ -298,9 +276,8 @@ tokens = {
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
          ROLE_NONE: {
             # Name in console-stg: Org Member No Service Roles Dec 2019
-            # Last updated: Dec. 19, 2019.
-            # Expires June 16, 2020.
-            "api_key": "88eFX5R9jUW5FGOVMM5X4co544xb05uRXW84jAc67dzQlmizcxZVrhWjZSjpMT2L",
+            # Never expires.
+            "api_key": "qAjc75BI1V3XxXy9z4zrwTBQLCSNATEUtDdE4w7UjQgAJm45VEr3MeZsYhwuAhZT",
             "access_token": None,
             "last_retrieved": 0
          }
