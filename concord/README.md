@@ -17,10 +17,11 @@ deployment.
 
 **Local build**
 
-```
+* Install the latest docker.
+* Optional: [configure docker as non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user). 
+```sh
 cd ~/vmwathena_blockchain/concord/
-make run-c
-make build
+make
 make test
 make build-docker-image
 ```

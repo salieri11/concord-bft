@@ -18,6 +18,7 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
+MakefileCustom
 
 # Helen Specific
 target/
