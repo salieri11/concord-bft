@@ -5,10 +5,10 @@
 #include <google/protobuf/util/time_util.h>
 #include <opentracing/tracer.h>
 #include <chrono>
+#include <iomanip>
 #include <map>
 #include <string>
 #include "Logger.hpp"
-
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
@@ -217,13 +217,36 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
 
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
+
+  // Hash and log
+  std::string raw;
+  raw.reserve(1000);
+  std::string ser;
+  ser.reserve(1000);
+
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : write_set) {
+    raw += entry.first;
+    raw += entry.second.value();
+
     auto key = CreateDamlKvbKey(entry.first);
     auto val = CreateDamlKvbValue(entry.second);
+
+    ser += key.toString();
+    ser += val.toString();
+
     if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
     updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
+
+  LOG_DEBUG(dtrmnsm_logger_, "Hash of raw input ["
+                                 << std::hex << std::hash<std::string>{}(raw)
+                                 << "]");
+
+  LOG_DEBUG(dtrmnsm_logger_, "Hash serialized input ["
+                                 << std::hex << std::hash<std::string>{}(ser)
+                                 << "]");
+
   if (!status.ok()) {
     LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                             << status.error_message());
