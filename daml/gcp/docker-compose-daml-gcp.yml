@@ -179,10 +179,10 @@ services:
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1
-      - MAX_CONNECTIONS=300
-      - BUFFER_SIZE=80MB
+      - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/index_db:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
     expose:
       - 5432
     ports:
