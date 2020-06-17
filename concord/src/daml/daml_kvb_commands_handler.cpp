@@ -72,6 +72,13 @@ Sliver CreateDamlKvbValue(const string& value, vector<string> trid_list) {
   return Sliver(data, size);
 }
 
+Sliver CreateDamlKvbValue(const ValueWithTrids& proto) {
+  size_t size = proto.ByteSizeLong();
+  char* data = new char[size];
+  proto.SerializeToArray(data, size);
+  return Sliver(data, size);
+}
+
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
   read_ops_.Increment();
@@ -195,13 +202,13 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
   DamlKvbReadFunc kvb_read = [&](const auto& keys) {
     return GetFromStorage(keys);
   };
-  WriteCollectingStorageOperations storage_operations(kvb_read);
+  std::vector<KeyValuePairWithThinReplicaIds> write_set;
 
   auto start = std::chrono::steady_clock::now();
 
   grpc::Status status = validator_client_->Validate(
       submission, record_time, participant_id, correlation_id, parent_span,
-      read_set, storage_operations);
+      kvb_read, &read_set, &write_set);
 
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::steady_clock::now() - start)
@@ -211,10 +218,9 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
   // Wrap key/value pairs appropriately for storage.
-  for (const auto& entry : storage_operations.get_updates()) {
+  for (const auto& entry : write_set) {
     auto key = CreateDamlKvbKey(entry.first);
-    auto val =
-        CreateDamlKvbValue(entry.second.value, entry.second.thin_replica_ids);
+    auto val = CreateDamlKvbValue(entry.second);
     if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
     updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
@@ -490,43 +496,6 @@ google::protobuf::Timestamp DamlKvbCommandsHandler::RecordTimeForTimeContract(
     LOG_DEBUG(logger_, "Using epoch time " << record_time);
   }
   return record_time;
-}
-
-std::map<std::string, std::string> WriteCollectingStorageOperations::Read(
-    const google::protobuf::RepeatedPtrField<std::string>& keys) {
-  std::map<std::string, std::string> from_updates;
-  google::protobuf::RepeatedPtrField<std::string> keys_read_from_storage;
-  for (int i = 0; i < keys.size(); ++i) {
-    const std::string& requested_key = keys[i];
-    auto find_it = updates_.find(requested_key);
-    if (find_it != updates_.end()) {
-      from_updates[find_it->first] = find_it->second.value;
-    } else {
-      *keys_read_from_storage.Add() = requested_key;
-    }
-  }
-  if (keys_read_from_storage.size() > 0) {
-    std::map<std::string, std::string> from_storage =
-        kvb_read_(keys_read_from_storage);
-    std::map<std::string, std::string> from_both;
-    // Copy entries from the map that has less elements.
-    if (from_updates.size() > from_storage.size()) {
-      from_updates.swap(from_both);
-      from_both.insert(from_storage.begin(), from_storage.end());
-    } else {
-      from_storage.swap(from_both);
-      from_both.insert(from_updates.begin(), from_updates.end());
-    }
-    return from_both;
-  } else {
-    return from_updates;
-  }
-}
-
-void WriteCollectingStorageOperations::Write(
-    const std::string& key, const std::string& value,
-    const std::vector<std::string>& thin_replica_ids) {
-  updates_[key] = ValueWithThinReplicaIds(value, thin_replica_ids);
 }
 
 }  // namespace daml

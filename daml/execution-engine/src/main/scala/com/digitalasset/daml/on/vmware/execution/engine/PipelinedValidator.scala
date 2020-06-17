@@ -63,9 +63,6 @@ class PipelinedValidator(
                 recordingLedgerStateReader,
                 commitStrategy
               )
-              .flatMap { _ =>
-                ledgerStateOperations.flushWrites()
-              }
               .transformWith {
                 case Failure(NonFatal(exception)) =>
                   responseObserver.onError(exception)
@@ -78,8 +75,10 @@ class PipelinedValidator(
                   logger.debug(s"Submission with correlationId=${request.correlationId} validated")
                   val sortedReadSet =
                     recordingLedgerStateReader.getReadSet.toSeq.sorted
-                  responseObserver.onNext(
-                    EventFromValidator().withDone(EventFromValidator.Done(sortedReadSet)))
+                  val doneEvent = EventFromValidator.Done(
+                    readSet = sortedReadSet,
+                    writeSet = ledgerStateOperations.getAndClearWriteSet())
+                  responseObserver.onNext(EventFromValidator().withDone(doneEvent))
                   responseObserver.onCompleted()
                   logger.info(
                     s"Batch validation completed, correlationId=${request.correlationId} " +
