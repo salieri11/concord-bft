@@ -83,7 +83,8 @@ public class ConfigHelper {
             if (nodeInfo.get(NodeType.CLIENT) != null) {
                 var replicaIp = nodeInfo.get(NodeType.REPLICA)
                         .getEntriesBuilderList().stream()
-                        .map(NodesInfo.Entry.Builder::getNodeIp).collect(Collectors.joining(","));
+                        .map(NodesInfo.Entry.Builder::getNodeIp).collect(Collectors.joining(":50051,", "",
+                                                                                            ":50051"));
                 nodeInfo.get(NodeType.CLIENT).getEntriesBuilderList().forEach(
                     eachNode -> eachNode.getPropertiesBuilder().putValues(NodeProperty.Name.COMMITTERS.name(),
                                                                           replicaIp));

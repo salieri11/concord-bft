@@ -226,6 +226,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
             // Add the VM creation for Object Store/Read-Replica client.
 
+            Thread.sleep(300000);
+
             log.info("Create client nodes (if applicable)");
             var clientNodes = computeHelper.getComputeNodes(session, configGenerated, NodeType.CLIENT);
 

@@ -378,6 +378,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         try {
             List<ConfigurationComponent> nodeComponents;
 
+            log.info("Received request {}", request);
             if (!request.getNodeId().isEmpty()) {
                 var components = cacheByNodeId.getIfPresent(request.getIdentifier().getId());
                 log.info("Configurations found for session id {}", request.getIdentifier());
