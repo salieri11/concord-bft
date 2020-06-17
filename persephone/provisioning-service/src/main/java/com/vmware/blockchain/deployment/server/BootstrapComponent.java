@@ -47,6 +47,9 @@ public class BootstrapComponent {
     @Value("${ova.template:8abc7fda-9576-4b13-9beb-06f867cf2c7c}")
     public String template;
 
+    @Value("${replica.wait:300000}")
+    public int waitForReplica;
+
     public Endpoint configService;
 
     public Endpoint configServiceRest;
