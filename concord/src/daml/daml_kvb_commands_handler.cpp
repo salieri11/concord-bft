@@ -10,6 +10,8 @@
 #include <string>
 #include "Logger.hpp"
 #include "concord_storage.pb.h"
+#include "sha3_256.h"
+#include "sparse_merkle/base_types.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
@@ -36,6 +38,8 @@ using com::vmware::concord::kvb::ValueWithTrids;
 using google::protobuf::util::TimeUtil;
 
 namespace da_kvbc = com::digitalasset::kvbc;
+using namespace concord::kvbc::sparse_merkle;
+using namespace concord::util;
 
 namespace concord {
 namespace daml {
@@ -239,13 +243,15 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
 
-  LOG_DEBUG(dtrmnsm_logger_, "Hash of raw input ["
-                                 << std::hex << std::hash<std::string>{}(raw)
-                                 << "]");
+  LOG_DEBUG(dtrmnsm_logger_,
+            "Hash of raw input ["
+                << Hash(SHA3_256().digest(raw.c_str(), raw.size())).toString()
+                << "]");
 
-  LOG_DEBUG(dtrmnsm_logger_, "Hash serialized input ["
-                                 << std::hex << std::hash<std::string>{}(ser)
-                                 << "]");
+  LOG_DEBUG(dtrmnsm_logger_,
+            "Hash serialized input ["
+                << Hash(SHA3_256().digest(ser.c_str(), ser.size())).toString()
+                << "]");
 
   if (!status.ok()) {
     LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "

@@ -6,6 +6,8 @@
 #include <opentracing/tracer.h>
 #include <chrono>
 #include <sstream>
+#include "sha3_256.h"
+#include "sparse_merkle/base_types.h"
 #include "utils/open_tracing_utils.hpp"
 
 using com::vmware::concord::kvb::ValueWithTrids;
@@ -15,6 +17,8 @@ using std::string;
 using std::vector;
 
 namespace da_kvbc = com::digitalasset::kvbc;
+using namespace concord::kvbc::sparse_merkle;
+using namespace concord::util;
 
 namespace concord {
 namespace daml {
@@ -122,9 +126,11 @@ void DamlValidatorClient::HandleReadEvent(
                                           currKV.c_str(), currKV.size()})
                                    << " order [" << i++ << "]");
   }
-  LOG_DEBUG(dtrmnsm_logger_, "Hash of read stream ["
-                                 << std::hex << std::hash<std::string>{}(toHash)
-                                 << "]");
+  LOG_DEBUG(
+      dtrmnsm_logger_,
+      "Hash of read stream ["
+          << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
+          << "]");
 }
 
 void DamlValidatorClient::SwapWriteSet(
@@ -154,9 +160,11 @@ void DamlValidatorClient::SwapWriteSet(
                                           currKV.c_str(), currKV.size()})
                                    << " order [" << i++ << "]");
   }
-  LOG_DEBUG(dtrmnsm_logger_, "Hash of write stream ["
-                                 << std::hex << std::hash<std::string>{}(toHash)
-                                 << "]");
+  LOG_DEBUG(
+      dtrmnsm_logger_,
+      "Hash of write stream ["
+          << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
+          << "]");
 }
 
 }  // namespace daml
