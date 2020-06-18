@@ -11,5 +11,13 @@ if [ -e ${CONFIG_FILE} ]; then
   . ${CONFIG_FILE}
 fi
 
-echo "Running entry point script with $@ -c max_connections=${MAX_CONNECTIONS} -c shared_buffers=${BUFFER_SIZE}"
-docker-entrypoint.sh $@ -c max_connections=${MAX_CONNECTIONS} -c shared_buffers=${BUFFER_SIZE}
+if [ "${USE_POSTGRES_CONFIG_FILE}" = "true" ]; then
+  POSTGRES_CONFIG_FILE_OPT='-c config_file=/etc/postgresql.conf'
+else
+  MAX_CONNECTIONS_OPT="-c max_connections=${MAX_CONNECTIONS:-300}"
+  BUFFER_SIZE_OPT="-c shared_buffers=${BUFFER_SIZE:-80MB}"
+fi
+
+
+echo "Running entry point script with $@ ${MAX_CONNECTIONS_OPT} ${BUFFER_SIZE_OPT} ${POSTGRES_CONFIG_FILE_OPT}"
+docker-entrypoint.sh $@ ${MAX_CONNECTIONS_OPT} ${BUFFER_SIZE_OPT} ${POSTGRES_CONFIG_FILE_OPT}

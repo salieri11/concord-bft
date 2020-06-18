@@ -211,10 +211,10 @@ services:
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1
-      - MAX_CONNECTIONS=300
-      - BUFFER_SIZE=80MB
+      - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/daml_index_db1:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
     expose:
       - 5432
     ports:
@@ -226,10 +226,10 @@ services:
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api2
-      - MAX_CONNECTIONS=300
-      - BUFFER_SIZE=80MB
+      - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/daml_index_db2:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
     expose:
       - 5432
     ports:
@@ -241,10 +241,10 @@ services:
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api3
-      - MAX_CONNECTIONS=300
-      - BUFFER_SIZE=80MB
+      - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/daml_index_db3:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
     expose:
       - 5432
     ports:
@@ -256,10 +256,10 @@ services:
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api4
-      - MAX_CONNECTIONS=300
-      - BUFFER_SIZE=80MB
+      - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/daml_index_db4:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
     expose:
       - 5432
     ports:
