@@ -421,11 +421,11 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command, display_output_on_stdout=True, timeout=None):
+def execute_ext_command(command, verbose=True, timeout=None):
    '''
    Helper method to execute an external command
    :param command: command to be executed
-   :param display_output_on_stdout: Whether to display output on stdout.
+   :param verbose: Whether to display output on stdout.
    :return: True if command exit status is 0, else False
    '''
    log.debug("Executing external command: {}".format(command))
@@ -437,7 +437,7 @@ def execute_ext_command(command, display_output_on_stdout=True, timeout=None):
    try:
       completedProcess.check_returncode()
 
-      if display_output_on_stdout:
+      if verbose:
          log.debug("stdout: {}".format(
             completedProcess.stdout))
          if completedProcess.stderr:
@@ -446,7 +446,7 @@ def execute_ext_command(command, display_output_on_stdout=True, timeout=None):
       log.error("Command timed out after {} seconds".format(timeout))
       return False, completedProcess.stdout
    except subprocess.CalledProcessError as e:
-      if display_output_on_stdout:
+      if verbose:
          log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
                                                        completedProcess.stderr))
       return False, completedProcess.stdout
@@ -740,19 +740,23 @@ def check_replica_health(all_replicas_and_type, username, password):
       log.info("")
       return True, crashed_nodes
 
+
 def collect_support_logs_for_long_running_tests(all_replicas_and_type,
-                                                save_support_logs_to):
+                                                save_support_logs_to,
+                                                verbose=True):
    '''
    Collect support logs for long running tests
    :param all_replicas_and_type: dict of replica type & replica ips
    :param save_support_logs_to: location to save logs
+   :param verbose: log info () if set to true
    '''
-   log.info("Saving logs to: {}".format(save_support_logs_to))
+   log.info("Saving support logs to: {} ...".format(save_support_logs_to))
    for blockchain_type, replica_ips in all_replicas_and_type.items():
-      log.info("Collect support bundle from all replica IPs: {}".format(
+      log.debug("Collect support bundle from all replica IPs: {}...".format(
          replica_ips))
       create_concord_support_bundle(replica_ips, blockchain_type,
-                                    save_support_logs_to)
+                                    save_support_logs_to, verbose=verbose)
+
 
 def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                      test_list_json_file, testset, notify_target=None, notify_job=None):
@@ -820,7 +824,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    overall_run_status = None
    replica_status = None
    while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
-      status, crashed_nodes = check_replica_health(all_replicas_and_type, username, password)
+      status, crashed_nodes = \
+         check_replica_health(all_replicas_and_type, username, password)
       if not status:
          f = int((len(all_replicas_and_type[TYPE_DAML_COMMITTER])-1)/3)
          no_of_committer_crash = 0
@@ -834,7 +839,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
          crash_logs_dir = os.path.join(log_dir, "replica_crash_{}".format(
             time.strftime("%Y%m%d_%H%M%S", time.localtime())))
          collect_support_logs_for_long_running_tests(all_replicas_and_type,
-                                                     crash_logs_dir)
+                                                     crash_logs_dir,
+                                                     verbose=False)
          overall_run_status = False
          if len(crashed_nodes[TYPE_DAML_COMMITTER]) > f or no_of_other_node_crash > 0:
             log.error("**** replica status is unhealthy")
@@ -1013,7 +1019,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
          test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
 
          log.info("{}. {}...".format(test_count+1, test_set["testname"]))
-         status, msg = execute_ext_command(test_cmd, display_output_on_stdout=False)
+         status, msg = execute_ext_command(test_cmd, verbose=False)
          log.debug("Run output: {}".format(msg))
          test_result = status
       except Exception as e:
@@ -1088,8 +1094,8 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
     )
   return all_reports
 
-
-def create_concord_support_bundle(replicas, concord_type, test_log_dir):
+def create_concord_support_bundle(replicas, concord_type, test_log_dir,
+                                 verbose=True):
    '''
    Helper method to create concord support bundle and upload to result dir
    :param replicas: List of IP addresses of concord nodes
@@ -1111,12 +1117,12 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
       user_config["persephoneTests"]["modelService"]["defaults"][
          "deployment_components"][concord_type.lower()].values())
 
-   log.info("")
-   log.info("**** Collecting Support bundle ****")
+   if verbose: log.info("")
+   if verbose: log.info("**** Collecting Support bundle ****")
    try:
       for concord_ip in replicas:
-         log.info("Concord IP: {}".format(concord_ip))
-         log.info(
+         if verbose: log.info("Concord IP: {}".format(concord_ip))
+         if verbose: log.info(
             "  Upload support-bundle generation script onto concord node '{}'...".format(
                concord_ip))
 
@@ -1131,7 +1137,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                remote_support_bundle_binary_path, DEPLOYMENT_SUPPORT_BUNDLE_BASE_DIR, concord_ip,
                ' '.join(expected_docker_containers))
 
-            log.info("  Gathering deployment support logs...")
+            if verbose: log.info("  Gathering deployment support logs...")
             ssh_output = ssh_connect(concord_ip, concord_username,
                                      concord_password,
                                      cmd_execute_collect_support_bundle)
@@ -1143,12 +1149,12 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                for line in ssh_output.split('\n'):
                   if "Support bundle created successfully:" in line:
                      support_bundle_to_upload = line.split(':')[-1].strip()
-                     log.info(
+                     if verbose: log.info(
                         "  Support bundle created successfully on concord node {}:{}".format(
                            concord_ip, support_bundle_to_upload))
                      supput_bundle_created = True
 
-                     log.info("  Exporting support bundle...")
+                     if verbose: log.info("  Exporting support bundle...")
                      if not os.path.exists(test_log_dir):
                         os.makedirs(test_log_dir)
                      dest_support_bundle = os.path.join(test_log_dir,
@@ -1160,7 +1166,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                                     support_bundle_to_upload,
                                     dest_support_bundle,
                                     action="download"):
-                        log.info("  {}".format(dest_support_bundle))
+                        if verbose: log.info("  {}".format(dest_support_bundle))
                      else:
                         log.error(
                            "Failed to copy support bundle from concord '{}'".format(
@@ -1176,7 +1182,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                "Failed to copy support bundle generation script to concord '{}'".format(
                   concord_ip))
 
-         log.info("  Deleting support bundle base directory {}:{}...".format(
+         if verbose: log.info("  Deleting support bundle base directory {}:{}...".format(
             concord_ip, DEPLOYMENT_SUPPORT_BUNDLE_BASE_DIR))
          cmd_remove_support_bundle_base_dir = "rm -rf {}".format(
             DEPLOYMENT_SUPPORT_BUNDLE_BASE_DIR)
@@ -1185,7 +1191,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                                   cmd_remove_support_bundle_base_dir)
          log.debug("Output: {}".format(ssh_output))
 
-         log.info("")
+         if verbose: log.info("")
 
    except Exception as e:
       log.error(e)
