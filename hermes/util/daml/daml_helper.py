@@ -357,7 +357,15 @@ def get_spider_version(required_sdk_version, username, password):
          if not next_url:
              break
 
-   return spider_version
+   # RV, June 17, 2020:
+   # Temporary fix: Define a default. This is dangerous because we could end up
+   # very far behind over time.  But right now there is no Spider version that
+   # matches the SDK.  Discussion is occurring in Slack.
+   if spider_version:
+      return spider_version
+   else:
+      return get_sdk_spider_version_mappings()["default"]
+
 
 
 def find_spider_version_result(results, required_sdk_version):
