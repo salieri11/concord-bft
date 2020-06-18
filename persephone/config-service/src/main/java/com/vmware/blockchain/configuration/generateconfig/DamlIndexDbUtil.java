@@ -30,7 +30,7 @@ public class DamlIndexDbUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export MAX_CONNECTIONS=300");
         builder.append(System.getProperty("line.separator"));
-        builder.append("export BUFFER_SIZE=120MB");
+        builder.append("export BUFFER_SIZE=4096MB");
         return builder.toString();
     }
 
