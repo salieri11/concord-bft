@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +46,8 @@ import com.vmware.blockchain.deployment.v1.NodeProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -53,10 +56,12 @@ import lombok.val;
  */
 @Slf4j
 public class VSphereHttpClient {
-
     private RestTemplate restTemplate;
     private Context context;
     private HttpHeaders httpHeaders;
+
+    private VsphereSessionAuthenticationInterceptor vsphereSessionAuthenticationInterceptor;
+    private LoggingInterceptor loggingInterceptor;
 
     /**
      * Constructor.
@@ -64,25 +69,34 @@ public class VSphereHttpClient {
     public VSphereHttpClient(Context context) {
         this.context = context;
 
-        LoggingInterceptor loggingInterceptor = new LoggingInterceptor(
+        loggingInterceptor = new LoggingInterceptor(
                 LoggingInterceptor.ApiLogLevel.URL_STATUS_RESPONSE_FAILURE,
                 ImmutableSet.of(),
                 ImmutableSet.of(),
                 ImmutableSet.of());
 
-        VsphereSessionAuthenticationInterceptor vsphereSessionAuthenticationInterceptor
-                = new VsphereSessionAuthenticationInterceptor(context.endpoint.toString(), context.username,
-                                                              context.password);
+        vsphereSessionAuthenticationInterceptor
+                = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
+                context.getPassword());
 
-        this.restTemplate = new RestClientBuilder().withBaseUrl(context.endpoint.toString())
+        this.restTemplate = restTemplate();
+
+        httpHeaders = vsphereSessionAuthenticationInterceptor.getAuthHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+    }
+
+    /**
+     * Get rest template built with the available information.
+     *
+     * @return Built RestTemplate.
+     */
+    public RestTemplate restTemplate() {
+        return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
                 .withInterceptor(vsphereSessionAuthenticationInterceptor)
                 .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
                 .withInterceptor(loggingInterceptor)
                 .withObjectMapper(RestClientUtils.getDefaultMapper())
                 .build();
-
-        httpHeaders = vsphereSessionAuthenticationInterceptor.getAuthHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
     }
 
     /**
@@ -90,11 +104,13 @@ public class VSphereHttpClient {
      */
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
     public static class Context {
-
         URI endpoint;
         String username;
         String password;
+
     }
 
 
@@ -113,6 +129,7 @@ public class VSphereHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, GetFolderResponse.class);
 
         if (responseEntity.getStatusCode() == HttpStatus.OK
+            && responseEntity.getBody().getValue().size() > 0
             && responseEntity.getBody().getValue().get(0) != null
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getFolder())) {
             return responseEntity.getBody().getValue().get(0).getFolder();
@@ -134,6 +151,7 @@ public class VSphereHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, GetResourcePoolResponse.class);
 
         if (responseEntity.getStatusCode() == HttpStatus.OK
+            && responseEntity.getBody().getValue().size() > 0
             && responseEntity.getBody().getValue().get(0) != null
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getResourcePool())) {
             return responseEntity.getBody().getValue().get(0).getResourcePool();
@@ -154,6 +172,7 @@ public class VSphereHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, GetDatastoreResponse.class);
 
         if (responseEntity.getStatusCode() == HttpStatus.OK
+            && responseEntity.getBody().getValue().size() > 0
             && responseEntity.getBody().getValue().get(0) != null
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getDatastore())) {
             return responseEntity.getBody().getValue().get(0).getDatastore();
@@ -165,10 +184,9 @@ public class VSphereHttpClient {
      * Get ID of a specified logical network port-group based on name.
      *
      * @param name name of the network to look up.
-     * @param type type of the network to constrain the lookup by.
      * @return ID of the network as a [String], if found.
      */
-    public String getNetwork(String name, String type) {
+    public String getNetwork(String name) {
         String uri = VsphereEndpoints.VSPHERE_NETWORKS.getPath() + "?filter.names=" + name;
 
         HttpEntity<String> requests = new HttpEntity<>(httpHeaders);
@@ -176,6 +194,7 @@ public class VSphereHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, GetNetworkResponse.class);
 
         if (responseEntity.getStatusCode() == HttpStatus.OK
+            && responseEntity.getBody().getValue().size() > 0
             && responseEntity.getBody().getValue().get(0) != null
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getNetwork())) {
             return responseEntity.getBody().getValue().get(0).getNetwork();
@@ -190,7 +209,7 @@ public class VSphereHttpClient {
      * @return ID of the library item as a [String], if found.
      */
     public String getLibraryItem(String sourceId) {
-        String uri = VsphereEndpoints.VSPHERE_CONTENT_LIBRARY_ITEM.getPath() + "=find";
+        String uri = VsphereEndpoints.VSPHERE_CONTENT_LIBRARY_ITEM.getPath() + "?~action=find";
         HttpEntity<LibraryItemFindRequest> requests = new HttpEntity<>(LibraryItemFindRequest.builder()
                                                                                .spec(LibraryItemFindSpec.builder()
                                                                                              .sourceId(sourceId)
@@ -201,6 +220,7 @@ public class VSphereHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.POST, requests, LibraryItemFindResponse.class);
 
         if (responseEntity.getStatusCode() == HttpStatus.OK
+            && responseEntity.getBody().getValue().size() > 0
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0))) {
             return responseEntity.getBody().getValue().get(0);
         }
@@ -350,17 +370,18 @@ public class VSphereHttpClient {
      * @param id identifier of the virtual machine.
      * @return `true` if deleted, `false` otherwise.
      */
-    public boolean deleteVirtualMachine(String id) {
+    public boolean deleteVirtualMachine(String id) throws HttpClientErrorException {
         String uri = VsphereEndpoints.VSPHERE_VM.getPath().replace("{vm}", id);
         HttpEntity requests = new HttpEntity<>(httpHeaders);
-        ResponseEntity entity = restTemplate.exchange(uri, HttpMethod.DELETE, requests, Void.class);
-        if (entity.getStatusCode() == HttpStatus.OK) {
+        try {
+            ResponseEntity entity = restTemplate.exchange(uri, HttpMethod.DELETE, requests, Void.class);
             return true;
-        } else if (entity.getStatusCode() == HttpStatus.NOT_FOUND) {
-            log.warn("VM {} could not be found", id);
-            return true;
+        } catch (HttpClientErrorException e) {
+            // Expected behavior
+            // true is only returned for (404) Not Found VMs
+            // All other exceptions are false
+            return e.getRawStatusCode() == 404;
         }
-        return false;
     }
 
     /**
@@ -394,18 +415,19 @@ public class VSphereHttpClient {
      * @return the power state of the virtual machine expressed as [VirtualMachinePowerState], `null` if the operation
      * cannot be executed or if the virtual machine does not exist.
      */
-    VirtualMachinePowerState getVirtualMachinePower(String name) {
+    VirtualMachinePowerState getVirtualMachinePower(String name) throws HttpClientErrorException {
         log.info("Get VM Power state details.");
         String uri = VsphereEndpoints.VSPHERE_VM_POWER.getPath().replace("{vm}", name);
 
         HttpEntity requests = new HttpEntity<>(httpHeaders);
-        ResponseEntity<VirtualMachinePowerResponse> responseEntity
-                = restTemplate.exchange(uri, HttpMethod.GET, requests, VirtualMachinePowerResponse.class);
+        try {
+            ResponseEntity<VirtualMachinePowerResponse> responseEntity
+                    = restTemplate.exchange(uri, HttpMethod.GET, requests, VirtualMachinePowerResponse.class);
 
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody().getValue().getState();
+        } catch (HttpClientErrorException e) {
+            throw new PersephoneException("Unable to get VM info: " + name);
         }
-        throw new PersephoneException("Unable to get VM info: " + name);
     }
 
     /**
