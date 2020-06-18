@@ -6,7 +6,6 @@
 
 #include <sstream>
 #include <stdexcept>
-#include <strstream>
 #include "storage/kvb_key_types.h"
 
 using opentracing::expected;

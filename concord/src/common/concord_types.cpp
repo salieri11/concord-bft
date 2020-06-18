@@ -153,7 +153,7 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
     }
   }
 
-  size_t size = out.ByteSize();
+  size_t size = out.ByteSizeLong();
 
   *serialized = new uint8_t[size];
   out.SerializeToArray(*serialized, size);
@@ -315,7 +315,7 @@ size_t EthBlock::serialize(uint8_t **serialized) {
   out.set_gas_limit(this->gas_limit);
   out.set_gas_used(this->gas_used);
 
-  size_t size = out.ByteSize();
+  size_t size = out.ByteSizeLong();
 
   *serialized = new uint8_t[size];
   out.SerializeToArray(*serialized, size);

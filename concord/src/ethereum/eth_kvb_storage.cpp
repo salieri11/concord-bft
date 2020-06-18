@@ -304,7 +304,7 @@ void EthKvbStorage::set_balance(const evm_address &addr,
   com::vmware::concord::kvb::Balance proto;
   proto.set_version(balance_storage_version);
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
-  size_t sersize = proto.ByteSize();
+  size_t sersize = proto.ByteSizeLong();
   char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 
@@ -315,7 +315,7 @@ void EthKvbStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   com::vmware::concord::kvb::Nonce proto;
   proto.set_version(nonce_storage_version);
   proto.set_nonce(nonce);
-  size_t sersize = proto.ByteSize();
+  size_t sersize = proto.ByteSizeLong();
   char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 
@@ -330,7 +330,7 @@ void EthKvbStorage::set_code(const evm_address &addr, const uint8_t *code,
   evm_uint256be hash = concord::utils::eth_hash::keccak_hash(code, code_size);
   proto.set_hash(hash.bytes, sizeof(hash));
 
-  size_t sersize = proto.ByteSize();
+  size_t sersize = proto.ByteSizeLong();
   char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 

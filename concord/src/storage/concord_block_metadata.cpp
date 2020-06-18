@@ -22,7 +22,7 @@ Sliver ConcordBlockMetadata::serialize(uint64_t bft_sequence_num) const {
   // class is instantiated. But, to many things rely on being able to hold a
   // pointer to the buffer we return, and they would all see the modification we
   // would make later.
-  size_t serialized_size = block_metadata_.ByteSize();
+  size_t serialized_size = block_metadata_.ByteSizeLong();
   char* raw_buffer = new char[serialized_size];
   block_metadata_.SerializeToArray(raw_buffer, serialized_size);
   return Sliver(raw_buffer, serialized_size);

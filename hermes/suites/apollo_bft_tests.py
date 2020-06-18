@@ -38,6 +38,7 @@ from test_skvbc import SkvbcTest
 from test_skvbc_fast_path import SkvbcFastPathTest
 from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
+from test_skvbc_checkpoints import SkvbcCheckpointTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 from suites.case import describe
@@ -162,7 +163,7 @@ def test_skvbc_checkpoint_creation(fxProduct, bft_network):
 
 @with_timeout
 async def _test_skvbc_checkpoint_creation(bft_network):
-    skvbc_test = SkvbcTest()
+    skvbc_test = SkvbcCheckpointTest()
     log.info("Running SKVBC checkpoint creation test...")
     await skvbc_test.test_checkpoint_creation(
         bft_network=bft_network,

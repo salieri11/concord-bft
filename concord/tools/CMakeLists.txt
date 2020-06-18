@@ -77,7 +77,7 @@ target_link_libraries(conc_time
                       protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES}
-                      $<TARGET_OBJECTS:logging_dev>)
+                      logging)
 
 # ecrecover and ecsign need to find src/common/concord_eth_sign.h
 include_directories("../src")
@@ -87,23 +87,21 @@ add_executable(ecrecover
 target_link_libraries(ecrecover
                       concmdutil
                       concord_utils
-                      log4cplus
                       secp256k1
                       ${CRYPTOPP_LIBRARIES}
-                      $<TARGET_OBJECTS:logging_dev>)
+                      logging)
 
 add_executable(ecsign
   "ecsign.cpp")
 target_link_libraries(ecsign
                       concmdutil
                       concord_utils
-                      log4cplus
                       secp256k1
                       ${CRYPTOPP_LIBRARIES}
-                      $<TARGET_OBJECTS:logging_dev>)
+                      logging)
 
-add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp" $<TARGET_OBJECTS:logging_dev>)
-target_link_libraries(conc_rocksdb_adp concord_consensus log4cplus concordbft_storage)
+add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp" )
+target_link_libraries(conc_rocksdb_adp concord_consensus concordbft_storage logging)
 target_include_directories(conc_rocksdb_adp PUBLIC ${CRYPTOPP_INCLUDE_DIRS})
 
 # conc_genconfig may also need to see "../src" to find its includes.
@@ -116,7 +114,6 @@ target_include_directories(conc_rocksdb_adp PUBLIC ${CRYPTOPP_INCLUDE_DIRS})
 add_executable(conc_genconfig
                "conc_genconfig.cpp"
                ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp)
-set_target_properties(conc_genconfig PROPERTIES LINK_FLAGS -static)
 
 # Note we explicitly clear conc_genconfig's LINK_LIBRARIES value here so that
 # conc_genconfig will ignore any LINK_LIBRARIES appended globaly or otherwise to
@@ -132,9 +129,8 @@ set_target_properties(conc_genconfig PROPERTIES LINK_LIBRARIES "")
 find_package(StaticLibraries REQUIRED)
 target_link_libraries(conc_genconfig PUBLIC
                       ${boost_program_options_STATIC_LIBRARY}
-                      ${log4cplus_STATIC_LIBRARY}
                       ${yaml-cpp_STATIC_LIBRARY}
-                      $<TARGET_OBJECTS:logging_dev>)
+                      logging)
 
 # Note we specifically target a shared version of pthread here. We do not think
 # it to significantly matter for binary correctness purposes whether pthread is

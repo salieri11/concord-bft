@@ -6,7 +6,6 @@
 #define COMMON_CONCORD_TYPES_HPP
 
 #include "concord_log.hpp"
-#include "concord_types.hpp"
 #include "sliver.hpp"
 
 namespace concord {

@@ -36,7 +36,7 @@ target_link_libraries(UtilsTests
         concord_utils
         pthread
         ${CRYPTOPP_LIBRARIES}
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(SignTests
         signature_test.cpp)
@@ -45,10 +45,9 @@ target_link_libraries(SignTests
         ${GTEST_LIBRARY}
         concord_utils
         pthread
-        log4cplus
         secp256k1
         ${CRYPTOPP_LIBRARIES}
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(ConfigTests
         config_test.cpp
@@ -60,8 +59,8 @@ target_link_libraries(ConfigTests
         ${yaml-cpp_LIBRARIES}
         concord_utils
         concord_consensus
-        log4cplus
-        $<TARGET_OBJECTS:logging_dev>)
+        logging
+        )
 
 add_executable(ReplicaStateSyncTests
         ../src/common/concord_log.cpp
@@ -72,13 +71,13 @@ add_executable(ReplicaStateSyncTests
         ../src/utils/rlp.cpp
         ../src/config/configuration_manager.cpp
         replicaStateSync_test.cpp
-        $<TARGET_OBJECTS:logging_dev>)
+        )
 
 target_link_libraries(ReplicaStateSyncTests
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
-        log4cplus
+        logging
         proto
         ${EVM_LIBRARIES}
         LLVMSupport
@@ -94,13 +93,13 @@ target_link_libraries(TimeContractTests
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
-        log4cplus
+        logging
         proto
         concord_utils
         concord_consensus
         concord_common
         concord_time
-        $<TARGET_OBJECTS:logging_dev>)
+        )
 
 add_executable(DamlTest
         daml_test.cpp
@@ -121,8 +120,8 @@ target_link_libraries(DamlTest
         concord_utils
         concord_common
         proto
-        log4cplus
-        $<TARGET_OBJECTS:logging_dev>)
+        logging
+        )
 
 add_executable(HlfTest
         hlf_test.cpp
@@ -140,8 +139,8 @@ target_link_libraries(HlfTest
         concord_utils
         concord_common
         proto
-        log4cplus
-        $<TARGET_OBJECTS:logging_dev>)
+        logging
+        )
 
 add_executable(PruningSMTest
         pruning_sm_test.cpp
@@ -153,13 +152,12 @@ target_link_libraries(PruningSMTest
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
-        log4cplus
         proto
         concord_utils
         concord_consensus
         concord_common
         concord_pruning
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(ReconfigurationSMTest
 		mocks.cpp
@@ -170,12 +168,11 @@ target_link_libraries(ReconfigurationSMTest
 		${Boost_LIBRARIES}
 		${GTEST_LIBRARY}
 		${yaml-cpp_LIBRARIES}
-		log4cplus
 		proto
 		concord_utils
 		concord_common
-        concord_reconfiguration
-		$<TARGET_OBJECTS:logging_dev>)
+    concord_reconfiguration
+		logging)
 
 add_executable(ThinReplicaTest
         thin_replica_test.cpp
@@ -184,12 +181,11 @@ add_executable(ThinReplicaTest
 target_link_libraries(ThinReplicaTest
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
-        log4cplus
         proto
         concord_utils
         concord_consensus
         concord_common
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(KVBFilterTest
         kvbfilter_test.cpp
@@ -199,13 +195,12 @@ target_link_libraries(KVBFilterTest
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
-        log4cplus
         proto
         concord_utils
         concord_consensus
         concord_common
         concord_pruning
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(ExternalClientTest external_client_test.cpp)
 
@@ -215,14 +210,13 @@ target_include_directories(ExternalClientTest PRIVATE ${thresh_include})
 target_link_libraries(ExternalClientTest
         ${GTEST_LIBRARY}
         concord_external_client
-        $<TARGET_OBJECTS:logging_dev>)
+        logging)
 
 add_executable(OpenSSLCryptoWrapperTest
                openssl_crypto_wrapper_tests.cpp)
 target_link_libraries(OpenSSLCryptoWrapperTest
                       ${GTEST_LIBRARY}
-		      concord_utils
+		                  concord_utils
                       ${CRYPTOPP_LIBRARIES}
-		      log4cplus
-		      pthread
-                      $<TARGET_OBJECTS:logging_dev>)
+		                  pthread
+                      logging)
