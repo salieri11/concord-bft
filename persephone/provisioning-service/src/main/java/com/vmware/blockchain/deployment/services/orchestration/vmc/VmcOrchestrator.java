@@ -99,7 +99,7 @@ public class VmcOrchestrator implements Orchestrator {
             val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
             val getControlNetwork =
                     CompletableFuture
-                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName(), "OPAQUE_NETWORK"));
+                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
             val getLibraryItem =
                     CompletableFuture
                             .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getModel().getTemplate()));
@@ -157,7 +157,7 @@ public class VmcOrchestrator implements Orchestrator {
             val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
             val getControlNetwork =
                     CompletableFuture
-                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName(), "OPAQUE_NETWORK"));
+                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
             val getLibraryItem =
                     CompletableFuture
                             .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getCloudInitData()
@@ -193,7 +193,7 @@ public class VmcOrchestrator implements Orchestrator {
                     info.getVsphere().getOutboundProxy(),
                     vmPassword
             );
-            val instance = vSphereHttpClient
+            var instance = vSphereHttpClient
                     .createVirtualMachine(request.getVmId(),
                                           libraryItem, datastore, resourcePool, folder,
                                           Map.entry("blockchain-network", controlNetwork),

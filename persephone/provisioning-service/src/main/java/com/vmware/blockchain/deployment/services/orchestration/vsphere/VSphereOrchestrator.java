@@ -75,7 +75,7 @@ public class VSphereOrchestrator implements Orchestrator {
             val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
             val getControlNetwork =
                     CompletableFuture
-                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName(), "OPAQUE_NETWORK"));
+                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
             val getLibraryItem =
                     CompletableFuture
                             .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getModel().getTemplate()));
@@ -134,17 +134,17 @@ public class VSphereOrchestrator implements Orchestrator {
             val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
             val getControlNetwork =
                     CompletableFuture
-                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName(), "OPAQUE_NETWORK"));
+                            .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
             val getLibraryItem =
                     CompletableFuture
                             .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getCloudInitData()
                                                                                         .getModel().getTemplate()));
             // Collect all information and deploy.
-            val folder = getFolder.get();
-            val datastore = getDatastore.get();
-            val resourcePool = getResourcePool.get();
-            val controlNetwork = getControlNetwork.get();
-            val libraryItem = getLibraryItem.get();
+            var folder = getFolder.get();
+            var datastore = getDatastore.get();
+            var resourcePool = getResourcePool.get();
+            var controlNetwork = getControlNetwork.get();
+            var libraryItem = getLibraryItem.get();
 
             var vmPassword = "c0nc0rd";
             if (request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())) {
@@ -170,7 +170,7 @@ public class VSphereOrchestrator implements Orchestrator {
                     info.getVsphere().getOutboundProxy(),
                     vmPassword
             );
-            val instance = vSphereHttpClient
+            var instance = vSphereHttpClient
                     .createVirtualMachine(request.getVmId(),
                                           libraryItem, datastore, resourcePool, folder,
                                           Map.entry("blockchain-network", controlNetwork),
