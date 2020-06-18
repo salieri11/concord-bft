@@ -55,12 +55,14 @@ class DamlValidatorClient : public IDamlValidatorClient {
 
  private:
   logging::Logger logger_ = logging::getLogger("concord.daml.validator");
-  static void HandleReadEvent(
+  logging::Logger dtrmnsm_logger_ =
+      logging::getLogger("concord.daml.determinism");
+  void HandleReadEvent(
       const com::digitalasset::kvbc::EventFromValidator::Read& read_event,
       DamlKvbReadFunc read_from_storage,
       com::digitalasset::kvbc::EventToValidator* event);
 
-  static void SwapWriteSet(
+  void SwapWriteSet(
       google::protobuf::RepeatedPtrField<
           com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
       std::vector<KeyValuePairWithThinReplicaIds>* result);

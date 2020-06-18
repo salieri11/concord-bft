@@ -5,11 +5,13 @@
 #include <google/protobuf/util/time_util.h>
 #include <opentracing/tracer.h>
 #include <chrono>
+#include <iomanip>
 #include <map>
 #include <string>
 #include "Logger.hpp"
-
 #include "concord_storage.pb.h"
+#include "sha3_256.h"
+#include "sparse_merkle/base_types.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
@@ -36,6 +38,8 @@ using com::vmware::concord::kvb::ValueWithTrids;
 using google::protobuf::util::TimeUtil;
 
 namespace da_kvbc = com::digitalasset::kvbc;
+using namespace concord::kvbc::sparse_merkle;
+using namespace concord::util;
 
 namespace concord {
 namespace daml {
@@ -217,13 +221,38 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
 
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
+
+  // Hash and log
+  std::string raw;
+  raw.reserve(1000);
+  std::string ser;
+  ser.reserve(1000);
+
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : write_set) {
+    raw += entry.first;
+    raw += entry.second.value();
+
     auto key = CreateDamlKvbKey(entry.first);
     auto val = CreateDamlKvbValue(entry.second);
+
+    ser += key.toString();
+    ser += val.toString();
+
     if (!isPreExecution) daml_kv_size_summary_.Observe(val.length());
     updates.insert(std::make_pair(std::move(key), std::move(val)));
   }
+
+  LOG_DEBUG(dtrmnsm_logger_,
+            "Hash of raw input ["
+                << Hash(SHA3_256().digest(raw.c_str(), raw.size())).toString()
+                << "]");
+
+  LOG_DEBUG(dtrmnsm_logger_,
+            "Hash serialized input ["
+                << Hash(SHA3_256().digest(ser.c_str(), ser.size())).toString()
+                << "]");
+
   if (!status.ok()) {
     LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                             << status.error_message());

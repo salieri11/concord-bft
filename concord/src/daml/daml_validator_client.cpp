@@ -2,10 +2,12 @@
 
 #include "daml_validator_client.hpp"
 
+#include <hex_tools.h>
 #include <opentracing/tracer.h>
 #include <chrono>
 #include <sstream>
-
+#include "sha3_256.h"
+#include "sparse_merkle/base_types.h"
 #include "utils/open_tracing_utils.hpp"
 
 using com::vmware::concord::kvb::ValueWithTrids;
@@ -15,6 +17,8 @@ using std::string;
 using std::vector;
 
 namespace da_kvbc = com::digitalasset::kvbc;
+using namespace concord::kvbc::sparse_merkle;
+using namespace concord::util;
 
 namespace concord {
 namespace daml {
@@ -102,26 +106,65 @@ void DamlValidatorClient::HandleReadEvent(
   da_kvbc::EventToValidator_ReadResult* read_result =
       event->mutable_read_result();
   read_result->set_tag(read_event.tag());
+
+  // Hash and log
+  std::string currKV;
+  currKV.reserve(200);
+  std::string toHash;
+  toHash.reserve(1000);
+  int i = 0;
+
   for (auto const& entry : values) {
     da_kvbc::KeyValuePair* pair = read_result->add_key_value_pairs();
     pair->set_key(entry.first);
     pair->set_value(entry.second);
+    currKV = entry.first;
+    currKV += entry.second;
+    toHash += currKV;
+    LOG_DEBUG(dtrmnsm_logger_, "Read KV to stream ["
+                                   << (concordUtils::HexPrintBuffer{
+                                          currKV.c_str(), currKV.size()})
+                                   << " order [" << i++ << "]");
   }
+  LOG_DEBUG(
+      dtrmnsm_logger_,
+      "Hash of read stream ["
+          << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
+          << "]");
 }
 
 void DamlValidatorClient::SwapWriteSet(
     google::protobuf::RepeatedPtrField<
         com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
     vector<KeyValuePairWithThinReplicaIds>* result) {
+  std::string currKV;
+  currKV.reserve(100);
+  std::string toHash;
+  toHash.reserve(1000);
+  int i = 0;
+
   for (auto kv : *write_set) {
     ValueWithTrids value_with_thin_replica_ids;
+    currKV = kv.key();
+    currKV += kv.value();
     value_with_thin_replica_ids.set_value(std::move(*kv.release_value()));
     for (auto thin_replica_id : *(kv.mutable_trids())) {
+      currKV += thin_replica_id;
       value_with_thin_replica_ids.add_trid(std::move(thin_replica_id));
     }
+    toHash += currKV;
     result->push_back(
         {std::move(*kv.release_key()), value_with_thin_replica_ids});
+    LOG_DEBUG(dtrmnsm_logger_, "Write KV from stream ["
+                                   << (concordUtils::HexPrintBuffer{
+                                          currKV.c_str(), currKV.size()})
+                                   << " order [" << i++ << "]");
   }
+  LOG_DEBUG(
+      dtrmnsm_logger_,
+      "Hash of write stream ["
+          << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
+          << "]");
 }
 
 }  // namespace daml

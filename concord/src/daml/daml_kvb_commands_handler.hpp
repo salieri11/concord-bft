@@ -28,6 +28,7 @@ class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
  private:
   logging::Logger logger_;
+  logging::Logger dtrmnsm_logger_;
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Histogram& daml_exec_eng_dur_;
   prometheus::Histogram& daml_hdlr_exec_dur_;
@@ -49,7 +50,8 @@ class DamlKvbCommandsHandler
       concord::time::TimeContract* time_contract = nullptr)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry, time_contract),
-        logger_(logging::getLogger("com.vmware.concord.daml")),
+        logger_(logging::getLogger("concord.daml")),
+        dtrmnsm_logger_(logging::getLogger("concord.daml.determinism")),
         validator_client_(std::move(validator)),
         daml_exec_eng_dur_{prometheus_registry->createHistogram(
             command_handler_histograms_,
