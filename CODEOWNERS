@@ -24,14 +24,14 @@
 /daml/ @rmuschner @upshawa @bjay @bhealy @ftudane @jmaki @mmiklos @mziolek
 /docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari @sanchitar
 /docker/config-public/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari @sanchitar
-/docker/fluentd/ @hbhavsar @mharrison @khank
 /ethrpc/ @machenbach @panamika @mandeab
-/helen/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar
+/helen/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank @hbhavsar @sanchitar
-/hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner @sanchitar
+/hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner @sanchitar @hbhavsar @kkeunwoo
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg @rahulg
 /persephone/ @khank @sanchitar @rsg @panamika @mandeab @hbhavsar
+/persephone/fluentd/ @hbhavsar @mharrison @khank @kkeunwoo
 /src/ @rvollmar @rsg
 /thin-replica-client/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov @ybuchnik @ddanilov @tdimitrov @lgal @elerer @hstaykov
 /ui/ @mharrison @hbhavsar @kkeunwoo @mandeab @sanchitar @khank
