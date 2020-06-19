@@ -10,10 +10,8 @@ import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARC
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +20,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
@@ -38,22 +35,14 @@ public class TelegrafConfigUtil {
 
     private String telegrafTemplatePath;
 
-    private String metricsConfigYamlPath;
-
-    public TelegrafConfigUtil(String telegrafTemplatePath, String metricsConfigYamlPath) {
+    public TelegrafConfigUtil(String telegrafTemplatePath) {
         this.telegrafTemplatePath = telegrafTemplatePath;
-        this.metricsConfigYamlPath = metricsConfigYamlPath;
     }
 
     /**
      * telegraf config path.
      */
     public static final String configPath = "/telegraf/telegraf.conf";
-
-    /**
-     * metrics config yaml path.
-     */
-    public static final String metricsConfigPath = "/concord/config-public/metrics_config.yaml";
 
     /**
      * Generate telegraf configurations.
@@ -247,33 +236,6 @@ public class TelegrafConfigUtil {
         }
 
         return hostConfigCopy;
-    }
-
-    /**
-     * Get metrics config yaml.
-     * @return String representation of metricsConfigYaml
-     */
-    public String getMetricsConfigYaml() {
-
-        Yaml yaml = new Yaml();
-        Map<String, Object> metricsConfig;
-        try {
-            metricsConfig = yaml.load(new FileInputStream(metricsConfigYamlPath));
-        } catch (FileNotFoundException e) {
-            // For unit tests only.
-            log.warn("File {} does not exist: {}\n Using localized metrics config yaml",
-                    metricsConfigYamlPath, e.getLocalizedMessage());
-            ClassLoader classLoader = getClass().getClassLoader();
-            metricsConfig = yaml.load(classLoader.getResourceAsStream("MetricsConfig.yaml"));
-        } catch (Exception e) {
-            log.error("Parsing exception while reading MetricsConfig.yaml", e);
-            throw e;
-        }
-
-        StringWriter writer = new StringWriter();
-        yaml.dump(metricsConfig, writer);
-
-        return writer.toString();
     }
 
     private String getElasticsearchConfig(String urls, String username, String password, String blockchain) {

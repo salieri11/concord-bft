@@ -157,17 +157,10 @@ public class ConfigurationServiceHelper {
                     nodeIsolatedConfiguration.addAll(getEthereumComponent());
                     break;
                 case TELEGRAF:
-                    var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
-                    var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
+                    var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath);
                     var telegrafConfig = telegrafConfigUtil.getTelegrafConfig(consortiumId, blockchainId,
                                                                               nodeInfo,
                                                                               serviceTypes);
-                    nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
-                                                          .setType(ServiceType.TELEGRAF)
-                                                          .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
-                                                          .setComponent(metricsConfigYaml)
-                                                          .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                                          .build());
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(ServiceType.TELEGRAF)
                                                           .setComponentUrl(TelegrafConfigUtil.configPath)
