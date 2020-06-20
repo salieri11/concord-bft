@@ -213,7 +213,7 @@ class Request():
 
       return self._send(verb="GET")
 
-   def createBlockchain(self, consortiumId,  siteIds, f=1, c=0,
+   def createBlockchain(self, consortiumId,  siteIds, client_zone_ids=[],
                         blockchainType=helper.TYPE_ETHEREUM.upper()):
       '''
       Create a blockchain.  Values are simply passed through to persephone.
@@ -226,31 +226,19 @@ class Request():
       '''
       self._subPath = "/api/blockchains"
       self._params = ""
+      client_nodes = []
+      for each in client_zone_ids:
+         client_nodes.append({
+            "zone_id": each
+         })
       self._data = {
          "consortium_id": consortiumId,
-         "f_count": f,
-         "c_count": c,
-         "zone_ids": siteIds,
+         "replica_zone_ids": siteIds,
+         "client_nodes": client_nodes,
          "blockchain_type": blockchainType
       }
 
       self._endpointName = "create_blockchain"
-
-      return self._send()
-
-   def create_participant(self, blockchain_id, zone_ids):
-      """
-      Deploys participants on the given blockchain_id
-      :param blockchain_id: The blockchain id to deploy the participant in
-      :param zone_ids: List of zones that will form the participants cluster
-      :return: BlockchainTaskResponse
-      """
-      self._subPath = "/api/blockchains/{}/clients".format(blockchain_id)
-      self._params = ""
-      self._data = {
-         "zone_ids": zone_ids
-      }
-      self._endpointName = "create_participant"
 
       return self._send()
 

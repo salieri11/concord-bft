@@ -2,24 +2,20 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.clients;
+package com.vmware.blockchain.services.blockchains.clients;
 
 import static com.vmware.blockchain.security.MvcTestSecurityConfig.createContext;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,8 +24,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -51,12 +45,7 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.PlacementSpecification;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
@@ -69,7 +58,6 @@ import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils;
-import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -80,8 +68,6 @@ import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TaskService;
 
-import io.grpc.stub.StreamObserver;
-
 
 /**
  * Tests for the client controller.
@@ -90,7 +76,7 @@ import io.grpc.stub.StreamObserver;
 @WebMvcTest(controllers = { ClientController.class, TaskController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class})
 @ComponentScan(basePackageClasses = { ClientControllerTest.class, HelenExceptionHandler.class,
-                                      TaskController.class, ConcordConfiguration.class })
+                                      TaskController.class})
 public class ClientControllerTest extends RuntimeException {
 
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
@@ -110,19 +96,6 @@ public class ClientControllerTest extends RuntimeException {
     private static final UUID REPLICA_2_ZONE = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
     private static final UUID REPLICA_3_ZONE = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
     private static final UUID REPLICA_4_ZONE = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
-
-    static final String POST_BODY_DAML_PARTICIPANT = "{"
-                                                     + "    \"zone_ids\": ["
-                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\"],"
-                                                     + "    \"client_jwt\": \"fripSide\"" + "}";
-
-    static final String POST_BODY_DAML_PARTICIPANT_NO_JWT = "{"
-                                                     + "    \"zone_ids\": ["
-                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
 
     @Autowired
     private WebApplicationContext context;
@@ -145,7 +118,7 @@ public class ClientControllerTest extends RuntimeException {
     ReplicaService replicaService;
 
     @MockBean
-    ProvisioningServiceGrpc.ProvisioningServiceStub client;
+    ClientService clientService;
 
     @MockBean
     OperationContext operationContext;
@@ -171,11 +144,6 @@ public class ClientControllerTest extends RuntimeException {
 
     private DeploymentSessionIdentifier dsId;
 
-    private void setCreateCluster(Answer answer) {
-        doAnswer(answer).when(client)
-                .createCluster(any(CreateClusterRequest.class), any(StreamObserver.class));
-    }
-
     /**
      * Initialize various mocks.
      */
@@ -195,7 +163,7 @@ public class ClientControllerTest extends RuntimeException {
         final Blockchain bcdaml = Blockchain.builder()
                 .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
                 .nodeList(Stream.of("one", "two", "three")
-                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s),
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s),
                                                                      "cert-".concat(s), SITE_2))
                                   .collect(Collectors.toList()))
                 .type(Blockchain.BlockchainType.DAML)
@@ -217,10 +185,10 @@ public class ClientControllerTest extends RuntimeException {
                                              Replica.ReplicaType.NONE, BC_DAML, "testPassword");
         replica4.setId(REPLICA_4);
 
-        when(blockchainService.getReplicas(BC_DAML))
+        when(replicaService.getReplicas(BC_DAML))
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         bcdaml.setId(BC_DAML);
-        when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
+        //when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
 
 
         ReflectionTestUtils.setField(BlockchainUtils.class,
@@ -266,12 +234,6 @@ public class ClientControllerTest extends RuntimeException {
         dsId = DeploymentSessionIdentifier.newBuilder()
                 .setId(DEP_ID.toString())
                 .build();
-        setCreateCluster(i -> {
-            StreamObserver ob = i.getArgument(1);
-            ob.onNext(dsId);
-            ob.onCompleted();
-            return null;
-        });
 
         // Zone returns
         when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));
@@ -302,78 +264,37 @@ public class ClientControllerTest extends RuntimeException {
               .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
 
         String body = result.getResponse().getContentAsString();
-        List<ClientController.ReplicaGetResponse> res =
-                    objectMapper.readValue(body, new TypeReference<List<ClientController.ReplicaGetResponse>>() {
+        List<ClientController.ClientGetResponse> res =
+                    objectMapper.readValue(body, new TypeReference<List<ClientController.ClientGetResponse>>() {
                     });
 
         ImmutableList<UUID> expected = ImmutableList.of(REPLICA_2, REPLICA_3);
         Assertions.assertEquals(expected, res.stream().map(replicaGetResponse ->
                 replicaGetResponse.getId()).collect(Collectors.toList()));
         Assertions.assertEquals(2, res.size());
-        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(0).getReplicaType());
-        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(1).getReplicaType());
     }
 
     @Test
-    void deployParticipant() throws Exception {
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/clients")
-                                    .with(authentication(adminAuth))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(POST_BODY_DAML_PARTICIPANT))
-                    .andExpect(status().isAccepted());
+    void getParticipantNodeListViaClient() throws Exception {
 
-        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
-        CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(0, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
-        Map<String, String> properties = request.getSpecification().getProperties().getValuesMap();
-        Assertions.assertEquals(3, properties.size());
-        Assertions.assertEquals("fripSide", properties.get(NodeProperty.Name.CLIENT_AUTH_JWT.toString()));
-        Assertions.assertEquals(3, entries.size());
-        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
-        Assertions.assertEquals(1, entries.stream()
-                    .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                            .setId(SITE_1.toString())
-                            .build()
-                            .equals(e.getSite()))
-                    .count());
-        Assertions.assertEquals(2, entries.stream()
-                    .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                            .setId(SITE_2.toString())
-                            .build()
-                            .equals(e.getSite()))
-                    .count());
-    }
+        final Client replica1 = new Client("publicIp", "privateIp", "hostName", "url", "cert", BC_DAML, REPLICA_1_ZONE);
+        replica1.setId(REPLICA_1);
 
-    @Test
-    void deployParticipantWithoutClientJwt() throws Exception {
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/clients")
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_DAML_PARTICIPANT_NO_JWT))
-                .andExpect(status().isAccepted());
+        when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(replica1));
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_DAML.toString() + "/clients")
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
 
-        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
-        CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(0, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
-        Map<String, String> properties = request.getSpecification().getProperties().getValuesMap();
-        Assertions.assertEquals(2, properties.size());
-        Assertions.assertEquals(3, entries.size());
-        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
-        Assertions.assertEquals(1, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setId(SITE_1.toString())
-                        .build()
-                        .equals(e.getSite()))
-                .count());
-        Assertions.assertEquals(2, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setId(SITE_2.toString())
-                        .build()
-                        .equals(e.getSite()))
-                .count());
+        String body = result.getResponse().getContentAsString();
+        List<ClientController.ClientGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<ClientController.ClientGetResponse>>() {
+                });
+
+        ImmutableList<UUID> expected = ImmutableList.of(REPLICA_1);
+        Assertions.assertEquals(expected, res.stream().map(replicaGetResponse ->
+                                                                   replicaGetResponse.getId())
+                .collect(Collectors.toList()));
+        Assertions.assertEquals(1, res.size());
     }
 }

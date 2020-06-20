@@ -136,10 +136,18 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    if not zoneIds:
        raise Exception("No zones available to proceed with deployment.")
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
-   f = (numNodes - 1) / 3
-   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
+
+   client_zone_ids = []
+   num_participants = 0
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
-   response = conAdminRequest.createBlockchain(conId, siteIds, f, 0, blockchain_type.upper())
+
+   if blockchain_type.lower() == helper.TYPE_DAML:
+       num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
+       client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
+   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
+
+   response = conAdminRequest.createBlockchain(conId, siteIds, client_zone_ids, blockchain_type.upper())
+
    if "task_id" not in response:
        raise Exception("task_id not found in response to create blockchain.")
    taskId = response["task_id"]
@@ -154,10 +162,10 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
-      log.info("Annotating VMs with deployment context...")
-      blockchainDetails["nodes_type"] = infra.PRETTY_TYPE_COMMITTER
-      infra.giveDeploymentContext(blockchainDetails)
-      replica_details = blockchainDetails["replica_list"]
+      # log.info("Annotating VMs with deployment context...")
+      #blockchainDetails["nodes_type"] = infra.PRETTY_TYPE_COMMITTER
+      #infra.giveDeploymentContext(blockchainDetails)
+      replica_details = conAdminRequest.getReplicas(blockchainId)
 
       ethereum_replicas = []
       daml_committer_replicas = []
@@ -172,12 +180,9 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
       elif blockchain_type.lower() == helper.TYPE_DAML:
          daml_committer_replicas = [replica_entry for replica_entry in replica_details]
          success = verify_daml_committers_deployment(replica_details, credentials)
-
          if success:
-            num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
-            success, daml_participant_replicas = deploy_daml_participants(conAdminRequest, blockchainId, siteIds, credentials,
-                                                                          num_participants)
-
+            success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
+                                                                            num_participants)
       else:
          raise NotImplementedError("Deployment not supported for blockchain type: {}".format(blockchain_type))
 
@@ -205,8 +210,8 @@ def verify_ethereum_deployment(replica_details, credentials, blockchain_type, lo
     success = False
     try:
         for replica_entry in replica_details:
-            setUpPortForwarding(replica_entry["url"], credentials, blockchain_type, logDir)
-            host = replica_entry["ip"]
+            setUpPortForwarding(replica_entry["rpc_url"], credentials, blockchain_type, logDir)
+            host = replica_entry["private_ip"]
             helper.waitForDockerContainers(host, credentials["username"], credentials["password"], helper.TYPE_ETHEREUM)
             log.info("Ethereum node {} running successfully".format(host))
         log.info("All Ethereum nodes running successfully")
@@ -228,7 +233,7 @@ def verify_daml_committers_deployment(replica_details, credentials):
     success = False
     try:
         for replica_entry in replica_details:
-            host = replica_entry["ip"]
+            host = replica_entry["private_ip"]  # Assumption, peered network.
             helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
                                            helper.TYPE_DAML_COMMITTER)
             log.info("Committer node {} running successfully".format(host))
@@ -241,7 +246,7 @@ def verify_daml_committers_deployment(replica_details, credentials):
     return success
 
 
-def deploy_daml_participants(con_admin_request, blockchain_id, site_ids, credentials, num_participants=1):
+def validate_daml_participants(con_admin_request, blockchain_id, credentials, num_participants=1):
     """
     Deploys participants in the given DAML blockchain
     :param con_admin_request: REST requests helper object
@@ -252,44 +257,40 @@ def deploy_daml_participants(con_admin_request, blockchain_id, site_ids, credent
     :return: status, List of participant IPs
     """
 
-    log.info("Deploying {} participants for blockchain {}".format(num_participants, blockchain_id))
-    zone_ids = helper.distributeItemsRoundRobin(num_participants, site_ids)
-    response = con_admin_request.create_participant(blockchain_id, zone_ids)
-    task_id = response["task_id"]
-    success, response = helper.waitForTask(con_admin_request, task_id)
-
     participant_replicas = []
-    if success:
-        username = credentials["username"]
-        password = credentials["password"]
-        participant_details = con_admin_request.get_participant_details(blockchain_id)
-        participant_replicas = [participant_entry for participant_entry in participant_details]
-        try:
-            # Upload DAR and verification block
-            for participant_entry in participant_details:
-                public_ip = participant_entry["public_ip"]
-                helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
-                log.info("Participant node {} running successfully".format(public_ip))
+    username = credentials["username"]
+    password = credentials["password"]
+    participant_details = con_admin_request.get_participant_details(blockchain_id)
+    participant_replicas = [participant_entry for participant_entry in participant_details]
 
-                # Use port 80 for DAML instead of 443. LedgerApiServer is listening on 6865 over plain text
-                # Setting up port forwarding from 443 to 6865 results in the following exception
-                # INFO: Transport failed
-                # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
-                src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
-                helper.add_ethrpc_port_forwarding(public_ip, username, password, src_port=src_port, dest_port=6865)
-                log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
-                daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
-                log.info("Starting DAR upload verification test on participant {}".format(public_ip))
-                daml_helper.verify_ledger_api_test_tool(host=public_ip, port=str(src_port))
-                log.info("DAR upload and verification successful on participant {}".format(public_ip))
+    log.info(participant_replicas)
+    success = True
+    try:
+        # Upload DAR and verification block
+        for participant_entry in participant_details:
+            public_ip = participant_entry["private_ip"] # Assumption, peered network.
+            helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
+            log.info("Participant node {} running successfully".format(public_ip))
 
-        except Exception as e:
-            log.error(e)
-            log.error("Failed to deploy DAML participants")
-            success = False
+            # Use port 80 for DAML instead of 443. LedgerApiServer is listening on 6865 over plain text
+            # Setting up port forwarding from 443 to 6865 results in the following exception
+            # INFO: Transport failed
+            # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
+            src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
+            helper.add_ethrpc_port_forwarding(public_ip, username, password, src_port=src_port, dest_port=6865)
+            log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
+            daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
+            log.info("Starting DAR upload verification test on participant {}".format(public_ip))
+            daml_helper.verify_ledger_api_test_tool(host=public_ip, port=str(src_port))
+            log.info("DAR upload and verification successful on participant {}".format(public_ip))
 
-        # Deployment context
-        give_deployment_context_participants(blockchain_id, participant_details)
+    except Exception as e:
+        log.error(e)
+        log.error("Failed to validate DAML participants")
+        success = False
+
+    # Deployment context
+    # give_deployment_context_participants(blockchain_id, participant_details)
 
     return success, participant_replicas
 
@@ -374,16 +375,16 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
         with open(helper.REPLICAS_JSON_PATH, 'r') as replicas_file:
             replica_dict = json.load(replicas_file)
             if blockchain_type.lower() == helper.TYPE_ETHEREUM:
-                eth_ips = [replica["ip"] for replica in replica_dict[helper.TYPE_ETHEREUM]]
+                eth_ips = [replica["private_ip"] for replica in replica_dict[helper.TYPE_ETHEREUM]]
                 if eth_ips:
                     log.debug("Collecting support bundle from following ethereum nodes: {}".format(eth_ips))
                     helper.create_concord_support_bundle(eth_ips, helper.TYPE_ETHEREUM, log_dir)
             elif blockchain_type.lower() == helper.TYPE_DAML:
-                committers = [replica["ip"] for replica in replica_dict[helper.TYPE_DAML_COMMITTER]]
+                committers = [replica["private_ip"] for replica in replica_dict[helper.TYPE_DAML_COMMITTER]]
                 if committers:
                     log.debug("Collecting support bundle from following daml committer nodes: {}".format(committers))
                     helper.create_concord_support_bundle(committers, helper.TYPE_DAML_COMMITTER, log_dir)
-                participants = [replica["public_ip"] for replica in replica_dict[helper.TYPE_DAML_PARTICIPANT]]
+                participants = [replica["private_ip"] for replica in replica_dict[helper.TYPE_DAML_PARTICIPANT]]
                 if participants:
                     log.debug("Collecting support bundle from following daml participant nodes: {}".format(participants))
                     helper.create_concord_support_bundle(participants, helper.TYPE_DAML_PARTICIPANT, log_dir)

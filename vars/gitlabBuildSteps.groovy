@@ -163,7 +163,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "UiTests": [
-    "enabled": true,
+    "enabled": false,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py UiTests'

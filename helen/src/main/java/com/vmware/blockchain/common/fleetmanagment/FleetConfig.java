@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
 import io.grpc.ManagedChannel;
 
@@ -30,8 +30,8 @@ public class FleetConfig {
     }
 
     @Bean
-    ProvisioningServiceGrpc.ProvisioningServiceStub provisioningServiceStub() {
-        return ProvisioningServiceGrpc.newStub(provisioningServerChannel);
+    ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub provisioningServiceStub() {
+        return ProvisioningServiceV2Grpc.newStub(provisioningServerChannel);
     }
 
     @Bean

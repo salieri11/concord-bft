@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.blockchains.replicas;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -35,4 +36,7 @@ public class ReplicaService {
         return genericDao.get(id, Replica.class);
     }
 
+    public List<Replica> getReplicas(UUID id) {
+        return genericDao.getByParentId(id, Replica.class);
+    }
 }

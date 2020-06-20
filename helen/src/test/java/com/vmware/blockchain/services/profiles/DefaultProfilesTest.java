@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -33,10 +32,11 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.concord.Concord.Peer;
@@ -80,6 +80,9 @@ class DefaultProfilesTest {
     @MockBean
     ConcordService concordService;
 
+    @MockBean
+    ConnectionPoolManager connectionPoolManager;
+
     DefaultProfiles profiles;
 
     @Value("${ConcordAuthorities}")
@@ -92,6 +95,7 @@ class DefaultProfilesTest {
     private Organization organization;
     private User testUser;
     private Blockchain blockchain;
+    private List<Replica> replicas;
     private UUID uuid = UUID.fromString("c6b0f366-0884-4ab0-bedf-5fc1ed3c0d56");
 
     /**
@@ -111,10 +115,20 @@ class DefaultProfilesTest {
         blockchain = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("1", "2", "3", "4")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "c".concat(s), null))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, s, "c".concat(s), null))
                         .collect(Collectors.toList()))
                 .build();
         blockchain.setId(uuid);
+
+        replicas = Stream.of("1", "2", "3", "4").map(s -> {
+            var r = new Replica();
+            r.setPublicIp(s);
+            r.setPrivateIp(s);
+            r.setUrl(s);
+            r.setCert("c".concat(s));
+            r.setId(UUID.randomUUID());
+            return r;
+        }).collect(Collectors.toList());
 
         // our test user
         testUser = new User();
@@ -127,7 +141,8 @@ class DefaultProfilesTest {
 
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
                                        blockchainService, agreementService, serviceContext, replicaService,
-                                       concordService, ipList, rpcUrls, rpcCerts, true, null);
+                                       concordService, connectionPoolManager,
+                                       ipList, rpcUrls, rpcCerts, true, null);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
@@ -136,6 +151,9 @@ class DefaultProfilesTest {
         when(consortiumService.list()).thenReturn(Arrays.asList(consortium));
         when(organizationService.list()).thenReturn(Arrays.asList(organization));
         when(blockchainService.list()).thenReturn(Arrays.asList(blockchain));
+
+        when(replicaService.getReplicas(blockchain.getId())).thenReturn(replicas);
+
         when(userService.list()).thenReturn(Arrays.asList(testUser));
         profiles.initialize();
     }
@@ -154,25 +172,10 @@ class DefaultProfilesTest {
             return o;
         });
         when(blockchainService.list()).thenReturn(Collections.emptyList());
-        when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).then(in -> {
-            // use magic google Splitter to split, trim and convert to Lists and Maps.
-            String[] ips = ((String) in.getArgument(1)).split(",");
-            String[] urls = ((String) in.getArgument(2)).split(",");
-            String[] certs = ((String) in.getArgument(3)).split(",");
-            List<NodeEntry> entries = new ArrayList<>();
-            for (int i = 0; i < ips.length; i++) {
-                NodeEntry n = new NodeEntry();
-                n.setNodeId(UUID.randomUUID());
-                n.setIp(ips[i]);
-                // If we have a url, split at = and take the last part
-                n.setUrl(i >= urls.length ? "" : urls[i].split("=")[1]);
-                n.setCert(i >= certs.length ? "" : certs[i].split("=")[1]);
-                entries.add(n);
-            }
+        when(blockchainService.create(any(UUID.class), any(UUID.class), any(), any())).then(in -> {
 
             Blockchain b = Blockchain.builder()
-                .consortium(((Consortium) in.getArgument(0)).getId())
-                .nodeList(entries).build();
+                    .consortium(in.getArgument(0)).build();
             b.setId(uuid);
             return b;
         });
@@ -183,6 +186,8 @@ class DefaultProfilesTest {
             return u;
         });
 
+        when(replicaService.put(any())).then(in -> in.getArgument(0));
+
         List<Peer> peers = IntStream.range(0, 4)
                 .mapToObj(i -> Peer.newBuilder().setHostname("one").setAddress("1:2").build())
                 .collect(Collectors.toList());
@@ -190,8 +195,8 @@ class DefaultProfilesTest {
         profiles.initialize();
     }
 
-    private List<String> getList(Blockchain b, Function<NodeEntry, String> f) {
-        return b.getNodeList().stream().map(f).filter(s -> !StringUtils.isEmpty(s)).collect(Collectors.toList());
+    private List<String> getList(List<Replica> replicas, Function<Replica, String> f) {
+        return replicas.stream().map(f).filter(s -> !StringUtils.isEmpty(s)).collect(Collectors.toList());
     }
 
     @Test
@@ -205,9 +210,9 @@ class DefaultProfilesTest {
         Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
-        Assertions.assertEquals(ipList, getList(profiles.getBlockchain(), n -> n.getIp()));
-        Assertions.assertEquals(urlList, getList(profiles.getBlockchain(), n -> n.getUrl()));
-        Assertions.assertEquals(certList, getList(profiles.getBlockchain(), n -> n.getCert()));
+        Assertions.assertEquals(ipList, getList(profiles.getReplicas(), n -> n.getPrivateIp()));
+        Assertions.assertEquals(urlList, getList(profiles.getReplicas(), n -> n.getUrl()));
+        Assertions.assertEquals(certList, getList(profiles.getReplicas(), n -> n.getCert()));
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
@@ -216,7 +221,8 @@ class DefaultProfilesTest {
     void testProfileExistingNoBlockhain() {
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
                                        blockchainService, agreementService, serviceContext, replicaService,
-                                       concordService, ipList, rpcUrls, rpcCerts, false, null);
+                                       concordService, connectionPoolManager,
+                                       ipList, rpcUrls, rpcCerts, false, null);
         initProfilesExist();
         List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
         List<String> urlList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
@@ -232,7 +238,6 @@ class DefaultProfilesTest {
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
-
 
     @Test
     void testProfileEmpty() {
@@ -253,9 +258,9 @@ class DefaultProfilesTest {
         Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
-        Assertions.assertEquals(expectedIps, getList(profiles.getBlockchain(), n -> n.getIp()));
-        Assertions.assertEquals(urlList, getList(profiles.getBlockchain(), n -> n.getUrl()));
-        Assertions.assertEquals(certList, getList(profiles.getBlockchain(), n -> n.getCert()));
+        Assertions.assertEquals(expectedIps, getList(profiles.getReplicas(), n -> n.getPrivateIp()));
+        Assertions.assertEquals(urlList, getList(profiles.getReplicas(), n -> n.getUrl()));
+        // Assertions.assertEquals(certList, getList(profiles.getReplicas(), n -> n.getCert()));
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }

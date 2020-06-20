@@ -11,8 +11,6 @@ tags:
     description: User, Organization and Consortium Management
   - name: blockchains
     description: Blockchain Management
-  - name: clients
-    description: Client Management
   - name: contracts
     description: Contract Management
   - name: ethereum
@@ -56,52 +54,23 @@ paths:
                         - DAML
                         - HLF
                       description: Type of blockchain node
-                    node_list:
-                      deprecated: true
-                      description: Please use replica_list
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          node_id:
-                            type: string
-                            format: uuid
-                            description: Node ID
-                          ip:
-                            type: string
-                            description: IP address of node
-                          url:
-                            type: string
-                            description: EthRPC url of node
-                          cert:
-                            type: string
-                            description: SSL certificate to talk to ethrpc
-                          zone_id:
-                            type: string
-                            format: uuid
-                            description: Zone id this node is deployed in
-                    replica_list:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            format: uuid
-                            description: Replica ID
-                          ip:
-                            type: string
-                            description: IP address of replica
-                          url:
-                            type: string
-                            description: EthRPC url of replica
-                          cert:
-                            type: string
-                            description: SSL certificate to talk to ethrpc
-                          zone_id:
-                            type: string
-                            format: uuid
-                            description: Zone id this replica is deployed in
+                    blockchain_state:
+                      type: string
+                      enum:
+                        - ACTIVE
+                        - FAILED
+                        - INACTIVE
+                      description: State of blockchain
+                    version:
+                      type: string
+                      description: Version details
+                    created_by:
+                      type: string
+                      description: Name of the blockchain creator
+                    created:
+                      type: string
+                      format: date-time
+                      description: Timestamp when the blockchain was created.
     post:
       tags:
         - blockchains
@@ -120,26 +89,25 @@ paths:
                   type: string
                   format: uuid
                   description: ID of owning consortium
-                f_count:
-                  type: integer
-                  description: Number of f replicas, cluster size will be 3f + 2c + 1
-                c_count:
-                  type: integer
-                  description: Number of c replicas, cluster size will be 3f + 2c + 1
                 blockchain_type:
                   type: string
                   enum:
                     - ETHEREUM
                     - DAML
-                    - HLF
                   description: Type of blockchain node
-                zone_ids:
+                replica_zone_ids:
                   description: |
-                    List of zone IDs for replicas.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.
+                    List of zone IDs for replicas. Must contain 3f + 2c + 1 elements.
                   type: array
                   items:
                     type: string
                     format: uuid
+                client_nodes:
+                  description: |
+                    Client nodes details
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClientNode'
       responses:
         202:
           description: Returns the deployment task ID
@@ -321,6 +289,10 @@ paths:
                     public_ip:
                       type: string
                       description: Public IP address of replica
+                    private_ip:
+                      type: string
+                      format: ip
+                      description: Private IP
                     rpc_url:
                       type: string
                       description: Public url to replica API
@@ -978,51 +950,9 @@ paths:
 
   /blockchains/{bid}/clients:
     summary: Client GET/POST API
-    post:
-      tags:
-        - clients
-      summary: Create a new Client node
-      operationId: postClient
-      parameters:
-        - name: bid
-          required: true
-          in: path
-          description: Blockchain ID
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        description: RPC Request
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                zone_ids:
-                  type: array
-                  items:
-                    type: string
-                    format: uuid
-                  description: Zone IDs
-                client_jwt:
-                  type: string
-                  format: string
-                  description: Client JWT token
-      responses:
-        202:
-          description: Returns the deployment task ID
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  task_id:
-                    type: string
-                    format: uuid
-                    description: Task ID
     get:
       tags:
-        - clients
+        - blockchains
       summary: List all client nodes
       operationId: getClients
       parameters:
@@ -1043,6 +973,10 @@ paths:
                 items:
                   type: object
                   properties:
+                    id:
+                      type: string
+                      format: uuid
+                      description: Client Id
                     public_ip:
                       type: string
                       format: ip
@@ -1051,7 +985,7 @@ paths:
                       type: string
                       format: ip
                       description: Private IP
-                    host_name:
+                    name:
                       type: string
                       description: Host Name
                     url:
@@ -1064,16 +998,8 @@ paths:
                       type: string
                       format: uuid
                       description: Zone ID
-                    replica_type:
+                    auth_url_jwt:
                       type: string
-                      enum:
-                        - NONE
-                        - DAML_PARTICIPANT
-                      description: Type of replica
-                    blockchain_id:
-                      type: string
-                      format: uuid
-                      description: Blockchain ID
   /consortiums:
     summary: GetConsortium
     get:
@@ -1826,13 +1752,13 @@ components:
 
     # Swagger viewer does not display discriminated types correctly.  Temporarily changing this to allOf
     # just to get the fields listed
-#    Zone:
-#      type: object
-#      discriminator:
-#        propertyName: type
-#      oneOf:
-#        - $ref: '#/components/schemas/BaseZoneGet'
-#        - $ref: '#/components/schemas/OnPremZoneGet'
+    #    Zone:
+    #      type: object
+    #      discriminator:
+    #        propertyName: type
+    #      oneOf:
+    #        - $ref: '#/components/schemas/BaseZoneGet'
+    #        - $ref: '#/components/schemas/OnPremZoneGet'
 
     Zone:
       type: object
@@ -1997,7 +1923,7 @@ components:
           description: Address for the HTTP Host
           example: 1.2.3.4
         httpPort:
-          type: int
+          type: integer
           description: Port for the HTTP Host
           example: 80
         httpsHost:
@@ -2005,9 +1931,23 @@ components:
           description: Address for the HTTPS Host
           example: 1.2.3.4
         httpsPort:
-            type: int
-            description: Port for the HTTPS Host
-            example: 80
+          type: integer
+          description: Port for the HTTPS Host
+          example: 80
+
+    ClientNode:
+      description: Client Proxy information
+      type: object
+      properties:
+        zone_id:
+          type: string
+          format: uuid
+          description: ID of owning consortium
+        auth_url_jwt:
+          type: string
+          description: Username for credentials
+          example:
+            user@server.com
 
   responses:
     ErrorResponse:
@@ -2060,58 +2000,17 @@ components:
                 enum:
                   - ACTIVE
                   - INACTIVE
+                  - FAILED
                 description: Current state of blockchain
-              node_list:
-                deprecated: true
-                description: Please use replica_list
-                type: array
-                items:
-                  type: object
-                  properties:
-                    node_id:
-                      type: string
-                      format: uuid
-                      description: Node ID
-                    ip:
-                      type: string
-                      description: IP address of node
-                    url:
-                      type: string
-                      description: EthRPC url of node
-                    cert:
-                      type: string
-                      description: SSL certificate to talk to ethrpc
-                    zone_id:
-                      type: string
-                      format: uuid
-                      description: Deployment zone for this node
-              replica_list:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      format: uuid
-                      description: Replica ID
-                    ip:
-                      type: string
-                      description: IP address of replica
-                    url:
-                      type: string
-                      description: EthRPC url of replica
-                    cert:
-                      type: string
-                      description: SSL certificate to talk to ethrpc
-                    zone_id:
-                      type: string
-                      format: uuid
-                      description: Deployment zone for this replica
-              metadata:
-                type: object
-                additionalProperties:
-                  type: string
-
+              version:
+                type: string
+                description: Provides version information of the blockchain
+              created_by:
+                type: string
+                description: User alias who created the blockchain
+              created:
+                type: string
+                description: Timestamp when created.
 
   requestBodies:
     CreateZoneRequest:
@@ -2137,4 +2036,3 @@ components:
       schema:
         type: string
         format: uuid
-

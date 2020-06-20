@@ -4,13 +4,15 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.deployment.v1.BlockchainType.DAML;
+import static com.vmware.blockchain.deployment.v1.BlockchainType.ETHEREUM;
 import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
-import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
-import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainGetResponse;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPatch;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPost;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,10 +20,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,35 +35,32 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
-import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
+import com.vmware.blockchain.deployment.v1.DeploymentRequest;
+import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
+import com.vmware.blockchain.deployment.v1.DeploymentSpec;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.NodeType;
+import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.PlacementSpecification;
-import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
-import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
 import com.vmware.blockchain.deployment.v1.Properties;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningServiceStub;
-import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
+import com.vmware.blockchain.deployment.v1.Sites;
+import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
-import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
-import com.vmware.blockchain.services.blockchains.replicas.Replica.ReplicaType;
+import com.vmware.blockchain.services.blockchains.clients.ClientService;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
-import com.vmware.blockchain.services.clients.Client.ClientType;
-import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
@@ -70,12 +69,6 @@ import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-
 /**
  * Controller to create and list blockchains.
  */
@@ -83,132 +76,22 @@ import lombok.Setter;
 public class BlockchainController {
     private static final Logger logger = LogManager.getLogger(BlockchainController.class);
 
-    /**
-     * The type of sites we want in the deployment.
-     */
-    public enum DeploymentType {
-        FIXED,
-        UNSPECIFIED
-    }
-
-    private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
-            ImmutableMap.of(FIXED, Type.FIXED,
-                            UNSPECIFIED, Type.UNSPECIFIED);
-
-    private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
-            ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHEREUM,
-                    BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
-                    BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
-
-    @Getter
-    @Setter
-    @Valid
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    static class BlockchainPost {
-        @NotNull(message = "Consortium ID cannot be empty")
-        private UUID consortiumId;
-        @JsonProperty("f_count")
-        private Integer fCount;
-        @JsonProperty("c_count")
-        private Integer cCount;
-        private BlockchainType blockchainType;
-        private List<UUID> zoneIds;
-    }
-
-    @Getter
-    @Setter
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    static class BlockchainPatch {
-        private String ipList;
-        private String rpcUrls;
-        private String rpcCerts;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    // This represents both the old node entry, and the new replica entry
-    static class BlockchainReplicaBase {
-        private String ip;
-        private String url;
-        private String cert;
-        private UUID zoneId;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @Deprecated
-    static class BlockchainNodeEntry extends BlockchainReplicaBase {
-        UUID nodeId;
-
-        public BlockchainNodeEntry(NodeEntry n) {
-            super(n.getIp(), n.getUrl(), n.getCert(), n.getZoneId());
-            nodeId = n.getNodeId();
-        }
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    static class BlockchainReplicaEntry extends BlockchainReplicaBase {
-        UUID replicaId;
-
-        public BlockchainReplicaEntry(NodeEntry n) {
-            super(n.getIp(), n.getUrl(), n.getCert(), n.getZoneId());
-            replicaId = n.getNodeId();
-        }
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    static class BlockchainGetResponse {
-        private UUID id;
-        private UUID consortiumId;
-        private BlockchainType blockchainType;
-        private Blockchain.BlockchainState blockchainState;
-        @Deprecated
-        private List<BlockchainNodeEntry> nodeList;
-        private List<BlockchainReplicaEntry> replicaList;
-        private Map<String, String> metadata;
-
-        public BlockchainGetResponse(Blockchain b) {
-            this.id = b.getId();
-            this.consortiumId = b.getConsortium();
-            this.blockchainType = b.getType() == null ? BlockchainType.ETHEREUM : b.getType();
-            this.blockchainState = b.getState() == null ? Blockchain.BlockchainState.ACTIVE : b.getState();
-            // For the moment, return both node_list and replica_list
-            this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
-            this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
-            this.metadata = b.getMetadata();
-        }
-    }
-
-    /**
-     * Response from blockchain post, with a task id.
-     */
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class BlockchainTaskResponse {
-        private UUID taskId;
-    }
+    private static final Map<BlockchainType,
+            com.vmware.blockchain.deployment.v1.BlockchainType> enumMapForBlockchainType =
+            ImmutableMap.of(BlockchainType.ETHEREUM, ETHEREUM,
+                    BlockchainType.DAML, DAML);
 
     private BlockchainService blockchainService;
     private OrganizationService organizationService;
-
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
-    private ProvisioningServiceStub client;
+    private ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub provisioningClient;
     private OperationContext operationContext;
     private ReplicaService replicaService;
+    private ClientService clientService;
     private ZoneService zoneService;
-    private ConcordConfiguration concordConfiguration;
+    private ConnectionPoolManager connectionPoolManager;
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
@@ -216,21 +99,23 @@ public class BlockchainController {
                                 AuthHelper authHelper,
                                 DefaultProfiles defaultProfiles,
                                 TaskService taskService,
-                                ProvisioningServiceStub client,
+                                ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub provisioningClient,
                                 OperationContext operationContext,
                                 ReplicaService replicaService,
+                                ClientService clientService,
                                 ZoneService zoneService,
-                                ConcordConfiguration concordConfiguration) {
+                                ConnectionPoolManager connectionPoolManager) {
         this.blockchainService = blockchainService;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
-        this.client = client;
+        this.provisioningClient = provisioningClient;
         this.operationContext = operationContext;
         this.replicaService = replicaService;
+        this.clientService = clientService;
         this.zoneService = zoneService;
-        this.concordConfiguration = concordConfiguration;
+        this.connectionPoolManager = connectionPoolManager;
     }
 
     /**
@@ -242,7 +127,7 @@ public class BlockchainController {
             @RequestParam(name = "all", required = false, defaultValue = "false") String all
     ) {
         boolean getAllBlockchains = Boolean.valueOf(all);
-        List<Blockchain> chains = Collections.emptyList();
+        List<Blockchain> chains;
         // if we are operator, we can get all blockchains.
         if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
             chains = blockchainService.list();
@@ -273,6 +158,10 @@ public class BlockchainController {
     @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         Blockchain b = blockchainService.get(id);
+        // If we are to populate nodes.
+        //List<NodeInterface> nodes = new ArrayList<>();
+        //nodes.addAll(replicaService.getReplicas(id));
+        //nodes.addAll(clientService.getClientsByBlockchainId(id));
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
@@ -288,77 +177,27 @@ public class BlockchainController {
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@Valid @RequestBody BlockchainPost body)
             throws Exception {
 
+        Organization organization = organizationService.get(authHelper.getOrganizationId());
+
         // Determine whether or not we can create a new blockchain
-        if (authHelper.getUpdateChains().size() >= getMaxChains(authHelper.getOrganizationId())) {
-            logger.info("Request for too many blockdhains: current {}, limit {}",
-                        authHelper.getUpdateChains().size(),
-                        getMaxChains(authHelper.getOrganizationId()));
+        var blockchainCount = getMaxChains(organization);
+        if (authHelper.getUpdateChains().size() >= blockchainCount) {
+            logger.info("Request for too many blockchains: current {}, limit {}",
+                        authHelper.getUpdateChains().size(), blockchainCount);
             throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_LIMIT, authHelper.getUpdateChains().size());
         }
-
-        final int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
-        logger.info("Creating new blockchain. Cluster size {}", clusterSize);
+        if (body.getBlockchainType() == null) {
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST, "Invalid blockchain type.");
+        }
+        // Validate mandatory field
+        // change to fixed list
+        // logger.info("Creating new blockchain. Cluster size {}", clusterSize);
 
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
 
-        // Backwards compatibility: If no blockchain_type is set, use ETHEREUM
-        BlockchainType blockchainType =
-                body.getBlockchainType() == null ? BlockchainType.ETHEREUM : body.getBlockchainType();
-
-        /*
-        zoneIds should not be null
-        Number of zoneIds should be equal to 3F + 2C + 1
-         */
-        if (body.getZoneIds() == null
-                || body.getZoneIds().size() != clusterSize) {
-            logger.info("Number of zones not equal to cluster size");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
-        }
-
-        DeploymentSessionIdentifier dsId;
-
-        Organization org = organizationService.get(authHelper.getOrganizationId());
-
-        // true if we are deploying a DAML committer, else false
-        // this is for DAML v2 deployment
-        boolean deployDamlCommitter;
-
-        if (blockchainType == BlockchainType.DAML) {
-            if (org.getOrganizationProperties() != null
-                && org.getOrganizationProperties().containsKey("DAML_V0")
-                && org.getOrganizationProperties().get("DAML_V0").equals("enabled")) {
-                deployDamlCommitter = false;
-            } else {
-                deployDamlCommitter = true;
-            }
-        } else {
-            deployDamlCommitter = false;
-        }
-
-
-        dsId = createFixedSizeCluster(client, clusterSize,
-                enumMap.get(FIXED),
-                body.getZoneIds(),
-                blockchainType,
-                body.consortiumId,
-                deployDamlCommitter);
-
-        ClientType clientType = ClientType.NONE;
-        ReplicaType replicaType = ReplicaType.NONE;
-
-        logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
-        BlockchainObserver bo =
-                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), body.getConsortiumId(), null, blockchainType, replicaType,
-                                       null);
-        // Watch for the event stream
-        StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .setSession(dsId)
-                .build();
-        client.streamClusterDeploymentSessionEvents(request, bo);
+        createDeployment(body, organization, task);
         logger.info("Deployment scheduled");
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
@@ -402,100 +241,131 @@ public class BlockchainController {
         }
     }
 
+    // --------------------- Private methods -------------------- //
+
+
     /**
      * The actual call which will contact server and add the model request.
      */
-    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
-                                                               int clusterSize,
-                                                               PlacementSpecification.Type placementType,
-                                                               List<UUID> zoneIds,
-                                                               BlockchainType blockchainType,
-                                                               UUID consortiumId,
-                                                               boolean deployDamlCommitter) throws Exception {
-        List<Entry> list;
-        if (zoneIds.size() != clusterSize) {
-            logger.info("Number of zones not equal to cluster size");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+    private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
+        var zoneIds = body.getReplicaZoneIds();
+
+        NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
+        Properties.Builder basePropBuilder = Properties.newBuilder();
+        if (organization.getOrganizationProperties() != null) {
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DOCKER_IMAGE_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.IMAGE_TAG.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_DOCKER_IMAGE_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_TEMPLATE_ID_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.TEMPLATE_ID.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_TEMPLATE_ID_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_GENERATE_PASSWORD)) {
+                basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_ENABLE_BFT_CLIENT)) {
+                basePropBuilder.putValues("enable-bft",
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_ENABLE_BFT_CLIENT));
+            }
         }
-        list = zoneIds.stream()
+
+        body.getReplicaZoneIds()
+                .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                                                .setType(NodeType.REPLICA)
+                                                                .setNodeId(UUID.randomUUID().toString())
+                                                                .setSite(
+                                                                        OrchestrationSiteIdentifier.newBuilder()
+                                                                                .setId(k.toString()).build())));
+
+        if (body.getClientNodes() != null) {
+            body.getClientNodes()
+                    .forEach(k -> {
+                        Properties.Builder propBuilder = Properties.newBuilder();
+                        if (!Strings.isNullOrEmpty(k.getAuthUrlJwt())) {
+                            propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
+                                                  k.getAuthUrlJwt());
+                        }
+                        nodeAssignment.addEntries(NodeAssignment.Entry
+                                                          .newBuilder()
+                                                          .setType(NodeType.CLIENT)
+                                                          .setNodeId(UUID.randomUUID().toString())
+                                                          .setSite(
+                                                                  OrchestrationSiteIdentifier
+                                                                          .newBuilder()
+                                                                          .setId(k.getZoneId().toString())
+                                                                          .build())
+                                                          .setProperties(propBuilder));
+                    });
+
+            zoneIds.addAll(body.getClientNodes().stream().map(k -> k.getZoneId()).collect(Collectors.toList()));
+        }
+
+        var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
+
+        var sitesInfo = zoneIds.stream()
+                .distinct() // Until prov service fixes it.
                 .map(zoneService::get)
-                .map(z -> Entry.newBuilder()
-                        .setType(placementType)
-                        .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                .setId(z.getId().toString())
-                                .build())
-                        .setSiteInfo(toInfo(z))
+                .map(z -> OrchestrationSite.newBuilder()
+                        .setInfo(toInfo(z))
+                        .setId(OrchestrationSiteIdentifier.newBuilder()
+                                       .setId(z.getId().toString())
+                                       .build())
                         .build())
                 .collect(Collectors.toList());
 
-        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
-                : enumMapForBlockchainType.get(blockchainType);
-
-        ConcordModelSpecification spec;
-
-        logger.info("Concord version in Blockchain Controller {}", concordConfiguration.getVersion());
-
-        if (deployDamlCommitter) {
-            var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
-                    .NodeType.DAML_COMMITTER);
-
-            spec = ConcordModelSpecification.newBuilder()
-                    .setVersion(concordConfiguration.getVersion())
-                    .setTemplate(concordConfiguration.getTemplate())
-                    .addAllComponents(components)
-                    .setBlockchainType(blockChainType)
-                    .setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER)
-                    .build();
-        } else {
-            var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
-
-            spec = ConcordModelSpecification.newBuilder()
-                    .setVersion(concordConfiguration.getVersion())
-                    .setTemplate(concordConfiguration.getTemplate())
-                    .addAllComponents(components)
-                    .setBlockchainType(blockChainType)
-                    .setNodeType(ConcordModelSpecification.NodeType.NONE)
-                    .build();
-        }
-
-        var genesis = ConcordConfiguration.getGenesisObject();
-        var placementSpec = PlacementSpecification.newBuilder()
-                .addAllEntries(list)
+        var deploymentSpec = DeploymentSpec.newBuilder()
+                .setConsortiumId(body.getConsortiumId().toString())
+                .setBlockchainType(blockChainType)
+                .setSites(Sites.newBuilder().addAllInfoList(sitesInfo).build())
+                .setNodeAssignment(nodeAssignment)
+                //.putAllNodeProperties()
+                .setProperties(basePropBuilder)
                 .build();
 
-        Map<String, String> properties = new HashMap<>();
-
-        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
-                .setModel(spec)
-                .setPlacement(placementSpec)
-                .setGenesis(genesis)
-                .setConsortium(consortiumId.toString())
-                .setProperties(
-                        Properties.newBuilder()
-                                .putAllValues(properties)
-                                .build()
-                )
-                .build();
-
-        var request = CreateClusterRequest.newBuilder()
+        var request = DeploymentRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder()
-                        .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
-                .setSpecification(deploySpec)
+                                   .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
+                .setSpec(deploymentSpec)
                 .build();
 
         // Check that the API can be serviced normally after service initialization.
-        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
-        return promise.get();
+        var promise = new CompletableFuture<DeploymentRequestResponse>();
+        provisioningClient.createDeployment(request, FleetUtils.blockedResultObserver(promise));
+        String dsId = promise.get().getId();
+        logger.info("Deployment started, id {} for the consortium id {}", dsId, body.getConsortiumId());
+
+        Blockchain rawBlockchain = new Blockchain();
+        rawBlockchain.setType(body.getBlockchainType());
+        rawBlockchain.setConsortium(body.getConsortiumId());
+
+        BlockchainObserver bo =
+                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, clientService,
+                                       taskService,
+                                       connectionPoolManager,
+                                       task.getId(), nodeAssignment.build(),
+                                       rawBlockchain);
+        // Watch for the event stream
+        StreamDeploymentSessionEventRequest streamRequest = StreamDeploymentSessionEventRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder()
+                                   .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
+                .setSessionId(dsId)
+                .build();
+        provisioningClient.streamDeploymentSessionEvents(streamRequest, bo);
     }
 
-    private int getMaxChains(UUID orgId) {
+    private int getMaxChains(Organization organization) {
         // admins can create any number
         if (authHelper.isSystemAdmin()) {
             return Integer.MAX_VALUE;
         }
 
-        Organization organization = organizationService.get(orgId);
         // default to one
         int m = 1;
         if (organization.getOrganizationProperties() != null) {

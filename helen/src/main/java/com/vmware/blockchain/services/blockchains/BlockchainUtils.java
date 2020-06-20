@@ -52,11 +52,18 @@ public class BlockchainUtils {
     private static String lintEndpoint;
     private static String lintAuthBearer;
 
+    private static String wavefrontEndpoint;
+    private static String wavefrontToken;
+
     @Autowired
     public BlockchainUtils(@Value("${lint.logging.endpoint}") String lintEndpoint,
-                           @Value("${lint.logging.authbearer}") String lintAuthBearer) {
+                           @Value("${lint.logging.authbearer}") String lintAuthBearer,
+                           @Value("${default.wavefront.endpoint:}") String wavefrontEndpoint,
+                           @Value("${default.wavefront.token:}") String wavefrontToken) {
         BlockchainUtils.lintEndpoint = lintEndpoint;
         BlockchainUtils.lintAuthBearer = lintAuthBearer;
+        BlockchainUtils.wavefrontEndpoint = wavefrontEndpoint;
+        BlockchainUtils.wavefrontToken = wavefrontToken;
     }
 
     private static ImmutableMap<Type, OrchestrationSiteInfo.Type> typeMap =
@@ -103,6 +110,12 @@ public class BlockchainUtils {
             wavefront = Wavefront.newBuilder()
                     .setUrl(wf.getUrl())
                     .setToken(wf.getToken())
+                    .build();
+        } else {
+            // Hack to default to our SRE wavefront.
+            wavefront = Wavefront.newBuilder()
+                    //.setUrl(wavefrontEndpoint)
+                    //.setToken(wavefrontToken)
                     .build();
         }
 

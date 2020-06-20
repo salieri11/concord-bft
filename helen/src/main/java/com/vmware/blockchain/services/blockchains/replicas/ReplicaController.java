@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.blockchains.replicas;
 
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +19,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +37,6 @@ import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
@@ -58,6 +61,7 @@ public class ReplicaController {
     static Logger logger = LogManager.getLogger(ReplicaController.class);
 
     private BlockchainService blockchainService;
+    private ReplicaService replicaService;
     private ConsortiumService consortiumService;
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
@@ -67,6 +71,7 @@ public class ReplicaController {
 
     @Autowired
     public ReplicaController(BlockchainService blockchainService,
+                             ReplicaService replicaService,
                              ConsortiumService consortiumService,
                              AuthHelper authHelper,
                              DefaultProfiles defaultProfiles,
@@ -74,6 +79,7 @@ public class ReplicaController {
                              OperationContext operationContext,
                              ConcordService concordService) {
         this.blockchainService = blockchainService;
+        this.replicaService = replicaService;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
@@ -133,7 +139,7 @@ public class ReplicaController {
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas"})
     @PreAuthorize("@authHelper.canAccessChain(#bid)")
     public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws Exception {
-        List<Replica> replicas = blockchainService.getReplicas(bid);
+        List<Replica> replicas = replicaService.getReplicas(bid);
         if (replicas.isEmpty()) {
             // empty replica map is either old Blockchain instance, or blockchain not found.
             throw new NotFoundException(ErrorCode.NOT_FOUND);
@@ -144,21 +150,17 @@ public class ReplicaController {
                     .collect(Collectors.toList());
         }
 
-        // Create a map of private IP to replica instance.
-        Map<String, Replica> ipToReplica =
-                replicas.stream().collect(Collectors.toMap(r -> r.getPrivateIp(), Function.identity()));
-
         Blockchain bc = blockchainService.get(bid);
 
         // Store the results in a tree map, so the order is always the same.
         // Sort (arbitrarily) by hostname
         SortedMap<String, ReplicaGetResponse> response = new TreeMap<>();
 
-        // TODO do this check based on Site Type.
         if (bc.getType() == Blockchain.BlockchainType.DAML) {
             Integer i = 0;
-            for (Replica each: replicas) {
-                String replicaName = each.getHostName() + "" + i++;
+            for (Replica each : replicas) {
+                String replicaName = (Strings.isNullOrEmpty(each.getHostName()) ? "Committer" : each.getHostName())
+                                     + "" + i++;
                 response.put(replicaName, ReplicaGetResponse.builder()
                         .id(each.getId())
                         .name(replicaName)
@@ -171,52 +173,34 @@ public class ReplicaController {
                         .status("live")
                         .build());
             }
-        } else {
-
-            List<Peer> peers = concordService.getMembers(bid);
-
-            // We need to take into account that one of peers returns localhost for the ip.
-            Peer unprocessed = null;
-            for (Peer peer : peers) {
-                String rIp = peer.getAddress().split(":")[0];
-                Replica r = ipToReplica.get(rIp);
-                if (r == null) {
-                    // Shouldn't be null, but log a warning if it is.
-                    logger.info("Could not find replica for peer ip {}", peer.getAddress().split(":")[0]);
-                    unprocessed = peer;
-                    continue;
-                }
-                response.put(peer.getHostname(), ReplicaGetResponse.builder()
-                        .id(r.getId())
-                        .name(peer.getHostname())
-                        .privateIp(peer.getAddress())
-                        .publicIp(r.getPublicIp())
-                        .rpcUrl(r.getUrl())
-                        .zoneId(r.getZoneId())
-                        .millisSinceLastMessage(peer.getMillisSinceLastMessage())
-                        .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
-                        .status(peer.getStatus())
-                        .build());
-                ipToReplica.remove(rIp);
+        } else if (bc.getType() == Blockchain.BlockchainType.ETHEREUM) {
+            // TODO do this check based on Site Type.
+            List<Peer> peers = new ArrayList<>();
+            try {
+                peers = concordService.getMembers(bid);
+            } catch (Exception e) {
+                logger.warn("Unable to get concord connection for blockchain {]", bid);
             }
-            // now handle the one left over, if there is one
-            if (unprocessed != null) {
-                final Peer peer = unprocessed;
-                ipToReplica.entrySet().stream().forEach(e -> {
-                    String rIp = e.getKey();
-                    Replica r = e.getValue();
-                    response.put(peer.getHostname(), ReplicaGetResponse.builder()
-                            .id(r.getId())
-                            .name(peer.getHostname())
-                            .privateIp(rIp)
-                            .publicIp(r.getPublicIp())
-                            .rpcUrl(r.getUrl())
-                            .zoneId(r.getZoneId())
-                            .millisSinceLastMessage(peer.getMillisSinceLastMessage())
-                            .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
-                            .status(peer.getStatus())
-                            .build());
-                });
+
+            Map<String, Peer> ipToPeer =
+                    peers.stream().collect(Collectors.toMap(p -> p.getAddress().split(":")[0], Function.identity()));
+
+            int i = 0;
+            for (Replica each : replicas) {
+                String replicaName = (Strings.isNullOrEmpty(each.getHostName()) ? "Committer" : each.getHostName())
+                                     + "" + i++;
+                Peer value = ipToPeer.get(each.getPublicIp());
+                response.put(replicaName, ReplicaGetResponse.builder()
+                        .id(each.getId())
+                        .name(replicaName)
+                        .privateIp(each.privateIp)
+                        .publicIp(each.publicIp)
+                        .rpcUrl(each.getUrl())
+                        .zoneId(each.getZoneId())
+                        .millisSinceLastMessage(value != null ? value.getMillisSinceLastMessage() : 0)
+                        .millisSinceLastMessageThreshold(value != null ? value.getMillisSinceLastMessageThreshold() : 1)
+                        .status(value != null ? value.getStatus() : "live")
+                        .build());
             }
         }
         return new ResponseEntity<>(response.values(), HttpStatus.OK);
@@ -284,7 +268,7 @@ public class ReplicaController {
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<ReplicaGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
                                                                                @PathVariable UUID replicaId) {
-        Optional<Replica> replicaOpt = blockchainService.getReplicas(bid).stream()
+        Optional<Replica> replicaOpt = replicaService.getReplicas(bid).stream()
                                                         .filter(r -> r.getId().equals(replicaId)).findFirst();
         if (replicaOpt.isEmpty()) {
             throw new NotFoundException(ErrorCode.NOT_FOUND);
@@ -307,6 +291,4 @@ public class ReplicaController {
         task = taskService.put(task);
         return task;
     }
-
-
 }
