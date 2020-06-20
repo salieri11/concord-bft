@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -57,7 +58,8 @@ public class ComputeHelper {
 
         var modelSpecBuilder = ConcordModelSpecification.newBuilder()
                 .addAllComponents(model)
-                .setTemplate(bootstrapComponent.template)
+                .setTemplate(node.getProperties().getValuesMap().getOrDefault(DeploymentAttributes.TEMPLATE_ID.name(),
+                        bootstrapComponent.template))
                 .setBlockchainType(ConcordModelSpecification.BlockchainType.valueOf(blockchainType.name()));
 
         if (blockchainType == BlockchainType.DAML) {
