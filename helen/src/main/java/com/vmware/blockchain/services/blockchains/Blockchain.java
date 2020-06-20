@@ -30,12 +30,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Blockchain extends AbstractEntity {
 
+    static String BLOCKCHAIN_VERSION = "version";
+    static String DAML_SDK_VERSION = "daml-sdk-version";
+
     /**
      * A node entry.
      */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @Deprecated
     public static class NodeEntry {
         UUID nodeId;
         String ip;
@@ -43,25 +47,12 @@ public class Blockchain extends AbstractEntity {
         String url;
         String cert;
         UUID zoneId;
-
-        /**
-         * Constructor used by BlockchainObserver and in tests.
-         */
-        public NodeEntry(UUID nodeId, String ip, String url, String cert, UUID zoneId) {
-            this.nodeId = nodeId;
-            this.ip = ip;
-            // Need to have a hostname.  Use the IP address in this case.
-            this.hostName = ip;
-            this.url = url;
-            this.cert = cert;
-            this.zoneId = zoneId;
-        }
     }
 
     /**
      * Enum to determine blockchain type.
      */
-    public static enum BlockchainType {
+    public enum BlockchainType {
         ETHEREUM,
         DAML,
         HLF
@@ -70,11 +61,11 @@ public class Blockchain extends AbstractEntity {
     /**
      * Enum to denote current blockchain state.
      */
-    public static enum BlockchainState {
+    public enum BlockchainState {
         INACTIVE,
-        ACTIVE
+        ACTIVE,
+        FAILED
     }
-
 
     @LinkedEntityId
     UUID consortium;
@@ -83,8 +74,33 @@ public class Blockchain extends AbstractEntity {
 
     BlockchainState state;
 
+    @Deprecated
     List<NodeEntry> nodeList;
 
     // Store software versions for blockchain
+    @Builder.Default
     Map<String, String> metadata = new HashMap<>();
+
+    // Do not refer or use this in consumer API.
+    Map<String, List<String>> rawResourceInfo;
+
+    /**
+     * Get the version string for the blockchain.
+     * @return version.
+     */
+    public String getBlockchainVersionString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Blockchain Version: ");
+
+        // For backward data compatibility.
+        if (metadata != null) {
+            sb.append(metadata.getOrDefault(BLOCKCHAIN_VERSION, "NA"));
+
+            if (type == BlockchainType.DAML) {
+                sb.append(", DAML SDK Version: ");
+                sb.append(metadata.getOrDefault(DAML_SDK_VERSION, "NA"));
+            }
+        }
+        return sb.toString();
+    }
 }

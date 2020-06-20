@@ -26,8 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
-import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
@@ -38,7 +37,7 @@ import com.vmware.concord.Concord;
 public class MemberList extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(MemberList.class);
-    private BlockchainService blockchainService;
+    private ReplicaService replicaService;
 
     // This is a hack to allow us to pass request details though the sendToconcordAndBuildHelenResponse flow, without
     // including them in the communication with concord.
@@ -46,9 +45,9 @@ public class MemberList extends ConcordServlet {
 
     @Autowired
     public MemberList(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
-            BlockchainService blockchainService) {
+                      ReplicaService replicaService) {
         super(connectionPoolManager, defaultProfiles);
-        this.blockchainService = blockchainService;
+        this.replicaService = replicaService;
 
     }
 
@@ -85,19 +84,19 @@ public class MemberList extends ConcordServlet {
      * @return Response in JSON format
      */
     public JSONAware parseToJson(UUID blockchain, Concord.ConcordResponse concordResponse) {
-        // Extract the peer response from the concord reponse envelope.
+        // Extract the peer response from the concord response envelope.
         Concord.PeerResponse peerResponse = concordResponse.getPeerResponse();
 
         // Read list of peer objects from the peer response object.
         List<Concord.Peer> peerList = peerResponse.getPeerList();
         JSONArray peerArr = new JSONArray();
-        Blockchain bc = blockchainService.get(blockchain);
+        var replicas = replicaService.getReplicas(blockchain);
 
 
         Map<String, String> rpcUrls =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName().toString(), n -> n.getUrl()));
+                replicas.stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getUrl()));
         Map<String, String> rpcCerts =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName().toString(), n -> n.getCert()));
+                replicas.stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getCert()));
 
         // Iterate through each peer and construct
         // a corresponding JSON object

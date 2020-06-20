@@ -4,13 +4,10 @@
 
 package com.vmware.blockchain.connections;
 
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +16,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,8 +24,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
-import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.profiles.Consortium;
 
 /**
  * Connection pool unit tests.
@@ -39,17 +33,12 @@ import com.vmware.blockchain.services.profiles.Consortium;
 @SpringBootTest(classes = {ConcordProperties.class})
 public class ConnectionPoolTest {
 
+    private final Logger log = LogManager.getLogger(ConnectionPoolTest.class);
+
     private ConcordConnectionPool pool;
 
     @Autowired
     private ConcordProperties config;
-
-    @Mock
-    private Consortium consortium;
-
-    private Blockchain blockchain;
-
-    private final Logger log = LogManager.getLogger(ConnectionPoolTest.class);
 
     /**
      * Initialize mocks.
@@ -57,17 +46,8 @@ public class ConnectionPoolTest {
     @BeforeEach
     void setup() throws IOException {
         MockitoAnnotations.initMocks(this);
-        when(consortium.getId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
-        when(consortium.getConsortiumName()).thenReturn("Test Name");
-
-        blockchain = Blockchain.builder()
-                .consortium(consortium.getId())
-                .nodeList(Stream.of("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", null))
-                        .collect(Collectors.toList()))
-                .build();
-        blockchain.setId(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"));
-        pool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
+        pool = new ConcordConnectionPool(Arrays.asList("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458"),
+                                         ConnectionType.Mock).initialize(config);
     }
 
 
@@ -93,7 +73,8 @@ public class ConnectionPoolTest {
         MockConnection conn = (MockConnection) pool.getConnection();
         Assertions.assertNotNull(conn);
         Assertions.assertEquals(1,
-                blockchain.getNodeList().stream().filter(n -> n.getIp().equals(conn.getIpStr())).count());
+                                Arrays.asList("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458").stream()
+                                        .filter(n -> n.equals(conn.getIpStr())).count());
         if (conn != null) {
             pool.putConnection(conn);
         }
@@ -109,9 +90,10 @@ public class ConnectionPoolTest {
     @Test
     public void testRoundRobin() throws IllegalStateException, IOException, InterruptedException {
         // copy of the ip list we can modify
-        List<String> ips = blockchain.getNodeList().stream().map(n -> n.getIp()).collect(Collectors.toList());
+        List<String> ips = new ArrayList<>(Arrays.asList("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458"));
+        int n = ips.size();
         // if we call this
-        for (int i = 0; i < blockchain.getNodeList().size(); i++) {
+        for (int i = 0; i < n; i++) {
             MockConnection conn = (MockConnection) pool.getConnection();
             ips.remove(conn.getIpStr());
         }
@@ -121,7 +103,9 @@ public class ConnectionPoolTest {
 
     @Test
     public void testCloseAll() throws IOException {
-        ConcordConnectionPool tPool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
+        ConcordConnectionPool tPool = new ConcordConnectionPool(Arrays.asList("ip1:5458", "ip2:5458", "ip3:5458",
+                                                                              "ip4:5458"),
+                                                                ConnectionType.Mock).initialize(config);
         Assertions.assertTrue(tPool.isInitialized());
         tPool.closeAll();
         Assertions.assertFalse(tPool.isInitialized());

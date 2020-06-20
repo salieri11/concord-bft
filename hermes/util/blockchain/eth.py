@@ -51,13 +51,15 @@ def getEthrpcNodes(request, blockchainId=None):
       blockchains = request.getBlockchains()
       blockchainId = blockchains[0]["id"]
 
-   result = request.getBlockchainDetails(blockchainId)
+   replicas = request.getReplicas(blockchainId, certs=True)
 
-   if not result["node_list"]:
+   # result = request.getBlockchainDetails(blockchainId)
+
+   if not replicas:
       raise Exception("No ethrpc nodes were returned by Helen.")
 
-   for m in result["node_list"]:
-      if m["url"]:
+   for m in replicas:
+      if m["rpc_url"]:
          members.append(m)
       else:
          raise Exception("Helen returned a node with an empty url.")
@@ -349,7 +351,7 @@ def getEthrpcApiUrl(request, blockchainId, useITApprovedPort=False, scheme=None)
    '''
    ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
    node = random.choice(ethrpcNodes)
-   url = node["url"]
+   url = node["rpc_url"]
 
    if useITApprovedPort:
       url = util.helper.replaceUrlParts(url, newPort=itApprovedPort)

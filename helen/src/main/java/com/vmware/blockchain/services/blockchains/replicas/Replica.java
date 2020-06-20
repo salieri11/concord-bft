@@ -9,6 +9,7 @@ import java.util.UUID;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.dao.LinkedEntityId;
+import com.vmware.blockchain.services.blockchains.NodeInterface;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,7 +24,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class Replica extends AbstractEntity {
+public class Replica extends AbstractEntity implements NodeInterface {
     String publicIp;
     String privateIp;
     String hostName;
@@ -42,7 +43,9 @@ public class Replica extends AbstractEntity {
         DAML_PARTICIPANT
     }
 
+    @Deprecated
     ReplicaType replicaType;
+
     @LinkedEntityId
     UUID blockchainId;
     String password;

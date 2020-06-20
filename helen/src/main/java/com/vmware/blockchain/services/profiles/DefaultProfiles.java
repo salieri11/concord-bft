@@ -4,7 +4,14 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,18 +25,15 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.vmware.blockchain.common.ConcordConnectionException;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
-import com.vmware.blockchain.services.clients.Client;
 import com.vmware.blockchain.services.concord.ConcordService;
-import com.vmware.concord.Concord.Peer;
 
 import lombok.Getter;
 
@@ -40,6 +44,7 @@ import lombok.Getter;
  */
 @Component
 public class DefaultProfiles {
+
     private Logger logger = LogManager.getLogger(DefaultProfiles.class);
     @Getter
     private User user;
@@ -52,6 +57,9 @@ public class DefaultProfiles {
 
     @Getter
     private Blockchain blockchain;
+
+    @Getter
+    private List<Replica> replicas;
 
     private AgreementService agreementService;
 
@@ -81,6 +89,8 @@ public class DefaultProfiles {
 
     private UUID defaultOrgId;
 
+    private ConnectionPoolManager connectionPoolManager;
+
 
     @Autowired
     public DefaultProfiles(
@@ -93,6 +103,7 @@ public class DefaultProfiles {
             ServiceContext serviceContext,
             ReplicaService replicaService,
             ConcordService concordService,
+            ConnectionPoolManager connectionPoolManager,
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts,
@@ -107,6 +118,7 @@ public class DefaultProfiles {
         this.serviceContext = serviceContext;
         this.replicaService = replicaService;
         this.concordService = concordService;
+        this.connectionPoolManager = connectionPoolManager;
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
         this.blockchainRpcCerts = blockchainRpcCerts;
@@ -139,14 +151,14 @@ public class DefaultProfiles {
         user = createUserIfNotExist();
         serviceContext.clearServiceContext();
         List<String> nodeInfo = Collections.emptyList();
-        if (blockchain.getNodeList() != null) {
+        if (replicas != null) {
             // For blockchain, don't log the node cert
-            nodeInfo = blockchain.getNodeList().stream()
-                    .map(n -> String.format("%s %s %s", n.getHostName(), n.getIp(), n.getUrl()))
+            nodeInfo = replicas.stream()
+                    .map(n -> String.format("%s %s %s", n.getHostName(), n.getPrivateIp(), n.getUrl()))
                     .collect(Collectors.toList());
         }
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
-                consortium.getConsortiumName(), nodeInfo, user.getEmail());
+                    consortium.getConsortiumName(), nodeInfo, user.getEmail());
     }
 
     private User createUserIfNotExist() {
@@ -207,36 +219,63 @@ public class DefaultProfiles {
     private Blockchain createBlockchainIfNotExist() {
         List<Blockchain> bList = blockchainService.list();
         if (bList.isEmpty()) {
-            Blockchain b =
-                    blockchainService.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
+            Blockchain b = blockchainService.create(UUID.randomUUID(), consortium.getId(),
+                                                    Blockchain.BlockchainType.ETHEREUM,
+                                                    new HashMap<>());
+            replicas = new ArrayList<>();
             createReplicas(b);
             return b;
         } else {
+            replicas = replicaService.getReplicas(bList.get(0).getId());
             return bList.get(0);
         }
     }
 
-    private void createReplicas(Blockchain b) {
-        try {
-            List<Peer> peers = concordService.getMembers(b.getId());
-            List<NodeEntry> nodes = b.getNodeList();
-            Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
-            Client.ClientType clientType = Client.ClientType.NONE;
-            for (int i = 0; i < nodes.size(); i++) {
-                NodeEntry n = nodes.get(i);
-                Peer p = peers.get(i);
-                Replica r = new Replica(n.getIp(),
-                                        p.getAddress().split(":")[0],
-                                        p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), replicaType,
-                                        b.getId(), "Password!23");
-                r.setId(n.getNodeId());
-                replicaService.put(r);
-            }
+    /**
+     * Read the certificate file, for inclusion in the JSON response. If the argument is null, or any error occurs,
+     * return an empty string.
+     */
+    private String readCertFile(String filename) {
+        if (filename == null) {
+            return "";
         }
-        catch (ConcordConnectionException e) {
-            logger.error("Concord internal error: Unable to get concord connection");
+
+        try {
+            byte[] certBytes = Files.readAllBytes(FileSystems.getDefault().getPath(filename));
+            return new String(certBytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.warn("Problem reading cert file '{}'", filename);
+            return "";
         }
     }
+
+    private void createReplicas(Blockchain b) {
+        String[] ips = blockchainIpList.split(",");
+        String[] urls = blockchainRpcUrls.split(",");
+        String[] certs = blockchainRpcCerts.split(",");
+
+        UUID zoneId = UUID.randomUUID();
+        for (int i = 0; i < ips.length; i++) {
+            String[] urlParts = i >= urls.length ? new String[2] : urls[i].split("=");
+
+            String certFileName = i >= certs.length ? "" : certs[i].split("=")[1];
+            String cert = readCertFile(certFileName);
+
+            Replica r = new Replica(ips[i],
+                                    ips[i],
+                                    urlParts[0], urlParts[1], cert, zoneId, Replica.ReplicaType.NONE,
+                                    b.getId(), "Password!23");
+            r.setId(UUID.randomUUID());
+            replicas.add(replicaService.put(r));
+        }
+
+        try {
+            connectionPoolManager.createPool(b.getId(), Arrays.asList(ips));
+        } catch (IOException e) {
+            logger.warn("Could not create connection pool for {}", b.getId());
+        }
+    }
+
 
     private Agreement createAgreementIfNotExist() {
         try {

@@ -84,6 +84,7 @@ def addBlocksAndSearchForThem(request, blockchainId, rpc, numBlocks, pageSize):
    verifyBlocksWithPaging(request, blockchainId, txResponses, pageSize)
 
 
+
 def verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize=None):
    '''
    Verifies that the transactions in txResponses are all in blockchain blockchainId
@@ -119,6 +120,7 @@ def verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize=None
                                                                   "size", "transactions",
                                                                   "timestamp"])
       assert present, "No '{}' field in block response.".format(missing)
+
 
 
 def findBlockWithPaging(restRequest, blockchainId, blockHash, pageSize):
@@ -167,6 +169,7 @@ def findBlockWithPaging(restRequest, blockchainId, blockHash, pageSize):
    return foundBlock
 
 
+
 def checkInvalidIndex(restRequest, blockchainId, index, messageContents):
    '''
    Check that we get an exception containing messageContents when passing
@@ -186,6 +189,7 @@ def checkInvalidIndex(restRequest, blockchainId, index, messageContents):
       "Expected an error when requesting a block with invalid index '{}', instead received block {}.".format(index, block)
    assert messageContents in str(exception), \
       "Incorrect error message for invalid index '{}'.".format(index)
+
 
 
 def checkTimestamp(expectedTime, actualTime):
@@ -208,6 +212,7 @@ def checkTimestamp(expectedTime, actualTime):
                                                                 earliestTime, latestTime,
                                                                 actualTimeString, earliestTimeString,
                                                                 latestTimeString)
+
 
 
 def verifyContractCreationTx(request, blockchainId, contractCreationTx):
@@ -239,6 +244,7 @@ def verifyContractCreationTx(request, blockchainId, contractCreationTx):
       "The hash is not correct."
    assert contractCreationTx["status"] == 1, \
       "The status is not correct."
+
 
 
 def verifyContractInvocationTx(request, blockchainId, contractCreationTx,
@@ -277,49 +283,23 @@ def verifyBlockchainFields(request, blockchain):
    really be.  So make sure we get something a) sensible that b) is consistent with
    the another API.
    '''
-   expectedRpcUrls = []
-   log.info("Calling getMemberList for blockchain {}".format(blockchain["id"]))
-   members = request.getMemberList(blockchain["id"])
-   for member in members:
-      expectedRpcUrls.append(member["rpc_url"])
+   # expectedRpcUrls = []
+   # log.info("Calling getMemberList for blockchain {}".format(blockchain["id"]))
+   # members = request.getMemberList(blockchain["id"])
+   # for member in members:
+   #    expectedRpcUrls.append(member["rpc_url"])
 
    # There will always be a genesis block.
-   block = request.getBlockByNumber(blockchain["id"], 0)
-   assert block["hash"], "Unable to retrive block 0 using the returned blockchain ID."
+   # block = request.getBlockByNumber(blockchain["id"], 0)
+   # assert block["hash"], "Unable to retrive block 0 using the returned blockchain ID."
+
    UUID(blockchain["consortium_id"])
-
-   # For the case of zero nodes, verify that corner case in its own test case.
-   assert blockchain["node_list"], "No nodes were returned in the blockchain."
-
-   for node in blockchain["node_list"]:
-      UUID(node["node_id"])
-
-      # IP address and possibly port.
-      ipFields = node["ip"].split(":")
-      assert ipFields[0], "Host field invalid."
-      if len(ipFields) > 1:
-         int(ipFields[1])
-
-      urlParts = urlparse(node["url"])
-      int(urlParts.port)
-      assert urlParts.scheme == "https", "The url field is not using https."
-      assert urlParts.hostname, "The url field hostname is empty."
-
-      # VB-1006
-      # When Helen deploys via Persephone, /api/blockchains/{bid}/concord/members
-      # returns structures which have an empty rpc_url field.
-      # assert node["url"] in expectedRpcUrls, \
-      #    "The url field contained a value not matching one returned by the /concord/members API."
-      # expectedRpcUrls.remove(node["url"])
-
-      # TODO: Verify the cert by actually using it.
-      # Bug: Persephone doesn't return certs.  See VB-1001.
-
-      assert "zone_id" in node.keys(), "The zone_id field does not exist."
+   UUID(blockchain["id"])
 
    # VB-1006
    # assert len(expectedRpcUrls) == 0, \
    #    "More nodes were returned by the /concord/members API than were present in the /blockchains node list."
+
 
 
 def validateContractFields(testObj, blockchainId, contractId, contractVersion):
@@ -334,6 +314,7 @@ def validateContractFields(testObj, blockchainId, contractId, contractVersion):
    # assert testObj["url"] == "/api/blockchains/" + blockchainId + "/concord/contracts/" + \
    #    contractId + "/versions/" + contractVersion
    assert len(testObj.keys()) == 3
+
 
 
 def verifyContractVersionFields(blockchainId, request, rpc, actualDetails, expectedDetails, expectedVersion,
@@ -2365,7 +2346,7 @@ def test_invalid_blockchain_post(fxConnection):
       response = req.createZone(zoneInfo)
       zoneList.append(response["id"])
 
-   blockchain_task_response = req.createBlockchain("" , zoneList, 1, 0)
+   blockchain_task_response = req.createBlockchain("", zoneList)
 
    validateBadRequest(blockchain_task_response, "/api/blockchains", "MethodArgumentNotValidException", False)
 
@@ -2401,7 +2382,6 @@ def test_organizations_patch(fxConnection):
    patched_org = req.getOrg(org_id)
 
    assert patched_org["organization_properties"][property_key] == property_value
-
    delete_properties = {property_key: ""}
    req.patchOrg(org_id, {}, delete_properties)
 
@@ -3144,7 +3124,7 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
 
    if blockchain_type == util.helper.TYPE_DAML and \
       blockchain_location in [util.helper.LOCATION_SDDC, util.helper.LOCATION_ONPREM]:
-      blockchain_response = fxConnection.request.getBlockchainDetails(fxBlockchain.blockchainId)
+      replicas_response = fxConnection.request.getReplicas(fxBlockchain.blockchainId)
       participants_response = fxConnection.request.get_participant_details(fxBlockchain.blockchainId)
       with open(util.helper.REPLICAS_JSON_PATH, "r") as replicas_fp:
          replicas_file_contents = json.load(replicas_fp)
@@ -3156,17 +3136,18 @@ def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
                   .format(util.helper.TYPE_DAML_PARTICIPANT, util.helper.REPLICAS_JSON_PATH)
 
          # Committer verifications
-         committer_ips = [c["ip"] for c in replicas_file_contents[util.helper.TYPE_DAML_COMMITTER]]
-         for committer in blockchain_response["replica_list"]:
-            if committer["ip"] not in committer_ips:
-               raise Exception("Committer {} not found in {}".format(committer["ip"], util.helper.REPLICAS_JSON_PATH))
+         committer_ips = [c["private_ip"] for c in replicas_file_contents[util.helper.TYPE_DAML_COMMITTER]]
+         for committer in replicas_response:
+            if committer["private_ip"] not in committer_ips:
+               raise Exception("Committer {} not found in {}".format(committer["private_ip"],
+                                                                     util.helper.REPLICAS_JSON_PATH))
          log.info("Committers verifications successful")
 
          # Participant verifications
-         participant_ips = [p["public_ip"] for p in replicas_file_contents[util.helper.TYPE_DAML_PARTICIPANT]]
+         participant_ips = [p["private_ip"] for p in replicas_file_contents[util.helper.TYPE_DAML_PARTICIPANT]]
          for participant in participants_response:
-            if participant["public_ip"] not in participant_ips:
-               raise Exception("Participant {} not found in {}".format(participant["public_ip"],
+            if participant["private_ip"] not in participant_ips:
+               raise Exception("Participant {} not found in {}".format(participant["private_ip"],
                                                                        util.helper.REPLICAS_JSON_PATH))
          log.info("Participants verifications successful")
 
@@ -3189,6 +3170,6 @@ def test_blockchain_metadata(fxConnection, fxBlockchain, fxHermesRunSettings):
 
       blockchain = req.getBlockchainDetails(blockchain_id)
 
-      log.info(blockchain["metadata"])
+      log.info(blockchain["version"])
 
-      assert "concord_version" in blockchain["metadata"]
+      assert "Blockchain Version" in blockchain["version"]

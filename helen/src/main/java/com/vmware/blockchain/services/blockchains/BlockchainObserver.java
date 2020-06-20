@@ -4,31 +4,35 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.deployment.v1.DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP;
+import static com.vmware.blockchain.deployment.v1.DeployedResource.DeployedResourcePropertyKey.PUBLIC_IP;
+
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.util.Strings;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vmware.blockchain.auth.AuthHelper;
-import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.v1.ConcordCluster;
-import com.vmware.blockchain.deployment.v1.ConcordNode;
-import com.vmware.blockchain.deployment.v1.ConcordNodeEndpoint;
-import com.vmware.blockchain.deployment.v1.DeploymentSession;
-import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.deployment.v1.DeployedResource;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
+import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.operation.OperationContext;
-import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
-import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.clients.Client;
+import com.vmware.blockchain.services.blockchains.clients.ClientService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
-import com.vmware.blockchain.services.blockchains.replicas.Replica.ReplicaType;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
-import com.vmware.blockchain.services.clients.Client.ClientType;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskService;
 
@@ -38,123 +42,120 @@ import io.grpc.stub.StreamObserver;
  * Stream observer for creating a blockchain cluster.  Need to save the current Auth Context,
  * and update task and blockchain objects as they occur.
  */
-public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent> {
+public class BlockchainObserver implements StreamObserver<DeploymentExecutionEvent> {
+
     private static final Logger logger = LogManager.getLogger(BlockchainObserver.class);
 
-    private Authentication auth;
-    private AuthHelper authHelper;
-    private OperationContext operationContext;
-    private BlockchainService blockchainService;
-    private ReplicaService replicaService;
-    private TaskService taskService;
-    private UUID taskId;
-    private UUID consortiumId;
-    private UUID blockchainId;
-    private final List<NodeEntry> nodeList = new ArrayList<>();
-    private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
-    private UUID clusterId;
-    private String opId;
-    private BlockchainType type;
-    private ClientType clientType;
-    private ReplicaType replicaType;
-    Map<String, String> metadata;
+    private final Authentication auth;
+    private final AuthHelper authHelper;
+    private final OperationContext operationContext;
 
+    private final BlockchainService blockchainService;
+    private final ReplicaService replicaService;
+    private final ClientService clientService;
+    private final TaskService taskService;
+
+    private final ConnectionPoolManager connectionPoolManager;
+
+    private final UUID taskId;
+    private final String opId;
+    private final NodeAssignment nodeAssignment;
+
+    // Used internally
+    private Map<String, List<DeployedResource>> deployedResources = new HashMap<>();
+    private Map<String, NodeAssignment.Entry> nodeById = new HashMap<>();
+    private Blockchain rawBlockchain;
+    private DeploymentExecutionEvent.Status status = DeploymentExecutionEvent.Status.UNRECOGNIZED;
 
     /**
-     * Create a new Blockchain Observer.  This handles the callbacks from the deployment
-     * process.
-     * @param blockchainService Blockchain service
-     * @param taskService       Task service
-     * @param taskId            The task ID we are reporting this on.
-     * @param consortiumId      ID for the consortium creating this blockchain
-     * @param blockchainId      ID for the blockchain if present.
+     * Create a new Blockchain Observer.  This handles the callbacks from the deployment process.
      */
     public BlockchainObserver(
             AuthHelper authHelper,
             OperationContext operationContext,
             BlockchainService blockchainService,
             ReplicaService replicaService,
+            ClientService clientService,
             TaskService taskService,
+            ConnectionPoolManager connectionPoolManager,
             UUID taskId,
-            UUID consortiumId,
-            UUID blockchainId,
-            BlockchainType type,
-            ReplicaType  replicaType,
-            ClientType clientType) {
+            NodeAssignment nodeAssignment,
+            Blockchain rawBlockchain) {
         this.authHelper = authHelper;
         this.operationContext = operationContext;
         this.blockchainService = blockchainService;
         this.replicaService = replicaService;
+        this.clientService = clientService;
         this.taskService = taskService;
+        this.connectionPoolManager = connectionPoolManager;
         this.taskId = taskId;
-        this.consortiumId = consortiumId;
-        this.blockchainId = blockchainId;
         auth = SecurityContextHolder.getContext().getAuthentication();
         opId = operationContext.getId();
-        this.type = type;
-        this.replicaType = replicaType;
-        this.clientType = clientType;
-    }
-
-    private void logCluster(ConcordCluster cluster) {
-        logger.info("Cluster ID: {}, Info: {}", FleetUtils.toUuid(cluster.getId()), cluster.getInfo());
+        this.nodeAssignment = nodeAssignment;
+        this.rawBlockchain = rawBlockchain;
+        this.nodeAssignment.getEntriesList()
+                .forEach(each -> {
+                    deployedResources.put(each.getNodeId(), new ArrayList<>());
+                    nodeById.put(each.getNodeId(), each);
+                });
     }
 
     @Override
-    public void onNext(DeploymentSessionEvent value) {
-        logger.info("On Next: {}", value.getType());
+    public void onNext(DeploymentExecutionEvent deploymentExecutionEvent) {
+        logger.info("On Next: {}", deploymentExecutionEvent.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         operationContext.setId(opId);
         String message = "Deployment in progress";
-        logger.info("Type: {}, Cluster: {}", value.getType(), value.getCluster());
         try {
-            switch (value.getType()) {
-                case NODE_DEPLOYED:
-                    ConcordNode cNode = value.getNode();
-                    message = String.format("Node %s deployed, status %s",
-                                            FleetUtils.toUuid(cNode.getId()), value.getNodeStatus().getStatus());
-                    logger.info("Node {} deployed", FleetUtils.toUuid(cNode.getId()));
-                    break;
-
-                case CLUSTER_DEPLOYED:
-                    metadata = value.getMetadata().getValuesMap();
-                    ConcordCluster cluster = value.getCluster();
-                    if (replicaType ==  replicaType.DAML_PARTICIPANT) {
-                        // Temporary hack to allow client deployment.
-                        clusterId = blockchainId;
-                    } else {
-                        // force the blockchain id to be the same as the cluster id
-                        clusterId = FleetUtils.toUuid(cluster.getId());
-                        message = String.format("Cluster %s deployed", clusterId);
-                        logger.info("Blockchain ID: {}", clusterId);
-
-                        // create the nodeList for the cluster
-                        cluster.getInfo().getMembersList().stream()
-                                .map(BlockchainObserver::toNodeEntry)
-                                .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
-                                .forEach(nodeList::add);
-                    }
-
-                    // create the and save the replicas.
-                    cluster.getInfo().getMembersList().stream()
-                            .map(n -> toReplica(clusterId, n, this.replicaType,
-                                                this.clientType))
-                            .peek(replica -> logger.info("Node entry, id {}", replica.getId()))
-                            .forEach(replicaService::put);
-
-                    break;
-                case COMPLETED:
-                    status = value.getStatus();
-                    message = String.format("Deployment completed on cluster %s, status %s", clusterId, status);
-                    logger.info("On Next(COMPLETED): status({})", status);
-                    break;
-                default:
-                    break;
-            }
 
             // Persist the current state of the task.
             final Task task = taskService.get(taskId);
+
+            // Assumption: ACKNOWLEDGED is first and COMPLETED is last.
+            switch (deploymentExecutionEvent.getType()) {
+                case ACKNOWLEDGED:
+                    logger.info("Type: {}", deploymentExecutionEvent.getType());
+                    status = deploymentExecutionEvent.getStatus();
+
+                    rawBlockchain.setId(UUID.fromString(deploymentExecutionEvent.getBlockchainId()));
+
+                    rawBlockchain.getMetadata()
+                            .put(Blockchain.BLOCKCHAIN_VERSION,
+                                 deploymentExecutionEvent.getResource()
+                                         .getAdditionalInfo()
+                                         .getValuesOrDefault(DeploymentAttributes.BLOCKCHAIN_VERSION.name(),
+                                                             "NA"));
+
+                    rawBlockchain.getMetadata()
+                            .put(Blockchain.DAML_SDK_VERSION,
+                                 deploymentExecutionEvent.getResource()
+                                         .getAdditionalInfo()
+                                         .getValuesOrDefault(DeploymentAttributes.DAML_SDK_VERSION.name(),
+                                                             "NA"));
+
+                    // TODO Move to sync call, along with id generation.
+                    task.setResourceId(rawBlockchain.getId());
+                    task.setResourceLink(String.format("/api/blockchains/%s", rawBlockchain.getId()));
+                    break;
+                case RESOURCE:
+                    deployedResources.get(deploymentExecutionEvent.getResource().getNodeId())
+                            .add(deploymentExecutionEvent.getResource());
+                    break;
+                case COMPLETED:
+                    status = deploymentExecutionEvent.getStatus();
+                    message = String.format("Deployment completed on blockchain %s, status %s", rawBlockchain.getId(),
+                                            status);
+
+                    deployedResources.forEach((k, v) -> logger
+                            .info("Total number of {} deployed resource events received for node {}.", v.size(), k));
+
+                    break;
+                default:
+                    logger.error("Invalid stream event {}", deploymentExecutionEvent);
+                    break;
+            }
+
             // need a final for the lambda
             final String mes = message;
             // Not clear if we need the merge here,
@@ -177,6 +178,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         operationContext.setId(opId);
+
+        logger.info("Printing all the resources created for the blockchain for cleanup {}", rawBlockchain.getId());
+        logger.info(deployedResources);
+        // var blockchain = blockchainService.get(blockchainId);
+        // blockchain.state = Blockchain.BlockchainState.FAILED;
+        // blockchainService.update(blockchain);
+
         final Task task = taskService.get(taskId);
         task.setState(Task.State.FAILED);
         task.setMessage(t.getMessage());
@@ -199,27 +207,41 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         authHelper.evictToken();
         final Task task = taskService.get(taskId);
         task.setMessage("Operation finished");
-
-        if (status == DeploymentSession.Status.SUCCESS) {
-            if (replicaType == ReplicaType.DAML_PARTICIPANT) {
-                task.setResourceId(blockchainId);
-                task.setResourceLink(String.format("/api/blockchains/%s/clients", blockchainId));
-            } else {
-                // Create blockchain entity based on collected information.
-                if (metadata.containsKey("concord_version")) {
-                    logger.info("Concord version during deployment in Blockchain Observer {}",
-                            metadata.get("concord_version"));
-                } else {
-                    logger.info("No concord version during deployment in Blockchain Observer.");
-                }
-                Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList, metadata);
-                task.setResourceId(blockchain.getId());
-                task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
-            }
+        if (status == DeploymentExecutionEvent.Status.SUCCESS) {
             task.setState(Task.State.SUCCEEDED);
         } else {
             task.setState(Task.State.FAILED);
         }
+        var blockchain = blockchainService.create(rawBlockchain.getId(), rawBlockchain.getConsortium(),
+                                                  rawBlockchain.type, rawBlockchain.getMetadata());
+        // Validate and convert to blockchain metadata
+        try {
+            createBlockchainNodeInfo();
+        } catch (Exception e) {
+            logger.error("Exception saving the nodes", e);
+            task.setState(Task.State.FAILED);
+
+            // Important state change.
+            blockchain.state = Blockchain.BlockchainState.FAILED;
+        }
+        blockchain.setRawResourceInfo(deployedResources.entrySet().stream().collect(Collectors.toMap(
+            e -> e.getKey(),
+            e -> transformDeployedResourceToString(e.getValue())
+        )));
+
+        // Backward compatible workflow for ETH.
+        try {
+            if (blockchain.type == Blockchain.BlockchainType.ETHEREUM) {
+                var ips = replicaService.getReplicas(blockchain.getId()).stream().map(r -> r.getPublicIp())
+                        .collect(Collectors.toList());
+                connectionPoolManager.createPool(blockchain.getId(), ips);
+            }
+        } catch (IOException e) {
+            // Not sure what to do here.  Probably need to throw an error.
+            logger.warn("Connection pool creation failed for blockchain {}", blockchain.getId());
+        }
+
+        blockchainService.update(blockchain);
 
         // Persist the finality of the task, success or failure.
         taskService.merge(task, m -> {
@@ -232,98 +254,115 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                 m.setState(task.getState());
             }
         });
-        //
+
         logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
         operationContext.removeId();
     }
 
-    /**
-     * Convert a {@link ConcordNode} instance to a {@link NodeEntry} instance with applicable
-     * property values transferred.
-     *
-     * @param node {@code ConcordNode} instance to convert from.
-     *
-     * @return     a new instance of {@code NodeEntry}.
-     */
-    private static NodeEntry toNodeEntry(ConcordNode node) {
-        // Fetch the first IP address in the data payload, or return 0.
-        var ip = toCanonicalIpAddress(node.getHostInfo().getIpv4AddressMap().keySet().stream()
-                                              .findFirst().orElse(0));
+    private void createBlockchainNodeInfo() {
 
-        ConcordNodeEndpoint endpoint = getConcordNodeEndpoint(node);
-
-        // For now, use the orchestration site ID as region name. Eventually there should be some
-        // human-readable display name to go with the site ID.
-        var site = node.getHostInfo().getSite();
-        var region = FleetUtils.toUuid(site);
-
-        return new NodeEntry(
-                FleetUtils.toUuid(node.getId()),
-                ip,
-                endpoint.getUrl(),
-                endpoint.getCertificate(),
-                region
-        );
+        deployedResources.entrySet()
+                .forEach(entry -> {
+                    updateNodeEntry(UUID.fromString(entry.getKey()), entry.getValue());
+                });
     }
 
-    private static ConcordNodeEndpoint getConcordNodeEndpoint(ConcordNode node) {
-        ConcordNodeEndpoint endpoint = null;
-        switch (node.getInfo().getBlockchainType()) {
-            case DAML:
-                endpoint = node.getHostInfo().getEndpoints().getOrDefault("daml-ledger-api", null);
+    private void updateNodeEntry(UUID nodeId, List<DeployedResource> resources) {
+        // Assumption that nodetype is fixed.
+
+        var node = nodeById.get(nodeId.toString());
+        var nodeType = node.getType();
+        var zoneId = UUID.fromString(node.getSite().getId());
+        switch (nodeType) {
+            case REPLICA:
+                Replica replicaNode = new Replica();
+                replicaNode.setId(nodeId);
+                replicaNode.setZoneId(zoneId);
+                replicaNode.setBlockchainId(rawBlockchain.getId());
+                resources.forEach(each -> {
+                    var attributes = each.getAdditionalInfo().getValuesMap();
+                    switch (each.getType()) {
+                        case COMPUTE_RESOURCE:
+                            replicaNode.setPassword(attributes.get(
+                                    DeployedResource.DeployedResourcePropertyKey.NODE_LOGIN.name()));
+
+                            replicaNode.setUrl(attributes.get(DeployedResource
+                                                                     .DeployedResourcePropertyKey
+                                                                     .CLIENT_ENDPOINT.name()));
+                            break;
+                        case NETWORK_RESOURCE:
+                            if (attributes
+                                    .containsKey(PRIVATE_IP.name())) {
+                                replicaNode.setPrivateIp(
+                                        attributes.get(PRIVATE_IP.name()));
+                            }
+                            if (attributes.containsKey(PUBLIC_IP.name())) {
+                                replicaNode.setPublicIp(
+                                        attributes.get(PUBLIC_IP.name()));
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                });
+                replicaNode.setUrl(transformEndpoint(replicaNode));
+                replicaService.put(replicaNode);
                 break;
-            case HLF:
-                endpoint = node.getHostInfo().getEndpoints().getOrDefault("concord-hlf", null);
+            case CLIENT:
+                Client clientNode = new Client();
+                clientNode.setId(nodeId);
+                clientNode.setZoneId(zoneId);
+                clientNode.setBlockchainId(rawBlockchain.getId());
+                resources.forEach(each -> {
+                    var attributes = each.getAdditionalInfo().getValuesMap();
+                    switch (each.getType()) {
+                        case COMPUTE_RESOURCE:
+                            clientNode.setPassword(attributes.get(
+                                    DeployedResource.DeployedResourcePropertyKey.NODE_LOGIN.name()));
+
+                            clientNode.setAuthJwtUrl(attributes.get(NodeProperty.Name.CLIENT_AUTH_JWT.name()));
+
+                            clientNode.setUrl(attributes.get(DeployedResource
+                                                                             .DeployedResourcePropertyKey
+                                                                             .CLIENT_ENDPOINT.name()));
+                            break;
+                        case NETWORK_RESOURCE:
+                            if (attributes
+                                    .containsKey(PRIVATE_IP.name())) {
+                                clientNode.setPrivateIp(
+                                        attributes.get(PRIVATE_IP.name()));
+                            }
+                            if (attributes.containsKey(PUBLIC_IP.name())) {
+                                clientNode.setPublicIp(
+                                        attributes.get(PUBLIC_IP.name()));
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                });
+                clientNode.setUrl(transformEndpoint(clientNode));
+                clientService.put(clientNode);
                 break;
             default:
-                endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+                logger.error("Unidentified node type {}", nodeType);
         }
-        return endpoint;
     }
 
-    private static Replica toReplica(UUID blockchainId, ConcordNode node, ReplicaType replicaType,
-                                     ClientType clientType) {
-        // Fetch the first IP address in the data payload, or return 0.
-        UUID replicaId = FleetUtils.toUuid(node.getId());
+    // Figure a better way to manage endpoints.
+    private String transformEndpoint(NodeInterface nodeInterface) {
+        if (Strings.isNullOrEmpty(nodeInterface.getUrl())) {
+            return "";
+        }
+        String ipToUse = Strings.isNullOrEmpty(nodeInterface.getPublicIp()) ? nodeInterface.getPrivateIp()
+                                                                            : nodeInterface.getPublicIp();
 
-        String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst()
-                .orElse(
-                        (replicaType == ReplicaType.DAML_PARTICIPANT) ? "Client" : "Replica"
-                );
-        int publicIp = node.getHostInfo().getIpv4AddressMap().keySet().stream()
-                                              .findFirst().orElse(0);
-        int privateIp = node.getHostInfo().getIpv4AddressMap().getOrDefault(publicIp, 0);
-        ConcordNodeEndpoint endpoint = getConcordNodeEndpoint(node);
-        String password = node.getInfo().getNodePassword();
-
-        // For now, use the orchestration site ID as region name. Eventually there should be some
-        // human-readable display name to go with the site ID.
-        OrchestrationSiteIdentifier site = node.getHostInfo().getSite();
-        UUID zoneId = FleetUtils.toUuid(site);
-        Replica replica = new Replica(toCanonicalIpAddress(publicIp), toCanonicalIpAddress(privateIp),
-                name, endpoint.getUrl(), endpoint.getCertificate(), zoneId, replicaType, blockchainId, password);
-        replica.setId(replicaId);
-        return replica;
+        // Pattern fixed in PS.
+        return nodeInterface.getUrl().replace("{{ip}}", ipToUse);
     }
 
-
-    /**
-     * Simple conversion of a 4-byte value (expressed as an integer) to a canonical IPv4 address
-     * format.
-     *
-     * @param value bytes to convert from.
-     *
-     * @return      canonical IP address format, as a {@link String} instance.
-     */
-    private static String toCanonicalIpAddress(int value) {
-        var first = (value >>> 24);
-        var second = (value & 0x00FF0000) >>> 16;
-        var third = (value & 0x0000FF00) >>> 8;
-        var fourth = (value & 0x000000FF);
-
-        return String.format("%d.%d.%d.%d", first, second, third, fourth);
+    private List<String> transformDeployedResourceToString(List<DeployedResource> resources) {
+        return resources.stream().map(e -> e.toString()).collect(Collectors.toList());
     }
-
-
 }

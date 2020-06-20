@@ -5,6 +5,7 @@
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
-import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainManagerEvent;
 
 /**
@@ -39,10 +39,10 @@ public class ConnectionPoolManager {
      * Create a new connection pool for the blockchain.
      * Throws AlreadyBoundException if the blockchain is already present.
      */
-    public ConcordConnectionPool createPool(Blockchain blockchain) throws IOException {
-        ConcordConnectionPool newPool = new ConcordConnectionPool(blockchain, type);
+    public ConcordConnectionPool createPool(UUID blockchainId, List<String> ips) throws IOException {
+        ConcordConnectionPool newPool = new ConcordConnectionPool(ips, type);
         // set the pool.  If it already was there, pool != null
-        ConcordConnectionPool pool = pools.putIfAbsent(blockchain.getId(), newPool);
+        ConcordConnectionPool pool = pools.putIfAbsent(blockchainId, newPool);
         if (pool == null) {
             return newPool.initialize(config);
         }

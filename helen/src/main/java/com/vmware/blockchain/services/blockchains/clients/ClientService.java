@@ -2,21 +2,21 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.clients;
+package com.vmware.blockchain.services.blockchains.clients;
 
+import java.util.List;
 import java.util.UUID;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
  * Service layer for clients.
  */
+@Service
 public class ClientService {
-    private static final Logger logger = LogManager.getLogger();
 
     private GenericDao genericDao;
 
@@ -31,5 +31,9 @@ public class ClientService {
 
     public Client get(UUID id) {
         return genericDao.get(id, Client.class);
+    }
+
+    public List<Client> getClientsByBlockchainId(UUID id) {
+        return genericDao.getByParentId(id, Client.class);
     }
 }

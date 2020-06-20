@@ -94,6 +94,9 @@ class ReplicaControllerTest {
     BlockchainService blockchainService;
 
     @MockBean
+    ReplicaService replicaService;
+
+    @MockBean
     OperationContext operationContext;
 
     @MockBean
@@ -130,7 +133,8 @@ class ReplicaControllerTest {
         Blockchain b = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of(N1, N2, N3)
-                                  .map(u -> new Blockchain.NodeEntry(u, u.toString(), "", "", null))
+                                  .map(u -> new Blockchain.NodeEntry(u, u.toString(), "", "", null,
+                                                                     null))
                                   .collect(Collectors.toList()))
                 .build();
         b.setId(B1);
@@ -186,9 +190,18 @@ class ReplicaControllerTest {
 
     @Test
     void testGetReplicas() throws Exception {
-        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1/replicas";
-        when(blockchainService.getReplicas(B1)).thenReturn(nodeEntries());
+
+        Blockchain b = Blockchain.builder()
+                .consortium(consortium.getId())
+                .type(Blockchain.BlockchainType.ETHEREUM)
+                .build();
+        b.setId(B1);
+        when(blockchainService.get(B1)).thenReturn(b);
+
+        when(replicaService.getReplicas(B1)).thenReturn(nodeEntries());
         when(concordService.getMembers(B1)).thenReturn(peerEntries());
+
+        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1/replicas";
         MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
@@ -201,7 +214,7 @@ class ReplicaControllerTest {
     @Test
     void testGetReplicaCredentials() throws Exception {
         String url = String.format("/api/blockchains/%s/replicas/%s/credentials", B1.toString(), N1.toString());
-        when(blockchainService.getReplicas(B1)).thenReturn(nodeEntries());
+        when(replicaService.getReplicas(B1)).thenReturn(nodeEntries());
         MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();

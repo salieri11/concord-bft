@@ -12,7 +12,10 @@ public class Constants {
     // Return a list of Zones this org has access to, e.g. ON_PREM or VMC_AWS
     public static final String ORG_ZONES = "org_zones";
     public static final String ORG_DOCKER_IMAGE_OVERRIDE = "org_docker_image_override";
+    public static final String ORG_TEMPLATE_ID_OVERRIDE = "org_template_id_override";
     public static final String ORG_MAX_CHAINS = "max_chains";
+    public static final String ORG_ENABLE_BFT_CLIENT = "enable-bft-client";
+    public static final String ORG_GENERATE_PASSWORD = "secure-password";
 
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
