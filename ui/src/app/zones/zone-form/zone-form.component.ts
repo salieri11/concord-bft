@@ -175,8 +175,9 @@ export class ZoneFormComponent implements AfterViewInit {
     }
 
     onPrem.value.name = `${onPremLocData.location.value} - ${onPremLocData.name}`;
-    // onPrem.value.latitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.lat : null;
-    // onPrem.value.longitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.long : null;
+    const hasCoordinate = (onPremLocData.location && onPremLocData.location.geometry && onPremLocData.location.geometry.lat);
+    onPrem.value.latitude = hasCoordinate ? onPremLocData.location.geometry.lat : null;
+    onPrem.value.longitude = hasCoordinate ? onPremLocData.location.geometry.long : null;
 
     // Mock if these mandatory network fields are not given, this means ui is testing vCenter creds
     // For testing only network fields can be ignored, becuase this section don't get checked on Helen

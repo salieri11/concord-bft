@@ -16,7 +16,7 @@
         <ng-template #textProp>
           <div class="dash-item" [innerHTML]="getItemProp(item, prop)"></div>
           <concord-copy-to-clipboard-button
-            *ngIf=" ['public_ip', 'url'].indexOf(prop) !== -1"
+            *ngIf="item[prop] && ['public_ip', 'private_ip', 'url'].indexOf(prop) !== -1"
             classList="ctc-btn-inline dash-list"
             [tooltip]="'common.copyToClip' | translate"
             tooltipDirection="top-right"

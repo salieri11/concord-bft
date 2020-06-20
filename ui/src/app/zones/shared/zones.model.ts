@@ -3,9 +3,9 @@
  */
 
 export interface Zone {
-  type: ZoneType;
-  id: string;
-  name: string;
+  type?: ZoneType;
+  id?: string;
+  name?: string;
   latitude?: number;
   longitude?: number;
   password?: string;

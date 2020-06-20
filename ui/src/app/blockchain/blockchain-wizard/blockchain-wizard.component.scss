@@ -3,6 +3,7 @@
 $formTopMargin: 1.5rem;
 $inputWidth: 2.5rem;
 $clr-card-hover-color: #0094d2;
+$client-node-remove-width: 40px;
 
 :host .blockchain-wizard.extra-wide ::ng-deep .modal-dialog.modal-lg {
   width: 41rem;
@@ -168,4 +169,59 @@ label {
   right: 0.25rem;
   top: 0.1rem;
   position: relative;
+}
+
+.client-form {
+  margin-top: 1rem;
+}
+
+:host ::ng-deep .compact-input-container {
+  margin: 0;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0;
+  .short-label {
+    max-width: 90px !important;
+  }  
+  .auth-input {
+    min-width: 350px;
+    margin-top: -0.15rem;
+  }
+  .zone-selector {
+    min-width: 200px;
+    margin-top: -0.15rem;
+  }
+}
+
+:host ::ng-deep .grid-min-height .datagrid-table {
+  min-height: 162px;
+}
+
+.add-button-margins {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  .margins {
+    margin-right: 0.5rem;
+  }
+}
+
+.remove-col {
+  width: $client-node-remove-width;
+  min-width: $client-node-remove-width;
+  max-width: $client-node-remove-width;
+}
+
+.remove-col-button {
+  background-color: rgba(0,0,0,0);
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: none;
+  font-size: 0.45rem;
+  color: #e02200;
+  cursor: pointer;
+}
+
+.pagination-message {
+  opacity: 0.6;
 }

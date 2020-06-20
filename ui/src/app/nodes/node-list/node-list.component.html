@@ -21,10 +21,20 @@
             <clr-dg-column>
               {{'nodes.health' | translate}}
             </clr-dg-column>
-            <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
-            <clr-dg-column>{{'nodes.addressPrivate' | translate}}</clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.committersWithoutRPCURL">
+              {{'nodes.endpoint' | translate}}
+            </clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPublicIP">
+              {{'nodes.address' | translate}}
+            </clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPrivateIP">
+              {{'nodes.addressPrivate' | translate}}
+            </clr-dg-column>
+            <clr-dg-column>
+              {{'nodes.zoneId' | translate}}
+            </clr-dg-column>
 
-            <clr-dg-row *clrDgItems="let node of nodes" [clrDgItem]="node">
+            <clr-dg-row *clrDgItems="let node of committers" [clrDgItem]="node">
               <clr-dg-action-overflow>
                 <button [disabled]="!node.certificate" class="action-item" (click)="downloadCert(node)">{{'nodes.getCert' | translate}}</button>
 
@@ -39,7 +49,17 @@
               </clr-dg-cell>
               <clr-dg-cell>{{node.state}}</clr-dg-cell>
               <clr-dg-cell [innerHTML]="node.healthHTML"></clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.committersWithoutRPCURL">
+                {{node.rpc_url}}
+                <concord-copy-to-clipboard-button
+                  classList="ctc-btn-inline dash-list"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="node.rpc_url"
+                  [size]="12">
+                </concord-copy-to-clipboard-button>
+              </clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPrivateIP">
                 {{node.public_ip}}
                 <concord-copy-to-clipboard-button
                   classList="ctc-btn-inline dash-list"
@@ -48,9 +68,8 @@
                   [value]="node.public_ip"
                   [size]="12">
                 </concord-copy-to-clipboard-button>
-
               </clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPublicIP">
                 {{node.private_ip}}
                 <concord-copy-to-clipboard-button
                   classList="ctc-btn-inline dash-list"
@@ -59,6 +78,10 @@
                   [value]="node.private_ip"
                   [size]="12">
                 </concord-copy-to-clipboard-button>
+              </clr-dg-cell>
+              <clr-dg-cell>
+                <a *ngIf="node?.zone?.id" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
+                <span *ngIf="!node?.zone?.id">{{ node.zone_name }}</span>
               </clr-dg-cell>
             </clr-dg-row>
           </clr-datagrid>
@@ -69,19 +92,22 @@
         <clr-tab-content *clrIfActive="type === options.clients">
           <clr-datagrid #grid>
           <!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
-              <clr-dg-action-bar *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+              <!-- Client Deployment is no longer supported after initial deployment -->
+              <!-- <clr-dg-action-bar *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
                 <div class="btn-group pull-right">
                   <button class="btn btn-sm" (click)="openDeployClient()">{{ 'nodes.deployClient' | translate }}</button>
                 </div>
-              </clr-dg-action-bar>
-            <clr-dg-column [clrDgField]="'hostname'">{{'nodes.hostname' | translate}}</clr-dg-column>
-            <clr-dg-column>
-              {{'nodes.url' | translate}}
+              </clr-dg-action-bar> -->
+            <clr-dg-column [clrDgField]="'hostname'">
+              {{'nodes.hostname' | translate}}
             </clr-dg-column>
-            <clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.clientsWithoutRPCURL">
+              {{'nodes.endpoint' | translate}}
+            </clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPrivateIP">
               {{'nodes.address' | translate}}
             </clr-dg-column>
-            <clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPublicIP">
               {{'nodes.addressPrivate' | translate}}
             </clr-dg-column>
             <clr-dg-column>
@@ -98,9 +124,10 @@
 
               </clr-dg-action-overflow>
               <clr-dg-cell>
-                <a [routerLink]="['../' + node.id]">{{ node.host_name }}</a>
+                <a *ngIf="nodeDashboardEnabled" [routerLink]="['../' + node.id]">{{ node.name }}</a>
+                <span *ngIf="!nodeDashboardEnabled">{{ node.name }}</span>
               </clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.clientsWithoutRPCURL">
                 {{node.url}}
                 <concord-copy-to-clipboard-button
                   classList="ctc-btn-inline dash-list"
@@ -110,7 +137,7 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPrivateIP">
                 {{node.public_ip}}
                 <concord-copy-to-clipboard-button
                   classList="ctc-btn-inline dash-list"
@@ -120,7 +147,7 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPublicIP">
                 {{node.private_ip}}
                 <concord-copy-to-clipboard-button
                   classList="ctc-btn-inline dash-list"
@@ -130,7 +157,10 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell>{{node.zone_name}}</clr-dg-cell>
+              <clr-dg-cell>
+                <a *ngIf="node?.zone?.id" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
+                <span *ngIf="!node?.zone?.id">{{ node.zone_name }}</span>
+              </clr-dg-cell>
             </clr-dg-row>
           </clr-datagrid>
         </clr-tab-content>

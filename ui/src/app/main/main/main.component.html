@@ -65,7 +65,6 @@
             <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
             {{'nav.nodeList' | translate}}
           </a>
-
           <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
             <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
             {{'nav.organizations' | translate}}
@@ -78,6 +77,10 @@
           <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active">
             <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
             {{'nav.blockList' | translate}}
+          </a>
+          <a clrVerticalNavLink [routerLink]="['details']" routerLinkActive="active">
+            <clr-icon clrVerticalNavIcon shape="info-standard"></clr-icon>
+            {{'nav.details' | translate}}
           </a>
           <div class="nav-divider"></div>
           <label class="nav-header">
@@ -97,7 +100,7 @@
             </a>
           </ng-container>
           <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
-            <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
+            <clr-icon clrVerticalNavIcon shape="code" class="clr-icon-size-override"></clr-icon>
             {{'nav.developer.api' | translate}}
           </a>
           <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">

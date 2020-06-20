@@ -10,7 +10,7 @@ import {
   EventEmitter,
   ElementRef
 } from '@angular/core';
-import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
+import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors, FormArray } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
@@ -18,12 +18,14 @@ import { PersonaService } from '../../shared/persona.service';
 
 import { BlockchainService } from '../shared/blockchain.service';
 import { AuthenticationService } from '../../shared/authentication.service';
-import { BlockchainRequestParams, ContractEngines } from '../shared/blockchain.model';
+import { BlockchainRequestParams, ContractEngines, NodeClientParam } from '../shared/blockchain.model';
 import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
+
+const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -52,6 +54,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
   @ViewChild('onPremForm', { static: false }) onPremForm: ZoneFormComponent;
   @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
+  @ViewChild('clientAuthUrlInput', { static: false }) clientAuthUrlInput: ElementRef;
 
   @Output('events') events: EventEmitter<EventData> = new EventEmitter<EventData>();
 
@@ -74,8 +77,11 @@ export class BlockchainWizardComponent implements AfterViewInit {
   cloudActive: boolean;
   hasOnPrem: boolean = true;
 
+  pastContractEngineStep: boolean = false;
+  clientForm: FormGroup;
+
   constructor(
-    private blockchainService: BlockchainService,
+    public blockchainService: BlockchainService,
     private authService: AuthenticationService,
     private routeService: RouteService,
     private router: Router,
@@ -88,6 +94,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
     // this.filterZones();
     this.form = this.initForm();
     this.onPremActive = this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+    this.clientForm = new FormGroup({
+      zone_id: new FormControl('', Validators.required),
+      auth_url: new FormControl('', [Validators.pattern(urlValidateRegex)]),
+    });
 
   }
 
@@ -97,6 +107,13 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   selectEngine(type: string) {
     this.selectedEngine = type;
+    if (this.selectedEngine !== 'DAML') {
+      (this.form.get('clients') as FormArray).clear();
+    }
+  }
+
+  onClickNext() {
+    this.pastContractEngineStep = true;
   }
 
   onCancel() {
@@ -122,6 +139,32 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   tabSelect() {
     this.setupZones();
+  }
+
+  // Client node adding related
+  addClientNode() {
+    const clientsFormArray = (this.form.controls.clients as FormArray);
+    const zoneId = this.clientForm.get('zone_id').value;
+    const zoneName =  this.blockchainService.zones
+                            .filter(zone => zone.id === zoneId)[0].name;
+    const clientData = new FormControl({
+      zone_id: new FormControl(zoneId),
+      auth_url_jwt: new FormControl(this.clientForm.get('auth_url').value),
+      zone_name: zoneName
+    });
+    clientsFormArray.push(clientData);
+  }
+  removeClientNode(i: number) {
+    const clientsFormArray = (this.form.controls.clients as FormArray);
+    clientsFormArray.removeAt(i);
+  }
+  clearClientNodes() {
+    const clientsFormArray = (this.form.controls.clients as FormArray);
+    clientsFormArray.clear();
+  }
+  clientNodeValidator(fa: FormArray): ValidationErrors | null {
+    if (fa.value.length === 0) { return { 'countIsCorrect': false }; }
+    return { 'countIsCorrect': true };
   }
 
   private setupZones() {
@@ -156,16 +199,25 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   onSubmit() {
     const params = new BlockchainRequestParams();
-    params.f_count = Number(this.fCountMapping[this.form.value.nodes.numberOfNodes.toString()]);
     params.consortium_name = this.form.value.details.consortium_name;
     params.blockchain_type = this.selectedEngine;
+
+    // Handle zones info
     const zones = this.form.controls.nodes['controls'].zones.value;
     const isOnlyOnPrem = this.zones.some(zone => zone.type === ZoneType.ON_PREM);
     let zoneIds = [];
-
-    // Create an array of zone ids for each deployed node instance.
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
-    params.zone_ids = zoneIds;
+    params.replica_zone_ids = zoneIds;
+
+    // Handle client nodes
+    const clients: NodeClientParam[] = [];
+    for (const client of (this.form.get('clients') as FormArray).getRawValue()) {
+      clients.push({
+        zone_id: client.zone_id.value,
+        auth_url_jwt: client.auth_url_jwt.value,
+      });
+    }
+    params.client_nodes = clients;
 
     /**
      * Sometimes API request takes seconds to return, then, UI will hang at a blank
@@ -188,6 +240,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   doCancel() {
+    this.pastContractEngineStep = false;
     this.onCancel();
     this.wizard.close();
   }
@@ -232,6 +285,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
         zones: this.zoneGroup(),
         // onPremZones: this.zoneGroup('onPremZones'),
       }, { validators: RegionCountValidator }),
+      clients: new FormArray([], this.clientNodeValidator),
     });
   }
 

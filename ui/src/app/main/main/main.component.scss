@@ -122,6 +122,28 @@ a.disable {
   }
 }
 
+:host ::ng-deep clr-header {
+  .btn-sign-in {
+    margin-top: -12px;
+  }
+}
+
 .consortiums-select-wrapper{
   margin-bottom: 0.2rem;
+}
+
+:host ::ng-deep .clr-icon-size-override {
+  svg {
+    transform: translate(-3px, -3px);
+    width: calc(100% + 6px);
+    height: calc(100% + 6px);
+  }
+}
+
+:host ::ng-deep span.nav-text {
+  margin-left: 0.25rem;
+}
+
+:host ::ng-deep a.nav-link {
+  padding-left: 20px;
 }

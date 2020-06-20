@@ -7,7 +7,7 @@ export interface OrgProperties {
 }
 
 export interface Org {
-  id: string;
+  organization_id: string;
   organization_name: string;
   organization_properties: OrgProperties;
 }
