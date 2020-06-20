@@ -23,7 +23,7 @@ export class NodeListComponent implements OnInit {
   @ViewChild('grid', {static: false}) grid: ClrDatagrid;
   @ViewChild('deployClient', {static: false}) deployClient: DeployClientComponent;
 
-  nodes: NodeInfo[];
+  committers: NodeInfo[];
   clients: ClientNode[];
   selected: any[] = [];
   batchStartEnabled: boolean;
@@ -38,40 +38,24 @@ export class NodeListComponent implements OnInit {
   nodeDashboardEnabled: boolean = false;
 
   constructor(
-    private nodesService: NodesService,
+    public nodesService: NodesService,
     private route: ActivatedRoute,
     private blockchainService: BlockchainService,
     private ff: FeatureFlagService
   ) {
     this.blockchainType = this.blockchainService.type;
     this.nodeDashboardEnabled = this.ff.check('node_dashboard');
+    this.nodesService.onNodeList.subscribe(_ => {
+      this.committers = this.nodesService.committers;
+      this.clients = this.nodesService.clients;
+    });
   }
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.type = params.nodeTypeOrId;
-
-      switch (this.type) {
-        case NodeType.committers:
-          this.loadCommitters();
-          break;
-
-        case NodeType.clients:
-          this.loadClients();
-          break;
-
-        default:
-          this.loadCommitters();
-          break;
-      }
-
-
+      this.nodesService.refreshAllNodesList();
     });
-
-    this.nodesService.tasksUpdated.subscribe(() => {
-      this.loadClients();
-    });
-
     //
     // Commenting out node start stop functionality until it's ready to be implemented on the backend.
     //
@@ -82,16 +66,6 @@ export class NodeListComponent implements OnInit {
 
     // this.grid.selectedChanged
     //   .subscribe(selections => this.handleSelections(selections));
-  }
-
-  loadCommitters() {
-    this.nodesService.getList()
-    .subscribe(nodes => this.nodes = nodes.nodes);
-  }
-
-  loadClients() {
-    this.nodesService.getClients()
-    .subscribe(clients => this.clients = clients);
   }
 
   openDeployClient() {

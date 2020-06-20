@@ -3,17 +3,15 @@
  */
 
 import { Routes } from '@angular/router';
-
-import { NodesComponent } from './nodes/nodes.component';
+import { DetailsComponent } from './details/details.component';
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
-export const nodeRoutes: Routes = [
+export const detailsRoutes: Routes = [
   {
-    path: ':nodeTypeOrId', component: NodesComponent,
+    path: ':detailsTarget', component: DetailsComponent,
     canActivate: [AuthenticatedGuard]
-  },
-  {
-    path: '', redirectTo: 'committers', pathMatch: 'full'
+  }, {
+    path: '', redirectTo: 'blockchain', pathMatch: 'full'
   }
 ];
 

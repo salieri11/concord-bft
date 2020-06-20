@@ -90,6 +90,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   dashItems: { title: string, count: number, link: string[] }[];
 
+  commitersConfig: DashboardListConfig = null;
+
   constructor(
     public blockchainService: BlockchainService,
     private orgService: OrgService,
@@ -100,7 +102,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private translate: TranslateService,
     private tourService: TourService,
-  ) { }
+  ) {
+    this.nodesService.onNodeList.subscribe(_ => { this.setComponents(); });
+  }
 
   ngOnInit() {
     this.blockchainType = this.blockchainService.type;
@@ -126,7 +130,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           break;
       }
     });
-
 
     this.setNodeData();
     if (this.nodeGuage) {
@@ -168,19 +171,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return healthyNodeCount;
   }
 
-  get commitersConfig(): DashboardListConfig {
-    return {
-      headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
-      displayProperties: ['name', 'public_ip', 'healthHTML'],
-      tableHeader: 'nodes.committers',
-      paginationSummary: 'nodes.paginationSummary',
-    };
-  }
-
   get clientsConfig(): DashboardListConfig {
     return {
       headers: ['nodes.hostname', 'nodes.url', 'nodes.zoneId'],
-      displayProperties: ['host_name', 'url', 'zone_name'],
+      displayProperties: ['name', 'url', 'zone_name'],
       tableHeader: 'nodes.clients',
       paginationSummary: 'nodes.clientPaginationSummary',
     };
@@ -243,13 +237,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     switch (this.blockchainType) {
       case ContractEngines.DAML:
         this.loadOrgs();
-        this.loadNodes();
-        this.loadClients();
         break;
 
       case ContractEngines.ETH:
         this.loadOrgs();
-        this.loadNodes();
         this.loadBlocks();
         this.loadSmartContracts();
         break;
@@ -257,6 +248,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private setComponents() {
+    // Set clients list
+    this.clients = this.nodesService.clients;
+
+    // Set committers list
+    if (this.nodesService.committersData) {
+      this.nodes = this.nodesService.committersData.nodes;
+      this.nodesByLocation = this.nodesService.committersData.nodesByLocation;
+      this.onlyOnPrem = this.nodesService.committersData.onlyOnPrem;
+      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
+      this.setNodeData();
+      this.setNodeColor();
+    }
+
+    // Discern what to show based on cloud/on-prem/hybrid
+    if (this.nodesService.committersWithOnlyPublicIP) {
+      this.commitersConfig = { // Only public_ips (cloud)
+        headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
+        displayProperties: ['name', 'public_ip', 'healthHTML'],
+        tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
+      };
+    } else if (this.nodesService.committersWithOnlyPrivateIP) {
+      this.commitersConfig = { // Only private_ips (on-prem)
+        headers: ['nodes.hostname', 'nodes.addressPrivate', 'nodes.health'],
+        displayProperties: ['name', 'private_ip', 'healthHTML'],
+        tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
+      };
+    } else {
+      this.commitersConfig =  { // Has both private & public IP (hybrid)
+        headers: ['nodes.hostname', 'nodes.address', 'nodes.addressPrivate', 'nodes.health'],
+        displayProperties: ['name', 'public_ip', 'private_ip', 'healthHTML'],
+        tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
+      };
+    }
+
     switch (this.blockchainType) {
       case ContractEngines.DAML:
         this.dashInfo = DamlDashItems;
@@ -304,6 +329,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         ];
         break;
     }
+    if (this.infoList) {
+      this.infoLists[this.infoList.nodes].items = this.nodes;
+    }
   }
 
   private loadSmartContracts() {
@@ -313,26 +341,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.infoLists[this.infoList.smartContracts].items = this.smartContracts;
         this.dashItems[this.dashInfo.contracts].count = this.smartContracts.length;
       });
-  }
-
-  private loadNodes() {
-    return this.nodesService.getList().subscribe((resp) => {
-      this.nodes = resp.nodes;
-      this.nodesByLocation = resp.nodesByLocation;
-      this.onlyOnPrem = resp.onlyOnPrem;
-      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
-      this.setNodeData();
-      this.setNodeColor();
-      this.infoLists[this.infoList.nodes].items = this.nodes;
-    });
-  }
-
-  private loadClients() {
-    return this.nodesService.getClients().subscribe((clients) => {
-      this.clients = clients;
-      this.dashItems[this.dashInfo.clients].count = this.clients.length;
-      this.infoLists[this.infoList.clients].items = this.clients;
-    });
   }
 
   private loadBlocks() {

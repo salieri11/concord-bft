@@ -26,6 +26,7 @@ import { FeaturesModule } from '../features/features.module';
 import { EnvironmentModule } from './../environment/environment.module';
 import { LoggingModule } from '../logging/logging.module';
 import { DeveloperModule } from '../developer/developer.module';
+import { DetailsModule } from '../details/details.module';
 
 import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
 
@@ -65,6 +66,7 @@ const defaultProvides: any[] = [
     LoggingModule,
     DeveloperModule,
     TourNgxPopperModule,
+    DetailsModule,
   ],
   declarations: [
     MainComponent,

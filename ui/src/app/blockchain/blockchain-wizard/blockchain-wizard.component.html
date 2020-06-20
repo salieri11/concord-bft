@@ -4,8 +4,9 @@
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
-    <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
+    <clr-wizard-button [type]="'next'" (click)="onClickNext()">{{'common.next' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'finish'">{{'common.deploy' | translate}}</clr-wizard-button>
+
     <clr-wizard-page formGroupName="details" [clrWizardPageNextDisabled]="!selectedEngine">
       <ng-template clrPageTitle>{{'blockchainWizard.engine.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.engine.navTitle' | translate}}</ng-template>
@@ -167,6 +168,69 @@
       </div>
     </clr-wizard-page>
 
+    <clr-wizard-page #clientsPage formGroupName="clients" *ngIf="pastContractEngineStep && selectedEngine === 'DAML'"
+      [clrWizardPageNextDisabled]="!form.controls.clients.errors?.countIsCorrect">
+
+      <ng-template clrPageTitle>
+        {{'blockchainWizard.clients.pageTitle' | translate}}
+        <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_110')">
+          <clr-icon aria-hidden="true" shape="help"></clr-icon>
+        </button>
+      </ng-template>
+
+      <ng-template clrPageNavTitle>{{ 'blockchainWizard.clients.navTitle' | translate }}</ng-template>
+      <div [formGroup]="clientForm" class="client-form">
+        <clr-select-container class="compact-input-container">
+          <label class="short-label">{{ 'zones.detail.title' | translate }}</label>
+          <select clrSelect class="zone-selector" formControlName="zone_id">
+            <option value="" disabled selected>{{ 'blockchainWizard.clients.selectZone' | translate }}</option>
+            <option *ngFor="let zone of blockchainService.zones" [value]="zone.id">
+              {{ zone.name }}
+            </option>
+          </select>
+        </clr-select-container>
+        <clr-input-container class="compact-input-container">
+          <label class="short-label">{{ 'nodes.deployClientModal.authUrl' | translate }}</label>
+          <input clrInput #clientAuthUrlInput id="clientAuthUrlInput" type="text" class="auth-input"
+                formControlName="auth_url" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
+          <clr-control-helper>{{ 'blockchainWizard.clients.authUrlHelper' | translate }}</clr-control-helper>
+          <clr-control-error>{{ 'blockchainWizard.clients.authUrlError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <div class="add-button-margins">
+          <button class="btn btn-sm margins" (click)="addClientNode()" [disabled]="!clientForm.valid">
+            {{ 'blockchainWizard.clients.add' | translate }}
+          </button>
+          <button class="btn btn-danger-outline btn-sm margins" (click)="clearClientNodes()" [disabled]="form.get('clients').value.length === 0">
+            {{ 'blockchainWizard.clients.clear' | translate }}
+          </button>
+        </div>
+      </div>
+
+      <clr-datagrid #grid class="datagrid-compact grid-min-height">
+        <clr-dg-column class="remove-col">&nbsp;</clr-dg-column>
+        <clr-dg-column>{{ 'blockchainWizard.clients.zone' | translate }}</clr-dg-column>
+        <clr-dg-column>{{ 'blockchainWizard.clients.authUrl' | translate }}</clr-dg-column>
+        <clr-dg-row *clrDgItems="let client of form.get('clients').value; let i = index">
+          <clr-dg-cell class="remove-col">
+            <button class="remove-col-button" (click)="removeClientNode(i)">
+              <clr-icon size="16" shape="minus-circle"></clr-icon>
+            </button>
+          </clr-dg-cell>
+          <clr-dg-cell>{{ client.zone_name }}</clr-dg-cell>
+          <clr-dg-cell>{{ client.auth_url_jwt.value }}</clr-dg-cell>
+        </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="5"><span class="pagination-message">
+            {{ 'blockchainWizard.clients.paginationTotal' | translate: { 
+                  start: pagination.firstItem + 1,
+                  finish: pagination.lastItem + 1,
+                  total: pagination.totalItems } 
+            }}</span>
+          </clr-dg-pagination>
+        </clr-dg-footer>
+      </clr-datagrid>
+    </clr-wizard-page>
+
     <clr-wizard-page>
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
@@ -195,6 +259,15 @@
         </div>
         <div class="clr-col-8 summary-value number-of-replicas">
           {{ form.value.nodes.numberOfNodes }}
+        </div>
+        <h6 *ngIf="form.value.clients.length" class="sub-title">
+          {{'blockchainWizard.clients.navTitle' | translate}}
+        </h6>
+        <div *ngIf="form.value.clients.length" class="clr-col-4 summary-label">
+          {{'blockchainWizard.clients.number' | translate}}
+        </div>
+        <div *ngIf="form.value.clients.length" class="clr-col-8 summary-value number-of-replicas">
+          {{ form.value.clients.length }}
         </div>
         <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
         <ng-container *ngFor="let zone of zones">

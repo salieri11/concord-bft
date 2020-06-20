@@ -1,0 +1,155 @@
+$value-width: 40%;
+$value-margin-left: 6.5rem;
+$nodevalue-margin-left: 4.5rem;
+$soft-border-bottom: 1px solid rgba(140, 140, 140, 0.7);
+
+.title {
+  margin-top: -0.25rem;
+}
+
+:host ::ng-deep .blockchain-card .card-block {
+  min-height: 17rem;
+}
+
+.help-text {
+  font-weight: 500;
+}
+
+.prop-container {
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+
+  label {
+    font-size: 0.575rem;
+    font-weight: 500;
+    display: inline-block;
+    white-space: nowrap;
+    height: 0;
+    width: 0;
+    opacity: 0.9;
+    transform: translate(0, 0rem);
+  }
+  .prop-value {
+    margin-left: $value-margin-left;
+    width: $value-width;
+    display: inline-block;
+  }
+}
+
+.card-top {
+  height: 1rem;
+}
+
+.logos-container {
+  margin-left: 55%;
+  height: 0;
+  .logos-position {
+    transform: translate(0, 0rem);
+    .logo-column {
+      width: 150px;
+      display: inline-block;
+      vertical-align: middle;
+      .logo-type {
+        width: 100%;
+        text-align: center;
+        opacity: 0.65;
+        font-size: 0.475rem;
+        font-weight: 200;
+      }
+      .logo-card {
+        width: 150px;
+        height: 150px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-top: 5px;
+        .daml-logo {
+          margin-left: 24px;
+          margin-top: 60px;
+        }
+        .eth-logo {
+          margin-left: 48px;
+          margin-top: 31px;
+        }
+        .concord-logo {
+          margin-left: 5px;
+          margin-top: 4px;
+          transform: scale(0.7, 0.7);
+        }
+      }
+      .logo-version {
+        margin-top: 0.6rem;
+        width: 100%;
+        text-align: center;
+        font-weight: 500;
+        .logo-subversion {
+          font-size: 0.5rem;
+          margin-top: -0.175rem;
+          font-weight: 200;
+        }
+      }
+    }
+    .icon-link {
+      width: 40px;
+      height: 40px;
+      transform: rotate(45deg) translate(0,0.25rem);
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0.5rem;
+      margin-top: -0.9rem;
+      margin-left: 1rem;
+      opacity: 0.5;
+    }
+  }
+}
+
+.value-margin-left {
+  margin-left: $value-margin-left;
+}
+
+.card-bottom {
+  height: 3rem;
+}
+
+.node-short-id {
+  margin-left: 0.35rem;
+  font-size: 70%;
+  opacity: 0.4;
+}
+.card-head-button {
+  float: right;
+  margin-right: -0.5rem;
+  margin-top: -0.4rem;
+  height: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  margin-left: 0.25rem;
+}
+
+.nodeprop-inner {
+  margin-top: -0.275rem;
+  .nodeprop-inner-value {
+    opacity: 0.8;
+    font-size: 90%;
+    font-weight: 300;
+    margin-left: 0.35rem;
+  }
+}
+.nodeprop-container {
+  margin-bottom: 0.1rem;
+  margin-left: 0.35rem;
+  font-size: 0.55rem;
+  label {
+    font-weight: 500;
+    display: inline-block;
+    white-space: nowrap;
+    height: 0;
+    width: 0;
+    opacity: 0.9;
+    transform: translate(0, 0rem);
+  }
+  .nodeprop-value {
+    margin-left: $nodevalue-margin-left;
+    width: calc(100% - #{$nodevalue-margin-left});
+    display: inline-block;
+  }
+}

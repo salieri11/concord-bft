@@ -7,10 +7,9 @@ import { Zone } from '../../zones/shared/zones.model';
 export class BlockchainRequestParams {
   consortium_id?: string;
   consortium_name: string;
-  f_count: number;
-  c_count: number = 0;
-  zone_ids: string[];
+  replica_zone_ids: string[];
   blockchain_type: string;
+  client_nodes: NodeClientParam[];
 }
 
 export interface NodeCommitter {
@@ -22,11 +21,20 @@ export interface NodeCommitter {
   url: string;
 }
 
+export interface NodeClientParam {
+  zone_id: string;
+  auth_url_jwt: string;
+}
+
 export interface BlockchainResponse {
   id: string;
   consortium_id: string;
-  consortium_name: string;
-  node_list: NodeCommitter[];
+  consortium_name?: string;
+  created: number;
+  created_by: string;
+  version: string;
+  blockchain_type: string;
+  blockchain_state: string;
 }
 
 export interface BlockchainMeta {

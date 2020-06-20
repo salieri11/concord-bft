@@ -54,7 +54,6 @@
     "deploy": "Deploy Consortium",
     "zones": "Zones",
     "dashboard": "Dashboard",
-
     "organizations": "Organizations/Users",
     "nodeList": "Nodes",
     "blockList": "Block Explorer",
@@ -62,6 +61,7 @@
     "testing": "Testing",
     "smartContracts": "Smart Contracts",
     "logsAndAnalysis": "Logs And Analysis",
+    "details": "Blockchain Details",
     "developer": {
       "header": "DEVELOPER",
       "logs": "Logs",
@@ -176,6 +176,8 @@
     "consortiumId": "Consortium ID",
     "blockchain": "Blockchain",
     "blockchainId": "Blockchain ID",
+    "organization": "Organization",
+    "organizationId": "Organization ID",
     "totalActiveNodes": "Total Active Committers",
     "inactiveNodes": "Inactive Committers",
     "nodeHealth": "Committer Health",
@@ -230,6 +232,7 @@
     "address": "Public IP",
     "addressPrivate": "Private IP",
     "url": "Url",
+    "endpoint": "Endpoint",
     "zoneId": "Zone",
     "viewDetail": "View Detail",
     "network": "Network",
@@ -592,7 +595,7 @@
     "updateZone": "Update Zone",
     "addZone": "Add On-premises Zone",
     "deleteZone": "Delete",
-    "backToList": "« Back to Zones List",
+    "backToList": "« All Zones List",
     "optional": "optional",
     "optionalRequirement": "Not enabled. All fields must be populated for this component to take effect.",
     "metricsProvider": "Metrics Provider"
@@ -1116,14 +1119,28 @@
       "help": {
         "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
       },
-      "pageTitle": "Committers and Zone Distribution",
-      "navTitle": "Committers",
+      "pageTitle": "Configure Committer Nodes",
+      "navTitle": "Committer Nodes",
       "onPremTitle": "On Premises Zone Distribution",
       "cloudTitle": "Cloud Zone Distribution",
       "regionalTitle": "Selected Zones",
       "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
       "add": "Add On Premises Region"
+    },
+    "clients": {
+      "pageTitle": "Add Client Nodes",
+      "navTitle": "Client Nodes",
+      "add": "Add Client Node",
+      "clear": "Clear All",
+      "zone": "Zone",
+      "authUrl": "Auth URL",
+      "authUrlPH": "https://<jwks-endpoint>",
+      "authUrlHelper": "(Optional) endpoint for fetching IAM public key",
+      "authUrlError": "Please provide a valid url.",
+      "paginationTotal": "Viewing {{start}} - {{finish}} of total {{total}} client nodes.",
+      "selectZone": "Select Zone",
+      "number": "Number of Client Nodes"
     },
     "users": {
       "pageTitle": "Invite Users",
@@ -1243,6 +1260,43 @@
       "source": "source",
       "id": "id",
       "process": "process"
+    }
+  },
+  "details": {
+    "blockchain": "Blockchain",
+    "title": "Details & Support",
+    "about": "About This Blockchain",
+    "cardTitle": "Blockchain Internal Properties",
+    "supportHint": "When contacting support, please have the following information ready as it will help us help you faster.",
+    "logo": {
+      "exec": "Exec. Engine",
+      "consensus": "Consensus"
+    },
+    "productVersion": "Product Version",
+    "createdDate": "Creation Date",
+    "createdBy": "Created By",
+    "tabs": {
+      "blockchain": "About This Blockchain",
+      "committers": "Committers",
+      "clients": "Clients"
+    },
+    "nodeMetrics": "Metrics",
+    "committer": {
+      "name" : "Committer",
+      "ethrpc": "RPC URL"
+    },
+    "client":{
+      "name": "Client",
+      "logicalId": "Logical ID",
+      "authUrl": "Auth URL",
+      "endpoint": "Endpoint"
+    },
+    "node": {
+      "id": "Node ID",
+      "publicIp": "Public IP",
+      "privateIp": "Private IP",
+      "zoneId": "Zone ID",
+      "zoneName": "Zone Name"
     }
   }
 }

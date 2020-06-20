@@ -1,5 +1,7 @@
 @import "~@clr/ui/src/color/_variables.color.scss";
 
+$light-gray: rgba(140, 140, 140, 0.3);
+
 .stats {
   .clr-col-6 {
     margin-top: .4rem;
@@ -57,11 +59,11 @@
 }
 
 .b-r {
-  border-right: 1px solid $clr-light-gray;
+  border-right: 1px solid $light-gray;
 }
 
 .b-b {
-  border-bottom: 1px solid $clr-light-gray
+  border-bottom: 1px solid $light-gray;
 }
 
 .p-1-2 {
@@ -90,7 +92,7 @@
 
 .list-title {
   color: rgba(110, 110, 110, 0.7);
-  margin-top: 0.35rem;
+  margin-top: 0.65rem;
   margin-bottom: 0.175rem;
   margin-left: 0.1rem;
   white-space: nowrap;

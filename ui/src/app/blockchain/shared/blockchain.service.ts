@@ -32,8 +32,7 @@ export class BlockchainService {
   selectedBlockchain: BlockchainResponse;
   blockchains: BlockchainResponse[];
   zones: Zone[];
-  zonesMap: any;
-  nodesMap: any;
+  zonesMap: {[zone_id: string]: Zone};
   metadata: any;
   type: ContractEngines;
 
@@ -193,16 +192,13 @@ export class BlockchainService {
   }
 
   getZones(): Observable<Zone[]> {
-
     const refreshZones = this.http.post<Zone[]>(Apis.zonesReload, {});
     return this.http.get<Zone[]>(Apis.zones).pipe(
       map(zones => {
         const zoneMap = {};
-
         zones.forEach(zone => zoneMap[zone.id] = zone);
         this.zonesMap = zoneMap;
         this.zones = zones;
-
         return zones;
       }),
       catchError(error => {
@@ -214,19 +210,11 @@ export class BlockchainService {
   }
 
   getMetaData(): Observable<BlockchainMeta> {
-
     return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
       .pipe(
         map(meta => {
           this.metadata = meta;
-          const nodesMap = {};
           this.type = meta.blockchain_type;
-          meta.node_list.forEach(node => {
-            node.zone = this.zonesMap[node.zone_id];
-            nodesMap[node.node_id] = node;
-          });
-          this.nodesMap = nodesMap;
-
           return this.metadata;
         })
       );

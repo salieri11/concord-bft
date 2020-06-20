@@ -22,6 +22,7 @@ import { ZoneType } from '../../zones/shared/zones.model';
 import { ClrModal } from '@clr/angular';
 import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
+import { NodesService } from '../../nodes/shared/nodes.service';
 
 @Component({
   selector: 'concord-main',
@@ -85,6 +86,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private alertService: ErrorAlertService,
     private tourService: TourService,
     private blockchainService: BlockchainService,
+    private nodesService: NodesService,
     private personaService: PersonaService,
     private helpService: ContextualHelpService
   ) {
@@ -100,8 +102,9 @@ export class MainComponent implements OnInit, OnDestroy {
       if (!environment.csp) { this.setInactivityTimeout(); }
       this.orgProps = this.authenticationService.orgProps;
       this.checkAuthorization();
-      this.setPlatform();
     }
+    this.nodesService.onNodeList.subscribe(_ => { this.setPlatform(); });
+    this.nodesService.refreshAllNodesList();
   }
 
   ngOnInit() {
@@ -126,12 +129,15 @@ export class MainComponent implements OnInit, OnDestroy {
     this.routeService.outletEnabled = false;
     this.navDisabled = false;
     if (this.selectedConsortium) {
-      this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
+      const subpaths = this.router.url.split('/');
+      subpaths.shift(); subpaths.shift(); // remove front slash & consortium id
+      subpaths.unshift('/' + this.selectedConsortium); // change to selected consortium id
+      const newPath = subpaths.join('/');
+      this.router.navigate([newPath])
         .then(() => {
           // This is to refresh all child components
           this.blockchainType = this.blockchainService.type;
-          this.routeService.reloadOutlet();
-          this.setPlatform();
+          this.nodesService.refreshAllNodesList();
         });
     }
   }
@@ -145,15 +151,17 @@ export class MainComponent implements OnInit, OnDestroy {
     if (path.indexOf('#') >= 0) { path = path.substr(0, path.indexOf('#')); } // remove fragment part
     if (path.indexOf('?') >= 0) { path = path.substr(0, path.indexOf('?')); } // remove param part
     const paths = path.split('/'); paths.shift();
-    if (!paths[0]) {
+    const categoryPath = paths[0];
+    const childPath = paths[1];
+    if (!categoryPath) {
       return false;
-    } else if (paths[0] === mainRoutes.blockchain) { // path is /blockchain*
+    } else if (categoryPath === mainRoutes.blockchain) { // path is /blockchain*
       this.blockchainUnresolved = true;
-      if (mainRoutes.blockchainChildren.indexOf(paths[1]) === -1) {
+      if (mainRoutes.blockchainChildren.indexOf(childPath) === -1) {
         return false;
       }
-    } else if (uuidRegExp.test(paths[0])) { // valid :consortiumId
-      if (mainRoutes.consortiumIdChildren.indexOf(paths[1]) === -1) {
+    } else if (uuidRegExp.test(categoryPath)) { // valid :consortiumId
+      if (mainRoutes.consortiumIdChildren.indexOf(childPath) === -1) {
         return false;
       }
     }
@@ -272,12 +280,11 @@ export class MainComponent implements OnInit, OnDestroy {
   // Set if all nodes are on prem
   private setPlatform(): void {
     if (this.blockchainService.selectedBlockchain) {
-      const nodeList = this.blockchainService.selectedBlockchain.node_list;
       const zonesMap = this.blockchainService.zonesMap;
       this.isOnPrem = true;
-
-      nodeList.forEach(node => {
-         if (zonesMap[node.zone_id] && zonesMap[node.zone_id].type === ZoneType.VMC_AWS) {
+      this.nodesService.allNodesList.forEach(node => {
+         if (node && node.zone_id && zonesMap[node.zone_id]
+              && zonesMap[node.zone_id].type === ZoneType.VMC_AWS) {
            this.isOnPrem = false;
          }
       });

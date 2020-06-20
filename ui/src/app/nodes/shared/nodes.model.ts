@@ -7,20 +7,23 @@ import { ZoneType } from '../../zones/shared/zones.model';
  * GET response of fetching a list of members
  */
 export interface NodeInfo {
-  hostname: string;
-  status: string;
-  address: string;
-  millis_since_last_message: number;
-  millis_since_last_message_threshold: number;
-  health?: boolean;
+  certificate?: string;
+  geo?: [number, number]; // long, lat
   healthy?: boolean;
   healthHTML?: string;
   id?: string;
-  organization?: string;
   location?: string;
-  geo?: [number, number]; // long, lat
+  millis_since_last_message: number;
+  millis_since_last_message_threshold: number;
+  name?: string;
+  private_ip?: string;
+  public_ip?: string;
+  rpc_url?: string;
+  state?: string;
+  status?: string;
   zone_id?: string;
   zone_type?: ZoneType;
+  node_type?: string;
 }
 
 export interface ClientNodeDeployParams {
@@ -32,12 +35,13 @@ export interface ClientNodeDeployParams {
 
 export interface ClientNode {
   id: string;
-  hostname: string;
+  name: string;
   url: string;
   public_ip: string;
   private_ip: string;
   zone_id?: string;
   zone_type?: ZoneType;
+  node_type?: string;
 }
 
 export enum GeoCoordinate {
@@ -62,4 +66,10 @@ export interface NodesResponse {
 export enum NodeType {
   committers = 'committers',
   clients = 'clients',
+}
+
+export interface CommittersData {
+  nodes: NodeInfo[];
+  nodesByLocation: NodeProperties[];
+  onlyOnPrem: boolean;
 }

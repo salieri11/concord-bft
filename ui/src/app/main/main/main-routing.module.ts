@@ -26,6 +26,7 @@ import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
+import { detailsRoutes } from '../../details/details-routing';
 
 
 const routes: Routes = [
@@ -75,6 +76,8 @@ const routes: Routes = [
       { path: mainRoutes.transactions, children: transactionsRoutes },
       // ROUTE: /:consortiumId/developer
       { path: mainRoutes.developer, children: developerRoutes },
+      // ROUTE: /:consortiumId/details
+      { path: mainRoutes.details, children: detailsRoutes },
     ]
   },
 ];

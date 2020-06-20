@@ -6,11 +6,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 // import { FormData } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable, from, timer, of, Subject } from 'rxjs';
+import { Observable, from, timer, of, Subject, zip } from 'rxjs';
 import { map, concatMap, filter, take, delay } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
-import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams } from './nodes.model';
+import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams, CommittersData } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -29,7 +29,6 @@ const locations = [
   { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs' },
 ];
 
-
 @Injectable({
   providedIn: 'root'
 })
@@ -37,6 +36,19 @@ export class NodesService {
   tasks: {[key: string]: {taskDetails?: IVmwTaskInfo, trackedTask?: VmwTask}} = {};
   private _changedSubject: Subject<VmwTask> = new Subject();
   tasksUpdated: Observable<any> = this._changedSubject.asObservable();
+  clients: ClientNode[] = [];
+  committers: NodeInfo[] = [];
+  committersData: CommittersData = null;
+  allNodesList: (NodeInfo | ClientNode)[] = [];
+
+  onNodeList: Subject<boolean> = new Subject();
+
+  committersWithOnlyPublicIP: boolean = false;
+  committersWithOnlyPrivateIP: boolean = false;
+  clientsWithOnlyPublicIP: boolean = false;
+  clientsWithOnlyPrivateIP: boolean = false;
+  committersWithoutRPCURL: boolean = false;
+  clientsWithoutRPCURL: boolean = false;
 
   constructor(
     private http: HttpClient,
@@ -45,7 +57,7 @@ export class NodesService {
     private translate: TranslateService
   ) { }
 
-  getList() {
+  getList(): Observable<CommittersData> {
     return this.http.get<NodeInfo[]>(Apis.nodes(this.blockchainService.blockchainId)).pipe(
       map(replicas => {
         const zonesMap = this.blockchainService.zonesMap;
@@ -165,6 +177,58 @@ export class NodesService {
         return completed || failed;
       }))
       .pipe(take(1));
+  }
+
+  refreshAllNodesList() {
+    const committersDataObservable = this.getList();
+    const clientsObservable = this.getClients();
+    zip(committersDataObservable, clientsObservable).pipe(
+      map(r => {
+        const committersData = r[0] as CommittersData;
+        const clients = r[1];
+        this.allNodesList = [];
+        this.committersData = committersData;
+        this.committers = committersData.nodes;
+        this.clients = clients;
+        this.committers.forEach((committer, i) => { committer.name = this.trimNodeName('Committer', committer, i); });
+        this.clients.forEach((client, i) => { client.name = this.trimNodeName('Client', client, i); });
+        this.committersWithOnlyPublicIP = true;
+        this.committersWithOnlyPrivateIP = true;
+        this.committersWithoutRPCURL = true;
+        for (const committer of committersData.nodes) {
+          committer.node_type = 'committer';
+          this.allNodesList.push(committer);
+          if (committer.public_ip) { this.committersWithOnlyPrivateIP = false; }
+          if (committer.private_ip) { this.committersWithOnlyPublicIP = false; }
+          if (committer.rpc_url) { this.committersWithoutRPCURL = false; }
+        }
+        this.clientsWithOnlyPublicIP = true;
+        this.clientsWithOnlyPrivateIP = true;
+        this.clientsWithoutRPCURL = true;
+        for (const client of clients) {
+          client.node_type = 'client';
+          this.allNodesList.push(client);
+          if (client.public_ip) { this.clientsWithOnlyPrivateIP = false; }
+          if (client.private_ip) { this.clientsWithOnlyPublicIP = false; }
+          if (client.url) { this.clientsWithoutRPCURL = false; }
+        }
+        this.allNodesList.forEach(node => {
+          const zone = this.blockchainService.zonesMap[node.zone_id];
+          if (zone) {
+            node['zone'] = zone;
+            node['zone_name'] = zone.name;
+          }
+        });
+        this.onNodeList.next(true);
+      }),
+    ).subscribe();
+  }
+
+  private trimNodeName(prefix: string, node: NodeInfo | ClientNode, index: number) {
+    if (!node.name || node.name.startsWith('null')) {
+      return prefix + ' ' + (index + 1);
+    }
+    return node.name;
   }
 
   private startNotification(taskId: string, name: string): Observable<any> {

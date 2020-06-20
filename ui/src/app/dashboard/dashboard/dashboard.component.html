@@ -1,11 +1,12 @@
 <ng-container>
   <div class="ps-1 fadein">
     <h6 class="list-title">
-      {{ 'dashboard.consortiumId' | translate }}: 
+      <!-- Overridden by Details Page (might come back later) -->
+      <!-- {{ 'dashboard.consortiumId' | translate }}: 
       <span>{{ blockchainService?.selectedBlockchain?.consortium_id }}</span>
       »
       {{ 'dashboard.blockchainId' | translate }}:
-      <span>{{ blockchainService?.selectedBlockchain?.id }}</span>
+      <span>{{ blockchainService?.selectedBlockchain?.id }}</span> -->
     </h6>
     <div class="card p-1-2 dashstats-no-margin" *ngIf="!onlyOnPrem">
       <div class="clr-row" tourAnchor="onboardingTour.dashStats">

@@ -1,0 +1,333 @@
+<div class="p-2">
+  <h2 class="title">
+    {{ 'details.blockchain' | translate }}:
+    {{ blockchainService.selectedBlockchain?.consortium_name }}
+  </h2>
+  <clr-tabs>
+
+    <!-- Blockchain Information -->
+    <clr-tab>
+      <button clrTabLink [routerLink]="['../blockchain']" id="detailsBlockchainLink">
+        {{ 'details.tabs.blockchain' | translate }}
+      </button>
+      <clr-tab-content id="content1" *clrIfActive="selectedTab === 'blockchain'">
+        <div class="card blockchain-card">
+          <div class="card-header">
+            {{ 'details.cardTitle' | translate }}
+          </div>
+          <div class="card-block">
+            <div class="card-text">
+              <span class="help-text">{{ 'details.supportHint' | translate }}</span>
+            </div>
+            <div class="card-top"></div>
+            <div class="logos-container">
+              <div class="logos-position">
+                <div class="logo-column">
+                  <div *ngIf="blockchainService.type === 'DAML'">
+                    <div class="logo-type">{{ 'details.logo.exec' | translate }}</div>
+                    <div class="card logo-card">
+                      <img class="daml-logo" src="static/images/contract-types/daml.svg"
+                          [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
+                    </div>
+                    <div class="logo-version">
+                      {{ execEngineName }}
+                      <div class="logo-subversion">{{ execEngineVersion }}</div>
+                    </div>
+                  </div>
+                  <div *ngIf="blockchainService.type === 'ETHEREUM'">
+                    <div class="logo-type">{{ 'details.logo.exec' | translate }}</div>
+                    <div class="card logo-card">
+                      <img class="eth-logo" src="static/images/contract-types/eth.svg"
+                          [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
+                    </div>
+                    <div class="logo-version">
+                      {{ execEngineName }}
+                      <div class="logo-subversion">{{ execEngineVersion }}</div>
+                    </div>
+                  </div>
+                </div>
+                <clr-icon class="icon-link" shape="link"></clr-icon>
+                <div class="logo-column">
+                  <div class="logo-type">{{ 'details.logo.consensus' | translate }}</div>
+                  <div class="card logo-card">
+                    <div class="concord-logo">
+                      <svg width="140px" height="140px" viewBox="0 0 184 183" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                          <g id="2Color" fill-rule="nonzero">
+                            <g id="Group">
+                              <g fill="#0995D3" id="Shape">
+                                <path d="M34,65 L5,88.3 L11.89,55.08 L9.89,54.68 L2.89,88.33 C1.66500044,88.6528471 0.855629369,89.8173092 0.979959991,91.0780217 C1.10429061,92.3387342 2.12553449,93.3226623 3.39,93.4 L27.39,150.98 C26.6562845,151.722883 26.4403983,152.833689 26.8424532,153.79731 C27.2445082,154.760931 28.1858678,155.388895 29.23,155.39 C29.9159716,155.386006 30.5730159,155.113135 31.06,154.63 C31.7995497,153.889315 32.02059,152.776303 31.6201952,151.809229 C31.2198003,150.842155 30.2766836,150.211136 29.23,150.21 L5.86,94 L34,116.28 L35.24,114.71 L6.08,91.61 C6.15886715,91.3571845 6.20260985,91.0947283 6.21,90.83 C6.18376052,90.5440666 6.11290199,90.2640067 6,90 L35.18,66.5 L34,65 Z"></path>
+                                <path d="M151,28.46 C150.998548,29.1421614 151.268364,29.7969134 151.75,30.28 C152.238217,30.7674096 152.900128,31.0408077 153.59,31.04 C153.848562,31.0365535 154.104993,30.9926901 154.35,30.91 L162.86,41.07 L164.39,39.79 L155.88,29.63 C156.074945,29.2670997 156.177951,28.8619416 156.18,28.45 C156.182591,27.7627118 155.908716,27.1032481 155.42,26.62 C154.406607,25.6158885 152.773393,25.6158885 151.76,26.62 L94,2.75 C94,1.3195825 92.8404175,0.16 91.41,0.16 C89.9795825,0.16 88.82,1.3195825 88.82,2.75 L31.08,26.74 C30.061936,25.776169 28.468064,25.776169 27.45,26.74 C26.6747632,27.5091213 26.4702323,28.6841714 26.94,29.67 L18.26,39.78 L19.78,41.09 L28.43,31 C28.7032776,31.095942 28.9903899,31.1466089 29.28,31.15 C29.9669107,31.15 30.6256873,30.8771258 31.1114066,30.3914066 C31.5971258,29.9056873 31.87,29.2469107 31.87,28.56 L82.28,7.67 L34.12,39.6 L35.22,41.27 L88.22,6.15 L59.35,52.76 L61,53.82 L90.47,6.26 L90.77,47.51 L92.77,47.51 L92.47,6.38 L121.7,53.81 L123.4,52.81 L94.72,6.14 L147.6,41.27 L148.71,39.6 L100.56,7.6 L151,28.46 Z"></path>
+                                <path d="M182.11,90.83 C182.106458,89.597308 181.237793,88.5365343 180.03,88.29 L173.03,53.09 L171.03,53.49 L178,88.22 L150.39,65 L149.1,66.53 L177.1,90.08 C177.021167,90.3293958 176.977414,90.5885465 176.97,90.85 C176.976557,91.1017325 177.020366,91.3511053 177.1,91.59 L149.16,114.74 L150.44,116.28 L177,94.18 L153.62,150.43 C152.94211,150.430642 152.290443,150.692025 151.8,151.16 C150.785874,152.175807 150.786783,153.821253 151.80203,154.835939 C152.817277,155.850626 154.462723,155.850626 155.47797,154.835939 C156.493217,153.821253 156.494126,152.175807 155.48,151.16 L179.48,93.4 C180.169576,93.4080026 180.834084,93.1417204 181.327315,92.6597421 C181.820545,92.1777638 182.102089,91.5195775 182.11,90.83 Z"></path>
+                              </g>
+                              <path d="M179.52,36.84 C178.316283,36.8319327 177.189093,37.4293436 176.52,38.43 L151.12,38.43 C150.281562,37.2001915 148.769654,36.6174569 147.322714,36.9664119 C145.875773,37.3153669 144.795693,38.5232045 144.61,40 L124.49,50.28 C123.91486,49.8991996 123.239774,49.69737 122.55,49.7 C122.075891,49.6999806 121.606609,49.7951973 121.17,49.98 L94.29,44.92 C92.9099526,43.5852015 90.7200474,43.5852015 89.34,44.92 L61.69,50 C60.6592417,49.567916 59.4836784,49.6571992 58.53,50.24 L38.22,40 C38.0367447,38.5151314 36.9494413,37.3008124 35.493754,36.9552817 C34.0380666,36.609751 32.5210228,37.2058866 31.69,38.45 L6.82,38.45 C5.71530793,36.8084474 3.49066139,36.3702103 1.84591849,37.4701468 C0.201175588,38.5700833 -0.24349819,40.7934522 0.851673528,42.4413716 C1.94684525,44.089291 4.16891786,44.5403978 5.82,43.45 L22.28,50.32 L11.86,50.32 C10.580438,49.4790792 8.90835114,49.5422631 7.6959,50.4773508 C6.48344885,51.4124385 5.99751092,53.013604 6.48573907,54.464831 C6.97396723,55.9160581 8.32889563,56.8979113 9.86,56.91 C10.112084,56.9091622 10.363411,56.8823539 10.61,56.83 L30.59,67.06 L20.29,87.75 C19.1866273,88.3854207 18.506619,89.5617401 18.506619,90.835 C18.506619,92.1082599 19.1866273,93.2845793 20.29,93.92 L30.66,114.41 C30.0533052,115.240907 29.8381079,116.294649 30.0704309,117.296902 C30.302754,118.299155 30.9596107,119.150754 31.87,119.63 L27.69,149.56 C26.2223196,150.318935 25.4646834,151.983731 25.8564775,153.5889 C26.2482716,155.194068 27.68771,156.322596 29.34,156.32 C30.0016984,156.319342 30.6498122,156.132186 31.21,155.78 L87.8,179.5 C88.226149,180.988833 89.5635808,182.033135 91.1113138,182.085562 C92.6590468,182.137989 94.0640799,181.186583 94.59,179.73 L152,155.87 C152.522758,156.162234 153.111111,156.317064 153.71,156.32 C155.39751,156.324985 156.859364,155.150849 157.218543,153.502 C157.577722,151.853151 156.736685,150.177362 155.2,149.48 L150.71,119.73 C151.970605,119.143578 152.777682,117.880327 152.78,116.49 C152.778016,115.742359 152.540039,115.01443 152.1,114.41 L162.47,93.92 C163.573373,93.2845793 164.253381,92.1082599 164.253381,90.835 C164.253381,89.5617401 163.573373,88.3854207 162.47,87.75 L152.12,67 L170.73,56.66 C171.140013,56.825207 171.577955,56.9100795 172.02,56.91 C173.302584,56.9100001 174.48774,56.22575 175.129031,55.1150001 C175.770323,54.0042502 175.770323,52.6357498 175.129031,51.5249999 C174.48774,50.41425 173.302584,49.7299999 172.02,49.73 C171.424153,49.7319883 170.838797,49.8869355 170.32,50.18 L170.25,50.06 L169.79,50.32 L164.28,50.32 L177.62,43.5 C178.187746,43.861168 178.847116,44.0520383 179.52,44.05 C181.502702,44.05 183.11,42.4427023 183.11,40.46 C183.11,38.4772977 181.502702,36.87 179.52,36.87 L179.52,36.84 Z M157.09,91.2 L145.91,113.28 L122.91,125.34 C122.8,125.34 122.7,125.34 122.58,125.34 L122.3,125.34 L101.13,113.9 L104.7,99.52 C109.713446,107.617628 119.493204,111.402975 128.651967,108.790833 C137.81073,106.178692 144.122354,97.8039735 144.11,88.28 C144.120636,82.7950301 142.006007,77.5192092 138.21,73.56 L146.42,69 L157.09,90.44 C157.079649,90.5731324 157.079649,90.7068676 157.09,90.84 C157.08021,90.9598003 157.08021,91.0801997 157.09,91.2 Z M25.66,90.43 L36.32,69 L44.76,73.69 C38.9312421,79.8846341 37.3422288,88.9511504 40.7169229,96.7587973 C44.0916169,104.566444 51.7842426,109.621164 60.29,109.62 C67.4933848,109.587494 74.1990023,105.939788 78.14,99.91 L81.61,113.91 L60.48,125.33 L60.2,125.33 C60.08,125.33 59.98,125.33 59.87,125.33 L36.87,113.27 L25.66,91.2 C25.66,91.08 25.66,90.96 25.66,90.83 C25.66,90.7 25.67,90.56 25.66,90.43 Z M89.75,50.93 L79,87.24 C78.8189071,87.2413084 78.6382544,87.2580355 78.46,87.29 L62.68,56 C62.7411997,55.9553851 62.7981121,55.9051683 62.85,55.85 L89.75,50.93 Z M120.07,55.88 L104.28,87.25 C104.150186,87.2401603 104.019814,87.2401603 103.89,87.25 L93.8,50.93 L120.07,55.88 Z M128.78,88.28 C128.789646,90.8326562 127.183122,93.1119399 124.7758,93.9610262 C122.368478,94.8101125 119.687487,94.043078 118.093533,92.0492225 C116.49958,90.0553671 116.341691,87.2712826 117.7,85.11 L117.57,85.03 L122.79,82.13 L122.79,82.29 C126.095903,82.2955053 128.774495,84.9740974 128.78,88.28 Z M122.78,98.28 C127.344788,98.2633456 131.318898,95.1575941 132.438223,90.7321358 C133.557549,86.3066776 131.537941,81.6849433 127.53,79.5 L132.7,76.63 C137.883077,81.0401792 139.535551,88.34086 136.75682,94.5531563 C133.978089,100.765453 127.434338,104.4 120.691925,103.475963 C113.949513,102.551925 108.624895,97.2908364 107.62,90.56 L112.83,87.67 C112.83,87.88 112.78,88.08 112.78,88.29 C112.791035,93.8089414 117.27105,98.27553 122.79,98.27 L122.78,98.28 Z M119.41,130.62 C119.540005,130.860896 119.697743,131.085758 119.88,131.29 L92.6,175.17 C92.1697397,175.001321 91.7121323,174.91319 91.25,174.91 C90.9111086,174.910614 90.5741569,174.961157 90.25,175.06 L62.83,131.28 C63.0100266,131.074 63.1675833,130.849398 63.3,130.61 L83.07,119.92 L88,139.84 C87.8639901,140.215224 87.7929719,140.610897 87.79,141.01 C87.79,142.992702 89.3972977,144.6 91.38,144.6 C93.3627023,144.6 94.97,142.992702 94.97,141.01 C94.9700194,140.535891 94.8748027,140.066609 94.69,139.63 L99.6,119.91 L119.41,130.62 Z M38.15,65.43 C38.1554371,65.3334098 38.1554371,65.2365902 38.15,65.14 L56.34,56.29 L58.41,56.29 C59.0038642,56.679663 59.6997272,56.8849426 60.41,56.88 C60.579857,56.8898606 60.750143,56.8898606 60.92,56.88 L75.7,86.3 L38.15,65.43 Z M66.28,88.28 C66.28,91.5937085 63.5937085,94.28 60.28,94.28 C56.9662915,94.28 54.28,91.5937085 54.28,88.28 C54.28,84.9662915 56.9662915,82.28 60.28,82.28 L65.43,85.14 C65.9999981,86.0871807 66.2943714,87.1746301 66.28,88.28 Z M50.28,76.73 L55.41,79.59 C51.1639864,81.9767315 49.2552612,87.0755173 50.8901948,91.6637752 C52.5251284,96.2520331 57.2280642,98.9948863 62.0266088,98.158771 C66.8251534,97.3226557 70.3232504,93.1508257 70.31,88.28 C70.31,88.14 70.31,87.99 70.31,87.85 L75.46,90.71 C75.46,90.71 75.46,90.79 75.46,90.83 C74.2349966,98.7858163 67.0618914,104.436694 59.0403771,103.765162 C51.0188629,103.09363 44.8851592,96.3287551 45,88.28 C44.988101,83.849939 46.9044588,79.6339518 50.25,76.73 L50.28,76.73 Z M80.94,87.81 L90.81,54.5 L90.51,124.78 L88.45,116.48 C88.5550988,116.157036 88.6090834,115.819633 88.61,115.48 C88.6146894,114.548288 88.2559557,113.651454 87.61,112.98 L82.41,91.98 C82.5468124,91.608457 82.617874,91.2159259 82.62,90.82 C82.605238,89.5894471 81.9594633,88.4527325 80.91,87.81 L80.94,87.81 Z M95.16,113 C94.5227501,113.660911 94.1646159,114.541921 94.16,115.46 C94.1658722,115.781349 94.2129224,116.100618 94.3,116.41 L92.47,123.76 L92.77,54.67 L102,87.79 C100.952113,88.4294825 100.306289,89.5625068 100.29,90.79 C100.289422,91.1289803 100.339991,91.4661079 100.44,91.79 L95.16,113 Z M37.24,63.34 C36.5645223,62.586671 35.6018081,62.1543579 34.59,62.15 C34.47,62.15 34.36,62.15 34.24,62.15 L22.78,56.25 L51.78,56.25 L37.24,63.34 Z M56.61,130.41 L31.74,149.63 L35.94,119.63 L56.61,130.41 Z M32.69,151.41 L58.09,131.78 C58.7005798,132.232584 59.4399769,132.477881 60.2,132.48 C60.538826,132.478528 60.8756538,132.428004 61.2,132.33 L88,175.25 L32.89,152.14 C32.8536012,151.892603 32.7864134,151.650727 32.69,151.42 L32.69,151.41 Z M121.59,132.33 C121.914125,132.428986 122.251098,132.479532 122.59,132.48 C123.354928,132.47928 124.098925,132.230111 124.71,131.77 L150.38,151.43 C150.27263,151.709686 150.20204,152.002131 150.17,152.3 L94.93,175.3 L121.59,132.33 Z M126.16,130.39 L146.63,119.67 L151.13,149.51 L126.16,130.39 Z M144.6,65.39 L107.05,86.3 L121.9,56.81 C122.114008,56.8535619 122.331624,56.8769975 122.55,56.88 C123.260273,56.8849426 123.956136,56.679663 124.55,56.29 L126.46,56.29 L144.66,65.14 C144.634464,65.2354382 144.614431,65.3322643 144.6,65.43 L144.6,65.39 Z M13.83,42.39 L31.69,42.39 C32.7268065,43.949111 34.7941312,44.4386256 36.42,43.51 L49.79,50.25 L32.67,50.25 L13.83,42.39 Z M148.4,62.18 C148.320072,62.1751957 148.239928,62.1751957 148.16,62.18 C147.147647,62.1818342 146.183953,62.6145873 145.51,63.37 L131.01,56.37 L159.01,56.37 L148.4,62.18 Z M133.26,50.29 L146.43,43.56 C146.956866,43.8611345 147.553148,44.0196834 148.16,44.02 C149.363273,44.0262597 150.48966,43.4292744 151.16,42.43 L170.89,42.43 L155.51,50.29 L133.26,50.29 Z"
+                                id="Shape" fill="#1C4177"></path>
+                            </g>
+                          </g>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="logo-version">
+                    {{ concordName }}
+                    <div class="logo-subversion">{{ concordVersion }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'dashboard.organizationId' | translate }}:</label>
+              <div class="prop-value">{{ orgId }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="orgId"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'dashboard.consortiumId' | translate }}:</label>
+              <div class="prop-value">{{ blockchainService?.selectedBlockchain?.consortium_id }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="blockchainService?.selectedBlockchain?.consortium_id"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'dashboard.blockchainId' | translate }}:</label>
+              <div class="prop-value">{{ blockchainService?.selectedBlockchain?.id }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="blockchainService?.selectedBlockchain?.id"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'details.productVersion' | translate }}:</label>
+              <div class="prop-value">{{ productVersion }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="productVersion"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'details.createdDate' | translate }}:</label>
+              <div class="prop-value">{{ createdDate | date: 'medium' }}</div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'details.createdBy' | translate }}:</label>
+              <div class="prop-value">{{ createdBy }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="createdBy"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="card-bottom"></div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+
+
+    <!-- Committer Nodes Information -->
+    <clr-tab>
+      <button clrTabLink [routerLink]="['../committers']" id="detailsCommittersLink">
+        {{ 'details.tabs.committers' | translate }} {{ committers.length ? '('+committers.length+')' : '(_)' }}
+      </button>
+      <clr-tab-content *clrIfActive="selectedTab === 'committers'">
+        <div class="clr-row">
+          <div *ngFor="let committer of committers; let i = index" class="clr-col-lg-6 clr-col-12">
+            <div class="card">
+              <div class="card-header">
+                {{ 'details.committer.name' | translate }} {{ i + 1 }}
+                <button *concordFeatureFlag="'node_dashboard'"
+                  [routerLink]="['../../nodes/' + committer.id]" class="btn btn-sm btn-link card-head-button">
+                  {{ 'details.nodeMetrics' | translate }}
+                </button>
+                <span class="node-short-id">{{ committer.id.split('-')[0] }}</span>
+              </div>
+              <div class="card-block">
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.id' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.id }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.privateIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.private_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="committer.public_ip">
+                  <label>{{ 'details.node.publicIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.public_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="committer.rpc_url">
+                  <label>{{ 'details.committer.ethrpc' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.rpc_url }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.zoneId' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.zone_id }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(committer.zone_id)">
+                  <div class="nodeprop-value">
+                    <span class="nodeprop-inner-value">
+                      {{ getZoneInfo(committer.zone_id) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+
+    <!-- Client Nodes Information -->
+    <clr-tab *ngIf="blockchainService.type === 'DAML'">
+      <button clrTabLink [routerLink]="['../clients']" id="detailsClientsLink">
+        {{ 'details.tabs.clients' | translate }} {{ clients.length ? '('+clients.length+')' : '(_)' }}
+      </button>
+      <clr-tab-content *clrIfActive="selectedTab === 'clients'">
+        <div class="clr-row">
+          <div *ngFor="let client of clients; let i = index" class="clr-col-lg-6 clr-col-12">
+            <div class="card">
+              <div class="card-header">
+                {{ 'details.client.name' | translate }} {{ i + 1 }}
+                <button *concordFeatureFlag="'node_dashboard'"
+                  [routerLink]="['../../nodes/' + client.id]" class="btn btn-sm btn-link card-head-button">
+                  {{ 'details.nodeMetrics' | translate }}
+                </button>
+                <span class="node-short-id">{{ client.id.split('-')[0] }}</span>
+              </div>
+              <div class="card-block">
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.id' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.id }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.privateIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.private_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="client.public_ip">
+                  <label>{{ 'details.node.publicIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.public_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="client.auth_jwt_url">
+                  <label>{{ 'details.client.authUrl' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.auth_jwt_url }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="client.url">
+                  <label>{{ 'details.client.endpoint' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.url }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container">
+                  <label>{{ 'details.node.zoneId' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.zone_id }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="orgId"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(client.zone_id)">
+                  <div class="nodeprop-value">
+                    <span class="nodeprop-inner-value">
+                      {{ getZoneInfo(client.zone_id) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+
+  </clr-tabs>
+</div>
