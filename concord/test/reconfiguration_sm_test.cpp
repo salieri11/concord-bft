@@ -7,12 +7,16 @@
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
+#include "reconfiguration/upgrade_plugin.hpp"
 #include "status.hpp"
 
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ReconfigurationResponse;
 using com::vmware::concord::ReconfigurationSmRequest;
 using com::vmware::concord::ReconfigurationSmRequest_PluginId_MOCK;
+using com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE;
+using com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand;
+using com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand_UpgradeType;
 using concord::reconfiguration::IReconfigurationPlugin;
 using concord::reconfiguration::PluginReply;
 using concord::reconfiguration::ReconfigurationSM;
@@ -146,6 +150,72 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "hello-world");
+}
+
+TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
+  auto config = defaultTestConfig();
+  auto priv_key = ConfigureOperatorKey(config);
+  ReconfigurationSM rsm(config);
+
+  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
+  upgrade_command.set_type(
+      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
+          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_GET_VERSION);
+  ReconfigurationSmRequest reconfig_sm_req;
+  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
+  auto upgrade_as_string = upgrade_command.SerializeAsString();
+  reconfig_sm_req.set_command(upgrade_as_string);
+  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+
+  ConcordResponse res;
+  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
+  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
+            "Upgrading");
+}
+
+TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
+  auto config = defaultTestConfig();
+  auto priv_key = ConfigureOperatorKey(config);
+  ReconfigurationSM rsm(config);
+
+  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
+  upgrade_command.set_type(
+      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
+          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_VALIDATE_VERSION);
+  ReconfigurationSmRequest reconfig_sm_req;
+  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
+  auto upgrade_as_string = upgrade_command.SerializeAsString();
+  reconfig_sm_req.set_command(upgrade_as_string);
+  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+
+  ConcordResponse res;
+  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
+  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
+            "Valid");
+}
+
+TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
+  auto config = defaultTestConfig();
+  auto priv_key = ConfigureOperatorKey(config);
+  ReconfigurationSM rsm(config);
+
+  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
+  upgrade_command.set_type(
+      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
+          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_EXECUTE_UPGRADE);
+  ReconfigurationSmRequest reconfig_sm_req;
+  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
+  auto upgrade_as_string = upgrade_command.SerializeAsString();
+  reconfig_sm_req.set_command(upgrade_as_string);
+  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+
+  ConcordResponse res;
+  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
+  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
+            "Upgraded");
 }
 
 }  // anonymous namespace

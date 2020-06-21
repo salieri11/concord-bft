@@ -11,31 +11,12 @@
 #include <cstdint>
 #include <utils/openssl_crypto_utils.hpp>
 #include <vector>
+#include "IReconfigurationPlugin.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 
 namespace concord {
 namespace reconfiguration {
-
-struct PluginReply {
-  bool succ;
-  std::string data;
-};
-
-class IReconfigurationPlugin {
-  com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId_;
-
- public:
-  explicit IReconfigurationPlugin(
-      com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId)
-      : pluginId_(pluginId) {}
-  virtual ~IReconfigurationPlugin() {}
-  com::vmware::concord::ReconfigurationSmRequest::PluginId GetPluginId() const {
-    return pluginId_;
-  }
-  virtual PluginReply Handle(const std::string& command, bool readOnly,
-                             opentracing::Span& parent_span) = 0;
-};
 
 class ReconfigurationSM {
   std::vector<std::unique_ptr<IReconfigurationPlugin>> plugins_;
