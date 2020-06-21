@@ -331,10 +331,20 @@ message PruneResponse {
 message ReconfigurationSmRequest {
    enum PluginId {
       MOCK = 0;
+      UPGRADE = 1;
    }
    required PluginId pluginId = 1;
    optional bytes command = 2;
    optional bytes signature = 3;
+
+   message UpgradeCommand {
+      enum UpgradeType {
+         GET_VERSION = 1;
+         VALIDATE_VERSION = 2;
+         EXECUTE_UPGRADE = 3;
+      }
+      required UpgradeType type = 1;
+   }
 }
 
 message ReconfigurationSmResponse {

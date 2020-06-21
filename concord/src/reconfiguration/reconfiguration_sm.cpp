@@ -3,6 +3,7 @@
 #include "reconfiguration_sm.hpp"
 #include <utils/openssl_crypto_utils.hpp>
 #include "Logger.hpp"
+#include "upgrade_plugin.hpp"
 using namespace concord::reconfiguration;
 using namespace com::vmware::concord;
 
@@ -57,7 +58,10 @@ ReconfigurationSM::ReconfigurationSM(const config::ConcordConfiguration& config)
     : logger_(logging::getLogger("concord.reconfiguration")),
       operator_public_key_(utils::openssl_crypto::DeserializePublicKey(
           config.getValue<std::string>(
-              "reconfiguration_operator_public_key"))) {}
+              "reconfiguration_operator_public_key"))) {
+  LoadPlugin(std::make_unique<UpgradePlugin>(
+      com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE));
+}
 
 bool ReconfigurationSM::ValidateReconfigurationRequest(
     const ReconfigurationSmRequest& request) {
