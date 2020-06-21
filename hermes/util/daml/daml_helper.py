@@ -1,6 +1,7 @@
 # Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 # DAML util file to perform daml tests
 
+from distutils.version import LooseVersion
 import glob
 import json
 import os
@@ -320,13 +321,20 @@ def verify_ledger_api_test_tool(host='localhost', port='6861',
       raise Exception("Overall DAML testsuite Status: Fail")
 
 
-def get_spider_version(required_sdk_version, username, password):
+def get_spider_version(product_sdk_version, username, password):
    '''
    Given a DAML SDK version, return a Spider app version which is compatible with it.
    '''
-   spider_version = get_known_spider_version_for_sdk(required_sdk_version)
+   spider_version = get_known_spider_version_for_sdk(product_sdk_version)
 
-   if not spider_version:
+   if spider_version:
+      return spider_version
+   else:
+      # This is for docker system calls.
+      cmd = ["docker", "login", "--username", username, "--password-stdin"]
+      subprocess.run(cmd, input=password, text=True)
+
+      # This is for the API call.
       token = util.auth.get_dockerhub_auth_token(username, password)
       next_url = None
       max_calls = 1 # Not sure if we'll ever need to increase.
@@ -339,48 +347,60 @@ def get_spider_version(required_sdk_version, username, password):
          if next_url:
             url = next_url
          else:
-            # We can fetch up to 100 at a time.  When there is a new version, it will probably be within
-            # the first few.
+            # We can fetch up to 100 at a time, but it will probably be within the first few.
             url = "https://hub.docker.com/v2/repositories/{}/tags/?page_size=20".format(DA_SPIDER_IMAGE)
 
          log.info("Fetching {} tags from DockerHub".format(DA_SPIDER_IMAGE))
          response = requests.get(url, headers={"Authorization": "JWT " + token})
          response_obj = json.loads(response.text)
          results = response_obj["results"]
-         spider_version = find_spider_version_result(results, required_sdk_version)
+         spider_version = find_spider_version_result(results, product_sdk_version)
 
          if spider_version:
-             return spider_version
+            return spider_version
          else:
-             next_url = response_obj["next"]
+            next_url = response_obj["next"]
 
          if not next_url:
-             break
-
-   # RV, June 17, 2020:
-   # Temporary fix: Define a default. This is dangerous because we could end up
-   # very far behind over time.  But right now there is no Spider version that
-   # matches the SDK.  Discussion is occurring in Slack.
-   if spider_version:
-      return spider_version
-   else:
-      return get_sdk_spider_version_mappings()["default"]
+            break
 
 
-
-def find_spider_version_result(results, required_sdk_version):
+def find_spider_version_result(results, product_sdk_version):
    '''
-   Given results from the /tags DockerHub API call, find (and return) the
-   first Spider version which matches the passed in DA SDK.
+   Given results from the /tags DockerHub API call, find (and return) a
+   Spider version which is acceptable for the DAML sdk version.
+   As of June 2020, this means the highest Spider version whose docker
+   image contains a DAML SDK version value which is LESS than or equal
+   to the DAML SDK version that is in the product we are testing.
    '''
+   # First, sort Spider versions.  We receive the top x from DockerHub, but they
+   # may be out of order, and the most recent is most likely to be what we want.
+   all_spider_versions = []
+
    for result in results:
-      log.info("Looking for SDK version {} in {}:{}".format(required_sdk_version, DA_SPIDER_IMAGE, result["name"]))
-      spider_version = result["name"]
-      cmd = ["docker", "pull", "{}:{}".format(DA_SPIDER_IMAGE, spider_version)]
-      success, _ = helper.execute_ext_command(cmd, True)
+      all_spider_versions.append(LooseVersion(result["name"]))
 
-      if not success:
-         raise Exception("Failed to pull {}:{}".format(DA_SPIDER_IMAGE, spider_version))
+   all_spider_versions.sort(reverse=True)
+   log.info("Spider versions retrieved for inspection:")
+   for v in all_spider_versions:
+      log.info(v)
+
+
+   for spider_version in all_spider_versions:
+      log.info("Looking for DAML SDK version {} in {}:{}".format(product_sdk_version, DA_SPIDER_IMAGE, spider_version))
+      cmd = ["docker", "pull", "{}:{}".format(DA_SPIDER_IMAGE, spider_version)]
+      num_attempts = 3
+
+      while num_attempts > 0:
+         success, _ = helper.execute_ext_command(cmd, True)
+
+         if success:
+            break
+         elif num_attempts > 0:
+            num_attempts -= 1
+            log.debug("Error pulling from DockerHub.  Retrying.")
+         else:
+            raise Exception("Could not pull from DockerHub.  Aborting.")
 
       cmd = ["docker", "inspect", "-f", "'{{json .Config.Labels}}'",
              "{}:{}".format(DA_SPIDER_IMAGE, spider_version)]
@@ -393,9 +413,16 @@ def find_spider_version_result(results, required_sdk_version):
       labels_obj = json.loads(stdout[1:-2])
       found_sdk_version = labels_obj["da.version.sdk"]
 
-      if found_sdk_version == required_sdk_version:
-         log.info("Found SDK version {} in {}:{}".format(required_sdk_version, DA_SPIDER_IMAGE, result["name"]))
-         return spider_version
+      msg = "Found DAML SDK version {} in Spider version {}...".format(found_sdk_version, spider_version)
+
+      if LooseVersion(found_sdk_version) <= LooseVersion(product_sdk_version):
+         log.info(msg + "and we will use it.")
+         return str(spider_version)
+      else:
+         msg = msg + "and we cannot use it.\n"
+         msg += "  Product DAML SDK version: {}\n".format(product_sdk_version)
+         msg += "  Spider DAML SDK version: {}".format(found_sdk_version)
+         log.info(msg)
 
    return None
 
@@ -421,7 +448,18 @@ def get_sdk_spider_version_mappings():
 
 def download_spider_app(tag):
    cmd = ["docker", "pull", "digitalasset/spider-application:" + tag]
-   success, _ = helper.execute_ext_command(cmd, True)
+   num_attempts = 3
+
+   while num_attempts > 0:
+      success, _ = helper.execute_ext_command(cmd, True)
+
+      if success:
+         break
+      elif num_attempts > 0:
+         num_attempts -= 1
+         log.debug("Error pulling from DockerHub.  Retrying.")
+      else:
+         raise Exception("Could not pull from DockerHub.  Aborting.")
 
    if not success:
       raise Exception("Failed to pull digitalasset/spider-application:{}".format(spider_version))

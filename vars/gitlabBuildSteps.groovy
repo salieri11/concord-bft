@@ -58,7 +58,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
   "ChessPlusTestsOnPredeployedBlockchain": [
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ChessPlusTests --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}"'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ChessPlusTests --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --dockerHubUser blockchainrepositoryreader --dockerHubPassword \'DOCKERHUB_REPO_READER_PASSWORD\''
   ],
   "DamlTestsOnPredeployedBlockchain": [
     "enabled": false,
@@ -1536,7 +1536,6 @@ void runTests(){
       echo("**** Starting group " + group + " ****")
       env.suiteNames = groups[group]["suites"].join(",")
       suiteParams = groups[group]["params"]
-
       env.suiteCmd = suiteParams.baseCommand ? suiteParams.baseCommand :
                    'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + env.suiteNames
       env.suiteCmd += suiteParams.otherParameters ? " " + suiteParams.otherParameters : ""
@@ -1566,9 +1565,15 @@ void runTests(){
         "$setupFunction"()
       }
 
-      withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+      withCredentials([
+        string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+        usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD')]) {
+
         sh(script:
         '''
+          # For running CHESS+, in order to get the Spider version.
+          suiteCmd=$(echo ${suiteCmd} | sed "s|DOCKERHUB_REPO_READER_PASSWORD|${DOCKERHUB_REPO_READER_PASSWORD}|g")
+
           EVENTS_FILE="${eventsFullPath}"
 
           # pushd is not available in the Jenkins shell.
@@ -2014,6 +2019,9 @@ EOF
       sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
       sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/ui/e2e/credentials.json
       sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+
+      # For running CHESS+, in order to get the Spider version.
+      sed -i -e 's/'"<DOCKERHUB_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/long_running_tests.json
     '''
 
     if (env.JOB_NAME.contains(long_tests_job_name)) {
