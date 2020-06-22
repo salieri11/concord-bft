@@ -100,7 +100,7 @@ public class ConfigHelper {
                 .setBlockchainType(context.blockchainType);
 
         ListenableFuture<ConfigurationSessionIdentifier> completable
-                = configurationServiceClient.createConfigurationV2(requestBuilder.build());
+                = configurationServiceClient.withWaitForReady().createConfigurationV2(requestBuilder.build());
         try {
             return completable.get();
         } catch (InterruptedException | ExecutionException e) {

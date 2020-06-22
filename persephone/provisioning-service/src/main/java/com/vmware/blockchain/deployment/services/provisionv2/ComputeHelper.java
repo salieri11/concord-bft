@@ -105,7 +105,7 @@ public class ComputeHelper {
                             .setNodeId(placement.getNodeId())
                             .setSiteId(placement.getSite().getId())
                             .setType(DeployedResource.Type.COMPUTE_RESOURCE)
-                            .setAdditionalInfo(Properties.newBuilder()
+                            .setAdditionalInfo(Properties.newBuilder(placement.getProperties())
                                                        .putValues(DeployedResource.DeployedResourcePropertyKey
                                                                           .NODE_LOGIN.name(),
                                                                   computeEvent.getNodePassword()))
