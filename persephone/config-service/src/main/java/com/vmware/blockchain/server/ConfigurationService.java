@@ -232,6 +232,13 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                                                             .setId(nodeId).build()))
                                                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                     .build());
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                                                          .setType(serviceType)
+                                                          .setComponentUrl(DamlIndexDbUtil.postGresConfig)
+                                                          .setComponent(
+                                                                  damlIndexDbUtil.getPostGresConfig())
+                                                          .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                          .build());
                     break;
                 case CONCORD:
                     log.info("Generated new session id {}", sessionId);

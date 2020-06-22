@@ -146,6 +146,13 @@ public class ConfigurationServiceHelper {
                                                                   damlIndexDbUtil.generateConfig(nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
+                    nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                                                          .setType(serviceType)
+                                                          .setComponentUrl(DamlIndexDbUtil.postGresConfig)
+                                                          .setComponent(
+                                                                  damlIndexDbUtil.getPostGresConfig())
+                                                          .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                          .build());
                     break;
                 case CONCORD:
                     ConfigurationComponent genesisJson = createGenesisComponent(nodeInfo.getProperties()

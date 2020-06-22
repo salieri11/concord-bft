@@ -4,6 +4,13 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 
 /**
@@ -11,10 +18,14 @@ import com.vmware.blockchain.deployment.v1.NodesInfo;
  */
 public class DamlIndexDbUtil {
 
+    private static final Logger log = LoggerFactory.getLogger(DamlIndexDbUtil.class);
+
     /**
      * file path.
      */
     public static final String envVarPath = "/daml-index-db/environment-vars";
+
+    public static final String postGresConfig = "/daml-index-db/postgresql.conf";
 
     /**
      * Utility to daml ledger api config.
@@ -31,7 +42,22 @@ public class DamlIndexDbUtil {
         builder.append("export MAX_CONNECTIONS=300");
         builder.append(System.getProperty("line.separator"));
         builder.append("export BUFFER_SIZE=4096MB");
+        builder.append(System.getProperty("line.separator"));
+        builder.append("export POSTGRES_CONFIG_FILE_OPT=\"-c config_file=/config" + postGresConfig + "\"");
         return builder.toString();
     }
 
+    /**
+     * New conf file for index-db.
+     * @return json string
+     */
+    public String getPostGresConfig() {
+        try {
+            InputStream inputStream = new FileInputStream("postgresql.conf");
+            return new String(inputStream.readAllBytes());
+        } catch (IOException | NullPointerException ex) {
+            log.error("Postgres config could not be read due to: {}", ex.getLocalizedMessage());
+            throw new RuntimeException(ex);
+        }
+    }
 }
