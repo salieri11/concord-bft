@@ -2,3 +2,4 @@ export POSTGRES_USER=indexdb
 export POSTGRES_MULTIPLE_DATABASES=pTEST_NODE
 export MAX_CONNECTIONS=300
 export BUFFER_SIZE=4096MB
+export POSTGRES_CONFIG_FILE_OPT="-c config_file=/config/daml-index-db/postgresql.conf"
