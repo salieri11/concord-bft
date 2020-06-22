@@ -259,6 +259,12 @@ public class BlockchainController {
                                                   .get(Constants.ORG_DOCKER_IMAGE_OVERRIDE));
             }
 
+            if (organization.getOrganizationProperties().containsKey(Constants.DAML_SDK_INFO_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.DAML_SDK_INFO_OVERRIDE));
+            }
+
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_TEMPLATE_ID_OVERRIDE)) {
                 basePropBuilder.putValues(DeploymentAttributes.TEMPLATE_ID.name(),
                                           organization.getOrganizationProperties()
