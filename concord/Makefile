@@ -9,8 +9,20 @@ CONCORD_CMAKE_FLAGS:= \
 			  -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
 			  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
 			  -DCMAKE_CXX_FLAGS=\"-march=x86-64 -mtune=generic\" \
+			  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 			  -DUSE_CONAN=OFF
 CONCORD_CTEST_TIMEOUT:=3000
+
+CONCORD_ADDITIONAL_RUN_PARAMS:=
+CONCORD_ADDITIONAL_RUN_COMMANDS:=
+
+.DEFAULT_GOAL:=build
+
+# MakefileCustom may be useful for overriding the default variables
+# or adding custom targets. The include directive is ignored if MakefileCustom file does not exist.
+-include MakefileCustom
+
+IF_CONTAINER_RUNS=$(shell docker container inspect -f '{{.State.Running}}' ${CONCORD_BUILD_CONTAINER})
 
 .PHONY: help
 help: ## The Makefile helps to build Concord in a docker container
@@ -18,27 +30,32 @@ help: ## The Makefile helps to build Concord in a docker container
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 	# Basic HOW-TO:
-	# make run-c              # Run container in background
-	# make build-s            # Build Concord sources
 	# make test               # Run tests
 	# make remove-c           # Remove existing container
+	# make build-docker-image # Build Concord image
 
 .PHONY: run-c
 run-c: ## Run container in background
 	docker run -d --rm \
 			  --name=${CONCORD_BUILD_CONTAINER} \
+			  --workdir=${CONCORD_WORK_DIR} \
 			  --mount type=bind,source=${CURDIR},target=${CONCORD_WORK_DIR} \
 			  --mount type=bind,source=${CURDIR}/../communication,target=/communication \
+			  ${CONCORD_ADDITIONAL_RUN_PARAMS} \
 			  ${PREREQS_IMAGE} \
 			  ${CONCORD_CONTAINER_SHELL} -c \
-			  "make -C /googletest/_build install; /usr/bin/tail -f /dev/null"
+			  "${CONCORD_ADDITIONAL_RUN_COMMANDS} \
+			  make -C /googletest/_build install; /usr/bin/tail -f /dev/null"
 	@echo
 	@echo "The container \"${CONCORD_BUILD_CONTAINER}\" with the build environment is started as daemon."
 	@echo "Run \"make stop-c\" to stop or \"make remove-c\" to delete."
 
 login: ## Login to the container
-	docker exec -it --workdir=${CONCORD_WORK_DIR} \
-		${CONCORD_BUILD_CONTAINER} ${CONCORD_CONTAINER_SHELL};exit 0
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
+	docker exec -it ${CONCORD_BUILD_CONTAINER} \
+		${CONCORD_CONTAINER_SHELL};exit 0
 
 .PHONY: stop-c
 stop-c: ## Stop the container
@@ -54,6 +71,9 @@ remove-c: ## Remove the container
 
 .PHONY: build
 build: ## Build Concord source. Note: this command is mostly for developers
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
@@ -65,6 +85,9 @@ build: ## Build Concord source. Note: this command is mostly for developers
 
 .PHONY: test
 test: ## Run all tests
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
@@ -72,6 +95,9 @@ test: ## Run all tests
 
 .PHONY: single-test
 single-test: ## Run single test `make single-test TEST_NAME=<test name>`
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
@@ -79,6 +105,9 @@ single-test: ## Run single test `make single-test TEST_NAME=<test name>`
 
 .PHONY: clean
 clean: ## Clean Concord build directory
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
 	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"rm -rf ${CONCORD_BUILD_DIR}"
