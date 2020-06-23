@@ -19,7 +19,7 @@ class BftWriteClient(configPath: Path, requestTimeout: Duration, metrics: Metric
     extends ConcordWriteClient {
 
   private[this] val concordClientPool =
-    new BftConcordClientPool(new BftConcordClientPoolNative(configPath, metrics), metrics)
+    new BftConcordClientPool(new BftConcordClientPoolJni(configPath), metrics)
 
   override def commitTransaction(request: CommitRequest)(
       executionContext: ExecutionContext): Future[SubmissionResult] = {
@@ -31,7 +31,7 @@ class BftWriteClient(configPath: Path, requestTimeout: Duration, metrics: Metric
     concordClientPool.sendRequest(
       concordRequest.toByteString,
       requestTimeout,
-      ClientMsgFlag.None, // Flags will only be used with pre-execution
+      preExecute = false,
       request.correlationId)
   }
 

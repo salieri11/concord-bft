@@ -161,8 +161,7 @@ lazy val write_service = (project in file("write-service"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
     ),
   )
-  .dependsOn(damlProtos, concordProtos, common, trc_core)
-
+  .dependsOn(damlProtos, concordProtos, common, trc_core, bft_client_core)
 
 lazy val ledger_api_server = (project in file("ledger-api-server"))
   .enablePlugins(JavaAppPackaging)
@@ -200,7 +199,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % Test,
     ),
   )
-  .dependsOn(write_service, common, trc_core, trc_native % Runtime)
+  .dependsOn(write_service, common, trc_core, bft_client_core, trc_native % Runtime, bft_client_native % Runtime)
 
 lazy val trc_core = (project in file("thin-replica-client-core")) // regular scala code with @native methods
   .enablePlugins(JavaAppPackaging)
@@ -212,11 +211,22 @@ lazy val trc_core = (project in file("thin-replica-client-core")) // regular sca
       "com.daml" %% "participant-state-kvutils" % sdkVersion
     )
   )
-  .dependsOn(trc_native % Runtime) // remove this if `core` is a library, leave choice to end-user
+  .dependsOn(trc_native % Runtime)
 
 lazy val trc_native = (project in file("thin-replica-client-native")) // native code and build script
   .settings(sourceDirectory in nativeCompile := sourceDirectory.value)
-  .enablePlugins(JniNative) // JniNative needs to be explicitly enabled
+  .enablePlugins(JniNative)
+
+lazy val bft_client_core = (project in file("bft-client-core")) // regular scala code with @native methods
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    target in javah := (sourceDirectory in nativeCompile in bft_client_native).value / "include",
+  )
+  .dependsOn(bft_client_native % Runtime)
+
+lazy val bft_client_native = (project in file("bft-client-native")) // native code and build script
+  .settings(sourceDirectory in nativeCompile := sourceDirectory.value)
+  .enablePlugins(JniNative)
 
 lazy val printInfo = taskKey[Unit]("Prints env info")
 printInfo := println(s"${(sourceDirectory in nativeCompile in trc_native).value.toString}")

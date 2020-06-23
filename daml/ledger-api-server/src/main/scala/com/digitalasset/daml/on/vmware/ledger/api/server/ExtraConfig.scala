@@ -126,8 +126,6 @@ object ExtraConfig {
       .opt[Path]("bft-client-config-path")
       .optional()
       .action((bftClientConfigPath, config) => {
-        sys.exit(64) // No portable exit code for wrong usage, adopting https://man.openbsd.org/sysexits.3
-
         config.copy(extra = config.extra.copy(bftClientConfigPath = Some(bftClientConfigPath)))
       })
       .text("Specify the BFT Client configuration file path.")
