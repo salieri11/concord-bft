@@ -2,9 +2,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
 #include <opentracing/tracer.h>
+#include "Logger.hpp"
 
 #include "daml/daml_validator_client.hpp"
 #include "daml_validator_mock.grpc.pb.h"

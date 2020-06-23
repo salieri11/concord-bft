@@ -1,9 +1,6 @@
 // Copyright 2019 VMware, all rights reserved
 //
 
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#include <log4cplus/loggingmacros.h>
 #include "concord.pb.h"
 #include "direct_kv_db_adapter.h"
 #include "gtest/gtest.h"
@@ -15,7 +12,6 @@
 #include "status.hpp"
 
 using namespace std;
-using namespace log4cplus;
 
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
@@ -37,7 +33,6 @@ const string kTestHlfPeerToolPath1 = "test/peer1";
 const string kTestHlfPeerToolPath2 = "test/peer2";
 
 ChaincodeInvoker chaincode_invoker(kTestHlfPeerToolPath1);
-Logger* logger = nullptr;
 
 // Define TestStorage
 class TestStorage : public ILocalKeyValueStorageReadOnly,
@@ -133,13 +128,6 @@ TEST(hlf_test, hlf_kvb_storage_add_tx) {
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
-
-  logger = new Logger(Logger::getInstance("com.vmware.test"));
-  initialize();
-  Hierarchy& hierarchy = Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  BasicConfigurator config(hierarchy, false);
-  config.configure();
 
   return RUN_ALL_TESTS();
 }

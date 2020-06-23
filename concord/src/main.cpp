@@ -5,7 +5,6 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/resource_quota.h>
 #include <jaegertracing/Tracer.h>
-#include <log4cplus/configurator.h>
 #include <sys/stat.h>
 #include <MetricsServer.hpp>
 #include <boost/asio.hpp>
@@ -909,21 +908,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 }
 
 int main(int argc, char **argv) {
-  bool loggerInitialized = false;
   bool tracingInitialized = false;
   int result = 0;
-
+  Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
   try {
     ConcordConfiguration config;
-
-    // We initialize the logger to whatever log4cplus defaults to here so that
-    // issues that arise while loading the configuration can be logged; the
-    // log4cplus::ConfigureAndWatchThread for using and updating the requested
-    // logger configuration file will be created once the configuration has been
-    // loaded and we can read the path for this file from it.
-    log4cplus::initialize();
-    log4cplus::BasicConfigurator loggerInitConfig;
-    loggerInitConfig.configure();
 
     // Note that this must be the very first statement
     // in main function before doing any operations on config
@@ -946,13 +935,12 @@ int main(int argc, char **argv) {
     ConcordConfiguration &nodeConfig = config.subscope("node", nodeIndex);
 
     // Initialize logger
-    log4cplus::ConfigureAndWatchThread configureThread(
-        nodeConfig.getValue<std::string>("logger_config"),
-        nodeConfig.getValue<int>("logger_reconfig_time"));
-    loggerInitialized = true;
+    LOG_CONFIGURE_AND_WATCH(nodeConfig.getValue<std::string>("logger_config"),
+                            nodeConfig.getValue<int>("logger_reconfig_time"));
 
+    // re-initialize logger after configuration
+    mainLogger = Logger::getInstance("com.vmware.concord.main");
     // say hello
-    Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
     LOG_INFO(mainLogger, "VMware Project concord starting");
 
     initialize_tracing(nodeConfig, mainLogger);
@@ -963,12 +951,7 @@ int main(int argc, char **argv) {
 
     LOG_INFO(mainLogger, "VMware Project concord halting");
   } catch (const error &ex) {
-    if (loggerInitialized) {
-      Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
-      LOG_FATAL(mainLogger, ex.what());
-    } else {
-      std::cerr << ex.what() << std::endl;
-    }
+    LOG_FATAL(mainLogger, ex.what());
     result = -1;
   }
 
@@ -976,13 +959,7 @@ int main(int argc, char **argv) {
     opentracing::Tracer::Global()->Close();
   }
 
-  if (loggerInitialized) {
-    Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
-    LOG_INFO(mainLogger, "Shutting down");
-  }
-
-  // cleanup required for properties-watching thread
-  logging::Logger::shutdown();
+  LOG_INFO(mainLogger, "Shutting down");
 
   return result;
 }

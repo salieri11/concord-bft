@@ -18,9 +18,6 @@ macro(find_library_and_check_found lib_var lib_file lib_desc)
    endif()
 endmacro()
 
-find_library_and_check_found(log4cplus_STATIC_LIBRARY liblog4cplus.a
-                             "log4cplus static library")
-
 find_library_and_check_found(boost_program_options_STATIC_LIBRARY
                              libboost_program_options.a
 			     "Boost program options static library")

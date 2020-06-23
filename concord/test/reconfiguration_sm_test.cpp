@@ -1,8 +1,8 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "reconfiguration/reconfiguration_sm.hpp"
-#include <log4cplus/configurator.h>
 #include <opentracing/tracer.h>
+#include "Logger.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
@@ -226,9 +226,5 @@ TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
   return RUN_ALL_TESTS();
 }

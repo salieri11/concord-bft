@@ -2,8 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
+#include "Logger.hpp"
 
 #include "utils/openssl_crypto_utils.hpp"
 
@@ -224,13 +223,6 @@ TEST(openssl_crypto_wrapper_test, asymmetric_key_signature_verification) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-
-  // log4cplus configuration
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
 
   return RUN_ALL_TESTS();
 }
