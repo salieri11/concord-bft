@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -58,8 +59,8 @@ public class BlockchainUtils {
     @Autowired
     public BlockchainUtils(@Value("${lint.logging.endpoint}") String lintEndpoint,
                            @Value("${lint.logging.authbearer}") String lintAuthBearer,
-                           @Value("${default.wavefront.endpoint:}") String wavefrontEndpoint,
-                           @Value("${default.wavefront.token:}") String wavefrontToken) {
+                           @Value("${default.wavefront.endpoint}") String wavefrontEndpoint,
+                           @Value("${default.wavefront.token}") String wavefrontToken) {
         BlockchainUtils.lintEndpoint = lintEndpoint;
         BlockchainUtils.lintAuthBearer = lintAuthBearer;
         BlockchainUtils.wavefrontEndpoint = wavefrontEndpoint;
@@ -106,7 +107,7 @@ public class BlockchainUtils {
         Zone.Elasticsearch es = zone.getElasticsearch();
         ElasticSearch elasticSearch = ElasticSearch.newBuilder().build();
 
-        if (wf != null) {
+        if (wf != null && !Strings.isNullOrEmpty(wf.getUrl())) {
             wavefront = Wavefront.newBuilder()
                     .setUrl(wf.getUrl())
                     .setToken(wf.getToken())
@@ -114,8 +115,8 @@ public class BlockchainUtils {
         } else {
             // Hack to default to our SRE wavefront.
             wavefront = Wavefront.newBuilder()
-                    //.setUrl(wavefrontEndpoint)
-                    //.setToken(wavefrontToken)
+                    .setUrl(wavefrontEndpoint)
+                    .setToken(wavefrontToken)
                     .build();
         }
 
