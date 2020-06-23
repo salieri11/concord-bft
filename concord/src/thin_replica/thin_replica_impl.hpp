@@ -82,6 +82,13 @@ class ThinReplicaImpl {
     // TODO: Determine oldest block available (pruning)
     kvbc::BlockId start = 1;
     kvbc::BlockId end = rostorage_->getLastBlock();
+
+    if (end == 0) {
+      std::string msg{"No blocks available"};
+      LOG_WARN(logger_, msg);
+      return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, msg);
+    }
+
     try {
       ReadFromKvbAndSendData(logger_, context, stream, start, end, kvb_filter);
     } catch (StreamCancelled& error) {
@@ -110,6 +117,14 @@ class ThinReplicaImpl {
     // TODO: Determine oldest block available (pruning)
     kvbc::BlockId block_id_start = 1;
     kvbc::BlockId block_id_end = request->block_id();
+
+    if (block_id_end < block_id_start) {
+      std::string msg{"Invalid block range"};
+      msg += " [" + std::to_string(block_id_start) + "," +
+             std::to_string(block_id_end) + "]";
+      LOG_WARN(logger_, msg);
+      return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, msg);
+    }
 
     concord::storage::KvbStateHash kvb_hash;
     try {
