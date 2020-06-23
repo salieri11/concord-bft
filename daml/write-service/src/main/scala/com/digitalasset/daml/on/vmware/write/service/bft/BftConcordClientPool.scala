@@ -15,19 +15,12 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-sealed abstract class ClientMsgFlag(val value: Int)
-object ClientMsgFlag {
-  case object None extends ClientMsgFlag(value = 0)
-  case object ReadOnly extends ClientMsgFlag(value = 1)
-  case object PreExec extends ClientMsgFlag(value = 2)
-}
-
 /**
-  * This trait contains the JVM implementation part of the native BFT Concord Client Pool, while the native parts
-  * are left abstract here and are implemented natively by [[BftConcordClientPoolNative]].
+  * This trait contains the JVM implementation part of the native BFT Concord Client Pool, while the core functionality
+  * is delegated to a [[BftConcordClientPoolCore]].
   */
 private[bft] class BftConcordClientPool(
-    nativeClient: BftConcordClientPoolNative,
+    coreClient: BftConcordClientPoolCore,
     metrics: Metrics,
     shouldRetry: Throwable => Boolean = BftConcordClientPool.shouldRetry)
     extends AutoCloseable {
@@ -39,14 +32,14 @@ private[bft] class BftConcordClientPool(
     *
     * @param request A serialized [[com.vmware.concord.concord.ConcordRequest]] Protobuf instance.
     * @param timeout The timeout used by the synchronous client that will send the request to Concord.
-    * @param flag The pre-execution mode, if any.
+    * @param preExecute Whether to pre-execute.
     * @param correlationId The correlation ID of the request for observability.
     * @return A [[Future]] delivering an [[SubmissionResult]] value asynchronously.
     */
   def sendRequest(
       request: ByteString,
       timeout: Duration,
-      flag: ClientMsgFlag,
+      preExecute: Boolean,
       correlationId: String)(
       implicit executionContext: ExecutionContext): Future[SubmissionResult] =
     Timed.future(
@@ -57,10 +50,12 @@ private[bft] class BftConcordClientPool(
           Metrics.submissionSizes.update(requestSize)
           logger.debug(
             s"Submitting request, correlationId=$correlationId serializedRequestSize=$requestSize")
+          val sendRequestNativeResult = coreClient
+            .sendRequest(request.toByteArray, timeout.toMillis, preExecute, correlationId)
           Metrics.submissions.inc()
-          nativeSendResultToSubmissionResult(
-            nativeClient
-              .sendRequestNative(request.toByteArray, timeout.toMillis, flag.value, correlationId))
+          logger.debug(
+            s"Request submitted, correlationId=$correlationId nativeSendResult=$sendRequestNativeResult")
+          nativeSendResultToSubmissionResult(sendRequestNativeResult)
         }
       }.transform {
           case success @ Success(submissionResult) =>
@@ -92,9 +87,17 @@ private[bft] class BftConcordClientPool(
         }
     )
 
-  def currentHealth: HealthStatus = nativeHealthToHealthStatus(nativeClient.currentHealthNative)
+  def currentHealth: HealthStatus = {
+    val nativeHealth = coreClient.currentHealth
+    logger.debug(s"The native BFT client health check returned $nativeHealth")
+    nativeHealthToHealthStatus(nativeHealth)
+  }
 
-  override def close(): Unit = nativeClient.close()
+  override def close(): Unit = {
+    logger.debug("Closing the native BFT client")
+    coreClient.close()
+    logger.debug("Native BFT client closed")
+  }
 
   private[bft] object Metrics {
     val prefix: MetricName = MetricName("daml") :+ "bft"

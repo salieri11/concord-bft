@@ -57,6 +57,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
   )(
       implicit materializer: Materializer,
       logCtx: LoggingContext): ResourceOwner[ReadWriteService] = {
+
     implicit val executionContext: ExecutionContextExecutor =
       materializer.executionContext
     logger.info(
@@ -69,8 +70,10 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
       createThinReplicaClient(participantConfig.participantId, config.extra, metrics.registry)
-    val concordClients = createConcordWriteClients(config.extra, metrics)
-    waitForConcordToBeReady(concordClients, config.extra.maxFaultyReplicas)
+    val concordClients = createConcordWriteClients(config, metrics)
+    waitForConcordToBeReady(
+      concordClients,
+      if (config.extra.useBftClient) None else Some(config.extra.maxFaultyReplicas))
     val ledgerId =
       config.ledgerId.getOrElse(Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
     val reader = new ConcordKeyValueLedgerReader(
@@ -131,21 +134,30 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
 
   private[this] val DefaultReplicaPort = 50051
 
-  private[this] def createConcordWriteClients(config: ExtraConfig, metrics: Metrics)(
+  private[this] def createConcordWriteClients(config: Config[ExtraConfig], metrics: Metrics)(
       implicit executionContext: ExecutionContext): Seq[ConcordWriteClient] =
-    if (config.useBftClient) {
-      Seq(
+    if (config.extra.useBftClient) {
+      logger.debug(s"Loading the native 'bft-client-native0' library")
+
+      System.loadLibrary("bft-client-native0")
+
+      logger.debug(s"Creating the BFT Client")
+
+      val result = Seq(
         BftWriteClient(
-          config.bftClientConfigPath.getOrElse {
+          config.extra.bftClientConfigPath.getOrElse {
             sys.error(
               "When BFT Client is selected, the BFT Client configuration file path is required but none was specified.")
           },
-          config.bftClientRequestTimeout,
+          config.extra.bftClientRequestTimeout,
           metrics
         ))
+
+      logger.debug(s"BFT Client created")
+      result
     } else {
-      assert(config.replicas.nonEmpty)
-      config.replicas.map { replica =>
+      assert(config.extra.replicas.nonEmpty)
+      config.extra.replicas.map { replica =>
         val (host, port) = parseHostAndPort(replica)
         KvbcWriteClient(host, port)
       }
@@ -171,23 +183,28 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     // format: on
   }
 
-  private[this] def waitForConcordToBeReady(clients: Seq[ConcordWriteClient], f: Int): Unit = {
+  private[this] def waitForConcordToBeReady(
+      clients: Seq[ConcordWriteClient],
+      maybeF: Option[Int]): Unit = {
     // The first client is used to send requests to and therefore we need a working connection.
     while (!clients.head.ready) {
       logger.info("Waiting for first Concord to be ready")
       Thread.sleep(1000)
     }
 
-    var numReady = 0
-    do {
-      clients.tail.foreach { client =>
-        if (client.ready)
-          numReady += 1
-      }
-      logger.info(
-        s"Waiting for 2*f=${2 * f} more Concords to be ready (currently $numReady are ready)")
-      if (numReady < (2 * f)) Thread.sleep(1000)
-    } while (numReady < (2 * f))
+    // Wait for 2f more replicas, if asked to do so (i.e., if not using BFT Client)
+    maybeF.map { f =>
+      var numReady = 0
+      do {
+        clients.tail.foreach { client =>
+          if (client.ready)
+            numReady += 1
+        }
+        logger.info(
+          s"Waiting for 2*f=${2 * f} more Concords to be ready (currently $numReady are ready)")
+        if (numReady < (2 * f)) Thread.sleep(1000)
+      } while (numReady < (2 * f))
+    }
   }
 
   private[this] def parseHostAndPort(input: String): (String, Int) = {

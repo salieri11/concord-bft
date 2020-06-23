@@ -62,4 +62,5 @@ $API_SERVER \
   --maxTrcReadHashTimeout ${MAX_TRC_READ_HASH_TIMEOUT} \
   --ledger-id KVBC \
   $THIN_REPLICA_SETTINGS \
+  $BFT_CLIENT_SETTINGS \
   $AUTH_SETTINGS

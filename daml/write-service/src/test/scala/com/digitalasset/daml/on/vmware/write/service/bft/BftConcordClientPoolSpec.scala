@@ -116,8 +116,8 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
   private def sendRequestWithNativeResult(
       nativeResult: Try[Int]): (BftConcordClientPool, Future[SubmissionResult]) = {
     val metrics = new Metrics(new MetricRegistry)
-    val bftConcordClientPoolNative = mock[BftConcordClientPoolNative]
-    val premise = when(bftConcordClientPoolNative.sendRequestNative(any(), any(), any(), any()))
+    val bftConcordClientPoolNative = mock[BftConcordClientPoolJni]
+    val premise = when(bftConcordClientPoolNative.sendRequest(any(), any(), any(), any()))
     nativeResult match {
       case Success(nativeReturnValue) =>
         premise

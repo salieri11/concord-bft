@@ -7,15 +7,19 @@
 
 cmake_minimum_required(VERSION 2.8.0)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../thin-replica-client-native/src/cmake")
 
 # Define project and related variables
 # (required by sbt-jni) please use semantic versioning
 #
-project (thin-replica-client-native)
+project (bft-client-native)
 set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 1)
-set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 1)
+
+# specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Setup JNI
 find_package(JNI REQUIRED)
@@ -27,19 +31,20 @@ endif()
 include_directories(.)
 include_directories(include)
 include_directories(${JNI_INCLUDE_DIRS})
+include_directories(/opt/protobuf/include)
 
-find_library(THIN_REPLICA_CLIENT "thin_replica_client")
-if(${THIN_REPLICA_CLIENT} STREQUAL "THIN_REPLICA_CLIENT-NOTFOUND")
-      message(SEND_ERROR "Unable to find thin replica client lib")
+find_library(BFT_CLIENT NAMES concord_external_client_shared)
+if(${BFT_CLIENT} STREQUAL "BFT_CLIENT-NOTFOUND")
+      message(SEND_ERROR "Unable to find BFT client lib")
 else()
-      message(STATUS "Thin replica client lib found at ${THIN_REPLICA_CLIENT}")
+      message(STATUS "BFT client lib found at ${BFT_CLIENT}")
 endif()
 
-find_path(THIN_REPLICA_CLIENT_DIR "thin_replica_client")
-if((NOT THIN_REPLICA_CLIENT_DIR) OR (NOT EXISTS ${THIN_REPLICA_CLIENT_DIR}))
-      message(SEND_ERROR "Unable to find thin replica client includes")
+find_path(BFT_CLIENT_DIR "external")
+if((NOT BFT_CLIENT_DIR) OR (NOT EXISTS ${BFT_CLIENT_DIR}))
+      message(SEND_ERROR "Unable to find BFT client includes")
 else()
-      message(STATUS "Thin replica client includes found at ${THIN_REPLICA_CLIENT_DIR}")
+      message(STATUS "BFT client includes found at ${BFT_CLIENT_DIR}")
 endif()
 
 # Sources
@@ -54,6 +59,6 @@ file(GLOB LIB_SRC
 
 set (LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
 add_library(${LIB_NAME} SHARED ${LIB_SRC})
-target_link_libraries(${LIB_NAME} ${THIN_REPLICA_CLIENT})
-target_include_directories(${LIB_NAME} PUBLIC ${THIN_REPLICA_CLIENT_DIR})
+target_link_libraries(${LIB_NAME} ${BFT_CLIENT})
+target_include_directories(${LIB_NAME} PUBLIC ${BFT_CLIENT_DIR})
 install(TARGETS ${LIB_NAME} LIBRARY DESTINATION . ARCHIVE DESTINATION .)

@@ -2,23 +2,16 @@
 
 package com.digitalasset.daml.on.vmware.write.service.bft
 
-import java.nio.file.Path
-
-import com.daml.metrics.Metrics
-
 /**
   * The native implementation of BFT Concord Client Pool is thread-safe.
   */
-private[bft] class BftConcordClientPoolNative(configPath: Path, metrics: Metrics)
-    extends AutoCloseable {
+private[bft] trait BftConcordClientPoolCore extends AutoCloseable {
 
-  @native def sendRequestNative(
+  def sendRequest(
       request: Array[Byte],
       timeoutMillis: Long,
-      flag: Int,
+      preExecute: Boolean,
       correlationId: String): Int
 
-  @native def currentHealthNative: Int
-
-  @native override def close(): Unit
+  def currentHealth: Int
 }
