@@ -7,7 +7,7 @@
       },
       {
         "testname": "CHESS+",
-        "test": "./main.py ChessPlusTests"
+        "test": "./main.py ChessPlusTests --dockerHubUser blockchainrepositoryreader --dockerHubPassword '<DOCKERHUB_PASSWORD>'"
       }
     ],
     "additional_tests": [

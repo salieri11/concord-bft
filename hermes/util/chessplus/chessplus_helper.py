@@ -37,10 +37,13 @@ def run_chess_plus(args, participant_ip):
          spider_image_tag = daml_helper.get_spider_version(daml_sdk_version,
                                                            args.dockerHubUser,
                                                            args.dockerHubPassword)
-      daml_helper.download_spider_app(spider_image_tag)
+      if spider_image_tag:
+         daml_helper.download_spider_app(spider_image_tag)
+      else:
+         raise Exception("No Spider image tag.")
 
    except Exception as e:
-      log.error("Failed to get DAML SDK or Spider version.")
+      log.error("Failed to get DAML SDK or Spider.")
       raise
 
    cmd = [
