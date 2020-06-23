@@ -271,6 +271,18 @@ public class BlockchainController {
                                                   .get(Constants.ORG_TEMPLATE_ID_OVERRIDE));
             }
 
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_VM_CPU_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_VM_CPU_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_VM_MEMORY_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_VM_MEMORY_OVERRIDE));
+            }
+
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_GENERATE_PASSWORD)) {
                 basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
             }
