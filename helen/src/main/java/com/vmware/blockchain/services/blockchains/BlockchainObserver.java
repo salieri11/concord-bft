@@ -205,15 +205,17 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
         logger.info("Task {} completed, status {}", taskId, status);
         // We need to evict the auth token from the cache, since the available blockchains has just changed
         authHelper.evictToken();
+        var blockchain = blockchainService.create(rawBlockchain.getId(), rawBlockchain.getConsortium(),
+                                                  rawBlockchain.type, rawBlockchain.getMetadata());
+
         final Task task = taskService.get(taskId);
         task.setMessage("Operation finished");
         if (status == DeploymentExecutionEvent.Status.SUCCESS) {
             task.setState(Task.State.SUCCEEDED);
         } else {
+            blockchain.state = Blockchain.BlockchainState.FAILED;
             task.setState(Task.State.FAILED);
         }
-        var blockchain = blockchainService.create(rawBlockchain.getId(), rawBlockchain.getConsortium(),
-                                                  rawBlockchain.type, rawBlockchain.getMetadata());
         // Validate and convert to blockchain metadata
         try {
             createBlockchainNodeInfo();
