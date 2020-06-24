@@ -49,14 +49,15 @@ object Main extends App {
     mainThread.join()
   }))
 
-  val u = Library.getTestUpdate
+  val trcJni = new ThinReplicaClientJni
+  val u = trcJni.getTestUpdate
   System.out.println(u)
   assert(
     isEqual(
       u,
       Some(Update(17, Array("Alice".getBytes -> "Bob".getBytes), "test", "SpanContext".getBytes))))
 
-  val creatResult = Library.createTRC(
+  val initializationResult = trcJni.initialize(
     "example_client_id",
     1,
     "",
@@ -64,14 +65,14 @@ object Main extends App {
     5,
     5,
     "localhost:6831")
-  assert(creatResult == true)
+  assert(initializationResult == true)
   System.out.println("ThinReplicaClient constructed.")
 
-  val subsResult = Library.subscribe("daml")
-  assert(creatResult == true)
+  val subsResult = trcJni.subscribe("daml")
+  assert(initializationResult == true)
   System.out.println("ThinReplicaClient subscribed.")
 
-  var update = Library.tryPop()
+  var update = trcJni.tryPop()
   val has_update = update.nonEmpty
   var latest_block_id: Long = 0
   if (!has_update) {
@@ -85,32 +86,33 @@ object Main extends App {
   while (keepRunning && update.nonEmpty) {
     printUpdate(update.get)
     latest_block_id = update.get.blockId
-    update = Library.tryPop()
+    update = trcJni.tryPop()
   }
 
   if (has_update) {
     System.out.println(
       "The (at least initial) contents of the update queue have been " +
         "exhausted; will now wait for and report any additional updates...")
-    Library.acknowledgeBlockId(latest_block_id)
+    trcJni.acknowledgeBlockId(latest_block_id)
     System.out.println("Update(s) acknowledged.")
 
   } else {
     System.out.println("Will wait for and report any updates...")
   }
 
-  update = Library.pop()
+  update = trcJni.pop()
   while (keepRunning && update.nonEmpty) {
     printUpdate(update.get)
     latest_block_id = update.get.blockId
-    Library.acknowledgeBlockId(latest_block_id)
-    //System.out.println(s"Acknowledged update with with Block ID $latest_block_id.")
+    trcJni.acknowledgeBlockId(latest_block_id)
+    //if(latest_block_id % 100 == 0)
+    System.out.println(s"Acknowledged update with with Block ID $latest_block_id.")
 
-    update = Library.pop()
+    update = trcJni.pop()
   }
 
   System.out.println("It appears the update consumer thread was recalled.")
 
-  Library.unsubscribe()
+  trcJni.unsubscribe()
   System.out.println("ThinReplicaClient unsubscribed.")
 }

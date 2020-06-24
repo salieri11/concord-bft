@@ -10,10 +10,10 @@
 extern "C" {
 #endif
 
-jboolean createTRC(JNIEnv *env, jobject obj, jstring j_client_id,
+jboolean initialize(JNIEnv *env, jobject obj, jstring j_client_id,
                    jshort j_max_faulty, jstring j_private_key,
                    jobjectArray j_servers, jshort j_max_read_data_timeout,
-                   jshort j_max_read_hash_timeout, jstring j_jaeger_agent);
+                   jshort j_max_read_hash_timeout, jstring j_jaeger_agent_host_port);
 
 jboolean subscribe(JNIEnv *env, jobject obj, jstring j_prefix);
 jboolean subscribeFrom(JNIEnv *env, jobject obj, jstring j_prefix,

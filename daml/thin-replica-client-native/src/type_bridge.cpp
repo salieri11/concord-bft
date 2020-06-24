@@ -232,11 +232,11 @@ class TRCFFactory {
       JNIConverter* converter, jstring j_client_id, jshort j_max_faulty,
       jstring j_private_key, jobjectArray j_servers,
       jshort j_max_read_data_timeout, jshort j_max_read_hash_timeout,
-      jstring j_jaeger_agent) {
+      jstring j_jaeger_agent_host_port) {
     return ModifyAndGet([converter, j_client_id, j_max_faulty, j_private_key,
                          j_servers, j_max_read_data_timeout,
                          j_max_read_hash_timeout,
-                         j_jaeger_agent](Instance& instance) {
+                         j_jaeger_agent_host_port](Instance& instance) {
       if (!instance && converter) {
         string client_id = converter->ToString(j_client_id);
         string private_key = converter->ToString(j_private_key);
@@ -244,16 +244,16 @@ class TRCFFactory {
         vector<pair<string, string>> servers;
         transform(addresses.begin(), addresses.end(), back_inserter(servers),
                   [](auto& e) { return make_pair(string(), e); });
-        string jaeger_agent = converter->ToString(j_jaeger_agent);
+        string jaeger_agent_host_port = converter->ToString(j_jaeger_agent_host_port);
         instance.reset(new ThinReplicaClientFacade(
             client_id, j_max_faulty, private_key, servers,
-            j_max_read_data_timeout, j_max_read_hash_timeout, jaeger_agent));
+            j_max_read_data_timeout, j_max_read_hash_timeout, jaeger_agent_host_port));
       }
     });
   }
 };
 
-extern "C" jboolean createTRC(JNIEnv* env, jobject obj, jstring j_client_id,
+extern "C" jboolean initialize(JNIEnv* env, jobject obj, jstring j_client_id,
                               jshort j_max_faulty, jstring j_private_key,
                               jobjectArray j_servers,
                               jshort j_max_read_data_timeout,
