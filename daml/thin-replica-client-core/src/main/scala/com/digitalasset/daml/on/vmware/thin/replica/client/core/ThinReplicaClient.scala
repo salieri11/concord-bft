@@ -1,9 +1,6 @@
 // Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 package com.digitalasset.daml.on.vmware.thin.replica.client.core
 
-import ch.jodersky.jni.nativeLoader
-import scala.language.implicitConversions
-
 final case class Update(
     blockId: Long,
     kvPairs: Array[(Array[Byte], Array[Byte])],
@@ -16,26 +13,23 @@ final case class Update(
       kvPairs.map(p => "(" + new String(p._1) + "," + new String(p._2) + ")").mkString(",") + "])"
 }
 
-// By adding this annotation, there is no need to call
-// System.load("thin-replica-client-native0") before accessing native methods.
-@nativeLoader("thin-replica-client-native0")
-object Library {
-  @native def createTRC(
+trait ThinReplicaClient {
+  def initialize(
       clientId: String,
       maxFaulty: Short,
       privateKey: String,
       servers: Array[String],
       maxReadDataTimeout: Short,
       maxReadHashTimeout: Short,
-      jaegerAgent: String): Boolean
-  @native def subscribe(prefix: String): Boolean
-  @native def subscribe(prefix: String, blockId: Long): Boolean
-  @native def unsubscribe(): Boolean
+      jaegerAgentHostPort: String): Boolean
+  def subscribe(prefix: String): Boolean
+  def subscribe(prefix: String, blockId: Long): Boolean
+  def unsubscribe(): Boolean
 
-  @native def pop(): Option[Update]
-  @native def tryPop(): Option[Update]
+  def pop(): Option[Update]
+  def tryPop(): Option[Update]
 
-  @native def acknowledgeBlockId(blockId: Long): Boolean
+  def acknowledgeBlockId(blockId: Long): Boolean
 
-  @native def getTestUpdate: Option[Update]
+  def getTestUpdate: Option[Update]
 }
