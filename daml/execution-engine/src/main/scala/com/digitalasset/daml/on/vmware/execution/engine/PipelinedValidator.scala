@@ -10,16 +10,17 @@ import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
   PrivacyAwareSubmissionValidator
 }
-import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
+import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, LedgerStateOperations}
 import com.daml.lf.data.Time
 import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator}
+import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 /**
   * Orchestrates validation using pipelined state access.
@@ -80,6 +81,7 @@ class PipelinedValidator(
                     writeSet = ledgerStateOperations.getAndClearWriteSet())
                   responseObserver.onNext(EventFromValidator().withDone(doneEvent))
                   responseObserver.onCompleted()
+                  logReadSet(sortedReadSet, ledgerStateOperations, request.correlationId)
                   logger.info(
                     s"Batch validation completed, correlationId=${request.correlationId} " +
                       s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
@@ -101,6 +103,19 @@ class PipelinedValidator(
         logger.trace("validateSubmissions() completed")
     }
   }
+
+  private def logReadSet(
+      keys: Seq[LedgerStateOperations.Key],
+      operations: ConcordLedgerStateOperations,
+      correlationId: String): Unit =
+    if (logger.isTraceEnabled) {
+      val readKeysHash = Digests.hexDigestOfBytes(keys)
+      val completedReadHashes = operations.getCompletedReadHashes
+      val readValuesHash =
+        Digests.hexDigestOfBytes(keys.flatMap(completedReadHashes.get).map(ByteString.copyFrom))
+      logger.trace(
+        s"Produced read-set, size=${keys.size} readKeysHash=$readKeysHash readValuesHash=$readValuesHash correlationId=$correlationId")
+    }
 
   private def parseTimestamp(ts: com.google.protobuf.timestamp.Timestamp): Time.Timestamp =
     Time.Timestamp.assertFromInstant(Instant.ofEpochSecond(ts.seconds, ts.nanos))
