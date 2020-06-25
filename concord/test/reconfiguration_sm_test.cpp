@@ -9,6 +9,7 @@
 #include "mocks.hpp"
 #include "reconfiguration/upgrade_plugin.hpp"
 #include "status.hpp"
+#include "utils/concord_prometheus_metrics.hpp"
 
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ReconfigurationResponse;
@@ -25,6 +26,9 @@ using concord::utils::openssl_crypto::AsymmetricPublicKey;
 using concord::utils::openssl_crypto::GenerateAsymmetricCryptoKeyPair;
 
 namespace {
+
+auto registry =
+    std::make_shared<concord::utils::PrometheusRegistry>("127.0.0.1:9891");
 
 // Helper function to the pruning state machine unit tests to generate a key
 // pair for the operator privileged to issue pruning commands, add the public
@@ -75,7 +79,7 @@ auto test_span =
 TEST(reconfiguration_sm_test, create_rsm) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  EXPECT_NO_THROW(ReconfigurationSM rsm(config));
+  EXPECT_NO_THROW(ReconfigurationSM rsm(config, registry));
 }
 
 /*
@@ -84,7 +88,7 @@ TEST(reconfiguration_sm_test, create_rsm) {
 TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest reconfig_sm_req;
   reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
@@ -99,7 +103,7 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
 TEST(reconfiguration_sm_test, reject_invalid_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
 
   rsm.LoadPlugin(
       std::make_unique<MockPlugin>(ReconfigurationSmRequest_PluginId_MOCK));
@@ -136,7 +140,7 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
 TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
   rsm.LoadPlugin(
       std::make_unique<MockPlugin>(ReconfigurationSmRequest_PluginId_MOCK));
 
@@ -155,7 +159,7 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
 TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
@@ -177,7 +181,7 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
 TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
@@ -199,7 +203,7 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
 TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config);
+  ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
