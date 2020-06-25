@@ -13,7 +13,10 @@ import traceback
 import json
 import os
 import urllib
-from util import helper, slack, mailer, wavefront, racetrack, jenkins
+import tempfile
+from fixtures.common_fixtures import BlockchainFixture
+from util import (hermes_logging, helper, slack, mailer, wavefront,
+                 racetrack, jenkins, infra, blockchain_ops as ops)
 from suites import case
 
 log = None
@@ -93,7 +96,9 @@ def ownAllJenkinsNodesWorkspace(args, options, secret):
 
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
-  helper.resetBlockchain(replicasConfig=a[0])
+  replicas = helper.parseReplicasConfig(replicas=a[0])
+  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas)
+  ops.reset_blockchain(fxBlockchain)
 
 
 # Registry of callable standalone functions
@@ -129,7 +134,6 @@ DISPATCH = {
 
 
 def main():
-  setUpLogging()
   parser = argparse.ArgumentParser()
   parser.add_argument("funcName", help="Name of the utility function.")
   parser.add_argument("--param",
@@ -146,9 +150,19 @@ def main():
   parser.add_argument("--su",
                       action="store_true", # implies default=False
                       help="Super user privilege with all Jenkins injected credentials available.")
+  parser.add_argument("--logLevel",
+                       help="Set the log level.  Valid values:"
+                       "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
+                       default="INFO")
+  parser.add_argument("--resultsDir",
+                       default=tempfile.gettempdir(),
+                       help="Results directory")
   args = parser.parse_args()
-  if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
-  setUpLogging()
+  hermes_logging.setUpLogging(args)
+  if args.su:
+    helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
+    userConfig = helper.getUserConfig()
+    zoneConfig = helper.getZoneConfig()
   try:
     param = trimCmdlineArgs(args.param)
     options = trimCmdlineArgs(args.options)
@@ -157,16 +171,6 @@ def main():
     log.info(e); traceback.print_exc()
   helper.hermesNonCriticalTraceFinalize()
   return
-
-
-def setUpLogging():
-  try:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    global log
-    log = logging.getLogger(__name__)
-  except AttributeError:
-    exit(1)
 
 
 def trimCmdlineArgs(argList):

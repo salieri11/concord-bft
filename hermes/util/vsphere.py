@@ -22,7 +22,7 @@ CSP_SESSION = { "active": False }
 
 class ConnectionToSDDC:
   
-  def __init__(self, sddcInfo):
+  def __init__(self, sddcInfo, skipMapping=False):
     '''
         Connect to vSphere given host and credentials.
         After establishing connection successfully, fetches and maps all
@@ -33,51 +33,56 @@ class ConnectionToSDDC:
         of vSphere running on the SDDC (about 80% feature coverage; e.g. attaching
         tags and categories are missing in the lib, and must be done with vapi.cis)
     '''
-    try:
-      self.sddcName = sddcInfo["name"]
-      self.publicIP = sddcInfo["publicIP"]; publicIPHyphen = self.publicIP.replace('.', '-')
-      self.hostnameVCenter = "vcenter.sddc-{}.vmwarevmc.com".format(publicIPHyphen)
-      self.hostnameNSX = "nsx-{}.rp.vmwarevmc.com".format(publicIPHyphen)
-      self.reqSession = requests.Session()
-      self.orgId = sddcInfo["orgId"]
-      self.sddcId = sddcInfo["sddcId"]
-      self.baseNSXT = "https://{}/vmc/reverse-proxy/api/orgs/{}/sddcs/{}/sks-nsxt-manager".format(
-        self.hostnameNSX, self.orgId, self.sddcId
-      )
-      self.headersNSXT = {}
-      self.username = sddcInfo["username"]
-      self.password = sddcInfo["password"]
-      self.vmcToken = sddcInfo["vmcToken"] if not sddcInfo["vmcToken"].startswith("<") else ""
-      self.ready = False
-      sslContext = None # skip cert checking
-      if hasattr(ssl, '_create_unverified_context'): 
-        sslContext = ssl._create_unverified_context()
-      log.debug("Connecting to vSphere on {}...".format(self.sddcName))
-      self.connection = SmartConnect(host = self.hostnameVCenter,
-                                    user = self.username,
-                                    pwd = self.password,
-                                    sslContext = sslContext)
-      if not self.connection:
-        log.debug("Cannot connect to {} as {} ".format(self.hostnameVCenter, self.username))
-      else:
-        atexit.register(Disconnect, self.connection) # clean up connection
-        log.debug("Successfully connected to vSphere on {}".format(self.sddcName))
-        self.content = self.connection.RetrieveContent() # main content obj of vSphere
-        self.services = self.connection.RetrieveServiceContent() # all managers
-        self.attrByName = {}
-        self.attrByKey = {}
-
-        log.debug("Fetching all VMs and Folders on {}...".format(self.sddcName))
-        self.allEntityHandlesByName = {} # by VM name
-        self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
-        self.allEntityHandlesByAttribute = {} # by custom attritube and its value
-        self.updateAllEntityHandles() # populate `allEntityHandlesByName` with all VMs & Folders in this SDDC
-        self.ready = True
-    
-    except Exception as e:
-      traceback.print_exc()
-      log.debug("Failed to initialize session to vSphere on {}".format(self.sddcName))
-      log.debug(e)
+    self.sddcName = sddcInfo["name"]
+    self.publicIP = sddcInfo["publicIP"]; publicIPHyphen = self.publicIP.replace('.', '-')
+    self.hostnameVCenter = "vcenter.sddc-{}.vmwarevmc.com".format(publicIPHyphen)
+    self.hostnameNSX = "nsx-{}.rp.vmwarevmc.com".format(publicIPHyphen)
+    self.reqSession = requests.Session()
+    self.orgId = sddcInfo["orgId"]
+    self.sddcId = sddcInfo["sddcId"]
+    self.baseNSXT = "https://{}/vmc/reverse-proxy/api/orgs/{}/sddcs/{}/sks-nsxt-manager".format(
+      self.hostnameNSX, self.orgId, self.sddcId
+    )
+    self.headersNSXT = {}
+    self.username = sddcInfo["username"]
+    self.password = sddcInfo["password"]
+    self.vmcToken = sddcInfo["vmcToken"] if not sddcInfo["vmcToken"].startswith("<") else ""
+    self.ready = False
+    self.entitiesMapped = False
+    tryCount = 0
+    maxRetries = 3
+    while tryCount < maxRetries:
+      try:
+        tryCount += 1
+        sslContext = None # skip cert checking
+        if hasattr(ssl, '_create_unverified_context'): 
+          sslContext = ssl._create_unverified_context()
+        log.debug("Connecting to vSphere on {}...".format(self.sddcName))
+        self.connection = SmartConnect(host = self.hostnameVCenter,
+                                      user = self.username,
+                                      pwd = self.password,
+                                      sslContext = sslContext)
+        if not self.connection:
+          log.debug("Cannot connect to {} as {} ".format(self.hostnameVCenter, self.username))
+          continue
+        else:
+          log.debug("Successfully connected to vSphere on {}".format(self.sddcName))
+          self.content = self.connection.RetrieveContent() # main content obj of vSphere
+          self.services = self.connection.RetrieveServiceContent() # all managers
+          self.attrByName = {}
+          self.attrByKey = {}
+          if not skipMapping:
+            self.allEntityHandlesByName = {} # by VM name
+            self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
+            self.allEntityHandlesByAttribute = {} # by custom attritube and its value
+            self.updateAllEntityHandles() # populate `allEntityHandlesByName` with all VMs & Folders in this SDDC
+          self.ready = True
+          break
+      except Exception as e:
+        traceback.print_exc()
+        log.debug("Failed to initialize session to vSphere on {}".format(self.sddcName))
+        log.debug(e)
+    atexit.register(Disconnect, self.connection) # clean up connection    
 
 
   def getByName(self, name, getAsHandle=False):
@@ -127,10 +132,13 @@ class ConnectionToSDDC:
       return "Folder"
     else:
       return None
+  
 
-
-  def vmBasicPropertiesToFetch(self):
-    return ["name", "customValue"]
+  def entityDefaultProperties(self, entity):
+    t = self.getEntityType(entity)
+    if t == "VM": return ["name", "customValue"]
+    elif t == "Folder": return ["name"]
+    return []
 
 
   def vmGetUID(self, vm):
@@ -138,12 +146,12 @@ class ConnectionToSDDC:
 
   
   def vmRegisterIfNew(self, vm):
-    vmUID = str(vm)
+    vmUID = self.vmGetUID(vm)
     if vmUID in self.allEntityHandlesByUID:
       return self.allEntityHandlesByUID[vmUID]
     try:
+      props = self.entityDefaultProperties(vm)
       handle = { "entity": vm }
-      props = self.vmBasicPropertiesToFetch()
       for propname in props:
         if hasattr(vm, propname):
           handle[propname] = getattr(vm, propname)
@@ -316,43 +324,51 @@ class ConnectionToSDDC:
           self.attrByName[attr.name] = attr
         if attr.key not in self.attrByKey:
           self.attrByKey[attr.key] = attr
-        if attr.name == name: 
+        if attr.name == name:
           found = attr
       return found
 
 
   def initializeHandle(self, handle):
+    entity = handle["entity"] if "entity" in handle else None
+    if not entity: return
+    entityUID = self.vmGetUID(entity)
     handle["isHandle"] = True
     handle["attrMap"] = {}
     handle["sddc"] = self.sddcName
+    handle["uid"] = entityUID
+    self.allEntityHandlesByUID[entityUID] = handle
+    # Folder or VM
     if "name" in handle:
-      name = handle["name"]
-      entity = handle["entity"]
-      if name.count('-') == 9: # get replicaId by dropping first uuid (blockchainId)
-        handle["replicaId"] = '-'.join(name.split('-')[5:])
-      self.allEntityHandlesByName[name] = handle
-      if self.getEntityType(entity) == "VM":
-        vmUID = self.vmGetUID(entity)
-        handle["uid"] = vmUID
-        self.allEntityHandlesByUID[vmUID] = handle
-        attrs = handle["customValue"]
-        for attr in attrs:
-          attrDef = self.attrByKey[attr.key]
-          attrName = attrDef.name
-          handle["attrMap"][attrName] = attr.value
-          if attrName not in self.allEntityHandlesByAttribute:
-            self.allEntityHandlesByAttribute[attrName] = {}
-          if attr.value not in self.allEntityHandlesByAttribute[attrName]:
-            self.allEntityHandlesByAttribute[attrName][attr.value] = []
-          self.allEntityHandlesByAttribute[attrName][attr.value].append(handle)
+      entityName = handle["name"]
+      self.allEntityHandlesByName[entityName] = handle
+      if entityName.count('-') == 9: # get replicaId by dropping first uuid (blockchainId)
+        handle["replicaId"] = '-'.join(entityName.split('-')[5:])
+    # VM with custom attributes
+    if self.getEntityType(entity) == "VM" and "customValue" in handle:
+      attrs = handle["customValue"]
+      for attr in attrs:
+        if attr.key not in self.attrByKey:
+          log.debug("Custom attr key '{}' not found on {}".format(attr.key, entity))
+          continue
+        attrDef = self.attrByKey[attr.key]
+        attrName = attrDef.name
+        handle["attrMap"][attrName] = attr.value
+        if attrName not in self.allEntityHandlesByAttribute:
+          self.allEntityHandlesByAttribute[attrName] = {}
+        if attr.value not in self.allEntityHandlesByAttribute[attrName]:
+          self.allEntityHandlesByAttribute[attrName][attr.value] = []
+        self.allEntityHandlesByAttribute[attrName][attr.value].append(handle)
 
 
-  def updateAllEntityHandles(self):
+  def updateAllEntityHandles(self, initialFetch=False):
     '''
         Fetches and maps all VMs and Folders in the SDDC by name for easy look-up.
     '''
+    t1 = time.time()
     try:
       # clear and get latest
+      log.debug("Fetching all VMs and Folders on {}...".format(self.sddcName))
       self.allEntityHandlesByName = {} # by VM name
       self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
       self.allEntityHandlesByAttribute = {} # by custom attritube and its value
@@ -362,11 +378,15 @@ class ConnectionToSDDC:
         recursive = True
       )
       handles = self.parallelIteratePropsFetchedByAPI(
-        iterable = containerView.view,
-        props = self.vmBasicPropertiesToFetch()
+        iterable = containerView.view
       )
       self.findRegisteredAttributeByName("public_ip") # map out attr keys
       for handle in handles: self.initializeHandle(handle)
+      if initialFetch:
+        t2 = time.time()
+        log.debug("All entities mapped; vSphere on {} ready. (took {:.1f} seconds, total {} entities)"
+                    .format(self.sddcName, t2-t1, len(handles)))
+      self.entitiesMapped = True
     except Exception as e:
       print(e)
 
@@ -381,7 +401,7 @@ class ConnectionToSDDC:
     return newList
 
 
-  def parallelIteratePropsFetchedByAPI(self, iterable, props):
+  def parallelIteratePropsFetchedByAPI(self, iterable):
     '''
         Fetches all VMs and Folders in parallel. This function is needed because
         serial entity prop iteration is blocking; it takes 20 ~ 120 seconds to
@@ -400,28 +420,44 @@ class ConnectionToSDDC:
         This can be resolved by fetching everything in parallel.
     '''
     # fetch function (the thread function)
-    def parallelGetFetchedProp(entity, props, results):
-      try:
-        handle = { "entity": entity }
-        for propname in props:
-          if hasattr(entity, propname):
-            handle[propname] = getattr(entity, propname) # --> this triggers API call
-        results.append(handle) # list append is thread-safe
-      except Exception as e:
-        log.debug(e)
-
+    handles = []
+    def parallelGetFetchedProp(entity):
+      handle = { "entity": entity }
+      propnames = self.entityDefaultProperties(entity)
+      for propname in propnames:
+        counter = 0; retries = 3
+        while counter < retries:
+          try:
+            counter += 1
+            if hasattr(entity, propname):
+              fetched = getattr(entity, propname) # --> this triggers API call
+              handle[propname] = fetched
+              if counter > 1:
+                log.debug("Retry, fetching property '{}' from {} (try {}/{}). Succeeded"
+                                      .format(propname, entity, counter, retries))
+              break
+          except Exception as e:
+            notReadyYetMessage = "has already been deleted or has not been completely created"
+            if hasattr(e, 'msg') and e.msg.endswith(notReadyYetMessage):
+              log.debug("VM '{}' has been deleted or creation is not complete".format(entity))  
+              return
+            log.debug("Errorm fetching property '{}' from {} (try {}/{}). Error: {}"
+                                      .format(propname, entity, counter, retries, e))
+            time.sleep(1)
+      handles.append(handle)
+      time.sleep(0.1)
     # parallel fetch all VMs and Folders, give each fetch its own thread
-    results = []; threads = []
+    threads = []
     for entity in iterable:
-      t = threading.Thread(
-        target = lambda entity: parallelGetFetchedProp(entity, props, results), 
-        args = (entity, )
-      )
-      threads.append(t)
-      t.start()
-
-    for thd in threads: thd.join() # wait for all API calls to return
-    return results
+      # Only VM or Folder (skip resource group, datastores, etc.)
+      if self.getEntityType(entity) in ["VM", "Folder"]:
+        thd = threading.Thread(
+          target = lambda entity: parallelGetFetchedProp(entity), 
+          args = (entity, )
+        )
+        threads.append(thd); thd.start()
+    for thd in threads: thd.join(timeout=600) # wait for all API calls to return
+    return handles
 
 
 

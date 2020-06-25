@@ -294,7 +294,10 @@ def main():
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
    suitesRealname = args.suitesRealname.split(",") if args.suites else []
-   if args.su: helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
+   if args.su:
+      helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
+      userConfig = helper.getUserConfig()
+      zoneConfig = helper.getZoneConfig()
 
    for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:

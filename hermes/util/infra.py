@@ -6,6 +6,7 @@ import json
 import logging
 import traceback
 import time
+import threading
 from . import helper, vsphere
 log = helper.hermes_logging_util.getMainLogger()
 
@@ -37,7 +38,7 @@ def credentialsAreGood(sddcName, sddcInfo):
    return True
 
 
-def getConnection(sddcName):
+def getConnection(sddcName, skipMapping=False):
    '''
       Initializes vSphere connection to the target SDDC.
       Host and Credentials are fed from `user_config.json`, for example: {
@@ -67,23 +68,17 @@ def getConnection(sddcName):
          if sddcName not in zoneConfigObject["infra"]:
            log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
            return None
-         
          sddcInfo = zoneConfigObject["infra"][sddcName]
-         
          if not sddcInfo["active"]:
            log.debug("Cannot open session to {}, this SDDC is inactive".format(sddcName))
            return None
-
          if not credentialsAreGood(sddcName, sddcInfo):
            log.debug("Cannot open session to {}, credentials are bad".format(sddcName))
            return None
-         
-         conn = vsphere.ConnectionToSDDC(sddcInfo)
-
+         conn = vsphere.ConnectionToSDDC(sddcInfo, skipMapping=skipMapping)
          if not conn.ready:
            log.debug("Cannot open session to {}, connection is not ready".format(sddcName))
            return None
-         
          INFRA[sddcName] = conn
          return conn
       return INFRA[sddcName]
@@ -91,6 +86,25 @@ def getConnection(sddcName):
    except Exception as e:
      log.debug(str(e))
      return None
+
+
+def prepareConnections(sddcs):
+  if not sddcs: return
+  threads = []
+  def connect(sddcName):
+    getConnection(sddcName, skipMapping=True)
+  for sddcName in sddcs:
+    if sddcName in INFRA: continue
+    thr = threading.Thread(
+        target = lambda sddcName: connect(sddcName),
+        args = (sddcName, )
+    )
+    threads.append(thr); thr.start()
+  for thd in threads: thd.join(timeout=15) # wait for all to return
+  initializerThreads = []
+  for sddcName in sddcs:
+    if not getConnection(sddcName).entitiesMapped:
+      getConnection(sddcName).updateAllEntityHandles(initialFetch=True)
 
 
 def getListFromConfig(configObject = None):
@@ -112,14 +126,23 @@ def getListFromConfig(configObject = None):
 def findVMByReplicaId(replicaId, sddcs = None):
   '''
       Returns VM by the supplied replicaId
-      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+      :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
-  # if narrow sddcs search not given, search in all SDDCs in user_config
+  # if narrow sddcs search not given, search in all SDDCs in zone_config
   sddcs = sddcs if sddcs is not None else getListFromConfig()
-  for sddcName in sddcs:
+  prepareConnections(sddcs)
+  threads = []; results = []
+  def findInSDDC(sddcName):
     if getConnection(sddcName):
       vmHandle = INFRA[sddcName].getByNameContaining(replicaId, getAsHandle=True)
-      if vmHandle: return {"vmHandle": vmHandle, "sddc": INFRA[sddcName]}
+      if vmHandle: results.append(vmHandle)
+      else: results.append(None)
+  for sddcName in sddcs:
+    thr = threading.Thread(target = lambda sddcName: findInSDDC(sddcName), args = (sddcName, ))
+    threads.append(thr); thr.start()
+  for thd in threads: thd.join() # wait for all to return
+  for result in results:
+    if result: return result # only 1 unique replica id possible for all SDDCs
   log.debug("Cannot find vm with its name containing '{}' in datacenters [{}]".format(replicaId, ', '.join(sddcs)))
   return None
 
@@ -127,15 +150,24 @@ def findVMByReplicaId(replicaId, sddcs = None):
 def findVMByInternalIP(ip, sddcs = None):
   '''
       Returns VM by the supplied internal IP (e.g. 10.*.*.*)
-      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+      :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
-  # if narrow sddcs search not given, search in all SDDCs in user_config
+  # if narrow sddcs search not given, search in all SDDCs in zone_config
   sddcs = sddcs if sddcs is not None else getListFromConfig()
-  for sddcName in sddcs:
+  prepareConnections(sddcs)
+  threads = []; results = []
+  def findInSDDC(sddcName):
     if getConnection(sddcName):
       vmHandle = INFRA[sddcName].getByInternalIP(ip, getAsHandle=True)
-      if vmHandle: return vmHandle
-  log.debug("Cannot find vm with internal IP '{}' in datacenters {}".format(ip, sddcs))
+      if vmHandle: results.append(vmHandle)
+      else: results.append(None)
+  for sddcName in sddcs:
+    thr = threading.Thread(target = lambda sddcName: findInSDDC(sddcName), args = (sddcName, ))
+    threads.append(thr); thr.start()
+  for thd in threads: thd.join() # wait for all to return
+  for result in results:
+    if result: return result # result vmHandle
+  log.info("Cannot find vm with internal IP '{}' in datacenters {}".format(ip, sddcs))
   return None
 
 
@@ -160,7 +192,7 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
       ```
       TODO: user this on persephone deployment test as well
    '''
-   # get config from user_config.json
+   # get config from zone_config.json
    try: 
       configObject = helper.getUserConfig()
       sddcs = getListFromConfig(configObject)
@@ -185,8 +217,10 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
         )
         if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
         vmHandle = vmAndSourceSDDC["vmHandle"]
-        if "realm" in vmHandle["attrMap"]: # already has context given
-          log.info("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
+        if "realm" in vmHandle["attrMap"]: # already has context given (not possible for fresh deployment)
+          log.error("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
+          log.error("This is a sign of a previous VM clean-up failure while IPAM thinks this IP ({}) is released for use."
+                      .foramt(replicaInfo["ip"]))
           continue
         vm = vmHandle["entity"]
         sddc = vmAndSourceSDDC["sddc"]
@@ -230,7 +264,6 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
         else:
           sddc.vmSetCustomAttribute(vm, "private_ip", replicaInfo["ip"])
 
-
    except Exception as e:
      helper.hermesNonCriticalTrace(e)
 
@@ -241,6 +274,7 @@ def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
       That satisfies the supplied attribute value condition
   '''
   sddcs = getListFromConfig()
+  prepareConnections(sddcs)
   vms = []
   resultMap = {}
   for sddcName in sddcs:
@@ -252,4 +286,3 @@ def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
         for vmHandle in vmHandles:
           vms.append(vmHandle)
   return resultMap if mapBySDDC else vms
-
