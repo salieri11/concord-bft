@@ -129,7 +129,7 @@ LONG_RUN_TEST_FILE = "resources/long_running_tests.json"
 # Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
 # This future-proofs possible multi-Jenkins contexts with partners like DA/ASX/HK
 # All metrics endpoints (Racetrack/Wavefront) will have distinguishable dataset to work with
-JENKINS_NAMESPACE_MAIN = "JENKINS_VMWARE_BC_MAIN"
+JENKINS_NAMESPACE_MAIN = "JENKINS_VMWARE_BC_MAIN" # DO NOT CHANGE; front part of hash for traceId
 
 # CI/CD Major Run Types
 JENKINS_RUN_MAIN_MR = { "type": "MAIN_MR", "exactly": "Main Blockchain Run on GitLab" }
@@ -140,7 +140,7 @@ JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchai
   "variables":[{"name": "releaseVersion", "after":"/releases/"}],
   "format": "<RELEASE_VERSION> Branch Blockchain Run on GitLab/releases/<RELEASE_VERSION>" # full job name
 }
-JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
+JENKINS_MAJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
 
 # Used by invoke.py while setting Jenkins build description
 GITLAB_BASE_URL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain"
@@ -329,7 +329,7 @@ def read_key(key, properties_file=PROPERTIES_TEST_FILE):
       raise
 
 
-def ssh_connect(host, username, password, command, log_mode=None):
+def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    '''
    Helper method to execute a command on a host via SSH
    :param host: IP of the destination host
@@ -356,14 +356,45 @@ def ssh_connect(host, username, password, command, log_mode=None):
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
    except Exception as e:
-      if log_mode == "WARNING":
-         log.warning("Could not connect to {}".format(host))
-      else:
-         log.error("Could not connect to {}: {}".format(host, e))
+      if verbose:
+         if log_mode == "WARNING":
+            log.warning("Could not connect to {}".format(host))
+         else:
+            log.error("Could not connect to {}: {}".format(host, e))
    finally:
       if ssh:
          ssh.close()
    return resp
+
+
+def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
+  '''
+    Parallel SSH (running identical commands)
+    Default pass condition lambda is `lambda output: output is not None`
+    returns list of [{ ip: target_ip, output: ssh_output }]
+  '''
+  log.debug("{} being sent command: {}".format(ips, cmd))
+  user, pw = getNodeCredentials()
+  threads = []; results = []
+  default_cond = lambda output: output is not None
+  if not condition: condition = default_cond
+  def sshExec(ip):
+    try_count = 0
+    log.debug("{} being sent command: {}".format(ip, cmd))
+    while try_count < max_try:
+      try_count += 1
+      output = ssh_connect(ip, user, pw, cmd, verbose=verbose)
+      if condition(output): break # condition met; got what we wanted
+      log.debug("{} did not return results matching criteria retrying...".format(ip))
+    results.append({"ip":ip, "output":output})
+  for ip in ips:
+    thr = threading.Thread(target = lambda ip: sshExec(ip), args = (ip, ))
+    threads.append(thr); thr.start()
+  for thd in threads: thd.join()
+  if len(results) != len(ips):
+    log.error("some ips did not return results after retries".format(ip))
+    return None
+  return results
 
 
 def sftp_client(host, username, password, src, dest, action="download", log_mode=None):
@@ -517,7 +548,7 @@ def setHelenProperty(key, val):
 
 
 # TODO: refactor this method to make it generic
-def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port=8545):
+def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port=8545, verbose=True):
    '''
    Enable port forwarding on concord node to facilitate hitting ethrpc endpoint
    on port 443, which redirects to 8545. This is a workaround to support hitting
@@ -531,7 +562,7 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
    :return: Port forward status (True/False)
    '''
    try:
-      log.info(
+      if verbose: log.info(
          "Adding port forwarding to enable ethrpc listen on {}:{}".format(host,
                                                                           src_port))
       cmd_get_docker_ethrpc_ip = "iptables -t nat -vnL | grep {} | grep DNAT | cut -d':' -f3".format(
@@ -539,7 +570,7 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
       docker_ethrpc_ip = ssh_connect(host, username, password,
                                      cmd_get_docker_ethrpc_ip)
 
-      log.debug("Extracted IP to port forward: {}".format(docker_ethrpc_ip))
+      if verbose: log.debug("Extracted IP to port forward: {}".format(docker_ethrpc_ip))
 
       if docker_ethrpc_ip:
          docker_ethrpc_ip = docker_ethrpc_ip.strip()
@@ -566,37 +597,37 @@ def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port
 
          cmd_check_port_forward = "iptables -t nat -C PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
             src_port, docker_ethrpc_ip, dest_port)
-         log.info("Check if port forwarding rule already exists...")
+         if verbose: log.info("Check if port forwarding rule already exists...")
          check_port_forward_output = ssh_connect(host, username, password, cmd_check_port_forward)
-         log.debug("Is port already forwarded command output: {}".format(check_port_forward_output))
+         if verbose: log.debug("Is port already forwarded command output: {}".format(check_port_forward_output))
 
          if "iptables: No chain/target/match by that name" in check_port_forward_output:
-            log.info("Port forwarding rule does not exist. Adding...")
+            if verbose: log.info("Port forwarding rule does not exist. Adding...")
             cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
                src_port, docker_ethrpc_ip, dest_port)
-            log.debug("Port forwarding command: {}".format(cmd_port_forward))
+            if verbose: log.debug("Port forwarding command: {}".format(cmd_port_forward))
             output = ssh_connect(host, username, password, cmd_port_forward)
-            log.debug("Port forwarded command output: {}".format(output))
+            if verbose: log.debug("Port forwarded command output: {}".format(output))
 
             cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
-            log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
+            if verbose: log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
             port_forward_output = ssh_connect(host, username, password,
                                               cmd_check_port_forward)
-            log.debug("Port forwarding check output: {}".format(port_forward_output))
+            if verbose: log.debug("Port forwarding check output: {}".format(port_forward_output))
 
             check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
                                                               docker_ethrpc_ip,
                                                               dest_port)
             if check_str_port_forward in port_forward_output:
-               log.debug("Port forwarded successfully")
+               if verbose: log.debug("Port forwarded successfully")
                return True
          else:
-            log.info("Port forwading rule already exists")
+            if verbose: log.info("Port forwading rule already exists")
             return True
    except Exception as e:
       log.debug(str(e))
 
-   log.debug("Port forwarding failed")
+   if verbose: log.debug("Port forwarding failed")
    return False
 
 
@@ -786,7 +817,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    start_time = time.time()
    end_time = start_time + run_duration * 3600
    slack_last_reported = start_time
-   dashboardLink = longRunningTestDashboardLink(replicasConfig=replica_config)
+   dashboardLink = longRunningTestDashboardLink(replica_config)
    consoleURL = os.getenv("BUILD_URL") + "console" if os.getenv("BUILD_URL") else None
 
    remaining_time = str(int((end_time - time.time()) / 3600))
@@ -1105,7 +1136,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
    support_bundle_binary_name = "deployment_support.py"
    src_support_bundle_binary_path = os.path.join('util',
                                                  support_bundle_binary_name)
-   remote_support_bundle_binary_path = os.path.join(tempfile.gettempdir(),
+   remote_support_bundle_binary_path = os.path.join("/var/tmp", # linux tmp folder
                                                   support_bundle_binary_name)
    user_config = json_helper_util.readJsonFile(CONFIG_USER_FILE)
    concord_memeber_credentials = \
@@ -1120,7 +1151,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
    if verbose: log.info("")
    if verbose: log.info("**** Collecting Support bundle ****")
    try:
-      for concord_ip in replicas:
+      def collect_on_ip(concord_ip):
          if verbose: log.info("Concord IP: {}".format(concord_ip))
          if verbose: log.info(
             "  Upload support-bundle generation script onto concord node '{}'...".format(
@@ -1129,7 +1160,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
          if sftp_client(concord_ip, concord_username, concord_password,
                         src_support_bundle_binary_path,
                         remote_support_bundle_binary_path, action="upload"):
-            log.debug("  Saved at '{}:{}'".format(concord_ip,
+            if verbose: log.debug("  Saved at '{}:{}'".format(concord_ip,
                                                  remote_support_bundle_binary_path))
 
             cmd_execute_collect_support_bundle = "python3 {} --supportBundleBaseDir {} --concordIP {} " \
@@ -1141,7 +1172,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
             ssh_output = ssh_connect(concord_ip, concord_username,
                                      concord_password,
                                      cmd_execute_collect_support_bundle)
-            log.debug("Output from script '{}': {}".format(
+            if verbose: log.debug("Output from script '{}': {}".format(
                                              remote_support_bundle_binary_path,
                                              ssh_output))
             supput_bundle_created = False
@@ -1189,10 +1220,15 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
          ssh_output = ssh_connect(concord_ip, concord_username,
                                   concord_password,
                                   cmd_remove_support_bundle_base_dir)
-         log.debug("Output: {}".format(ssh_output))
-
+         if verbose: log.debug("Output: {}".format(ssh_output))
          if verbose: log.info("")
-
+      
+      threads = []
+      for concord_ip in replicas:
+          thr = threading.Thread(target = lambda concord_ip: collect_on_ip(concord_ip), 
+                                  args = (concord_ip, ))
+          threads.append(thr); thr.start()
+      for thd in threads: thd.join()
    except Exception as e:
       log.error(e)
 
@@ -1267,9 +1303,10 @@ def loadConfigFile(args=None, filepath=None):
       try:
         log.info("Privilege invoked from --su flag; will run Hermes with Jenkins injected credentials...")
         from . import jenkins
-        configFromJenkins = jenkins.getUserConfigFromLatestGoodMaster()
-        if configFromJenkins:
-          configObject = jenkins.overrideOnlyDefaultConfig(configObject, configFromJenkins)
+        configs = jenkins.getConfigFromLatestGoodMaster()
+        if configs:
+          CONFIG_CACHED["zoneConfigOverrideFromSU"] = configs["zoneConfig"]
+          configObject = jenkins.overrideOnlyDefaultConfig(configObject, configs["userConfig"])
           configObject["metainf"]["env"]["jobName"] = "None"
           configObject["metainf"]["env"]["buildNumber"] = "None"
           configObject["metainf"]["env"]["dockerTag"] = ""
@@ -1315,6 +1352,11 @@ def loadZoneConfig(args=None, filepath=None):
       log.warning("Cannot find zone config source in either cmdline args, filepath, or default file {}"
                   .format(CONFIG_ZONE_FILE))
       return None
+  
+   if "zoneConfigOverrideFromSU" in CONFIG_CACHED:
+     from . import jenkins
+     zone_config_object = jenkins.overrideOnlyDefaultConfig(
+       zone_config_object, CONFIG_CACHED["zoneConfigOverrideFromSU"])
 
    CONFIG_CACHED['zones'] = zone_config_object
    return zone_config_object
@@ -1526,7 +1568,7 @@ def getJenkinsRunTypeInfo(jobName=None):
   try:
     if jobName is None:
       jobName = getUserConfig()["metainf"]["env"]["jobName"]
-    for runTypeInfo in JENKINS_MRJOR_RUN_TYPES:
+    for runTypeInfo in JENKINS_MAJOR_RUN_TYPES:
       runTypeInfo = json.loads(json.dumps(runTypeInfo)) # make copy for manipulation
       # Extract variables if specified
       # e.g. get "version": "0.5" from "0.5 Branch Blockchain Run on GitLab/releases/0.5"
@@ -1577,7 +1619,7 @@ def getJenkinsWorkspace():
 
 
 def thisHermesIsFromJenkins():
-  return getJenkinsJobNameAndBuildNumber()["jobName"] != "None"
+  return True if os.getenv("WORKSPACE") else False
 
 
 def hermesNonCriticalTrace(e, message=None):
@@ -1606,30 +1648,52 @@ def hermesNonCriticalTraceFinalize():
     pass
 
 
-def parseReplicasConfig(replicasConfigFile):
-  with open(replicasConfigFile, 'r') as f:
-    result = {}
-    replicas = json.loads(f.read())
+def parseReplicasConfig(replicas):
+  '''
+    replicas argument can be path to replicas.json or
+    fxBlockchain dict object directly. This function
+    is used to standardize replicas parsing across codebase
+  '''
+  if not replicas: replicas = REPLICAS_JSON_PATH
+  if isinstance(replicas, str): # path supplied
+    with open(replicas, 'r') as f:
+      replicasObject = json.loads(f.read())
+  else: # fxBlockchain dict or replicas dict directly.
+    if hasattr(replicas, "replicas"):
+      replicasObject = replicas
+      return getattr(replicasObject, "replicas") 
+    else: replicasObject = replicas
+  nodeTypes = [
+    TYPE_ETHEREUM, TYPE_DAML, TYPE_DAML_COMMITTER,
+    TYPE_DAML_PARTICIPANT, TYPE_HLF, TYPE_TEE,
+  ]
+  result = {} # clean up and enforce replicas structure
+  for nodeType in replicasObject:
+    nodeWithThisType = replicasObject[nodeType]
+    if nodeType == "others":
+      result[nodeType] = replicasObject[nodeType]
+      continue
+    if nodeType not in nodeTypes: continue
+    if nodeType not in result: result[nodeType] = []
+    for i, nodeInfo in enumerate(nodeWithThisType):
+      if isinstance(nodeInfo, str):
+        result[nodeType].append(nodeInfo)
+      elif "ip" in nodeInfo:
+        result[nodeType].append(nodeInfo["ip"])
+      elif "public_ip" in nodeInfo:
+        result[nodeType].append(nodeInfo["public_ip"])
+      elif "private_ip" in nodeInfo:
+        result[nodeType].append(nodeInfo["private_ip"])
+  return result
 
-    for nodeType in replicas:
-      nodeWithThisType = replicas[nodeType]
-      if nodeType not in result: result[nodeType] = []
-      for nodeInfo in nodeWithThisType:
-        if "ip" in nodeInfo:
-          result[nodeType].append(nodeInfo["ip"])
-        elif "public_ip" in nodeInfo:
-          result[nodeType].append(nodeInfo["public_ip"])
-    return result
-  return None
 
 
-def longRunningTestDashboardLink(replicasConfig=None):
+def longRunningTestDashboardLink(replicas=None):
   '''
     Returns URL for long-running test dashboard matching
-    the [c+p] configuration
+    the [commiter + participant] configuration
   '''
-  if not replicasConfig: replicasConfig = REPLICAS_JSON_PATH
-  config = parseReplicasConfig(replicasConfig)
+  config = parseReplicasConfig(replicas)
   dashBaseUrl = "https://vmware.wavefront.com/dashboards/"
   params = []
   committers = config[TYPE_DAML_COMMITTER]
@@ -1651,10 +1715,10 @@ def longRunningTestDashboardLink(replicasConfig=None):
   )
 
 
-def installHealthDaemon(all_replicas_and_type):
+def installHealthDaemon(replicasInfoObject):
   '''
       Installs local, small-footprint health daemon on the nodes:
-      {
+      replicasInfoObject = {
         "node_type1": [ip1, ip2, ip3, ..., ip_n],
         "node_type2": [ip1, ip2, ip3, ..., ip_n],
       }
@@ -1719,8 +1783,8 @@ def installHealthDaemon(all_replicas_and_type):
       log.info("healthd reporting daemon started on {}".format(ip))
 
     threads = []
-    for deployedType in all_replicas_and_type:
-      ipListOfThatType = all_replicas_and_type[deployedType]
+    for deployedType in replicasInfoObject:
+      ipListOfThatType = replicasInfoObject[deployedType]
       for ip in ipListOfThatType:
         log.info("Installing health reporting daemon on {} as {}...".format(ip, deployedType))
         thr = threading.Thread(
@@ -1732,117 +1796,13 @@ def installHealthDaemon(all_replicas_and_type):
 
     for thd in threads: thd.join() # wait for all installations to return
     for result in results: log.info(result)
-    log.info("Sleep for 30 seconds so health daemon initializes")
+    log.info("Sleeping for 30 second for health daemon to initialize...")
     time.sleep(30)
     return True
 
   except Exception as e:
     log.debug(str(e))
     return False
-
-
-def resetBlockchain(replicasConfig, concordConfig=None, keepData=False):
-  '''
-    ! DO NOT RUN AGAINST PRODUCTION BLOCKCHAIN
-
-    Reset blockchain and remove all its persisted data
-    `replicasConfig` can be fxBlockchain, path to replicas.json, or replicasInfo
-    Only covers DAML network for now.
-
-    e.g.: helper.resetBlockchain(fxBlockchain, concordConfig={
-      "concord-bft_max_num_of_reserved_pages": 8192,
-      "view_change_timeout": 20000,
-    })
-  '''
-  replicas = parseReplicasConfig(replicasConfig)
-
-  wipeOutPre = [
-    "docker stop $(docker ps -a -q)",
-    "docker rm jaeger-agent",
-    "docker rm $(docker ps -a | grep -v \"agent\" | cut -d ' ' -f1)",
-    "for i in ` docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' blockchain-fabric`; do docker network disconnect -f blockchain-fabric $i; done",
-    "docker network rm blockchain-fabric"
-  ]
-  wipeOutDeleteData = [] if keepData else [
-    "rm -rf /config/concord/rocksdbdata", "rm -rf /config/daml-index-db/db",
-    "rm -rf /var/log/deployment_support_logs"
-  ]
-  wipeOutConcordConfigSet = []
-  if concordConfig:
-    for configParam in concordConfig:
-      configParamValue = concordConfig[configParam]
-      wipeOutConcordConfigSet.append(
-        "sed -i '/{}/c\\{}: {}' /config/concord/config-local/concord.config".format(configParam, configParam, configParamValue),
-      )
-  wipeOutPost = [
-    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",
-    "cp \"{}\" \"{}\"".format(HEALTHD_LOG_PATH, HEALTHD_LOG_PATH.replace(".log", "2.log")), # copy healthd.log => healthd2.log
-  ]
-  nodeWipeOutCommand = '; '.join(wipeOutPre + wipeOutDeleteData + wipeOutConcordConfigSet + wipeOutPost)
-  nodeRetartCommand = "docker start agent"
-  nodeResetCrashStatusCommand = "rm -rf \"{}\"; cd /root/health-daemon; nohup bash healthd.sh > /dev/null".format(HEALTHD_CRASH_FILE)
-  primarySearchCommand = [
-    "CONCORD_LOG_PATH=$(docker inspect --format='{{.LogPath}}' concord)",
-    "grep -c 'to current primary' \"$CONCORD_LOG_PATH\""
-  ]
-  primarySearchCommand = "; ".join(primarySearchCommand)
-
-  user, pw = getNodeCredentials()
-  def parallelSSH(ips, cmd):
-    threads = []; results = []
-    def sshExec(ip):
-      cnt = 0
-      while cnt < 3: # with retry 2 more times
-        output = ssh_connect(ip, user, pw, cmd); cnt += 1
-        if output is not None: break
-      results.append({"ip":ip, "output":output})
-    for ip in ips:
-      thr = threading.Thread(target = lambda ip: sshExec(ip), args = (ip, ))
-      threads.append(thr); thr.start()
-    for thd in threads: thd.join()
-    return results
-
-  committerIPs = replicas[TYPE_DAML_COMMITTER]
-  participantIPs = replicas[TYPE_DAML_PARTICIPANT]
-  allNodesIPs = committerIPs + participantIPs
-
-  log.info("Resetting blockchain...")
-  log.info("Wiping out participant nodes: {}".format(participantIPs))
-  results = parallelSSH(participantIPs, nodeWipeOutCommand)
-  for result in results: log.debug("\n\n[Wiping participant containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  log.info("Wiping out committer nodes: {}".format(committerIPs))
-  results = parallelSSH(committerIPs, nodeWipeOutCommand)
-  for result in results: log.debug("\n\n[Wiping committer containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  log.info("Restarting committer nodes (through agent): {}".format(committerIPs))
-  results = parallelSSH(committerIPs, nodeRetartCommand)
-  for result in results: log.debug("\n\n[Restart agent on committers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  log.info("Restarting participant nodes (through agent): {}".format(participantIPs))
-  results = parallelSSH(participantIPs, nodeRetartCommand)
-  for result in results: log.debug("\n\n[Restart agent on participant] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  initializationGracePeriod = 30
-  log.info("Giving another {}s for all nodes to initialize...".format(initializationGracePeriod))
-  time.sleep(initializationGracePeriod)
-
-  log.info("Resetting crash status of the nodes...")
-  results = parallelSSH(allNodesIPs, nodeResetCrashStatusCommand)
-  for result in results: log.debug("\n\n[Reset crashed status] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  primaryInfo = { "ip": None, "index": None }
-  log.info("Searching for primary...")
-  results = parallelSSH(committerIPs, primarySearchCommand)
-  for result in results:
-    if result["output"].strip() and int(result["output"].strip()) == 0:
-      log.info("Primary found: {} (index: {})".format(result["ip"], committerIPs.index(result["ip"])))
-      primaryInfo["ip"] = result["ip"]
-      primaryInfo["index"] = committerIPs.index(result["ip"])
-    log.debug("\n\n[Primary search] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
-
-  log.info("Blockchain network reset completed.")
-  return primaryInfo
 
 
 def ip2long(ip):

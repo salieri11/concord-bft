@@ -291,7 +291,7 @@ def getRunMetadata(jobName=None, buildNumber=None):
     return None
 
 
-def getUserConfigFromLatestGoodMaster():
+def getConfigFromLatestGoodMaster():
   if not JENKINS_USER_OVERRIDE or not JENKINS_TOKEN_OVERRIDE:
     log.error("Your local environment is does not have the needed Jenkins environment variables.")
     log.error("In order to set environment variables (e.g. ~/.bash_profile), add:")
@@ -306,7 +306,8 @@ def getUserConfigFromLatestGoodMaster():
     if metadata["result"] == "SUCCESS": break
     buildNumber -= 1
   config = getArtifact(jobName, buildNumber, '/blockchain/hermes/resources/user_config.json')
-  return config
+  zoneConfig = getArtifact(jobName, buildNumber, '/blockchain/hermes/resources/zone_config.json')
+  return { "userConfig": config, "zoneConfig": zoneConfig }
 
 
 def configSubmit(jobName=None, buildNumber=None, displayName='', description='', descriptionAppend=False):
@@ -350,6 +351,9 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
     Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
   '''
   builderPW = helper.getUserConfig()["jenkins"]["builderPassword"]
+  if builderPW.startswith("<"):
+    log.error('Builder password is not set. Cannot sudo chown without builder password.')
+    return
   cmd = 'echo "{}" | sudo -S chown -R builder:builder /var/jenkins/workspace/*'.format(builderPW)
   baseURL = getJenkinRunBaseUrl("ROOT", authenticated=True)
   response = REQ_SESSION.get(baseURL + "/computer/api/json?tree=computer[displayName]")
@@ -358,19 +362,20 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
     resJSON = json.loads(response.content.decode('utf-8'), strict=False)
     nodeList = resJSON["computer"]
     for nodeInfo in nodeList:
-      nodeName = nodeInfo["displayName"]
-      if blockchainWorkersOnly and not nodeName.startswith("blockchain-worker."): continue
-      response2 = REQ_SESSION.get(baseURL + "/computer/{}".format(nodeName))
-      if response2.status_code == 200:
-        ip = response2.content.decode('utf-8').split("<h2>IP</h2><p>")[1].split("</p>")[0]
-        if ip:
-          try:
+      try:
+        nodeName = nodeInfo["displayName"]
+        if blockchainWorkersOnly and not nodeName.startswith("blockchain-worker."): continue
+        response2 = REQ_SESSION.get(baseURL + "/computer/{}".format(nodeName))
+        if response2.status_code == 200:
+          ip = response2.content.decode('utf-8').split("<h2>IP</h2><p>")[1].split("</p>")[0]
+          if ip:
             output = helper.ssh_connect(ip, "builder", builderPW, cmd)
             if output is not None:
               count += 1
               log.info("[ {} :: {} ] /var/jenkins/workspace/* has been recursively owned by builder:builder".format(nodeName, ip))
-          except Exception as e:
-            pass
+      except Exception as e:
+        traceback.print_exc()
+        pass
     log.info("Total of {} nodes are affected.".format(count))
     return True
   else: return None
