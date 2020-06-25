@@ -3014,6 +3014,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
                       const_cast<void*>(reinterpret_cast<const void*>(
                           &kConcordBFTCommunicationBufferSizeLimits)));
 
+  config.declareParameter(
+      "num_of_external_clients",
+      "Represents the number of external clients in the system. This value "
+      "should be a sum of the number of clients in the client pools at all "
+      "participant nodes.",
+      "0");
+  config.tagParameter("num_of_external_clients", defaultableByUtilityTags);
+
   // TODO: The following parameters should be completely optional because
   // its default values are within concord-bft
   config.declareParameter("concord-bft_max_external_message_size",

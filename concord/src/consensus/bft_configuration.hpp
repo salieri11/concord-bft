@@ -206,7 +206,6 @@ inline bool InitializeSbftConfiguration(
   uint16_t maxSlow = config.getValue<uint16_t>("c_val");
   uint16_t numOfPrincipals = config.getValue<uint16_t>("num_principals");
   uint16_t numOfReplicas = config.getValue<uint16_t>("num_replicas");
-
   std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas;
   if (commConfig) {
     bool res = initializeSBFTPrincipals(config, selfNumber, numOfPrincipals,
@@ -236,7 +235,12 @@ inline bool InitializeSbftConfiguration(
     repConf->fVal = maxFaulty;
     repConf->cVal = maxSlow;
     repConf->numOfClientProxies = numOfPrincipals - numOfReplicas;
-
+    repConf->numOfExternalClients =
+        config.getValue<uint16_t>("num_of_external_clients");
+    auto totalNodes = numOfPrincipals + repConf->numOfExternalClients;
+    for (uint16_t j = numOfPrincipals; j < totalNodes; ++j) {
+      commConfig->nodes.insert({j, bft::communication::NodeInfo{"", 0, false}});
+    }
     repConf->debugStatisticsEnabled =
         nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
