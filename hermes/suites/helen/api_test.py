@@ -382,6 +382,37 @@ def validateBadRequest(result, expectedPath,
    # opid is a uuid string
    assert len(result["op_id"]) == 36
 
+def validateNotFound(result, expectedPath,
+                       errorCode="NotFoundException",
+                       testErrorMessage = True,
+                       errorMessage="Bad request (e.g. missing request body)."):
+   '''
+   Validates the returned result of a Bad Request error.
+   The error code, error message, and status are the same.
+   Accepts the result to evaluate and the expected value for "path".
+   Check that a valid op_id has been returned
+   '''
+   log.info("Looking for not found error in {}".format(result))
+
+   assert "error_code" in result, "Expected a field called 'error_code'"
+   assert result["error_code"] == errorCode, "Expected different error code."
+
+   assert "path" in result, "Expected a field called 'path'"
+   assert result["path"] == expectedPath, "Expected different path."
+
+   if(testErrorMessage):
+      assert "error_message" in result, "Expected a field called 'error_message'"
+      assert result["error_message"] == errorMessage, "Expected different error message."
+   else:
+      log.info("Error message testing is disabled.")
+
+   assert "status" in result, "Expected a field called 'status'"
+   assert result["status"] == 404, "Expected HTTP status 400."
+
+   assert "op_id" in result, "Expected a field called 'op_id'"
+   # opid is a uuid string
+   assert len(result["op_id"]) == 36
+
 
 def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
    '''
@@ -1029,10 +1060,13 @@ def test_getABlockhain_invalid_uuid(fxConnection):
    '''
    blockchainId = "8fecf880-26e3-4d71-9778-ad1592324684"
    response = fxConnection.request.getBlockchainDetails(blockchainId)
-   assert response["error_code"] == "NotFoundException", "Expected NotFoundException"
-   assert response["status"] == 404, "Expected 404 response"
    expectedPath = "/api/blockchains/{}".format(blockchainId)
-   assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
+   expectedMessage = "Entity is not found for Id {}".format(blockchainId)
+   validateNotFound(response,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = expectedMessage)
 
 
 @describe()
@@ -1563,18 +1597,11 @@ def test_getContractById_idInvalid(fxConnection, fxBlockchain):
    result = fxConnection.request.getAllContractVersions(fxBlockchain.blockchainId, nonexistantContractId)
    expectedPath = "/api/blockchains/{}/concord/contracts/{}".format(fxBlockchain.blockchainId, nonexistantContractId)
 
-   assert result["error_code"] == "NotFoundException", \
-      "Error code was {}, expected {}".format(result["error_code"], code)
-
-   assert result["error_message"] == "Contract not found: {}".format(nonexistantContractId), \
-      "Error message was {}, expected {}".format(result["error_message"], message)
-
-   assert result["status"] == 404, \
-      "Status was {}, expected {}".format(result["status"], status)
-
-   assert result["path"] == expectedPath, \
-      "Path was {}, expected {}".format(result["path"], expectedPath)
-
+   validateNotFound(result,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = "Contract not found: {}".format(nonexistantContractId))
 
 @describe()
 @pytest.mark.smoke
@@ -1844,18 +1871,15 @@ def test_getContractVersionById_invalidVersion(fxConnection, fxBlockchain):
                                optimize=False)
    result = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, nonexistantVersionId)
 
-   assert result["error_code"] == "NotFoundException", \
-      "Expected a 'NotFoundException' error code, got '{}'".format(result["error_code"])
-   expectedMessage = "Contract version not found  {}:{}".format(contractId, nonexistantVersionId)
-   assert result["error_message"] == expectedMessage, \
-      "Expected error message '{}', got '{}'".format(expectedMessage, result["error_message"])
-   assert result["status"] == 404, \
-      "Expected status 404, received {}".format(result["status"])
    expectedPath = "/api/blockchains/{}/concord/contracts/{}/versions/{}". \
-                  format(fxBlockchain.blockchainId, contractId, nonexistantVersionId)
-   assert result["path"] == expectedPath, \
-      "Expected path {}, received {}".format(expectedPath, result["path"])
+      format(fxBlockchain.blockchainId, contractId, nonexistantVersionId)
+   expectedMessage = "Contract version not found  {}:{}".format(contractId, nonexistantVersionId)
 
+   validateNotFound(result,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = expectedMessage)
 
 @describe()
 @pytest.mark.smoke
@@ -1871,19 +1895,18 @@ def test_getContractVersionById_invalidContract(fxConnection, fxBlockchain):
                                contractId=contractId,
                                contractVersion=contractVersion,
                                optimize=False)
-   result = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, nonexistantContractId, contractVersion)
-   assert result["error_code"] == "NotFoundException", \
-      "Expected a 'NotFoundException' error code, got '{}'".format(result["error_code"])
-   expectedMessage = "Contract version not found  {}:{}".format(nonexistantContractId, contractVersion)
-   assert result["error_message"] == expectedMessage, \
-      "Expected error message '{}', got '{}'".format(expectedMessage, result["error_message"])
-   assert result["status"] == 404, \
-      "Expected status 404, received {}".format(result["status"])
-   expectedPath = "/api/blockchains/{}/concord/contracts/{}/versions/{}". \
-                  format(fxBlockchain.blockchainId, nonexistantContractId, contractVersion)
-   assert result["path"] == expectedPath, \
-      "Expected path {}, received {}".format(expectedPath, result["path"])
 
+   expectedPath = "/api/blockchains/{}/concord/contracts/{}/versions/{}". \
+      format(fxBlockchain.blockchainId, nonexistantContractId, contractVersion)
+   expectedMessage = "Contract version not found  {}:{}".format(nonexistantContractId, contractVersion)
+
+   result = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, nonexistantContractId, contractVersion)
+
+   validateNotFound(result,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = expectedMessage)
 
 @describe()
 @pytest.mark.smoke
@@ -2221,10 +2244,11 @@ def test_consortiums_get_nonexistant(fxConnection):
    oldId = "865d9e5c-aa7d-4a69-a7b5-1744be8d56f9"
    req = fxConnection.request.newWithToken(defaultTokenDescriptor)
    response = req.getConsortium(oldId)
-   assert response["error_code"] == "NotFoundException", "Expected NotFoundException"
-   assert response["status"] == 404, "Expected 404 response"
    expectedPath = "/api/consortiums/{}".format(oldId)
-   assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
+   validateNotFound(response,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = False)
 
 
 @describe()
@@ -2412,6 +2436,60 @@ def test_getCerts(fxConnection, fxBlockchain):
 
    assert foundACert, "No non-empty rpc_cert found in response"
 
+@describe()
+@pytest.mark.smoke
+@pytest.mark.clients
+def test_getClientsNoClientBlockchain(fxConnection):
+   '''
+   Test for no participants/clients
+   '''
+   # Take ID of first blockhain in the list
+   # Ethereum blockchain, no clients
+   blockchain_id = fxConnection.request.getBlockchains()[0]["id"]
+   clients = fxConnection.request.get_participant_details(blockchain_id)
+   assert len(clients) == 0
+
+
+@describe()
+@pytest.mark.smoke
+@pytest.mark.clients
+def test_getClientsUnavailableBlockchain(fxConnection, fxBlockchain):
+   '''
+   Test for invalid blockchain
+   '''
+   bid = "00000000-0000-0000-0000-000000000000"
+   response = fxConnection.request.get_participant_details(bid)
+   expectedPath = "/api/blockchains/{}/clients".format(bid)
+   expectedMessage = "Entity is not found for Id {}".format(bid)
+   validateNotFound(response,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = expectedMessage)
+
+@describe()
+@pytest.mark.smoke()
+@pytest.mark.replicas()
+def test_replicaGet(fxConnection):
+   # 4 node blockchain, 4 replicas expected
+   blockchain_id = fxConnection.request.getBlockchains()[0]["id"]
+   replicas = fxConnection.request.getReplicas(blockchain_id)
+   assert len(replicas) == 4
+
+@describe()
+@pytest.mark.smoke()
+@pytest.mark.replicas()
+def test_replicaGetUnavailableBlockchain(fxConnection):
+   # 4 node blockchain, 4 replicas expected
+   bid = "00000000-0000-0000-0000-000000000000"
+   response = fxConnection.request.getReplicas(bid)
+   expectedPath = "/api/blockchains/{}/replicas".format(bid)
+   expectedMessage = "Entity is not found for Id {}".format(bid)
+   validateNotFound(response,
+                    expectedPath = expectedPath,
+                    errorCode = "NotFoundException",
+                    testErrorMessage = True,
+                    errorMessage = expectedMessage)
 
 @describe()
 @pytest.mark.smoke
@@ -3118,6 +3196,9 @@ def test_invalid_outbound_port(fxConnection, fxBlockchain):
 @describe()
 @pytest.mark.deployment_only
 def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
+
+   # APIs tested
+   # /blockchains/
 
    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
    blockchain_location = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()

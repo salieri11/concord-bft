@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 
@@ -84,12 +87,15 @@ public class ClientController {
     private ReplicaService replicaService;
 
     private ClientService clientService;
+    private BlockchainService blockchainService;
 
     @Autowired
     public ClientController(ReplicaService replicaService,
-                            ClientService clientService) {
+                            ClientService clientService,
+                            BlockchainService blockchainService) {
         this.replicaService = replicaService;
         this.clientService = clientService;
+        this.blockchainService = blockchainService;
     }
 
     /**
@@ -97,7 +103,11 @@ public class ClientController {
      */
     @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isUser()")
-    ResponseEntity<List<ClientGetResponse>> listParticipants(@PathVariable("bid") UUID bid) {
+    ResponseEntity<List<ClientGetResponse>> listParticipants(@PathVariable("bid") UUID bid) throws NotFoundException {
+        Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
 
         var clients = clientService.getClientsByBlockchainId(bid);
         List<ClientGetResponse> replicaGetResponseList;
