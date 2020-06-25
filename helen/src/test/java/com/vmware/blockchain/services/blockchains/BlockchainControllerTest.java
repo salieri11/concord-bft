@@ -56,22 +56,11 @@ import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.deployment.v1.ConcordCluster;
-import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
-import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
-import com.vmware.blockchain.deployment.v1.ConcordModelIdentifier;
-import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.v1.ConcordNode;
-import com.vmware.blockchain.deployment.v1.ConcordNodeEndpoint;
-import com.vmware.blockchain.deployment.v1.ConcordNodeHostInfo;
-import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
-import com.vmware.blockchain.deployment.v1.ConcordNodeInfo;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent.Status;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
@@ -111,6 +100,7 @@ public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
+    static final UUID BC_UNAVAILABLE = UUID.fromString("a15cfd74-5f4b-4af4-a286-888a036d7889");
 
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
 
@@ -510,6 +500,13 @@ public class BlockchainControllerTest {
     }
 
     @Test
+    void getBlockchainUnavailable() throws Exception {
+        mockMvc.perform(get("/api/blockchains/" + BC_UNAVAILABLE.toString()).with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void postUserAccess() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(userAuth))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -652,6 +649,14 @@ public class BlockchainControllerTest {
     }
 
     @Test
+    void deregisterUnavailableBlockchain() throws Exception {
+        mockMvc.perform(post("/api/blockchains/deregister/" + BC_UNAVAILABLE.toString())
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound()).andReturn();
+    }
+
+    @Test
     void deregisterInactiveBlockchain() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_DEREGISTER_INACTIVE.toString())
                 .with(authentication(adminAuth))
@@ -663,50 +668,6 @@ public class BlockchainControllerTest {
                 result.getResolvedException().getMessage());
     }
 
-    ConcordNode buildNode(UUID nodeId, UUID siteId, int ip, String url) {
-        ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()
-                .setUrl(url)
-                .setCertificate("cert")
-                .build();
-
-        ConcordNodeHostInfo hostInfo = ConcordNodeHostInfo.newBuilder()
-                .setSite(OrchestrationSiteIdentifier.newBuilder()
-                        .setId(siteId.toString())
-                        .build())
-                .putAllIpv4AddressMap(ImmutableMap.of(ip, ip))
-                .putAllEndpoints(ImmutableMap.of("ethereum-rpc", endpoint))
-                .build();
-
-        ConcordNodeInfo nodeInfo = ConcordNodeInfo.newBuilder()
-                .setModel(ConcordModelIdentifier.newBuilder()
-                                  .setId(UUID.randomUUID().toString())
-                        .build())
-                .putAllIpv4Addresses(ImmutableMap.of("ip", ip))
-                .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
-                .build();
-
-        return ConcordNode.newBuilder()
-                .setId(ConcordNodeIdentifier.newBuilder()
-                        .setId(nodeId.toString())
-                        .build())
-                .setInfo(nodeInfo)
-                .setHostInfo(hostInfo)
-                .build();
-    }
-
-    ConcordCluster buildCluster(UUID clusterId, List<ConcordNode> members) {
-        ConcordClusterInfo info = ConcordClusterInfo.newBuilder()
-                .addAllMembers(members)
-                .build();
-
-        return ConcordCluster.newBuilder()
-                .setId(ConcordClusterIdentifier.newBuilder()
-                        .setId(clusterId.toString())
-                        .build())
-                .setInfo(info)
-                .build();
-    }
-
     DeploymentExecutionEvent buildEvent(DeployedResource resource, DeploymentExecutionEvent.Type type,
                                         DeploymentExecutionEvent.Status status) {
         return DeploymentExecutionEvent.newBuilder()
@@ -715,11 +676,6 @@ public class BlockchainControllerTest {
                 .setType(type)
                 .setSessionId(DEP_ID.toString())
                 .setBlockchainId(BC_NEW.toString())
-                //.setStatus(status)
-                //.setResource(ProvisionedResource.newBuilder().build())
-                //.setNode(ConcordNode.newBuilder().build())
-                //.setNodeStatus(ConcordNodeStatus.newBuilder().build())
-                //.setCluster(cluster)
                 .build();
     }
 }

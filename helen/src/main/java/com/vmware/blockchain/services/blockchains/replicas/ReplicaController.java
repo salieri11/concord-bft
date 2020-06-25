@@ -138,7 +138,11 @@ public class ReplicaController {
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas"})
     @PreAuthorize("@authHelper.canAccessChain(#bid)")
-    public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws Exception {
+    public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws NotFoundException {
+        Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
         List<Replica> replicas = replicaService.getReplicas(bid);
         if (replicas.isEmpty()) {
             // empty replica map is either old Blockchain instance, or blockchain not found.
@@ -219,7 +223,12 @@ public class ReplicaController {
     public ResponseEntity<BlockchainTaskResponse> nodeAction(@PathVariable UUID bid,
                                                              @PathVariable UUID nodeId,
                                                              @RequestParam NodeAction action) throws Exception {
+        // TODO: Replica Start/Stop POST is not currently in use and does not function.
+
         Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
         // make sure we can access this node.
         if (b.getNodeList().stream().noneMatch(n -> n.getNodeId().equals(nodeId))) {
             throw new BadRequestException(ErrorCode.INVALID_NODE, nodeId);
@@ -241,7 +250,12 @@ public class ReplicaController {
     public ResponseEntity<TaskList> nodeListAction(@PathVariable UUID bid,
                                                    @RequestBody NodeList nodeList,
                                                    @RequestParam NodeAction action) throws Exception {
+        // TODO: Replica Start/Stop POST is not currently in use and does not function.
+
         Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
 
         // check that all the nodes are part of this blockchain
         List<UUID> uuidList = nodeList.getReplicaIds() != null ? nodeList.getReplicaIds() : nodeList.getNodeIds();
@@ -268,6 +282,11 @@ public class ReplicaController {
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<ReplicaGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
                                                                                @PathVariable UUID replicaId) {
+        Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
+
         Optional<Replica> replicaOpt = replicaService.getReplicas(bid).stream()
                                                         .filter(r -> r.getId().equals(replicaId)).findFirst();
         if (replicaOpt.isEmpty()) {

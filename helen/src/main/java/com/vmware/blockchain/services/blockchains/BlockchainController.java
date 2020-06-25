@@ -158,6 +158,9 @@ public class BlockchainController {
     @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         Blockchain b = blockchainService.get(id);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", id.toString()));
+        }
         // If we are to populate nodes.
         //List<NodeInterface> nodes = new ArrayList<>();
         //nodes.addAll(replicaService.getReplicas(id));
@@ -211,8 +214,14 @@ public class BlockchainController {
     @PreAuthorize("@authHelper.canUpdateChain(#id)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
             @RequestBody BlockchainPatch body) throws NotFoundException {
+        // TODO: Actual PATCH
 
         // Temporary: create a completed task that points to the default blockchain
+        Blockchain b = blockchainService.get(id);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", id.toString()));
+        }
+
         Task task = new Task();
         task.setState(State.SUCCEEDED);
         task.setMessage("Default Blockchain");
@@ -232,6 +241,9 @@ public class BlockchainController {
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid) throws Exception {
         Blockchain blockchain = blockchainService.get(bid);
+        if (blockchain == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
         if (blockchain.getState() != Blockchain.BlockchainState.INACTIVE) {
             blockchain.setState(Blockchain.BlockchainState.INACTIVE);
             blockchain = blockchainService.put(blockchain);

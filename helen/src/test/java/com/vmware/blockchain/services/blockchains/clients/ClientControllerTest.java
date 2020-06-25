@@ -156,6 +156,7 @@ public class ClientControllerTest extends RuntimeException {
         Consortium consortium = SecurityTestUtils.getConsortium();
 
         when(operationContext.getId()).thenReturn(UUID.randomUUID().toString());
+
         UUID c1Id = consortium.getId();
         when(consortiumService.get(c1Id)).thenReturn(consortium);
 
@@ -188,7 +189,7 @@ public class ClientControllerTest extends RuntimeException {
         when(replicaService.getReplicas(BC_DAML))
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         bcdaml.setId(BC_DAML);
-        //when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
+        when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
 
 
         ReflectionTestUtils.setField(BlockchainUtils.class,
