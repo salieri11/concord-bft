@@ -4,6 +4,7 @@
 #include <utils/openssl_crypto_utils.hpp>
 #include "Logger.hpp"
 #include "upgrade_plugin.hpp"
+
 using namespace concord::reconfiguration;
 using namespace com::vmware::concord;
 
@@ -54,17 +55,32 @@ void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
  * blockchain. That way we can track all the write reconfiguration commands in
  * the blockchain.
  */
-ReconfigurationSM::ReconfigurationSM(const config::ConcordConfiguration& config)
+ReconfigurationSM::ReconfigurationSM(
+    const config::ConcordConfiguration& config,
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : logger_(logging::getLogger("concord.reconfiguration")),
-      operator_public_key_(utils::openssl_crypto::DeserializePublicKey(
-          config.getValue<std::string>(
-              "reconfiguration_operator_public_key"))) {
+      reconfiguration_counters_(prometheus_registry->createCounterFamily(
+          "concord_reconfiguration_operation_counters_total",
+          "counts how many operations the reconfiguration command handler has "
+          "done",
+          {})) {
+  if (!config.hasValue<std::string>("reconfiguration_operator_public_key")) {
+    LOG_WARN(logger_,
+             "System operator public key is missing, concord won't be able to "
+             "execute reconfiguration commands");
+  } else {
+    operator_public_key_ = utils::openssl_crypto::DeserializePublicKey(
+        config.getValue<std::string>("reconfiguration_operator_public_key"));
+    LOG_INFO(logger_, "Successfully read the system operator public key");
+  }
   LoadPlugin(std::make_unique<UpgradePlugin>(
       com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE));
 }
 
 bool ReconfigurationSM::ValidateReconfigurationRequest(
     const ReconfigurationSmRequest& request) {
-  if (!request.has_command() || !request.has_signature()) return false;
+  if (!request.has_command() || !request.has_signature() ||
+      !request.has_pluginid() || operator_public_key_ == nullptr)
+    return false;
   return operator_public_key_->Verify(request.command(), request.signature());
 }
