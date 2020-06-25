@@ -11,6 +11,10 @@ import com.daml.ledger.validator.privacy.{
   RestrictedAccess
 }
 import com.daml.metrics.MetricName
+import com.digitalasset.daml.on.vmware.execution.engine.Digests.{
+  hexDigestOfBytes,
+  hexDigestOfStrings
+}
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.Read
 import com.digitalasset.kvbc.daml_validator.{
   EventFromValidator,
@@ -35,6 +39,9 @@ class ConcordLedgerStateOperations(
   private[engine] val pendingReads = mutable.Map.empty[Int, PendingRead]
   private[engine] val pendingWrites = mutable.Buffer[(Key, Value, AccessControlList)]()
   private[engine] val correlationId = new mutable.StringBuilder()
+  // The below map is only populated if TRACE log-level is enabled for this class.
+  private[engine] val completedReadHashes =
+    scala.collection.concurrent.TrieMap.empty[Key, Array[Byte]]
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -85,9 +92,13 @@ class ConcordLedgerStateOperations(
         }.toMap
         keys.map { key =>
           val optValue = kvMap.get(key)
-          optValue.flatMap { v =>
+          val result = optValue.flatMap { v =>
             if (v.isEmpty) None else Some(v)
           }
+          if (logger.isTraceEnabled) {
+            result.foreach(value => completedReadHashes.put(key, Digests.digestOfByteString(value)))
+          }
+          result
         }
       }
   }
@@ -123,10 +134,23 @@ class ConcordLedgerStateOperations(
     }
     logger.trace(
       s"Cleared write-set buffer of ${protectedKeyValuePairs.size} key-value pairs, correlationId=$correlationId")
+    logHashes(protectedKeyValuePairs)
     val writeSetSerializedSize = protectedKeyValuePairs.map(_.serializedSize).sum
     metrics.bytesWritten.update(writeSetSerializedSize)
     protectedKeyValuePairs
   }
+
+  def getCompletedReadHashes: scala.collection.Map[Key, Array[Byte]] =
+    completedReadHashes.readOnlySnapshot()
+
+  private def logHashes(writeSet: Seq[ProtectedKeyValuePair]): Unit =
+    if (logger.isTraceEnabled) {
+      val keysHash = hexDigestOfBytes(writeSet.map(_.key))
+      val valuesHash = hexDigestOfBytes(writeSet.map(_.value))
+      val aclsHash = hexDigestOfStrings(writeSet.flatMap(_.trids))
+      logger.trace(
+        s"Produced write-set, size=${writeSet.size} keysHash=$keysHash valuesHash=$valuesHash aclsHash=$aclsHash correlationId=$correlationId")
+    }
 }
 
 object ConcordLedgerStateOperations {
