@@ -13,6 +13,8 @@
 
 #include "concord_client_pool.hpp"
 
+#include <utility>
+
 namespace concord {
 
 namespace concord_client_pool {
@@ -22,9 +24,10 @@ using config::ConcordConfiguration;
 using namespace config_pool;
 
 SubmitResult ConcordClientPool::SendRequest(
-    const void *request, std::uint32_t request_size, ClientMsgFlag flags,
+    std::vector<char> &&request, ClientMsgFlag flags,
     std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-    const std::string &correlation_id) {
+    char *extReplyBuffer, std::uint32_t extReplySize,
+    std::string correlation_id) {
   std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -39,6 +42,8 @@ SubmitResult ConcordClientPool::SendRequest(
     }
   }
   client->generateClientSeqNum();
+  if (extReplyBuffer)
+    client->setExternalReplyBuffer(extReplyBuffer, extReplySize);
   LOG_INFO(logger_, "client_id=" << client->getClientId()
                                  << " allocated, insert reqSeqNum="
                                  << client->getClientSeqNum()
@@ -47,28 +52,39 @@ SubmitResult ConcordClientPool::SendRequest(
                                  << " and time out on ms=" << timeout_ms.count()
                                  << " to the job pool");
   client->setStartRequestTime();
-  std::unique_ptr<ConcordClientProcessingJob> job =
-      std::make_unique<ConcordClientProcessingJob>(
-          *this, move(client), request, request_size, flags, timeout_ms,
-          reply_size, correlation_id, client->getClientSeqNum());
+  ConcordClientProcessingJob *job = new ConcordClientProcessingJob(
+      *this, client, std::move(request), flags, timeout_ms, reply_size,
+      correlation_id, client->getClientSeqNum());
   requests_counter_.Increment();
   clients_gauge_.Decrement();
-  jobs_thread_pool_.add(job.release());
+  jobs_thread_pool_.add(job);
   return SubmitResult::Acknowledged;
 }
 
 SubmitResult ConcordClientPool::SendRequest(
+    std::vector<char> &&request, ClientMsgFlag flags,
+    std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
+    const std::string correlation_id) {
+  return SendRequest(std::forward<std::vector<char>>(request), flags,
+                     timeout_ms, reply_size, nullptr, 0, correlation_id);
+}
+
+SubmitResult ConcordClientPool::SendRequest(
     const bft::client::WriteConfig &config, bft::client::Msg &&request) {
+  LOG_INFO(logger_, "Write request generated with cid="
+                        << config.request.correlation_id);
   auto request_flag = ClientMsgFlag::EMPTY_FLAGS_REQ;
   if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
-  return SendRequest(request.data(), request.size(), request_flag,
+  return SendRequest(std::forward<std::vector<char>>(request), request_flag,
                      config.request.timeout, config.request.max_reply_size,
                      config.request.correlation_id);
 }
 
 SubmitResult ConcordClientPool::SendRequest(
     const bft::client::ReadConfig &config, bft::client::Msg &&request) {
-  return SendRequest(request.data(), request.size(),
+  LOG_INFO(logger_,
+           "Read request generated with cid=" << config.request.correlation_id);
+  return SendRequest(std::forward<std::vector<char>>(request),
                      ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
                      config.request.max_reply_size,
                      config.request.correlation_id);
@@ -172,9 +188,10 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   LOG_INFO(logger_, "Creating pool of num_clients=" << num_clients);
   uint16_t f_val = config.getValue<uint16_t>(pool_config->F_VAL);
   uint16_t c_val = config.getValue<uint16_t>(pool_config->C_VAL);
+  auto max_buf_size =
+      stol(config.getValue<std::string>(pool_config->COMM_BUFF_LEN));
   external_client::ConcordClient::setStatics(
-      3 * f_val + 2 * c_val + 1, 2 * f_val + 1,
-      stoi(config.getValue<std::string>(pool_config->COMM_BUFF_LEN)));
+      2 * f_val + 1, 3 * f_val + 2 * c_val + 1, max_buf_size);
   for (int i = 0; i < num_clients; i++) {
     LOG_DEBUG(logger_, "Creating client_id=" << i);
     clients_.push_back(std::make_shared<external_client::ConcordClient>(
@@ -212,10 +229,20 @@ ConcordClientPool::~ConcordClientPool() {
   LOG_INFO(logger_, "Clients cleanup complete");
 }
 
+void ConcordClientPool::SetDoneCallback(EXT_DONE_CALLBACK cb) {
+  done_callback_ = std::move(cb);
+}
+
+void ConcordClientPool::Done(const uint64_t sn, const std::string cid) {
+  if (done_callback_) {
+    done_callback_(sn, cid);
+  }
+}
+
 void ConcordClientProcessingJob::execute() {
-  processing_client_->SendRequest(request_, request_size_, flags_, timeout_ms_,
-                                  reply_size_, seq_num_, correlation_id_);
-  delete (static_cast<const char *>(request_));
+  processing_client_->SendRequest(request_.data(), request_.size(), flags_,
+                                  timeout_ms_, reply_size_, seq_num_,
+                                  correlation_id_);
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
                                     correlation_id_);
 }
@@ -227,6 +254,7 @@ void ConcordClientPool::InsertClientToQueue(
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
     clients_.push_back(client);
   }
+  Done(seq_num, correlation_id);
   LOG_INFO(logger_, "reqSeqNum=" << seq_num << "with cid=" << correlation_id
                                  << "has ended.returns client_id="
                                  << client->getClientId() << " to the pool");

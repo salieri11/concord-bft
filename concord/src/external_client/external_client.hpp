@@ -27,10 +27,6 @@ namespace config {
 class ConcordConfiguration;
 }
 
-namespace kvbc {
-class IClient;
-}
-
 namespace external_client {
 
 // Represents a Concord BFT client. The purpose of this class is to be easy to
@@ -72,7 +68,7 @@ class ConcordClient {
                    bftEngine::ClientMsgFlag flags,
                    std::chrono::milliseconds timeout_ms,
                    std::uint32_t reply_size, uint64_t seq_num,
-                   const std::string& correlation_id = {});
+                   const std::string correlation_id = {});
 
   int getClientId() const;
 
@@ -87,7 +83,17 @@ class ConcordClient {
   bool isServing() const;
 
   static void setStatics(uint16_t required_num_of_replicas,
-                         uint16_t num_of_replicas, uint16_t max_reply_size);
+                         uint16_t num_of_replicas, uint32_t max_reply_size);
+
+  ConcordClient(ConcordClient&& t) = delete;
+
+  // this buffer is fully owned by external application who may set it
+  // via the setExternalReplyBuffer() function.
+  // this memory is used when the callback is called and probably
+  // will be used ONLY in conjunction with external callback.
+  // the better solution is to pass it via the Send function but due to the time
+  // constraints we are not changing the interface now.
+  void setExternalReplyBuffer(char* buf, uint32_t size);
 
  private:
   void CreateClient(const config::ConcordConfiguration& config,
@@ -111,6 +117,15 @@ class ConcordClient {
   // A shared memory for all clients to return reply because for now the reply
   // is not important
   static std::shared_ptr<std::vector<char>> reply_;
+
+  // this buffer is fully owned by external application who may set it
+  // via the setExternalReplyBuffer() function.
+  // this memory is used when the callback is called and probably
+  // will be used ONLY in conjunction with external callback.
+  // the better solution is to pass it via the Send function but due to the time
+  // constraints we are not changing the interface now.
+  char* externalReplyBuffer = nullptr;
+  uint32_t externalReplyBufferSize = 0;
 };
 
 }  // namespace external_client

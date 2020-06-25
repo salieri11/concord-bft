@@ -16,8 +16,6 @@
 namespace concord::external_client {
 
 using bftEngine::ClientMsgFlag;
-using concord::kvbc::ClientConfig;
-using concord::kvbc::IClient;
 using config::CommConfig;
 using config::ConcordConfiguration;
 using namespace config_pool;
@@ -47,23 +45,29 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
                                 ClientMsgFlag flags,
                                 std::chrono::milliseconds timeout_ms,
                                 std::uint32_t reply_size, uint64_t seq_num,
-                                const std::string& correlation_id) {
-  auto size = reply_->size();
-  auto res = client_->sendRequest(
-      flags, static_cast<const char*>(request), request_size, seq_num,
-      timeout_ms.count(), reply_size, static_cast<char*>(reply_->data()),
-      reinterpret_cast<uint32_t&>(size), correlation_id);
+                                const std::string correlation_id) {
+  uint32_t replyBufSize =
+      externalReplyBufferSize ? externalReplyBufferSize : reply_->size();
+  char* replyBuffer =
+      externalReplyBuffer ? externalReplyBuffer : reply_->data();
 
-  assert(res >= -2 && res < 1);
+  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
+                                  request_size, seq_num, timeout_ms.count(),
+                                  reply_size, replyBuffer, replyBufSize,
+                                  correlation_id);
 
-  if (res == -1)
+  if (res == bftEngine::OperationResult::TIMEOUT)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
                                     << " has failed to invoke, timeout="
                                     << timeout_ms.count() << " ms has reached");
-  else if (res == -2)
+  else if (res == bftEngine::OperationResult::BUFFER_TOO_SMALL)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
                                     << " has failed to invoke, buffer size="
                                     << reply_size << " is too small");
+  else if (res == bftEngine::OperationResult::NOT_READY)
+    LOG_ERROR(logger_,
+              "reqSeqNum=" << seq_num << " cid=" << correlation_id
+                           << " has failed to invoke, replicas not ready");
 }
 
 void ConcordClient::CreateCommConfig(CommConfig& comm_config,
@@ -107,20 +111,15 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
                                  ClientPoolConfig pool_config) {
   const auto num_replicas =
       config.getValue<std::uint16_t>(pool_config.NUM_REPLICAS);
-  ClientConfig client_config;
   const auto nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
   const auto node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
   const auto external_clients_conf =
       node.subscope(pool_config.EXTERNAL_CLIENTS, client_id_);
   const auto client_conf =
       external_clients_conf.subscope(pool_config.CLIENT, 0);
-  client_config.fVal =
-      config.getValue<decltype(client_config.fVal)>(pool_config.F_VAL);
-  client_config.cVal =
-      config.getValue<decltype(client_config.cVal)>(pool_config.C_VAL);
-  client_config.clientId =
-      client_conf.getValue<decltype(client_config.clientId)>(
-          pool_config.CLIENT_ID);
+  auto fVal = config.getValue<uint16_t>(pool_config.F_VAL);
+  auto cVal = config.getValue<uint16_t>(pool_config.C_VAL);
+  auto clientId = client_conf.getValue<uint16_t>(pool_config.CLIENT_ID);
   CommConfig comm_config;
   CreateCommConfig(comm_config, config, num_replicas, pool_config);
   for (auto i = 0u; i < num_replicas; ++i) {
@@ -150,9 +149,9 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   comm_ = std::move(comm);
   comm_.get()->Start();
   auto client = std::unique_ptr<bftEngine::SimpleClient>{
-      bftEngine::SimpleClient::createSimpleClient(
-          comm_.get(), client_config.clientId, client_config.fVal,
-          client_config.cVal)};
+      bftEngine::SimpleClient::createSimpleClient(comm_.get(), clientId, fVal,
+                                                  cVal)};
+
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);
@@ -186,10 +185,15 @@ bool ConcordClient::isServing() const {
 
 void ConcordClient::setStatics(uint16_t required_num_of_replicas,
                                uint16_t num_of_replicas,
-                               uint16_t max_reply_size) {
+                               uint32_t max_reply_size) {
   ConcordClient::reply_->resize(max_reply_size);
   ConcordClient::required_num_of_replicas_ = required_num_of_replicas;
   ConcordClient::num_of_replicas_ = num_of_replicas;
+}
+
+void ConcordClient::setExternalReplyBuffer(char* buf, uint32_t size) {
+  externalReplyBuffer = buf;
+  externalReplyBufferSize = size;
 }
 
 }  // namespace concord::external_client
