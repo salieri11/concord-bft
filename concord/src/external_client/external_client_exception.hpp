@@ -16,7 +16,7 @@
 #include <exception>
 #include <string>
 
-#include "status.hpp"
+#include <status.hpp>
 
 namespace concord {
 namespace external_client {

@@ -14,7 +14,6 @@
 #include <config/communication.hpp>
 #include <config/configuration_manager.hpp>
 #include <string>
-#include "KVBCInterfaces.h"
 #include "communication/CommDefs.hpp"
 #include "communication/CommFactory.hpp"
 #include "communication/ICommunication.hpp"
@@ -24,9 +23,6 @@ namespace concord {
 namespace config {
 class ConcordConfiguration;
 }  // namespace config
-namespace kvbc {
-class IClient;
-}
 
 namespace config_pool {
 class ClientPoolConfig {

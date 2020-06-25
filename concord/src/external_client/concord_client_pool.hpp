@@ -12,17 +12,22 @@
 // file.
 
 #pragma once
-#include <bftclient/include/bftclient/base_types.h>
-#include <bftclient/include/bftclient/config.h>
-#include <bftclient/include/bftclient/quorums.h>
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/registry.h>
-#include <SimpleThreadPool.hpp>
 #include <config/configuration_manager.hpp>
+#include <functional>
 #include <mutex>
 #include <queue>
+#include "SimpleThreadPool.hpp"
+#include "bftclient/include/bftclient/base_types.h"
+#include "bftclient/include/bftclient/config.h"
+#include "bftclient/include/bftclient/quorums.h"
 #include "external_client.hpp"
+
+// the parameters are sequence number and cid
+typedef std::function<void(const uint64_t&, const std::string&)>
+    EXT_DONE_CALLBACK;
 
 namespace concord {
 
@@ -81,11 +86,18 @@ class ConcordClientPool {
   // to the application.
   // timeout_ms is the request time out and not the time out for waiting to
   // available client
-  SubmitResult SendRequest(const void* request, std::uint32_t request_size,
+  SubmitResult SendRequest(std::vector<char>&& request,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
                            std::uint32_t reply_size,
-                           const std::string& correlation_id = {});
+                           const std::string correlation_id = {});
+
+  SubmitResult SendRequest(std::vector<char>&& request,
+                           bftEngine::ClientMsgFlag flags,
+                           std::chrono::milliseconds timeout_ms,
+                           std::uint32_t reply_size, char* extReplyBuffer,
+                           std::uint32_t extReplySize,
+                           const std::string correlation_id = {});
 
   SubmitResult SendRequest(const bft::client::WriteConfig& config,
                            bft::client::Msg&& request);
@@ -98,6 +110,10 @@ class ConcordClientPool {
       uint64_t seq_num, const std::string& correlation_id);
 
   PoolStatus HealthStatus();
+
+  void Done(const uint64_t sn, const std::string cid);
+
+  void SetDoneCallback(EXT_DONE_CALLBACK cb);
 
  private:
   void CreatePool(std::istream& config_stream,
@@ -126,6 +142,7 @@ class ConcordClientPool {
   prometheus::Gauge& last_request_time_gauge_;
   // Logger
   logging::Logger logger_;
+  EXT_DONE_CALLBACK done_callback_ = nullptr;
 };
 
 class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
@@ -133,18 +150,16 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   ConcordClientProcessingJob(
       concord_client_pool::ConcordClientPool& clients,
       std::shared_ptr<external_client::ConcordClient> client,
-      const void* request, std::uint32_t request_size,
-      bftEngine::ClientMsgFlag flags, std::chrono::milliseconds timeout_ms,
-      std::uint32_t reply_size, const std::string& correlation_id,
-      uint64_t seq_num)
+      std::vector<char>&& request, bftEngine::ClientMsgFlag flags,
+      std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
+      const std::string correlation_id, uint64_t seq_num)
       : clients_pool_{clients},
         processing_client_{std::move(client)},
-        request_(request),
-        request_size_{request_size},
+        request_(std::move(request)),
         flags_{flags},
         timeout_ms_{timeout_ms},
         reply_size_{reply_size},
-        correlation_id_{const_cast<std::string&>(correlation_id)},
+        correlation_id_{correlation_id},
         seq_num_{seq_num} {};
 
   virtual ~ConcordClientProcessingJob() = default;
@@ -156,12 +171,11 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
  private:
   concord_client_pool::ConcordClientPool& clients_pool_;
   std::shared_ptr<external_client::ConcordClient> processing_client_;
-  const void* request_;
-  std::uint32_t request_size_;
+  std::vector<char> request_;
   bftEngine::ClientMsgFlag flags_;
   std::chrono::milliseconds timeout_ms_;
   std::uint32_t reply_size_;
-  const std::string& correlation_id_;
+  const std::string correlation_id_;
   uint64_t seq_num_;
 };
 }  // namespace concord_client_pool
