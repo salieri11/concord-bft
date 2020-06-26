@@ -259,7 +259,7 @@ public class TelegrafConfigUtil {
                     .append("\"");
         }
 
-        config.append("\n  index_name = \"" + blockchain + "-%Y.%m.%d\"")
+        config.append("\n  index_name = \"" + blockchain + "\"")
                 .append("\n  manage_template = true")
                 .append("\n  template_name = \"vmware-blockchain\"")
                 .append("\n  overwrite_template = false");
