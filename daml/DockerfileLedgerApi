@@ -1,8 +1,8 @@
 # Dockerfile for building daml-on-concord.
 
-ARG trc_lib_repo="trc-lib"
-ARG trc_lib_tag="latest"
-FROM ${trc_lib_repo}:${trc_lib_tag}
+ARG bftclient_lib_repo="concord-clients"
+ARG bftclient_lib_tag="latest"
+FROM ${bftclient_lib_repo}:${bftclient_lib_tag}
 
 ENV SBT_VERSION 1.3.3
 
@@ -16,16 +16,6 @@ RUN apt update && apt install -y curl nano vim mc cmake build-essential && \
     apt update && apt install -y openjdk-8-jdk-headless sbt && \
     apt install -y --no-install-recommends postgresql-client && \
     rm -rf /var/lib/apt/lists/*
-
-# Fake BFT Client native library
-
-COPY daml/bft-client-native/nativelib-fake/src /doc/daml/bft-client-native-fake
-WORKDIR /doc/daml/bft-client-native-fake
-RUN cmake .
-RUN make
-RUN cp libconcord_external_client_shared.so /usr/local/lib
-RUN mkdir /usr/local/include/external
-RUN cp concord_client_pool.hpp /usr/local/include/external
 
 # daml_ledger_api
 
