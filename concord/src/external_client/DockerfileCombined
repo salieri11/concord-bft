@@ -11,7 +11,6 @@ FROM ${trc_lib_repo}:${trc_lib_tag}
 ## Base Run image
 FROM ubuntu:18.04
 LABEL Description="Concord"
-
 RUN apt-get update \
     && apt-get -y install bind9-host \
     gosu \
@@ -139,9 +138,12 @@ RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
 
-COPY --from=1 /thin-replica-client /thin-replica-client
-
-COPY --from=0 /concord /Externalclient
-
-WORKDIR /
+COPY --from=0 /concord /concord
+COPY --from=0 /usr/local/lib/ /usr/local/lib/
+COPY --from=0 /usr/local/include/ /usr/local/include/
+COPY --from=1 thin-replica-client /thin-replica-client
+COPY --from=1 /usr/local/lib/ /usr/local/lib/
+COPY --from=1 /usr/local/include/ /usr/local/include/
+COPY --from=1 /usr/include/ /usr/include/
+COPY --from=1 /usr/lib/ /usr/lib/
 
