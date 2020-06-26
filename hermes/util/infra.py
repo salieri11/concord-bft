@@ -41,7 +41,7 @@ def credentialsAreGood(sddcName, sddcInfo):
 def getConnection(sddcName, skipMapping=False):
    '''
       Initializes vSphere connection to the target SDDC.
-      Host and Credentials are fed from `user_config.json`, for example: {
+      Host and Credentials are fed from `zone_config.json`, for example: {
         ...
         "infra":{
           "SDDC3":{
@@ -107,7 +107,7 @@ def prepareConnections(sddcs):
       getConnection(sddcName).updateAllEntityHandles(initialFetch=True)
 
 
-def getListFromConfig(configObject = None):
+def getListFromZoneConfig(configObject = None):
   '''
       Returns sddcNumber list from config object
       (List of all SDDCs affected by Hermes testing)
@@ -129,7 +129,7 @@ def findVMByReplicaId(replicaId, sddcs = None):
       :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
   # if narrow sddcs search not given, search in all SDDCs in zone_config
-  sddcs = sddcs if sddcs is not None else getListFromConfig()
+  sddcs = sddcs if sddcs is not None else getListFromZoneConfig()
   prepareConnections(sddcs)
   threads = []; results = []
   def findInSDDC(sddcName):
@@ -153,7 +153,7 @@ def findVMByInternalIP(ip, sddcs = None):
       :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
   # if narrow sddcs search not given, search in all SDDCs in zone_config
-  sddcs = sddcs if sddcs is not None else getListFromConfig()
+  sddcs = sddcs if sddcs is not None else getListFromZoneConfig()
   prepareConnections(sddcs)
   threads = []; results = []
   def findInSDDC(sddcName):
@@ -195,7 +195,7 @@ def giveDeploymentContext(blockchainDetails, otherMetadata=""):
    # get config from zone_config.json
    try: 
       configObject = helper.getUserConfig()
-      sddcs = getListFromConfig(configObject)
+      sddcs = getListFromZoneConfig()
       jobName = configObject["metainf"]["env"]["jobName"]
       buildNumber = configObject["metainf"]["env"]["buildNumber"]
       jenkinsBuildId = helper.getJenkinsBuildId()
@@ -273,7 +273,7 @@ def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
       Returns list of VMs (or map if mapBySDDC set to True)
       That satisfies the supplied attribute value condition
   '''
-  sddcs = getListFromConfig()
+  sddcs = getListFromZoneConfig()
   prepareConnections(sddcs)
   vms = []
   resultMap = {}
