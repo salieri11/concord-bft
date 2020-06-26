@@ -1,6 +1,6 @@
 # Dockerfile for building daml-on-concord.
 
-ARG bftclient_lib_repo="concord-clients"
+ARG bftclient_lib_repo="participant-lib"
 ARG bftclient_lib_tag="latest"
 FROM ${bftclient_lib_repo}:${bftclient_lib_tag}
 
