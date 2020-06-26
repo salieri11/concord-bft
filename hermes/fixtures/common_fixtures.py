@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from util.product import Product
 from rest.request import Request
 from rpc.rpc_call import RPC
-from util import auth, helper, infra, hermes_logging, numbers_strings
+from util import auth, helper, infra, hermes_logging, numbers_strings, blockchain_ops, node_interruption_helper
 from util.daml import daml_helper
 from util.blockchain import eth as eth_helper
 import util.generate_zones_migration as migration
@@ -461,6 +461,11 @@ def fxProduct(request, fxHermesRunSettings):
             waitForStartupParams = {}
             checkProductStatusParams = {"max_tries": 1}
 
+         elif productType == helper.TYPE_PREDEPLOYED_BLOCKCHAIN:
+            waitForStartupFunction = helper.verify_test_readiness_for_pre_deployed_blockchain
+            waitForStartupParams = {}
+            checkProductStatusParams = {"max_tries": 1}
+
          else:
             waitForStartupFunction = None
             waitForStartupParams = {}
@@ -521,7 +526,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       log.warning("Some test suites do not work with remote deployments yet.")
       blockchainId, conId, replicas = deployToSddc(logDir, hermesData,
                                                    hermesData["hermesCmdlineArgs"].blockchainLocation)
-   elif len(devAdminRequest.getBlockchains()) > 0:
+   elif not hermesData["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
       # we are using the default built in test blockchain.
       # TODO: Create a hermes consortium and add the Hermes org to it, here,
@@ -529,6 +534,11 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchain = devAdminRequest.getBlockchains()[0]
       blockchainId = blockchain["id"]
       conId = blockchain["consortium_id"]
+   elif hermesData["hermesCmdlineArgs"].replicasConfig:
+      # Hermes was not told to use pre-deployed blockchain
+      replicas = helper.parseReplicasConfig(hermesData["hermesCmdlineArgs"].replicasConfig)
+      blockchainId = None
+      conId = None
    else:
       # The product was started with no blockchains.
       blockchainId = None
@@ -565,6 +575,25 @@ def fxInitializeOrgs(request):
    for tokenDescriptor in tokenDescriptors:
        req = request.newWithToken(tokenDescriptor)
        req.getBlockchains()
+
+
+@pytest.fixture(scope="module")
+def fxNodeInterruption(request, fxBlockchain, fxHermesRunSettings):
+   committers = blockchain_ops.committers_of(fxBlockchain)
+   participants = blockchain_ops.participants_of(fxBlockchain)
+
+   all_nodes = []
+   for blockchain_type, ips in fxBlockchain.replicas.items():
+      all_nodes = all_nodes + ips
+
+   log.info("Committers: {}".format(committers))
+   log.info("Participants: {}".format(participants))
+   vm_handles = infra.fetch_vm_handles(all_nodes)
+   log.debug("vm handles: {}".format(vm_handles))
+   fxHermesRunSettings["hermesCmdlineArgs"].vm_handles = vm_handles
+
+   node_interruption_helper.verify_node_interruption_testing_readiness(
+      fxHermesRunSettings["hermesCmdlineArgs"])
 
 
 @pytest.fixture

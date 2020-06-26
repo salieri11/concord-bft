@@ -37,22 +37,22 @@ def refresh_current_state_info(fxBlockchain, verbose=False):
   echo_current_state_info(fxBlockchain)
   return True
 
-
-def get_primary_rid(fxBlockchain, verbose=True):
+def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     Get primary rid (id used internally for concord nodes)
     This is different from persephone-returned list of committers
     Nodes can differ opinions on what the primary is, in that case
     output warning to which rid is thought to be primary by which nodes
   '''
-  committers = committers_of(fxBlockchain)
+  all_committers = committers_of(fxBlockchain)
+  target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
   current_active_view_match = 'concord_concordbft_currentActiveView{source="concordbft",component="replica"} '
   cmd = ';'.join([
     "curl 127.0.0.1:9891/metrics > tmp; grep -a -m 1 -h -r '{}'".format(current_primary_match),
     "curl 127.0.0.1:9891/metrics > tmp; grep -a -m 1 -h -r '{}'".format(current_active_view_match),
   ])
-  results = helper.ssh_parallel(committers, cmd, verbose=verbose)
+  results = helper.ssh_parallel(target_committers, cmd, verbose=verbose)
   primary_indexes = {}; last_added_index = None
   for result in results:
     lines = result["output"].split('\n')
@@ -68,7 +68,7 @@ def get_primary_rid(fxBlockchain, verbose=True):
       if current_primary not in primary_indexes: primary_indexes[current_primary] = []
       primary_indexes[current_primary].append(result["ip"])
       last_added_index = current_primary
-    if current_primary != current_active_view % len(committers):
+    if current_primary != current_active_view % len(all_committers):
       # Active view strictly iterates according to next rid
       # If active view % total replica count is not matching with current primary,
       # it's a sign that view change is happening.
@@ -98,24 +98,26 @@ def get_primary_rid(fxBlockchain, verbose=True):
     return last_added_index
 
 
-def map_committers_info(fxBlockchain, verbose=True):
+def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid and map out commiter idx and rid relation.
   '''
-  committers = committers_of(fxBlockchain)
+  if verbose: log.info("")
+  all_committers = committers_of(fxBlockchain)
+  target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   # Below will get principal_id, private_key, public_key from concord config (3 lines)
   replicaIdGetCommand = "cat /config/concord/config-local/concord.config"
   committersMapping = {
     "primary_ip": None,
     "primary_index": None,
     "primary_rid": None,
-    "committers": [None] * len(committers),
-    "committer_index_by_rid": [None] * len(committers)
+    "committers": [None] * len(all_committers),
+    "committer_index_by_rid": [None] * len(all_committers)
   }
-  committersOutput = [""] * len(committers)
+  committersOutput = [""] * len(all_committers)
   if verbose: log.info("Mapping out the rid and index relationship in committers...")
-  primary_rid = get_primary_rid(fxBlockchain, verbose=verbose)
-  results = helper.ssh_parallel(committers, replicaIdGetCommand)
+  primary_rid = get_primary_rid(fxBlockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
+  results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
   committerRespondedCount = 0; errored = []
   for result in results:
     if result["output"]:
@@ -124,14 +126,14 @@ def map_committers_info(fxBlockchain, verbose=True):
         fileterCondition = lambda nodeConfig: "private_key" in nodeConfig["replica"][0]
         nodeWithPrivateKey = list(filter(fileterCondition, concordConfig["node"]))[0]
         replicaId = nodeWithPrivateKey["replica"][0]["principal_id"]
-        committerIndex = committers.index(result["ip"])
+        committerIndex = target_committers.index(result["ip"])
         committersMapping["committers"][committerIndex] = {
           "ip": result["ip"], "index": committerIndex, "rid": replicaId
         }
         committerRespondedCount += 1
         committersMapping["committer_index_by_rid"][replicaId] = committerIndex
-        committersOutput[committerIndex] = "    Committer {}: rid={}, ip={}".format(
-          committerIndex, replicaId, result["ip"]
+        committersOutput[committerIndex] = "    replica_id={}, ip={} (Committer {})".format(
+          replicaId, result["ip"], committerIndex
         )
         if primary_rid == replicaId:
           committersMapping["primary_ip"] = result["ip"]
@@ -143,7 +145,7 @@ def map_committers_info(fxBlockchain, verbose=True):
       except yaml.YAMLError as exc:  errored.append(result["ip"])
     else: errored.append(result["ip"])
   if verbose:
-    mappingComplete = (committerRespondedCount == len(committers))
+    mappingComplete = (committerRespondedCount == len(target_committers))
     if mappingComplete: print("Committer index, rid and IP mapping:\n" + "\n".join(committersOutput))
     else: log.warning("Mapping is incomplete; problem IPs: {}".format(errored))
   if "primary_index" in fxBlockchain.replicas and fxBlockchain.replicas["primary_index"] is not None:
@@ -157,7 +159,6 @@ def map_committers_info(fxBlockchain, verbose=True):
   fxBlockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
   fxBlockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
   return committersMapping
-
 
 # Below must change once participants are able to connect to multiple committers
 def map_participants_submission_endpoints(fxBlockchain, verbose=True):
@@ -297,7 +298,7 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
     "primary_ip": None, "primary_index": None, "primary_rid": None, 
     "committer_index_by_rid": None, "submission_endpoints": None
   }
-  if committerIPs: map_committers_info(fxBlockchain, verbose)
+  if committerIPs: map_committers_info(fxBlockchain, verbose=verbose)
   if participantIPs: 
     # need to avoid submission endpoints until there are more connections from participants to other committers
     map_participants_submission_endpoints(fxBlockchain, verbose)
@@ -320,8 +321,8 @@ def committers_of(fxBlockchain):
 def participants_of(fxBlockchain):
   return fxBlockchain.replicas[helper.TYPE_DAML_PARTICIPANT]
 
-def disable_duplicate_logs():
-  while log.handlers: log.handlers.pop()
+def get_all_node(fxBlockchain):
+  return committers_of(fxBlockchain) + participants_of(fxBlockchain)
 
 def echo_current_state_info(fxBlockchain):
   log.info("       Current primary rid={}, is {} (committer idx {}), submissions on {}".format(
@@ -330,3 +331,56 @@ def echo_current_state_info(fxBlockchain):
     fxBlockchain.replicas["primary_index"],
     ", ".join(fxBlockchain.replicas["submission_endpoints"]),
   ))
+
+def fetch_master_replica(fxBlockchain):
+  '''
+  Get master replica IP
+  :param fxBlockchain: blockchain fixture
+  :return: master replica IP
+  '''
+  username, password = helper.getNodeCredentials()
+  cmd = "cat /config/daml-ledger-api/environment-vars"
+  master_replica = None
+  for ip in participants_of(fxBlockchain):
+    ssh_output = helper.ssh_connect(ip, username, password, cmd)
+    if ssh_output:
+      for line in ssh_output.split():
+        if "REPLICAS" in line:
+          first_replica_with_port = line.split('=')[1]
+          master_replica = first_replica_with_port.split(':')[0]
+          break
+
+  log.info("Master replica: {}".format(master_replica))
+  return master_replica
+
+
+def print_replica_info(fxBlockchain, interrupted_nodes=[]):
+  username, password = helper.getNodeCredentials()
+  cmd = 'grep -2 -w private_key /config/concord/config-local/concord.config | ' \
+        'grep principal_id ; curl -s -o /tmp/metrics.log 127.0.0.1:9891/metrics ; ' \
+        'cat /tmp/metrics.log | grep concord_concordbft_current | grep source='
+
+  filtered_ips = [ip for ip in committers_of(fxBlockchain) if ip not in interrupted_nodes]
+  log.info("")
+  for ip in filtered_ips:
+    ssh_output = helper.ssh_connect(ip, username, password, cmd)
+    primary_should_be = principal_id = currentPrimary = '?'
+    if ssh_output:
+      for line in ssh_output.split('\r'):
+        try:
+          if "principal_id" in line:
+            principal_id = line.split(':')[1]
+          if "concord_concordbft_currentActiveView" in line:
+            concord_concordbft_currentActiveView = line.split(' ')[1]
+            if concord_concordbft_currentActiveView:
+              primary_should_be = int(concord_concordbft_currentActiveView.split('.')[0]) % len(committers_of(fxBlockchain))
+          if "concord_concordbft_currentPrimary" in line:
+            concord_concordbft_currentPrimary = line.split(' ')[1]
+            if concord_concordbft_currentPrimary:
+              currentPrimary = int(concord_concordbft_currentPrimary.split('.')[0])
+        except Exception as e:
+          pass
+      log.info("[current primary {} -> {}] (replica_id {} == {})".format(currentPrimary, primary_should_be, principal_id, ip))
+      if primary_should_be == '?' or principal_id == '?' or currentPrimary == '?':
+        log.warning("Couldn't fetch replica_id/primary replica")
+        log.info(ssh_output)

@@ -77,6 +77,7 @@ TYPE_DAML_COMMITTER = "daml_committer"
 TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
+TYPE_PREDEPLOYED_BLOCKCHAIN = "pre-deployed blockchain"
 
 # Port forwarding for testing under VMware firewall
 FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT = 80
@@ -644,6 +645,13 @@ def verify_chessplus_test_ready(max_tries=10):
    Checks the connectivity of endpoints for chessplus
    '''
    # TODO: PLACE HOLDER for local deployment
+   return True
+
+
+def verify_test_readiness_for_pre_deployed_blockchain(max_tries=11):
+   '''
+   Return default True, letting the testsuite to validate pre-deployed blockchain
+   '''
    return True
 
 
@@ -1516,6 +1524,56 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=600):
       if not up:
          raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
 
+def check_docker_health(node, username, password, replica_type,
+                        max_timeout=600, verbose=True):
+   '''
+   Verify docker health status
+   :param node: Node to be verified
+   :param username: node login username
+   :param password: node login password
+   :param replica_type: blockchain node type
+   :param max_timeout: max timeout for verification
+   :param verbose: flag to turn verbose on/off
+   :return: True if node is healthy, else false
+   '''
+   count = 0
+   start_time = time.time()
+   docker_images_found = False
+   command_to_run = "docker ps --format '{{.Names}}'"
+   expected_docker_containers = getReplicaContainers(replica_type)
+   if verbose: log.info(
+      "Waiting for all docker containers to be up on '{}' within {} mins".format(
+         node, max_timeout / 60))
+   while not docker_images_found:
+      count += 1
+      log.debug(
+         "Verifying docker containers (attempt: {})...".format(
+            count))
+      ssh_output = ssh_connect(node, username, password, command_to_run)
+      log.debug("SSH output: {}".format(ssh_output))
+      for container_name in expected_docker_containers:
+         if container_name not in ssh_output:
+            docker_images_found = False
+            if (time.time() - start_time) > max_timeout:
+               if verbose: log.info("SSH output:\n{}".format(ssh_output))
+               log.error(
+                  "Container '{}' not up and running on node '{}'".format(
+                     container_name, node))
+               return False
+            else:
+               if verbose: log.warning(
+                  "Container '{}' not up and running on node '{}'".format(
+                     container_name, node))
+               time.sleep(10)
+               break
+         else:
+            docker_images_found = True
+            log.debug(
+               "Container {} found in node '{}'".format(
+                  container_name, node))
+   if verbose: log.info("Docker containers verified on {}".format(node))
+   return True
+
 
 def getJenkinsBuildId(jobName=None, buildNumber=None):
   try:
@@ -1692,6 +1750,7 @@ def parseReplicasConfig(replicas):
         result[nodeType].append(nodeInfo["public_ip"])
       elif "private_ip" in nodeInfo:
         result[nodeType].append(nodeInfo["private_ip"])
+
   return result
 
 
@@ -1952,3 +2011,35 @@ def create_results_sub_dir(results_dir, host):
    if not os.path.exists(results_sub_dir):
       os.makedirs(results_sub_dir)
    return results_sub_dir
+
+
+def disable_duplicate_logs():
+  while log.handlers: log.handlers.pop()
+
+
+def run_daml_sanity(ledger_api_hosts, results_dir, run_all_tests=True, verbose=True):
+   '''
+   Run daml test to validate blockchain
+   :param fxHermesRunSettings: hermes run settings (fixture)
+   :param ledger_api_hosts: list of ledger api hosts (participant nodes)
+   :return: Test run status
+   '''
+   for ledger_api_host in ledger_api_hosts:
+      log.info("ledger_api_host: {}".format(ledger_api_host))
+
+      forwarding_src_port = FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
+      upload_port = test_port = str(forwarding_src_port)
+
+      try:
+         daml_helper.upload_test_tool_dars(host=ledger_api_host, port=upload_port, verbose=False)
+         daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
+                                                 port=test_port,
+                                                 run_all_tests=run_all_tests,
+                                                 results_dir=results_dir,
+                                                 verbose=verbose)
+      except Exception as e:
+         log.error("  DAML tests failed")
+         return False
+
+   log.info("  DAML tests passed")
+   return True
