@@ -352,9 +352,9 @@ then
     memleak_concord # concord should be built as a pre-req
     persephone
 
-    daml
-    trc-test-app
     participant-lib
+    daml
+    trc-test-app 
     waitForProcesses
 
     reverse-proxy
