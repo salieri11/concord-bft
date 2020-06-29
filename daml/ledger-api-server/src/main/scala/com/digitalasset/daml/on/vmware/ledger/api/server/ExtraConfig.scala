@@ -14,8 +14,15 @@ import scopt.OptionParser
 
 import scala.concurrent.duration._
 
+sealed trait WriteClientsConfig {
+  val replicas: Seq[String]
+  val useBftClient: Boolean
+  val bftClientConfigPath: Option[Path]
+  val bftClientRequestTimeout: Duration
+}
+
 final case class ExtraConfig(
-    replicas: Seq[String],
+    override val replicas: Seq[String],
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
@@ -27,10 +34,10 @@ final case class ExtraConfig(
     maxTrcReadDataTimeout: Short,
     maxTrcReadHashTimeout: Short,
     maxBatchConcurrentCommits: Int,
-    useBftClient: Boolean, // Whether to use the new BFT Concord Client Pool in the writer.
-    bftClientConfigPath: Option[Path],
-    bftClientRequestTimeout: Duration,
-)
+    override val useBftClient: Boolean, // Whether to use the new BFT Concord Client Pool in the writer.
+    override val bftClientConfigPath: Option[Path],
+    override val bftClientRequestTimeout: Duration,
+) extends WriteClientsConfig
 
 object ExtraConfig {
   val DefaultParticipantId: IdString.ParticipantId =

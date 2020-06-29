@@ -71,23 +71,30 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
       createThinReplicaClient(participantConfig.participantId, config.extra, metrics.registry)
-    val concordClients = createConcordWriteClients(config, metrics)
-    waitForConcordToBeReady(
-      concordClients,
-      if (config.extra.useBftClient) None else Some(config.extra.maxFaultyReplicas))
+
+    val concordClients = createConcordWriteClients(config.extra, metrics)
+    waitForConcordWriteClientsToBeReady(
+      Seq(concordClients.primaryWriteClient),
+      clientsToBeWaitedFor = 1)
+    concordClients.secondaryKvbcWriteClients.foreach(
+      waitForConcordWriteClientsToBeReady(
+        _,
+        writeClientLabel = "secondary",
+        clientsToBeWaitedFor = 2 * config.extra.maxFaultyReplicas))
+
     val ledgerId =
       config.ledgerId.getOrElse(Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       ledgerId,
-      () => concordClients.head.currentHealth)
+      () => concordClients.primaryWriteClient.currentHealth)
     logger.info(s"Connecting to the first core replica ${config.extra.replicas.head}")
     val concordWriter =
       new ConcordLedgerWriter(
         ledgerId,
         participantConfig.participantId,
-        concordClients.head.commitTransaction(_)(executionContext),
-        () => concordClients.head.currentHealth
+        concordClients.primaryWriteClient.commitTransaction(_)(executionContext),
+        () => concordClients.primaryWriteClient.currentHealth
       )
 
     lazy val batchingWriter =
@@ -134,35 +141,43 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     config.extra.authService.getOrElse(super.authService(config))
 
   private[this] val DefaultReplicaPort = 50051
+  private[this] case class ConcordWriteClients(
+      primaryWriteClient: ConcordWriteClient,
+      secondaryKvbcWriteClients: Option[Seq[KvbcWriteClient]])
 
-  private[this] def createConcordWriteClients(config: Config[ExtraConfig], metrics: Metrics)(
-      implicit executionContext: ExecutionContext): Seq[ConcordWriteClient] =
-    if (config.extra.useBftClient) {
-      logger.debug(s"Loading the native 'bft-client-native0' library")
-
+  private[this] def createConcordWriteClients(config: WriteClientsConfig, metrics: Metrics)(
+      implicit executionContext: ExecutionContext): ConcordWriteClients =
+    if (config.useBftClient) {
+      logger.debug("Loading the native 'bft-client-native0' library")
       System.loadLibrary("bft-client-native0")
+      logger.debug("Creating the BFT Client")
 
-      logger.debug(s"Creating the BFT Client")
-
-      val result = Seq(
+      val result = ConcordWriteClients(
         BftWriteClient(
-          config.extra.bftClientConfigPath.getOrElse {
+          config.bftClientConfigPath.getOrElse {
             sys.error(
               "When BFT Client is selected, the BFT Client configuration file path is required but none was specified.")
           },
-          config.extra.bftClientRequestTimeout,
+          config.bftClientRequestTimeout,
           metrics
-        ))
-
-      logger.debug(s"BFT Client created")
+        ),
+        None
+      )
+      logger.debug("BFT Client created")
       result
     } else {
-      assert(config.extra.replicas.nonEmpty)
-      config.extra.replicas.map { replica =>
-        val (host, port) = parseHostAndPort(replica)
-        KvbcWriteClient(host, port)
-      }
+      assert(config.replicas.nonEmpty)
+
+      ConcordWriteClients(
+        createKvbcWriteClient(config.replicas.head),
+        Some(config.replicas.tail.map(createKvbcWriteClient)))
     }
+
+  private[this] def createKvbcWriteClient(replicaHostAndPortString: String)(
+      implicit executionContext: ExecutionContext): KvbcWriteClient = {
+    val (host, port) = parseHostAndPort(replicaHostAndPortString)
+    KvbcWriteClient(host, port)
+  }
 
   private[this] def createThinReplicaClient(
       participantId: ParticipantId,
@@ -185,33 +200,43 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     // format: on
   }
 
-  private[this] def waitForConcordToBeReady(
-      clients: Seq[ConcordWriteClient],
-      maybeF: Option[Int]): Unit = {
-    // The first client is used to send requests to and therefore we need a working connection.
-    while (!clients.head.ready) {
-      logger.info("Waiting for first Concord to be ready")
-      Thread.sleep(1000)
-    }
-
-    // Wait for 2f more replicas, if asked to do so (i.e., if not using BFT Client)
-    maybeF.map { f =>
-      var numReady = 0
-      do {
-        clients.tail.foreach { client =>
-          if (client.ready)
-            numReady += 1
-        }
-        logger.info(
-          s"Waiting for 2*f=${2 * f} more Concords to be ready (currently $numReady are ready)")
-        if (numReady < (2 * f)) Thread.sleep(1000)
-      } while (numReady < (2 * f))
-    }
-  }
-
   private[this] def parseHostAndPort(input: String): (String, Int) = {
     val hostAndPort =
       HostAndPort.fromString(input).withDefaultPort(DefaultReplicaPort)
     (hostAndPort.getHost, hostAndPort.getPort)
+  }
+
+  private[this] val WaitForConcordToBeReadyAttempts: Int = 30
+  private[this] val WaitForConcordToBeReadySleepMillis: Int = 1000
+
+  private[server] def waitForConcordWriteClientsToBeReady(
+      concordWriteClients: Seq[ConcordWriteClient],
+      writeClientLabel: String = "primary",
+      clientsToBeWaitedFor: Int,
+      attempts: Int = WaitForConcordToBeReadyAttempts,
+      sleepMillis: Int = WaitForConcordToBeReadySleepMillis,
+  ): Unit = {
+    var remainingAttempts = attempts
+    def missingReadyWriteClients: Stream[Int] = {
+      if (remainingAttempts <= 0) {
+        sys.error(s"""Couldn't connect to enough replicas in $attempts attempts. Please check that 
+             |at least $clientsToBeWaitedFor $writeClientLabel replicas are healthy and restart the
+             |ledger API server.
+             |""".stripMargin)
+      } else {
+        val ready = concordWriteClients.count(_.ready)
+        if (ready < clientsToBeWaitedFor) {
+          remainingAttempts -= 1
+          (clientsToBeWaitedFor - ready) #:: missingReadyWriteClients
+        } else {
+          Stream.empty
+        }
+      }
+    }
+    for (numMissing <- missingReadyWriteClients) {
+      logger.info(
+        s"Waiting for $clientsToBeWaitedFor $writeClientLabel Concord replicas to be ready for writing (missing: $numMissing)")
+      Thread.sleep(sleepMillis)
+    }
   }
 }
