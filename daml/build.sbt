@@ -196,6 +196,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
       "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+      "org.mockito" % "mockito-core" % "2.24.0" % Test,
       "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % Test,
     ),
   )
