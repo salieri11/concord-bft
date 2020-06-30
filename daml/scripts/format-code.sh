@@ -1,9 +1,7 @@
 #!/usr/bin/env sh
 
-SOURCE_DIRECTORY="bft-client-native"
-
 if [ -z "$1" ]; then
-  >&2 echo "ERROR: Path to ${SOURCE_DIRECTORY} directory required"
+  >&2 echo "ERROR: Path to source directory required as a first argument"
   exit 1
 fi
 
@@ -12,15 +10,6 @@ export TMP_SOURCE_DIR="$1"
 ABS_SOURCE_PATH=$(
   python -c 'import os; print(os.path.abspath(os.environ["TMP_SOURCE_DIR"]))')
 unset TMP_SOURCE_DIR
-
-# Overly cautious saftey check
-IS_EXPECTED_NAME=$(echo ${ABS_SOURCE_PATH} | grep "${SOURCE_DIRECTORY}$")
-
-if [ ! -d ${ABS_SOURCE_PATH} ] || [ -z ${IS_EXPECTED_NAME} ]; then
-  >&2 echo \
-    "ERROR: Couldn't find ${SOURCE_DIRECTORY} directory \"${ABS_SOURCE_PATH}\""
-  exit 1;
-fi
 
 FILES_TO_FORMAT=$(find ${ABS_SOURCE_PATH} \
   -type f \( \

@@ -7,7 +7,8 @@
 #include "type_bridge.hpp"
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    initialize
  * Signature: (Ljava/lang/String;SLjava/lang/String;[Ljava/lang/String;)Z
  */
@@ -17,11 +18,13 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
     jstring private_key, jobjectArray servers, jshort max_read_data_timeout,
     jshort max_read_hash_timeout, jstring jaeger_agent_host_port) {
   return initialize(env, obj, client_id, max_faulty, private_key, servers,
-                   max_read_data_timeout, max_read_hash_timeout, jaeger_agent_host_port);
+                    max_read_data_timeout, max_read_hash_timeout,
+                    jaeger_agent_host_port);
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    subscribe
  * Signature: (Ljava/lang/String;)Z
  */
@@ -32,7 +35,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    subscribe
  * Signature: (Ljava/lang/String;J)Z
  */
@@ -43,7 +47,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    unsubscribe
  * Signature: ()Z
  */
@@ -54,7 +59,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    pop
  * Signature: ()Lscala/Option;
  */
@@ -65,7 +71,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    tryPop
  * Signature: ()Lscala/Option;
  */
@@ -76,7 +83,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    acknowledgeBlockId
  * Signature: (J)Z
  */
@@ -87,7 +95,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 }
 
 /*
- * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    getTestUpdate
  * Signature: ()Lscala/Option;
  */

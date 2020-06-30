@@ -14,15 +14,14 @@
 #include "concord_client_pool.hpp"
 
 namespace concord::concord_client_pool {
-    SubmitResult ConcordClientPool::SendRequest(const bft::client::WriteConfig& config, bft::client::Msg&& request) {
-        return SubmitResult::Acknowledged;
-    }
-
-    PoolStatus ConcordClientPool::HealthStatus() {
-        return PoolStatus::Serving;
-    }
-
-    ConcordClientPool::ConcordClientPool(std::string config_file_path) {}
-
-    ConcordClientPool::~ConcordClientPool() {}
+SubmitResult ConcordClientPool::SendRequest(
+    const bft::client::WriteConfig& config, bft::client::Msg&& request) {
+  return SubmitResult::Acknowledged;
 }
+
+PoolStatus ConcordClientPool::HealthStatus() { return PoolStatus::Serving; }
+
+ConcordClientPool::ConcordClientPool(std::string config_file_path) {}
+
+ConcordClientPool::~ConcordClientPool() {}
+}  // namespace concord::concord_client_pool

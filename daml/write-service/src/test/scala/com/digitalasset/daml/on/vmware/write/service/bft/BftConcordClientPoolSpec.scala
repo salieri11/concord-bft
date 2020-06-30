@@ -116,8 +116,8 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
   private def sendRequestWithNativeResult(
       nativeResult: Try[Int]): (BftConcordClientPool, Future[SubmissionResult]) = {
     val metrics = new Metrics(new MetricRegistry)
-    val bftConcordClientPoolNative = mock[BftConcordClientPoolJni]
-    val premise = when(bftConcordClientPoolNative.sendRequest(any(), any(), any(), any()))
+    val bftConcordClientPoolJni = mock[BftConcordClientPoolJni]
+    val premise = when(bftConcordClientPoolJni.sendRequest(any(), any(), any(), any()))
     nativeResult match {
       case Success(nativeReturnValue) =>
         premise
@@ -127,11 +127,11 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
           .thenThrow(expectedException)
     }
     val bftConcordClientPool =
-      new BftConcordClientPool(bftConcordClientPoolNative, metrics, _ => false)
+      new BftConcordClientPool(bftConcordClientPoolJni, metrics, _ => false)
     (
       bftConcordClientPool,
       bftConcordClientPool
-        .sendRequest(anEnvelope, aDuration, ClientMsgFlag.None, aCorrelationId))
+        .sendRequest(anEnvelope, aDuration, preExecute = false, aCorrelationId))
   }
 
   private val anEnvelope = ByteString.copyFrom(Array[Byte](0, 1, 2))
