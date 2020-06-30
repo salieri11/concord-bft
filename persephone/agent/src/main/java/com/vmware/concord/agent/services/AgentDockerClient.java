@@ -26,6 +26,7 @@ import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.RestartPolicy;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
@@ -346,6 +347,7 @@ public final class AgentDockerClient {
 
         HostConfig hostConfig = HostConfig.newHostConfig()
                 .withNetworkMode(CONTAINER_NETWORK_NAME)
+                .withRestartPolicy(RestartPolicy.onFailureRestart(3))
                 .withBinds(volumes);
 
         if (containerParam.getPortBindings() != null) {
