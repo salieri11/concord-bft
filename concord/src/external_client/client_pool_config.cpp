@@ -13,9 +13,7 @@
 
 #include "client_pool_config.hpp"
 
-namespace concord {
-
-namespace config_pool {
+namespace concord::config_pool {
 using bft::communication::CommFactory;
 using bft::communication::ICommunication;
 using bft::communication::PlainUdpConfig;
@@ -97,5 +95,4 @@ std::unique_ptr<ICommunication> ClientPoolConfig::ToCommunication(
                               comm_config.commType};
 }
 
-}  // namespace config_pool
-}  // namespace concord
+}  // namespace concord::config_pool

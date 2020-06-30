@@ -28,7 +28,7 @@ uint16_t ConcordClient::required_num_of_replicas_ = 0;
 uint16_t ConcordClient::num_of_replicas_ = 0;
 
 ConcordClient::ConcordClient(const ConcordConfiguration& config, int client_id,
-                             const ClientPoolConfig& pool_config) {
+                             ClientPoolConfig& pool_config) {
   logger_ = logging::getLogger("com.vmware.external_client_pool");
   client_id_ = client_id;
   CreateClient(config, pool_config);
@@ -70,15 +70,14 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
                            << " has failed to invoke, replicas not ready");
 }
 
-void ConcordClient::CreateCommConfig(CommConfig& comm_config,
-                                     const ConcordConfiguration& config,
-                                     int num_replicas,
-                                     ClientPoolConfig pool_config) {
-  const auto nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
-  const auto node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
-  const auto external_clients_conf =
+void ConcordClient::CreateCommConfig(
+    CommConfig& comm_config, const ConcordConfiguration& config,
+    int num_replicas, const ClientPoolConfig& pool_config) const {
+  const auto& nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
+  const auto& node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
+  const auto& external_clients_conf =
       node.subscope(pool_config.EXTERNAL_CLIENTS, client_id_);
-  const auto client_conf =
+  const auto& client_conf =
       external_clients_conf.subscope(pool_config.CLIENT, 0);
   comm_config.commType = config.getValue<decltype(comm_config.commType)>(
       pool_config.COMM_PROTOCOL);
@@ -108,14 +107,14 @@ void ConcordClient::CreateCommConfig(CommConfig& comm_config,
 }
 
 void ConcordClient::CreateClient(const ConcordConfiguration& config,
-                                 ClientPoolConfig pool_config) {
+                                 ClientPoolConfig& pool_config) {
   const auto num_replicas =
       config.getValue<std::uint16_t>(pool_config.NUM_REPLICAS);
-  const auto nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
-  const auto node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
-  const auto external_clients_conf =
+  const auto& nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
+  const auto& node = nodes.subscope(pool_config.PARTICIPANT_NODE, 0);
+  const auto& external_clients_conf =
       node.subscope(pool_config.EXTERNAL_CLIENTS, client_id_);
-  const auto client_conf =
+  const auto& client_conf =
       external_clients_conf.subscope(pool_config.CLIENT, 0);
   auto fVal = config.getValue<uint16_t>(pool_config.F_VAL);
   auto cVal = config.getValue<uint16_t>(pool_config.C_VAL);
@@ -124,7 +123,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   CreateCommConfig(comm_config, config, num_replicas, pool_config);
   for (auto i = 0u; i < num_replicas; ++i) {
     const auto& node_conf = config.subscope(pool_config.NODE_VAR, i);
-    const auto replica_conf = node_conf.subscope(pool_config.REPLICA_VAR, 0);
+    const auto& replica_conf = node_conf.subscope(pool_config.REPLICA_VAR, 0);
     const auto replica_id =
         replica_conf.getValue<decltype(comm_config.nodes)::key_type>(
             pool_config.CLIENT_ID);
@@ -147,7 +146,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
           << client_id_
           << " starting communication and creating simple client instance");
   comm_ = std::move(comm);
-  comm_.get()->Start();
+  comm_->Start();
   auto client = std::unique_ptr<bftEngine::SimpleClient>{
       bftEngine::SimpleClient::createSimpleClient(comm_.get(), clientId, fVal,
                                                   cVal)};
@@ -157,6 +156,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   client_ = std::move(client);
   LOG_INFO(logger_, "client_id=" << client_id_ << " creation succeeded");
 }
+
 int ConcordClient::getClientId() const { return client_id_; }
 
 uint64_t ConcordClient::getClientSeqNum() const { return seq_num_; }

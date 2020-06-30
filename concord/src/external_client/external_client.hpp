@@ -43,8 +43,7 @@ class ConcordClient {
   // Construction executes all needed steps to provide a ready-to-use
   // object (including starting internal threads, if needed).
   ConcordClient(const concord::config::ConcordConfiguration& config,
-                int client_id,
-                const config_pool::ClientPoolConfig& pool_config);
+                int client_id, config_pool::ClientPoolConfig& pool_config);
 
   // Destructs the client. This includes stopping any internal threads, if
   // needed.
@@ -97,11 +96,11 @@ class ConcordClient {
 
  private:
   void CreateClient(const config::ConcordConfiguration& config,
-                    config_pool::ClientPoolConfig pool_config);
+                    config_pool::ClientPoolConfig& pool_config);
   void CreateCommConfig(config::CommConfig& comm_config,
                         const config::ConcordConfiguration& config,
                         int num_replicas,
-                        config_pool::ClientPoolConfig pool_config);
+                        const config_pool::ClientPoolConfig& pool_config) const;
 
   std::unique_ptr<bft::communication::ICommunication> comm_;
   std::unique_ptr<bftEngine::SimpleClient> client_;

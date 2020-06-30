@@ -46,8 +46,8 @@ enum SubmitResult {
 // An internal error has occurred. Reason is recorded in logs.
 class InternalError : public std::exception {
  public:
-  InternalError(){};
-  virtual const char* what() const noexcept override {
+  InternalError() = default;
+  const char* what() const noexcept override {
     return "Internal error occurred, please check the log files";
   }
 };
@@ -72,7 +72,7 @@ class ConcordClientPool {
   // configuration file.
   // Construction executes all needed steps to provide a ready-to-use
   // object (including starting internal threads, if needed).
-  ConcordClientPool(std::string config_file_path);
+  explicit ConcordClientPool(std::string config_file_path);
   // constructor that gets the configuration on istream type,
   // helps on testing
   explicit ConcordClientPool(std::istream& config_stream);
@@ -111,7 +111,7 @@ class ConcordClientPool {
 
   PoolStatus HealthStatus();
 
-  void Done(const uint64_t sn, const std::string cid);
+  void Done(uint64_t sn, const std::string cid);
 
   void SetDoneCallback(EXT_DONE_CALLBACK cb);
 
