@@ -107,6 +107,9 @@ services:
       - 55001
     ports:
       - "6861:6865"
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   daml_ledger_api2:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
@@ -126,6 +129,9 @@ services:
       - 55001
     ports:
       - "6862:6865"
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   daml_ledger_api3:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
@@ -145,6 +151,9 @@ services:
       - 55001
     ports:
       - "6863:6865"
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   daml_ledger_api4:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
@@ -164,6 +173,9 @@ services:
       - 55001
     ports:
       - "6864:6865"
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
