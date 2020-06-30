@@ -20,7 +20,6 @@ using bft::client::RequestConfig;
 using bft::client::WriteConfig;
 using concord::concord_client_pool::ConcordClientPool;
 using concord::concord_client_pool::PoolStatus;
-using concord::concord_client_pool::SubmitResult;
 
 static uint16_t current_id = 0;
 static std::unordered_map<uint16_t, std::unique_ptr<ConcordClientPool>>
@@ -33,13 +32,43 @@ uint16_t BFTClient_create(const char *config_file_path) {
   return new_client_handle;
 }
 
-WriteConfig createWriteConfig(bool pre_execute, unsigned long timeout_millis,
-                              const char *correlation_id) {
+WriteConfig CreateWriteConfig(bool preExecute, unsigned long timeoutMillis,
+                              const char *correlationId);
+SubmitResult ToSubmitResult(
+    concord::concord_client_pool::SubmitResult concordSubmitResult);
+
+BFTClient_SubmitResult_t BFTClient_send_request(
+    uint16_t client_handle, const char *concord_request_protobuf_bytes,
+    size_t concord_request_protobuf_bytes_length, bool pre_execute,
+    unsigned long timeout_millis, const char *correlation_id) {
+  try {
+    return ToSubmitResult(
+        client_handles.at(client_handle)
+            ->SendRequest(
+                CreateWriteConfig(pre_execute, timeout_millis, correlation_id),
+                std::vector<char>(concord_request_protobuf_bytes,
+                                  concord_request_protobuf_bytes +
+                                      concord_request_protobuf_bytes_length)));
+  } catch (const concord::concord_client_pool::InternalError &_internalError) {
+    return SubmitResult::InternalError;
+  }
+}
+
+BFTClient_PoolStatus_t BFTClient_health_status(uint16_t client_handle) {
+  return client_handles.at(client_handle)->HealthStatus();
+}
+
+void BFTClient_destroy(uint16_t client_handle) {
+  client_handles.erase(client_handle);
+}
+
+WriteConfig CreateWriteConfig(bool preExecute, unsigned long timeoutMillis,
+                              const char *correlationId) {
   RequestConfig requestConfig;
 
-  requestConfig.pre_execute = pre_execute;
-  requestConfig.timeout = std::chrono::milliseconds(timeout_millis);
-  requestConfig.correlation_id = std::string(correlation_id);
+  requestConfig.pre_execute = preExecute;
+  requestConfig.timeout = std::chrono::milliseconds(timeoutMillis);
+  requestConfig.correlation_id = std::string(correlationId);
 
   WriteConfig config;
   config.request = requestConfig;
@@ -47,21 +76,13 @@ WriteConfig createWriteConfig(bool pre_execute, unsigned long timeout_millis,
   return config;
 }
 
-BFTClient_SubmitResult_t BFTClient_send_request(
-    uint16_t client_handle, const char *concord_request_protobuf_bytes,
-    size_t concord_request_protobuf_bytes_length, bool pre_execute,
-    unsigned long timeout_millis, const char *correlation_id) {
-  return client_handles[client_handle]->SendRequest(
-      createWriteConfig(pre_execute, timeout_millis, correlation_id),
-      std::vector<char>(concord_request_protobuf_bytes,
-                        concord_request_protobuf_bytes +
-                            concord_request_protobuf_bytes_length));
-}
+SubmitResult ToSubmitResult(
+    concord::concord_client_pool::SubmitResult concordSubmitResult) {
+  switch (concordSubmitResult) {
+    case Acknowledged:
+      return Acknowledged;
 
-BFTClient_PoolStatus_t BFTClient_health_status(uint16_t client_handle) {
-  return client_handles[client_handle]->HealthStatus();
-}
-
-void BFTClient_destroy(uint16_t client_handle) {
-  client_handles.erase(client_handle);
+    case Overloaded:
+      return Overloaded;
+  }
 }
