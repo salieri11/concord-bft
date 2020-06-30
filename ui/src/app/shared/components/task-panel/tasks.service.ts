@@ -55,6 +55,7 @@ export interface Toast {
   type: VmwToastType;
   primaryActionTitle?: String;
   primaryActionHandler?: any;
+  alreadyShown?: boolean;
 }
 
 export class VmwTask {
@@ -180,7 +181,6 @@ export class VmwTasksService {
   trackTask(taskInfo: IVmwTaskInfo, cancelObserver?: PartialObserver<any>): VmwTask {
     const task = new VmwTask(taskInfo, cancelObserver);
     this._taskListSubject.next([task, ...this._taskListSubject.value]);
-
     task.changed$.pipe(
       takeUntil(task.cleared$.pipe(tap(() => this.clearTask(task))))
     ).subscribe(() => {
@@ -190,13 +190,14 @@ export class VmwTasksService {
     return task;
   }
 
-    addToast(toast: Toast) {
-      this._toastListSubject.next(toast);
-    }
+  addToast(toast: Toast) {
+    this._toastListSubject.next(toast);
+    setTimeout(() => { toast.alreadyShown = true; }, 0);
+  }
 
-    // removeToast(index: number) {
-    //     this.toasts.splice(index, 1);
-    // }
+  // removeToast(index: number) {
+  //     this.toasts.splice(index, 1);
+  // }
 
   /**
    * Clear the given task

@@ -202,7 +202,9 @@
   "nodes": {
     "title": "Committer",
     "nodes": "Nodes",
+    "committer": "Committer",
     "committers": "Committers",
+    "client": "Client",
     "clients": "Clients",
     "deployClient": "Deploy Client Node",
     "deployingClient": "Deploying Client Node",
@@ -1273,6 +1275,7 @@
       "consensus": "Consensus"
     },
     "productVersion": "Product Version",
+    "execEngineVersion": "DAML SDK Version",
     "createdDate": "Creation Date",
     "createdBy": "Created By",
     "tabs": {
@@ -1281,6 +1284,15 @@
       "clients": "Clients"
     },
     "nodeMetrics": "Metrics",
+    "ssh": {
+      "buttonTitle": "SSH Info",
+      "modalTitle": "SSH Credentials",
+      "description": "Here are the SSH credentials you can use to log in to the node.",
+      "credentialsName": "SSH Username & Password",
+      "username": "Username",
+      "password": "Password",
+      "close": "close"
+    },
     "committer": {
       "name" : "Committer",
       "ethrpc": "RPC URL"

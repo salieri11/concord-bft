@@ -123,6 +123,7 @@ export class ZoneComponent implements OnInit {
   }
 
   private setZone(zone) {
+    this.zoneForm.settingZone = true;
     const zoneNameList = zone.name.split(' - ');
     const zoneName = [{
       displayValue: zoneNameList[0], value: zoneNameList[0],
@@ -137,19 +138,19 @@ export class ZoneComponent implements OnInit {
     this.zoneForm.form.controls.onPrem.patchValue(zone);
     this.zoneForm.form.controls.onPremLocation.patchValue({ name: zoneDesignation, location: zoneName });
 
-    if (zone.container_repo) {
-      this.zoneForm.form.controls.container_repo.patchValue(zone.container_repo);
-    }
-    if (zone.wavefront) {
-      this.zoneForm.form.get('metrics').get('wavefront').patchValue(zone.wavefront);
-    }
-    if (zone.elasticsearch) {
-      this.zoneForm.form.get('metrics').get('elasticsearch').patchValue(zone.elasticsearch);
-    }
     if (zone.log_managements) {
       this.zoneForm.form.controls.log_managements.patchValue(zone.log_managements);
     }
-    if (zone.outbound_proxy) {
+    if (zone.wavefront && allKeysHaveValue(zone.wavefront)) {
+      this.zoneForm.form.get('metrics').get('wavefront').patchValue(zone.wavefront);
+    }
+    if (zone.elasticsearch && allKeysHaveValue(zone.elasticsearch)) {
+      this.zoneForm.form.get('metrics').get('elasticsearch').patchValue(zone.elasticsearch);
+    }
+    if (zone.container_repo && allKeysHaveValue(zone.container_repo)) {
+      this.zoneForm.form.controls.container_repo.patchValue(zone.container_repo);
+    }
+    if (zone.outbound_proxy && allKeysHaveValue(zone.outbound_proxy)) {
       this.zoneForm.form.controls.outbound_proxy.patchValue(zone.outbound_proxy);
     }
 
@@ -158,5 +159,16 @@ export class ZoneComponent implements OnInit {
     this.zoneForm.changedFromOriginalValue = false;
     this.zoneForm.onPremConnectionSuccessful = true;
     this.zoneForm.onPremConnectionLastTested = this.zoneForm.getVCenterCredentialIndex().index;
+    this.zoneForm.settingZone = false;
   }
+}
+
+
+function allKeysHaveValue(obj: object, skip: string[] = []) {
+  let result = true;
+  for (const key of Object.keys(obj)) {
+    if (skip.indexOf(key) >= 0) { continue; }
+    if (!obj[key]) { result = false; break; }
+  }
+  return result;
 }

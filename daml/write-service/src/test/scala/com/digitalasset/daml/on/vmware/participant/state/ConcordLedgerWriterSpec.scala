@@ -5,7 +5,6 @@ package com.digitalasset.daml.on.vmware.participant.state
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
-import io.grpc.{Status, StatusRuntimeException}
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
@@ -33,7 +32,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
         .thenReturn(Future.successful(SubmissionResult.Acknowledged))
       val instance =
         new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
-      instance.commit("aCorrelationId", anEnvelope).map { actual =>
+      instance.commit(correlationId = "aCorrelationId", envelope = anEnvelope).map { actual =>
         actual shouldBe SubmissionResult.Acknowledged
         val actualRequest = requestCaptor.getValue
         actualRequest.submission shouldEqual anEnvelope
@@ -44,8 +43,6 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
 
     "return Overloaded in case of resource exhaustion" in {
       val commitFunction = mock[CommitTransaction]
-      val expectedException =
-        new StatusRuntimeException(Status.RESOURCE_EXHAUSTED)
       when(commitFunction.commit(any()))
         .thenReturn(Future.successful(SubmissionResult.Overloaded))
       val instance =

@@ -20,10 +20,10 @@
               <span class="help-text">{{ 'details.supportHint' | translate }}</span>
             </div>
             <div class="card-top"></div>
-            <div class="logos-container">
+            <div class="logos-container small-viewport-logo-hide">
               <div class="logos-position">
                 <div class="logo-column">
-                  <div *ngIf="blockchainService.type === 'DAML'">
+                  <div *ngIf="blockchainType === 'DAML'">
                     <div class="logo-type">{{ 'details.logo.exec' | translate }}</div>
                     <div class="card logo-card">
                       <img class="daml-logo" src="static/images/contract-types/daml.svg"
@@ -32,9 +32,11 @@
                     <div class="logo-version">
                       {{ execEngineName }}
                       <div class="logo-subversion">{{ execEngineVersion }}</div>
+                      <div *ngIf="execEngineVersionSnapshot" class="logo-subversion-snapshot">{{ execEngineVersionSnapshot }}</div>
+                      <div *ngIf="execEngineVersionSnapshot2" class="logo-subversion-snapshot">{{ execEngineVersionSnapshot2 }}</div>
                     </div>
                   </div>
-                  <div *ngIf="blockchainService.type === 'ETHEREUM'">
+                  <div *ngIf="blockchainType === 'ETHEREUM'">
                     <div class="logo-type">{{ 'details.logo.exec' | translate }}</div>
                     <div class="card logo-card">
                       <img class="eth-logo" src="static/images/contract-types/eth.svg"
@@ -119,9 +121,16 @@
                   [size]="12"></concord-copy-to-clipboard-button>
               </div>
             </div>
-            <div class="prop-container">
-              <label>{{ 'details.createdDate' | translate }}:</label>
-              <div class="prop-value">{{ createdDate | date: 'medium' }}</div>
+            <div class="prop-container" *ngIf="execEngineVersionFull">
+              <label>{{ 'details.execEngineVersion' | translate }}:</label>
+              <div class="prop-value">{{ execEngineVersionFull }}
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="execEngineVersionFull"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
             </div>
             <div class="prop-container">
               <label>{{ 'details.createdBy' | translate }}:</label>
@@ -131,6 +140,22 @@
                   [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-right"
                   [value]="createdBy"
+                  [size]="12"></concord-copy-to-clipboard-button>
+              </div>
+            </div>
+            <div class="prop-container">
+              <label>{{ 'details.createdDate' | translate }}:</label>
+              <div class="prop-value">
+                {{ createdDate | date: 'medium' }}
+                <span class="prop-small">({{ (createdDateLocalTimezone) }})</span>
+              </div>
+              <div class="prop-value-nextline">
+                <span class="prop-small">{{ createdDateISO }} (UTC, ISO 8601)</span>
+                <concord-copy-to-clipboard-button
+                  class="ctc-btn-inline"
+                  [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right"
+                  [value]="createdDateISO"
                   [size]="12"></concord-copy-to-clipboard-button>
               </div>
             </div>
@@ -152,7 +177,13 @@
           <div *ngFor="let committer of committers; let i = index" class="clr-col-lg-6 clr-col-12">
             <div class="card">
               <div class="card-header">
-                {{ 'details.committer.name' | translate }} {{ i + 1 }}
+                {{ committer.name_ordinal }}
+                <span *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+                  <button *ngIf="securePasswordEnabled"
+                    class="btn btn-sm btn-link card-head-button" (click)="fetchSecurePassword(committer)">
+                    {{ 'details.ssh.buttonTitle' | translate }}
+                  </button>
+                </span>
                 <button *concordFeatureFlag="'node_dashboard'"
                   [routerLink]="['../../nodes/' + committer.id]" class="btn btn-sm btn-link card-head-button">
                   {{ 'details.nodeMetrics' | translate }}
@@ -167,18 +198,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
-                      [size]="12"></concord-copy-to-clipboard-button>
-                  </div>
-                </div>
-                <div class="nodeprop-container">
-                  <label>{{ 'details.node.privateIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.private_ip }}
-                    <concord-copy-to-clipboard-button
-                      class="ctc-btn-inline"
-                      [tooltip]="'common.copyToClip' | translate"
-                      tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="committer.id"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -189,7 +209,18 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="committer.public_ip"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="committer.private_ip">
+                  <label>{{ 'details.node.privateIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ committer.private_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="committer.private_ip"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -200,7 +231,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="committer.rpc_url"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -211,7 +242,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="committer.zone_id"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -240,7 +271,13 @@
           <div *ngFor="let client of clients; let i = index" class="clr-col-lg-6 clr-col-12">
             <div class="card">
               <div class="card-header">
-                {{ 'details.client.name' | translate }} {{ i + 1 }}
+                {{ client.name_ordinal }}
+                <span *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+                  <button *ngIf="securePasswordEnabled"
+                    class="btn btn-sm btn-link card-head-button" (click)="fetchSecurePassword(client)">
+                    {{ 'details.ssh.buttonTitle' | translate }}
+                  </button>
+                </span>
                 <button *concordFeatureFlag="'node_dashboard'"
                   [routerLink]="['../../nodes/' + client.id]" class="btn btn-sm btn-link card-head-button">
                   {{ 'details.nodeMetrics' | translate }}
@@ -255,18 +292,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
-                      [size]="12"></concord-copy-to-clipboard-button>
-                  </div>
-                </div>
-                <div class="nodeprop-container">
-                  <label>{{ 'details.node.privateIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.private_ip }}
-                    <concord-copy-to-clipboard-button
-                      class="ctc-btn-inline"
-                      [tooltip]="'common.copyToClip' | translate"
-                      tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="client.id"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -277,7 +303,18 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="client.public_ip"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
+                <div class="nodeprop-container" *ngIf="client.private_ip">
+                  <label>{{ 'details.node.privateIp' | translate }}:</label>
+                  <div class="nodeprop-value">{{ client.private_ip }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="client.private_ip"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -299,7 +336,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="client.url"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -310,7 +347,7 @@
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
                       tooltipDirection="top-right"
-                      [value]="orgId"
+                      [value]="client.zone_id"
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
@@ -331,3 +368,50 @@
 
   </clr-tabs>
 </div>
+
+<clr-modal [(clrModalOpen)]="securePasswordModalShown" class="ssh-info">
+  <h3 class="modal-title">{{ securePasswordNode?.name_ordinal }} - {{ 'details.ssh.modalTitle' | translate }}</h3>
+  <div class="modal-body ssh-info-body">
+    <div *ngIf="securePasswordFetching" class="spinner-container">
+      <clr-spinner clrMedium class="spinner spinner-margin"></clr-spinner>  
+    </div>
+    <div *ngIf="!securePasswordFetching">
+      <p class="no-margin-top">{{ 'details.ssh.description' | translate }}</p>
+      <p class="p4">{{ 'details.ssh.credentialsName' | translate }}</p>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.username' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{ securePasswordData?.username }}</div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="securePasswordData?.username"
+                      [size]="12"></concord-copy-to-clipboard-button>
+        </div>
+      </div>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.password' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{ 
+          securePasswordHidden ? '•••••••••••••••' : securePasswordData?.password
+        }}<span class="password-view-toggle">
+          <button class="btn btn-link button-show-hide-password" (click)="securePasswordHiddenToggle()">
+            <clr-icon shape="eye" class="icon-show-hide-password"></clr-icon>
+          </button>
+        </span>
+        </div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="securePasswordData?.password"
+                      [size]="12"></concord-copy-to-clipboard-button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="securePasswordModalClose()">{{ 'details.ssh.close' | translate }}</button>
+  </div>
+</clr-modal>

@@ -38,3 +38,7 @@
 .subnav .nav {
   justify-content: flex-end;
 }
+
+:host ::ng-deep .btn-sign-in {
+  margin-top: -6px !important; // Fix CSP sign-in button misaligned.
+}
