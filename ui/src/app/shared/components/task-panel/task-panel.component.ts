@@ -91,7 +91,6 @@ export class VmwTaskPanelComponent implements AfterViewInit, OnInit {
     this.viewModel$ = this.vmwTasksService.tasks$.pipe(
       map(tasks => {
         const _tasks = this.dismissable ? tasks.filter(t => !t.dismissed) : tasks;
-
         return {
           tasks: _tasks,
           runningTasks: this.getCountOfRunningTasks(_tasks)
@@ -108,7 +107,7 @@ export class VmwTaskPanelComponent implements AfterViewInit, OnInit {
     });
 
     this.vmwTasksService.toasts$.subscribe(toast => {
-      if (toast) {
+      if (toast && !toast.alreadyShown) {
         this.toasts.push(toast);
       }
     });

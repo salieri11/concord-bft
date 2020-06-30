@@ -24,13 +24,13 @@
             <clr-dg-column *ngIf="!nodesService.committersWithoutRPCURL">
               {{'nodes.endpoint' | translate}}
             </clr-dg-column>
-            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPublicIP">
+            <clr-dg-column *ngIf="!nodesService.committersWithOnlyPublicIP">
               {{'nodes.address' | translate}}
             </clr-dg-column>
-            <clr-dg-column *ngIf="!nodesService.clientsWithOnlyPrivateIP">
+            <clr-dg-column *ngIf="!nodesService.committersWithOnlyPrivateIP">
               {{'nodes.addressPrivate' | translate}}
             </clr-dg-column>
-            <clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.committersWithNoZoneInfo">
               {{'nodes.zoneId' | translate}}
             </clr-dg-column>
 
@@ -59,9 +59,10 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPrivateIP">
+              <clr-dg-cell *ngIf="!nodesService.committersWithOnlyPrivateIP">
                 {{node.public_ip}}
                 <concord-copy-to-clipboard-button
+                  *ngIf="node.public_ip"
                   classList="ctc-btn-inline dash-list"
                   [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-right"
@@ -69,9 +70,10 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPublicIP">
+              <clr-dg-cell *ngIf="!nodesService.committersWithOnlyPublicIP">
                 {{node.private_ip}}
                 <concord-copy-to-clipboard-button
+                  *ngIf="node.private_ip"
                   classList="ctc-btn-inline dash-list"
                   [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-left"
@@ -79,7 +81,7 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell>
+              <clr-dg-cell *ngIf="!nodesService.committersWithNoZoneInfo">
                 <a *ngIf="node?.zone?.id" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
                 <span *ngIf="!node?.zone?.id">{{ node.zone_name }}</span>
               </clr-dg-cell>
@@ -140,6 +142,7 @@
               <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPrivateIP">
                 {{node.public_ip}}
                 <concord-copy-to-clipboard-button
+                  *ngIf="node.public_ip"
                   classList="ctc-btn-inline dash-list"
                   [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-right"
@@ -150,6 +153,7 @@
               <clr-dg-cell *ngIf="!nodesService.clientsWithOnlyPublicIP">
                 {{node.private_ip}}
                 <concord-copy-to-clipboard-button
+                  *ngIf="node.private_ip"
                   classList="ctc-btn-inline dash-list"
                   [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-left"
