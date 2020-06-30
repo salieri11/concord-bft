@@ -348,11 +348,12 @@ then
     trc-lib
     client-pool-lib
     waitForProcesses
+
     participant-lib
+    waitForProcesses
 
     memleak_concord # concord should be built as a pre-req
-    persephone
-    
+    persephone    
     daml
     trc-test-app 
     waitForProcesses
