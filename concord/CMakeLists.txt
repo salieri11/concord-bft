@@ -5,7 +5,10 @@ project(concord)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS Off)
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+
+# ELF security flags
+string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all")
+string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
 # Storage options
 option(BUILD_ROCKSDB_STORAGE "concord needs rocksdb" TRUE)
