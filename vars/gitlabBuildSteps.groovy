@@ -1807,8 +1807,36 @@ void announceToTFailure(){
   emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
                 ":skull_and_crossbones:", ":jenkins-explode:"]
   emoji = emoji_list[rnd.nextInt(emoji_list.size)]
-  subject = emoji + emoji + " <!here> Master run " + env.BUILD_NUMBER + " failed! " + emoji + emoji
-  env.run_fail_msg = subject + "\nBuild url: " + env.BUILD_URL
+  subject = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|Master run " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji
+  env.run_fail_msg = subject + "\n<" + env.BUILD_URL + "console|Console>"
+
+  // Add Racetrack link
+  if (fileExists(env.WORKSPACE + "/blockchain/vars/racetrack_set_id.json")) {
+    try {
+      racetrackJson = readFile(env.WORKSPACE + "/blockchain/vars/racetrack_set_id.json")
+      racetrackInfo = new JsonSlurperClassic().parseText(racetrackJson)
+      if (racetrackInfo["setId"]) {
+        env.run_fail_msg += " :: <https://racetrack.eng.vmware.com/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
+      }
+    } catch(Exception ex) {
+      echo "Adding racetrack link has failed" + ex.toString()
+    }
+  }
+  
+  // Add other links (exact point of failure) if available
+  if (fileExists(env.WORKSPACE + "/summary/failure_summary.log")) {
+    try {
+      summaryJson = readFile(env.WORKSPACE + "/summary/failure_summary.json")
+      summary = new JsonSlurperClassic().parseText(summaryJson)
+      env.run_fail_msg += " :: <" + summary["summary_url"] + "|Summary>"
+      env.run_fail_msg += " :: <" + summary["log_path"] + "|Logs>"
+      if (fileExists(env.WORKSPACE + "/summary/errors_only.log")) {
+        env.run_fail_msg += " :: <" + summary["filtered_url"] + "|Filtered>"
+      }
+    } catch(Exception ex) {
+      echo "Adding failure summary links has failed: " + ex.toString()
+    }
+  }
 
   dir("blockchain/hermes"){
     sh '''
