@@ -30,6 +30,7 @@ export class ZoneFormComponent implements AfterViewInit {
   onPremConnectionInProgress: boolean = false;
   onPremConnectionLastTested: string = '';
   otherValidationsFailed: boolean = false;
+  settingZone: boolean = false;
   inputUpdateLocker = {};
   enableRealtimeValidation = true;
   metricsSelection = new FormControl('');
@@ -70,7 +71,7 @@ export class ZoneFormComponent implements AfterViewInit {
     private blockchainService: BlockchainService,
     private route: ActivatedRoute,
   ) {
-    this.form = this.initForm();
+    this.initForm();
   }
 
   ngAfterViewInit() {
@@ -94,6 +95,7 @@ export class ZoneFormComponent implements AfterViewInit {
     });
 
     this.form.valueChanges.subscribe(_ => {
+      if (this.settingZone) { return; } // Skip while setting entire zone values
       const newValue = JSON.stringify(this.getEffectiveZoneData());
       if (newValue) { this.changedFromOriginalValue = (newValue !== this.originalValue); }
     });
@@ -216,11 +218,21 @@ export class ZoneFormComponent implements AfterViewInit {
   private validateData(formValues: any): any {
     // Temporary till we refactor the form with the stepper
     // If no values added set to null or empty array
-    if (this.insufficientSection.logging) { formValues.log_managements = []; }
-    if (this.insufficientSection.containerReg) { formValues.container_repo = null; }
-    if (this.insufficientSection.wavefront) { formValues.wavefront = null; }
-    if (this.insufficientSection.elasticsearch) { formValues.elasticsearch = null; }
-    if (this.insufficientSection.outboundProxy) { formValues.outbound_proxy = null; }
+    if (this.insufficientSection.logging) {
+      formValues.log_managements = [];
+    }
+    if (this.insufficientSection.containerReg) {
+      formValues.container_repo = { url: '', username: '', password: '' };
+    }
+    if (this.insufficientSection.wavefront) {
+      formValues.wavefront = { url: '', token: '' };
+    }
+    if (this.insufficientSection.elasticsearch) {
+      formValues.elasticsearch = { url: '', username: '', password: '' };
+    }
+    if (this.insufficientSection.outboundProxy) {
+      formValues.outbound_proxy = { http_host: '', http_port: '', https_host: '', https_port: '', };
+    }
     return formValues;
   }
 
@@ -331,6 +343,7 @@ export class ZoneFormComponent implements AfterViewInit {
   }
 
   private handleSuggestionToggle(location) {
+    if (this.settingZone) { return; } // Skip while setting entire zone values
     location = Array.isArray(location) ? location[0] : location;
     const valueShort = !location || (location.value !== undefined
                         && location.value.length < 4);
@@ -362,8 +375,7 @@ export class ZoneFormComponent implements AfterViewInit {
 
   private initForm(): FormGroup {
     // tslint:disable-next-line
-
-    return new FormGroup({
+    this.form = new FormGroup({
       onPrem: new FormGroup({
         vcenter: new FormGroup({
           url: new FormControl(
@@ -466,6 +478,7 @@ export class ZoneFormComponent implements AfterViewInit {
         location: new FormControl('', Validators.required),
       }),
     });
+    return this.form;
   }
 
 }

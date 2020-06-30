@@ -16,6 +16,7 @@ export interface NodeInfo {
   millis_since_last_message: number;
   millis_since_last_message_threshold: number;
   name?: string;
+  name_ordinal?: string;
   private_ip?: string;
   public_ip?: string;
   rpc_url?: string;
@@ -24,24 +25,30 @@ export interface NodeInfo {
   zone_id?: string;
   zone_type?: ZoneType;
   node_type?: string;
-}
-
-export interface ClientNodeDeployParams {
-  name?: string;
-  high_availability?: boolean;
-  zone_ids: string[];
-  client_jwt: string;
+  strong_password?: string;
 }
 
 export interface ClientNode {
   id: string;
   name: string;
+  name_ordinal?: string;
   url: string;
   public_ip: string;
   private_ip: string;
   zone_id?: string;
   zone_type?: ZoneType;
   node_type?: string;
+  strong_password?: string;
+}
+
+export type BlockchainNode = NodeInfo // Committer
+                            | ClientNode; // Client
+
+export interface ClientNodeDeployParams {
+  name?: string;
+  high_availability?: boolean;
+  zone_ids: string[];
+  client_jwt: string;
 }
 
 export enum GeoCoordinate {
@@ -72,4 +79,9 @@ export interface CommittersData {
   nodes: NodeInfo[];
   nodesByLocation: NodeProperties[];
   onlyOnPrem: boolean;
+}
+
+export interface NodeCredentials {
+  username: string;
+  password: string;
 }

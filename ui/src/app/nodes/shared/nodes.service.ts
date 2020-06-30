@@ -10,7 +10,8 @@ import { Observable, from, timer, of, Subject, zip } from 'rxjs';
 import { map, concatMap, filter, take, delay } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
-import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams, CommittersData } from './nodes.model';
+import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams,
+        CommittersData, BlockchainNode, NodeCredentials } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -39,7 +40,7 @@ export class NodesService {
   clients: ClientNode[] = [];
   committers: NodeInfo[] = [];
   committersData: CommittersData = null;
-  allNodesList: (NodeInfo | ClientNode)[] = [];
+  allNodesList: BlockchainNode[] = [];
 
   onNodeList: Subject<boolean> = new Subject();
 
@@ -49,6 +50,7 @@ export class NodesService {
   clientsWithOnlyPrivateIP: boolean = false;
   committersWithoutRPCURL: boolean = false;
   clientsWithoutRPCURL: boolean = false;
+  committersWithNoZoneInfo: boolean = false;
 
   constructor(
     private http: HttpClient,
@@ -140,7 +142,6 @@ export class NodesService {
 
   getClients(): Observable<ClientNode[]> {
     const zonesMap = this.blockchainService.zonesMap;
-
     return this.http.get<ClientNode[]>(
       Apis.clients(this.blockchainService.blockchainId)
     ).pipe(
@@ -158,6 +159,15 @@ export class NodesService {
     );
   }
 
+  getNodeCredentials(nodeId: string): Observable<NodeCredentials> {
+    return this.http.get<NodeCredentials>(
+      Apis.nodeCredentials(this.blockchainService.blockchainId, nodeId)
+    );
+  }
+
+  /**
+   * @deprecated by V2 API; dynamic adding of clients deprecated.
+  */
   deployClients(params: ClientNodeDeployParams) {
     this.http.post<any>(Apis.clients(this.blockchainService.blockchainId), params)
     .subscribe(response => {
@@ -190,11 +200,20 @@ export class NodesService {
         this.committersData = committersData;
         this.committers = committersData.nodes;
         this.clients = clients;
-        this.committers.forEach((committer, i) => { committer.name = this.trimNodeName('Committer', committer, i); });
-        this.clients.forEach((client, i) => { client.name = this.trimNodeName('Client', client, i); });
+        this.committers.forEach((committer, i) => {
+          const committerNameI18N = this.translate.instant('nodes.committer');
+          committer.name = this.trimNodeName(committerNameI18N, committer, i);
+          committer.name_ordinal = this.trimNodeName(committerNameI18N, null, i);
+        });
+        this.clients.forEach((client, i) => {
+          const clientNameI18N = this.translate.instant('nodes.client');
+          client.name = this.trimNodeName(clientNameI18N, client, i);
+          client.name_ordinal = this.trimNodeName(clientNameI18N, null, i);
+        });
         this.committersWithOnlyPublicIP = true;
         this.committersWithOnlyPrivateIP = true;
         this.committersWithoutRPCURL = true;
+        this.committersWithNoZoneInfo = true;
         for (const committer of committersData.nodes) {
           committer.node_type = 'committer';
           this.allNodesList.push(committer);
@@ -212,9 +231,11 @@ export class NodesService {
           if (client.private_ip) { this.clientsWithOnlyPublicIP = false; }
           if (client.url) { this.clientsWithoutRPCURL = false; }
         }
+        this.committersWithNoZoneInfo = true;
         this.allNodesList.forEach(node => {
           const zone = this.blockchainService.zonesMap[node.zone_id];
           if (zone) {
+            if (node.node_type === 'committer') { this.committersWithNoZoneInfo = false; }
             node['zone'] = zone;
             node['zone_name'] = zone.name;
           }
@@ -224,8 +245,8 @@ export class NodesService {
     ).subscribe();
   }
 
-  private trimNodeName(prefix: string, node: NodeInfo | ClientNode, index: number) {
-    if (!node.name || node.name.startsWith('null')) {
+  private trimNodeName(prefix: string, node: BlockchainNode, index: number) {
+    if (!node || !node.name || node.name.startsWith('null')) {
       return prefix + ' ' + (index + 1);
     }
     return node.name;
