@@ -255,7 +255,7 @@ hlf() {
 daml() {
     info "Build DAML..."
     DAMLSDKVERSION=$(sed -n -e '/sdkVersion/ s/.*\= *//p' daml/build.sbt | tr -d '"')
-    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}" --label ${daml_sdk_label}=$DAMLSDKVERSION
+    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag} --build-arg "bftclient_lib_repo=${participant_lib_repo}" --build-arg "bftclient_lib_tag=${participant_lib_tag}" --label ${daml_sdk_label}=$DAMLSDKVERSION
     docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
     docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
 }
@@ -349,12 +349,13 @@ then
     client-pool-lib
     waitForProcesses
 
-    memleak_concord # concord should be built as a pre-req
-    persephone
-
-    daml
-    trc-test-app
     participant-lib
+    waitForProcesses
+
+    memleak_concord # concord should be built as a pre-req
+    persephone    
+    daml
+    trc-test-app 
     waitForProcesses
 
     reverse-proxy
