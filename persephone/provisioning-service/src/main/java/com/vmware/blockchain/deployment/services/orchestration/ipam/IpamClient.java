@@ -97,6 +97,7 @@ public class IpamClient {
             var promise = new CompletableFuture<ReleaseAddressResponse>();
             ipAllocationServiceStub.releaseAddress(requestAllocateAddress,
                                                    ReactiveStream.blockedResultObserver(promise));
+            promise.get();
             return true;
         } catch (Exception e) {
             throw new PersephoneException(e, "Error releasing private ip: " +  resource);
