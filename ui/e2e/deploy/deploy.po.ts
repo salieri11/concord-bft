@@ -24,6 +24,14 @@ export class DeployWizard {
     return element(by.css('#numberOfReplicas option:nth-child(1)')).click();
   }
 
+  selectThirdZone() {
+    return element(by.css('#clientZoneSelect option:nth-child(3)')).click();
+  }
+
+  addClientNode() {
+    return element(by.css('#addClientNode')).click();
+  }
+
   getTitle() {
     return element(by.css('.consortium-title')).getText();
   }

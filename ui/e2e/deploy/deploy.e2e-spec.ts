@@ -49,6 +49,11 @@ describe('concord-ui Deployment Flow', () => {
     deployWiz.selectFourReplicas();
     browser.sleep(100);
     deployWiz.next();
+    deployWiz.selectThirdZone();
+    browser.sleep(100);
+    deployWiz.addClientNode();
+    browser.sleep(100);
+    deployWiz.next();
     browser.sleep(100);
 
     expect(deployWiz.getTitle()).toBe(title);
@@ -72,7 +77,7 @@ describe('concord-ui Deployment Flow', () => {
   });
 
   it('should be a healthy network', () => {
-    browser.sleep(1000);
+    browser.sleep(5000);
     expect(deployWiz.getHealthNumber()).toEqual('4/4');
   });
 

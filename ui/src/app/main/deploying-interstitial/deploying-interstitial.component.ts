@@ -74,7 +74,7 @@ export class DeployingInterstitialComponent implements OnDestroy {
           this.progress = 100;
           this.message = this.translate.instant('deployLoader.ending');
 
-          this.blockchainService.set().subscribe(() => {
+          this.blockchainService.set(response.resource_id).subscribe(() => {
             setTimeout(() => {
               const fragment = this.isOnlyOnPrem ? null : 'orgTour';
               // TODO: enable the dashboard to show a toast - response.resource_id is the bid
