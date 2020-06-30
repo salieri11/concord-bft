@@ -44,11 +44,14 @@ def addFileHandler(fileName, level):
    if not os.path.exists(logDir):
        os.mkdir(logDir)
 
-   fileHandler = logging.FileHandler(fileName, 'w')
-   fileHandler.setLevel(level)
-   formatter = getHermesLoggingFormatter()
-   fileHandler.setFormatter(formatter)
-   getMainLogger().addHandler(fileHandler)
+   fileHandler = None
+   try: # if permissions fail, ignore (most likely from invoke.py without sudo)
+      fileHandler = logging.FileHandler(fileName, 'w')
+      fileHandler.setLevel(level)
+      formatter = getHermesLoggingFormatter()
+      fileHandler.setFormatter(formatter)
+      getMainLogger().addHandler(fileHandler)
+   except: pass
    return fileHandler
 
 
