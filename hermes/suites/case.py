@@ -286,7 +286,8 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     # Capture unique signature of the failure point
     suiteName = func._suite_name if hasattr(func, "_suite_name") else helper.CURRENT_SUITE_NAME
     returnCodeLine = failurePointInfo["line"].strip()
-    suiteAndCase = suiteName + '::' + func.__name__
+    caseName = func.__name__
+    suiteAndCase = suiteName + '::' + caseName
     if hasattr(func, "_dynamic_report_override"): # implies multiple calls to single test function
       # For varying arguments like `EthCoreVMTests`, since there are multiple cases
       # tested within the same test function argument itself is included to uniquely
@@ -343,6 +344,9 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "function_name": func.__name__,
       "file": failurePointInfo["file"],
       "line_number": failurePointInfo["lineno"],
+      "line": returnCodeLine,
+      "suite_name": suiteName,
+      "test_name": caseName,
       "message": errorMessage,
       "stack_trace": stackTrace,
       "args": testArgsMap,

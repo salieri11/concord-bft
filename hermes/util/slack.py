@@ -21,7 +21,7 @@ def sendMessageToPerson(email, message, ts=None, token=None):
     then, using Slack ID, send a DM with supplied message.
     `ts` denotes thread (if supplied, bot will send message as a reply to a thread)
   '''
-  slackConfig = helper.loadConfigFile()["communication"]["slack"]
+  slackConfig = helper.getUserConfig()["communication"]["slack"]
   token = token if token else slackConfig["workspaces"]["vmware"]["appToken"]
   client = slack.WebClient(token=token, ssl=cert.getSecureContext())
   
@@ -51,7 +51,7 @@ def postMessageOnChannel(channelName, message, ts=None, token=None):
     And using workspace api token, post a message on a known registered Slack channel.
     `ts` denotes thread (if supplied, bot will send message as a reply to a thread)
   '''
-  slackConfig = helper.loadConfigFile()["communication"]["slack"]
+  slackConfig = helper.getUserConfig()["communication"]["slack"]
   if channelName not in slackConfig["channels"]:
     log.info(f"Channel name '{channelName}' is not registered on user_config.json")
     return
@@ -64,7 +64,7 @@ def postMessageOnChannel(channelName, message, ts=None, token=None):
   responseData = client.chat_postMessage(
     channel = channelId,
     text = message,
-    thread_ts = ts
+    thread_ts = ts,
   )
   if responseData["ok"] is not True:
     log.info(f"Cannot post message on '{channelName}', response not OK.\nResponse Body: {json.dumps(responseData)}")
@@ -79,7 +79,7 @@ def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
     `ts` denotes thread (if supplied, bot will send message as a reply to a thread)
   '''
   channelName = channelNameOrEmail
-  slackConfig = helper.loadConfigFile()["communication"]["slack"]
+  slackConfig = helper.getUserConfig()["communication"]["slack"]
   isDirectMessage = "@" in channelName
   
   if isDirectMessage: # user email address? Direct message instead of channel post

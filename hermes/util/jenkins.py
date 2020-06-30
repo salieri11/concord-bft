@@ -423,7 +423,7 @@ def setFailureSummaryInDescription():
     with open(summaryObj["log_path_local"], 'r') as f2:
       with open(os.getenv("WORKSPACE") + '/summary/errors_only.log', 'w+') as w:
         for line in f2: 
-          if "ERROR" in line:
+          if any(x in line for x in ["ERROR", "FAIL", "FATAL", "WARNING"]):
             hasErrorLines = True; w.write(line)
     summaryFileHTML = '| <a href="{}">Summary</a>'.format(summaryObj["summary_url"])
     logFileHTML = '| <a href="{}">Logs</a>'.format(summaryObj["log_path"])

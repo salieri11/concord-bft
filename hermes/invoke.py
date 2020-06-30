@@ -17,9 +17,10 @@ import tempfile
 from fixtures.common_fixtures import BlockchainFixture
 from util import (hermes_logging, helper, slack, mailer, wavefront,
                  racetrack, jenkins, infra, blockchain_ops as ops)
+import util.hermes_logging
 from suites import case
 
-log = None
+log = util.hermes_logging.getMainLogger()
 
 def slackDM(args, options, secret):
   a = prepareArgs(args)
@@ -168,7 +169,9 @@ def main():
     options = trimCmdlineArgs(args.options)
     DISPATCH[args.funcName](param, options, args.credentials)
   except Exception as e:
-    log.info(e); traceback.print_exc()
+    if not helper.thisHermesIsFromJenkins():
+      traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
   helper.hermesNonCriticalTraceFinalize()
   return
 
