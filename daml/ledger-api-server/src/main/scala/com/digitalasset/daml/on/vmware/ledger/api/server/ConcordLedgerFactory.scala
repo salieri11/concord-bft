@@ -219,7 +219,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     var remainingAttempts = attempts
     def missingReadyWriteClients: Stream[Int] = {
       if (remainingAttempts <= 0) {
-        sys.error(s"""Couldn't connect to enough replicas in $attempts attempts. Please check that 
+        sys.error(s"""Couldn't connect to enough replicas in $attempts attempts. Please check that
              |at least $clientsToBeWaitedFor $writeClientLabel replicas are healthy and restart the
              |ledger API server.
              |""".stripMargin)

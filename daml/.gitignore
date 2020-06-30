@@ -1,0 +1,12 @@
+# CMake
+*.cmake
+CMakeCache.txt
+Makefile
+CMakeFiles/
+
+# Dynlibs
+*.so
+
+# Protobuf-generated
+*.pb.cc
+*.pb.h

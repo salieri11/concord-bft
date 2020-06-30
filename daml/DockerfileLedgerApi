@@ -50,10 +50,11 @@ RUN sbt nativeCompile
 RUN sbt scalafmtCheck ledger_api_server/stage
 
 RUN cp /doc/daml/bft-client-native/target/native/x86_64-linux/bin/libbft-client-native0.so /usr/local/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+RUN sbt test
 
 EXPOSE 6865
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 ENV THIN_REPLICA_SETTINGS="--use-thin-replica"
 ENV LOG4CPLUS_CONFIGURATION /doc/daml/ledger-api-server/src/main/resources/log4cplus.properties
 
