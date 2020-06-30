@@ -17,13 +17,17 @@
 #include "external/concord_client_pool.hpp"
 
 using concord::concord_client_pool::PoolStatus;
-using concord::concord_client_pool::SubmitResult;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum SubmitResult BFTClient_SubmitResult_t;
+typedef enum SubmitResult {
+  Acknowledged,   // The request has been queued for submission
+  Overloaded,     // There is no available client at the moment to process the request
+  InternalError,  // Exceptional condition, reason recorded in logs
+} BFTClient_SubmitResult_t;
+
 typedef enum PoolStatus BFTClient_PoolStatus_t;
 
 uint16_t BFTClient_create(const char *config_file_path);
