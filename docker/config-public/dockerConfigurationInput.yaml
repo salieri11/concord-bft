@@ -1,7 +1,6 @@
 client_proxies_per_replica: 4
 c_val: 0
 f_val: 1
-num_of_external_clients: 0
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
