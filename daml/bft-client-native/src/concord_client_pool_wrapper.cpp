@@ -32,10 +32,10 @@ uint16_t BFTClient_create(const char *config_file_path) {
   return new_client_handle;
 }
 
-WriteConfig CreateWriteConfig(bool preExecute, unsigned long timeoutMillis,
-                              const char *correlationId);
+WriteConfig CreateWriteConfig(bool pre_execute, unsigned long timeout_millis,
+                              const char *correlation_id);
 SubmitResult ToSubmitResult(
-    concord::concord_client_pool::SubmitResult concordSubmitResult);
+    concord::concord_client_pool::SubmitResult concord_submit_result);
 
 BFTClient_SubmitResult_t BFTClient_send_request(
     uint16_t client_handle, const char *concord_request_protobuf_bytes,
@@ -49,7 +49,7 @@ BFTClient_SubmitResult_t BFTClient_send_request(
                 std::vector<char>(concord_request_protobuf_bytes,
                                   concord_request_protobuf_bytes +
                                       concord_request_protobuf_bytes_length)));
-  } catch (const concord::concord_client_pool::InternalError &_internalError) {
+  } catch (const concord::concord_client_pool::InternalError &_internal_error) {
     return SubmitResult::InternalError;
   }
 }
@@ -62,13 +62,13 @@ void BFTClient_destroy(uint16_t client_handle) {
   client_handles.erase(client_handle);
 }
 
-WriteConfig CreateWriteConfig(bool preExecute, unsigned long timeoutMillis,
-                              const char *correlationId) {
+WriteConfig CreateWriteConfig(bool pre_execute, unsigned long timeout_millis,
+                              const char *correlation_id) {
   RequestConfig requestConfig;
 
-  requestConfig.pre_execute = preExecute;
-  requestConfig.timeout = std::chrono::milliseconds(timeoutMillis);
-  requestConfig.correlation_id = std::string(correlationId);
+  requestConfig.pre_execute = pre_execute;
+  requestConfig.timeout = std::chrono::milliseconds(timeout_millis);
+  requestConfig.correlation_id = std::string(correlation_id);
 
   WriteConfig config;
   config.request = requestConfig;
@@ -77,8 +77,8 @@ WriteConfig CreateWriteConfig(bool preExecute, unsigned long timeoutMillis,
 }
 
 SubmitResult ToSubmitResult(
-    concord::concord_client_pool::SubmitResult concordSubmitResult) {
-  switch (concordSubmitResult) {
+    concord::concord_client_pool::SubmitResult concord_submit_result) {
+  switch (concord_submit_result) {
     case Acknowledged:
       return Acknowledged;
 
