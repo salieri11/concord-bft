@@ -66,9 +66,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
 
-  com::vmware::concord::ConcordRequest request_;
-  com::vmware::concord::ConcordResponse response_;
-
   std::unique_ptr<ConcordRequestContext> request_context_;
 
  public:

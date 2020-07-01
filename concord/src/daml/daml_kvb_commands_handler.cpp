@@ -133,7 +133,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   auto execute_commit_span = parent_span.tracer().StartSpan(
       span_name, {opentracing::ChildOf(&parent_span.context())});
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
-  bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   std::string correlation_id = commit_req.correlation_id();
   BlockId current_block_id = storage_.getLastBlock();
   google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
@@ -143,12 +142,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                << correlation_id
                << ", time: " << TimeUtil::ToString(record_time) << ", clock: "
                << std::chrono::steady_clock::now().time_since_epoch().count());
-
-  if (has_pre_executed && request_.has_pre_execution_result()) {
-    return CommitPreExecutionResult(current_block_id, record_time,
-                                    correlation_id, *execute_commit_span,
-                                    concord_response);
-  }
 
   SetOfKeyValuePairs updates;
   SetOfKeyValuePairs updates_on_timeout;
@@ -194,6 +187,59 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                           << ", time: " << TimeUtil::ToString(record_time));
     return false;
   }
+}
+
+bool DamlKvbCommandsHandler::PostExecute(
+    com::vmware::concord::PreExecutionResult& pre_execution_result,
+    TimeContract* time, opentracing::Span& parent_span,
+    ConcordResponse& concord_response) {
+  std::string span_name = "daml_post_execute";
+  auto post_execute_span = parent_span.tracer().StartSpan(
+      span_name, {opentracing::ChildOf(&parent_span.context())});
+  BlockId current_block_id = storage_.getLastBlock();
+  google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
+  const string correlation_id = pre_execution_result.request_correlation_id();
+
+  LOG_INFO(logger_,
+           "Handle DAML post execution, cid: "
+               << pre_execution_result.request_correlation_id()
+               << ", time: " << TimeUtil::ToString(record_time) << ", clock: "
+               << std::chrono::steady_clock::now().time_since_epoch().count());
+
+  bool commit_pre_execution_result = false;
+  SetOfKeyValuePairs updates;
+  auto max_record_time = GetPreExecutionMaxRecordTime(pre_execution_result);
+
+  com::vmware::concord::WriteSet* write_set = nullptr;
+  if (max_record_time.has_value() && record_time > max_record_time.value()) {
+    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
+                           << correlation_id << " due to timeout.");
+    write_set = pre_execution_result.mutable_timeout_write_set();
+  } else if (HasPreExecutionConflicts(pre_execution_result)) {
+    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
+                           << correlation_id << " due to conflicts.");
+    write_set = pre_execution_result.mutable_conflict_write_set();
+  } else {
+    LOG_DEBUG(logger_, "Recording successfully pre-executed DAML command "
+                           << correlation_id << ".");
+    write_set = pre_execution_result.mutable_write_set();
+    commit_pre_execution_result = true;
+  }
+
+  auto& kv_writes = *write_set->mutable_kv_writes();
+  for (auto& kv : kv_writes) {
+    auto key =
+        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_key()})};
+    auto val =
+        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_value()})};
+    updates.insert(kvbc::KeyValuePair(key, val));
+    daml_kv_size_summary_.Observe(val.length());
+  }
+
+  RecordTransaction(updates, current_block_id, correlation_id,
+                    *post_execute_span, concord_response);
+
+  return commit_pre_execution_result;
 }
 
 bool DamlKvbCommandsHandler::DoCommitPipelined(
@@ -317,51 +363,6 @@ void DamlKvbCommandsHandler::BuildWriteSetsFromUpdates(
   }
 }
 
-bool DamlKvbCommandsHandler::CommitPreExecutionResult(
-    BlockId current_block_id, google::protobuf::Timestamp& record_time,
-    string& correlation_id, opentracing::Span& parent_span,
-    ConcordResponse& concord_response) {
-  auto commit_pre_execution_result_span =
-      opentracing::Tracer::Global()->StartSpan(
-          "commit_pre_execution_result_span",
-          {opentracing::ChildOf(&parent_span.context())});
-  bool commit_pre_execution_result = false;
-  SetOfKeyValuePairs updates;
-  auto* pre_execution_result = request_.mutable_pre_execution_result();
-  auto max_record_time = GetPreExecutionMaxRecordTime();
-  correlation_id = pre_execution_result->request_correlation_id();
-
-  com::vmware::concord::WriteSet* write_set = nullptr;
-  if (max_record_time.has_value() && record_time > max_record_time.value()) {
-    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
-                           << correlation_id << " due to timeout.");
-    write_set = pre_execution_result->mutable_timeout_write_set();
-  } else if (HasPreExecutionConflicts(request_.pre_execution_result())) {
-    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
-                           << correlation_id << " due to conflicts.");
-    write_set = pre_execution_result->mutable_conflict_write_set();
-  } else {
-    LOG_DEBUG(logger_, "Recording successfully pre-executed DAML command "
-                           << correlation_id << ".");
-    write_set = pre_execution_result->mutable_write_set();
-    commit_pre_execution_result = true;
-  }
-
-  auto& kv_writes = *write_set->mutable_kv_writes();
-  for (auto& kv : kv_writes) {
-    auto key =
-        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_key()})};
-    auto val =
-        Sliver{std::move(*std::unique_ptr<std::string>{kv.release_value()})};
-    updates.insert(kvbc::KeyValuePair(key, val));
-    daml_kv_size_summary_.Observe(val.length());
-  }
-
-  RecordTransaction(updates, current_block_id, correlation_id,
-                    *commit_pre_execution_result_span, concord_response);
-  return commit_pre_execution_result;
-}
-
 void DamlKvbCommandsHandler::RecordTransaction(
     const SetOfKeyValuePairs& updates, BlockId current_block_id,
     const string& correlation_id, opentracing::Span& parent_span,
@@ -392,8 +393,8 @@ void DamlKvbCommandsHandler::RecordTransaction(
 }
 
 std::optional<google::protobuf::Timestamp>
-DamlKvbCommandsHandler::GetPreExecutionMaxRecordTime() {
-  const auto& pre_execution_result = request_.pre_execution_result();
+DamlKvbCommandsHandler::GetPreExecutionMaxRecordTime(
+    com::vmware::concord::PreExecutionResult pre_execution_result) {
   if (pre_execution_result.has_max_record_time()) {
     return std::optional<google::protobuf::Timestamp>(
         pre_execution_result.max_record_time());
@@ -415,14 +416,14 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     return true;
   }
 
-  if (concord_req.has_pre_execution_result()) {
-    da_kvbc::CommitRequest commit_req;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
+  if (has_pre_executed && concord_req.has_pre_execution_result()) {
+    auto pre_execution_result = concord_req.pre_execution_result();
     const std::string correlation_id =
-        concord_req.pre_execution_result().request_correlation_id();
-    commit_req.set_correlation_id(correlation_id);
+        pre_execution_result.request_correlation_id();
     SCOPED_MDC_CID(correlation_id);
-    return ExecuteCommit(commit_req, flags, time_contract, parent_span,
-                         response);
+    return PostExecute(pre_execution_result, time_contract, parent_span,
+                       response);
   } else {
     daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {
