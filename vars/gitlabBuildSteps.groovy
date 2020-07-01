@@ -90,6 +90,33 @@ import hudson.util.Secret
   "HelenAPITests": [
     "enabled": true
   ],
+  "HelenBlockTests": [
+          "enabled": true
+  ],
+  "HelenBlockchainTests": [
+          "enabled": true
+  ],
+  "HelenClientTests": [
+          "enabled": true
+  ],
+  "HelenConsortiumTests": [
+          "enabled": true
+  ],
+  "HelenContractTests": [
+          "enabled": true
+  ],
+  "HelenOrganizationTests": [
+          "enabled": true
+  ],
+  "HelenMemberTests": [
+          "enabled": true
+  ],
+  "HelenReplicaTests": [
+          "enabled": true
+  ],
+  "HelenZoneTests": [
+          "enabled": true
+  ],
   "HelenRoleTests": [
     "enabled": true,
     "runWithGenericTests": false
@@ -1529,6 +1556,7 @@ void runTests(){
     }
 
     testGroups = createTestGroups()
+    MAX_PATH_SIZE = 260
 
     // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
     // but we can iterate over a list of keys.
@@ -1547,7 +1575,9 @@ void runTests(){
       } else if (env.JOB_NAME.contains(performance_test_job_name)){
         env.suiteResultsDir = env.nightly_performance_test_logs
       }else{
+        // TODO: Create a better way to name group_OtherTests
         resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
+        resultsDir = resultsDir.length() <= MAX_PATH_SIZE ? resultsDir : "group_OtherTests"
         env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
       }
 
@@ -1558,7 +1588,7 @@ void runTests(){
       env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
                                   "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
       env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
-      env.groupLogFileName = group + ".log"
+      env.groupLogFileName = group.length() <= MAX_PATH_SIZE ? group : "group_OtherTests" + ".log"
 
       if (suiteParams.setupFunction){
         setupFunction = suiteParams.setupFunction
@@ -1612,7 +1642,6 @@ void runTests(){
     jenkinsbuilderlib.ownWorkspace()
   }
 }
-
 
 Map createTestGroups(){
   groups = [:]

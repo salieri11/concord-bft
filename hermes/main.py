@@ -47,6 +47,15 @@ suiteList = [
    "EthJsonRpcTests",
    "EthRegressionTests",
    "HelenAPITests",
+   "HelenBlockTests",
+   "HelenBlockchainTests",
+   "HelenClientTests",
+   "HelenConsortiumTests",
+   "HelenContractTests",
+   "HelenMemberTests",
+   "HelenOrganizationTests",
+   "HelenReplicaTests",
+   "HelenZoneTests",
    "HelenRoleTests",
    "HlfTests",
    "LintTests",
@@ -422,6 +431,24 @@ def createTestSuite(args, suiteName, product):
       return pytest_suite.PytestSuite(args, "suites/eth_core_vm_tests.py", product)
    elif (suiteName == "HelenAPITests"):
       return pytest_suite.PytestSuite(args, "suites/helen/api_test.py", product)
+   elif (suiteName == "HelenBlockTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/block_test.py", product)
+   elif (suiteName == "HelenBlockchainTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/blockchain_test.py", product)
+   elif (suiteName == "HelenClientTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/client_test.py", product)
+   elif (suiteName == "HelenConsortiumTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/consortium_test.py", product)
+   elif (suiteName == "HelenContractTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/contract_test.py", product)
+   elif (suiteName == "HelenOrganizationTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/organization_test.py", product)
+   elif (suiteName == "HelenMemberTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/members_test.py", product)
+   elif (suiteName == "HelenReplicaTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/replica_test.py", product)
+   elif (suiteName == "HelenZoneTests"):
+       return pytest_suite.PytestSuite(args, "suites/helen/zone_test.py", product)
    elif (suiteName == "HelenRoleTests"):
       return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
    elif (suiteName == "EthJsonRpcTests"):
