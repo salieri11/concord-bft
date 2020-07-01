@@ -58,6 +58,9 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
           storage::kKvbKeyCorrelationId},
       1);
 
+  std::string SerializeFingerprint(const kvbc::BlockId fingerprint) const;
+  kvbc::BlockId DeserializeFingerprint(const std::string &data) const;
+
  public:
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
