@@ -20,6 +20,7 @@ namespace concord::concord_client_pool {
 using bftEngine::ClientMsgFlag;
 using config::ConcordConfiguration;
 using namespace config_pool;
+using namespace bftEngine;
 
 SubmitResult ConcordClientPool::SendRequest(
     std::vector<char> &&request, ClientMsgFlag flags,
@@ -175,6 +176,23 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
   }
 }
 
+void ConcordClientPool::setUpClientParams(SimpleClientParams &client_params,
+                                          const ConcordConfiguration &config,
+                                          const ClientPoolConfig &pool_config) {
+  client_params.clientInitialRetryTimeoutMilli =
+      config.getValue<uint64_t>(pool_config.INITIAL_RETRY_TIMEOUT);
+  client_params.clientMinRetryTimeoutMilli =
+      config.getValue<uint64_t>(pool_config.MIN_RETRY_TIMEOUT);
+  client_params.clientMaxRetryTimeoutMilli =
+      config.getValue<uint64_t>(pool_config.MAX_RETRY_TIMEOUT);
+  client_params.clientSendsRequestToAllReplicasFirstThresh =
+      config.getValue<uint16_t>(pool_config.FIRST_THRESH);
+  client_params.clientSendsRequestToAllReplicasPeriodThresh =
+      config.getValue<uint16_t>(pool_config.PERIODIC_THRESH);
+  client_params.clientPeriodicResetThresh =
+      config.getValue<uint16_t>(pool_config.RESET_THRESH);
+}
+
 void ConcordClientPool::CreatePool(std::istream &config_stream,
                                    ConcordConfiguration &config) {
   auto pool_config = std::make_unique<config_pool::ClientPoolConfig>();
@@ -190,10 +208,13 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
       stol(config.getValue<std::string>(pool_config->COMM_BUFF_LEN));
   external_client::ConcordClient::setStatics(
       2 * f_val + 1, 3 * f_val + 2 * c_val + 1, max_buf_size);
+
+  bftEngine::SimpleClientParams clientParams;
+  setUpClientParams(clientParams, config, *pool_config);
   for (int i = 0; i < num_clients; i++) {
     LOG_DEBUG(logger_, "Creating client_id=" << i);
     clients_.push_back(std::make_shared<external_client::ConcordClient>(
-        config, i, *pool_config));
+        config, i, *pool_config, clientParams));
   }
   jobs_thread_pool_.start(num_clients);
 }

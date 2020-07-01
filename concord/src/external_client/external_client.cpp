@@ -19,6 +19,7 @@ using bftEngine::ClientMsgFlag;
 using config::CommConfig;
 using config::ConcordConfiguration;
 using namespace config_pool;
+using namespace bftEngine;
 
 using namespace bft::communication;
 
@@ -28,10 +29,11 @@ uint16_t ConcordClient::required_num_of_replicas_ = 0;
 uint16_t ConcordClient::num_of_replicas_ = 0;
 
 ConcordClient::ConcordClient(const ConcordConfiguration& config, int client_id,
-                             ClientPoolConfig& pool_config) {
+                             ClientPoolConfig& pool_config,
+                             const SimpleClientParams& client_params) {
   logger_ = logging::getLogger("com.vmware.external_client_pool");
   client_id_ = client_id;
-  CreateClient(config, pool_config);
+  CreateClient(config, pool_config, client_params);
 }
 
 ConcordClient::~ConcordClient() noexcept {
@@ -107,7 +109,8 @@ void ConcordClient::CreateCommConfig(
 }
 
 void ConcordClient::CreateClient(const ConcordConfiguration& config,
-                                 ClientPoolConfig& pool_config) {
+                                 ClientPoolConfig& pool_config,
+                                 const SimpleClientParams& client_params) {
   const auto num_replicas =
       config.getValue<std::uint16_t>(pool_config.NUM_REPLICAS);
   const auto& nodes = config.subscope(pool_config.PARTICIPANT_NODES, 0);
@@ -149,7 +152,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   comm_->Start();
   auto client = std::unique_ptr<bftEngine::SimpleClient>{
       bftEngine::SimpleClient::createSimpleClient(comm_.get(), clientId, fVal,
-                                                  cVal)};
+                                                  cVal, client_params)};
 
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
