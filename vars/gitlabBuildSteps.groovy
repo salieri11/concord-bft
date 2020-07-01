@@ -148,7 +148,7 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
     "setupFunction": "enableTimeService"
   ],
- "MemoryLeakNightly": [
+  "MemoryLeakNightly": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
@@ -163,7 +163,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "UiTests": [
-    "enabled": false,
+    "enabled": true,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py UiTests'

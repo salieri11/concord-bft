@@ -149,7 +149,7 @@
                 {{ createdDate | date: 'medium' }}
                 <span class="prop-small">({{ (createdDateLocalTimezone) }})</span>
               </div>
-              <div class="prop-value-nextline">
+              <div class="prop-value-nextline" *ngIf="createdDateISO">
                 <span class="prop-small">{{ createdDateISO }} (UTC, ISO 8601)</span>
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
