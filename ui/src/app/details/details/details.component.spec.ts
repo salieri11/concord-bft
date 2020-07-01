@@ -7,7 +7,7 @@ import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 import { DetailsComponent } from './details.component';
 
-describe('DashboardComponent', () => {
+describe('DetailsComponent', () => {
   let component: DetailsComponent;
   let fixture: ComponentFixture<DetailsComponent>;
 

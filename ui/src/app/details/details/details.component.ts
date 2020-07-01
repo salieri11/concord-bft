@@ -133,7 +133,9 @@ export class DetailsComponent implements OnInit {
       this.execEngineVersionSnapshot2 = snapShotSplit.join('.');
     }
     this.createdDate = blockchain.created;
-    this.createdDateISO = new Date(blockchain.created).toISOString();
+    if (blockchain.created) {
+      this.createdDateISO = new Date(blockchain.created).toISOString();
+    }
     this.createdDateLocalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     this.createdBy = blockchain.created_by;
   }
