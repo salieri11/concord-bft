@@ -24,7 +24,8 @@ extern "C" {
 
 typedef enum SubmitResult {
   Acknowledged,   // The request has been queued for submission
-  Overloaded,     // There is no available client at the moment to process the request
+  Overloaded,     // There is no available client at the moment to process the
+                  // request
   InternalError,  // Exceptional condition, reason recorded in logs
 } BFTClient_SubmitResult_t;
 
