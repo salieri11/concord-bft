@@ -12,9 +12,6 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#include <log4cplus/loggingmacros.h>
 
 #include <memory>
 #include <string>
@@ -748,10 +745,6 @@ TEST(time_contract_test, summarized_time) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  log4cplus::Hierarchy& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config(hierarchy, false);
-  config.configure();
+
   return RUN_ALL_TESTS();
 }

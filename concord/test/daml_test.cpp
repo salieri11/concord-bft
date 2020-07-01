@@ -3,10 +3,9 @@
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
+#include "Logger.hpp"
 #include "OpenTracing.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -626,10 +625,5 @@ ConcordResponse build_pre_execution_response(
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
   return RUN_ALL_TESTS();
 }

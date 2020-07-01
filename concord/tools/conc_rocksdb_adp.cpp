@@ -7,10 +7,10 @@
 // The -p parameter maybe single block number or range in to:from format
 #define USE_ROCKSDB 1
 #include <keccak.h>
-#include <log4cplus/configurator.h>
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include "Logger.hpp"
 
 #include "db_adapter_interface.h"
 #include "direct_kv_storage_factory.h"
@@ -103,12 +103,6 @@ void print_result(vector<Sliver> &results,
 }
 
 int main(int argc, char **argv) {
-  using namespace log4cplus;
-  initialize();
-  BasicConfigurator config;
-  config.configure();
-  log4cplus::Logger::getRoot().setLogLevel(ERROR_LOG_LEVEL);
-
   if (argc < 2) {
     cout << "Usage: conc_rocksdb_adp"
          << " -path={RocksDbFolder}"

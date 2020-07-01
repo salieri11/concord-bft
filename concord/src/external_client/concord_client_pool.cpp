@@ -118,11 +118,10 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
   } catch (config::ConfigurationResourceNotFoundException &e) {
     throw InternalError();
   } catch (std::invalid_argument &e) {
-    LOG4CPLUS_ERROR(logger_,
-                    "Communication protocol="
-                        << config.getValue<std::string>(
-                               config_pool::ClientPoolConfig().COMM_PROTOCOL)
-                        << " is not supported");
+    LOG_ERROR(logger_, "Communication protocol="
+                           << config.getValue<std::string>(
+                                  config_pool::ClientPoolConfig().COMM_PROTOCOL)
+                           << " is not supported");
     throw InternalError();
   } catch (config::InvalidConfigurationInputException &e) {
     throw InternalError();

@@ -1,8 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
 #include <boost/lockfree/spsc_queue.hpp>
+#include "Logger.hpp"
 #include "config/configuration_manager.hpp"
 #include "db_interfaces.h"
 #include "gtest/gtest.h"
@@ -470,11 +469,6 @@ TEST(kvbfilter_test, kvbfilter_update_empty_kv_pair) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
   auto logger = logging::getLogger("kvb_filter_test");
   return RUN_ALL_TESTS();
 }

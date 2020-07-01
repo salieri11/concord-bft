@@ -22,9 +22,7 @@
 #include <cryptopp/osrng.h>
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 
 #include <opentracing/tracer.h>
 
@@ -1126,10 +1124,5 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
   return RUN_ALL_TESTS();
 }

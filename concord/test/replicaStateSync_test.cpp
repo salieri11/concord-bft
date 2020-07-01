@@ -5,9 +5,7 @@
 
 #define USE_ROCKSDB 1
 
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#include <log4cplus/loggingmacros.h>
+#include "Logger.hpp"
 #include "direct_kv_block.h"
 #include "direct_kv_db_adapter.h"
 #include "direct_kv_storage_factory.h"
@@ -20,7 +18,6 @@
 #include <memory>
 
 using namespace std;
-using namespace log4cplus;
 
 using BlockEntry = concord::kvbc::v1DirectKeyValue::block::detail::Entry;
 using BlockHeader = concord::kvbc::v1DirectKeyValue::block::detail::Header;
@@ -46,7 +43,7 @@ namespace {
 
 std::shared_ptr<IDBClient> dbClient;
 IDbAdapter *bcDBAdapter = nullptr;
-Logger *logger = nullptr;
+logging::Logger logger = logging::Logger::getInstance("com.vmware.test");
 Value emptyValue;
 const BlockId lastBlockId = 2;
 const uint64_t lastSeqNum = 50;
@@ -166,8 +163,8 @@ Status MockILocalKeyValueStorageReadOnly::get(const Key &key,
 TEST(replicaStateSync_test, state_in_sync) {
   blockIdToBeRead = singleBlockId;
 
-  uint64_t removedBlocks = replicaStateSync.execute(*logger, *bcDBAdapter,
-                                                    singleBlockId, lastSeqNum);
+  uint64_t removedBlocks =
+      replicaStateSync.execute(logger, *bcDBAdapter, singleBlockId, lastSeqNum);
   ASSERT_EQ(removedBlocks, 0);
 }
 
@@ -189,7 +186,7 @@ TEST(replicaStateSync_test, block_removed) {
 
   blockIdToBeRead = lastBlockId;
   uint64_t removedBlocks =
-      replicaStateSync.execute(*logger, *bcDBAdapter, lastBlockId, lastSeqNum);
+      replicaStateSync.execute(logger, *bcDBAdapter, lastBlockId, lastSeqNum);
 
   ASSERT_EQ(removedBlocks, 2);
 }
@@ -198,12 +195,6 @@ TEST(replicaStateSync_test, block_removed) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  logger = new Logger(Logger::getInstance("com.vmware.test"));
-  initialize();
-  Hierarchy &hierarchy = Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  BasicConfigurator config(hierarchy, false);
-  config.configure();
   const string dbPath = "./replicaStateSync_test";
   const auto storageFactory = RocksDBStorageFactory{dbPath};
   const auto databaseSet = storageFactory.newDatabaseSet();

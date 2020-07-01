@@ -78,14 +78,14 @@ grpc::Status PerformanceServiceImp::Send(
                                conc_response)) {
     LOG_ERROR(logger_,
               "PerformanceServiceImp::Send failed, type:" << to_string(type));
-    log4cplus::getMDC().clear();
+    MDC_CLEAR;
     return grpc::Status::CANCELLED;
   }
 
   PerfResponse resp = conc_response.perf_response();
   outData = resp.response_content();
   LOG_DEBUG(logger_, "Send done, type: " << to_string(type));
-  log4cplus::getMDC().clear();
+  MDC_CLEAR;
   return grpc::Status::OK;
 }
 

@@ -11,11 +11,10 @@
 
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
 #include <utils/concord_prometheus_metrics.hpp>
+#include "Logger.hpp"
 #include "db_interfaces.h"
 
 using namespace concord::kvbc;

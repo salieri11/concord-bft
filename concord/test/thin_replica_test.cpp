@@ -1,14 +1,13 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include <grpcpp/impl/codegen/server_context.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#include <log4cplus/loggingmacros.h>
+
 #include <iterator>
 #include <map>
 #include <sstream>
 #include <string>
 #include "../src/thin_replica/grpc_services.hpp"
+#include "Logger.hpp"
 
 #include "kv_types.hpp"
 #include "thin_replica/subscription_buffer.hpp"
@@ -443,11 +442,6 @@ TEST(thin_replica_test, SubscribeWithWrongBlockId) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  log4cplus::initialize();
-  auto& hierarchy = log4cplus::Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  log4cplus::BasicConfigurator config{hierarchy, false};
-  config.configure();
   auto logger = logging::getLogger("thin_replica_test");
   return RUN_ALL_TESTS();
 }

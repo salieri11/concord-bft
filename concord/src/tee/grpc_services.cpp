@@ -37,13 +37,13 @@ grpc::Status TeeServiceImpl::RunTest(grpc::ServerContext* context,
   if (!pool_.send_request_sync(conc_request, test_input->flags(), *span.get(),
                                conc_response)) {
     LOG_ERROR(logger_, "RunTest transaction failed");
-    log4cplus::getMDC().clear();
+    MDC_CLEAR;
     return grpc::Status::CANCELLED;
   }
 
   TeeResponse tee_response = conc_response.tee_response();
   test_output->set_test_output(tee_response.tee_output());
-  log4cplus::getMDC().clear();
+  MDC_CLEAR;
   return grpc::Status::OK;
 }
 
@@ -62,12 +62,12 @@ grpc::Status TeeServiceImpl::WriteBlock(::grpc::ServerContext* context,
   if (!pool_.send_request_sync(conc_request, false, *span.get(),
                                conc_response)) {
     LOG_ERROR(logger_, "WriteBlock transaction failed");
-    log4cplus::getMDC().clear();
+    MDC_CLEAR;
     return grpc::Status::CANCELLED;
   }
 
   testout->set_test_output(conc_response.tee_response().tee_output());
-  log4cplus::getMDC().clear();
+  MDC_CLEAR;
   return grpc::Status::OK;
 }
 
@@ -86,13 +86,13 @@ grpc::Status TeeServiceImpl::SkvbcRead(
   if (!pool_.send_request_sync(conc_request, bftEngine::READ_ONLY_REQ,
                                *span.get(), conc_response)) {
     LOG_ERROR(logger_, "SKVBC read failed");
-    log4cplus::getMDC().clear();
+    MDC_CLEAR;
     return grpc::Status::CANCELLED;
   }
 
   TeeResponse tee_response = conc_response.tee_response();
   response->set_content(tee_response.skvbc_response().response_content());
-  log4cplus::getMDC().clear();
+  MDC_CLEAR;
   return grpc::Status::OK;
 }
 
@@ -111,13 +111,13 @@ grpc::Status TeeServiceImpl::SkvbcWrite(
   if (!pool_.send_request_sync(conc_request, request->flags(), *span.get(),
                                conc_response)) {
     LOG_ERROR(logger_, "SKVBC write failed");
-    log4cplus::getMDC().clear();
+    MDC_CLEAR;
     return grpc::Status::CANCELLED;
   }
 
   TeeResponse tee_response = conc_response.tee_response();
   response->set_content(tee_response.skvbc_response().response_content());
-  log4cplus::getMDC().clear();
+  MDC_CLEAR;
   return grpc::Status::OK;
 }
 

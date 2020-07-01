@@ -10,7 +10,6 @@
 
 #include <iostream>
 
-#include <log4cplus/configurator.h>
 #include <boost/program_options.hpp>
 #include "Logger.hpp"
 #include "config/configuration_manager.hpp"
@@ -216,12 +215,6 @@ int outputConfig(ConcordConfiguration& config,
 }
 
 int main(int argc, char** argv) {
-  // Initialize the logger, as logging may be used by some subprocesses of this
-  // utility. Note this configuration generation utility currently is not using
-  // a logger configuration file for itself.
-  log4cplus::initialize();
-  log4cplus::BasicConfigurator loggerConfig;
-  loggerConfig.configure();
   logging::Logger concGenconfigLogger =
       logging::getLogger("com.vmware.concord.conc_genconfig");
 
