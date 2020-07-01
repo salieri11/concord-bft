@@ -15,9 +15,7 @@
 
 #include <utility>
 
-namespace concord {
-
-namespace concord_client_pool {
+namespace concord::concord_client_pool {
 
 using bftEngine::ClientMsgFlag;
 using config::ConcordConfiguration;
@@ -52,7 +50,7 @@ SubmitResult ConcordClientPool::SendRequest(
                                  << " and time out on ms=" << timeout_ms.count()
                                  << " to the job pool");
   client->setStartRequestTime();
-  ConcordClientProcessingJob *job = new ConcordClientProcessingJob(
+  auto *job = new ConcordClientProcessingJob(
       *this, client, std::move(request), flags, timeout_ms, reply_size,
       correlation_id, client->getClientSeqNum());
   requests_counter_.Increment();
@@ -182,12 +180,12 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   auto pool_config = std::make_unique<config_pool::ClientPoolConfig>();
   ConfigInit(config, *pool_config, config_stream);
   PrometheusInit(config, *pool_config);
-  uint16_t num_clients =
+  auto num_clients =
       config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
   clients_gauge_.Set(num_clients);
   LOG_INFO(logger_, "Creating pool of num_clients=" << num_clients);
-  uint16_t f_val = config.getValue<uint16_t>(pool_config->F_VAL);
-  uint16_t c_val = config.getValue<uint16_t>(pool_config->C_VAL);
+  auto f_val = config.getValue<uint16_t>(pool_config->F_VAL);
+  auto c_val = config.getValue<uint16_t>(pool_config->C_VAL);
   auto max_buf_size =
       stol(config.getValue<std::string>(pool_config->COMM_BUFF_LEN));
   external_client::ConcordClient::setStatics(
@@ -273,5 +271,4 @@ PoolStatus ConcordClientPool::HealthStatus() {
   return PoolStatus::NotServing;
 }
 
-}  // namespace concord_client_pool
-}  // namespace concord
+}  // namespace concord::concord_client_pool
