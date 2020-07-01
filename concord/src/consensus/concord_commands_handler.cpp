@@ -89,9 +89,10 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   assert(!(pre_execute && has_pre_executed));
 
-  request_.Clear();
-  response_.Clear();
   request_context_.reset(nullptr);
+
+  com::vmware::concord::ConcordRequest request;
+  com::vmware::concord::ConcordResponse response;
 
   auto tracer = opentracing::Tracer::Global();
 
@@ -99,9 +100,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
   bool result;
   if ((!has_pre_executed &&
-       request_.ParseFromArray(request_buffer, request_size)) ||
+       request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
-       parseFromPreExecutionResponse(request_buffer, request_size, request_))) {
+       parseFromPreExecutionResponse(request_buffer, request_size, request))) {
     request_context_ = std::make_unique<ConcordRequestContext>();
     request_context_->client_id = client_id;
     request_context_->sequence_num = sequence_num;
@@ -119,12 +120,12 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     execute_span->SetTag(concord::utils::kClientIdTag, client_id);
     execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);
     execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
-    if (time_ && request_.has_time_request() &&
-        request_.time_request().has_sample()) {
+    if (time_ && request.has_time_request() &&
+        request.time_request().has_sample()) {
       if (!read_only) {
         auto time_update_span = tracer->StartSpan(
             "time_update", {opentracing::ChildOf(&execute_span->context())});
-        TimeRequest tr = request_.time_request();
+        TimeRequest tr = request.time_request();
         TimeSample ts = tr.sample();
         if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
           time_->Update(ts.source(), client_id, ts.time());
@@ -153,13 +154,13 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-    result = Execute(request_, flags, time_.get(), *addBlock_parent_span.get(),
-                     response_);
+    result = Execute(request, flags, time_.get(), *addBlock_parent_span.get(),
+                     response);
     // Manually stopping the span after execute.
     addBlock_parent_span.reset();
 
-    if (time_ && request_.has_time_request()) {
-      TimeRequest tr = request_.time_request();
+    if (time_ && request.has_time_request()) {
+      TimeRequest tr = request.time_request();
 
       if (time_->Changed()) {
         // We had a sample that updated the time contract, and the execution of
@@ -179,7 +180,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
             // Create an empty time response, so that out_response_size is not
             // zero.
-            response_.mutable_time_response();
+            response.mutable_time_response();
           } else {
             // If this happens, there is a bug above. Either the logic ignoring
             // the update in this function is broken, or the subclass's Execute
@@ -188,7 +189,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
             LOG_ERROR(logger_,
                       "Time Contract was modified during read-only operation");
 
-            ErrorResponse *err = response_.add_error_response();
+            ErrorResponse *err = response.add_error_response();
             err->set_description(
                 "Ignoring time update during read-only operation");
 
@@ -199,7 +200,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         } else {
           LOG_WARN(logger_, "Ignoring time update because Execute failed.");
 
-          ErrorResponse *err = response_.add_error_response();
+          ErrorResponse *err = response.add_error_response();
           err->set_description(
               "Ignoring time update because state machine execution failed");
         }
@@ -209,13 +210,13 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         auto time_response_span = tracer->StartSpan(
             "time_response", {opentracing::ChildOf(&execute_span->context())});
         if (tr.return_summary()) {
-          TimeResponse *tp = response_.mutable_time_response();
+          TimeResponse *tp = response.mutable_time_response();
           Timestamp *sum = new Timestamp(time_->GetTime());
           tp->set_allocated_summary(sum);
         }
 
         if (tr.return_samples()) {
-          TimeResponse *tp = response_.mutable_time_response();
+          TimeResponse *tp = response.mutable_time_response();
 
           for (auto &s : time_->GetSamples()) {
             TimeSample *ts = tp->add_sample();
@@ -229,17 +230,17 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
           }
         }
       }
-    } else if (!time_ && request_.has_time_request()) {
-      ErrorResponse *err = response_.add_error_response();
+    } else if (!time_ && request.has_time_request()) {
+      ErrorResponse *err = response.add_error_response();
       err->set_description("Time service is disabled.");
     }
 
-    if (request_.has_prune_request() ||
-        request_.has_latest_prunable_block_request()) {
-      pruning_sm_->Handle(request_, response_, read_only, *execute_span);
+    if (request.has_prune_request() ||
+        request.has_latest_prunable_block_request()) {
+      pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
   } else {
-    ErrorResponse *err = response_.add_error_response();
+    ErrorResponse *err = response.add_error_response();
     err->set_description("Unable to parse concord request");
 
     // "true" means "resending this request is unlikely to change the outcome"
@@ -254,16 +255,16 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
           : tracer->StartSpan("serialize",
                               {opentracing::ChildOf(&execute_span->context())});
 
-  if (response_.ByteSizeLong() == 0) {
+  if (response.ByteSizeLong() == 0) {
     LOG_ERROR(logger_, "Request produced empty response.");
-    ErrorResponse *err = response_.add_error_response();
+    ErrorResponse *err = response.add_error_response();
     err->set_description("Request produced empty response.");
   }
 
-  if (response_.SerializeToArray(response_buffer, max_response_size)) {
-    out_response_size = response_.GetCachedSize();
+  if (response.SerializeToArray(response_buffer, max_response_size)) {
+    out_response_size = response.GetCachedSize();
   } else {
-    size_t response_size = response_.ByteSizeLong();
+    size_t response_size = response.ByteSizeLong();
 
     LOG_ERROR(logger_,
               "Cannot send response to a client request: Response is too large "
@@ -272,8 +273,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                   ", maximum size allowed for this response: " +
                   std::to_string(max_response_size) + ").");
 
-    response_.Clear();
-    ErrorResponse *err = response_.add_error_response();
+    response.Clear();
+    ErrorResponse *err = response.add_error_response();
     err->set_description(
         "Concord could not send response: Response is too large (size of this "
         "response: " +
@@ -281,8 +282,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         ", maximum size allowed for this response: " +
         std::to_string(max_response_size) + ").");
 
-    if (response_.SerializeToArray(response_buffer, max_response_size)) {
-      out_response_size = response_.GetCachedSize();
+    if (response.SerializeToArray(response_buffer, max_response_size)) {
+      out_response_size = response.GetCachedSize();
     } else {
       // This case should never occur; we intend to enforce a minimum buffer
       // size for the communication buffer size that Concord-BFT is configured
@@ -292,7 +293,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
           logger_,
           "Cannot send error response indicating response is too large: The "
           "error response itself is too large (error response size: " +
-              std::to_string(response_.ByteSizeLong()) +
+              std::to_string(response.ByteSizeLong()) +
               ", maximum size allowed for this response: " +
               std::to_string(max_response_size) + ").");
 

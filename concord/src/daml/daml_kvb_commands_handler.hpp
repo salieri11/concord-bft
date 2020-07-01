@@ -96,6 +96,11 @@ class DamlKvbCommandsHandler
                      opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
 
+  bool PostExecute(
+      com::vmware::concord::PreExecutionResult& pre_execution_result,
+      concord::time::TimeContract* time, opentracing::Span& parent_span,
+      com::vmware::concord::ConcordResponse& concord_response);
+
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
                          const std::string& participant_id,
@@ -120,11 +125,6 @@ class DamlKvbCommandsHandler
       const string& correlation_id, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
-  bool CommitPreExecutionResult(
-      kvbc::BlockId current_block_id, google::protobuf::Timestamp& record_time,
-      std::string& correlation_id, opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response);
-
   void BuildPreExecutionResult(
       const kvbc::SetOfKeyValuePairs& updates,
       const kvbc::SetOfKeyValuePairs& updates_on_timeout,
@@ -142,7 +142,8 @@ class DamlKvbCommandsHandler
       const kvbc::SetOfKeyValuePairs& conflict_updates,
       com::vmware::concord::PreExecutionResult* result) const;
 
-  std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime();
+  std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime(
+      com::vmware::concord::PreExecutionResult pre_execution_result);
 
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);
