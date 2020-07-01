@@ -116,6 +116,9 @@ class ConcordClientPool {
   void SetDoneCallback(EXT_DONE_CALLBACK cb);
 
  private:
+  void setUpClientParams(bftEngine::SimpleClientParams& client_params,
+                         const config::ConcordConfiguration& config,
+                         const config_pool::ClientPoolConfig& pool_config);
   void CreatePool(std::istream& config_stream,
                   config::ConcordConfiguration& config);
   void PrometheusInit(const config::ConcordConfiguration& config,
