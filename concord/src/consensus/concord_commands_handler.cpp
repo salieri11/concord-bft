@@ -364,6 +364,19 @@ bool ConcordCommandsHandler::parseFromPreExecutionResponse(
   }
 }
 
+std::string SerializeFingerprint(const BlockId fingerprint) {
+  char buf[sizeof(BlockId)];
+  memcpy(buf, &fingerprint, sizeof(BlockId));
+  std::string serialized(buf, sizeof(BlockId));
+  return serialized;
+}
+
+BlockId DeserializeFingerprint(const std::string &serialized) {
+  BlockId fingerprint;
+  memcpy(&fingerprint, serialized.data(), sizeof(BlockId));
+  return fingerprint;
+}
+
 concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
     concord::kvbc::BlockId &out_block_id) {
