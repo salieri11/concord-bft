@@ -161,6 +161,10 @@ NON_CRITICAL_HERMES_OUTPUT_PATH = "/summary/" + NON_CRITICAL_HERMES_OUTPUT_FILE
 # Super user privilege; with all Jenkins injected credentials available in user_config
 WITH_JENKINS_INJECTED_CREDENTIALS = False
 
+# Time formats
+TIME_FMT = "%Y-%m-%d %H:%M:%S"
+TIME_FMT_TIMEZONE = "%Y-%m-%d %H:%M:%S %Z%z"
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -461,11 +465,12 @@ def execute_ext_command(command, verbose=True, timeout=None):
    '''
    log.debug("Executing external command: {}".format(command))
 
-   completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
+   try:
+      completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
                                      universal_newlines=True,
                                      timeout=timeout)
-   try:
+
       completedProcess.check_returncode()
 
       if verbose:
@@ -474,12 +479,15 @@ def execute_ext_command(command, verbose=True, timeout=None):
          if completedProcess.stderr:
             log.info("stderr: {}".format(completedProcess.stderr))
    except subprocess.TimeoutExpired as e:
-      log.error("Command timed out after {} seconds".format(timeout))
+      log.error("Command timed out after {} seconds with exception: {}".format(timeout, e))
+      log.error(traceback.format_exc())
       return False, completedProcess.stdout
    except subprocess.CalledProcessError as e:
       if verbose:
-         log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
-                                                       completedProcess.stderr))
+         log.error("Subprocess stdout: '{}', Subprocess stderr: '{}'"
+                   .format(completedProcess.stdout, completedProcess.stderr))
+      log.error("Subprocess failed with exception: {}".format(e))
+      log.error(traceback.format_exc())
       return False, completedProcess.stdout
 
    return True, completedProcess.stdout

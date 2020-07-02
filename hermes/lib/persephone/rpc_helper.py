@@ -4,24 +4,21 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
+import traceback
 import grpc
 import json
-import logging
 import os
 import queue
 import sys
 import threading
 import time
-from google.protobuf.json_format import MessageToJson
-from vmware.blockchain.deployment.v1 import provisioning_service_pb2
-from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
-
-sys.path.append('../../')
+import util.hermes_logging
+from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
+from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_new_pb2_grpc
 from util.product import Product as Product
 from util import helper
 
-
-import util.hermes_logging
+sys.path.append('../../')
 log = util.hermes_logging.getMainLogger()
 
 
@@ -30,6 +27,12 @@ class RPCHelper():
       self.args = args
       self.channel_connect_timeout = 5  # seconds
       self.channel_connect_status = False
+      self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
+      self.service_port = self.get_persephone_service_port(self.service_name)
+      if self.args.externalProvisioningServiceEndpoint:
+         self.grpc_server = self.args.externalProvisioningServiceEndpoint
+      else:
+         self.grpc_server = "localhost:{}".format(self.service_port)
 
    def get_persephone_service_port(self, service_name):
       '''
@@ -61,6 +64,7 @@ class RPCHelper():
       :return: gRPC channel
       '''
       log.info("Creating channel to microservice '{}'".format(service_name))
+      log.info("Using gRPC server: {}".format(self.grpc_server))
       self.channel = grpc.insecure_channel(self.grpc_server)
       max_try = 2
       for i in range(1, max_try + 1):
@@ -95,6 +99,23 @@ class RPCHelper():
             "Stub creation failed for service {}".format(self.service_name))
       return stub
 
+   def create_stub_new(self, channel):
+      """
+      Helper method to create a gRPC stub to the created channel
+      :param channel: gRPC channel
+      :return: gRPC stub to the created channel
+      """
+      log.info("Creating stub...")
+      stub = None
+      log.info("  Creating stub for {}".format(self.service_name))
+      if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
+         stub = provisioning_service_new_pb2_grpc.ProvisioningServiceV2Stub(channel)
+
+      if stub is None:
+         raise Exception(
+            "Stub creation failed for service {}".format(self.service_name))
+      return stub
+
    def close_channel(self, service_name):
       '''
       Helper method to gracefully close a created channel
@@ -120,7 +141,7 @@ class RPCHelper():
          pass
 
    def call_api(self, rpc, rpc_request=None, stream=False, stream_forever=False,
-                stream_timeout=300):
+                stream_timeout=600):
       '''
       Helper method to call the actual gRPC using python bindings
       :param rpc: gRPC
@@ -199,6 +220,7 @@ class RPCHelper():
       :param e: Exception
       '''
       log.error("Error: {}".format(e))
+      log.error(traceback.format_exc())
       try:
          status_code = e.code()
          if status_code == grpc.StatusCode.DEADLINE_EXCEEDED:

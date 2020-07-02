@@ -34,15 +34,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
 
    def __init__(self, args):
       super().__init__(args)
-      self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
-      self.service_port = self.get_persephone_service_port(self.service_name)
-      self.persephone_config_file = self.get_provisioning_config_file(
-         self.service_name)
-
-      if self.args.externalProvisioningServiceEndpoint:
-         self.grpc_server = self.args.externalProvisioningServiceEndpoint
-      else:
-         self.grpc_server = "localhost:{}".format(self.service_port)
+      self.persephone_config_file = self.get_provisioning_config_file(self.service_name)
       self.channel = self.create_channel(self.service_name)
       self.stub = self.create_stub(self.channel)
 

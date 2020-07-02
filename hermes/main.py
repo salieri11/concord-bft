@@ -62,6 +62,7 @@ suiteList = [
    "LoggingTests",
    "PerformanceTests",
    "PersephoneTests",
+   "PersephoneTestsNew",
    "SampleDAppTests",
    "SampleSuite",
    "SimpleStateTransferTest",
@@ -461,6 +462,8 @@ def createTestSuite(args, suiteName, product):
       return performance_tests.PerformanceTests(args, product)
    elif (suiteName == "PersephoneTests"):
       return persephone_tests.PersephoneTests(args, product)
+   elif (suiteName == "PersephoneTestsNew"):
+       return pytest_suite.PytestSuite(args, "suites/persephone_tests_new.py", product)
    elif (suiteName == "SampleSuite"):
       return pytest_suite.PytestSuite(args, "suites/sample_suite.py", product)
    elif (suiteName == "SimpleStateTransferTest"):

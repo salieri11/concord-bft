@@ -13,6 +13,7 @@ log = helper.hermes_logging_util.getMainLogger()
 # Node type pretty name print for annotation
 PRETTY_TYPE_COMMITTER = "Committer" # eth/daml regular nodes are committers
 PRETTY_TYPE_PARTICIPANT = "Participant" # applicable to daml only, for now
+PRETTY_TYPE_REPLICA = "Replica"
 
 # all open infra sessions for accessing VMs & Folders on the datacenter connection
 # e.g. vm = INFRA["SDDC3"].getByIP("10.69.100.46")

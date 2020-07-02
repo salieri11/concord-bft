@@ -147,7 +147,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         // Continuous polling of events happen, given out to observers whenever available.
         eventEmitter = backgroundExecutor
                 .scheduleAtFixedRate(this::emitQueueEvents, 15, 1, TimeUnit.SECONDS);
-        log.info("Background task scheduled to run at 1 second interval after 10sec of initial wait.");
+        log.info("Background task scheduled to run at 1 second interval after 10 seconds of initial wait.");
     }
 
     @Override
