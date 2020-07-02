@@ -36,6 +36,11 @@ RUN cmake \
     CTEST_OUTPUT_ON_FAILURE=true make \
       -j$(nproc) all test
 
+# Strip concord binaries. To debug a core dump, please use the original non stripped binary
+RUN strip /concord/build/src/concord
+RUN strip /concord/build/tools/conc_*
+RUN strip /concord/build/tools/ec*
+
 ## Base Run image
 FROM ubuntu:18.04
 LABEL Description="Concord"
