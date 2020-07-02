@@ -4,7 +4,6 @@
 // metadata (sequence number).
 
 #include "concord_block_metadata.h"
-
 #include "kv_types.hpp"
 
 namespace concord {
@@ -28,7 +27,8 @@ Sliver ConcordBlockMetadata::serialize(uint64_t bft_sequence_num) const {
   return Sliver(raw_buffer, serialized_size);
 }
 
-uint64_t ConcordBlockMetadata::getSequenceNum(const Sliver& key) const {
+uint64_t ConcordBlockMetadata::getLastBlockSequenceNum(
+    const Sliver& key) const {
   Sliver outValue;
   Status status = storage_.get(key, outValue);
   uint64_t sequenceNum = 0;
