@@ -102,6 +102,7 @@ public final class ErrorCode {
     public static final String UNSUITABLE_PARAMETER_NUMBERS = "Too many parameters. Either none or a JSON object.";
     public static final String UUID_BINDING_UNSUCCESSFUL = "Failed to cast linked entity field to UUID.";
     public static final String TO_UNSPECIFIED = "'to' must be specified";
+    public static final String BAD_GRPCS_CONFIGURATION = "Required property {0} for grpc over TLS is not set";
 
 
 
