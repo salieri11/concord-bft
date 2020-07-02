@@ -43,7 +43,8 @@ from test_skvbc_checkpoints import SkvbcCheckpointTest
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 from suites.case import describe
 import hermes_util.helper as helper
-from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient
+from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient 
+from hermes_util.skvbc.concord_external_client import ExternalBftClient
 import hermes_util.hermes_logging as logging
 
 log = logging.getMainLogger()
@@ -96,8 +97,7 @@ async def bft_network():
 
     replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
                 for i in range(config.num_clients)]
-    concord_api_ports = [50051 + i for i in range(config.n)]
-    clients = config.num_clients * [RotatingSkvbcClient(*concord_api_ports)]
+    clients = config.num_clients * [ExternalBftClient(f=1, c=1, n=4)]
 
     bft_network = BftTestNetwork.existing(config, replicas, clients)
 

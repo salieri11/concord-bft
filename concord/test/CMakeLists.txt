@@ -1,3 +1,5 @@
+add_subdirectory("external_client")
+
 include_directories(
         ${GTEST_INCLUDE_DIR}
         ${GMOCK_INCLUDE_DIR}

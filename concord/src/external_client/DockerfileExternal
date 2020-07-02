@@ -40,6 +40,7 @@ libboost-system1.65.1 \
 libboost-thread1.65.1 \
 libyaml-cpp0.5v5 \
 libyaml-cpp-dev \
+gdbserver \
 && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
@@ -153,6 +154,13 @@ COPY --from=0 /concord /concord
 COPY --from=0 /usr/local/lib/ /usr/local/lib/
 COPY --from=0 /usr/local/include/ /usr/local/include/
 
+# External client pool wrapper
+COPY --from=0 /concord/build/test/external_client/external_client_wrp /opt/external_client_wrp
+# Start script with corefiles enabled
+COPY --from=0 /concord/build/src/external_client/extclient-wrapper-entrypoint.sh /opt/extclient-wrapper-entrypoint.sh
+
 # Metrics port
 EXPOSE 9873
 
+# gdbserver port
+EXPOSE 5678

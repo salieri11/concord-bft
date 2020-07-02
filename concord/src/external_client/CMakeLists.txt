@@ -104,3 +104,5 @@ target_include_directories(concord_external_client_shared PUBLIC ../../submodule
 target_include_directories(concord_external_client_shared PUBLIC ../bftclient/include/bftclient)
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/storage/include/)
 install (TARGETS concord_external_client_shared DESTINATION lib${LIB_SUFFIX})
+
+configure_file(extclient-wrapper-entrypoint.sh extclient-wrapper-entrypoint.sh COPYONLY)

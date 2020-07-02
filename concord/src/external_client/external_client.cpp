@@ -43,11 +43,12 @@ ConcordClient::~ConcordClient() noexcept {
   }
 }
 
-void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
-                                ClientMsgFlag flags,
-                                std::chrono::milliseconds timeout_ms,
-                                std::uint32_t reply_size, uint64_t seq_num,
-                                const std::string correlation_id) {
+uint32_t ConcordClient::SendRequest(const void* request,
+                                    std::uint32_t request_size,
+                                    ClientMsgFlag flags,
+                                    std::chrono::milliseconds timeout_ms,
+                                    std::uint32_t reply_size, uint64_t seq_num,
+                                    const std::string correlation_id) {
   uint32_t replyBufSize =
       externalReplyBufferSize ? externalReplyBufferSize : reply_->size();
   char* replyBuffer =
@@ -70,6 +71,7 @@ void ConcordClient::SendRequest(const void* request, std::uint32_t request_size,
     LOG_ERROR(logger_,
               "reqSeqNum=" << seq_num << " cid=" << correlation_id
                            << " has failed to invoke, replicas not ready");
+  return replyBufSize;
 }
 
 void ConcordClient::CreateCommConfig(
