@@ -215,10 +215,6 @@ bool DamlKvbCommandsHandler::PostExecute(
     LOG_DEBUG(logger_, "Failed to commit pre-executed command "
                            << correlation_id << " due to timeout.");
     write_set = pre_execution_result.mutable_timeout_write_set();
-  } else if (HasPreExecutionConflicts(pre_execution_result)) {
-    LOG_DEBUG(logger_, "Failed to commit pre-executed command "
-                           << correlation_id << " due to conflicts.");
-    write_set = pre_execution_result.mutable_conflict_write_set();
   } else {
     LOG_DEBUG(logger_, "Recording successfully pre-executed DAML command "
                            << correlation_id << ".");
@@ -422,8 +418,15 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     const std::string correlation_id =
         pre_execution_result.request_correlation_id();
     SCOPED_MDC_CID(correlation_id);
-    return PostExecute(pre_execution_result, time_contract, parent_span,
-                       response);
+
+    if (HasPreExecutionConflicts(pre_execution_result)) {
+      LOG_DEBUG(logger_, "Post-execution failed for command "
+                             << correlation_id << " due to conflicts.");
+      return false;
+    } else {
+      return PostExecute(pre_execution_result, time_contract, parent_span,
+                         response);
+    }
   } else {
     daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {

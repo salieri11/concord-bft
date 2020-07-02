@@ -251,20 +251,17 @@ TEST(daml_test, valid_pre_execution_creates_block) {
   ASSERT_EQ(result, 0);
 }
 
-TEST(daml_test, conflicting_pre_execution_fails_but_adds_conflict_block) {
-  const BlockId last_block_id = 100;
-
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
+TEST(daml_test, post_execution_fails_due_to_conflict) {
   MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-      .WillRepeatedly(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
+      .WillRepeatedly(DoAll(SetArgReferee<3>(true) /* conflict detected */,
+                            Return(Status::OK())));
+
+  const BlockId last_block_id = 100;
+  MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+
+  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
 
   SubBufferList subscriber_list{};
 
@@ -362,133 +359,6 @@ TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
 
-  ASSERT_EQ(result, 1);
-}
-
-TEST(daml_test, conflicting_write_set_fails_but_adds_conflict_block) {
-  const BlockId last_block_id = 100;
-
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-
-  const Sliver rk{std::string{"read-key"}};
-  const Sliver wk{std::string{"write-key"}};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(rk, _, _, _))
-      .WillOnce(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(wk, _, _, _))
-      .WillOnce(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
-
-  SubBufferList subscriber_list{};
-
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
-
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client(true);
-
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
-
-  ConcordResponse pre_execution_response = build_pre_execution_response(50);
-
-  std::string req_string;
-  pre_execution_response.SerializeToString(&req_string);
-
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-  ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
-
-  ASSERT_EQ(result, 1);
-}
-
-TEST(daml_test, conflicting_write_of_new_key) {
-  const BlockId last_block_id = 100;
-
-  MockBlockAppender blocks_appender{};
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-
-  SubBufferList subscriber_list{};
-
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
-
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client(true);
-
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
-
-  ConcordResponse pre_execution_response_1 =
-      build_pre_execution_response(90, std::nullopt, {}, {{"k", "v1"}});
-  ConcordResponse pre_execution_response_2 =
-      build_pre_execution_response(91, std::nullopt, {}, {{"k", "v2"}});
-
-  const Sliver k{std::string{"k"}};
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 90 + 1, _, _))
-      .WillOnce(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
-
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(2)
-      .WillRepeatedly(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 91 + 1, _, _))
-      .WillOnce(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
-
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-  std::string req_string;
-  int result;
-  ConcordResponse concord_response;
-
-  pre_execution_response_1.SerializeToString(&req_string);
-  concordUtils::SpanWrapper span;
-  result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-  concord_response.ParseFromArray(reply_buffer, reply_size);
-  ASSERT_EQ(result, 0);
-
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-  pre_execution_response_2.SerializeToString(&req_string);
-
-  result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-  concord_response.ParseFromArray(reply_buffer, reply_size);
   ASSERT_EQ(result, 1);
 }
 
