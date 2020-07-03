@@ -3019,7 +3019,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Represents the number of external clients in the system. This value "
       "should be a sum of the number of clients in the client pools at all "
       "participant nodes.",
-      "0");
+      "15");
   config.tagParameter("num_of_external_clients", defaultableByUtilityTags);
 
   // TODO: The following parameters should be completely optional because
