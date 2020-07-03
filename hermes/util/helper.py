@@ -77,7 +77,7 @@ TYPE_DAML_COMMITTER = "daml_committer"
 TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
-TYPE_PREDEPLOYED_BLOCKCHAIN = "pre-deployed blockchain"
+TYPE_NO_VERIFY = "no verification required for this blockchain"
 
 # Port forwarding for testing under VMware firewall
 FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT = 80
@@ -648,7 +648,7 @@ def verify_chessplus_test_ready(max_tries=10):
    return True
 
 
-def verify_test_readiness_for_pre_deployed_blockchain(max_tries=11):
+def no_blockchain_readiness_verification_required(max_tries=1):
    '''
    Return default True, letting the testsuite to validate pre-deployed blockchain
    '''

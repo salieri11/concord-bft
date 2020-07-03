@@ -380,7 +380,16 @@ def print_replica_info(fxBlockchain, interrupted_nodes=[]):
               currentPrimary = int(concord_concordbft_currentPrimary.split('.')[0])
         except Exception as e:
           pass
-      log.info("[current primary {} -> {}] (replica_id {} == {})".format(currentPrimary, primary_should_be, principal_id, ip))
+
+      if currentPrimary == primary_should_be:
+        log.info(
+          "[current primary replica_id: {}, remains at {}] (replica_id {} == {})".format(
+            currentPrimary, primary_should_be, principal_id, ip))
+      else:
+        log.info(
+          "[current primary replica_id: {}, changing to {}] (replica_id {} == {})".format(
+            currentPrimary, primary_should_be, principal_id, ip))
+
       if primary_should_be == '?' or principal_id == '?' or currentPrimary == '?':
         log.warning("Couldn't fetch replica_id/primary replica")
         log.info(ssh_output)

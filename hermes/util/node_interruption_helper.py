@@ -26,6 +26,12 @@ NODE_INTERRUPT = "Interrupt node"
 NODE_RECOVER = "Recover node"
 NODE_INTERRUPT_VM_STOP_START = "VM power off/on"
 
+# Preset keys for NODE_INTERRUPTION_DETAILS
+NODE_INTERRUPTION_TYPE = "NODE_INTERRUPTION_TYPE"
+NO_OF_NODES_TO_INTERRUPT = "NO_OF_NODES_TO_INTERRUPT"
+SKIP_MASTER_REPLICA = "SKIP_MASTER_REPLICA"
+CUSTOM_INTERRUPTION_PARAMS = "CUSTOM_INTERRUPTION_PARAMS"
+
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    '''
    Verify readiness for node interruption testing
@@ -39,15 +45,15 @@ def verify_node_interruption_testing_readiness(fxHermesRunSettings):
 
 
 def get_committers_available_for_interruption(fxBlockchain,
-                                              interruption_details):
+                                              node_interruption_details):
    '''
    Return a list of committer nodes allowed for interrupting
    :param fxBlockchain: blockchain fixture
-   :param interruption_details: node interruption details
+   :param node_interruption_details: node interruption details
    :return: list of committer nodes allowed for interruption
    '''
    # blockchain_ops.reset_blockchain(fxBlockchain)
-   if interruption_details["skip_master_replica"]:
+   if node_interruption_details[SKIP_MASTER_REPLICA]:
       master_replica = blockchain_ops.fetch_master_replica(fxBlockchain)
       committers_available_for_interruption = [ip for ip in
                                                blockchain_ops.committers_of(
@@ -72,12 +78,12 @@ def get_f_count(fxBlockchain):
 
 
 def get_list_of_replicas_to_interrupt(committers_available_for_interruption,
-                                      interruption_details,
+                                      node_interruption_details,
                                       last_interrupted_node_index=None):
    '''
    Return f committer nodes for this iteration of node interruption
    :param committers_available_for_interruption: committer nodes available for interruption
-   :param interruption_details: node interruption details (dict)
+   :param node_interruption_details: node interruption details (dict)
    :param last_interrupted_node_index: 1 committer in f interrupted committer nodes
    :return: f nodes to be interrupted, 1st committer index of f nodes
    '''
@@ -87,7 +93,7 @@ def get_list_of_replicas_to_interrupt(committers_available_for_interruption,
 
    start_node_index = (last_interrupted_node_index + 1) % no_of_available_committers_for_interruption
    nodes_to_interrupt = []
-   for j in range(interruption_details["no_of_nodes_to_interrupt"]):
+   for j in range(node_interruption_details[NO_OF_NODES_TO_INTERRUPT]):
       node_index_to_interrupt = start_node_index+j
       if node_index_to_interrupt >= no_of_available_committers_for_interruption:
          node_index_to_interrupt = node_index_to_interrupt - no_of_available_committers_for_interruption
@@ -115,8 +121,6 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
 
    status = False
    if crashed_count <= blockchain_ops.get_f_count(fxBlockchain):
-      # blockchain_ops.map_committers_info(fxBlockchain,
-      #                                    interrupted_nodes=all_crashed_nodes)
       blockchain_ops.print_replica_info(fxBlockchain,
                                         interrupted_nodes=all_crashed_nodes)
 
@@ -221,23 +225,23 @@ def workaround_to_rejoin_node(node):
          ssh_output))
 
 def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                         interruption_details, mode):
+                                         node_interruption_details, mode):
    '''
    Method to perform node interruption and recovery operation
    :param fxHermesRunSettings: hermes run settings (fixture)
    :param node: node to be interrupted/recovered
-   :param interruption_details: Interruption/recovery details
+   :param node_interruption_details: Interruption/recovery details
    :param mode: Interruption/recovery mode
    :return: Success status
    '''
    vm_handle = fxHermesRunSettings["hermesCmdlineArgs"].vm_handles[node]
 
-   interruption_type = interruption_details["interruption_type"]
-   params = interruption_details["params"]
+   node_interruption_type = node_interruption_details[NODE_INTERRUPTION_TYPE]
+   custom_interruption_params = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS]
 
-   log.info("({})".format(interruption_type))
+   log.info("({})".format(node_interruption_type))
 
-   if interruption_type == NODE_INTERRUPT_VM_STOP_START:
+   if node_interruption_type == NODE_INTERRUPT_VM_STOP_START:
       if mode == NODE_INTERRUPT:
          log.debug("Powering off...")
          vm_handle["entity"].PowerOffVM_Task()
@@ -278,17 +282,17 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
    return True
 
 def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
-                            nodes_to_interrupt, interruption_details):
+                            nodes_to_interrupt, node_interruption_details):
    '''
    Util to trigger crash & recovery operations
    :param fxBlockchain: blockchain
    :param fxHermesRunSettings: hermes run settings (fixture)
    :param nodes_to_interrupt: node to interrupt
-   :param interruption_details: interruptions/recovery details
+   :param node_interruption_details: interruptions/recovery details
    :return: success status
    '''
    results_dir_name = ''.join(
-      e for e in interruption_details["interruption_type"] if e.isalnum())
+      e for e in node_interruption_details[NODE_INTERRUPTION_TYPE] if e.isalnum())
    results_dir = helper.create_results_sub_dir(
       fxHermesRunSettings["hermesTestLogDir"],
       results_dir_name)
@@ -304,7 +308,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       if crashed_count < f_count:
          log.info("** Interrupting node: {}...".format(node))
          if perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                                 interruption_details,
+                                                 node_interruption_details,
                                                  mode=NODE_INTERRUPT):
             interrupted_nodes.append(node)
          result, crashed_count = check_node_health_and_run_sanity_check(
@@ -320,7 +324,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       log.info("")
       log.info("** Restoring node: {}...".format(node))
       perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                           interruption_details,
+                                           node_interruption_details,
                                            mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
    result, crashed_count = check_node_health_and_run_sanity_check(fxBlockchain,

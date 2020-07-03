@@ -3,11 +3,22 @@
 #
 # This suite covers the tests related to node interruption
 # Usage: ./main.py NodeInterruptionTest  --replicasConfig <path to replicasConfig.json>
+#
+# Test passes node_interruption_details: {} to node_interruption_helper
+#
+#    node_interruption_details = {
+#       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
+#       intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+#       intr_helper.SKIP_MASTER_REPLICA: True,
+#       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+#          "place_holder_for_other_interruption_params": "value"
+#       }
+#    }
 #################################################################################
 
 import pytest
 import util.helper as helper
-import util.node_interruption_helper as node_interruption_helper
+import util.node_interruption_helper as intr_helper
 from suites.case import describe
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxNodeInterruption
 import util.hermes_logging
@@ -15,30 +26,30 @@ log = util.hermes_logging.getMainLogger()
 helper.disable_duplicate_logs()
 
 # Read by the fxProduct fixture
-productType = helper.TYPE_PREDEPLOYED_BLOCKCHAIN
+productType = helper.TYPE_NO_VERIFY
 
 @describe("Node Interruption - VM Stop/start - 1 node")
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
-   interruption_details = {
-      "interruption_type": node_interruption_helper.NODE_INTERRUPT_VM_STOP_START,
-      "params": {
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          "place_holder_for_other_interruption_params": "value"
-      },
-      "no_of_nodes_to_interrupt": 1,
-      "skip_master_replica": True
+      }
    }
 
-   # skipping master committer from interruption: bug
+   # skipping master committer from interruption: bug BC-3264
    committers_available_for_interruption = \
-      node_interruption_helper.get_committers_available_for_interruption(
-         fxBlockchain, interruption_details)
+      intr_helper.get_committers_available_for_interruption(
+         fxBlockchain, node_interruption_details)
 
    status = False
    last_interrupted_node_index = None
    for iteration, ips in enumerate(committers_available_for_interruption):
       nodes_to_interrupt, last_interrupted_node_index = \
-         node_interruption_helper.get_list_of_replicas_to_interrupt(
-            committers_available_for_interruption, interruption_details,
+         intr_helper.get_list_of_replicas_to_interrupt(
+            committers_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
       log.info("************************************************************")
@@ -46,10 +57,10 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
          "Iteration {} - Nodes to be interrupted: {}".format(iteration + 1,
                                                              nodes_to_interrupt))
 
-      status = node_interruption_helper.crash_and_restore_nodes(fxBlockchain,
-                                                                fxHermesRunSettings,
-                                                                nodes_to_interrupt,
-                                                                interruption_details)
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details)
       if not status:
          log.info("")
          log.error("**** Test aborted/failed ****")
@@ -62,26 +73,26 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.skip()
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
-   interruption_details = {
-      "interruption_type": node_interruption_helper.NODE_INTERRUPT_VM_STOP_START,
-      "params": {
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          "place_holder_for_other_interruption_params": "value"
-      },
-      "no_of_nodes_to_interrupt": node_interruption_helper.get_f_count(fxBlockchain),
-      "skip_master_replica": True
+      }
    }
 
-   # skipping master committer from interruption: bug
+   # skipping master committer from interruption: bug BC-3264
    committers_available_for_interruption = \
-      node_interruption_helper.get_committers_available_for_interruption(
-         fxBlockchain, interruption_details)
+      intr_helper.get_committers_available_for_interruption(
+         fxBlockchain, node_interruption_details)
 
    status = False
    last_interrupted_node_index = None
    for iteration, ips in enumerate(committers_available_for_interruption):
       nodes_to_interrupt, last_interrupted_node_index = \
-         node_interruption_helper.get_list_of_replicas_to_interrupt(
-            committers_available_for_interruption, interruption_details,
+         intr_helper.get_list_of_replicas_to_interrupt(
+            committers_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
       log.info("************************************************************")
@@ -89,10 +100,10 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
          "Iteration {} - Nodes to be interrupted: {}".format(iteration + 1,
                                                              nodes_to_interrupt))
 
-      status = node_interruption_helper.crash_and_restore_nodes(fxBlockchain,
-                                                                fxHermesRunSettings,
-                                                                nodes_to_interrupt,
-                                                                interruption_details)
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details)
       if not status:
          log.info("")
          log.error("**** Test aborted/failed ****")

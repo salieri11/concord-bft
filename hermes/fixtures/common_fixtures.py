@@ -461,8 +461,8 @@ def fxProduct(request, fxHermesRunSettings):
             waitForStartupParams = {}
             checkProductStatusParams = {"max_tries": 1}
 
-         elif productType == helper.TYPE_PREDEPLOYED_BLOCKCHAIN:
-            waitForStartupFunction = helper.verify_test_readiness_for_pre_deployed_blockchain
+         elif productType == helper.TYPE_NO_VERIFY:
+            waitForStartupFunction = helper.no_blockchain_readiness_verification_required
             waitForStartupParams = {}
             checkProductStatusParams = {"max_tries": 1}
 
@@ -535,7 +535,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = blockchain["id"]
       conId = blockchain["consortium_id"]
    elif hermesData["hermesCmdlineArgs"].replicasConfig:
-      # Hermes was not told to use pre-deployed blockchain
+      # Hermes was told to use a passed in blockchain
       replicas = helper.parseReplicasConfig(hermesData["hermesCmdlineArgs"].replicasConfig)
       blockchainId = None
       conId = None
