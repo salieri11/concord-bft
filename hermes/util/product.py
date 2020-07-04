@@ -988,7 +988,8 @@ class Product():
       while attempts < retries:
          with open(log_file) as f:
             persephone_log = f.read()
-            log.debug(persephone_log)
+            # Don't want to log entire perspehone logs in test logs
+            # log.debug(persephone_log)
             if "daml_test_tool" in service:
                return True
             if "gRPC Server started" in persephone_log:

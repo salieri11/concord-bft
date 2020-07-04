@@ -34,8 +34,14 @@ import hudson.util.Secret
 // - Move this to another file?
 @Field Map testSuites = [
   "PersephoneSmoke": [
-    "enabled": true,
+    "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": true
+  ],
+  "PersephoneSmokeNew": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTestsNew --tests "-m smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": true
   ],
@@ -48,6 +54,12 @@ import hudson.util.Secret
   "PersephoneOnDemand": [
     "enabled": true,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
+    "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": false
+  ],
+  "PersephoneOnDemandNew": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTestsNew --tests "-m smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false
   ],
@@ -956,7 +968,8 @@ def call(){
                         // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
                         // the rest, which were pulled from Artifactory, are env.docker_tag.
                         dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
-                        selectOnlySuites(["PersephoneOnDemand"])
+                        // selectOnlySuites(["PersephoneOnDemand"])
+                        selectOnlySuites(["PersephoneOnDemandNew"])
                         runTests()
                     }
                   }
