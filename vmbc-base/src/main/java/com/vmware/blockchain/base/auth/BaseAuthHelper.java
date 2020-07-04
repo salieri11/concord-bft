@@ -32,7 +32,7 @@ public class BaseAuthHelper {
      * the case that the Authentication is a UsernamePasswordAuthenticationToken from deep
      * inside Spring.
      */
-    private Authentication getAuthentication() {
+    protected Authentication getAuthentication() {
         SecurityContext ctx = SecurityContextHolder.getContext();
         if (ctx == null) {
             return null;

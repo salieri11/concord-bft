@@ -40,7 +40,7 @@ import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.common.csp.exception.CspApiClientErrorException;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Test the InvitationService.
@@ -114,7 +114,8 @@ class InvitationServiceTest {
         Assertions.assertEquals("atoken", tokenCap.getValue());
         Assertions.assertEquals(orgId, orgIdCap.getValue());
         Assertions.assertEquals("test@email.com", emailCap.getValue());
-        List<String> expectedRoles = ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString());
+        List<String> expectedRoles =
+                ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN.toString(), VmbcRoles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }
@@ -122,7 +123,7 @@ class InvitationServiceTest {
     @Test
     void testAdditionalRoles() throws Exception {
         HashMap<String, String> context = new HashMap<>();
-        context.put(Constants.INVITATION_ROLE, Roles.INFRA_ADMIN.toString());
+        context.put(Constants.INVITATION_ROLE, VmbcRoles.INFRA_ADMIN.toString());
         invitation.setContext(context);
         invitationService.handleServiceInvitation(invitationLink);
         verify(cspApiClient, times(1)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
@@ -133,8 +134,8 @@ class InvitationServiceTest {
         Assertions.assertEquals(orgId, orgIdCap.getValue());
         Assertions.assertEquals("test@email.com", emailCap.getValue());
         List<String> expectedRoles =
-                ImmutableList.of(Roles.INFRA_ADMIN.toString(), Roles.CONSORTIUM_ADMIN.toString(),
-                                 Roles.ORG_ADMIN.toString());
+                ImmutableList.of(VmbcRoles.INFRA_ADMIN.toString(), VmbcRoles.CONSORTIUM_ADMIN.toString(),
+                                 VmbcRoles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }
@@ -153,8 +154,8 @@ class InvitationServiceTest {
         Assertions.assertEquals(orgId, orgIdCap.getValue());
         Assertions.assertEquals("test@email.com", emailCap.getValue());
         List<String> expectedRoles =
-                ImmutableList.of(Roles.SYSTEM_ADMIN.toString(), Roles.INFRA_ADMIN.toString(),
-                                 Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString());
+                ImmutableList.of(VmbcRoles.SYSTEM_ADMIN.toString(), VmbcRoles.INFRA_ADMIN.toString(),
+                                 VmbcRoles.CONSORTIUM_ADMIN.toString(), VmbcRoles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }
@@ -172,8 +173,8 @@ class InvitationServiceTest {
         Assertions.assertEquals(1, orgProps.size());
         Assertions.assertEquals("value", orgProps.get("org_prop"));
         List<String> expectedRoles =
-                ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(),
-                                 Roles.ORG_ADMIN.toString());
+                ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN.toString(),
+                                 VmbcRoles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }
@@ -181,7 +182,7 @@ class InvitationServiceTest {
     @Test
     void testRolesAndProps() throws Exception {
         HashMap<String, String> context = new HashMap<>();
-        context.put(Constants.INVITATION_ROLE, Roles.INFRA_ADMIN.toString());
+        context.put(Constants.INVITATION_ROLE, VmbcRoles.INFRA_ADMIN.toString());
         context.put("org_prop", "value");
         invitation.setContext(context);
         invitationService.handleServiceInvitation(invitationLink);
@@ -194,8 +195,8 @@ class InvitationServiceTest {
         Assertions.assertEquals(1, orgProps.size());
         Assertions.assertEquals("value", orgProps.get("org_prop"));
         List<String> expectedRoles =
-                ImmutableList.of(Roles.INFRA_ADMIN.toString(), Roles.CONSORTIUM_ADMIN.toString(),
-                                 Roles.ORG_ADMIN.toString());
+                ImmutableList.of(VmbcRoles.INFRA_ADMIN.toString(), VmbcRoles.CONSORTIUM_ADMIN.toString(),
+                                 VmbcRoles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }

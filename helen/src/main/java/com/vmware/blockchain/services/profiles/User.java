@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.dao.LinkedEntityId;
@@ -45,7 +46,11 @@ public class User extends AbstractEntity {
 
     private String email;
 
+    @Deprecated
+    // Old role names.  This is for existing database entries.
     private List<Roles> roles;
+
+    private List<Role> serviceRoles;
 
     @LinkedEntityId(biDirectional = true)
     private UUID organization;

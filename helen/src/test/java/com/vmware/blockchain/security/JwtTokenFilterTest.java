@@ -41,16 +41,16 @@ import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 
 /**
  * Test the JwtTokenFilter.  Make sure this filter populates the auth context.
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {OldJwtSecurityConfig.class, JwtTestContoller.class, AuthHelper.class})
+@SpringBootTest(classes = {OldJwtSecurityConfig.class, JwtTestContoller.class, AuthHelper.class, VmbcRoles.class})
 public class JwtTokenFilterTest {
 
     @Autowired
@@ -164,7 +164,7 @@ public class JwtTokenFilterTest {
 
     @Test
     public void testAccessToRestrictedResourceWithBasicAuthorization() throws Exception {
-        user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
+        user.setServiceRoles(Arrays.asList(VmbcRoles.SYSTEM_ADMIN));
         mockMvc.perform(
                 get("/api/users").with(httpBasic("user@test.com", "1234")))
                 .andExpect(status().isOk());
@@ -172,7 +172,7 @@ public class JwtTokenFilterTest {
 
     @Test
     public void testAccessToRestrictedResourceWithBadBasicAuthorization() throws Exception {
-        user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
+        user.setServiceRoles(Arrays.asList(VmbcRoles.SYSTEM_ADMIN));
         mockMvc.perform(
                 get("/api/users").with(httpBasic("user@test.com", "5678")))
                 .andExpect(status().isUnauthorized());
@@ -192,7 +192,7 @@ public class JwtTokenFilterTest {
 
     @Test
     void testOperatorAsOperator() throws Exception {
-        user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
+        user.setServiceRoles(Arrays.asList(VmbcRoles.SYSTEM_ADMIN));
         mockMvc.perform(
                 get("/api/operator").header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.createToken(user)))
                 .andExpect(status().isOk());
@@ -214,7 +214,7 @@ public class JwtTokenFilterTest {
 
     @Test
     void testBlockchainOperator() throws Exception {
-        user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
+        user.setServiceRoles(Arrays.asList(VmbcRoles.SYSTEM_ADMIN));
         mockMvc.perform(get("/api/blockchain/3181fe0e-0e29-427e-a542-fdb9139aee71")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.createToken(user)))
                 .andExpect(status().isOk());

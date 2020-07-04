@@ -63,7 +63,7 @@ import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -213,22 +213,22 @@ public class ClientControllerTest extends RuntimeException {
 
         // Create authorizations for the different users.
         adminAuth = createContext("operator", ORG_ID,
-                                  ImmutableList.of(Roles.SYSTEM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.SYSTEM_ADMIN, VmbcRoles.ORG_USER),
                                   ImmutableList.of(C2_ID),
                                   ImmutableList.of(BC_DAML), "");
 
         consortiumAuth = createContext("consortium", ORG_ID,
-                                       ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                       ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                        Collections.emptyList(),
                                        Collections.emptyList(), "");
 
         userAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  ImmutableList.of(C2_ID),
                                  ImmutableList.of(BC_DAML), "");
 
         user2Auth = createContext("operator", ORG2_ID,
-                                  ImmutableList.of(Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.ORG_USER),
                                   ImmutableList.of(C3_ID),
                                   Collections.emptyList(), "");
 

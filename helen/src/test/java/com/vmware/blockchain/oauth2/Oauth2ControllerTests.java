@@ -70,7 +70,7 @@ import com.vmware.blockchain.common.csp.CspConfig;
 import com.vmware.blockchain.common.csp.CspConstants;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Unit tests for Oauth2Controller.
@@ -244,7 +244,7 @@ public class Oauth2ControllerTests {
         logoutCspDiscovery = UriComponentsBuilder.fromUriString(cspUrl).path(CspConstants.CSP_DISCOVERY_PAGE)
                 .build().toUriString();
         authctx = createContext("user@domain", UUID.randomUUID(),
-                                              ImmutableList.of(Roles.ORG_USER),
+                                              ImmutableList.of(VmbcRoles.ORG_USER),
                                               Collections.emptyList(), Collections.emptyList(),
                                               "atoken");
         session = new MockHttpSession();
@@ -263,7 +263,7 @@ public class Oauth2ControllerTests {
         // setup auth with no authToken.
         AuthenticationContext authctx =
                 new AuthenticationContext(UUID.randomUUID(), UUID.randomUUID(), "user@domain",
-                                          "atoken", Arrays.asList(Roles.ORG_USER));
+                                          "atoken", Arrays.asList(VmbcRoles.ORG_USER));
         authHelper.setAuthenticationContext(authctx);
         SecurityContextHolder.getContext().setAuthentication(authctx);
         String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())

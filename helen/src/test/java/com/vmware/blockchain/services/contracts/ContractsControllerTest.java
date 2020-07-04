@@ -39,7 +39,7 @@ import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.utils.ControllerTestConfig;
 
 
@@ -77,7 +77,7 @@ public class ContractsControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = jacksonBuilder.build();
-        when(authHelper.hasAnyAuthority(Roles.systemAdmin())).thenReturn(true);
+        when(authHelper.hasAnyAuthority(VmbcRoles.systemAdmin())).thenReturn(true);
         // need this for a default method.
         Blockchain bc = new Blockchain();
         bc.setId(DEFAULT_BC);

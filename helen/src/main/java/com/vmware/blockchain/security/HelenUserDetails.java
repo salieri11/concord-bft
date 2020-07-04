@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
+
+import com.vmware.blockchain.base.auth.BaseUserDetails;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -18,16 +19,12 @@ import lombok.Setter;
 /**
  * Helen specific User Details.  Includes the auth token and org id.
  */
-public class HelenUserDetails extends User {
+public class HelenUserDetails extends BaseUserDetails {
 
     private static final long serialVersionUID = 1L;
     @Getter
     @Setter
     private String authToken;
-
-    @Getter
-    @Setter
-    private UUID orgId;
 
     @Getter
     @Setter
@@ -47,10 +44,6 @@ public class HelenUserDetails extends User {
 
     @Getter
     @Setter
-    private UUID userId;
-
-    @Getter
-    @Setter
     private Instant lastLogin;
 
     /**
@@ -59,8 +52,8 @@ public class HelenUserDetails extends User {
     public HelenUserDetails(UUID userId, String username, String password, boolean enabled, boolean accountNonExpired,
             boolean credentialsNonExpired, boolean accountNonLocked,
             Collection<? extends GrantedAuthority> authorities) {
-        super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
-        this.userId = userId;
+        super(userId, username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked,
+              authorities);
     }
 
     /**
@@ -68,8 +61,7 @@ public class HelenUserDetails extends User {
      */
     public HelenUserDetails(UUID userId, String username, String password,
                             Collection<? extends GrantedAuthority> authorities) {
-        super(username, password, true, true, true, true, authorities);
-        this.userId = userId;
+        super(userId, username, password, true, true, true, true, authorities);
     }
 
     /**
@@ -78,9 +70,8 @@ public class HelenUserDetails extends User {
      */
     public HelenUserDetails(UUID userId, UUID orgId, String username, String authToken,
                             Collection<? extends GrantedAuthority> authorities) {
-        super(username, "", true, true, true, true, authorities);
-        this.userId = userId;
-        this.orgId = orgId;
+        super(userId, username, "", true, true, true, true, authorities);
+        setOrgId(orgId);
         this.authToken = authToken;
     }
 
@@ -89,7 +80,6 @@ public class HelenUserDetails extends User {
      * Create a new instance of HelenUserDetails, default all the booleans and the password.
      */
     public HelenUserDetails(UUID userId, String username, Collection<? extends GrantedAuthority> authorities) {
-        super(username, "", true, true, true, true, authorities);
-        this.userId = userId;
+        super(userId, username, "", true, true, true, true, authorities);
     }
 }

@@ -46,6 +46,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.InternalFailureException;
@@ -64,7 +65,6 @@ import com.vmware.blockchain.common.csp.exception.CspException;
 import com.vmware.blockchain.common.csp.exception.CspTaskFailureException;
 import com.vmware.blockchain.common.csp.exception.CspTaskWaitTimeoutException;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
-import com.vmware.blockchain.services.profiles.Roles;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.Data;
@@ -600,10 +600,11 @@ public class CspApiClient {
      */
     @Timed("csp.api")
     public void registerServiceRoles(String serviceDefinitionLink,
-                                     Set<Roles> roles) {
-        for (Roles role : roles) {
-            CspServiceRole cspServiceRole = new CspServiceRole(role.getName(), role.getDisplayName(), role.isDefault(),
-                                                               CspServiceRoleStatus.ACTIVE.toString(), role.isHidden());
+                                     Set<Role> roles) {
+        for (Role role : roles) {
+            CspServiceRole cspServiceRole =
+                    new CspServiceRole(role.getName(), role.getDisplayName(), role.isDefaultRole(),
+                                       CspServiceRoleStatus.ACTIVE.toString(), role.isHidden());
             HttpEntity<CspCommon.CspServiceRole> entity = new HttpEntity<>(cspServiceRole);
             try {
                 serviceOwnerAuthRestTemplate
@@ -628,13 +629,14 @@ public class CspApiClient {
      */
     @Timed("csp.api")
     public void patchServiceRoles(String serviceDefinitionLink,
-                                  Set<Roles> roles) {
+                                  Set<Role> roles) {
         logger.info("Patching service roles for service definition {} roles {}", serviceDefinitionLink, roles);
         PatchServiceRoles request = new PatchServiceRoles();
         request.serviceRoles = new ArrayList<>();
-        for (Roles role : roles) {
-            CspServiceRole cspServiceRole = new CspServiceRole(role.getName(), role.getDisplayName(), role.isDefault(),
-                    CspServiceRoleStatus.ACTIVE.toString(), role.isHidden());
+        for (Role role : roles) {
+            CspServiceRole cspServiceRole =
+                    new CspServiceRole(role.getName(), role.getDisplayName(), role.isDefaultRole(),
+                                       CspServiceRoleStatus.ACTIVE.toString(), role.isHidden());
             request.serviceRoles.add(cspServiceRole);
         }
         HttpEntity<PatchServiceRoles> entity = new HttpEntity<>(request);

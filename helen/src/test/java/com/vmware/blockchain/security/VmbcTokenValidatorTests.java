@@ -41,9 +41,9 @@ import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.utils.ControllerTestConfig;
 
 import io.jsonwebtoken.Claims;
@@ -120,7 +120,7 @@ public class VmbcTokenValidatorTests {
         Assertions.assertNotNull(userInfo.getUpdateChains());
         Assertions.assertNotNull(userInfo.getAccessConsortiums());
         Assertions.assertNotNull(userInfo.getUpdateConsortiums());
-        List<GrantedAuthority> expectedRoles = Arrays.asList(Roles.CSP_ORG_OWNER, Roles.ORG_USER);
+        List<GrantedAuthority> expectedRoles = Arrays.asList(VmbcRoles.CSP_ORG_OWNER, VmbcRoles.ORG_USER);
         List<GrantedAuthority> actualRoles = new ArrayList<GrantedAuthority>(userInfo.getAuthorities());
         Assertions.assertEquals(expectedRoles, actualRoles);
 
@@ -137,7 +137,7 @@ public class VmbcTokenValidatorTests {
         Assertions.assertNotNull(userInfo);
         Assertions.assertEquals("vmc_testuser2_dev", userInfo.getUsername());
         Assertions.assertEquals(orgId, userInfo.getOrgId());
-        List<GrantedAuthority> expectedRoles = Arrays.asList(Roles.CSP_ORG_OWNER, Roles.ORG_USER);
+        List<GrantedAuthority> expectedRoles = Arrays.asList(VmbcRoles.CSP_ORG_OWNER, VmbcRoles.ORG_USER);
         List<GrantedAuthority> actualRoles = new ArrayList<GrantedAuthority>(userInfo.getAuthorities());
         Assertions.assertEquals(expectedRoles, actualRoles);
 

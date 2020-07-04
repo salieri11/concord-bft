@@ -27,9 +27,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.auth.TokenValidator;
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.common.csp.CspConfig;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.utils.ControllerTestConfig;
 
 /**
@@ -70,17 +71,17 @@ public class TokenAuthenticationProviderTests {
      */
     @Test
     public void testSimpleAuthContext() throws Exception {
-        HelenUserDetails userInfo = setupUser(operatorOrg, ImmutableList.of(Roles.SYSTEM_ADMIN));
+        HelenUserDetails userInfo = setupUser(operatorOrg, ImmutableList.of(VmbcRoles.SYSTEM_ADMIN));
 
         when(tokenValidator.validateAndGetAuthz("mytoken")).thenReturn(userInfo);
 
         when(mockRequest.getRequestURI()).thenReturn("/vmc/test/api/operator/orgs");
         AuthenticationContext authContext = tokenAuthenticationProvider.populateAuthContext("mytoken");
         Collection<GrantedAuthority> grantedAuthorities = authContext.getAuthorities();
-        Assertions.assertEquals(Roles.SYSTEM_ADMIN.toString(), grantedAuthorities.toArray()[0].toString());
+        Assertions.assertEquals(VmbcRoles.SYSTEM_ADMIN.toString(), grantedAuthorities.toArray()[0].toString());
     }
 
-    private HelenUserDetails setupUser(UUID orgId, List<Roles> roles) {
+    private HelenUserDetails setupUser(UUID orgId, List<Role> roles) {
         return new HelenUserDetails(USER_ID, orgId, "user", "", roles);
     }
 }

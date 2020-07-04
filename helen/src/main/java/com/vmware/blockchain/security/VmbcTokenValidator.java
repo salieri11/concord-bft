@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.BaseCacheHelper;
 import com.vmware.blockchain.auth.TokenValidator;
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.csp.CspCommon.CspOrg;
@@ -32,9 +33,9 @@ import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -171,9 +172,9 @@ public class VmbcTokenValidator implements TokenValidator {
         }
 
         // Grab permissions/roles.
-        List<Roles> roles = new ArrayList<>();
+        List<Role> roles = new ArrayList<>();
         if (parsedToken.getBody().containsKey("perms")) {
-            List<Roles> permissions = getRoles(parsedToken);
+            List<Role> permissions = getRoles(parsedToken);
             roles.addAll(permissions);
         }
 
@@ -185,21 +186,21 @@ public class VmbcTokenValidator implements TokenValidator {
     }
 
     @NonNull
-    private List<Roles> getRoles(Jws<Claims> parsedToken) {
+    private List<Role> getRoles(Jws<Claims> parsedToken) {
         @SuppressWarnings("unchecked")
         ArrayList<String> perms = (ArrayList<String>) parsedToken.getBody().get("perms");
         // strip off the role prefix, if it's there, than map the role name to our roles.
         // The only non-service role we want is csp:org-owner
         String rolePrefix = CspConstants.CSP_VMBC_ROLE_PREFIX
                             + serviceId + "/";
-        List<Roles> roles = perms.stream()
+        List<Role> roles = perms.stream()
                 .map(r -> r.startsWith(rolePrefix) ?  r.substring(rolePrefix.length()) : r)
-                .map(n -> Roles.get(n))
+                .map(n -> VmbcRoles.get(n))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         // Spring uses Role system admln.
-        if (roles.contains(Roles.SYSTEM_ADMIN)) {
-            roles.add(Roles.ROLE_SYSTEM_ADMIN);
+        if (roles.contains(VmbcRoles.SYSTEM_ADMIN)) {
+            roles.add(VmbcRoles.ROLE_SYSTEM_ADMIN);
         }
         return roles;
     }
@@ -226,7 +227,7 @@ public class VmbcTokenValidator implements TokenValidator {
                     .firstName(cspUser.getFirstName())
                     .lastName(cspUser.getLastName())
                     .password(cspUser.getPassword())
-                    .roles(getRoles(parsedToken))
+                    .serviceRoles(getRoles(parsedToken))
                     .organization(org.getId()).build();
             serviceContext.setSystemContext();
             return userService.put(user);

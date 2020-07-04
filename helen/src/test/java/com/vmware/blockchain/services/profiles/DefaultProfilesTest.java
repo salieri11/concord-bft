@@ -137,7 +137,7 @@ class DefaultProfilesTest {
         testUser.setFirstName("Test");
         testUser.setLastName("User");
         testUser.setPassword("1234");
-        testUser.setRoles(Collections.singletonList(Roles.SYSTEM_ADMIN));
+        testUser.setServiceRoles(Collections.singletonList(VmbcRoles.SYSTEM_ADMIN));
 
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
                                        blockchainService, agreementService, serviceContext, replicaService,

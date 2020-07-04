@@ -46,7 +46,7 @@ public class ConsortiumService {
      * @return List of consoritums user can see
      */
     public List<Consortium> list() {
-        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
+        if (authHelper.hasAnyAuthority(VmbcRoles.systemAdmin())) {
             return genericDao.getAllByType(Consortium.class);
         } else {
             return genericDao.getByParentId(authHelper.getOrganizationId(), Consortium.class);

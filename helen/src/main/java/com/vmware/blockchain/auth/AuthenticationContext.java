@@ -8,9 +8,9 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+import com.vmware.blockchain.base.auth.BaseAuthenticationContext;
 import com.vmware.blockchain.security.HelenUserDetails;
 
 import lombok.Getter;
@@ -20,16 +20,10 @@ import lombok.Getter;
  * AuthenticationContext contains information about user such as its user name, roles and tenant
  * etc.
  */
-public class AuthenticationContext extends AbstractAuthenticationToken {
+public class AuthenticationContext extends BaseAuthenticationContext {
 
     private static final long serialVersionUID = 1L;
 
-    @Getter
-    private final UUID userId;
-    @Getter
-    private final String userName;
-    @Getter
-    private final UUID orgId;
     @Getter
     private final String authToken;
     @Getter
@@ -45,10 +39,7 @@ public class AuthenticationContext extends AbstractAuthenticationToken {
      */
     public AuthenticationContext(UUID userId, UUID orgId, String userName, String authToken,
                                  Collection<? extends GrantedAuthority> authorities) {
-        super(authorities);
-        this.userId = userId;
-        this.userName = userName;
-        this.orgId = orgId;
+        super(userId, orgId, userName, authorities);
         this.authToken = authToken;
         this.details = new HelenUserDetails(userId, orgId, userName, authToken, authorities);
         setAuthenticated(true);
@@ -61,10 +52,7 @@ public class AuthenticationContext extends AbstractAuthenticationToken {
      */
     public AuthenticationContext(HelenUserDetails details,
                                  Collection<? extends GrantedAuthority> authorities) {
-        super(authorities);
-        this.userId = details.getUserId();
-        this.userName = details.getUsername();
-        this.orgId = details.getOrgId();
+        super(details.getUserId(), details.getOrgId(), details.getUserName(), authorities);
         this.authToken = details.getAuthToken();
         this.details = details;
         setAuthenticated(true);
@@ -77,14 +65,14 @@ public class AuthenticationContext extends AbstractAuthenticationToken {
 
     @Override
     public Object getPrincipal() {
-        return userId;
+        return getUserId();
     }
 
     @Override
     public String toString() {
         return String.format("AuthContext: userName %s orgId %s orgType %s isImpersonation %s"
                              + " isCrossOrg %s roles [%s]",
-                             userName, orgId,
+                             getUserName(), getOrgId(),
                              getAuthorities() == null ? "[None]" :
                              getAuthorities().stream().map(GrantedAuthority::getAuthority)
                                      .collect(Collectors.joining(",")));

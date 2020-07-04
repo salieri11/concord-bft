@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.security;
 
-
 import java.io.IOException;
 
 import javax.servlet.FilterChain;

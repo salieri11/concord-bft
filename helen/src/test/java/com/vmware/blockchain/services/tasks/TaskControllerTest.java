@@ -44,7 +44,7 @@ import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskController.TaskGetResponse;
 import com.vmware.blockchain.services.tasks.TaskController.TaskListResponse;
@@ -91,12 +91,12 @@ class TaskControllerTest {
         taskService = new TestTaskService();
 
         userAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  ImmutableList.of(C1),
                                  ImmutableList.of(B1), "");
 
         adminAuth = createContext("operator", ORG_ID,
-                                  ImmutableList.of(Roles.SYSTEM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.SYSTEM_ADMIN, VmbcRoles.ORG_USER),
                                   ImmutableList.of(C1),
                                   ImmutableList.of(B1), "");
 

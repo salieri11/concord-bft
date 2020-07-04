@@ -32,19 +32,19 @@ public class UserService {
     }
 
     public User get(UUID id) {
-        return genericDao.get(id, User.class);
+        return fixupRoles(genericDao.get(id, User.class));
     }
 
     public User put(User user) {
-        return genericDao.put(user, null);
+        return genericDao.put(fixupRoles(user), null);
     }
 
     public User merge(User user, Consumer<User> merger) {
-        return genericDao.mergeWithRetry(user, User.class, merger);
+        return genericDao.mergeWithRetry(fixupRoles(user), User.class, merger);
     }
 
     public List<User> list() {
-        return genericDao.getAllByType(User.class);
+        return fixupRoles(genericDao.getAllByType(User.class));
     }
 
     public List<Organization> getOrganizations(User user) {
@@ -77,7 +77,24 @@ public class UserService {
         if (l.isEmpty()) {
             throw new NotFoundException(ErrorCode.USER_NOT_FOUND, email);
         }
-        return l.get(0);
+        return fixupRoles(l.get(0));
 
+    }
+
+    // This does not have the serviceRoles, only the old roles.  Convert to the new roles.
+    private User fixupRoles(User user) {
+        if (user.getServiceRoles() == null && user.getRoles() != null) {
+            user.setServiceRoles(
+                    user.getRoles().stream().map(r -> VmbcRoles.get(r.getName())).collect(Collectors.toList()));
+            user.setRoles(null);
+        }
+        return user;
+    }
+
+    private List<User> fixupRoles(List<User> users) {
+        for (User user : users) {
+            fixupRoles(user);
+        }
+        return users;
     }
 }

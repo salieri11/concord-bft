@@ -50,7 +50,7 @@ public class HelenUserDetailsService implements UserDetailsService {
 
         try {
             HelenUserDetails details =
-                    new HelenUserDetails(u.getId(), email, u.getPassword(), u.getRoles());
+                    new HelenUserDetails(u.getId(), email, u.getPassword(), u.getServiceRoles());
             Organization o = userService.getDefaultOrganization(u);
             details.setOrgId(o.getId());
             details.setAuthToken("");

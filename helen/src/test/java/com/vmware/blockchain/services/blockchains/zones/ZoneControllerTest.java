@@ -62,7 +62,7 @@ import com.vmware.blockchain.services.blockchains.zones.Zone.Wavefront;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 import io.grpc.stub.StreamObserver;
 
@@ -712,17 +712,17 @@ class ZoneControllerTest {
 
 
         userAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  Collections.emptyList(),
                                  Collections.emptyList(), "");
 
         adminAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER, Roles.CONSORTIUM_ADMIN),
+                                 ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.CONSORTIUM_ADMIN),
                                  Collections.emptyList(),
                                  Collections.emptyList(), "");
 
         systemAuth = createContext("operator", OPER_ORG,
-                                   ImmutableList.of(Roles.ORG_USER, Roles.SYSTEM_ADMIN),
+                                   ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.SYSTEM_ADMIN),
                                    Collections.emptyList(),
                                    Collections.emptyList(), "");
 

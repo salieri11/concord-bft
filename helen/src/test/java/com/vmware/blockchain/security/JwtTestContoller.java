@@ -23,8 +23,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 
 /**
@@ -52,7 +53,7 @@ public class JwtTestContoller {
         Assert.assertNotNull(auth);
         Assert.assertEquals("user@test.com", authHelper.getEmail());
         Assert.assertEquals(ORG_ID, authHelper.getOrganizationId());
-        List<Roles> expected = Arrays.asList(Roles.ORG_USER);
+        List<Role> expected = Arrays.asList(VmbcRoles.ORG_USER);
         Assert.assertTrue(expected.containsAll(authHelper.getAuthorities()));
         Assert.assertEquals(expected.size(), authHelper.getAuthorities().size());
         List<UUID> chains = authHelper.getAccessChains();
@@ -76,7 +77,7 @@ public class JwtTestContoller {
      */
     @RequestMapping(path = "/api/operator", method = RequestMethod.GET)
     public ResponseEntity<String> doOperator() {
-        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
+        if (authHelper.hasAnyAuthority(VmbcRoles.systemAdmin())) {
             return new ResponseEntity<String>("operator", HttpStatus.OK);
         } else {
             return new ResponseEntity<String>("I'm sorry, Dave.  I can't do that", HttpStatus.FORBIDDEN);
@@ -88,7 +89,7 @@ public class JwtTestContoller {
      */
     @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.GET)
     public ResponseEntity<String> doBlockchain(@PathVariable UUID id) {
-        if (!authHelper.hasAnyAuthority(Roles.systemAdmin()) && !authHelper.getAccessChains().contains(id)) {
+        if (!authHelper.hasAnyAuthority(VmbcRoles.systemAdmin()) && !authHelper.getAccessChains().contains(id)) {
             return new ResponseEntity<String>("I'm sorry, Dave.  I can't do that", HttpStatus.FORBIDDEN);
         }
         return new ResponseEntity<String>("operator", HttpStatus.OK);

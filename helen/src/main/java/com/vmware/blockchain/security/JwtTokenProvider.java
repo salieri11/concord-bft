@@ -98,7 +98,7 @@ public class JwtTokenProvider {
     private String createJwt(User user, long ttl) {
         Claims claims = Jwts.claims().setSubject(user.getEmail());
         // Changing this to be more like GAZ generated token
-        claims.put("perms", user.getRoles().stream().map(s -> s.getAuthority())
+        claims.put("perms", user.getServiceRoles().stream().map(s -> s.getAuthority())
                 .filter(Objects::nonNull).collect(Collectors.toList()));
         // "context_name" is what this field will be when we integrate with CSP
         claims.put("context_name", user.getOrganization());

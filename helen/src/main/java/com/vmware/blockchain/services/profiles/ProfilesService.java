@@ -28,7 +28,6 @@ import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 
 
-
 /**
  * This class manages all persistence related operations related to User management API.
  */
@@ -173,8 +172,8 @@ public class ProfilesService {
                 ignoreNull(request.getDetails().getLastName(), user::setLastName);
             }
             if (request.getRole() != null) {
-                if (Roles.contains(request.getRole())) {
-                    user.setRoles(Collections.singletonList(Roles.get(request.getRole())));
+                if (VmbcRoles.contains(request.getRole())) {
+                    user.setServiceRoles(Collections.singletonList(VmbcRoles.get(request.getRole())));
                 } else {
                     throw new EntityModificationException(ErrorCode.INVALID_ROLE_VALUE + request.getRole());
                 }
@@ -216,7 +215,7 @@ public class ProfilesService {
                 .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRoles().get(0).toString())
+                .role(user.getServiceRoles().get(0).toString())
                 .consortium(c == null ? null : new ConsortiumData(c.getId(), c.getConsortiumName()))
                 .organization(new OrganizationData(o.getId(), o.getOrganizationName()))
                 .details(new Details(user.getFirstName(), user.getLastName()))

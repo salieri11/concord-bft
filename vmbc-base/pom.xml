@@ -12,6 +12,7 @@
     </parent>
 
     <artifactId>vmbc-base</artifactId>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>

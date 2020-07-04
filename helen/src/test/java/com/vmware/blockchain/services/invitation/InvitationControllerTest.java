@@ -44,7 +44,7 @@ import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.csp.CspConstants;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = {InvitationController.class })
@@ -93,12 +93,12 @@ class InvitationControllerTest {
                 .queryParam(Constants.NEW_USER_PARAM, "new").toUriString();
 
         userAuth = createContext("user@domain", ORG_ID,
-                                ImmutableList.of(Roles.ORG_USER),
+                                ImmutableList.of(VmbcRoles.ORG_USER),
                                 Collections.emptyList(), Collections.emptyList(),
                                 "atoken");
 
         orgAdminAuth = createContext("user@domain", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER, Roles.CSP_ORG_OWNER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.CSP_ORG_OWNER),
                                  Collections.emptyList(), Collections.emptyList(),
                                  "atoken");
     }
