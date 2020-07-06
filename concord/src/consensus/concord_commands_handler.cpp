@@ -80,7 +80,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     char *response_buffer,
                                     uint32_t &out_response_size,
                                     concordUtils::SpanWrapper &parent_span) {
-  executing_bft_sequence_num_ = sequence_num;
   LOG_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
                          << client_id << ", seq: " << sequence_num);
 
@@ -89,7 +88,13 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   assert(!(pre_execute && has_pre_executed));
 
-  request_context_.reset(nullptr);
+  if (!pre_execute) {
+    // This field is only used when creating blocks (during execution or
+    // post-execution, both of which are sequential). In pre-execution,
+    // `executing_bft_sequence_num_` is not used at all, so we may as well not
+    // update it, in order to avoid concurrent reads/writes.
+    executing_bft_sequence_num_ = sequence_num;
+  }
 
   com::vmware::concord::ConcordRequest request;
   com::vmware::concord::ConcordResponse response;
@@ -97,17 +102,14 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   auto tracer = opentracing::Tracer::Global();
 
   std::unique_ptr<opentracing::Span> execute_span;
+  const ConcordRequestContext request_context{client_id, sequence_num,
+                                              max_response_size};
 
   bool result;
   if ((!has_pre_executed &&
        request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
        parseFromPreExecutionResponse(request_buffer, request_size, request))) {
-    request_context_ = std::make_unique<ConcordRequestContext>();
-    request_context_->client_id = client_id;
-    request_context_->sequence_num = sequence_num;
-    request_context_->max_response_size = max_response_size;
-
     if (parent_span) {
       const auto &ctx = parent_span.impl()->context();
       execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
@@ -154,8 +156,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-    result = Execute(request, flags, time_.get(), *addBlock_parent_span.get(),
-                     response);
+    result = Execute(request, request_context, flags, time_.get(),
+                     *addBlock_parent_span.get(), response);
     // Manually stopping the span after execute.
     addBlock_parent_span.reset();
 

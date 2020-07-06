@@ -66,8 +66,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
 
-  std::unique_ptr<ConcordRequestContext> request_context_;
-
  public:
   ConcordCommandsHandler(
       const concord::config::ConcordConfiguration &config,
@@ -111,11 +109,12 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   //
   // The subclass should fill out any fields in `response` that it wants to
   // return to the client.
-  virtual bool Execute(const com::vmware::concord::ConcordRequest &request,
-                       uint8_t flags,
-                       concord::time::TimeContract *time_contract,
-                       opentracing::Span &parent_span,
-                       com::vmware::concord::ConcordResponse &response) = 0;
+  virtual bool Execute(
+      const com::vmware::concord::ConcordRequest &request,
+      const concord::consensus::ConcordRequestContext &request_context,
+      uint8_t flags, concord::time::TimeContract *time_contract,
+      opentracing::Span &parent_span,
+      com::vmware::concord::ConcordResponse &response) = 0;
 
   // In some cases, commands may arrive that require writing a KVB block to
   // store state that is not controlled by the subclass. This callback gives the

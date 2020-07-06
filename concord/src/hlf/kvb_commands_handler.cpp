@@ -59,10 +59,11 @@ HlfKvbCommandsHandler::~HlfKvbCommandsHandler() {
   // no other deinitialization necessary
 }
 
-bool HlfKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                    uint8_t flags, TimeContract* time_contract,
-                                    opentracing::Span& parent_span,
-                                    ConcordResponse& response) {
+bool HlfKvbCommandsHandler::Execute(
+    const ConcordRequest& request,
+    const concord::consensus::ConcordRequestContext& request_context,
+    uint8_t flags, TimeContract* time_contract, opentracing::Span& parent_span,
+    ConcordResponse& response) {
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
 

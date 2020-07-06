@@ -491,11 +491,11 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
   }
 }
 
-bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                     const uint8_t flags,
-                                     TimeContract* time_contract,
-                                     opentracing::Span& parent_span,
-                                     ConcordResponse& response) {
+bool DamlKvbCommandsHandler::Execute(
+    const ConcordRequest& request,
+    const concord::consensus::ConcordRequestContext& request_context,
+    const uint8_t flags, TimeContract* time_contract,
+    opentracing::Span& parent_span, ConcordResponse& response) {
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);

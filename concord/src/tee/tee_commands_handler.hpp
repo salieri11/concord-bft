@@ -55,6 +55,7 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
             {{"layer", "TeeCommandsHandler"}, {"operation", "tee_reads"}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
+               const concord::consensus::ConcordRequestContext& request_context,
                uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
@@ -62,9 +63,10 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
 
  private:
-  bool ExecuteSkvbcRequest(const com::vmware::concord::TeeRequest& tee_request,
-                           uint8_t flags,
-                           com::vmware::concord::TeeResponse* tee_response);
+  bool ExecuteSkvbcRequest(
+      const com::vmware::concord::TeeRequest& tee_request,
+      const concord::consensus::ConcordRequestContext& request_context,
+      uint8_t flags, com::vmware::concord::TeeResponse* tee_response);
   bool WriteKVData(const com::vmware::concord::WriteBlockRequest& wbr,
                    string& outstr);
   kvbc::BlockId RecordTransaction(const kvbc::SetOfKeyValuePairs& updates);
