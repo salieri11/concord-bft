@@ -11,9 +11,8 @@
 #include "direct_kv_storage_factory.h"
 #include "gtest/gtest.h"
 #include "replica_state_sync_imp.hpp"
-#include "storage/db_interface.h"
-
 #include "storage/concord_block_metadata.h"
+#include "storage/db_interface.h"
 
 #include <memory>
 
@@ -44,13 +43,14 @@ namespace {
 std::shared_ptr<IDBClient> dbClient;
 IDbAdapter *bcDBAdapter = nullptr;
 logging::Logger logger = logging::Logger::getInstance("com.vmware.test");
-Value emptyValue;
-const BlockId lastBlockId = 2;
+const BlockId firstBlockId = 1;
+const BlockId thirdBlockId = 2;
+const BlockId secondBlockId = 3;
+const BlockId lastBlockId = 4;
 const uint64_t lastSeqNum = 50;
-const BlockId singleBlockId = 999;
-const BlockId prevBlockId = lastBlockId - 1;
-const BlockId prevPrevBlockId = lastBlockId - 2;
+const BlockId lastReachableBlockId = 999;
 BlockId blockIdToBeRead = 0;
+
 std::unique_ptr<IDataKeyGenerator> keyGen{
     std::make_unique<RocksKeyGenerator>()};
 
@@ -90,7 +90,7 @@ void fillBufAndAdvance(char *&buffer, const void *data, const size_t dataSize) {
   buffer += dataSize;
 }
 
-Sliver setUpBlockContent(Key key, Value blockValue) {
+Sliver setUpBlockContent(const Key &key, const Value &blockValue) {
   BlockHeader blockHeader = {0};
   blockHeader.numberOfElements = 1;
 
@@ -113,7 +113,6 @@ Sliver setUpBlockContent(Key key, Value blockValue) {
 }
 
 MockILocalKeyValueStorageReadOnly keyValueStorageMock;
-MockIBlocksAppender blocksAppenderMock;
 ReplicaStateSyncImp replicaStateSync(
     new ConcordBlockMetadata(keyValueStorageMock));
 
@@ -123,36 +122,42 @@ const Sliver blockMetadataInternalKey = kvbStorage.getKey();
 
 const Key lastBlockFullKey =
     keyGen->dataKey(blockMetadataInternalKey, lastBlockId);
-const Value lastBlockValue = kvbStorage.serialize(lastSeqNum + 2);
+const Value lastBlockValue = kvbStorage.serialize(lastSeqNum + 3);
 
-const Key prevBlockFullKey =
-    keyGen->dataKey(blockMetadataInternalKey, prevBlockId);
-const Value prevBlockValue = kvbStorage.serialize(lastSeqNum + 1);
+const Key thirdBlockFullKey =
+    keyGen->dataKey(blockMetadataInternalKey, thirdBlockId);
+const Value thirdBlockValue = kvbStorage.serialize(lastSeqNum + 2);
 
-const Key prevPrevBlockFullKey =
-    keyGen->dataKey(blockMetadataInternalKey, prevPrevBlockId);
-const Value prevPrevBlockValue = kvbStorage.serialize(lastSeqNum);
+const Key secondBlockFullKey =
+    keyGen->dataKey(blockMetadataInternalKey, secondBlockId);
+const Value secondBlockValue = kvbStorage.serialize(lastSeqNum + 1);
 
-const Key singleBlockValueFullKey =
-    keyGen->dataKey(blockMetadataInternalKey, singleBlockId);
-const Value singleBlockValue = kvbStorage.serialize(lastSeqNum);
+const Key firstBlockFullKey =
+    keyGen->dataKey(blockMetadataInternalKey, firstBlockId);
+const Value firstBlockValue = kvbStorage.serialize(lastSeqNum);
+
+const Value lastReachableBlockValue = kvbStorage.serialize(lastSeqNum);
 
 Status MockILocalKeyValueStorageReadOnly::get(const Key &key,
                                               Value &outValue) const {
   switch (blockIdToBeRead) {
-    case singleBlockId:
-      outValue = singleBlockValue;
+    case lastReachableBlockId:
+      outValue = lastReachableBlockValue;
       break;
     case lastBlockId:
       outValue = lastBlockValue;
-      blockIdToBeRead = prevBlockId;
+      blockIdToBeRead = thirdBlockId;
       break;
-    case prevBlockId:
-      outValue = prevBlockValue;
-      blockIdToBeRead = prevPrevBlockId;
+    case thirdBlockId:
+      outValue = thirdBlockValue;
+      blockIdToBeRead = secondBlockId;
       break;
-    case prevPrevBlockId:
-      outValue = prevPrevBlockValue;
+    case secondBlockId:
+      outValue = secondBlockValue;
+      blockIdToBeRead = firstBlockId;
+      break;
+    case firstBlockId:
+      outValue = firstBlockValue;
       break;
     default:
       return Status::GeneralError("Block ID is out of range.");
@@ -161,26 +166,57 @@ Status MockILocalKeyValueStorageReadOnly::get(const Key &key,
 }
 
 TEST(replicaStateSync_test, state_in_sync) {
-  blockIdToBeRead = singleBlockId;
+  blockIdToBeRead = lastReachableBlockId;
 
-  uint64_t removedBlocks =
-      replicaStateSync.execute(logger, *bcDBAdapter, singleBlockId, lastSeqNum);
+  uint64_t removedBlocks = replicaStateSync.execute(
+      logger, *bcDBAdapter, lastReachableBlockId, lastSeqNum);
   ASSERT_EQ(removedBlocks, 0);
 }
 
-TEST(replicaStateSync_test, block_removed) {
-  dbClient->put(prevPrevBlockFullKey, prevPrevBlockValue);
-  dbClient->put(prevBlockFullKey, prevBlockValue);
+TEST(replicaStateSync_test, all_blocks_removed) {
+  dbClient->put(firstBlockFullKey, firstBlockValue);
+  dbClient->put(secondBlockFullKey, secondBlockValue);
+  dbClient->put(thirdBlockFullKey, thirdBlockValue);
   dbClient->put(lastBlockFullKey, lastBlockValue);
 
-  Sliver prevPrevBlockDbKey = keyGen->blockKey(prevPrevBlockId);
-  Sliver prevBlockDbKey = keyGen->blockKey(prevBlockId);
+  Sliver firstBlockDbKey = keyGen->blockKey(secondBlockId - 1);
+  Sliver secondBlockDbKey = keyGen->blockKey(secondBlockId);
+  Sliver thirdBlockDbKey = keyGen->blockKey(thirdBlockId);
   Sliver lastBlockDbKey = keyGen->blockKey(lastBlockId);
 
-  dbClient->put(prevPrevBlockDbKey,
-                setUpBlockContent(prevPrevBlockFullKey, prevPrevBlockValue));
-  dbClient->put(prevBlockDbKey,
-                setUpBlockContent(prevBlockFullKey, prevBlockValue));
+  dbClient->put(firstBlockDbKey,
+                setUpBlockContent(firstBlockFullKey, firstBlockValue));
+  dbClient->put(secondBlockDbKey,
+                setUpBlockContent(secondBlockFullKey, secondBlockValue));
+  dbClient->put(thirdBlockDbKey,
+                setUpBlockContent(thirdBlockFullKey, thirdBlockValue));
+  dbClient->put(lastBlockDbKey,
+                setUpBlockContent(lastBlockFullKey, lastBlockValue));
+
+  blockIdToBeRead = lastBlockId;
+  uint64_t removedBlocks = replicaStateSync.execute(
+      logger, *bcDBAdapter, lastBlockId, lastSeqNum - 1);
+
+  ASSERT_EQ(removedBlocks, 4);
+}
+
+TEST(replicaStateSync_test, some_blocks_removed) {
+  dbClient->put(firstBlockFullKey, firstBlockValue);
+  dbClient->put(secondBlockFullKey, secondBlockValue);
+  dbClient->put(thirdBlockFullKey, thirdBlockValue);
+  dbClient->put(lastBlockFullKey, lastBlockValue);
+
+  Sliver firstBlockDbKey = keyGen->blockKey(secondBlockId - 1);
+  Sliver secondBlockDbKey = keyGen->blockKey(secondBlockId);
+  Sliver thirdBlockDbKey = keyGen->blockKey(thirdBlockId);
+  Sliver lastBlockDbKey = keyGen->blockKey(lastBlockId);
+
+  dbClient->put(firstBlockDbKey,
+                setUpBlockContent(firstBlockFullKey, firstBlockValue));
+  dbClient->put(secondBlockDbKey,
+                setUpBlockContent(secondBlockFullKey, secondBlockValue));
+  dbClient->put(thirdBlockDbKey,
+                setUpBlockContent(thirdBlockFullKey, thirdBlockValue));
   dbClient->put(lastBlockDbKey,
                 setUpBlockContent(lastBlockFullKey, lastBlockValue));
 
@@ -188,7 +224,7 @@ TEST(replicaStateSync_test, block_removed) {
   uint64_t removedBlocks =
       replicaStateSync.execute(logger, *bcDBAdapter, lastBlockId, lastSeqNum);
 
-  ASSERT_EQ(removedBlocks, 2);
+  ASSERT_EQ(removedBlocks, 3);
 }
 
 }  // end namespace

@@ -65,13 +65,8 @@ target_link_libraries(ConfigTests
         )
 
 add_executable(ReplicaStateSyncTests
-        ../src/common/concord_log.cpp
-        ../src/common/concord_types.cpp
         ../src/config/configuration_manager.cpp
         ../src/storage/concord_block_metadata.cpp
-        ../src/utils/concord_eth_hash.cpp
-        ../src/utils/rlp.cpp
-        ../src/config/configuration_manager.cpp
         replicaStateSync_test.cpp
         )
 
@@ -80,10 +75,6 @@ target_link_libraries(ReplicaStateSyncTests
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
         logging
-        proto
-        ${EVM_LIBRARIES}
-        LLVMSupport
-        concord_utils
         concord_storage
         kvbc)
 
