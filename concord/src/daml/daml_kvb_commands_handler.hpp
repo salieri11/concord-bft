@@ -82,6 +82,7 @@ class DamlKvbCommandsHandler
             {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
+               const concord::consensus::ConcordRequestContext& request_context,
                uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;

@@ -42,6 +42,7 @@ class EthKvbCommandsHandler
 
   // concord::consensus::ConcordStateMachine
   bool Execute(const com::vmware::concord::ConcordRequest &request,
+               const concord::consensus::ConcordRequestContext &request_context,
                uint8_t flags, concord::time::TimeContract *time,
                opentracing::Span &parent_span,
                com::vmware::concord::ConcordResponse &response) override;

@@ -72,10 +72,11 @@ Sliver CreateTeeKvbValue(const string& value, vector<string> trid_list) {
   return Sliver(data, size);
 }
 
-bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
-                                 uint8_t flags, TimeContract* time_contract,
-                                 opentracing::Span& parent_span,
-                                 ConcordResponse& concord_response) {
+bool TeeCommandsHandler::Execute(
+    const ConcordRequest& concord_request,
+    const concord::consensus::ConcordRequestContext& request_context,
+    uint8_t flags, TimeContract* time_contract, opentracing::Span& parent_span,
+    ConcordResponse& concord_response) {
   if (!concord_request.has_tee_request()) {
     // we have to ignore this, to allow time-only updates
     return true;
@@ -87,7 +88,8 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
 
   if (tee_request.has_skvbc_request() &&
       tee_request.skvbc_request().has_request_content()) {
-    return ExecuteSkvbcRequest(tee_request, flags, tee_response);
+    return ExecuteSkvbcRequest(tee_request, request_context, flags,
+                               tee_response);
   }
 
   if (tee_request.has_wb_request()) {
@@ -159,14 +161,15 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
   return true;
 }
 
-bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
-                                             uint8_t flags,
-                                             TeeResponse* tee_response) {
+bool TeeCommandsHandler::ExecuteSkvbcRequest(
+    const TeeRequest& tee_request,
+    const concord::consensus::ConcordRequestContext& request_context,
+    uint8_t flags, TeeResponse* tee_response) {
   LOG_DEBUG(logger_, "Processing SKVBC request...");
   const std::string& request_content =
       tee_request.skvbc_request().request_content();
 
-  const auto max_response_size = request_context_->max_response_size;
+  const auto max_response_size = request_context.max_response_size;
 
   uint32_t reply_size = 0;
   char reply_buffer[max_response_size];
@@ -174,7 +177,7 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
 
   concordUtils::SpanWrapper span;
   int result = skvbc_commands_handler_.execute(
-      request_context_->client_id, request_context_->sequence_num, flags,
+      request_context.client_id, request_context.sequence_num, flags,
       request_content.size(), request_content.c_str(), max_response_size,
       reply_buffer, reply_size, span);
 
