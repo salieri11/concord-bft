@@ -1,5 +1,6 @@
 #include "external_client_pool.h"
 
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -15,6 +16,11 @@ using com::vmware::concord::SkvbcRequest;
  * (hermes/util/skvbc/concord_external_client.py) It binds to a UDP port and
  * waits for request payload. Then it serializes a ConcordRequest and passes it
  * to the external client pool for execution.
+ *
+ * The wrapper uses a simple UDP protocol to transfer messages:
+ * | MSG FLAGS (8bits) | MSG PAYLOAD (variable size) |
+ *
+ * MSG FLAGS are handled in ReadConcordRequest() method.
  *
  * This class use use for testing purposes - to execute ApolloBftTests suite
  * from Hermes.
@@ -44,10 +50,9 @@ std::string BufToHex(const char *buf, const int len) {
   return res.str();
 }
 
-ConcordRequest ExternalClient::ReadConcordRequest(struct sockaddr &src_addr,
-                                                  socklen_t &src_addr_size,
-                                                  uint8_t *recv_buf,
-                                                  const int recv_buf_size) {
+ConcordRequest ExternalClient::ReadConcordRequest(
+    struct sockaddr &src_addr, socklen_t &src_addr_size, uint8_t *recv_buf,
+    const int recv_buf_size, bftEngine::ClientMsgFlag &msg_flags) {
   ConcordRequest conc_request;
   ssize_t recv_size = 0;
   src_addr_size = sizeof(src_addr);
@@ -57,9 +62,18 @@ ConcordRequest ExternalClient::ReadConcordRequest(struct sockaddr &src_addr,
                         << corr_id_ << " Size: " << recv_size
                         << " Data: " << BufToHex(recv_buf, recv_size));
 
+  if (recv_size < 1) {
+    // message is too short
+    LOG_ERROR(logger_,
+              "Message is too short. Expected message size to be > 8.");
+    std::exit(195);
+  }
+
+  msg_flags = static_cast<bftEngine::ClientMsgFlag>(recv_buf[0]);
+
   SkvbcRequest *skvbc_request =
       conc_request.mutable_tee_request()->mutable_skvbc_request();
-  skvbc_request->set_request_content(recv_buf, recv_size);
+  skvbc_request->set_request_content(recv_buf + 1, recv_size - 1);
 
   return conc_request;
 }
@@ -79,19 +93,6 @@ void ExternalClient::SendError(const struct sockaddr *src_addr,
                                const socklen_t src_addr_size) {
   sendto(server_fd_, kErrorResponse.data(), kErrorResponse.size(), 0, src_addr,
          src_addr_size);
-}
-
-bftEngine::ClientMsgFlag ExternalClient::GetMsgFlags(const uint8_t msg_type) {
-  // From skvbc.py:
-  // READ=1 WRITE=2 GET_LAST_BLOCK=3 GET_BLOCK_DATA=4 LONG_EXEC_WRITE=5
-  bftEngine::ClientMsgFlag rq_flags;
-  if (msg_type == 1 || msg_type == 3 || msg_type == 4) {
-    rq_flags = bftEngine::ClientMsgFlag::READ_ONLY_REQ;
-  } else {
-    rq_flags = bftEngine::ClientMsgFlag::EMPTY_FLAGS_REQ;
-  }
-
-  return rq_flags;
 }
 
 std::promise<uint8_t> ExternalClient::SetResponseCallback() {
@@ -120,10 +121,10 @@ void ExternalClient::ServerLoop() {
 
   uint8_t recv_buf[kDefaultBufSize];
   while (1) {
-    ConcordRequest conc_request =
-        ReadConcordRequest(src_addr, src_addr_size, recv_buf, sizeof(recv_buf));
+    bftEngine::ClientMsgFlag rq_flags;
+    ConcordRequest conc_request = ReadConcordRequest(
+        src_addr, src_addr_size, recv_buf, sizeof(recv_buf), rq_flags);
 
-    bftEngine::ClientMsgFlag rq_flags = GetMsgFlags(recv_buf[0]);
     std::string reply(kDefaultBufSize, '\0');
 
     // This will be send after the loop. It will point either to the actual

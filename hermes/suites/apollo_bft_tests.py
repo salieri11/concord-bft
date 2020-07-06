@@ -97,7 +97,7 @@ async def bft_network():
 
     replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
                 for i in range(config.num_clients)]
-    clients = config.num_clients * [ExternalBftClient(f=1, c=1, n=4)]
+    clients = config.num_clients * [ExternalBftClient()]
 
     bft_network = BftTestNetwork.existing(config, replicas, clients)
 
