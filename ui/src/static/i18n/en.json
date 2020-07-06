@@ -408,7 +408,7 @@
       "inputByteArrayByteLengthValidationMessage": "One or more values in this array have an incorrect byte length",
       "inputArrayLengthValidationMessage": "The array has an invalid length",
       "tabs": {
-        "execute": "Execute",
+        "execute": "Run",
         "source": "Source",
         "metadata": "Metadata",
         "bytecode": "Bytecode"
@@ -426,7 +426,7 @@
       "versionHelper": "Please update the version before updating",
       "versionDuplicateValidationMessage": "You must choose a new value for version",
       "versionLengthValidationMessage": "Version must be 16 or fewer characters",
-      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain",
+      "callSuccessMessage": "Contract was locally invoked successfully, click send to run the contract on the blockchain",
       "generalInformationTitle": "General Information",
       "contractSelectionTitle": "Contract Selection",
       "contractSelectionHelper": "Select the contract you'd like to deploy from this file",
@@ -442,11 +442,11 @@
       },
       "availableActions": {
         "title": "Available Functions",
-        "content": "Choose an available smart contract function to execute.  Some methods retrieve previous transaction information, others perform transactions, please refer to the source code to understand each function."
+        "content": "Choose an available smart contract function to run.  Some methods retrieve previous transaction information, others perform transactions, please refer to the source code to understand each function."
       },
       "call": {
         "title": "Call",
-        "content": "This is a read only operation, that does not broadcast or publish on to the blockchain.  This is useful for retrieving previously executed information saved in a contract or for testing a transaction before executing."
+        "content": "This is a read only operation, that does not broadcast or publish on to the blockchain.  This is useful for retrieving previously ran information saved in a contract or for testing a transaction before running."
       },
       "send": {
         "title": "Send",
@@ -768,7 +768,7 @@
       "all": "All",
       "concord": "Concord",
       "daml_ledger_api": "DAML Ledger API",
-      "daml_execution_engine": "DAML Execution Engine",
+      "daml_execution_engine": "DAML Engine",
       "ethrpc": "Eth RPC"
     },
     "refresh": "Refresh",
@@ -1104,7 +1104,7 @@
       "damlTitle": "DAML",
       "damlInfo": "Focus only on the data and business logic of your use case and leave lower-level concerns to the runtime. DAML has language-level constructs to abstract away many boilerplate complexities such as signatures, data schemas or privacy.",
       "ethTitle": "Ethereum",
-      "ethInfo": "The Ethereum Virtual Machine (EVM) is the runtime environment for smart contracts in Ethereum. Smart contracts are high-level programming abstractions that are compiled down to EVM bytecode and deployed to the Ethereum blockchain for execution. Most commonly written in Solidity.",
+      "ethInfo": "The Ethereum Virtual Machine (EVM) is the runtime environment for smart contracts in Ethereum. Smart contracts are high-level programming abstractions that are compiled down to EVM bytecode and deployed to the Ethereum blockchain for running. Most commonly written in Solidity.",
       "hlfTitle": "Hyperledger Fabric",
       "hlfInfo": "Fabric is the first distributed ledger platform to support smart contracts authored in general-purpose programming languages such as Java, Go and Node.js. This means that most enterprises already have the skill set needed to develop smart contracts, and no additional training to learn a new language or DSL is needed."
     },
