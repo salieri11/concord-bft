@@ -38,12 +38,11 @@ class ExternalClient {
   void ServerLoop();
   com::vmware::concord::ConcordRequest ReadConcordRequest(
       struct sockaddr &src_addr, socklen_t &src_addr_size, uint8_t *recv_buf,
-      const int recv_buf_size);
+      const int recv_buf_size, bftEngine::ClientMsgFlag &msg_flags);
   void SendError(const struct sockaddr *src_addr,
                  const socklen_t src_addr_size);
   bft::client::Msg CreateBftClientMsg(
       com::vmware::concord::ConcordRequest &conc_request);
-  bftEngine::ClientMsgFlag GetMsgFlags(const uint8_t msg_type);
   std::promise<uint8_t> SetResponseCallback();
 
  public:
