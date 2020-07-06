@@ -855,7 +855,7 @@ def call(){
                       selectOnlySuites(["LoggingTests"])
                       runTests()
                     } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
-                      selectOnlySuites(["UiDAMLDeploy", "UiTests"])
+                      selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
                       if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }

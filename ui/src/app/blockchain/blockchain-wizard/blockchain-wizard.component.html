@@ -182,8 +182,7 @@
       <div [formGroup]="clientForm" class="client-form">
         <clr-select-container class="compact-input-container">
           <label class="short-label">{{ 'zones.detail.title' | translate }}</label>
-          <select clrSelect class="zone-selector" formControlName="zone_id">
-            <option value="" disabled selected>{{ 'blockchainWizard.clients.selectZone' | translate }}</option>
+          <select clrSelect class="zone-selector" formControlName="zone_id" id="clientZoneSelect">
             <option *ngFor="let zone of blockchainService.zones" [value]="zone.id">
               {{ zone.name }}
             </option>
@@ -197,7 +196,7 @@
           <clr-control-error>{{ 'blockchainWizard.clients.authUrlError' | translate }}</clr-control-error>
         </clr-input-container>
         <div class="add-button-margins">
-          <button class="btn btn-sm margins" (click)="addClientNode()" [disabled]="!clientForm.valid">
+          <button class="btn btn-sm margins" (click)="addClientNode()" [disabled]="!clientForm.valid" id="addClientNode">
             {{ 'blockchainWizard.clients.add' | translate }}
           </button>
           <button class="btn btn-danger-outline btn-sm margins" (click)="clearClientNodes()" [disabled]="form.get('clients').value.length === 0">
@@ -221,10 +220,10 @@
         </clr-dg-row>
         <clr-dg-footer>
           <clr-dg-pagination #pagination [clrDgPageSize]="5"><span class="pagination-message">
-            {{ 'blockchainWizard.clients.paginationTotal' | translate: { 
+            {{ 'blockchainWizard.clients.paginationTotal' | translate: {
                   start: pagination.firstItem + 1,
                   finish: pagination.lastItem + 1,
-                  total: pagination.totalItems } 
+                  total: pagination.totalItems }
             }}</span>
           </clr-dg-pagination>
         </clr-dg-footer>

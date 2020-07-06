@@ -1,1 +1,1 @@
-export const BROWSER_WAIT_TIME = 6 * 60 * 1000; // Six minutes
+export const BROWSER_WAIT_TIME = 8 * 60 * 1000; // Eight minutes
