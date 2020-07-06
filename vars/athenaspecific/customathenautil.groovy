@@ -28,11 +28,11 @@ void collectArtifacts(){
   def logMap = [
           "tests": [
                   "base": "**/testLogs/**/*.",
-                  "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
+                  "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties", "crt"]
           ],
           "builds": [
                   "base": "**/blockchain/**/*.",
-                  "types": ["log", "json", "properties", "sql"]
+                  "types": ["log", "json", "properties", "sql", "crt"]
           ]
   ]
 
