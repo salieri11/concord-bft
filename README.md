@@ -210,13 +210,13 @@ blockchain$ docker build persephone/fluentd -f persephone/fluentd/Dockerfile -t 
 
 ### Building Agent via Docker
 
-concord-agent can be built directly in a docker container (note the command
-is run from the same directory as this README, and *not* from the
-`agent` subdirectory):
+concord-agent can be built directly in a docker container (note the docker build
+command is run from the subdirectoy persephone):
 Please note this is just temporary.
 Credentials for pushing to docker-hub are different from regular user.
 
 ```
+blockchain$ cd persephone
 blockchain$ docker build . -f agent/Dockerfile -t vmwblockchain/agent-testing:latest
 ```
 If you want to push to the docker-hub:
