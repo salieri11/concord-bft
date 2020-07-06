@@ -44,12 +44,11 @@ SubmitResult ConcordClientPool::SendRequest(
   if (extReplyBuffer)
     client->setExternalReplyBuffer(extReplyBuffer, extReplySize);
   LOG_INFO(logger_, "client_id=" << client->getClientId()
-                                 << " allocated, insert reqSeqNum="
-                                 << client->getClientSeqNum()
-                                 << " with cid=" << correlation_id
-                                 << " with request size of=" << reply_size
-                                 << " and time out on ms=" << timeout_ms.count()
-                                 << " to the job pool");
+                                 << " starts handling reqSeqNum="
+                                 << client->getClientSeqNum() << " cid="
+                                 << correlation_id << " flags=" << flags
+                                 << " request_size=" << request.size()
+                                 << " timeout_ms=" << timeout_ms.count());
   client->setStartRequestTime();
   auto *job = new ConcordClientProcessingJob(
       *this, client, std::move(request), flags, timeout_ms, reply_size,
@@ -167,7 +166,7 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
     LOG_ERROR(logger_, "Communication module="
                            << config.getValue<std::string>(
                                   config_pool::ClientPoolConfig().COMM_PROTOCOL)
-                           << " on file=" << config_file_path
+                           << " configured in the file=" << config_file_path
                            << " is not supported");
     throw InternalError();
   } catch (config::InvalidConfigurationInputException &e) {
@@ -223,7 +222,7 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   auto num_clients =
       config.getValue<std::uint16_t>(pool_config->NUM_EXTERNAL_CLIENTS);
   clients_gauge_.Set(num_clients);
-  LOG_INFO(logger_, "Creating pool of num_clients=" << num_clients);
+  LOG_INFO(logger_, "Creating pool: num_clients=" << num_clients);
   auto f_val = config.getValue<uint16_t>(pool_config->F_VAL);
   auto c_val = config.getValue<uint16_t>(pool_config->C_VAL);
   auto max_buf_size =
@@ -297,9 +296,10 @@ void ConcordClientPool::InsertClientToQueue(
     clients_.push_back(client);
   }
   Done(seq_num, correlation_id, reply_size);
-  LOG_INFO(logger_, "reqSeqNum=" << seq_num << "with cid=" << correlation_id
-                                 << "has ended.returns client_id="
-                                 << client->getClientId() << " to the pool");
+  LOG_INFO(logger_, "client_id=" << client->getClientId()
+                                 << " has completed handling reqSeqNum="
+                                 << seq_num << " cid=" << correlation_id
+                                 << " reply_size=" << reply_size);
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   last_request_time_gauge_.Set(
       std::chrono::duration_cast<std::chrono::milliseconds>(
