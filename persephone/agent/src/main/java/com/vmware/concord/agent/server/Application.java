@@ -10,11 +10,13 @@ import java.nio.file.Path;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 
 import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
-import com.vmware.concord.agent.services.AgentDockerClient;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +26,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @SpringBootApplication
 @Slf4j
+@ComponentScan({"com.vmware.concord.agent.*"})
 public class Application {
+
+    static ConcordAgentConfiguration configuration;
 
     /**
      * Main - Entry into SpringBoot application.
@@ -40,14 +45,11 @@ public class Application {
             JsonFormat.parser().ignoringUnknownFields().merge(Files.readString(Path.of(configUri)),
                                                               builder);
 
-            ConcordAgentConfiguration configuration = builder.build();
+            Application.configuration = builder.build();
 
             // Setup process-level proxy before starting main agent machinery.
             configureNetworkProxyConfiguration(configuration.getOutboundProxyInfo());
 
-            // Create the required configuration files etc for this concord node.
-            AgentDockerClient client = new AgentDockerClient(configuration);
-            client.bootstrapConcord();
             SpringApplication.run(Application.class, args);
         } else {
             throw new RuntimeException("Configuration not provided to agent.");
@@ -69,5 +71,15 @@ public class Application {
             System.setProperty("https.proxyHost", proxy.getHttpsHost());
             System.setProperty("https.proxyPort", String.valueOf(proxy.getHttpsPort()));
         }
+    }
+
+    @Bean
+    public ConcordAgentConfiguration concordAgentConfiguration() {
+        return configuration;
+    }
+
+    @Bean
+    public Endpoint containerRegistry() {
+        return configuration.getContainerRegistry();
     }
 }
