@@ -59,6 +59,7 @@ public class CspAuthenticationInterceptor extends RequestAuthenticationIntercept
     public static class OauthClientCredentials {
         private String clientId;
         private String clientSecret;
+        private String orgId;
     }
 
     /**
@@ -233,13 +234,10 @@ public class CspAuthenticationInterceptor extends RequestAuthenticationIntercept
     private void setAuthToken() {
         String newAuthToken = null;
         try {
-            if (cspCredModel.getCredType() == CspCredTypes.REFRESH_TOKEN) {
-                newAuthToken = cspAuthenticationHelper.fetchAuthTokenFromRefreshToken(cspCredModel.getRefreshToken());
-            } else {
-                newAuthToken = cspAuthenticationHelper.getClientCredentialsGrant(
-                        cspCredModel.getClientCredential().getClientId(),
-                        cspCredModel.getClientCredential().getClientSecret());
-            }
+            newAuthToken = cspAuthenticationHelper.getClientCredentialsGrant(
+                    cspCredModel.getClientCredential().getClientId(),
+                    cspCredModel.getClientCredential().getClientSecret(),
+                    cspCredModel.getClientCredential().getOrgId());
         } catch (Exception e) {
             logger.warn("Exception while generating auth token credType {} csp server {}: {}: {} ",
                     cspCredModel.getCredType(), cspCredModel.getCspUrl(), e.toString(), e.getMessage());

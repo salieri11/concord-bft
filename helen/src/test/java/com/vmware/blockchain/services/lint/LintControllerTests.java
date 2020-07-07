@@ -98,7 +98,7 @@ public class LintControllerTests {
         replica.setBlockchainId(UUID.fromString(BLOCKCHAIN_ID));
         when(replicaService.get(UUID.fromString(REPLICA_ID))).thenReturn(replica);
         when(authHelper.canAccessChain(UUID.fromString(BLOCKCHAIN_ID))).thenReturn(true);
-        when(cspAuthHelper.fetchAuthTokenFromRefreshToken(anyString())).thenReturn("anAuthToken");
+        when(cspAuthHelper.getClientCredentialsGrant(anyString(), anyString(), anyString())).thenReturn("anAuthToken");
         when(authHelper.getOrganizationId()).thenReturn(UUID.fromString(CONSORTIUM_ID));
         when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
             .thenReturn(new ResponseEntity<String>("the answer", HttpStatus.OK));

@@ -45,6 +45,7 @@ public class CspConstants {
     public static final String CSP_OAUTH_TOKEN = CSP_ACCOUNT_MANAGEMENT + "/auth/authorize";
     public static final String CSP_LOGOUT = CSP_ACCOUNT_MANAGEMENT + "/auth/logout";
     public static final String GRANT_TYPE = "grant_type";
+    public static final String ORG_ID = "orgId";
     public static final String CLIENT_CREDENTIALS = "client_credentials";
 
     public static final String CSP_DISCOVERY_PAGE = CSP_COMMON + "/discovery";

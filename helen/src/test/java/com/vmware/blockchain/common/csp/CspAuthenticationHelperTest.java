@@ -69,6 +69,19 @@ public class CspAuthenticationHelperTest {
     }
 
     @Test
+    void testClientCredentialGrant() {
+        //todo: use formdata for good and bad requests
+        server.resetAll();
+        server.stubFor(post(urlEqualTo(CspConstants.CSP_OAUTH_TOKEN))
+                .willReturn(
+                        aResponse().withHeader("Content-Type", "application/json")
+                                .withBody(goodResponse).withStatus(200)));
+        CspAuthenticationHelper helper = new CspAuthenticationHelper(cspUrl);
+        String token = helper.getClientCredentialsGrant("client_id", "client_secret", "org_id");
+        Assertions.assertEquals("access-token", token);
+    }
+
+    @Test
     void testFail() {
         // always fail
         server.resetAll();

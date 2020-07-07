@@ -92,11 +92,11 @@ public class CspApiClientBuilder {
      * @param clientSecret - The client secret.
      * @return this builder.
      */
-    public CspApiClientBuilder withClientCredentialsAuth(String clientId, String clientSecret) {
+    public CspApiClientBuilder withClientCredentialsAuth(String clientId, String clientSecret, String orgId) {
         this.clientCredentialsAuthProvider =
                 new CspAuthenticationInterceptor(
                         cspBaseUrl,
-                        new CspAuthenticationInterceptor.OauthClientCredentials(clientId, clientSecret),
+                        new CspAuthenticationInterceptor.OauthClientCredentials(clientId, clientSecret, orgId),
                         ImmutableList.of(new UriTemplate(CSP_LOGIN_API),
                                          new UriTemplate(CSP_LOGIN_API_KEY)));
         return this;
