@@ -19,7 +19,7 @@ resolvers in Global ++=
 
 lazy val commonSettings = Seq()
 
-lazy val damlProtos = (project in file("protos"))
+lazy val damlAndConcordProtos = (project in file("protos"))
   .settings(
     commonSettings,
     libraryDependencies ++=
@@ -27,23 +27,9 @@ lazy val damlProtos = (project in file("protos"))
     PB.protoSources in Compile := Seq(
       target.value / "protobuf_external" / "protobuf",
       baseDirectory.value / "../../concord/proto",
-    ),
-    includeFilter in PB.generate := "daml*.proto",
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value
-    ),
-  )
-
-lazy val concordProtos = (project in file("concord-protos"))
-  .settings(
-    commonSettings,
-    libraryDependencies ++=
-      Seq(protobuf, scalapb_runtime, scalapb_runtime_grpc),
-    PB.protoSources in Compile := Seq(
-      target.value / "protobuf_external" / "protobuf",
       baseDirectory.value / "../../communication/src/main/proto",
     ),
-    includeFilter in PB.generate := "concord.proto",
+    includeFilter in PB.generate := "daml*.proto" || "concord.proto",
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
     ),
@@ -79,7 +65,7 @@ lazy val common = (project in file("common"))
       protobuf,
     ),
   )
-  .dependsOn(damlProtos)
+  .dependsOn(damlAndConcordProtos)
 
 lazy val execution_engine = (project in file("execution-engine"))
   .enablePlugins(JavaAppPackaging)
@@ -124,7 +110,7 @@ lazy val execution_engine = (project in file("execution-engine"))
       "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
     ),
   )
-  .dependsOn(damlProtos, common)
+  .dependsOn(damlAndConcordProtos, common)
 
 lazy val write_service = (project in file("write-service"))
   .settings(
@@ -161,7 +147,7 @@ lazy val write_service = (project in file("write-service"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
     ),
   )
-  .dependsOn(damlProtos, concordProtos, common, trc_core, bft_client_core)
+  .dependsOn(damlAndConcordProtos, common, trc_core, bft_client_core)
 
 lazy val ledger_api_server = (project in file("ledger-api-server"))
   .enablePlugins(JavaAppPackaging)

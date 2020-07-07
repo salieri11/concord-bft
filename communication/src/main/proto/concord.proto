@@ -283,17 +283,19 @@ message PeerResponse {
 }
 
 message PreExecutionResult {
-   optional int64 read_set_version = 1;
-   optional ReadSet read_set = 2;
-   optional WriteSet write_set = 3;
-   optional string request_correlation_id = 4;
-   optional google.protobuf.Timestamp max_record_time = 5;
-   optional WriteSet conflict_write_set = 6;
-   optional WriteSet timeout_write_set = 7;
+   optional ReadSet read_set = 1;
+   // Pre-execution output to be passed to post-execution
+   optional bytes output = 2;
+   optional string request_correlation_id = 3;
+}
+
+message KeyAndFingerprint {
+  required bytes key = 1;
+  required bytes fingerprint = 2;
 }
 
 message ReadSet {
-   repeated bytes keys = 1;
+   repeated KeyAndFingerprint keys_with_fingerprints = 1;
 }
 
 message WriteSet {
