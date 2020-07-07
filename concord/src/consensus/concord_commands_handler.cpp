@@ -315,24 +315,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::PreExecutionResult &pre_execution_result)
     const {
-  const auto &read_set = pre_execution_result.read_set();
-
-  const uint read_set_version = pre_execution_result.read_set_version();
-  const BlockId current_block_id = storage_.getLastBlock();
-
-  // pessimistically assume there is a conflict
-  bool has_conflict = true;
-
-  // check read set for conflicts
-  for (const auto &k : read_set.keys()) {
-    const Sliver key{std::string{k}};
-    storage_.mayHaveConflictBetween(key, read_set_version + 1, current_block_id,
-                                    has_conflict);
-    if (has_conflict) {
-      return true;
-    }
-  }
-
   return false;
 }
 

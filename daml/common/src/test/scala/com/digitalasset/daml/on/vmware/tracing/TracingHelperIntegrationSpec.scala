@@ -99,5 +99,8 @@ class TracingHelperIntegrationSpec
 
       override def bindService(): ServerServiceDefinition =
         ValidationServiceGrpc.bindService(this, executionContext)
+
+      override def preexecute(responseObserver: StreamObserver[PreprocessorFromEngine])
+        : StreamObserver[PreprocessorToEngine] = ???
     }
 }

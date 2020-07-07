@@ -137,15 +137,6 @@ class DamlKvbCommandsHandler
       opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
-  void BuildWriteSetsFromUpdates(
-      const kvbc::SetOfKeyValuePairs& updates,
-      const kvbc::SetOfKeyValuePairs& timeout_updates,
-      const kvbc::SetOfKeyValuePairs& conflict_updates,
-      com::vmware::concord::PreExecutionResult* result) const;
-
-  std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime(
-      com::vmware::concord::PreExecutionResult pre_execution_result);
-
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);
 };

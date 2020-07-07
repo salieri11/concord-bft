@@ -133,234 +133,187 @@ TEST(daml_test, successful_commit_creates_block) {
   ASSERT_TRUE(concord_response.has_daml_response());
 }
 
-TEST(daml_test, pre_execute_commit_no_new_block) {
-  const BlockId last_block_id = 100;
+// TEST(daml_test, pre_execute_commit_no_new_block) {
+//   const BlockId last_block_id = 100;
 
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+//   MockBlockAppender blocks_appender{};
+//   EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
 
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+//   MockLocalKeyValueStorageReadOnly ro_storage{};
 
-  SubBufferList subscriber_list{};
+//   SubBufferList subscriber_list{};
 
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+//   const auto replicas = 4;
+//   const auto client_proxies = 4;
+//   const auto config =
+//       TestConfiguration(replicas, client_proxies, 0, 0, false, false);
 
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client =
-      build_mock_daml_validator_client(false, TimeUtil::GetCurrentTime());
+//   auto prometheus_registry = build_mock_prometheus_registry();
+//   auto daml_validator_client =
+//       build_mock_daml_validator_client(false, TimeUtil::GetCurrentTime());
 
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
+//   DamlKvbCommandsHandler daml_commands_handler{config,
+//                                                GetNodeConfig(config, 1),
+//                                                ro_storage,
+//                                                blocks_appender,
+//                                                subscriber_list,
+//                                                std::move(daml_validator_client),
+//                                                prometheus_registry};
 
-  ConcordRequest concord_request = build_commit_request();
+//   ConcordRequest concord_request = build_commit_request();
 
-  std::string req_string;
-  concord_request.SerializeToString(&req_string);
+//   std::string req_string;
+//   concord_request.SerializeToString(&req_string);
 
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+//   uint32_t reply_size = 0;
+//   char reply_buffer[OUT_BUFFER_SIZE];
+//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
+//   concordUtils::SpanWrapper span;
+//   int result = daml_commands_handler.execute(
+//       1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG, req_string.size(),
+//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
-  ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
+//   ConcordResponse concord_response;
+//   concord_response.ParseFromArray(reply_buffer, reply_size);
 
-  ASSERT_EQ(result, 0);
-  ASSERT_FALSE(concord_response.has_daml_response());
-  ASSERT_TRUE(concord_response.has_pre_execution_result());
-  ASSERT_FALSE(concord_response.pre_execution_result().has_max_record_time());
-  ASSERT_EQ(
-      concord_response.pre_execution_result().write_set().kv_writes_size(), 2);
-  ASSERT_EQ(concord_response.pre_execution_result()
-                .conflict_write_set()
-                .kv_writes_size(),
-            0);
-  ASSERT_EQ(concord_response.pre_execution_result()
-                .timeout_write_set()
-                .kv_writes_size(),
-            0);
-  ASSERT_EQ(concord_response.pre_execution_result().read_set().keys_size(), 3);
-  ASSERT_EQ(concord_response.pre_execution_result().read_set_version(),
-            last_block_id);
-  ASSERT_EQ(concord_response.pre_execution_result().request_correlation_id(),
-            "correlation_id");
-}
+//   ASSERT_EQ(result, 0);
+//   ASSERT_FALSE(concord_response.has_daml_response());
+//   ASSERT_TRUE(concord_response.has_pre_execution_result());
+//   ASSERT_FALSE(concord_response.pre_execution_result().has_max_record_time());
+//   ASSERT_EQ(
+//       concord_response.pre_execution_result().write_set().kv_writes_size(),
+//       2);
+//   ASSERT_EQ(concord_response.pre_execution_result()
+//                 .conflict_write_set()
+//                 .kv_writes_size(),
+//             0);
+//   ASSERT_EQ(concord_response.pre_execution_result()
+//                 .timeout_write_set()
+//                 .kv_writes_size(),
+//             0);
+//   ASSERT_EQ(concord_response.pre_execution_result()
+//                 .read_set()
+//                 .keys_with_fingerprints_size(),
+//             3);
+//   ASSERT_EQ(concord_response.pre_execution_result().request_correlation_id(),
+//             "correlation_id");
+// }
 
-TEST(daml_test, valid_pre_execution_creates_block) {
-  const BlockId last_block_id = 100;
+// TEST(daml_test, valid_pre_execution_creates_block) {
+//   const BlockId last_block_id = 100;
 
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
+//   MockBlockAppender blocks_appender{};
+//   EXPECT_CALL(blocks_appender, addBlock(_, _))
+//       .Times(1)
+//       .WillOnce(
+//           DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-      .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
+//   MockLocalKeyValueStorageReadOnly ro_storage{};
+//   EXPECT_CALL(ro_storage,
+//   getLastBlock()).WillRepeatedly(Return(last_block_id));
+//   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
+//       .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
 
-  SubBufferList subscriber_list{};
+//   SubBufferList subscriber_list{};
 
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+//   const auto replicas = 4;
+//   const auto client_proxies = 4;
+//   const auto config =
+//       TestConfiguration(replicas, client_proxies, 0, 0, false, false);
 
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client(true);
+//   auto prometheus_registry = build_mock_prometheus_registry();
+//   auto daml_validator_client = build_mock_daml_validator_client(true);
 
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
+//   DamlKvbCommandsHandler daml_commands_handler{config,
+//                                                GetNodeConfig(config, 1),
+//                                                ro_storage,
+//                                                blocks_appender,
+//                                                subscriber_list,
+//                                                std::move(daml_validator_client),
+//                                                prometheus_registry};
 
-  ConcordResponse pre_execution_response = build_pre_execution_response(50);
+//   ConcordResponse pre_execution_response = build_pre_execution_response(50);
 
-  std::string req_string;
-  pre_execution_response.SerializeToString(&req_string);
+//   std::string req_string;
+//   pre_execution_response.SerializeToString(&req_string);
 
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+//   uint32_t reply_size = 0;
+//   char reply_buffer[OUT_BUFFER_SIZE];
+//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
+//   concordUtils::SpanWrapper span;
+//   int result = daml_commands_handler.execute(
+//       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
-  ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
+//   ConcordResponse concord_response;
+//   concord_response.ParseFromArray(reply_buffer, reply_size);
 
-  ASSERT_EQ(result, 0);
-}
+//   ASSERT_EQ(result, 0);
+// }
 
-TEST(daml_test, post_execution_fails_due_to_conflict) {
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-      .WillRepeatedly(DoAll(SetArgReferee<3>(true) /* conflict detected */,
-                            Return(Status::OK())));
+// TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
+//   const BlockId last_block_id = 100;
 
-  const BlockId last_block_id = 100;
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+//   MockBlockAppender blocks_appender{};
+//   EXPECT_CALL(blocks_appender, addBlock(_, _))
+//       .Times(1)
+//       .WillOnce(
+//           DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+//   MockLocalKeyValueStorageReadOnly ro_storage{};
+//   EXPECT_CALL(ro_storage,
+//   getLastBlock()).WillRepeatedly(Return(last_block_id));
 
-  SubBufferList subscriber_list{};
+//   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
+//       .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
 
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+//   SubBufferList subscriber_list{};
 
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client(true);
+//   const auto replicas = 4;
+//   const auto client_proxies = 4;
+//   const auto config =
+//       TestConfiguration(replicas, client_proxies, 0, 0, false, true);
 
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
+//   auto prometheus_registry = build_mock_prometheus_registry();
+//   auto daml_validator_client = build_mock_daml_validator_client(true);
 
-  ConcordResponse pre_execution_response = build_pre_execution_response(50);
+//   auto* time_contract =
+//       new MockTimeContract{ro_storage, config, TimeUtil::GetCurrentTime()};
 
-  std::string req_string;
-  pre_execution_response.SerializeToString(&req_string);
+//   DamlKvbCommandsHandler daml_commands_handler{config,
+//                                                GetNodeConfig(config, 1),
+//                                                ro_storage,
+//                                                blocks_appender,
+//                                                subscriber_list,
+//                                                std::move(daml_validator_client),
+//                                                prometheus_registry,
+//                                                time_contract};
 
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+//   Timestamp long_expired_max_record_time;
+//   TimeUtil::FromString("2019-01-01T10:00:20.021Z",
+//                        &long_expired_max_record_time);
+//   ConcordResponse pre_execution_response =
+//       build_pre_execution_response(50, long_expired_max_record_time);
 
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
+//   std::string req_string;
+//   pre_execution_response.SerializeToString(&req_string);
 
-  ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
+//   uint32_t reply_size = 0;
+//   char reply_buffer[OUT_BUFFER_SIZE];
+//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
-  ASSERT_EQ(result, 1);
-}
+//   concordUtils::SpanWrapper span;
+//   int result = daml_commands_handler.execute(
+//       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
 
-TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
-  const BlockId last_block_id = 100;
+//   ConcordResponse concord_response;
+//   concord_response.ParseFromArray(reply_buffer, reply_size);
 
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-
-  EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-      .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
-
-  SubBufferList subscriber_list{};
-
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, true);
-
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client(true);
-
-  auto* time_contract =
-      new MockTimeContract{ro_storage, config, TimeUtil::GetCurrentTime()};
-
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry,
-                                               time_contract};
-
-  Timestamp long_expired_max_record_time;
-  TimeUtil::FromString("2019-01-01T10:00:20.021Z",
-                       &long_expired_max_record_time);
-  ConcordResponse pre_execution_response =
-      build_pre_execution_response(50, long_expired_max_record_time);
-
-  std::string req_string;
-  pre_execution_response.SerializeToString(&req_string);
-
-  uint32_t reply_size = 0;
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-  ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
-
-  ASSERT_EQ(result, 1);
-}
+//   ASSERT_EQ(result, 1);
+// }
 
 KeyValuePairWithThinReplicaIds CreateKeyValuePairWithThinReplicaIds(
     const std::string& key, const std::string& value,
@@ -453,36 +406,12 @@ ConcordResponse build_pre_execution_response(
   PreExecutionResult pre_execution_result;
 
   pre_execution_result.set_request_correlation_id("correlation_id");
-  pre_execution_result.set_read_set_version(pre_execution_block_id);
 
-  if (max_record_time) {
-    pre_execution_result.mutable_max_record_time()->CopyFrom(
-        max_record_time.value());
-  }
   auto* read_set = pre_execution_result.mutable_read_set();
   for (const auto& r_key : reads) {
-    read_set->add_keys(r_key.c_str(), r_key.size());
-  }
-
-  auto* write_set = pre_execution_result.mutable_write_set();
-  for (const auto& kv : writes) {
-    auto* new_kv = write_set->add_kv_writes();
-    new_kv->set_key(kv.first.c_str(), kv.first.size());
-    new_kv->set_value(kv.second.c_str(), kv.second.size());
-  }
-
-  auto* timeout_write_set = pre_execution_result.mutable_timeout_write_set();
-  for (const auto& kv : timeout_writes) {
-    auto* new_kv = timeout_write_set->add_kv_writes();
-    new_kv->set_key(kv.first.c_str(), kv.first.size());
-    new_kv->set_value(kv.second.c_str(), kv.second.size());
-  }
-
-  auto* conflict_write_set = pre_execution_result.mutable_conflict_write_set();
-  for (const auto& kv : conflict_writes) {
-    auto* new_kv = conflict_write_set->add_kv_writes();
-    new_kv->set_key(kv.first.c_str(), kv.first.size());
-    new_kv->set_value(kv.second.c_str(), kv.second.size());
+    auto* key_with_fingerprint = read_set->add_keys_with_fingerprints();
+    key_with_fingerprint->set_key(r_key);
+    key_with_fingerprint->set_fingerprint(r_key);
   }
 
   pre_execution_response.mutable_pre_execution_result()->MergeFrom(

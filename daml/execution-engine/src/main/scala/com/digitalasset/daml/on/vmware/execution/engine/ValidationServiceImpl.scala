@@ -50,11 +50,14 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
     pipelinedValidator.validateSubmissions(responseObserver)
 
+  override def preexecute(responseObserver: StreamObserver[PreprocessorFromEngine])
+    : StreamObserver[PreprocessorToEngine] =
+    throw new NotImplementedError("Pre-execution is not yet supported")
+
   override def currentHealth(): HealthStatus = Healthy
 
   override def bindService(): ServerServiceDefinition =
     ValidationServiceGrpc.bindService(this, materializer.executionContext)
-
 }
 
 private[engine] object ValidationServiceImpl {
