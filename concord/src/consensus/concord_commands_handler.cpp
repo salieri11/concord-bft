@@ -110,7 +110,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   if ((!has_pre_executed &&
        request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
-       parseFromPreExecutionResponse(request_buffer, request_size, request))) {
+       parseFromPreExecutionResponse(request_buffer, request_size, request)) ||
+      (has_pre_executed &&
+       request.ParseFromArray(request_buffer, request_size))) {
     if (parent_span) {
       const auto &ctx = parent_span.impl()->context();
       execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});

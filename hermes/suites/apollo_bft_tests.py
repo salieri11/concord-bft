@@ -39,6 +39,7 @@ from test_skvbc_fast_path import SkvbcFastPathTest
 from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 from test_skvbc_checkpoints import SkvbcCheckpointTest
+from test_skvbc_preexecution import SkvbcPreExecutionTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 from suites.case import describe
@@ -170,6 +171,40 @@ async def _test_skvbc_checkpoint_creation(bft_network):
         already_in_trio=True
     )
     log.info("SKVBC checkpoint creation: OK.")
+
+
+@describe()
+def test_skvbc_preexecution_sequential(fxProduct, bft_network):
+    trio.run(_test_skvbc_preexecution_sequential, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_preexecution_sequential(bft_network):
+    skvbc_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC sequential pre-execution test...")
+    await skvbc_test.test_sequential_pre_process_requests(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC sequential pre-execution: OK.")
+
+
+@describe()
+def test_skvbc_preexecution_concurrent(fxProduct, bft_network):
+    trio.run(_test_skvbc_preexecution_concurrent, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_preexecution_concurrent(bft_network):
+    skvbc_preexecution_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC concurrent pre-execution test...")
+    await skvbc_preexecution_test.test_concurrent_pre_process_requests(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC concurrent pre-execution: OK.")
 
 
 @describe()
