@@ -1688,9 +1688,9 @@ def parseReplicasConfig(replicas):
         result[nodeType].append(nodeInfo)
       elif "ip" in nodeInfo:
         result[nodeType].append(nodeInfo["ip"])
-      elif "public_ip" in nodeInfo:
+      elif "public_ip" in nodeInfo and nodeInfo["public_ip"] is not None:
         result[nodeType].append(nodeInfo["public_ip"])
-      elif "private_ip" in nodeInfo:
+      elif "private_ip" in nodeInfo and nodeInfo["private_ip"] is not None:
         result[nodeType].append(nodeInfo["private_ip"])
   return result
 
