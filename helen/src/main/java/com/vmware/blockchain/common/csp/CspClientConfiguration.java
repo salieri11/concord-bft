@@ -41,6 +41,9 @@ public class CspClientConfiguration {
     @Value("${vmbc.service.client.secret:vmbc-secret}")
     private String clientSecret;
 
+    @Value("${vmbc.service.org.id}")
+    private String orgId;
+
     @Value("${csp.api.logging.level:URL_STATUS}")
     private LoggingInterceptor.ApiLogLevel logLevel;
 
@@ -54,6 +57,7 @@ public class CspClientConfiguration {
         CspApiClientBuilder builder;
         builder = new CspApiClientBuilder(cspUrl);
 
+        // TODO: We will probably get rid of this part
         if (StringUtils.isNotBlank(cspServiceRefreshToken)) {
             logger.info("Creating CSP API client at {} with refresh token defined by property {}",
                     cspUrl, "vmbc.csp.service.user.refresh.token");
@@ -63,9 +67,9 @@ public class CspClientConfiguration {
         //Set the LogLevel for CSP API request/response Logging.
         builder.enableLogging(logLevel);
 
-        if (StringUtils.isNoneBlank(clientId, clientSecret)) {
+        if (StringUtils.isNoneBlank(clientId, clientSecret, orgId)) {
             logger.info("Creating CSP API client with client_credentials auth at {} ", cspUrl);
-            builder.withClientCredentialsAuth(clientId, clientSecret);
+            builder.withClientCredentialsAuth(clientId, clientSecret, orgId);
         }
 
         return builder.enableRetry(10, 120, TimeUnit.SECONDS).build();

@@ -172,7 +172,6 @@ public class ZoneController {
         private String name;
         private String latitude;
         private String longitude;
-        @NotNull(message = "Type cannot be blank")
         private Type type;
     }
 

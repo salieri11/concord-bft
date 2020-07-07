@@ -8,6 +8,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.vmware.blockchain.common.csp.CspConstants.CLIENT_CREDENTIALS;
 import static com.vmware.blockchain.common.csp.CspConstants.CSP_OAUTH_TOKEN;
 import static com.vmware.blockchain.common.csp.CspConstants.GRANT_TYPE;
+import static com.vmware.blockchain.common.csp.CspConstants.ORG_ID;
+
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -187,7 +189,7 @@ public class CspAuthenticationHelper {
      * @param clientSecret - the secret.
      * @return The client credentials auth token.
      */
-    public String getClientCredentialsGrant(String clientId, String clientSecret) {
+    public String getClientCredentialsGrant(String clientId, String clientSecret, String orgId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         Charset charset = Charset.defaultCharset();
@@ -196,14 +198,12 @@ public class CspAuthenticationHelper {
         headers.add("Authorization", "Basic " + new String(clientBasicAuth, charset));
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add(GRANT_TYPE, CLIENT_CREDENTIALS);
+        formData.add(ORG_ID, orgId);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(formData, headers);
 
         ResponseEntity<CspAuthorizeResponse> cspLoginResponseResponseEntity =
                 restTemplate
                         .exchange(CSP_OAUTH_TOKEN, HttpMethod.POST, request, CspAuthorizeResponse.class);
         return cspLoginResponseResponseEntity.getBody().getCspAuthToken();
-
     }
-
-
 }
