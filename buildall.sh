@@ -218,11 +218,6 @@ persephone() {
     docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag} --build-arg "concord_repo=${concord_repo}" --build-arg "concord_tag=${concord_tag}"
 }
 
-cockroachDB() {
-    info "Build cockroachDB..."
-    docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
-}
-
 reverse-proxy() {
     info "Build reverse-proxy..."
     docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"

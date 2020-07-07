@@ -19,11 +19,6 @@ be useful for debugging.
 [Solidity compiler](https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html)
 Install solidity compiler (`solc`) with version >= 0.5.2
 
-[CockroachDB](https://www.cockroachlabs.com/docs/stable/install-cockroachdb.html)
-Install cockroachDB on the same machine as helen. A simple
-configuration guide for CockroachDB is provided in
-`cockroachdb_setup.md`.
-
 [Protocol Buffers v2.x](https://developers.google.com/protocol-buffers/docs/proto)
 
 
@@ -51,13 +46,6 @@ Helen depends on the the communication module, so you should have built
 ### Building and Running Helen
 
  * [Run Concord](../concord).
-
- * Setup CockroachDB
-
-```
-cockroach user set helen_admin --insecure
-cockroach sql --insecure < src/main/resources/database/schema.sql
-```
 
  * Install dependencies and build using maven.
 
