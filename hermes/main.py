@@ -452,6 +452,8 @@ def createTestSuite(args, suiteName, product):
        return pytest_suite.PytestSuite(args, "suites/helen/zone_test.py", product)
    elif (suiteName == "HelenRoleTests"):
       return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
+   elif (suiteName == "NodeInterruptionTests"):
+      return pytest_suite.PytestSuite(args, "suites/node_interruption_tests.py", product)
    elif (suiteName == "EthJsonRpcTests"):
       return eth_json_rpc_tests.EthJsonRpcTests(args, product)
    elif (suiteName == "EthRegressionTests"):

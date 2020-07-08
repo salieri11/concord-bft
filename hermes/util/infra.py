@@ -28,13 +28,13 @@ DEPLOYED_REPLICAS = []
 def credentialsAreGood(sddcName, sddcInfo):
    c = sddcInfo
    if not c["username"] or not c["password"]: 
-      log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
+      log.error("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
       return False
    if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
+      log.error("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
       return False
    if c["password"].startswith("<") and c["password"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
+      log.error("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
       return False
    return True
 
@@ -287,3 +287,23 @@ def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
         for vmHandle in vmHandles:
           vms.append(vmHandle)
   return resultMap if mapBySDDC else vms
+
+
+def fetch_vm_handles(ips):
+   '''
+   Fetch vm handles for the supplied IPs
+   :param ips: list of ips
+   :return: vm handles
+   '''
+   log.info("Fetching vm handles...")
+   vm_handles = {}
+   for ip in ips:
+      vm_handle = findVMByInternalIP(ip)
+      if vm_handle:
+         vm_handles[ip] = vm_handle
+      else:
+         log.warning("Unable to fetch VM handle for IP: {}".format(ip))
+         vm_handles[ip] = None
+
+   return vm_handles
+

@@ -159,7 +159,7 @@ def extract_dars(jar):
    return dars
 
 
-def download_ledger_api_test_tool(host):
+def download_ledger_api_test_tool(host, verbose=True):
    '''
    Downloads the ledger api test tool jar and returns:
    - The path to the jar.
@@ -181,7 +181,7 @@ def download_ledger_api_test_tool(host):
       while num_attempts < max_attempts and \
             not _ledger_api_test_tool_path:
          num_attempts += 1
-         log.info("Downloading ledger api test tool, attempt {} of {}".format(num_attempts, max_attempts))
+         if verbose: log.info("Downloading ledger api test tool, attempt {} of {}".format(num_attempts, max_attempts))
          result, output = helper.execute_ext_command(cmd, False)
 
          if result:
@@ -210,21 +210,21 @@ def download_ledger_api_test_tool(host):
    return _ledger_api_test_tool_path, _ledger_api_dars
 
 
-def upload_test_tool_dars(host='localhost', port='6861'):
+def upload_test_tool_dars(host='localhost', port='6861', verbose=True):
    '''
    Helper method to upload test tool dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
-   dars = download_ledger_api_test_tool(host)[1]
-   log.info("Upload DAR files...")
+   dars = download_ledger_api_test_tool(host, verbose=verbose)[1]
+   if verbose: log.info("Upload DAR files...")
 
    for test_dar in dars:
       dar_uploaded = False
       max_retry_attempts = 3
 
       for i in range(0, max_retry_attempts):
-         log.info("  {} (attempt {}/{})...".format(test_dar, i+1, max_retry_attempts))
+         if verbose: log.info("  {} (attempt {}/{})...".format(test_dar, i+1, max_retry_attempts))
 
          try:
             dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=test_dar)
@@ -236,14 +236,14 @@ def upload_test_tool_dars(host='localhost', port='6861'):
             break
          except Exception as e:
             if i != max_retry_attempts-1:
-               log.info("Retrying in 30 seconds...")
+               if verbose: log.info("Retrying in 30 seconds...")
                time.sleep(30)
             else:
                log.error("Failed to upload test DAR " + test_dar)
                raise
 
 
-def get_list_of_tests(host, run_all_tests=False):
+def get_list_of_tests(host, run_all_tests=False, verbose=True):
    '''
    Helper method to list all the tests from test tool.jar
    :param run_all_tests: False to run only default set  of tests.
@@ -271,48 +271,48 @@ def get_list_of_tests(host, run_all_tests=False):
    if len(tests) == 0:
       raise Exception("No whitelisted DAML tests fetched.  Output from getting tests: '{}'".format(output))
    else:
-      log.info("List of tests: {}".format(tests))
+      if verbose: log.info("List of tests: {}".format(tests))
 
    return tests
 
 def verify_ledger_api_test_tool(host='localhost', port='6861',
-                                 run_all_tests=False, results_dir=None):
+                                 run_all_tests=False, results_dir=None, verbose=True):
    '''
    Helper method to perform sanity check with uploaded dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
-   log.info("Performing DAML sanity checks...")
+   if verbose: log.info("Performing DAML sanity checks...")
 
    if results_dir:
       results_sub_dir = helper.create_results_sub_dir(results_dir, host)
 
    overall_test_status = None
-   for test in get_list_of_tests(host, run_all_tests=run_all_tests):
+   for test in get_list_of_tests(host, run_all_tests=run_all_tests, verbose=verbose):
       cmd = ["java", "-jar", download_ledger_api_test_tool(host)[0],
              "--include", test,
              "--timeout-scale-factor", "20",
              "--no-wait-for-parties",
              "--concurrent-test-runs", "1",
              "{}:{}".format(host, port)]
-      log.info("")
-      log.info("#### Run test '{}'... ####".format(test))
+      if verbose: log.info("")
+      if verbose: log.info("#### Run test '{}'... ####".format(test))
       log.debug("Command: {}".format(cmd))
 
-      status, output = helper.execute_ext_command(cmd, timeout=360)
+      status, output = helper.execute_ext_command(cmd, verbose=verbose, timeout=360)
 
       if results_dir:
          file_prefix = "pass" if status else "fail"
          log_file = os.path.join(results_sub_dir,
                                  "{}_{}.log".format(file_prefix, test))
-         log.info("**** test log file: {}".format(log_file))
+         if verbose: log.info("**** test log file: {}".format(log_file))
          with open(log_file, "w") as fp:
             fp.write(output)
 
       if status:
-         log.info("Test '{}' passed.".format(test))
+         if verbose: log.info("Test '{}' passed.".format(test))
       else:
-         log.info("Test '{}' failed.".format(test))
+         if verbose: log.info("Test '{}' failed.".format(test))
          log.error(output)
          overall_test_status = False
          continue
