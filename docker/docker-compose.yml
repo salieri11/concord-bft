@@ -204,4 +204,4 @@ services:
     ports:
       - 9002:9002
     volumes:
-      - ../heremes/resources/persephone:/config:ro
+      - ../config-persephone:/config:ro
