@@ -34,6 +34,7 @@ public abstract class RequestAuthenticationInterceptor implements ClientHttpRequ
         if (authRetryErrorCode(response.getStatusCode())) {
             refreshCredential();
             request.getHeaders().addAll(getAuthHeaders());
+            response.close(); // prevent leak
             response = execution.execute(request, body);
         }
         return response;
