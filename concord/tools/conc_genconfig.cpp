@@ -32,7 +32,7 @@ namespace po = boost::program_options;
 
 void defineOptionsSpec(string& inputFilename, string& outputPrefix,
                        string& nodeMapFilename, bool& clientFlag,
-                       options_description& optionsSpec) {
+                       options_description& optionsSpec, string& confType) {
   // clang-format off
   optionsSpec.add_options()
       ("help,h", "Display help text and exit.")
@@ -59,7 +59,9 @@ void defineOptionsSpec(string& inputFilename, string& outputPrefix,
        "any particular order. This report-principal-locations option is intended "
        "primarily for use by software that automates the deployment of Concord.")
       ("client-conf", po::value<bool>(&clientFlag),
-       " An optional flag that specifies if the current input file is intended for a client configuration.");
+       " An optional flag that specifies if the current input file is intended for a client configuration.")
+      ("configuration-type", po::value<string>(&confType)->default_value("all"),
+       "Which configuration to output.");
 
   // clang-format on
 }
@@ -221,12 +223,13 @@ int main(int argc, char** argv) {
   std::string inputFilename;
   std::string outputPrefix;
   std::string nodeMapFilename;
+  std::string confType;
   bool clientFlag = false;
 
   variables_map optionsInput;
   options_description optionsSpec;
   defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, clientFlag,
-                    optionsSpec);
+                    optionsSpec, confType);
 
   store(command_line_parser(argc, argv).options(optionsSpec).run(),
         optionsInput);
@@ -238,8 +241,23 @@ int main(int argc, char** argv) {
     std::cout << optionsSpec << std::endl;
     return 0;
   }
+
   notify(optionsInput);
-  LOG_INFO(concGenconfigLogger, "conc_genconfig launched.");
+  LOG_INFO(concGenconfigLogger,
+           "conc_genconfig launched. configuration type " << confType);
+
+  bool found = false;
+  for (const auto& t : ConcordConfiguration::CONF_TYPES) {
+    if (t == confType) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    LOG_FATAL(concGenconfigLogger,
+              "Configuration type [" << confType << "] is not valid");
+    return -1;
+  }
 
   if (optionsInput.count("configuration-input") < 1) {
     LOG_FATAL(
@@ -269,6 +287,10 @@ int main(int argc, char** argv) {
     return -1;
   }
   ConcordConfiguration config;
+
+  if (!clientFlag) {
+    config.confType_ = confType;
+  }
   configurationSpec(config, clientFlag);
   if (initiateConfigurationParams(yamlInput, config, clientFlag,
                                   concGenconfigLogger) == -1)
