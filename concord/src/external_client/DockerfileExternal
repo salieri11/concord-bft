@@ -5,9 +5,6 @@
 FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v19
 LABEL Description="External Client Pool"
 
-## Install gtest - patch for backward compatibility until conan is supported
-RUN make -C /googletest/_build install
-
 COPY ./concord /concord
 COPY ./communication/src/main/proto /communication/src/main/proto
 
@@ -105,26 +102,6 @@ COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 
-
-# Go is required because chaincode installation will
-# compile the chaincode source file to binary.
-COPY --from=0 /usr/local/go /usr/local/go
-ENV GOPATH=/concord
-ENV PATH=$PATH:/usr/local/go/bin
-
-# HLF
-# copy peer executable
-# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
-# this peer is for cli calls for sending chaincode commands from c++ concord
-# to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
-# built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
-COPY --from=athena-docker-local.artifactory.eng.vmware.com/fabric-tools:prereqs-v1 /usr/local/bin/peer /concord/
-
-# HLF_HARDCODED_CONFIG
-COPY ./docker/hlf/crypto-config/ /concord/crypto-config
-COPY ./docker/hlf/core.yaml /concord
-# _HLF_HARDCODED_CONFIG
-
 # evmjit is statically compiled, so we don't need to copy
 
 COPY --from=0 /usr/local/lib/librelic.so /usr/local/lib/
@@ -150,8 +127,12 @@ RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
 
-COPY --from=0 /concord /concord
-COPY --from=0 /usr/local/lib/ /usr/local/lib/
+COPY --from=0 /concord/build/src/external_client /concord/build/src/external_client
+COPY --from=0 /usr/local/lib/libconcord_external_client_shared.so /usr/local/lib/libconcord_external_client_shared.so
+COPY --from=0 /usr/local/lib/libconcord_utils_shared.so /usr/local/lib/libconcord_utils_shared.so
+COPY --from=0 /usr/local/lib/libbftclient_shared.so /usr/local/lib/libbftclient_shared.so
+COPY --from=0 /usr/local/lib/libutil_shared.so /usr/local/lib/libutil_shared.so
+COPY --from=0 /usr/local/lib/libbftcommunication_shared.so /usr/local/lib/libbftcommunication_shared.so
 COPY --from=0 /usr/local/include/ /usr/local/include/
 
 # External client pool wrapper
