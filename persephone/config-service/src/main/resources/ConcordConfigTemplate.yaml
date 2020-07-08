@@ -1,6 +1,4 @@
 client_proxies_per_replica: 4
-c_val: 0
-f_val: 2
 daml_enable: false
 FEATURE_time_service: true
 eth_enable: false
