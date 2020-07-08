@@ -1689,7 +1689,10 @@ def thisHermesIsFromJenkins():
 
 
 def hermesNonCriticalTrace(e, message=None):
-  NON_CRITICAL_HERMES_EXCEPTIONS.append({ "error": e, "message": message })
+  NON_CRITICAL_HERMES_EXCEPTIONS.append({ 
+    "error": e, "message": message, "argv":sys.argv,
+    "suite": CURRENT_SUITE_NAME, 
+  })
 
 
 def hermesNonCriticalTraceFinalize():
@@ -1705,8 +1708,10 @@ def hermesNonCriticalTraceFinalize():
         e = item["error"]
         divider = "=" * 128
         exceptionString = divider + "\n"
+        if item["suite"]: exceptionString += "Test Suite: " + item["suite"] + "\n\n"
         if item["message"]: exceptionString += item["message"] + "\n"
         exceptionString += "\n".join(traceback.format_exception(Exception, e, e.__traceback__))
+        exceptionString += "\nCommandline Arguments: " + json.dumps(item["argv"], indent=4, default=str) + "\n"
         exceptionString += divider + "\n\n\n\n"
         allLines.append(exceptionString)
       f.write("\n".join(allLines))
