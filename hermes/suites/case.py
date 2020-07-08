@@ -105,7 +105,7 @@ def getInvocationProxy(testFunc):
       
       pre(*args, **kwargs) # set test case as started
 
-      result = testFunc(*args, **kwargs) # actual test call
+      result = testFunc(*args, **kwargs) # invoke test function; stack trace below if errored.
       
       booleanResult = True if result else False
       if result is None: booleanResult = True # for pytests, no assertion created means success
@@ -217,12 +217,9 @@ def catchFailurePoint(func):
   return wrapper
 
 
-
 def setTestCaseAttributes(func, description, casetype, stackInfo):
   decoratorsList = getDecorators(func)
-  shortCaseName = func.__name__
-  if shortCaseName.startswith("test_"): shortCaseName = shortCaseName[5:]
-  if shortCaseName.startswith("_test_"): shortCaseName = shortCaseName[6:]
+  shortCaseName = getCaseNameShort(func.__name__)
   setattr(func, "_stack", stackInfo)
   setattr(func, "_name", func.__name__)
   setattr(func, "_short_name", shortCaseName)
@@ -247,10 +244,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       if i >= len(args): break
       testArgsMap[argName] = args[i]
       if not argName.startswith("fx"): nofixtureArgsMap[argName] = args[i]
-    testArgsMap.pop("self", None) # self argument is not needed
-    if "fxHermesRunSettings" in testArgsMap:
-      # run settings will be displayed later
-      testArgsMap["fxHermesRunSettings"] = "<HermesRunSettings object>"
+    testArgsMap = filterOutUnnecessaryArguments(testArgsMap)
     testArgsSerial = json.dumps(nofixtureArgsMap, indent=4, default=lambda o: '<NOT_SERIALIZABLE>')
     testArgsSummary = []
     for testArgName in testArgsMap:
@@ -287,6 +281,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     suiteName = func._suite_name if hasattr(func, "_suite_name") else helper.CURRENT_SUITE_NAME
     returnCodeLine = failurePointInfo["line"].strip()
     caseName = func.__name__
+    caseNameShort = getCaseNameShort(caseName)
     suiteAndCase = suiteName + '::' + caseName
     if hasattr(func, "_dynamic_report_override"): # implies multiple calls to single test function
       # For varying arguments like `EthCoreVMTests`, since there are multiple cases
@@ -315,13 +310,27 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     else:
       stackTrace = "".join(stackTraceList)
 
-    failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n".format(
+    cmdlineArgsCopy = json.loads(json.dumps(helper.CMDLINE_ARGS, indent=4, default=str))
+    if "userConfig" in cmdlineArgsCopy: del cmdlineArgsCopy["userConfig"] # displayed separately
+    if "zoneConfig" in cmdlineArgsCopy: del cmdlineArgsCopy["zoneConfig"] # displayed separately
+
+    replicasConfigOutput = ""
+    try: # display replicas config if replicas.json exists
+      repliacasConfigPath = helper.CMDLINE_ARGS["replicasConfig"]
+      replicas = helper.parseReplicasConfig(repliacasConfigPath) # check default path (/tmp/replicas.json)
+      if replicas:
+        replicasConfigOutput = "{}replicasConfigPath = {}\n{}\n\n\n".format(
+          "============================================= Replicas Config ===========================================================\n",
+          repliacasConfigPath, json.dumps(replicas, indent=4, default=str))
+    except Exception as e: pass
+
+    failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}".format(
       "{}{} :: {}\n{}".format(
         "=============================================== Context =================================================================\n",
         helper.CURRENT_SUITE_NAME, func.__name__,
         testLogPath
       ),
-      "{}{}\n\n{}Failed at {}:{} (ID={})\n\n{}{}".format(
+      "{}{}\n\n{}Failed at {}:{}   (Signature={})\n\n{}{}".format(
         "=========================================== Failure Message =============================================================\n",
         errorMessage,
         "=========================================== Failed Function =============================================================\n",
@@ -335,8 +344,17 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       ),
       "{}{}".format(
         "=========================================== Cmdline Arguments ===========================================================\n",
-        json.dumps(helper.CMDLINE_ARGS, indent=4, default=str)
+        json.dumps(cmdlineArgsCopy, indent=4, default=str)
       ),
+      "{}{}".format(
+        "=============================================== User Config =============================================================\n",
+        json.dumps(helper.getUserConfig(), indent=4, default=str)
+      ),
+      "{}{}".format(
+        "=============================================== Zone Config =============================================================\n",
+        json.dumps(helper.getZoneConfig(), indent=4, default=str)
+      ),
+      replicasConfigOutput
     )
 
     failureSummaryJson = {
@@ -347,12 +365,13 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "line": returnCodeLine,
       "suite_name": suiteName,
       "test_name": caseName,
+      "test_name_short": caseNameShort,
       "message": errorMessage,
+      "sig": { "long": longSignature, "short": shortSignature },
       "stack_trace": stackTrace,
       "args": testArgsMap,
       "body": failurePointInfo["body"],
       "log_path": testLogPath,
-      "sig": { "long": longSignature, "short": shortSignature },
       "cmdline_args": helper.CMDLINE_ARGS,
       "user_config": helper.getUserConfig(),
       "zone_config": helper.getZoneConfig(),
@@ -467,6 +486,12 @@ def getDecorators(obj, decoratorsList=None):
   return decoratorsList
 
 
+def getCaseNameShort(caseName):
+  if caseName.startswith("test_"): caseName = caseName[5:]
+  elif caseName.startswith("_test_"): caseName = caseName[6:]
+  return caseName
+
+
 def reportFailedCase(suiteName, caseName, description=None):
   caseId = racetrack.caseStart(suiteName=suiteName, caseName=caseName, description=description)
   racetrack.caseEnd(caseId = caseId, result = "FAIL")
@@ -475,3 +500,16 @@ def reportFailedCase(suiteName, caseName, description=None):
 def reportPassedCase(suiteName, caseName, description=None):
   caseId = racetrack.caseStart(suiteName=suiteName, caseName=caseName, description=description)
   racetrack.caseEnd(caseId = caseId, result = "PASS")
+
+
+def filterOutUnnecessaryArguments(testArgsMap):
+  testArgsMap = json.loads(json.dumps(testArgsMap, default=str)) # copy
+  if "self" in testArgsMap: # self argument is not needed
+    testArgsMap.pop("self", None)
+  # run settings are just too long to display on top; display separately later.
+  if "fxHermesRunSettings" in testArgsMap:
+    testArgsMap["fxHermesRunSettings"] = "<HermesRunSettings object; displayed at the bottom>"
+  if "hermes_settings" in testArgsMap:
+    testArgsMap["hermes_settings"] = "<HermesRunSettings object; displayed at the bottom>"
+  return testArgsMap
+
