@@ -1,0 +1,4 @@
+{
+  "test_suites": ["PersephoneSmokeNew"],
+  "build_targets": []
+}

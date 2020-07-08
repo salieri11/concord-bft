@@ -89,6 +89,11 @@
         "test_suites": [],
         "build_targets": []
     },
+    "persephone/agent": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
     "support": {
         "changed": true,
         "test_suites": [],
