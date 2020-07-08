@@ -41,13 +41,14 @@ class DeploymentParams:
 
 
 @pytest.fixture
-def ps_setup(hermes_settings):
+def ps_setup(request, hermes_settings):
     """
     Sets up provisioning service docker instance
+    :param request: Default Pytest request param
     :param hermes_settings: hermes_settings fixture from conftest.py
     :return: None
     """
-    log.info("Provisioning Service setup fixture")
+    log.info("Provisioning Service setup fixture for {}".format(request.node.name))
 
     # Clear list
     session_ids_to_retain.clear()
@@ -66,22 +67,27 @@ def ps_setup(hermes_settings):
             product = Product(cmdline_args, user_config)
             product.launchPersephone()
     except Exception as e:
-        log.error("Provisioning Service did not start successfully")
+        log.error("Provisioning Service did not start successfully for {}".format(request.node.name))
         log.error(traceback.format_exc())
         raise Exception(e)
 
 
 @pytest.fixture
-def ps_helper(hermes_settings, ps_setup):
+def ps_helper(request, hermes_settings, ps_setup):
     """
     Returns instance of ProvisioningServiceNewRPCHelper
+    :param request: Default Pytest request param
     :param hermes_settings: hermes_settings fixture from conftest.py
     :param ps_setup: Fixture that launches provisioning service. Don't need the results from it, but need to start it.
     :return: Instance of ProvisioningServiceNewRPCHelper
     """
-    log.info("Provisioning Service gRPC Helper fixture")
+    log.info("Provisioning Service gRPC Helper fixture for {}".format(request.node.name))
     args = hermes_settings["cmdline_args"]
-    return ProvisioningServiceNewRPCHelper(args)
+    try:
+        return ProvisioningServiceNewRPCHelper(args)
+    except Exception as e:
+        log.error("Unable to create Provisioning Service gRPC Helper")
+        raise Exception(e)
 
 
 @pytest.fixture
@@ -237,7 +243,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
             persephone_config_file_orig = "{}.orig".format(persephone_config_file)
 
             if mode == "UPDATE":
-                log.info("Updating provisioning service config file to use local config-service ***")
+                log.info("Updating provisioning service config file to use local config-service")
                 log.info("Config file: {}".format(persephone_config_file))
                 log.info("[backup: {}]".format(persephone_config_file_orig))
                 shutil.copy(persephone_config_file, persephone_config_file_orig)
