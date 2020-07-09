@@ -120,7 +120,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
-         log.error(message)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
          return False
 
    def deploy_test_contract(self):
@@ -202,7 +203,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
-         log.error(message)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
          return failed(message)
        
 
@@ -281,13 +283,15 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
-         log.error(message)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
          return failed(message)
 
 
    def _get_tests(self):
       return [("kill_replica", self._test_kill_replica), \
-      ("pause_replica", self._test_pause_replica)]
+              # ("pause_replica", self._test_pause_replica)
+              ]
 
 
    def run(self):
