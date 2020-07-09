@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.blockchains.clients;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -19,11 +20,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.models.NodeGetCredentialsResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,6 +37,7 @@ import lombok.Setter;
  * Controller to create and list clients.
  */
 @RestController
+@RequestMapping(path = "/api/blockchains/{bid}/clients")
 public class ClientController {
     private  static final Logger logger = LogManager.getLogger(ClientController.class);
 
@@ -71,7 +75,7 @@ public class ClientController {
 
         /**
          * Constructor for ClientGetResponse Class.
-         * @param client.
+         * @param client Client.
          */
         public ClientGetResponse(Client client) {
             this.id = client.getId();
@@ -101,7 +105,7 @@ public class ClientController {
     /**
      * Get the list of all participant nodes.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.GET)
+    @RequestMapping(path = "", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isUser()")
     ResponseEntity<List<ClientGetResponse>> listParticipants(@PathVariable("bid") UUID bid) throws NotFoundException {
         Blockchain b = blockchainService.get(bid);
@@ -127,6 +131,32 @@ public class ClientController {
 
         }
         return new ResponseEntity<>(replicaGetResponseList, HttpStatus.OK);
+    }
+
+    /**
+     * Get credentials for a given replica.
+     * @param bid       Blockchain ID
+     * @param clientId  Client ID for which credentials are requested
+     * @return          200 with ClientGetCredentialsResponse
+     */
+    @RequestMapping(method = RequestMethod.GET, path = {"/{clientId}/credentials"})
+    @PreAuthorize("@authHelper.isConsortiumParticipant()")
+    public ResponseEntity<NodeGetCredentialsResponse> getClientCredentials(@PathVariable UUID bid,
+                                                                            @PathVariable UUID clientId) {
+        Blockchain b = blockchainService.get(bid);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
+
+        Optional<Client> clientOpt = clientService.getClientsByBlockchainId(bid).stream()
+                .filter(c -> c.getId().equals(clientId)).findFirst();
+        if (clientOpt.isEmpty()) {
+            throw new NotFoundException(ErrorCode.NOT_FOUND);
+        }
+        Client client = clientOpt.get();
+
+        return new ResponseEntity<>(NodeGetCredentialsResponse.builder()
+                .username("root").password(client.password).build(), HttpStatus.OK);
     }
 
 }

@@ -39,6 +39,7 @@ import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.concord.ConcordService;
+import com.vmware.blockchain.services.models.NodeGetCredentialsResponse;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.tasks.ITaskService;
@@ -280,8 +281,8 @@ public class ReplicaController {
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas/{replicaId}/credentials"})
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<ReplicaGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
-                                                                               @PathVariable UUID replicaId) {
+    public ResponseEntity<NodeGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
+                                                                            @PathVariable UUID replicaId) {
         Blockchain b = blockchainService.get(bid);
         if (b == null) {
             throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
@@ -294,7 +295,7 @@ public class ReplicaController {
         }
         Replica replica = replicaOpt.get();
 
-        return new ResponseEntity<>(ReplicaGetCredentialsResponse.builder()
+        return new ResponseEntity<>(NodeGetCredentialsResponse.builder()
                                         .username("root").password(replica.password).build(), HttpStatus.OK);
     }
 

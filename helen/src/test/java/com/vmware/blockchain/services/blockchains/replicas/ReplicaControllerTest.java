@@ -49,9 +49,9 @@ import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
-import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaGetCredentialsResponse;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaGetResponse;
 import com.vmware.blockchain.services.concord.ConcordService;
+import com.vmware.blockchain.services.models.NodeGetCredentialsResponse;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -218,8 +218,8 @@ class ReplicaControllerTest {
         MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
-        ReplicaGetCredentialsResponse replicaCredentials =
-                objectMapper.readValue(body, new TypeReference<ReplicaGetCredentialsResponse>() {});
+        NodeGetCredentialsResponse replicaCredentials =
+                objectMapper.readValue(body, new TypeReference<NodeGetCredentialsResponse>() {});
         Assertions.assertEquals("root", replicaCredentials.username);
         Assertions.assertEquals(N1Password, replicaCredentials.password);
     }

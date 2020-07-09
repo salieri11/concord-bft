@@ -57,6 +57,7 @@ import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils;
+import com.vmware.blockchain.services.models.NodeGetCredentialsResponse;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -290,5 +291,23 @@ public class ClientControllerTest extends RuntimeException {
                                                                    replicaGetResponse.getId())
                 .collect(Collectors.toList()));
         Assertions.assertEquals(1, res.size());
+    }
+
+    @Test
+    void testGetClientCredentials() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword",
+                "url", "cert", BC_DAML, REPLICA_1_ZONE);
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        NodeGetCredentialsResponse clientCredentials =
+                objectMapper.readValue(body, new TypeReference<NodeGetCredentialsResponse>() {});
+        Assertions.assertEquals("root", clientCredentials.username);
+        Assertions.assertEquals("testPassword", clientCredentials.password);
     }
 }

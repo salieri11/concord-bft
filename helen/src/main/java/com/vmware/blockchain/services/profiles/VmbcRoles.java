@@ -39,4 +39,9 @@ public class VmbcRoles extends BaseRoles {
         return r;
     }
 
+    public String[] consortiumParticipant() {
+        return new String[]{INFRA_ADMIN.getName(), SYSTEM_ADMIN.getName(), CONSORTIUM_ADMIN.getName(),
+                ORG_ADMIN.getName(), CONSORTIUM_PARTICIPANT.getName()};
+    }
+
 }
