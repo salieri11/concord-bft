@@ -83,7 +83,7 @@ export class DetailsComponent implements OnInit {
       for (const zone of zones) { this.zones[zone.id] = zone; }
       this.zonesSet = true;
     });
-    this.nodeService.refreshAllNodesList();
+    this.nodeService.refreshAllNodesList().subscribe();
   }
 
   ngOnInit() {

@@ -243,6 +243,7 @@ export class LoggingComponent implements OnInit {
   }
 
   nodeNames(): string {
+    // @ts-ignore
     return this.selectedNodes.flatMap(obj => obj.name).join(', ');
   }
 

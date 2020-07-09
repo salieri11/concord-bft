@@ -83,6 +83,7 @@ export class LogApiService {
     nodes: any[]
   ) {
     let where = '';
+    // @ts-ignore
     const flatNodes = nodes.flatMap(obj => obj.id);
     // Start our where clause if needed
     if (level.length || service_names.length || search.length || flatNodes.length) {

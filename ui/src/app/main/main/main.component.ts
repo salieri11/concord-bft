@@ -104,7 +104,6 @@ export class MainComponent implements OnInit, OnDestroy {
       this.checkAuthorization();
     }
     this.nodesService.onNodeList.subscribe(_ => { this.setPlatform(); });
-    this.nodesService.refreshAllNodesList();
   }
 
   ngOnInit() {
@@ -170,7 +169,12 @@ export class MainComponent implements OnInit, OnDestroy {
   private handleParams(param: Params): void {
     const blockchainId = param.consortiumId as string;
     // Refresh sidebar
-    this.setPlatform();
+    const $sub = this.nodesService.refreshAllNodesList().subscribe(() => {
+      this.setPlatform();
+      if ($sub) {
+        $sub.unsubscribe();
+      }
+    });
     this.blockchainType = this.blockchainService.type;
 
     // valid uuidv4 resource string

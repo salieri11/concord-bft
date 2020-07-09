@@ -4,6 +4,7 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { curveBasis } from 'd3-shape';
 
 @Component({
   selector: 'concord-log-graph',
@@ -24,11 +25,11 @@ export class LogGraphComponent implements OnInit {
   colorScheme = {
     domain: ['#0094d2']
   };
+  curve: any = curveBasis;
 
   constructor(private translate: TranslateService) { }
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   getStartTimeText(model) {
     if (model) {

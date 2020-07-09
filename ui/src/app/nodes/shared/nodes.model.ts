@@ -30,7 +30,6 @@ export interface NodeInfo {
 
 export interface ClientNode {
   id: string;
-  name: string;
   name_ordinal?: string;
   url: string;
   public_ip: string;

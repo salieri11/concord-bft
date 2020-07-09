@@ -1,6 +1,6 @@
 <div class="chart-container">
   <ngx-charts-area-chart [scheme]="colorScheme" [schemeType]="schemeType" [results]="graphData" [gradient]="gradient"
-    [xAxis]="showXAxis" [xAxisTickFormatting]="xAxisTickFormatting" [yAxis]="showYAxis" [showGridLines]="showGridLines">
+    [xAxis]="showXAxis" [xAxisTickFormatting]="xAxisTickFormatting" [yAxis]="showYAxis" [showGridLines]="showGridLines" [curve]="curve">
     <ng-template #tooltipTemplate let-model="model">
       <div [innerHTML]="'logging.bar.xCalls' | translate:{num: (model.value | number)}"></div>
       <div>{{getStartTimeText(model)}}</div>

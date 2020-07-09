@@ -209,10 +209,10 @@ export class NodesService {
       .pipe(take(1));
   }
 
-  refreshAllNodesList() {
+  refreshAllNodesList(): Observable<any> {
     const committersDataObservable = this.getList();
     const clientsObservable = this.getClients();
-    zip(committersDataObservable, clientsObservable).pipe(
+    return zip(committersDataObservable, clientsObservable).pipe(
       map(r => {
         const committersData = r[0] as CommittersData;
         const clients = r[1];
@@ -262,7 +262,7 @@ export class NodesService {
         });
         this.onNodeList.next(true);
       }),
-    ).subscribe();
+    );
   }
 
   private trimNodeName(prefix: string, node: BlockchainNode, index: number) {
