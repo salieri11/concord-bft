@@ -1601,7 +1601,7 @@ void runTests(){
       env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
                                   "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
       env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
-      env.groupLogFileName = group.length() <= MAX_PATH_SIZE ? group : "group_OtherTests" + ".log"
+      env.groupLogFileName = (group.length() + 4 <= MAX_PATH_SIZE ? group : "group_OtherTests") + ".log"
 
       if (suiteParams.setupFunction){
         setupFunction = suiteParams.setupFunction
