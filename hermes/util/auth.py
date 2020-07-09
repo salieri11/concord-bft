@@ -540,4 +540,5 @@ def retrieveNewAccessToken(org, user, role):
 def get_dockerhub_auth_token(username, password):
    response = requests.post("https://hub.docker.com/v2/users/login/", data={"username": username, "password": password})
    response_obj = json.loads(response.text)
+   log.debug("docker hub login response: {}".format(response_obj))
    return response_obj["token"]
