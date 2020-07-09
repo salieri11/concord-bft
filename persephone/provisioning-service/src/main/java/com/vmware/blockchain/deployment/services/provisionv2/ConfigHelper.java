@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConfigHelper {
 
-    private final ConfigurationServiceGrpc.ConfigurationServiceFutureStub configurationServiceClient;
+    public final ConfigurationServiceGrpc.ConfigurationServiceFutureStub configurationServiceClient;
 
     /**
      * Constructor for compute helper.
@@ -106,7 +106,6 @@ public class ConfigHelper {
         } catch (InterruptedException | ExecutionException e) {
             throw new PersephoneException(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error generating configuration");
         }
-        // return ConfigurationSessionIdentifier.newBuilder().setIdentifier(123L).build();
     }
 
     private void addLogAndMetricProperties(DeploymentExecutionContext context, NodeAssignment.Entry entry,

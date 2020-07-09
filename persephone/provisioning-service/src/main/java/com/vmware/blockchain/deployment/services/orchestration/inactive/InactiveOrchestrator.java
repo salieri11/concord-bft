@@ -25,20 +25,8 @@ public class InactiveOrchestrator implements Orchestrator {
     }
 
     @Override
-    public OrchestratorData.ComputeResourceEvent createDeployment(
-            OrchestratorData.CreateComputeResourceRequest request) {
-        throw new UnsupportedOperationException(errorMessage);
-    }
-
-    @Override
     public OrchestratorData.ComputeResourceEvent deleteDeployment(
             OrchestratorData.DeleteComputeResourceRequest request) {
-        throw new UnsupportedOperationException(errorMessage);
-    }
-
-    @Override
-    public Flow.Publisher<OrchestratorData.NetworkResourceEvent> createNetworkAddress(
-            OrchestratorData.CreateNetworkResourceRequest request) {
         throw new UnsupportedOperationException(errorMessage);
     }
 
@@ -51,12 +39,6 @@ public class InactiveOrchestrator implements Orchestrator {
     @Override
     public Flow.Publisher<OrchestratorData.NetworkResourceEvent> deleteNetworkAddress(
             OrchestratorData.DeleteNetworkResourceRequest request) {
-        throw new UnsupportedOperationException(errorMessage);
-    }
-
-    @Override
-    public Flow.Publisher<OrchestratorData.NetworkAllocationEvent> createNetworkAllocation(
-            OrchestratorData.CreateNetworkAllocationRequest request) {
         throw new UnsupportedOperationException(errorMessage);
     }
 

@@ -8,6 +8,7 @@ import static com.vmware.blockchain.deployment.services.provisionv2.Provisioning
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,6 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvi
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vmware.OrchestratorFactory;
 import com.vmware.blockchain.deployment.services.orchestrationsite.OrchestrationSites;
-import com.vmware.blockchain.deployment.services.provision.DeleteResource;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
@@ -79,7 +78,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         this.orchestratorProvider = new OrchestratorFactory();
         this.networkHelper = new NetworkHelper();
         this.computeHelper = new ComputeHelper(bootstrapComponent);
-        configHelper = new ConfigHelper(bootstrapComponent);
+        this.configHelper = new ConfigHelper(bootstrapComponent);
         this.deploymentLogCache = CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.HOURS).build();
     }
 
@@ -88,15 +87,18 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                                  StreamObserver<DeploymentRequestResponse> responseObserver) {
 
         /// ---- Validation and input manipulation/extraction ----
-        val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
-        val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
-        val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
+        final val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
+        final val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
+        final val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
         var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
                                                                           request.getSpec().getProperties(),
                                                                           request.getSpec().getNodePropertiesMap());
 
-        var orchestrators = createOrchestratorsFromSites(request.getSpec().getSites());
-        var siteMap = ProvisioningServiceUtil.convertToSiteIdMap(request.getSpec().getSites());
+
+        Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators = new HashMap<>();
+        Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteMap = new HashMap<>();
+        createOrchestratorsFromSites(request.getSpec().getSites(), orchestrators, siteMap);
+
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
 
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
@@ -209,6 +211,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
         DeploymentExecutionEvent.Status status = DeploymentExecutionEvent.Status.FAILURE;
         try {
+            // This is important to pre-populate information. Can be done as part of constructor
+            // but will impact sync call.
+            session.orchestrators.entrySet().forEach(v -> v.getValue().populate());
+
             // Allocate private network addresses for every node.
             session.localNodeDetailsMap =
                     networkHelper.createPrivateIpMap(session.nodeAssignment, session.orchestrators, session.results);
@@ -272,20 +278,22 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         //session.orchestrators.values().stream().forEach(each -> each.cl);
     }
 
-    Map<OrchestrationSiteIdentifier, Orchestrator> createOrchestratorsFromSites(Sites sites) {
-        return sites.getInfoListList().stream()
-                .map(entry -> Map.entry(entry.getId(), orchestratorProvider.newOrchestrator(
-                        OrchestrationSites.buildSiteInfo(
-                                entry.getInfo(),
-                                bootstrapComponent.containerRegistry
-                        ), new IpamClient(bootstrapComponent.allocationService))
-                     )
-                )
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1));
+    void createOrchestratorsFromSites(Sites sites, Map<OrchestrationSiteIdentifier, Orchestrator> orchestratorMap,
+                                      Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteInfo) {
+        sites.getInfoListList().forEach(each -> {
+            var id = each.getId();
+            var site = OrchestrationSites.buildSiteInfo(each.getInfo(), bootstrapComponent.containerRegistry);
+            siteInfo.put(id, site);
+            orchestratorMap.put(id, orchestratorProvider
+                    .newOrchestrator(site, new IpamClient(bootstrapComponent.allocationService)));
+        });
     }
 
     private void deprovision(DeprovisionDeploymentRequest requestSession) {
-        var orchestrators = createOrchestratorsFromSites(requestSession.getSites());
+        Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators = new HashMap<>();
+        Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteMap = new HashMap<>();
+        createOrchestratorsFromSites(requestSession.getSites(), orchestrators, siteMap);
+
         if (requestSession.getResourceList().isEmpty()) {
             var sessionId = UUID.fromString(requestSession.getSessionId());
             if (deploymentLogCache.asMap().containsKey(sessionId)) {

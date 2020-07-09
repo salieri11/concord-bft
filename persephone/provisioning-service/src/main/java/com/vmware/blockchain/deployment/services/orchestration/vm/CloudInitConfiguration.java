@@ -39,7 +39,6 @@ public class CloudInitConfiguration {
     private List<String> nameServers;
     private int subnet;
     private ConcordClusterIdentifier clusterId;
-    private int nodeId;
     private String nodeIdString;
     private ConfigurationSessionIdentifier configGenId;
     private Endpoint configServiceEndpoint;
@@ -57,7 +56,6 @@ public class CloudInitConfiguration {
                                   List<String> nameServers,
                                   int subnet,
                                   ConcordClusterIdentifier clusterId,
-                                  int nodeId,
                                   String nodeIdString,
                                   ConfigurationSessionIdentifier configGenId,
                                   Endpoint configServiceEndpoint,
@@ -71,7 +69,6 @@ public class CloudInitConfiguration {
         this.nameServers = nameServers;
         this.subnet = subnet;
         this.clusterId = clusterId;
-        this.nodeId = nodeId;
         this.nodeIdString = nodeIdString;
         this.configGenId = configGenId;
         this.configServiceEndpoint = configServiceEndpoint;
@@ -132,7 +129,6 @@ public class CloudInitConfiguration {
         var builder = ConcordAgentConfiguration.newBuilder()
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
-                .setNode(nodeId)
                 .setModel(model)
                 .setConfigService(outboundProxy == null || Strings.isNullOrEmpty(outboundProxy.getHttpsHost())
                                   ? configServiceEndpoint : configServiceRestEndpoint)

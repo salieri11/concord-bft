@@ -67,8 +67,6 @@ public class CloudInitConfigurationTest {
     @Mock
     private ConcordClusterIdentifier clusterId;
 
-    private Integer nodeId = 12345;
-
     private String nodeIdString = "12345";
 
     @Mock
@@ -90,7 +88,7 @@ public class CloudInitConfigurationTest {
     void init() {
         cloudInitConfiguration =
                 new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
-                                           nodeId, nodeIdString, configGenId, configServiceEndpoint,
+                                           nodeIdString, configGenId, configServiceEndpoint,
                                            configServiceRestEndpoint, outboundProxy, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
 

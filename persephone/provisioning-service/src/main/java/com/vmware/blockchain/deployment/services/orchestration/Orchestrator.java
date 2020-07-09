@@ -24,14 +24,15 @@ public interface Orchestrator {
     }
 
     /**
-     * Create a Concord deployment based on a given [CreateComputeResourceRequest].
-     *
-     * @return a [Publisher] of [ComputeResourceEvent] corresponding to side-effects engendered by the request.
-     * @param[request] deployment creation request specification.
+     * Method to initialize the orchestrator.
      */
-    OrchestratorData.ComputeResourceEvent createDeployment(
-            OrchestratorData.CreateComputeResourceRequest request);
+    default void populate() {
+        throw new UnsupportedOperationException("Validation operation is unsupported");
+    }
 
+    /**
+     * Create a Concord deployment based on a given [CreateComputeResourceRequestV2].
+     */
     default OrchestratorData.ComputeResourceEventCreatedV2 createDeploymentV2(
             OrchestratorData.CreateComputeResourceRequestV2 request) {
         throw new UnsupportedOperationException("Validation operation is unsupported");
@@ -45,16 +46,6 @@ public interface Orchestrator {
      */
     OrchestratorData.ComputeResourceEvent deleteDeployment(
             OrchestratorData.DeleteComputeResourceRequest request);
-
-    /**
-     * Create a reachable network address based on a given [CreateNetworkResourceRequest].
-     *
-     * @return a [Publisher] of [NetworkResourceEvent] corresponding to side-effects engendered by the request.
-     * @param[request] network address creation request specification.
-     */
-    @Deprecated
-    Flow.Publisher<OrchestratorData.NetworkResourceEvent> createNetworkAddress(
-            OrchestratorData.CreateNetworkResourceRequest request);
 
     OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request);
@@ -72,16 +63,6 @@ public interface Orchestrator {
      */
     Flow.Publisher<OrchestratorData.NetworkResourceEvent> deleteNetworkAddress(
             OrchestratorData.DeleteNetworkResourceRequest request);
-
-    /**
-     * Allocate a network address to a deployed compute resource.
-     *
-     * @param[request] network address allocation request specification.
-     * @return [Publisher] of [NetworkAllocationEvent] corresponding to side-effects engendered by the request.
-     */
-    @Deprecated
-    Flow.Publisher<OrchestratorData.NetworkAllocationEvent> createNetworkAllocation(
-            OrchestratorData.CreateNetworkAllocationRequest request);
 
     //TODO this can be moved to VMC specific.
     default OrchestratorData.NetworkAllocationEvent createVmcNetworkAllocation(

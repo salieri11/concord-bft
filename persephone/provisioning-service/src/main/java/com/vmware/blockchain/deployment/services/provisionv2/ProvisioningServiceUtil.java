@@ -15,7 +15,6 @@ import org.assertj.core.util.Strings;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
-import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
@@ -92,15 +91,9 @@ public class ProvisioningServiceUtil {
         return response;
     }
 
-    static Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> convertToSiteIdMap(Sites sites) {
-        Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> response = new HashMap<>();
-        sites.getInfoListList().forEach(k -> response.put(k.getId(), k.getInfo()));
-        return response;
-    }
-
     /**
      * Create an instance of {@link DeploymentExecutionEvent}.
-     * @return a new instance of {@link DeploymentSessionEvent}.
+     * @return a new instance of {@link DeploymentExecutionEvent}.
      */
     static DeploymentExecutionEvent.Builder generateEvent(DeploymentExecutionContext deploymentSession,
                                                   DeploymentExecutionEvent.Type type,

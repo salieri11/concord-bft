@@ -121,8 +121,7 @@ public class VSphereHttpClient {
      * @return ID of the folder as a [String], if found.
      */
     public String getFolder(String name) {
-        String type = "VIRTUAL_MACHINE";
-        String uri = VsphereEndpoints.VSPHERE_FOLDERS.getPath() + "?filter.type=" + type + "&filter.names=" + name;
+        String uri = VsphereEndpoints.VSPHERE_FOLDERS.getPath() + "?filter.type=VIRTUAL_MACHINE&filter.names=" + name;
 
         HttpEntity<String> requests = new HttpEntity<>(httpHeaders);
         ResponseEntity<GetFolderResponse> responseEntity
