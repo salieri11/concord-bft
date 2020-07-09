@@ -487,8 +487,8 @@ def execute_ext_command(command, verbose=True, timeout=None):
       if verbose:
          log.error("Subprocess stdout: '{}', Subprocess stderr: '{}'"
                    .format(completedProcess.stdout, completedProcess.stderr))
-      log.error("Subprocess failed with exception: {}".format(e))
-      log.error(traceback.format_exc())
+         log.error("Subprocess failed with exception: {}".format(e))
+         log.error(traceback.format_exc())
       return False, completedProcess.stdout
 
    return True, completedProcess.stdout
@@ -1062,7 +1062,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
 
-         testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config
+         testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config + " --logLevel DEBUG"
          test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
 
          log.info("{}. {}...".format(test_count+1, test_set["testname"]))
