@@ -40,6 +40,7 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
@@ -191,6 +192,11 @@ public class BlockchainController {
         }
         if (body.getBlockchainType() == null) {
             throw new BadRequestException(ErrorCodeType.BAD_REQUEST, "Invalid blockchain type.");
+        }
+
+        // Make sure we have access to given consortium.
+        if (!authHelper.canUpdateConsortium(body.getConsortiumId())) {
+            throw new ForbiddenException(ErrorCodeType.NOT_ALLOWED);
         }
         // Validate mandatory field
         // change to fixed list
