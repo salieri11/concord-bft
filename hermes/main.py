@@ -542,7 +542,7 @@ def processResults(resultFile):
 
    # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
    # will still be able to find it.
-   if failCount > 0:
+   if failCount > 0 or passCount <= 0:
       msg = msg.format(color=red, symbol="\u2717",
                        tests="{} tests failed".format(failCount))
    else:
@@ -554,7 +554,7 @@ def processResults(resultFile):
 
    log.info(msg)
 
-   return failCount == 0, msg
+   return failCount == 0 and passCount != 0, msg
 
 def tallyResults(results):
    '''
