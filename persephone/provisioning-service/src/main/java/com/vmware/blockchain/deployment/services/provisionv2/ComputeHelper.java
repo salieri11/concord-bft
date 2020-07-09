@@ -20,8 +20,10 @@ import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
+import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +56,8 @@ public class ComputeHelper {
             DeploymentExecutionContext.LocalNodeDetails nodeDetails,
             Orchestrator orchestrator,
             List<ConcordComponent> model,
-            ConfigurationSessionIdentifier configGenId) {
+            ConfigurationSessionIdentifier configGenId,
+            Endpoint registry) {
 
         var modelSpecBuilder = ConcordModelSpecification.newBuilder()
                 .addAllComponents(model)
@@ -74,6 +77,7 @@ public class ComputeHelper {
                                                                                  new OrchestratorData
                                                                                          .CreateComputeResourceRequestV2
                                                                                          .CloudInitData(
+                                                                                         registry,
                                                                                          modelSpecBuilder.build(),
                                                                                          nodeDetails
                                                                                                  .privateIp,
@@ -93,6 +97,10 @@ public class ComputeHelper {
                 .filter(k -> k.getType() == nodeType)
                 .map(placement -> Map.entry(placement.getNodeId(), CompletableFuture.supplyAsync(() -> {
                     var nodeId = UUID.fromString(placement.getNodeId());
+                    var siteInfo = session.getSitesById().get(placement.getSite());
+                    var registry = session.deploymentType == OrchestrationSiteInfo.Type.VSPHERE
+                                   ? siteInfo.getVsphere().getContainerRegistry()
+                                   : siteInfo.getVmc().getContainerRegistry();
                     var computeEvent = deployNode(nodeId,
                                                                 session.blockchainId,
                                                                 session.blockchainType,
@@ -100,7 +108,8 @@ public class ComputeHelper {
                                                                 session.localNodeDetailsMap.get(nodeId),
                                                                 session.orchestrators.get(placement.getSite()),
                                                                 session.componentsByNode.get(nodeId),
-                                                                configGenerated);
+                                                                configGenerated,
+                                                  registry);
                     var resource = DeployedResource.newBuilder()
                             .setNodeId(placement.getNodeId())
                             .setSiteId(placement.getSite().getId())

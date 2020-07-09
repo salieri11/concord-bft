@@ -45,7 +45,6 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
@@ -142,8 +141,6 @@ public class ClientControllerTest extends RuntimeException {
     private AuthenticationContext userAuth;
     private AuthenticationContext user2Auth;
 
-    private DeploymentSessionIdentifier dsId;
-
     /**
      * Initialize various mocks.
      */
@@ -231,10 +228,6 @@ public class ClientControllerTest extends RuntimeException {
                                   ImmutableList.of(VmbcRoles.ORG_USER),
                                   ImmutableList.of(C3_ID),
                                   Collections.emptyList(), "");
-
-        dsId = DeploymentSessionIdentifier.newBuilder()
-                .setId(DEP_ID.toString())
-                .build();
 
         // Zone returns
         when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));

@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.services.provision;
+package com.vmware.blockchain.deployment.services.provisionv2;
 
 import java.net.URI;
 import java.util.ArrayList;
