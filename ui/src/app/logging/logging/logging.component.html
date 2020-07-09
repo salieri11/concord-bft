@@ -1,8 +1,8 @@
 <div class="p-2">
   <div class="clr-row log-header">
-    <div class="clr-col-8">
+    <div class="clr-col-8 left">
       <clr-dropdown [clrCloseMenuOnItemClick]="false">
-        <button type="button" class="btn btn-sm btn-outline-primary services-selector left-margined" clrDropdownTrigger
+        <button type="button" class="btn btn-sm btn-outline-primary services-selector" clrDropdownTrigger
           [disabled]="countLoading || listLoading">
           {{'logging.serviceName.title' | translate}}: {{  selectedServiceNames.length ? selectedServiceNames.join(', ') : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
@@ -17,7 +17,7 @@
       </clr-dropdown>
 
       <clr-dropdown [clrCloseMenuOnItemClick]="false">
-        <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+        <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
           [disabled]="countLoading || listLoading">
           {{'nodes.nodes' | translate}}: {{  selectedNodes.length ? nodeNames() : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
@@ -32,7 +32,7 @@
       </clr-dropdown>
 
       <clr-dropdown [clrCloseMenuOnItemClick]="false">
-        <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+        <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
           [disabled]="countLoading || listLoading">
           {{'logging.logLevel' | translate}}: {{  selectedLevels.length ? selectedLevels.join(', ') : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
@@ -45,16 +45,15 @@
           </button>
         </clr-dropdown-menu>
       </clr-dropdown>
-
     </div>
-    <div class="clr-col-4">
+    <div class="clr-col-4 right">
       <div class="text-right">
         <button type="button" class="btn btn-link refresh" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
         </button>
         <clr-dropdown>
-          <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
@@ -69,7 +68,7 @@
         </clr-dropdown>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-sm btn-outline-primary left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
             <clr-icon shape="caret down"></clr-icon>

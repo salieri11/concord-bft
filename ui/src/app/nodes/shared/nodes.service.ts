@@ -147,11 +147,14 @@ export class NodesService {
     ).pipe(
       map(response => {
         // Add zone name
-        response.forEach(client => {
+        response.forEach((client, i) => {
           if (zonesMap[client.zone_id]) {
             client['zone_name'] = zonesMap[client.zone_id].name;
           } else {
             client['zone_name'] = undefined;
+          }
+          if (!client['name']) {
+            client['name'] = 'Client' + (i + 1);
           }
         });
         return response;
@@ -172,7 +175,7 @@ export class NodesService {
           let nodes = [];
           const clients = response[1];
           clients.forEach(cl => {
-            cl.name = cl.host_name;
+            cl.name = cl.host_name ? cl.host_name : cl.name;
           });
           nodes = nodes.concat(response[0].nodes);
           nodes = nodes.concat(clients);
