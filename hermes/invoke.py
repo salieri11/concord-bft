@@ -14,6 +14,7 @@ import json
 import os
 import urllib
 import tempfile
+import base64
 from fixtures.common_fixtures import BlockchainFixture
 from util import (hermes_logging, helper, slack, mailer, wavefront,
                  racetrack, jenkins, infra, blockchain_ops as ops)
@@ -101,9 +102,16 @@ def resetBlockchain(args, options, secret):
   fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas)
   ops.reset_blockchain(fxBlockchain)
 
+def localTestFunction(args, options, secret):
+  '''A placeholder function for local testing of new code, pre-commit'''
+  return
+
 
 # Registry of callable standalone functions
 DISPATCH = {
+  # Test Function - for local testing only
+  "_test": localTestFunction,
+
   # Communications
   "emailSend": emailSend,
   "slackDM": slackDM,
@@ -182,6 +190,8 @@ def trimCmdlineArgs(argList):
     while param.startswith('"') and param.endswith('"'):
       param = param[1:-1]
     param = param.strip()
+    if param.startswith("__base64__"):
+      param = base64.b64decode(param.split("__base64__")[1]).decode('utf-8')
     argList[i] = param
   return argList
 
