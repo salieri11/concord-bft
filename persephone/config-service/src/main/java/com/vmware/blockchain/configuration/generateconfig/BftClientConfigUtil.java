@@ -69,7 +69,7 @@ public class BftClientConfigUtil {
                     inputYamlPath,
                     "--report-principal-locations",
                     principalsMapFile,
-                    "--client_conf")
+                    "--client-conf")
                     .directory(outputPath.toFile())
                     .start()
                     .onExit();

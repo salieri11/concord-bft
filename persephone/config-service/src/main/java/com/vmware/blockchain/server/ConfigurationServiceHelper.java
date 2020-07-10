@@ -5,7 +5,11 @@
 package com.vmware.blockchain.server;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.validation.constraints.NotNull;
 
@@ -25,6 +29,7 @@ import com.vmware.blockchain.configuration.generateconfig.WavefrontConfigUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
@@ -135,6 +140,7 @@ public class ConfigurationServiceHelper {
                                                           .setComponent(ledgerApiUtil.generateConfig(nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
+                    // placeholder to create bft config
                     break;
                 case DAML_INDEX_DB:
                     DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
@@ -208,5 +214,60 @@ public class ConfigurationServiceHelper {
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
         return nodeIsolatedConfiguration;
+    }
+
+    /**
+     * Filter tls identities based on nodes and principal ids.
+     */
+    Map<String, List<IdentityComponent>> buildTlsIdentity(List<String> nodeIds,
+                                                                  List<Identity> identities,
+                                                                  Map<Integer, List<Integer>> principals,
+                                                                  int numCerts, int numHosts) {
+
+        Map<String, List<IdentityComponent>> result = new HashMap<>();
+
+        // TODO: May remove logic once principals are available
+        if (principals.size() == 0) {
+            IntStream.range(0, numHosts).forEach(node -> {
+                List<IdentityComponent> identityComponents = new ArrayList<>();
+                identities.forEach(identity -> {
+                    identityComponents.add(identity.getCertificate());
+                    identityComponents.add(identity.getKey());
+                });
+                result.put(nodeIds.get(node), identityComponents);
+            });
+            return result;
+        }
+
+        for (int node : principals.keySet()) {
+            List<IdentityComponent> nodeIdentities = new ArrayList<>();
+
+            List<Integer> notPrincipal = IntStream.range(0, numCerts)
+                    .boxed().collect(Collectors.toList());
+            notPrincipal.removeAll(principals.get(node));
+
+            List<Identity> serverList = new ArrayList<>(identities.subList(0, identities.size() / 2));
+            List<Identity> clientList = new ArrayList<>(identities.subList(identities.size() / 2, identities.size()));
+
+            notPrincipal.forEach(entry -> {
+                nodeIdentities.add(serverList.get(entry).getCertificate());
+                nodeIdentities.add(clientList.get(entry).getCertificate());
+            });
+
+            // add self keys
+            nodeIdentities.add(serverList.get(node).getKey());
+            nodeIdentities.add(clientList.get(node).getKey());
+
+            principals.get(node).forEach(entry -> {
+                nodeIdentities.add(serverList.get(entry).getCertificate());
+                nodeIdentities.add(serverList.get(entry).getKey());
+                nodeIdentities.add(clientList.get(entry).getCertificate());
+                nodeIdentities.add(clientList.get(entry).getKey());
+            });
+            result.putIfAbsent(nodeIds.get(node), nodeIdentities);
+        }
+
+        log.info("Filtered tls identities based on nodes and principal ids.");
+        return result;
     }
 }
