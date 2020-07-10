@@ -10,6 +10,7 @@ import java.util.List;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Link;
 import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.RestartPolicy;
 
 /**
  * Interface exposing methods on container component.
@@ -33,5 +34,9 @@ public interface BaseContainerSpec {
     @Deprecated
     default List<String> getEnvironment() {
         return null;
+    }
+
+    default RestartPolicy getRestartPolicy() {
+        return RestartPolicy.onFailureRestart(5);
     }
 }

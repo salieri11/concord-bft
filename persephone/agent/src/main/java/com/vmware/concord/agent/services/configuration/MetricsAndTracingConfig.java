@@ -12,6 +12,7 @@ import com.github.dockerjava.api.model.Link;
 import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.api.model.RestartPolicy;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -71,5 +72,12 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
         this.cmds = cmds;
         this.environment = environment;
         this.ordinal = 2;
+    }
+
+    @Override
+    public RestartPolicy getRestartPolicy() {
+        // This change is made to avoid link dependency on containers.
+        // TODO make the process not fail if containers are missing.
+        return RestartPolicy.unlessStoppedRestart();
     }
 }
