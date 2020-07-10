@@ -1,0 +1,95 @@
+f_val: 1
+c_val: 0
+num_of_participant_nodes: 2
+clients_per_participant_node: 15
+client_proxies_per_replica: 4
+comm_to_use: tls
+tls_certificates_folder_path: /daml-ledger-api/config-local/cert
+tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
+client_initial_retry_timeout_milli: 150
+client_min_retry_timeout_milli: 50
+client_max_retry_timeout_milli: 1000
+client_sends_request_to_all_replicas_first_thresh: 4
+client_sends_request_to_all_replicas_period_thresh: 2
+client_periodic_reset_thresh: 30
+prometheus_port: 9891
+node:
+  - replica:
+      - replica_host: 10.0.0.1
+        replica_port: 3501
+  - replica:
+      - replica_host: 10.0.0.2
+        replica_port: 3502
+  - replica:
+      - replica_host: 10.0.0.3
+        replica_port: 3503
+  - replica:
+      - replica_host: 10.0.0.4
+        replica_port: 3504
+participant_nodes:
+  - participant_node:
+      - participant_node_host: 10.0.0.5
+        external_clients:
+          - client:
+              - client_port: 3505
+          - client:
+              - client_port: 3506
+          - client:
+              - client_port: 3507
+          - client:
+              - client_port: 3508
+          - client:
+              - client_port: 3509
+          - client:
+              - client_port: 3510
+          - client:
+              - client_port: 3511
+          - client:
+              - client_port: 3512
+          - client:
+              - client_port: 3513
+          - client:
+              - client_port: 3514
+          - client:
+              - client_port: 3515
+          - client:
+              - client_port: 3516
+          - client:
+              - client_port: 3517
+          - client:
+              - client_port: 3518
+          - client:
+              - client_port: 3519
+  - participant_node:
+      - participant_node_host: 10.0.0.6
+        external_clients:
+          - client:
+              - client_port: 3520
+          - client:
+              - client_port: 3521
+          - client:
+              - client_port: 3522
+          - client:
+              - client_port: 3523
+          - client:
+              - client_port: 3524
+          - client:
+              - client_port: 3525
+          - client:
+              - client_port: 3526
+          - client:
+              - client_port: 3527
+          - client:
+              - client_port: 3528
+          - client:
+              - client_port: 3529
+          - client:
+              - client_port: 3530
+          - client:
+              - client_port: 3531
+          - client:
+              - client_port: 3532
+          - client:
+              - client_port: 3533
+          - client:
+              - client_port: 3534

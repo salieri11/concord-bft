@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.configuration.generateconfig;
@@ -24,39 +24,35 @@ import org.yaml.snakeyaml.Yaml;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
  */
+public class BftClientConfigUtil {
 
-public class ConcordConfigUtil {
+    private static final Logger log = LoggerFactory.getLogger(BftClientConfigUtil.class);
 
-    private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
+    private String bftClientConfigTemplatePath;
 
-    private String concordConfigTemplatePath;
-
-    public ConcordConfigUtil(String concordConfigTemplatePath) {
-        this.concordConfigTemplatePath = concordConfigTemplatePath;
+    public BftClientConfigUtil(String bftClientConfigTemplatePath) {
+        this.bftClientConfigTemplatePath = bftClientConfigTemplatePath;
     }
 
     /**
      * file path.
      */
-    public static final String configPath = "/concord/config-local/concord.config";
+    public static final String configPath = "/daml-ledger-api/config-public/bftclient.config";
 
     /**
      * persistence.
      */
     public final Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
 
-    public int maxPrincipalId;
-
     /**
      * Utility to generate concord config.
      */
-    public Map<String, String> getConcordConfig(List<String> nodeIds, List<String> hostIps,
-                                                 BlockchainType blockchainType) {
+    public Map<String, String> getbftClientConfig(List<String> nodeIds, List<String> hostIps,
+                                                  List<String> participantIps) {
         try {
             var result = new HashMap<String, String>();
 
@@ -64,13 +60,16 @@ public class ConcordConfigUtil {
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
 
-            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType);
+            generateConfigYaml(hostIps, participantIps, inputYamlPath);
 
+            // TODO: Dependency on config-gen tool can be avoided here.
+            // Config gen tool is only giving the principal ids
             var configFuture = new ProcessBuilder("/app/conc_genconfig",
-                                                  "--configuration-input",
-                                                  inputYamlPath,
-                                                  "--report-principal-locations",
-                                                  principalsMapFile)
+                    "--configuration-input",
+                    inputYamlPath,
+                    "--report-principal-locations",
+                    principalsMapFile,
+                    "--client_conf")
                     .directory(outputPath.toFile())
                     .start()
                     .onExit();
@@ -98,7 +97,7 @@ public class ConcordConfigUtil {
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated cluster configuration",
-                                  collectError);
+                                collectError);
                     }
                 } else {
                     log.error("Cannot run config generation process", error);
@@ -117,8 +116,7 @@ public class ConcordConfigUtil {
     /**
      * Utility method for generating input config yaml file.
      */
-    boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
-                                    BlockchainType blockchainType) {
+    boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath) {
         if (hostIps == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -130,15 +128,15 @@ public class ConcordConfigUtil {
         int clusterSize = hostIps.size();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath, blockchainType);
+        return generateConfigYaml(hostIps, participantIps, fVal, cVal, configYamlPath);
     }
 
     /**
      * Utility method for generating input config yaml file.
      */
     @SuppressWarnings({"unchecked"})
-    boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
-                                    BlockchainType blockchainType) {
+    boolean generateConfigYaml(List<String> hostIp, List<String> participantIps,
+                               int fVal, int cVal, String configYamlPath) {
         if (hostIp == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -152,69 +150,82 @@ public class ConcordConfigUtil {
             return false;
         }
 
-        maxPrincipalId = (hostIp.size() + ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER * hostIp.size()) - 1;
-
         Path path = Paths.get(configYamlPath);
 
         Yaml yaml = new Yaml();
         Map<String, Object> configInput;
         try {
-            configInput = yaml.load(new FileInputStream(concordConfigTemplatePath));
+            configInput = yaml.load(new FileInputStream(bftClientConfigTemplatePath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
             log.warn("File {} does not exist: {}\n Using localized config yaml input template",
-                    concordConfigTemplatePath, e.getLocalizedMessage());
+                    bftClientConfigTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
-            configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));
+            configInput = yaml.load(classLoader.getResourceAsStream("BFTClientConfigTemplate.yaml"));
         }
 
-        //FIXME: Add provision to have more than one BlockchainType
-        if (blockchainType == null || blockchainType.equals(BlockchainType.ETHEREUM)) {
-            configInput.put(ConfigUtilHelpers.ConfigProperty.ETHEREUM_ENABLED.name, true);
-
-            // FIXME: for https://jira.eng.vmware.com/browse/VB-1925
-            //  Remove once bug is fixed OR when remodeled to have per-blockchain config template
-            configInput.put("FEATURE_time_service", false);
-        } else if (blockchainType.equals(BlockchainType.DAML)) {
-            configInput.put(ConfigUtilHelpers.ConfigProperty.DAML_ENABLED.name, true);
-        } else if (blockchainType.equals(BlockchainType.HLF)) {
-            configInput.put(ConfigUtilHelpers.ConfigProperty.HLF_ENABLED.name, true);
-        }
-
+        // Add generic configs
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
+        configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_PARTICIPANTS.name, participantIps.size());
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.NODE.name);
         Map<String, Object> nodeConfig = (Map<String, Object>) node.get(0);
 
-        //FIXME: Concord to fix: Why is replica a list?
         List replicaConfig = (List) nodeConfig.get(ConfigUtilHelpers.ConfigProperty.REPLICA.name);
         Map<String, Object> replicaValues = (Map<String, Object>) replicaConfig.get(0);
 
-        List clientConfig = (List) nodeConfig.get(ConfigUtilHelpers.ConfigProperty.CLIENT_PROXY.name);
-        Map<String, Object> clientValues = (Map<String, Object>) clientConfig.get(0);
-
         List resultNodes = new ArrayList();
 
+        int counter = 0;
         for (String s : hostIp) {
-            List resultClients = new ArrayList();
             replicaValues.put(ConfigUtilHelpers.ConfigProperty.REPLICA_HOST.name, s);
-
-            for (int j = 0; j < ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER; j++) {
-                clientValues.put(ConfigUtilHelpers.ConfigProperty.CLIENT_HOST.name, s);
-                clientValues.put(ConfigUtilHelpers.ConfigProperty.CLIENT_PORT.name,
-                        ConfigUtilHelpers.DEFAULT_PORT + j + 1);
-                resultClients.add(ConfigUtilHelpers.clone(clientValues));
-            }
-
-            nodeConfig.put(ConfigUtilHelpers.ConfigProperty.CLIENT_PROXY.name, resultClients);
+            replicaValues.put(ConfigUtilHelpers.ConfigProperty.COMMITTER_PORT.name,
+                    ConfigUtilHelpers.DEFAULT_PORT + counter);
             nodeConfig.put(ConfigUtilHelpers.ConfigProperty.REPLICA.name,
                     new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(replicaValues))));
             resultNodes.add(ConfigUtilHelpers.clone(nodeConfig));
+            counter = counter + 1;
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.NODE.name, resultNodes);
+
+        // Prepare participant configs
+        List participantNodes = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODES.name);
+        Map<String, Object> participantNodesConfig = (Map<String, Object>) participantNodes.get(0);
+        List participantNode = (List) participantNodesConfig.get(
+                ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE.name);
+        Map<String, Object> participantConfig = (Map<String, Object>) participantNode.get(0);
+
+        List externalClients = (List) participantConfig.get(ConfigUtilHelpers.ConfigProperty.EXTERNAL_CLIENTS.name);
+        Map<String, Object> clientValues = (Map<String, Object>) externalClients.get(0);
+        List client = (List) clientValues.get(ConfigUtilHelpers.ConfigProperty.CLIENT.name);
+        Map<String, Object> clientPort = (Map<String, Object>) client.get(0);
+
+        List participantNodeRes = new ArrayList();
+        Map<String, Object> participantNodeResMap = new HashMap<>();
+        for (String s : participantIps) {
+            List resultClients = new ArrayList();
+            var participantConfigRes = ConfigUtilHelpers.clone(participantConfig);
+            participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE_HOST.name, s);
+
+            for (int j = 0; j < ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT; j++) {
+                var port = ConfigUtilHelpers.DEFAULT_PORT + counter + j;
+                clientPort.put(ConfigUtilHelpers.ConfigProperty.CLIENT_PORT.name, port);
+                clientValues.put(ConfigUtilHelpers.ConfigProperty.CLIENT.name,
+                        new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(clientPort))));
+                resultClients.add(ConfigUtilHelpers.clone(clientValues));
+            }
+            counter = counter + ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT;
+
+            participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.EXTERNAL_CLIENTS.name, resultClients);
+            participantNodeResMap.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE.name,
+                    new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(participantConfigRes))));
+            participantNodeRes.add(ConfigUtilHelpers.clone(participantNodeResMap));
+        }
+
+        configInput.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODES.name, participantNodeRes);
 
         try {
             BufferedWriter writer = Files.newBufferedWriter(path);
@@ -227,4 +238,5 @@ public class ConcordConfigUtil {
             return false;
         }
     }
+
 }
