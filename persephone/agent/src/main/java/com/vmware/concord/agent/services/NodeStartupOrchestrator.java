@@ -24,9 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.api.model.RestartPolicy;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -79,20 +79,29 @@ public final class NodeStartupOrchestrator {
      */
     @PostConstruct
     public void bootstrapConcord() throws Exception {
-        // Download configuration and certs.
-        setupConfig();
+        try {
+            // Download configuration and certs.
+            setupConfig();
 
-        // Pull and order images
-        List<BaseContainerSpec> containerConfigList = pullImages();
-        containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
+            // Pull and order images
+            List<BaseContainerSpec> containerConfigList = pullImages();
+            containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
 
-        //setup special hlf networking
-        agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
+            //setup special hlf networking
+            agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
 
-        // Start all containers
-        // Get Docker client instance
-        var dockerClient = DockerClientBuilder.getInstance().build();
-        containerConfigList.forEach(container -> launchContainer(dockerClient, container));
+            // Start all containers
+            // Get Docker client instance
+            var dockerClient = DockerClientBuilder.getInstance().build();
+            try {
+                containerConfigList.forEach(container -> launchContainer(dockerClient, container));
+            } catch (ConflictException e) {
+                log.warn("Did not launch the container again. Container already present", e);
+            }
+        } catch (Exception e) {
+            log.error("Unexpected exception encountered during launch sequence", e);
+            log.warn("******Node not Functional********");
+        }
     }
 
     /**
@@ -238,7 +247,7 @@ public final class NodeStartupOrchestrator {
 
         HostConfig hostConfig = HostConfig.newHostConfig()
                 .withNetworkMode(CONTAINER_NETWORK_NAME)
-                .withRestartPolicy(RestartPolicy.onFailureRestart(3))
+                .withRestartPolicy(containerParam.getRestartPolicy())
                 .withBinds(volumes);
 
         if (containerParam.getPortBindings() != null) {

@@ -1,4 +1,5 @@
 {
   "test_suites": ["PersephoneSmokeNew"],
-  "build_targets": []
+  "build_targets": ["concord-core", "fluentd", "daml-ledger-api", "daml-execution-engine","daml-index-db", "ethrpc",
+    "agent"]
 }
