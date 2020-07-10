@@ -28,13 +28,13 @@ DEPLOYED_REPLICAS = []
 def credentialsAreGood(sddcName, sddcInfo):
    c = sddcInfo
    if not c["username"] or not c["password"]: 
-      log.error("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
+      log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
       return False
    if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
-      log.error("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
+      log.debug("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
       return False
    if c["password"].startswith("<") and c["password"].endswith(">"): # user_config not injected correctly with credential
-      log.error("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
+      log.debug("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
       return False
    return True
 
@@ -60,9 +60,9 @@ def getConnection(sddcName, skipMapping=False):
         }
       }
       where Jenkins-kept credentials brought from `withCredentials` call,
-      which get injected to `user_config.json` in `gitlabBuildSteps.groovy` 
+      which get injected to `zone_config.json` in `gitlabBuildSteps.groovy` 
    '''
-   # get config from user_config.json
+   # get SDDCs list and config from zone_config.json
    zoneConfigObject = helper.getZoneConfig()
    try:
       if sddcName not in INFRA:
@@ -124,9 +124,9 @@ def getListFromZoneConfig(configObject = None):
   return sddcs
 
 
-def findVMByReplicaId(replicaId, sddcs = None):
+def findVMByReplicaId(replicaId, sddcs=None, checkNew=False):
   '''
-      Returns VM by the supplied replicaId
+      Returns VM by the supplied replicaId (partial string match to VM name)
       :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
   # if narrow sddcs search not given, search in all SDDCs in zone_config
@@ -135,6 +135,7 @@ def findVMByReplicaId(replicaId, sddcs = None):
   threads = []; results = []
   def findInSDDC(sddcName):
     if getConnection(sddcName):
+      if checkNew: INFRA[sddcName].checkForNewEntities()
       vmHandle = INFRA[sddcName].getByNameContaining(replicaId, getAsHandle=True)
       if vmHandle: results.append(vmHandle)
       else: results.append(None)
@@ -148,9 +149,10 @@ def findVMByReplicaId(replicaId, sddcs = None):
   return None
 
 
-def findVMByInternalIP(ip, sddcs = None):
+def findVMByInternalIP(ip, sddcs=None, checkNew=False):
   '''
       Returns VM by the supplied internal IP (e.g. 10.*.*.*)
+      (Note: if DHCP or static-IP is not set, the VM won't have an internal IP attached.)
       :param sddc: (optional), if not given, all SDDCs defined in zone_config.json used
   '''
   # if narrow sddcs search not given, search in all SDDCs in zone_config
@@ -159,6 +161,7 @@ def findVMByInternalIP(ip, sddcs = None):
   threads = []; results = []
   def findInSDDC(sddcName):
     if getConnection(sddcName):
+      if checkNew: INFRA[sddcName].checkForNewEntities()
       vmHandle = INFRA[sddcName].getByInternalIP(ip, getAsHandle=True)
       if vmHandle: results.append(vmHandle)
       else: results.append(None)
@@ -172,99 +175,117 @@ def findVMByInternalIP(ip, sddcs = None):
   return None
 
 
-def giveDeploymentContext(blockchainDetails, otherMetadata=""):
+def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
    '''
       Add detailed deployment context to the Hermes-deployed VMs
       ```python
-      blockchainDetails = {
+      e.g. blockchainFullDetails = {
           "id": "c035100f-22e9-4596-b9d6-5daa349db342",
           "consortium_id": "bfaa0041-8ab2-4072-9023-4cedd0e81a78",
           "blockchain_type": "ETHEREUM",
-          "nodes_type": "Committer" | "Participant",
-          "node_list": [ ... ], # `NOT USED`
-          "replica_list": [{
-            "ip": "52.63.165.178",
-            "url": "https://52.63.165.178:8545", # `NOT USED`
-            "cert": "", # `NOT USED`
-            "zone_id": "6adaf48a-9075-4e35-9a71-4ef1fb4ac90f", # `NOT USED`
-            "replica_id": "a193f7b8-6ec5-4802-8c2f-33cb33516c3c"
-          }, ...]
+          "deployed_from": "Helen",
+          "nodes_list": [{
+              "ip": "52.63.165.178",
+              "replica_id": "a193f7b8-6ec5-4802-8c2f-33cb33516c3c",
+              ...
+            }, ...],
+          
+          # (optional info; will be added only if they exist)
+          "version": "Blockchain Version: 0.0.0.1635, DAML SDK Version: 1.0.0", # (optional)
+          "created_by": "vmbc_test_con_admin@csp.local", # (optional)
+          "created": 1593749320175, # (optional)
       }
       ```
-      TODO: user this on persephone deployment test as well
    '''
    # get config from zone_config.json
    try: 
+      # if narrow sddcs search not given, search in all SDDCs in zone_config
+      sddcs = sddcs if sddcs is not None else getListFromZoneConfig()
       configObject = helper.getUserConfig()
-      sddcs = getListFromZoneConfig()
       jobName = configObject["metainf"]["env"]["jobName"]
       buildNumber = configObject["metainf"]["env"]["buildNumber"]
       jenkinsBuildId = helper.getJenkinsBuildId()
       dockerTag = configObject["metainf"]["env"]["dockerTag"]
       pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
       runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
+      
+      prepareConnections(sddcs) # connect to applicable SDDCs if not already connected
+      for sddcName in sddcs: INFRA[sddcName].checkForNewEntities()
+      
+      for replicaInfo in blockchainFullDetails["nodes_list"]:
+        try:   
+          isParticipant = False
+          if "type_name" in replicaInfo: # must be from getBlockchainFullDetails function
+            isParticipant = replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT
+          else: # from new persephone test, v1 or v2
+            if "node_type" in replicaInfo:
+              if isinstance(replicaInfo["node_type"], int):
+                # 0 committer, 1 participant, from NodeInfo class in persephone_tests_new.py (BC-3529)
+                isParticipant = True if replicaInfo["node_type"] == 1 else False
+          replicaTypeDisplayName = PRETTY_TYPE_COMMITTER if not isParticipant else PRETTY_TYPE_PARTICIPANT
+          if "id" not in replicaInfo: # from new persephone test
+            if "node_id" in replicaInfo: replicaInfo["id"] = replicaInfo["node_id"]
+          versionInfo = "Version Info: " + blockchainFullDetails["version"] + "\n" if "version" in blockchainFullDetails else ""
+          createdBy = "Deployer: " + blockchainFullDetails["created_by"] + "\n" if "created_by" in blockchainFullDetails else ""
 
-      for replicaInfo in blockchainDetails["replica_list"]:
-        alreadyRegistered = [replica for replica in DEPLOYED_REPLICAS if replica.get("replica_id") == replicaInfo["replica_id"]]
-        if len(alreadyRegistered) > 0: continue # this replica is already registered to DEPLOYED_REPLICAS
-        DEPLOYED_REPLICAS.append(replicaInfo)
-
-        vmAndSourceSDDC = findVMByReplicaId(
-          replicaId = replicaInfo["replica_id"],
-          sddcs = sddcs
-          # above "sddcs": Perhaps, this can be abtracted later to "datacenters" and also support AWS/Azure/GCP/etc
-          # It would be interesting to test concord with various mixed cloud environment set-up.
-          # They all have their own version of inventory system with: instance notes, descriptions and/or tags, etc.
-        )
-        if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
-        vmHandle = vmAndSourceSDDC["vmHandle"]
-        if "realm" in vmHandle["attrMap"]: # already has context given (not possible for fresh deployment)
-          log.error("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
-          log.error("This is a sign of a previous VM clean-up failure while IPAM thinks this IP ({}) is released for use."
-                      .foramt(replicaInfo["ip"]))
-          continue
-        vm = vmHandle["entity"]
-        sddc = vmAndSourceSDDC["sddc"]
-        ipType = "Private" if replicaInfo["ip"].startswith("10.") else "Public"
-        notes = "{} IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nNetwork Type: {}\nNode Type: {}\n".format(
-                ipType,
-                replicaInfo["ip"],
-                replicaInfo["replica_id"],
-                blockchainDetails["id"],
-                blockchainDetails["consortium_id"],
-                blockchainDetails["blockchain_type"],
-                blockchainDetails["nodes_type"]
-              ) + "\nDeployed By: Hermes\nJob Name: {}\nBuild Number: {}\nDocker Tag: {}\n".format(
-                # Below 3 attributes: if run locally, user_config will have default "<VAR_NAMES>", in this case use "None"
-                jobName if not jobName.startswith("<") else "None",
-                buildNumber if not buildNumber.startswith("<") else "None",
-                dockerTag if not dockerTag.startswith("<") else "None"
-              ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
-                pytestContext,
-                runCommand,
-                otherMetadata
-              )
-        log.info("Annotating VM ({}) for better tracking & life-cycle management...".format(replicaInfo["ip"]))
-        # edit VM Notes with detailed deployment context
-        sddc.vmAnnotate(vm, notes)
-        # Add custom attributes
-        sddc.vmSetCustomAttribute(vm, "up_since", str(int(time.time()))) # UNIX timestamp in seconds
-        sddc.vmSetCustomAttribute(vm, "realm", "testing")
-        # below 3 attributes: if run locally, user_config will have default "<VAR_NAME>", in this case use ""
-        sddc.vmSetCustomAttribute(vm, "docker_tag", dockerTag if not dockerTag.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "jenkins_build_id", jenkinsBuildId if not jenkinsBuildId.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "job_name", jobName if not jobName.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["replica_id"])
-        sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainDetails["id"])
-        sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainDetails["consortium_id"])
-        sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainDetails["blockchain_type"])
-        sddc.vmSetCustomAttribute(vm, "node_type", blockchainDetails["nodes_type"].lower())
-        sddc.vmSetCustomAttribute(vm, "other_metadata", otherMetadata)
-        if ipType == "Public":
-          sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["ip"])
-        else:
-          sddc.vmSetCustomAttribute(vm, "private_ip", replicaInfo["ip"])
-
+          vmHandle = findVMByReplicaId(replicaId = replicaInfo["id"], sddcs = sddcs)
+          if not vmHandle: continue # vm with the given replicaId is not found
+          if "realm" in vmHandle["attrMap"]: # already has context given (not possible for fresh deployment)
+            log.error("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
+            log.error("This is a sign of a previous VM clean-up failure while IPAM thinks this IP ({}) is released for use."
+                        .foramt(replicaInfo["private_ip"]))
+            continue
+          vm = vmHandle["entity"]
+          sddc = vmHandle["sddc"]
+          ipInfo = ""
+          if "private_ip" in replicaInfo and replicaInfo["private_ip"]: # VM should ALWAYS have this
+            ipInfo += replicaInfo["private_ip"] + " (Private)"
+          if "public_ip" in replicaInfo and replicaInfo["public_ip"]: # Cloud deployment with public IP
+            ipInfo += ", " + replicaInfo["public_ip"] + " (Public)"
+          notes = ("IP: {}\nPassword: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}"
+                  +"\nNetwork Type: {}\nNode Type: {}\n{}{}").format(
+                  ipInfo,
+                  replicaInfo["password"] if "password" in replicaInfo else "(Unknown)",
+                  replicaInfo["id"],
+                  blockchainFullDetails["id"],
+                  blockchainFullDetails["consortium_id"],
+                  blockchainFullDetails["blockchain_type"].upper(),
+                  replicaTypeDisplayName,
+                  versionInfo, # (optional prop, concord & exec engine version)
+                  createdBy, # (optional prop, email of the csp account who created the blockchain)
+                ) + "\nDeployed By: Hermes ({})\nJob Name: {}\nBuild Number: {}\nDocker Tag: {}\n".format(
+                  # Below 3 attributes: if run locally, user_config will have default "<VAR_NAMES>", in this case use "None"
+                  "through " + blockchainFullDetails["deployed_from"],
+                  jobName if not jobName.startswith("<") else "None",
+                  buildNumber if not buildNumber.startswith("<") else "None",
+                  dockerTag if not dockerTag.startswith("<") else "None"
+                ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
+                  pytestContext,
+                  runCommand,
+                  otherMetadata
+                )
+          log.info("Annotating VM ({}) for better tracking & life-cycle management...".format(replicaInfo["private_ip"]))
+          # edit VM Notes with detailed deployment context
+          sddc.vmAnnotate(vm, notes)
+          # Add custom attributes
+          sddc.vmSetCustomAttribute(vm, "up_since", str(int(time.time()))) # UNIX timestamp in seconds
+          sddc.vmSetCustomAttribute(vm, "realm", "testing")
+          # below 3 attributes: if run locally, user_config will have default "<VAR_NAME>", in this case use ""
+          sddc.vmSetCustomAttribute(vm, "docker_tag", dockerTag if not dockerTag.startswith("<") else "")
+          sddc.vmSetCustomAttribute(vm, "jenkins_build_id", jenkinsBuildId if not jenkinsBuildId.startswith("<") else "")
+          sddc.vmSetCustomAttribute(vm, "job_name", jobName if not jobName.startswith("<") else "")
+          sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["id"])
+          sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainFullDetails["id"])
+          sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainFullDetails["consortium_id"])
+          sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainFullDetails["blockchain_type"])
+          sddc.vmSetCustomAttribute(vm, "node_type", replicaTypeDisplayName.lower())
+          sddc.vmSetCustomAttribute(vm, "other_metadata", otherMetadata)
+          if "private_ip" in replicaInfo and replicaInfo["private_ip"]:
+            sddc.vmSetCustomAttribute(vm, "private_ip", replicaInfo["private_ip"])
+          if "public_ip" in replicaInfo and replicaInfo["public_ip"]:
+            sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["public_ip"])
+        except Exception as e:
+          helper.hermesNonCriticalTrace(e)
    except Exception as e:
      helper.hermesNonCriticalTrace(e)
 

@@ -2071,6 +2071,7 @@ EOF
       sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<METAINF_ENV_NAME>"'/'"JENKINS"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json

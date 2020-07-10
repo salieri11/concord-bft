@@ -141,12 +141,12 @@ class ConnectionToSDDC:
     return []
 
 
-  def vmGetUID(self, vm):
-    return str(vm).replace("'", "")
+  def entityGetUID(self, entity):
+    return str(entity).replace("'", "")
 
   
   def vmRegisterIfNew(self, vm):
-    vmUID = self.vmGetUID(vm)
+    vmUID = self.entityGetUID(vm)
     if vmUID in self.allEntityHandlesByUID:
       return self.allEntityHandlesByUID[vmUID]
     try:
@@ -272,8 +272,8 @@ class ConnectionToSDDC:
     if attr is None:
       log.debug("Attribute by name '{}' is not found in this SDDC.".format(name))
       return None
-    if self.vmGetUID(vm) in self.allEntityHandlesByUID:
-      vmHandle = self.allEntityHandlesByUID[self.vmGetUID(vm)]
+    if self.entityGetUID(vm) in self.allEntityHandlesByUID:
+      vmHandle = self.allEntityHandlesByUID[self.entityGetUID(vm)]
       if name in vmHandle["attrMap"]:
         return vmHandle["attrMap"][name]
       else:
@@ -332,10 +332,11 @@ class ConnectionToSDDC:
   def initializeHandle(self, handle):
     entity = handle["entity"] if "entity" in handle else None
     if not entity: return
-    entityUID = self.vmGetUID(entity)
+    entityUID = self.entityGetUID(entity)
     handle["isHandle"] = True
     handle["attrMap"] = {}
-    handle["sddc"] = self.sddcName
+    handle["sddcName"] = self.sddcName
+    handle["sddc"] = self
     handle["uid"] = entityUID
     self.allEntityHandlesByUID[entityUID] = handle
     # Folder or VM
@@ -372,11 +373,7 @@ class ConnectionToSDDC:
       self.allEntityHandlesByName = {} # by VM name
       self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
       self.allEntityHandlesByAttribute = {} # by custom attritube and its value
-      containerView = self.content.viewManager.CreateContainerView(
-        container = self.content.rootFolder, 
-        type = [vim.Folder, vim.VirtualMachine], # VMs & Folders Only
-        recursive = True
-      )
+      containerView = self.getDefaultContainerView()
       handles = self.parallelIteratePropsFetchedByAPI(
         iterable = containerView.view
       )
@@ -399,6 +396,28 @@ class ConnectionToSDDC:
     for handle in handleList:
       newList.append(handle["entity"])
     return newList
+
+
+  def checkForNewEntities(self):
+    '''
+      This updates the VM & Folder mapping with any new VMs
+      deployed AFTER initial entities mapping when the connection
+      was first established (e.g. new deployment or node added after).
+    '''
+    log.debug("Checking for new entities on SDDC ({}) inventory...".format(self.sddcName))
+    containerView = self.getDefaultContainerView()
+    unregistered = []
+    for entity in containerView.view:
+      if self.getEntityType(entity) in ["VM", "Folder"]:
+        entityUID = self.entityGetUID(entity)
+        if entityUID not in self.allEntityHandlesByUID:
+          unregistered.append(entity)
+    if len(unregistered) > 0:
+      handles = self.parallelIteratePropsFetchedByAPI(iterable=unregistered)
+      for handle in handles: self.initializeHandle(handle)
+      log.debug("Added {} new entities to local inventory cache of entities.".format(len(handles)))
+    else:
+      log.debug("There are no new entities on SDDC ({}) inventory.".format(self.sddcName))
 
 
   def parallelIteratePropsFetchedByAPI(self, iterable):
@@ -458,6 +477,18 @@ class ConnectionToSDDC:
         threads.append(thd); thd.start()
     for thd in threads: thd.join(timeout=600) # wait for all API calls to return
     return handles
+
+
+  def getDefaultContainerView(self):
+    '''
+      Get default container view of the SDDC, containerView.view is
+      the iterable list which container ALL SDDC entities (of all types)
+    '''
+    return self.content.viewManager.CreateContainerView(
+      container = self.content.rootFolder, 
+      type = [vim.Folder, vim.VirtualMachine], # VMs & Folders Only
+      recursive = True
+    )
 
 
 
