@@ -1301,17 +1301,33 @@ def loadConfigFile(args=None, filepath=None):
    configObject = None
    jenkinsWorkspace = os.getenv("WORKSPACE")
 
-   if args and args.config:
-      configObject = json_helper_util.readJsonFile(args.config)
-   elif filepath:
-      configObject = json_helper_util.readJsonFile(filepath)
-   elif os.path.exists(CONFIG_USER_FILE):
-      configObject = json_helper_util.readJsonFile(CONFIG_USER_FILE)
-   elif jenkinsWorkspace is not None and os.path.exists(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_USER_FILE):
-      configObject = json_helper_util.readJsonFile(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_USER_FILE)
+   # explicitly supplied path
+   configFilePath = args.config if args and args.config else filepath
+
+   if not configFilePath:
+      # default user_config.json (relative path)
+      if os.path.exists(CONFIG_USER_FILE):
+         configFilePath = CONFIG_USER_FILE
+      # otherwise try user_config.json (absolute path) based on workspace
+      elif jenkinsWorkspace:
+         defaultConfigAbsolutePath = jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_USER_FILE
+         if os.path.exists(defaultConfigAbsolutePath):
+            configFilePath = defaultConfigAbsolutePath
+
+   if configFilePath:
+      configObject = json_helper_util.readJsonFile(configFilePath)
    else:
-      log.info("Cannot find user config source in any of the locations.")
+      log.error("Cannot find user config source in any of the locations.")
       return None
+
+   # resilience valgrind user_config does not have some items present in default user_config.
+   if "user_config_resilience.json" in configFilePath or "user_config_valgrind.json" in configFilePath:
+      defaultConfigFilePath = configFilePath.replace("user_config_resilience.json", "user_config.json")
+      defaultConfigFilePath = configFilePath.replace("user_config_valgrind.json", "user_config.json")
+      defaultUserConfig = json_helper_util.readJsonFile(defaultConfigFilePath)
+      for key in defaultUserConfig: # import metainf, jenkins, communication, dashboard, etc.
+        if key not in configObject:
+          configObject[key] = defaultUserConfig[key]
 
    # --su flag is set (local dev env, non-Jenkins run);
    # Replace all bracket "<SOME_NAMED_CREDENTIAL>" to credentials from last good master
@@ -1685,7 +1701,7 @@ def getJenkinsWorkspace():
 
 
 def thisHermesIsFromJenkins():
-  return True if os.getenv("WORKSPACE") else False
+  return True if getUserConfig()["metainf"]["env"]["name"] == "JENKINS" else False
 
 
 def hermesNonCriticalTrace(e, message=None):

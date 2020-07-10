@@ -188,8 +188,8 @@ def post_deployment(hermes_settings, ps_helper, deployment_session_id, deploymen
             # Get Node Info list
             node_info_list = get_node_info_list(execution_events_json, blockchain_type)
             # Save details to infra and for adding information to deployment_info
-            save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, consortium_id,
-                                  blockchain_type, zone_type, file_root)
+            save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, 
+                                  consortium_id, blockchain_id, blockchain_type, zone_type, file_root)
             if len(node_info_list) == num_nodes:
                 # Verify containers running on each node
                 status = verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type)
@@ -448,7 +448,7 @@ def get_docker_containers_by_node_type(user_config, blockchain_type, node_type):
 
 
 def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, consortium_id,
-                          blockchain_type, zone_type, file_root):
+                          blockchain_id, blockchain_type, zone_type, file_root):
     """
     Saves deployment information to infra
     :param hermes_settings: Fixture for Hermes settings
@@ -456,27 +456,21 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
     :param deployment_session_id: Deployment session ID
     :param node_info_list: List of NodeInfo objects
     :param consortium_id: Consortium ID
+    :param blockchain_id: Blockchain ID
     :param blockchain_type: Type of blockchain (DAML, Ethereum, HLF)
     :param zone_type: sddc or onprem
     :param file_root: Root directory to save test log files
     :return: None
     """
-    nodes = []
-    for node in node_info_list:
-        vm_handle = infra.findVMByInternalIP(node.private_ip)
-        if vm_handle:
-            nodes.append({"ip": node.private_ip,
-                          "replica_id": vm_handle["replicaId"] if vm_handle else node.node_id
-                          })
-
     log.info("Annotating VMs with deployment context")
     try:
+        nodes_list = [vars(node_info) for node_info in node_info_list] # convert NodeInfo to dict
         infra.giveDeploymentContext({
-            "id": "None",
+            "id": blockchain_id,
             "consortium_id": consortium_id,
             "blockchain_type": blockchain_type,
-            "nodes_type": infra.PRETTY_TYPE_REPLICA,
-            "replica_list": nodes
+            "nodes_list": nodes_list,
+            "deployed_from": "Persephone, V2"
         })
 
         for deployment_info in ps_helper.deployment_info:

@@ -429,7 +429,7 @@ class PersephoneTests(test_suite.TestSuite):
       return False
 
 
-   def get_ethrpc_endpoints(self, response_events_json, concord_type):
+   def get_ethrpc_endpoints(self, response_events_json, concord_type, node_type=None):
       '''
       Get ethrpc endpoints from deployment events response
       :param response_events_json: deployment events (JSON)
@@ -443,22 +443,37 @@ class PersephoneTests(test_suite.TestSuite):
 
       ethrpc_endpoints = []
       private_ips = []
+      node_details = []
       try:
          for event in response_events_json:
             if event["type"] == "CLUSTER_DEPLOYED":
                for member in event["cluster"]["info"]["members"]:
                   # TODO: Add another validation to check "blockchainType"
-                  ethrpc_endpoints.append(
-                     member["hostInfo"]["endpoints"][endpoint_id]["url"])
+                  # e.g. full rpc/url = "https://10.70.30.237:6865/path"
+                  endpoint_full_url = member["hostInfo"]["endpoints"][endpoint_id]["url"]
+                  ethrpc_endpoints.append(endpoint_full_url)
+                  endpoint_ip = endpoint_full_url.split('//')[1].split(':')[0]
 
                   private_ip_in_decimal = list(member["hostInfo"]["ipv4AddressMap"].values())[0]
                   private_ip = socket.inet_ntoa(struct.pack('!L', private_ip_in_decimal))
                   private_ips.append(private_ip)
+                  public_ip = endpoint_ip if endpoint_ip != private_ip else None
+                  isParticipant = (node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT)
+                  node_details.append({
+                    "id": member["id"]["id"], # node_id
+                    "public_ip": public_ip, # can be null
+                    "private_ip": private_ip, # strictly private/internal
+                    "endpoint_ip": endpoint_ip,
+                    "password": member["info"]["nodePassword"], # strong password
+                    "type_name": helper.TYPE_DAML_PARTICIPANT if isParticipant else helper.TYPE_DAML_COMMITTER,
+                    "url": endpoint_full_url, # (optional)
+                    "model": member["info"]["model"], # (optional), info containing: model, blockchainType,
+                  })
       except KeyError as e:
          log.error("ERROR fetching ethrpc endpoint: {}".format(e))
 
       log.debug("ethrpc Endpoints: {}".format(ethrpc_endpoints))
-      return ethrpc_endpoints, private_ips
+      return (ethrpc_endpoints, private_ips, node_details)
 
    
    def _stream_all_deployment_events(self):
@@ -716,33 +731,27 @@ class PersephoneTests(test_suite.TestSuite):
                                                  response_events_json):
          log.info("Deployment Events validated")
 
-         ethrpc_endpoints, private_ips = self.get_ethrpc_endpoints(response_events_json,
-                                                      concord_type)
+         ethrpc_endpoints, private_ips, node_details = self.get_ethrpc_endpoints(
+                                                      response_events_json, concord_type, node_type)
          concord_memeber_credentials = \
             self._userConfig["persephoneTests"]["provisioningService"][
                "concordNode"]
          concord_username = concord_memeber_credentials["username"]
          concord_password = concord_memeber_credentials["password"]
 
-         if session_id:
+         if session_id: # has reponse
             replicas = []
-            replica_list = []
-            for endpoint in ethrpc_endpoints:
-               replica_ip = endpoint.split('//')[1].split(':')[0]
-               replicas.append(replica_ip)
-               vmHandle = infra.findVMByInternalIP(replica_ip)
-               if vmHandle: replica_list.append({
-                 "ip": replica_ip,
-                 "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
-               })
+            for node_info in node_details: replicas.append(node_info["endpoint_ip"])
 
             log.info("Annotating VMs with deployment context...")
+            log.info("Engine Type: {}".format(concord_type))
+            log.info("Deployed Nodes: {}".format(json.dumps(node_details, indent=4)))
             infra.giveDeploymentContext({
               "id": "None",
               "consortium_id": "None",
-              "blockchain_type": concord_type if concord_type is not None else helper.TYPE_ETHEREUM,
-              "nodes_type": infra.PRETTY_TYPE_COMMITTER,
-              "replica_list": replica_list
+              "blockchain_type": concord_type,
+              "nodes_list": node_details,
+              "deployed_from": "Persephone, V1"
             })
 
             for deployment_info in self.rpc_test_helper.deployment_info:

@@ -79,6 +79,42 @@ def setUpPortForwarding(url_or_host, creds, blockchainType, logDir, src_port=443
        raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
 
 
+def getBlockchainFullDetails(blockchainId, conAdminRequest):
+  '''
+    Fetches detailed data of the entire topology of the blockchain from Helen
+    1) blockchain info
+    2) all nodes list (`nodes_list` = committers + participants + ...)
+    3) nodes credentials (injected into each member of `node_list` as "password")
+  '''
+  blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
+  committersDetails = conAdminRequest.getReplicas(blockchainId)
+  clientsDetails = conAdminRequest.get_participant_details(blockchainId)
+  allNodesDetails = committersDetails + clientsDetails
+  for committerDetails in committersDetails:
+    committerDetails["type_name"] = helper.TYPE_DAML_COMMITTER
+  for clientDetails in clientsDetails:
+    clientDetails["type_name"] = helper.TYPE_DAML_PARTICIPANT
+  for nodeDetails in allNodesDetails: # get strong passwords for each node
+    try:
+      nodeCredentials = conAdminRequest.getReplicaCredentials(blockchainId, nodeDetails["id"])
+      nodeDetails["password"] = nodeCredentials["password"]
+    except Exception as e:
+      helper.hermesNonCriticalTrace(e)
+      pass
+  blockchainFullDetails = {
+    "id": blockchainDetails["id"],
+    "consortium_id": blockchainDetails["consortium_id"],
+    "blockchain_type": blockchainDetails["blockchain_type"], # e.g. DAML | ETHEREUM | HLF
+    "blockchain_state": blockchainDetails["blockchain_state"], # e.g. ACTIVE
+    "version": blockchainDetails["version"], # e.g. Blockchain Version: 0.0.0.1635, DAML SDK Version: 1.0.0
+    "created_by": blockchainDetails["created_by"],
+    "created": blockchainDetails["created"], # time UNIX timestamp in seconds
+    "deployed_from": "Helen",
+    "nodes_list": allNodesDetails # all nodes (committers + participants + ...)
+  }
+  return blockchainFullDetails
+
+
 def getExistingBlockchainDetails(logDir, hermesData):
    '''
    Return the blockchain passed in, if any.
@@ -158,14 +194,15 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
 
    if success:
       blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
-      log.info("Details of the deployed blockchain, in case you need to delete its resources " \
-               "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
+      replica_details = conAdminRequest.getReplicas(blockchainId)
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
-      # log.info("Annotating VMs with deployment context...")
-      #blockchainDetails["nodes_type"] = infra.PRETTY_TYPE_COMMITTER
-      #infra.giveDeploymentContext(blockchainDetails)
-      replica_details = conAdminRequest.getReplicas(blockchainId)
+      # VM Annotations (optional)
+      blockchainFullDetails = getBlockchainFullDetails(blockchainId, conAdminRequest)
+      log.info("Details of the deployed blockchain, in case you need to delete its resources " \
+               "manually: {}\n".format(json.dumps(blockchainFullDetails, indent=4)))
+      log.info("Annotating VMs with deployment context...")
+      infra.giveDeploymentContext(blockchainFullDetails)
 
       ethereum_replicas = []
       daml_committer_replicas = []
@@ -289,43 +326,8 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
         log.error("Failed to validate DAML participants")
         success = False
 
-    # Deployment context
-    # give_deployment_context_participants(blockchain_id, participant_details)
-
     return success, participant_replicas
 
-
-def give_deployment_context_participants(blockchain_id, participant_details):
-    """
-    Give deployment context of participants
-    :param blockchain_id: Blockchain ID of the blockchain
-    :param participant_details: Participant details
-    :return: None
-    """
-
-    replica_list = []
-    try:
-        for participant_entry in participant_details:
-            public_ip = participant_entry["public_ip"]
-            private_ip = participant_entry["private_ip"]
-            vm_handle = infra.findVMByInternalIP(private_ip)
-            if vm_handle:
-                replica_list.append({
-                    "ip": public_ip,
-                    "replica_id": vm_handle["replicaId"] if vm_handle is not None else "None"
-                })
-
-        log.info("Annotating VMs with deployment context...")
-        infra.giveDeploymentContext({
-            "id": blockchain_id,
-            "consortium_id": "None",
-            "blockchain_type": helper.TYPE_DAML,
-            "nodes_type": infra.PRETTY_TYPE_PARTICIPANT,
-            "replica_list": replica_list
-        })
-
-    except Exception as e:
-        log.error(e)
 
 
 def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas,
