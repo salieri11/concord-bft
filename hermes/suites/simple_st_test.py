@@ -173,7 +173,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       return res
 
 
-   @describe(dontReport=True)
+   @describe()
    def _test_kill_replica(self):
       try:
          global path
@@ -208,7 +208,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
          return failed(message)
        
 
-   @describe(dontReport=True)
+   @describe()
    def _test_pause_replica(self):
       try:
          global path
