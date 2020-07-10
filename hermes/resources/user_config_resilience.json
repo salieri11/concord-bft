@@ -2,15 +2,6 @@
   "product": {
     "launch": [
       {
-        "cockroachDB": {
-          "buildRoot": "./resources/",
-          "cockroachDB": {
-            "launchCommand": "./cockroachdb_test_setup.sh",
-            "parameters": []
-          }
-        }
-      },
-      {
         "apiServer": {
           "buildRoot": "~/source/helen",
           "helen1": {

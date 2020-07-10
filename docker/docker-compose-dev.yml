@@ -113,26 +113,26 @@ services:
       - 3000:3000
 
   db-server:
-    image: cockroachdb/cockroach:v2.0.2
+    image: postgres:10.6
     ports:
       - 26257:26257
+    environment:
+      POSTGRES_USER: helen_admin
+      POSTGRES_DB: helen
+      POSTGRES_PASSWORD: VMware!23
+    command: -p 26257
     volumes:
-      - ./devdata/cockroachDB:/cockroach/cockroach-data
-    command:
-      - start
-      - --insecure
+      - ./devdata/postgresql:/var/lib/postgresql/data
 
   db-server-init1:
-    image: cockroachdb/cockroach:v2.0.2
-    command: --host db-server user set helen_admin --insecure
+    image: postgres:10.6
+    command: -p 26257
     depends_on:
       - db-server
 
   db-server-init2:
-    image: cockroachdb/cockroach:v2.0.2
-    volumes:
-      - ./helen/src/main/resources/database:/cockroach/resources
-    entrypoint: sh -c "./cockroach --host db-server sql --insecure < /cockroach/resources/schema.sql"
+    image: postgres:10.6
+    command: -p 26257
     depends_on:
       - db-server-init1
 

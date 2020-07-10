@@ -1,8 +1,3 @@
-# Helen needs cockroach DB to run, when running helen inside a
-# container, we should also start another container for cockroach DB.
-# The `run_cockroachdb_docker.sh` script starts a cockroachDB container
-# and configures it for helen. Run that script first before starting helen
-# containers.
 FROM athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v1
 
 # env variable for parameterizing application profile

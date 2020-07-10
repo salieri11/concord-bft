@@ -1,4 +1,4 @@
--- This script creates a new cockroach database named 'helen' and also
+-- This script creates a new database named 'helen' and also
 -- creates a new admin user named 'helen_admin' for that database. As of
 -- now contracts management services and profile(user) management services
 -- need this database.
