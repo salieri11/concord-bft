@@ -8,12 +8,9 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
-import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Endpoint;
-import com.vmware.blockchain.ethereum.type.Genesis;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,31 +31,6 @@ public class OrchestratorData {
     }
 
     /**
-     * Compute resource deployment creation request specification.
-     *
-     * @param[cluster] identifier of the cluster the deployed resource belongs to.
-     * @param[node] identifier of the member node.
-     * @param[model] metadata specification of versioned Concord model template to deploy.
-     * @param[genesis] common genesis block information to be deployed on the resource.
-     * @param[privateNetworkAddress] network address to be statically assigned on the compute resource.
-     */
-    @Data
-    @AllArgsConstructor
-    public static class CreateComputeResourceRequest {
-
-        ConcordClusterIdentifier cluster;
-        ConcordNodeIdentifier node;
-        ConcordModelSpecification model;
-        Genesis genesis;
-        String privateNetworkAddress = "";
-        ConfigurationSessionIdentifier configurationSessionIdentifier;
-        int concordId;
-        Endpoint configServiceEndpoint;
-        Endpoint configServiceRestEndpoint;
-        Map<String, String> properties;
-    }
-
-    /**
      * Temp v2 request.
      */
     @Data
@@ -76,6 +48,7 @@ public class OrchestratorData {
         @Data
         @AllArgsConstructor
         public static class CloudInitData {
+            Endpoint containerRegistry;
             ConcordModelSpecification model;
             String privateIp;
             ConfigurationSessionIdentifier configGenId;
@@ -171,28 +144,6 @@ public class OrchestratorData {
     }
 
     /**
-     * Compute resource creation event.
-     */
-    @Data
-    @EqualsAndHashCode(callSuper = true, doNotUseGetters = true)
-    @Deprecated
-    public static final class ComputeResourceEventCreated extends ComputeResourceEvent {
-
-        ConcordNodeIdentifier node;
-        String nodePassword;
-
-        /**
-         * Constructor.
-         */
-        @Builder
-        public ComputeResourceEventCreated(URI resource, ConcordNodeIdentifier node, String password) {
-            super(resource);
-            this.node = node;
-            this.nodePassword = password;
-        }
-    }
-
-    /**
      * Temp v2 request.
      */
     @Data
@@ -267,30 +218,4 @@ public class OrchestratorData {
         URI resource;
     }
 
-    /**
-     * Network allocation creation.
-     */
-    @Data
-    @EqualsAndHashCode(callSuper = false)
-    @Deprecated
-    public static final class NetworkAllocationEventCreated extends NetworkAllocationEvent {
-
-        String name;
-        URI compute;
-        URI publicNetwork;
-        URI privateNetwork;
-
-        /**
-         * Constructor.
-         */
-        @Builder
-        public NetworkAllocationEventCreated(URI resource, String name,
-                                             URI compute, URI publicNetwork, URI privateNetwork) {
-            super(resource);
-            this.name = name;
-            this.compute = compute;
-            this.publicNetwork = publicNetwork;
-            this.privateNetwork = privateNetwork;
-        }
-    }
 }

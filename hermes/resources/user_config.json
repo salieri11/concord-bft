@@ -1,6 +1,7 @@
 {
   "metainf": {
     "env":{
+      "name": "<METAINF_ENV_NAME>",
       "jobName": "<METAINF_ENV_JOB_NAME>",
       "buildNumber": "<METAINF_ENV_BUILD_NUMBER>",
       "dockerTag": "<METAINF_ENV_DOCKER_TAG>",
@@ -47,15 +48,6 @@
               "reverse-proxy-hermes-test",
               "vmwblockchain/reverse-proxy:latest"
             ]
-          }
-        }
-      },
-      {
-        "cockroachDB": {
-          "buildRoot": "./resources/",
-          "cockroachDB": {
-            "launchCommand": "./cockroachdb_test_setup.sh",
-            "parameters": []
           }
         }
       },

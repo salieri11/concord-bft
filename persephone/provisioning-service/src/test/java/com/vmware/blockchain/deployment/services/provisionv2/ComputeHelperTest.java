@@ -28,6 +28,7 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 
@@ -62,6 +63,9 @@ public class ComputeHelperTest {
     @Mock
     BootstrapComponent bootstrapComponent;
 
+    @Mock
+    Endpoint registry;
+
     /**
      * Initialize various mocks.
      */
@@ -89,7 +93,8 @@ public class ComputeHelperTest {
                                               nodeDetails,
                                               orchestrator,
                                               model,
-                                              configGenId);
+                                              configGenId,
+                                              registry);
         Assert.assertNotNull(output);
 
         verify(orchestrator, times(1)).createDeploymentV2(any());

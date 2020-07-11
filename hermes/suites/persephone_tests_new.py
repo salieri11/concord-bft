@@ -41,13 +41,14 @@ class DeploymentParams:
 
 
 @pytest.fixture
-def ps_setup(hermes_settings):
+def ps_setup(request, hermes_settings):
     """
     Sets up provisioning service docker instance
+    :param request: Default Pytest request param
     :param hermes_settings: hermes_settings fixture from conftest.py
     :return: None
     """
-    log.info("Provisioning Service setup fixture")
+    log.info("Provisioning Service setup fixture for {}".format(request.node.name))
 
     # Clear list
     session_ids_to_retain.clear()
@@ -66,22 +67,27 @@ def ps_setup(hermes_settings):
             product = Product(cmdline_args, user_config)
             product.launchPersephone()
     except Exception as e:
-        log.error("Provisioning Service did not start successfully")
+        log.error("Provisioning Service did not start successfully for {}".format(request.node.name))
         log.error(traceback.format_exc())
         raise Exception(e)
 
 
 @pytest.fixture
-def ps_helper(hermes_settings, ps_setup):
+def ps_helper(request, hermes_settings, ps_setup):
     """
     Returns instance of ProvisioningServiceNewRPCHelper
+    :param request: Default Pytest request param
     :param hermes_settings: hermes_settings fixture from conftest.py
     :param ps_setup: Fixture that launches provisioning service. Don't need the results from it, but need to start it.
     :return: Instance of ProvisioningServiceNewRPCHelper
     """
-    log.info("Provisioning Service gRPC Helper fixture")
+    log.info("Provisioning Service gRPC Helper fixture for {}".format(request.node.name))
     args = hermes_settings["cmdline_args"]
-    return ProvisioningServiceNewRPCHelper(args)
+    try:
+        return ProvisioningServiceNewRPCHelper(args)
+    except Exception as e:
+        log.error("Unable to create Provisioning Service gRPC Helper")
+        raise Exception(e)
 
 
 @pytest.fixture
@@ -182,8 +188,8 @@ def post_deployment(hermes_settings, ps_helper, deployment_session_id, deploymen
             # Get Node Info list
             node_info_list = get_node_info_list(execution_events_json, blockchain_type)
             # Save details to infra and for adding information to deployment_info
-            save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, consortium_id,
-                                  blockchain_type, zone_type, file_root)
+            save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, 
+                                  consortium_id, blockchain_id, blockchain_type, zone_type, file_root)
             if len(node_info_list) == num_nodes:
                 # Verify containers running on each node
                 status = verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type)
@@ -237,7 +243,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
             persephone_config_file_orig = "{}.orig".format(persephone_config_file)
 
             if mode == "UPDATE":
-                log.info("Updating provisioning service config file to use local config-service ***")
+                log.info("Updating provisioning service config file to use local config-service")
                 log.info("Config file: {}".format(persephone_config_file))
                 log.info("[backup: {}]".format(persephone_config_file_orig))
                 shutil.copy(persephone_config_file, persephone_config_file_orig)
@@ -442,7 +448,7 @@ def get_docker_containers_by_node_type(user_config, blockchain_type, node_type):
 
 
 def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, consortium_id,
-                          blockchain_type, zone_type, file_root):
+                          blockchain_id, blockchain_type, zone_type, file_root):
     """
     Saves deployment information to infra
     :param hermes_settings: Fixture for Hermes settings
@@ -450,27 +456,21 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
     :param deployment_session_id: Deployment session ID
     :param node_info_list: List of NodeInfo objects
     :param consortium_id: Consortium ID
+    :param blockchain_id: Blockchain ID
     :param blockchain_type: Type of blockchain (DAML, Ethereum, HLF)
     :param zone_type: sddc or onprem
     :param file_root: Root directory to save test log files
     :return: None
     """
-    nodes = []
-    for node in node_info_list:
-        vm_handle = infra.findVMByInternalIP(node.private_ip)
-        if vm_handle:
-            nodes.append({"ip": node.private_ip,
-                          "replica_id": vm_handle["replicaId"] if vm_handle else node.node_id
-                          })
-
     log.info("Annotating VMs with deployment context")
     try:
+        nodes_list = [vars(node_info) for node_info in node_info_list] # convert NodeInfo to dict
         infra.giveDeploymentContext({
-            "id": "None",
+            "id": blockchain_id,
             "consortium_id": consortium_id,
             "blockchain_type": blockchain_type,
-            "nodes_type": infra.PRETTY_TYPE_REPLICA,
-            "replica_list": nodes
+            "nodes_list": nodes_list,
+            "deployed_from": "Persephone, V2"
         })
 
         for deployment_info in ps_helper.deployment_info:

@@ -45,14 +45,16 @@ public class OrchestrationSiteService extends OrchestrationSiteServiceGrpc.Orche
                                           StreamObserver<ValidateOrchestrationSiteResponse> responseObserver) {
         Orchestrator newOrchestrator = orchestratorProvider.newOrchestrator(request.getSite(), ipamClient);
         try {
-            newOrchestrator.validate();
+            newOrchestrator.populate();
             ValidateOrchestrationSiteResponse response = ValidateOrchestrationSiteResponse.newBuilder()
                     .setHeader(request.getHeader())
                     .setSite(request.getSite())
                     .build();
 
-            log.info("Validation request(${request.header.id}), "
-                     + "type(${request.site.type}, labels(${request.site.labels})");
+
+            // TODO cleanup session.
+
+            log.info("Validation request: {}", request.getSite());
             responseObserver.onNext(response);
         } catch (Exception e) {
             log.error("Error validating orchestration site, error: ", e);

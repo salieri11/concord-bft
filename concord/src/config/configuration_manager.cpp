@@ -1576,8 +1576,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadAllDefaults(
     if (containingScope->parameters[path.getLeaf().name].hasDefaultValue) {
       ParameterStatus loadRes =
           containingScope->loadDefault(path.getLeaf().name, nullptr, overwrite);
-      if (((loadRes == ParameterStatus::INVALID) ||
-           (status == ParameterStatus::VALID))) {
+      if ((loadRes == ParameterStatus::INVALID) ||
+          (status == ParameterStatus::VALID)) {
         status = loadRes;
       }
     }

@@ -1,4 +1,4 @@
 {
-  "test_suites": ["PersephoneSmokeNew","HelenDeployEthereumToSDDC"],
-  "build_targets": []
+  "test_suites": ["PersephoneSmokeNew","HelenDeployDAMLToSDDC"],
+  "build_targets": ["persephone-configuration", "persephone-provisioning"]
 }

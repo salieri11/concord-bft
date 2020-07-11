@@ -4,18 +4,13 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vmware;
 
-import java.net.URI;
-
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.services.orchestration.inactive.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vmc.VmcOrchestrator;
-import com.vmware.blockchain.deployment.services.orchestration.vsphere.VSphereHttpClient;
 import com.vmware.blockchain.deployment.services.orchestration.vsphere.VSphereOrchestrator;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-
-import lombok.val;
 
 /**
  * A concrete implementation of [OrchestratorProvider].
@@ -53,14 +48,7 @@ public class OrchestratorFactory  implements OrchestratorProvider {
      *   a [VSphereOrchestrator] instance corresponding to the given input parameter.
      */
     private Orchestrator newVSphereOrchestrator(OrchestrationSiteInfo site, IpamClient ipamClient) {
-        // Create new vSphere client.
-        VSphereHttpClient.Context context = new VSphereHttpClient.Context(
-                URI.create(site.getVsphere().getApi().getAddress()),
-                site.getVsphere().getApi().getCredential().getPasswordCredential().getUsername(),
-                site.getVsphere().getApi().getCredential().getPasswordCredential().getPassword());
-        val vSphereClient = new VSphereHttpClient(context);
-
-        return new VSphereOrchestrator(site.getVsphere(), vSphereClient, ipamClient);
+        return new VSphereOrchestrator(site.getVsphere().getVsphere(), site.getVsphere().getApi(), ipamClient);
     }
 
     /**

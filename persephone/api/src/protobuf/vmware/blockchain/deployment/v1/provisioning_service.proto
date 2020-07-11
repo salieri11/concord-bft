@@ -309,7 +309,7 @@ service ProvisioningService {
      * Operation to retrieve [DeploymentSessionEvent]s of a [DeploymentSession] as a stream.
      */
     rpc StreamClusterDeploymentSessionEvents (StreamClusterDeploymentSessionEventRequest)
-        returns (stream DeploymentSessionEvent) {};
+    returns (stream DeploymentSessionEvent) {};
 
     /**
      * Operation to retrieve all [DeploymentSessionEvent] as a stream for an ongoing session.
@@ -318,12 +318,12 @@ service ProvisioningService {
      * StreamClusterDeploymentSessionEvents also returns a stream instead.
      */
     rpc StreamAllClusterDeploymentSessionEvents (StreamAllClusterDeploymentSessionEventRequest)
-        returns (stream DeploymentSessionEvent) {};
+    returns (stream DeploymentSessionEvent) {};
 
     /**
     * Operation to deprovision cluster based on a [DeprovisionClusterRequest]
     */
     rpc UpdateDeploymentSession (UpdateDeploymentSessionRequest)
-	    returns (UpdateDeploymentSessionResponse) {};
+    returns (UpdateDeploymentSessionResponse) {};
 }
 /* [END services] */

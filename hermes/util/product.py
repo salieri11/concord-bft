@@ -188,12 +188,6 @@ class Product():
                                           "concord.model.specification.dockerImageBuild",
                                           concordTag)
 
-   def _isHelenInDockerCompose(self, dockerCfg):
-      for service in dockerCfg['services']:
-          if "helen" in service:
-              return True
-      return False
-
    def _launchViaDocker(self):
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
          dockerCfg = self._getFullDockerComposeDict()
@@ -209,13 +203,6 @@ class Product():
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
-
-            ####################################################################################
-            # Comment out these two lines to prevent Hermes from initializing the Cockroach DB.#
-            #                                                                                  #
-            #if self._isHelenInDockerCompose(dockerCfg):                                        #
-            #   self.initializeHelenDockerDB(dockerCfg)                                         #
-            ####################################################################################
 
          self._startContainers()
          self._startLogCollection()
@@ -528,33 +515,6 @@ class Product():
       return buildRoot
 
 
-   def pullHelenDBImage(self, dockerCfg):
-      '''
-      This is the cockroach DB.  Make sure we have it before trying to start
-      the product so we don't time out while downloading it.
-      '''
-      image = dockerCfg["services"]["db-server"]["image"]
-      image_name = image.split(":")[0]
-      pull_cmd = ["docker", "pull", image]
-      find_cmd = ["docker", "images", "--filter", "reference="+image]
-      found = False
-
-      completedProcess = subprocess.run(pull_cmd,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
-      # Sleep just in case there is a gap between the time "pull" finishes
-      # and "images" can find it. In testing, it looks immediate.
-      time.sleep(1)
-      completedProcess = subprocess.run(find_cmd,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
-      psOutput = completedProcess.stdout.decode("UTF-8")
-
-      if image_name in psOutput:
-         found = True
-
-      return found
-
    def startHelenDockerDB(self, dockerCfg):
       ''' Starts the Helen DB.  Returns True if able to start, False if not.'''
       cmd = ["docker-compose"]
@@ -603,7 +563,7 @@ class Product():
 
       # The processes cmd gives us a string like:
       # CONTAINER ID        IMAGE                          COMMAND ...
-      # 21d37f282847        cockroachdb/cockroach:v2.0.2   "/cockroach/cockroac…" ...
+      # 21d37f282847        postgres:10.6                  "docker-entrypoint.s…"...
       cmd = ["docker", "ps", "--filter", "status=running"]
       log.debug("Getting running containers with command '{}'".format(cmd))
       completedProcess = subprocess.run(cmd,
@@ -646,37 +606,6 @@ class Product():
       return containerId
 
 
-   def configureHelenDockerDB(self, containerId):
-      '''
-      Runs the SQL commands to set up the Helen DB.  Returns whether the command
-      exit codes indicate success.
-      '''
-      schema = None
-
-      with open("../helen/src/main/resources/database/schema.sql", "r") as f:
-         schema = f.read()
-
-      commands = [
-         ["docker", "exec", containerId, "./cockroach", "user", "set", "helen_admin", "--insecure"],
-         ["docker", "exec", containerId, "./cockroach", "sql", "--insecure", "-e", schema],
-      ]
-
-      for cmd in commands:
-         log.info("running '{}'".format(cmd))
-         completedProcess = subprocess.run(cmd,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT)
-         try:
-            completedProcess.check_returncode()
-            log.info("stdout: {}, stderr: {}".format(completedProcess.stdout, completedProcess.stderr))
-         except subprocess.CalledProcessError as e:
-            log.error("Command '{}' to configure the Helen DB failed.  Exit code: '{}'".format(cmd, e.returncode))
-            log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
-            return False
-
-      return True
-
-
    def stopDockerContainer(self, containerId):
       '''Stops the given docker container. Returns whether the exit code indicated success.'''
       log.info("Stopping '{}'".format(containerId))
@@ -715,37 +644,6 @@ class Product():
          return False
 
       return True
-
-
-   def initializeHelenDockerDB(self, dockerCfg):
-      '''
-      Start the Helen DB, wait for a connection, then stop it.
-      Initialization is handled by docker-compose when we start the product.
-      Sometimes that fails, theoretically because the DB is not ready to
-      receive SQL commands once docker-compose decides that the service is
-      up.  So by allowing the DB to do whatever initialization it does now,
-      it will work when the product starts it.
-
-      This is only being done this way because we are switching to Postgres
-      in a week or two, and don't know what kinds of issues we'll hit then.
-      So we're just going to keep using what we know has worked for cockroach
-      all along for now.
-      '''
-      if not self.pullHelenDBImage(dockerCfg):
-         raise Exception("Unable to pull the Helen DB image.")
-
-      if not self.startHelenDockerDB(dockerCfg):
-         raise Exception("The Helen DB failed to come up.")
-
-      containerId = self.getHelenDBContainerId(dockerCfg)
-      if not containerId:
-         raise Exception("Unable to get the running Helen DB's docker container ID.")
-
-      if not self.configureHelenDockerDB(containerId):
-         raise Exception("Unable to configure the Helen DB.")
-
-      if not self.stopDockerContainer(containerId):
-         raise Exception("Failure trying to stop the Helen DB.")
 
 
    def clearDBsForDockerLaunch(self, dockerCfg, serviceName=None):

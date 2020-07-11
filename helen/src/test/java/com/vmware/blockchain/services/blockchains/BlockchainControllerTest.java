@@ -132,6 +132,15 @@ public class BlockchainControllerTest {
                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
 
+    static final String POST_BODY_BAD_CONS = "{"
+                                         + "    \"consortium_id\": \"a4b8f7ed-00b3-451e-97bc-4aa51a211288\","
+                                         + "    \"blockchain_type\": \"DAML\","
+                                         + "    \"replica_zone_ids\": ["
+                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
+
     static final String POST_BODY_ETH = "{"
                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                         + "    \"blockchain_type\": \"ETHEREUM\","
@@ -363,9 +372,9 @@ public class BlockchainControllerTest {
                                   ImmutableList.of(BC_ID), "");
 
         consortiumAuth = createContext("consortium", ORG_ID,
-                                  ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
-                                  Collections.emptyList(),
-                                  Collections.emptyList(), "");
+                                       ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
+                                       ImmutableList.of(C2_ID),
+                                       Collections.emptyList(), "");
 
         userAuth = createContext("operator", ORG_ID,
                                  ImmutableList.of(VmbcRoles.ORG_USER),
@@ -513,6 +522,15 @@ public class BlockchainControllerTest {
                 .content(POST_BODY_DAML)
                 .characterEncoding("utf-8"))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void postWrongConsortium() throws Exception {
+        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_BAD_CONS)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

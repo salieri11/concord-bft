@@ -1601,7 +1601,7 @@ void runTests(){
       env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
                                   "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
       env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
-      env.groupLogFileName = group.length() <= MAX_PATH_SIZE ? group : "group_OtherTests" + ".log"
+      env.groupLogFileName = (group.length() + 4 <= MAX_PATH_SIZE ? group : "group_OtherTests") + ".log"
 
       if (suiteParams.setupFunction){
         setupFunction = suiteParams.setupFunction
@@ -1809,9 +1809,26 @@ void setDockerTag(latest_docker_tag){
 void sendNotifications(){
   sendGeneralEmail()
 
-  if (currentBuild.currentResult == "FAILURE" &&
-      env.JOB_NAME.contains(env.tot_job_name)){
-    announceToTFailure()
+  if (currentBuild.currentResult == "FAILURE") {
+    echo("Sending failure notification...")
+    // Master failure to blockchain-build-fail channel
+    if (env.JOB_NAME.contains(env.tot_job_name)) {
+      echo("Notifying ToT failure on slack...")
+      slackNotifyFailure("Master run", "blockchain-build-fail", "slackPost")
+    
+    // For MR runs, notify the MR authors (usually single person)
+    } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
+      echo("Notifying MR failure to authors through slack DM...")
+      try {
+        commitAuthorsJson = readFile(env.WORKSPACE + "/blockchain/vars/commits_authors.json")
+        commitAuthorsInfo = new JsonSlurperClassic().parseText(commitAuthorsJson)
+        for (authorEmail in commitAuthorsInfo["blame"]) {
+          slackNotifyFailure("MR run", authorEmail, "slackDM", true)
+        }
+      } catch (Exception ex) {
+        echo("Failure notification to commit authors: " + ex.toString())
+      }
+    }
   }
 }
 
@@ -1838,30 +1855,39 @@ void sendGeneralEmail(){
 // Getting users from GitLab would also not use the DA folks' "digitalassets" address,
 // but maybe that's close enough.
 // Getting all users who contributed to GitLab would include users who left the team.
-void announceToTFailure(){
+void slackNotifyFailure(jobName, target, invokeMethod, simpleFormat=false){
   // recipients = "purnam-team@vmware.com"
   // emailext to: recipients,
   //          subject: subject,
   //          body: env.run_fail_msg,
   //          presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
 
-  Random rnd = new Random()
-  emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
-                ":skull_and_crossbones:", ":jenkins-explode:"]
-  emoji = emoji_list[rnd.nextInt(emoji_list.size)]
-  subject = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|Master run " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji
+  echo("Sending slack notification (jobName=" + jobName + "; target=" + target + "; method=" + invokeMethod)
+
+  subject = ""
+  if (!simpleFormat) { // Master failure is serious; channel post needs @here
+    Random rnd = new Random()
+    emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
+                  ":skull_and_crossbones:", ":jenkins-explode:"]
+    emoji = emoji_list[rnd.nextInt(emoji_list.size)]
+    subject = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|" +
+            jobName + " " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji  
+  } else { // slack DM doesn't need @here
+    subject = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
+  }
   env.run_fail_msg = subject + "\n<" + env.BUILD_URL + "console|Console>"
 
   // Add Racetrack link
+  rtUrl = "https://racetrack.eng.vmware.com"
   if (fileExists(env.WORKSPACE + "/blockchain/vars/racetrack_set_id.json")) {
     try {
       racetrackJson = readFile(env.WORKSPACE + "/blockchain/vars/racetrack_set_id.json")
       racetrackInfo = new JsonSlurperClassic().parseText(racetrackJson)
       if (racetrackInfo["setId"]) {
-        env.run_fail_msg += " :: <https://racetrack.eng.vmware.com/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
+        env.run_fail_msg += " :: <" + rtUrl + "/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
       }
     } catch(Exception ex) {
-      echo "Adding racetrack link has failed" + ex.toString()
+      echo("Adding racetrack link has failed: " + ex.toString())
     }
   }
   
@@ -1875,18 +1901,37 @@ void announceToTFailure(){
       if (fileExists(env.WORKSPACE + "/summary/errors_only.log")) {
         env.run_fail_msg += " :: <" + summary["filtered_url"] + "|Filtered>"
       }
+      env.run_fail_msg += "   (Code: *" + summary["sig"]["short"] + "*)"
+      env.run_fail_msg += "\n```" + summary["message"] + "```"
+      env.run_fail_msg += "\nSuite: `" + summary["suite_name"] + "`"
+      if (summary["test_name_short"]) {
+        env.run_fail_msg += "\nTest: `" + summary["test_name_short"] + "`  "  
+        env.run_fail_msg += "(<" + rtUrl + "/resulthistory.php?product=blockchain&testcase=" + summary["test_name_short"] + "|View History>)"
+      } else {
+        env.run_fail_msg += "\nTest: `" + summary["test_name"] + "`  "  
+      }
+      fileAndLineNumber = summary["file"] + " :: line " + summary["line_number"]
+      if (env.GIT_COMMIT) {
+        fileURL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/blob/"
+        fileURL += env.GIT_COMMIT + "/" + summary["file"] + "#L" + summary["line_number"]
+        env.run_fail_msg += "\n        at <" + fileURL + "|" + fileAndLineNumber + ">"
+      } else {
+        env.run_fail_msg += "\n        at " + fileAndLineNumber
+      }
     } catch(Exception ex) {
-      echo "Adding failure summary links has failed: " + ex.toString()
+      echo("Adding failure summary links has failed: " + ex.toString())
     }
   }
+
+  // Too many backticks needing escape; much easier to just pass by Base64
+  env.run_fail_msg_b64 = "__base64__" + env.run_fail_msg.bytes.encodeBase64().toString()
+  env.invoke_method = invokeMethod // "slackPost" | "slackDM"
+  env.slack_notify_target = target // "blockchain-build-fail" | email
 
   dir("blockchain/hermes"){
     sh '''
       . ${python_bin}/activate
-      # For testing
-      # python3 invoke.py slackDM   --param your_id@vmware.com "${run_fail_msg}"
-
-      python3 invoke.py slackPost --param blockchain-build-fail "${run_fail_msg}"
+      python3 invoke.py "${invoke_method}" --param "${slack_notify_target}" "${run_fail_msg_b64}"
       deactivate
     '''
   }
@@ -2071,6 +2116,7 @@ EOF
       sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<METAINF_ENV_NAME>"'/'"JENKINS"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json

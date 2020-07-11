@@ -120,7 +120,9 @@ public class NetworkHelperTest {
                                     .resource(mock(URI.class)).address("255.255.255.2").build());
 
         var alloc1 = mock(OrchestratorData.NetworkAllocationEvent.class);
+        when(alloc1.getResource()).thenReturn(mock(URI.class));
         var alloc2 = mock(OrchestratorData.NetworkAllocationEvent.class);
+        when(alloc2.getResource()).thenReturn(mock(URI.class));
         when(orchestrator1.createVmcNetworkAllocation(any())).thenReturn(alloc1);
         when(orchestrator2.createVmcNetworkAllocation(any())).thenReturn(alloc2);
 
@@ -131,7 +133,7 @@ public class NetworkHelperTest {
             verify(value, times(1)).createVmcNetworkAllocation(any());
             verifyNoMoreInteractions(value);
 
-            verify(results, times(2)).add(any());
+            verify(results, times(4)).add(any());
         }
     }
 }

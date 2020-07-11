@@ -24,7 +24,7 @@ if [ "$#" -eq 0  ]; then
 	# If uniform file exists, start with it.
 	if [ -f "/concord/config-local/concord.config" ]; then
 		echo "Using monolithic configuration file"
-    	exec gosu concord /concord/concord -c /concord/config-local/concord.config
+    		exec gosu concord /concord/concord -c /concord/config-local/concord.config
 		exit
 	fi
 	# Split configuration - application, deployment and secrets.
@@ -49,7 +49,7 @@ if [ "$#" -eq 0  ]; then
 	DEPLOYMENT_CONF=/concord/config-local/deployment.config
 	SECRETS=/concord/config-local/secrets.config
 	echo "Split file configuration {-a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS}"
-	exec gosu concord /concord/concord -a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS
+		exec gosu concord /concord/concord -a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS
 	
 elif [ "$1" = 'debug' ]; then
 	exec gdb

@@ -82,39 +82,46 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                raise
 
    def check_data(self, path, blockToStart, blocksCount):
-      originalCwd = os.getcwd()
-      os.chdir(path)
-      blocksData = []
-      blocksDataLength = []
+      try:
+         originalCwd = os.getcwd()
+         os.chdir(path)
+         blocksData = []
+         blocksDataLength = []
 
-      log.info("Checking data from {} to {}".format(blockToStart, blockToStart+blocksCount))
+         log.info("Checking data from {} to {}".format(blockToStart, blockToStart+blocksCount))
 
-      toolPath = "/concord/conc_rocksdb_adp"
-      pathParam = "-path=/concord/rocksdbdata"
-      opParam = "-op=getDigest"
-      for replicaId in range(1,5):
-         pParam = "-p={0}:{1}".format(blockToStart,blockToStart + blocksCount)
-         cmd = ' '.join([toolPath, pathParam, opParam, pParam])
-         container = util.blockchain.eth.get_concord_container_name(replicaId)
-         blockData = util.blockchain.eth.exec_in_concord_container(container, cmd)
+         toolPath = "/concord/conc_rocksdb_adp"
+         pathParam = "-path=/concord/rocksdbdata"
+         opParam = "-op=getDigest"
+         for replicaId in range(1,5):
+            pParam = "-p={0}:{1}".format(blockToStart,blockToStart + blocksCount)
+            cmd = ' '.join([toolPath, pathParam, opParam, pParam])
+            container = util.blockchain.eth.get_concord_container_name(replicaId)
+            blockData = util.blockchain.eth.exec_in_concord_container(container, cmd)
 
-         blocksData.append(blockData)
-         log.info(json.dumps({"data":blockData}, indent=4, default=str))
-         length = int(str(blockData).split(":")[1].replace("\\n", "").replace("'", ""))
-         if length == 0:
-            log.error("Blocks length 0")
-            return False
-         log.info("Data length from replica {0} is {1} bytes".format(replicaId, length))
-         blocksDataLength.append(length)
+            blocksData.append(blockData)
+            log.debug(json.dumps({"data":blockData}, indent=4, default=str))
+            length = int(str(blockData).split(":")[1].replace("\\n", "").replace("'", ""))
+            if length == 0:
+               log.error("Blocks length 0")
+               return False
+            log.info("Data length from replica {0} is {1} bytes".format(replicaId, length))
+            blocksDataLength.append(length)
 
-      # is there better way to do it?
-      os.chdir(originalCwd)
-      if blocksDataLength[0] == blocksDataLength[1] == blocksDataLength[2] == blocksDataLength[3]:
-         if blocksData[0] == blocksData[1] == blocksData[2] == blocksData[3]:
-             return True
+         # is there better way to do it?
+         os.chdir(originalCwd)
+         if blocksDataLength[0] == blocksDataLength[1] == blocksDataLength[2] == blocksDataLength[3]:
+            if blocksData[0] == blocksData[1] == blocksData[2] == blocksData[3]:
+                return True
+            else:
+                return False
          else:
-             return False
-      else:
+            return False
+      except Exception as ex:
+         t = "An exception of type {0} occurred. Arguments:\n{1!r}"
+         message = t.format(type(ex).__name__, ex.args)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
          return False
 
    def deploy_test_contract(self):
@@ -152,118 +159,140 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       log.info("Done sending {} transactions".format(transactions))
 
 
-   @describe(dontReport=True)
+   def sleep_and_check(self, initSleepTime, step, maxSleepTime, transactions):
+      res = False
+      totalSleepTime = 0
+      while not res and totalSleepTime < maxSleepTime:
+         log.info(
+            "Waiting for State Transfer to finish, estimated time {0} seconds".format(initSleepTime))
+         time.sleep(initSleepTime)
+         log.info("Checking data after State Transfer")
+         res = self.check_data(path, 0, transactions + self.existing_transactions)
+         totalSleepTime += initSleepTime
+         initSleepTime = step
+      return res
+
+
+   @describe()
    def _test_kill_replica(self):
-      global path
-      transactions = 1000
+      try:
+         global path
+         transactions = 1000
 
-      contractInfo = self.deploy_test_contract()
-      if "address" not in contractInfo:
-         return failed("Failed to deploy contract")
-      contractAddress = contractInfo["address"]
+         contractInfo = self.deploy_test_contract()
+         if "address" not in contractInfo:
+            return failed("Failed to deploy contract")
+         contractAddress = contractInfo["address"]
 
-      self._send_async(transactions, contractAddress, 1)
+         self._send_async(transactions, contractAddress, 1)
 
-      res = self.product.kill_concord_replica(2)
-      if not res:
-         return failed("Failed to kill replica 2")
+         res = self.product.kill_concord_replica(2)
+         if not res:
+            return failed("Failed to kill replica 2")
 
-      path = self.product.cleanConcordDb(2)
-      res = self.product.start_concord_replica(2)
-      if not res:
-         return failed("Failed to start replica 2")
+         path = self.product.cleanConcordDb(2)
+         res = self.product.start_concord_replica(2)
+         if not res:
+            return failed("Failed to start replica 2")
 
-      sleepTime = int(180)
-      log.info(
-      "Waiting for State Transfer to finish, estimated time {0} seconds".format(sleepTime))
-      time.sleep(sleepTime)
+         res = self.sleep_and_check(120, 30, 360, transactions)
+         if not res:
+            return failed("Data check failed")
 
-      log.info("Checking data after State Transfer")
-      res = self.check_data(path, 0,transactions + self.existing_transactions)
+         return passed("Data checked")
+      except Exception as ex:
+         t = "An exception of type {0} occurred. Arguments:\n{1!r}"
+         message = t.format(type(ex).__name__, ex.args)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
+         return failed(message)
+       
 
-      if not res:
-         return failed("Data check failed")
-
-      return passed("Data checked")
-
-
-   @describe(dontReport=True)
+   @describe()
    def _test_pause_replica(self):
-      global path
+      try:
+         global path
 
-      res = self.product.kill_concord_replica(1)
-      if not res:
-         return failed("Failed to kill replica 1")
-      res = self.product.kill_concord_replica(2)
-      if not res:
-         return failed("Failed to kill replica 2")
-      res = self.product.kill_concord_replica(3)
-      if not res:
-         return failed("Failed to kill replica 3")
-      res = self.product.kill_concord_replica(4)
-      if not res:
-         return failed("Failed to kill replica 4")
+         res = self.product.kill_concord_replica(1)
+         if not res:
+            return failed("Failed to kill replica 1")
+         res = self.product.kill_concord_replica(2)
+         if not res:
+            return failed("Failed to kill replica 2")
+         res = self.product.kill_concord_replica(3)
+         if not res:
+            return failed("Failed to kill replica 3")
+         res = self.product.kill_concord_replica(4)
+         if not res:
+            return failed("Failed to kill replica 4")
 
-      p1 = self.product.cleanConcordDb(1)
-      p2 = self.product.cleanConcordDb(2)
-      p3 = self.product.cleanConcordDb(3)
-      p4 = self.product.cleanConcordDb(4)
-      if not p1 or not p2 or not p3 or not p4:
-         return failed("Failed to clean RocksDb")
-      path = p1
+         p1 = self.product.cleanConcordDb(1)
+         p2 = self.product.cleanConcordDb(2)
+         p3 = self.product.cleanConcordDb(3)
+         p4 = self.product.cleanConcordDb(4)
+         if not p1 or not p2 or not p3 or not p4:
+            return failed("Failed to clean RocksDb")
+         path = p1
 
-      res = self.product.start_concord_replica(1)
-      if not res:
-         return failed("Failed to start replica 1")
-      res = self.product.start_concord_replica(2)
-      if not res:
-         return failed("Failed to start replica 2")
-      res = self.product.start_concord_replica(3)
-      if not res:
-         return failed("Failed to start replica 3")
-      res = self.product.start_concord_replica(4)
-      if not res:
-         return failed("Failed to start replica 4")
+         res = self.product.start_concord_replica(1)
+         if not res:
+            return failed("Failed to start replica 1")
+         res = self.product.start_concord_replica(2)
+         if not res:
+            return failed("Failed to start replica 2")
+         res = self.product.start_concord_replica(3)
+         if not res:
+            return failed("Failed to start replica 3")
+         res = self.product.start_concord_replica(4)
+         if not res:
+            return failed("Failed to start replica 4")
 
-      time.sleep(20)
+         time.sleep(40)
 
-      contractInfo = self.deploy_test_contract()
-      if "address" not in contractInfo:
-         return failed("Failed to deploy contract")
-      contractAddress = contractInfo["address"]
+         contractInfo = self.deploy_test_contract()
+         if "address" not in contractInfo:
+            return failed("Failed to deploy contract")
+         contractAddress = contractInfo["address"]
 
-      transactions_1 = 1000
-      self._send_async(transactions_1, contractAddress, 1)
+         transactions_1 = 1000
+         self._send_async(transactions_1, contractAddress, 1)
 
-      res = self.product.pause_concord_replica(3)
-      if not res:
-         return failed("Failed to suspend replica")
+         res = self.product.pause_concord_replica(3)
+         if not res:
+            return failed("Failed to suspend replica")
 
-      transactions_2 = 400
-      #this batch will go slower since only 3 replicas are up
-      self._send_async(transactions_2, contractAddress, 3)
+         transactions_2 = 400
+         #this batch will go slower since only 3 replicas are up
+         self._send_async(transactions_2, contractAddress, 3)
 
-      res = self.product.resume_concord_replica(3)
-      if not res:
-         return failed("Failed to resume replica")
+         res = self.product.resume_concord_replica(3)
+         if not res:
+            return failed("Failed to resume replica")
 
-      # wait for ST to complete
-      sleepTime = int(120)
-      log.info(
-      "Waiting for State Transfer to finish, estimated time {0} seconds".format(sleepTime))
-      time.sleep(sleepTime)
+         res = self.sleep_and_check(90, 10, 150, transactions_1 + transactions_2)
+         if not res:
+            return failed("Data check failed")
 
-      # check all blocks
-      res = self.check_data(path, 0, transactions_1 + transactions_2 + self.existing_transactions)
+         # check all blocks
+         res = self.check_data(path, 0, transactions_1 + transactions_2 + self.existing_transactions)
 
-      if not res:
-         return failed("Data check failed")
+         if not res:
+            return failed("Data check failed")
 
-      return passed("Data checked")
+         return passed("Data checked")
+      except Exception as ex:
+         t = "An exception of type {0} occurred. Arguments:\n{1!r}"
+         message = t.format(type(ex).__name__, ex.args)
+         stack = traceback.format_exc()
+         log.error(f"{message}\n{stack}")
+         return failed(message)
+
 
    def _get_tests(self):
       return [("kill_replica", self._test_kill_replica), \
-      ("pause_replica", self._test_pause_replica)]
+              # ("pause_replica", self._test_pause_replica)
+              ]
+
 
    def run(self):
       self.launchProduct()

@@ -87,7 +87,6 @@ Waiting for maven build of helen/ethrpc/communication...
 Adding build process: Ethrpc_docker_image=87731
 Adding build process: Helen_docker_image=87732
 Adding build process: Persephone_docker_image=87733
-Adding build process: Cockroach_DB=87734
 Adding build process: Reverse_proxy=87735
 Adding build process: Asset_Transfer_sample_image=87736
 Adding build process: Agent_docker_image=87737
@@ -106,7 +105,6 @@ Concord: done
 Asset_Transfer_sample_image: done
 Concord_for_memleak: done
 Maven: done
-Cockroach_DB: done
 ```
 
 This process will build all components, and tag each image with a
