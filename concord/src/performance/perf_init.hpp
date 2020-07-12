@@ -81,7 +81,7 @@ class PerfInitData {
 
   string CreateData(uint32_t blocks_count, uint32_t kv_count, uint32_t key_size,
                     uint32_t value_size, shared_ptr<MultiBlockData> &outData,
-                    uint32_t prefix = 0) {
+                    uint32_t keyRand = 0, uint32_t valRand = 0) {
     size_t iSize = sizeof(uint32_t);
     string msg;
     if (kv_count == 0) msg = "kv_count must be >= 0";
@@ -89,13 +89,14 @@ class PerfInitData {
       msg += ",key_size should be at least " + to_string(3 * iSize);
     if (value_size < 3 * iSize)
       msg += ",value_size should be at least " + to_string(3 * iSize);
-    if (blocks_count == 1 && prefix == 0)
-      msg += ",either block_count should be 1 or prefix != 0";
+    if (blocks_count == 1 && ((keyRand & valRand) == 0))
+      msg += ",either block_count should be > 1 or prefixes != 0";
     if (!msg.empty()) return msg;
 
     lock_guard lock(data_lock_);
     string id = to_string(blocks_count) + "_" + to_string(kv_count) + "_" +
-                to_string(key_size) + "_" + to_string(value_size);
+                to_string(key_size) + "_" + to_string(value_size) + "_" +
+                to_string(keyRand) + "_" + to_string(valRand);
     LOG_DEBUG(logger_, "create_data, id: " << id);
     auto it = blocks_data_.find(id);
     if (it != blocks_data_.end()) {
@@ -118,14 +119,17 @@ class PerfInitData {
         char *key = new char[key_size];
         memcpy(key, &j, iSize);
         memcpy(key + iSize, &i, iSize);
-        memcpy(key + iSize * 2, &prefix, iSize);
+        keyRand = keyRand == 0 ? i : keyRand;
+        memcpy(key + iSize * 2, &keyRand, iSize);
         memset(key + iSize * 3, c, key_size - iSize * 3);
         Sliver keyS(key, key_size);
         // value
         char *val = new char[value_size];
         memcpy(val, &j, iSize);
         memcpy(val + iSize, &i, iSize);
-        memset(val + iSize * 2, c1, value_size - iSize * 2);
+        valRand = valRand == 0 ? j : valRand;
+        memcpy(val + iSize * 2, &valRand, iSize);
+        memset(val + iSize * 3, c1, value_size - iSize * 3);
         Sliver valS(val, value_size);
         if (++c == 'z') c = 'a';
         if (--c1 == 'a') c1 = 'z';
@@ -135,8 +139,12 @@ class PerfInitData {
       bdata->total_size += kv_count * (key_size + value_size);
     }
 
-    blocks_data_[id] = move(bdata);
-    outData = blocks_data_[id];
+    if (blocks_count > 1) {
+      blocks_data_[id] = move(bdata);
+      outData = blocks_data_[id];
+    } else {
+      outData = move(bdata);
+    }
     LOG_DEBUG(logger_, "create_data, created, id: " << id << ", totalSize: "
                                                     << outData->total_size);
     return id;

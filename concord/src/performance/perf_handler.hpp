@@ -96,12 +96,14 @@ class PerformanceCommandsHandler
       init_data_.GetBlocksData(id, data);
     } else {
       auto external = request.external();
-      auto prefix = external.kv_prefix();
+      auto keyPrefix = external.key_prefix();
+      auto valPrefix = external.val_prefix();
       auto kv_count = external.kv_count();
       auto ksize = external.key_size();
       auto vsize = external.value_size();
       auto start = chrono::steady_clock::now();
-      id = init_data_.CreateData(1, kv_count, ksize, vsize, data, prefix);
+      id = init_data_.CreateData(1, kv_count, ksize, vsize, data, keyPrefix,
+                                 valPrefix);
       auto end = chrono::steady_clock::now();
       auto time =
           chrono::duration_cast<chrono::milliseconds>(end - start).count();
@@ -119,14 +121,21 @@ class PerformanceCommandsHandler
                              << ", kv count: " << data->blocks[blockId].size());
       BlockId newBlockId;
       Status status = addBlock(data->blocks[blockId], newBlockId);
+      if (!status.isOK()) {
+        LOG_ERROR(logger_, "ExecuteWriteRequest, addBlock fail: "
+                               << id
+                               << ", payload size: " << request.payload().size()
+                               << ", status: " << status.toString());
+        outResponse.set_message("addBlock error, " + status.toString());
+      }
       outResponse.set_message(status.toString());
       outResponse.set_new_block_id(newBlockId);
       LOG_DEBUG(logger_, "ExecuteWriteRequest, execution done, id: "
-                             << id
+                             << id << ", new block ID: " << newBlockId
                              << ", payload size: " << request.payload().size()
                              << ", kv count: " << data->blocks[blockId].size());
     } else {
-      LOG_DEBUG(logger_, "ExecuteWriteRequest, execution done, id: "
+      LOG_ERROR(logger_, "ExecuteWriteRequest, execution done, id: "
                              << id
                              << ", payload size: " << request.payload().size());
       outResponse.set_message("internal error: " + id);
