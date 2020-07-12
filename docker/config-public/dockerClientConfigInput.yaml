@@ -1,7 +1,8 @@
 f_val: 1
 c_val: 0
 num_of_participant_nodes: 2
-clients_per_participant_node: 5
+clients_per_participant_node: 15
+client_proxies_per_replica: 4
 comm_to_use: tls
 tls_certificates_folder_path: resources/tls_certs
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
@@ -39,9 +40,6 @@ participant_nodes:
               - client_port: 3505
           - client:
               - client_port: 3506
-  - participant_node:
-      - participant_node_host: 0.0.0.0 	
-        external_clients:
           - client:
               - client_port: 3507
           - client:
@@ -51,4 +49,47 @@ participant_nodes:
           - client:
               - client_port: 3510
           - client:
-              - client_port: 3511
+              - client_port: 3511          
+          - client:
+              - client_port: 3512
+          - client:
+              - client_port: 3513
+          - client:
+              - client_port: 3514
+          - client:
+              - client_port: 3515
+          - client:
+              - client_port: 3516
+  - participant_node:
+      - participant_node_host: 0.0.0.0 	
+        external_clients:
+          - client:
+              - client_port: 3517
+          - client:
+              - client_port: 3518
+          - client:
+              - client_port: 3519
+          - client:
+              - client_port: 3520
+          - client:
+              - client_port: 3521
+          - client:
+              - client_port: 3522
+          - client:
+              - client_port: 3523
+          - client:
+              - client_port: 3524
+          - client:
+              - client_port: 3525
+          - client:
+              - client_port: 3526
+          - client:
+              - client_port: 3527
+          - client:
+              - client_port: 3528
+          - client:
+              - client_port: 3529
+          - client:
+              - client_port: 3530
+          - client:
+              - client_port: 3531

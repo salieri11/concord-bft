@@ -4852,16 +4852,22 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
            path.subpath->subpath->subpath->useInstance);
 
     if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val")) {
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
       return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                           2 * config.getValue<uint16_t>("c_val") + 1;
+    auto numOfInternalClientsPerReplica =
+        config.getValue<uint16_t>("client_proxies_per_replica");
+    auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                         2 * config.getValue<uint16_t>("c_val") + 1;
+    uint16_t numOfAllCommitterNodePrincipals =
+        numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
 
     uint16_t numParticipants =
         config.getValue<uint16_t>("clients_per_participant_node");
 
-    *output = std::to_string(path.index * numParticipants + numReplicas +
+    *output = std::to_string(path.index * numParticipants +
+                             numOfAllCommitterNodePrincipals +
                              (path.subpath->subpath->index));
   }
 
@@ -4953,6 +4959,14 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
   // Validation of c_val is based on f_val and num_replicas .
   config.declareParameter("c_val", "C parameter to the SBFT algorithm.");
   config.tagParameter("c_val", publicInputTags);
+  // Parameter declarations
+  config.declareParameter("client_proxies_per_replica",
+                          "The number of SBFT client proxies configured on "
+                          "each Concord committer node",
+                          "4");
+  config.tagParameter("client_proxies_per_replica", defaultableByUtilityTags);
+  config.addValidator("client_proxies_per_replica",
+                      validateClientProxiesPerReplica, nullptr);
   // Validation is based on f_val and c_val .
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");

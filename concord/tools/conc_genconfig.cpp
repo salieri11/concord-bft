@@ -59,7 +59,8 @@ void defineOptionsSpec(string& inputFilename, string& outputPrefix,
        "any particular order. This report-principal-locations option is intended "
        "primarily for use by software that automates the deployment of Concord.")
       ("client-conf", po::value<bool>(&clientFlag),
-       " An optional flag that specifies if the current input file is intended for a client configuration.");
+       " An optional flag(true/false) that specifies if the current input file is intended for a client configuration."
+       "Example: --client-conf true");
 
   // clang-format on
 }
@@ -163,9 +164,9 @@ int outputConfig(ConcordConfiguration& config,
                  const variables_map& optionsInput, string& outputPrefix) {
   if (clientFlag) {
     size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
+    if (outputPrefix == "concord") outputPrefix = "Participant";
     for (size_t i = 0; i < numNodes; ++i) {
-      std::string outputFilename =
-          "Participant" + std::to_string(i) + ".config";
+      std::string outputFilename = outputPrefix + std::to_string(i) + ".config";
       std::ofstream fileOutput(outputFilename);
       YAMLConfigurationOutput yamlOutput(fileOutput);
       try {
