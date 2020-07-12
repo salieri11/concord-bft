@@ -2567,7 +2567,7 @@ TEST(config_test, test_principal_locations_mapping) {
     config.generateAll();
 
     ostringstream json_raw;
-    outputPrincipalLocationsMappingJSON(config, json_raw);
+    outputPrincipalLocationsMappingJSON(config, json_raw, false);
     json principals_map;
     ASSERT_NO_THROW(principals_map = json::parse(json_raw.str()))
         << "An exception occurs when trying to parse JSON principal mapping. "

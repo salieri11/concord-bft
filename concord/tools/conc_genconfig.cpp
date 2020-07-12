@@ -198,18 +198,17 @@ int outputConfig(ConcordConfiguration& config,
                                         std::to_string(numNodes) +
                                         ") written.");
     }
-
-    if (optionsInput.count("report-principal-locations")) {
-      ofstream nodeMapOutput(nodeMapFilename);
-      try {
-        outputPrincipalLocationsMappingJSON(config, nodeMapOutput);
-      } catch (const exception& e) {
-        LOG_FATAL(concGenconfigLogger,
-                  "An exception occurred while trying to write principal "
-                  "locations mapping. Exception message: " +
-                      string(e.what()));
-        return -1;
-      }
+  }
+  if (optionsInput.count("report-principal-locations")) {
+    ofstream nodeMapOutput(nodeMapFilename);
+    try {
+      outputPrincipalLocationsMappingJSON(config, nodeMapOutput, clientFlag);
+    } catch (const exception& e) {
+      LOG_FATAL(concGenconfigLogger,
+                "An exception occurred while trying to write principal "
+                "locations mapping. Exception message: " +
+                    string(e.what()));
+      return -1;
     }
   }
   return 0;
