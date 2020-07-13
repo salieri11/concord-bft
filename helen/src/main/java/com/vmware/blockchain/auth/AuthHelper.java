@@ -172,6 +172,10 @@ public class AuthHelper extends BaseAuthHelper {
         return hasAnyAuthority(vmbcRoles.consortiumAdmin());
     }
 
+    public boolean isConsortiumParticipant() {
+        return hasAnyAuthority(vmbcRoles.consortiumParticipant());
+    }
+
     public boolean isDeveloper() {
         return hasAnyAuthority(vmbcRoles.developer());
     }

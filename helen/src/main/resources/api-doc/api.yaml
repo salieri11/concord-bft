@@ -1000,6 +1000,41 @@ paths:
                       description: Zone ID
                     auth_url_jwt:
                       type: string
+  /blockchains/{bid}/clients/{client_id}/credentials:
+    get:
+      tags:
+        - blockchains
+      summary: Get credentials for given client
+      operationId: getClientCredentials
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: client_id
+          required: true
+          in: path
+          description: Client ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Client credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                    description: Client username
+                  password:
+                    type: string
+                    description: Client password
   /consortiums:
     summary: GetConsortium
     get:
