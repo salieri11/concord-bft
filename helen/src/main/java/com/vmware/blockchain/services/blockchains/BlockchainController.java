@@ -267,7 +267,10 @@ public class BlockchainController {
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
         var zoneIds = body.getReplicaZoneIds();
-
+        if (getNumberofReplicas(body) == 0) {
+            throw new BadRequestException(String.format("Number of allowed  node replicas"
+                                                        + "is not correct"));
+        }
         NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
         Properties.Builder basePropBuilder = Properties.newBuilder();
         if (organization.getOrganizationProperties() != null) {
@@ -321,26 +324,29 @@ public class BlockchainController {
                                                                                 .setId(k.toString()).build())));
 
         if (body.getClientNodes() != null) {
-            body.getClientNodes()
-                    .forEach(k -> {
-                        Properties.Builder propBuilder = Properties.newBuilder();
-                        if (!Strings.isNullOrEmpty(k.getAuthUrlJwt())) {
-                            propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
-                                                  k.getAuthUrlJwt());
-                        }
-                        nodeAssignment.addEntries(NodeAssignment.Entry
-                                                          .newBuilder()
-                                                          .setType(NodeType.CLIENT)
-                                                          .setNodeId(UUID.randomUUID().toString())
-                                                          .setSite(
-                                                                  OrchestrationSiteIdentifier
-                                                                          .newBuilder()
-                                                                          .setId(k.getZoneId().toString())
-                                                                          .build())
-                                                          .setProperties(propBuilder));
-                    });
-
-            zoneIds.addAll(body.getClientNodes().stream().map(k -> k.getZoneId()).collect(Collectors.toList()));
+            if (body.getClientNodes().size() <= 10) {
+                body.getClientNodes()
+                            .forEach(k -> {
+                                Properties.Builder propBuilder = Properties.newBuilder();
+                                if (!Strings.isNullOrEmpty(k.getAuthUrlJwt())) {
+                                    propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
+                                                          k.getAuthUrlJwt());
+                                }
+                                if (zoneService.getDefaultZones().contains(k.getZoneId())) {
+                                    nodeAssignment.addEntries(NodeAssignment.Entry
+                                                                      .newBuilder()
+                                                                      .setType(NodeType.CLIENT)
+                                                                      .setNodeId(UUID.randomUUID().toString())
+                                                                      .setSite(
+                                                                              OrchestrationSiteIdentifier
+                                                                                      .newBuilder()
+                                                                                      .setId(k.getZoneId().toString())
+                                                                                      .build())
+                                                                      .setProperties(propBuilder));
+                                }
+                            });
+                zoneIds.addAll(body.getClientNodes().stream().map(k -> k.getZoneId()).collect(Collectors.toList()));
+            }
         }
 
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
@@ -394,6 +400,16 @@ public class BlockchainController {
                 .setSessionId(dsId)
                 .build();
         provisioningClient.streamDeploymentSessionEvents(streamRequest, bo);
+    }
+
+    private int getNumberofReplicas(BlockchainPost body) {
+        int m = body.getReplicaZoneIds().size();
+        if (m == 4 || m == 7) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
 
     private int getMaxChains(Organization organization) {

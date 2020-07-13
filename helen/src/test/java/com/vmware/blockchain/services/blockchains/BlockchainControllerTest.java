@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -119,6 +120,8 @@ public class BlockchainControllerTest {
 
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
+    private static final UUID SITE_3 = UUID.fromString("bac78138-c251-11ea-b3de-0242ac130004");
+    private static final UUID SITE_4 = UUID.fromString("bac78552-c251-11ea-b3de-0242ac130004");
     private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
     private static final UUID NODE_2 = UUID.fromString("81a70aeb-c13c-4f36-9e98-564c1e6eccdc");
 
@@ -159,6 +162,16 @@ public class BlockchainControllerTest {
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
+    static final String CORRECT_DEFAULT_ZONES = "{"
+                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                        + "    \"f_count\": 1,"
+                                        + "    \"c_count\": 0,"
+                                        + "    \"zone_ids\": ["
+                                        + "            \"bac78138-c251-11ea-b3de-0242ac130004\","
+                                        + "            \"bac78552-c251-11ea-b3de-0242ac130004\","
+                                        + "            \"bac78552-c251-11ea-b3de-0242ac130004\","
+                                        + "            \"bac78138-c251-11ea-b3de-0242ac130004\"]" + "}";
+
 
     @Autowired
     private WebApplicationContext context;
@@ -614,7 +627,15 @@ public class BlockchainControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_BODY_BAD).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
+    }
 
+    @Disabled("Test to be debugged")
+    @Test
+    void createCorrectDefaultZones() throws Exception {
+        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(CORRECT_DEFAULT_ZONES).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
     }
 
     @Test
