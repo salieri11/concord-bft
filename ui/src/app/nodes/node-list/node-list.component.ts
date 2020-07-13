@@ -54,7 +54,7 @@ export class NodeListComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.type = params.nodeTypeOrId;
-      this.nodesService.refreshAllNodesList();
+      this.nodesService.refreshAllNodesList().subscribe();
     });
     //
     // Commenting out node start stop functionality until it's ready to be implemented on the backend.

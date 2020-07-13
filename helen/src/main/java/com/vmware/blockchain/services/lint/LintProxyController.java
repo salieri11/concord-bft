@@ -43,8 +43,8 @@ import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
-import com.vmware.blockchain.services.blockchains.replicas.Replica;
-import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 
 /**
  * Proxy requests to Log Intelligence.  We currently make queries using a Log Intelligence service user with admin
@@ -61,7 +61,7 @@ public class LintProxyController {
 
     private AuthHelper authHelper;
     private CspAuthenticationHelper cspAuthHelper;
-    private ReplicaService replicaService;
+    private BlockchainService blockchainService;
     private String lintAuthToken;
     private String lintApiToken;
     private String cspUrl;
@@ -69,14 +69,14 @@ public class LintProxyController {
     private RestTemplate restTemplate;
 
     @Autowired
-    public LintProxyController(AuthHelper authHelper, ReplicaService replicaService,
+    public LintProxyController(AuthHelper authHelper, BlockchainService blockchainService,
                                @Value("${lint.csp.url:https://console.cloud.vmware.com}") String cspUrl,
             @Value("${lint.apitoken:#null}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
         this.authHelper = authHelper;
         this.cspUrl = cspUrl;
         this.cspAuthHelper = new CspAuthenticationHelper(cspUrl);
         this.lintApiToken = lintApiToken;
-        this.replicaService = replicaService;
+        this.blockchainService = blockchainService;
 
         // set up the RestTemplate to talk to LINT
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(3);
@@ -104,7 +104,7 @@ public class LintProxyController {
     }
 
     // If the body has a field "logQuery", fix the query.
-    private String rewriteBody(String body, String replicaId) {
+    private String rewriteBody(String body, String consortiumId) {
         // Lint uses camelcase in json, so we use a different object mapper
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -113,7 +113,7 @@ public class LintProxyController {
             // might throw class cast exception.  Leave the body unchanged if so
             String query = (String) map.get("logQuery");
             if (query != null) {
-                String whereClause = String.format("replica_id = '%s'", replicaId);
+                String whereClause = String.format("consortium_id = '%s'", consortiumId);
                 SimpleSqlParser sql = new SimpleSqlParser(query);
                 sql.addWhere(whereClause);
                 map.put("logQuery", sql.toSql());
@@ -138,17 +138,17 @@ public class LintProxyController {
     @RequestMapping("/**")
     @PreAuthorize("@authHelper.isAuthenticated()")
     public ResponseEntity<String> proxyToLint(@RequestBody(required = false) String body,
-            @RequestParam(name = "replica_id", required = false) String replicaId,
+            @RequestParam(name = "blockchain_id", required = false) String blockchainId,
             HttpMethod method, HttpServletRequest request, HttpServletResponse response) throws IllegalAccessException {
 
         if (HttpMethod.POST == method) {
-            if (replicaId == null) {
-                logger.info("Missing replica_id request param in POST");
+            if (blockchainId == null) {
+                logger.info("Missing blockchain_id request param in POST");
                 throw new BadRequestException(ErrorCodeType.BAD_REQUEST_PARAM);
             }
-            Replica replica = replicaService.get(UUID.fromString(replicaId));
-            if (!authHelper.canAccessChain(replica.getBlockchainId())) {
-                logger.info(String.format("Replica %s cannot access blockchain", replicaId));
+
+            if (!authHelper.canAccessChain(UUID.fromString(blockchainId))) {
+                logger.info(String.format("User cannot access blockchain", blockchainId));
                 throw new BadRequestException(ErrorCodeType.CANNOT_ACCESS_BLOCKCHAIN);
             }
         }
@@ -165,16 +165,19 @@ public class LintProxyController {
 
         // If this is a post, rewrite the body to handle consortium filter
         if (method == HttpMethod.POST) {
-            body = rewriteBody(body, replicaId);
+            Blockchain blockchain  = blockchainService.get(UUID.fromString(blockchainId));
+            UUID consortiumId = blockchain.getConsortium();
+
+            body = rewriteBody(body, consortiumId.toString());
         }
 
-        // If there was a 'replica_id' query param, we need to remove it
+        // If there was a 'blockchain_id' query param, we need to remove it
         MultiValueMap<String, String> queryMap = new LinkedMultiValueMap<>();
         if (request.getQueryString() != null) {
             // request.queryString strips off the leading ?, but UriComponentsBuilder needs it.
             UriComponents comp = UriComponentsBuilder.fromUriString("?" + request.getQueryString()).build();
             queryMap.addAll(comp.getQueryParams());
-            queryMap.remove("replica_id");
+            queryMap.remove("blockchain_id");
         }
 
         // Now build the URI to make the lint call.  The lint url is handled by the restTemplate.

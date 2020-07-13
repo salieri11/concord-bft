@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+import { BlockchainService } from './../../blockchain/shared/blockchain.service';
 import { LogTaskResponse, LogTaskCompletedResponse, LogTaskParams, LogTimePeriod, LogCountEntry } from './logging.model';
 import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 
@@ -14,16 +15,20 @@ import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 })
 export class LogApiService {
 
-  constructor(private httpClient: HttpClient) { }
+  constructor(
+    private httpClient: HttpClient,
+    private blockchainService: BlockchainService
+  ) { }
 
   postToTasks(
     start: number,
     end: number,
-    replicaId: string,
-    verbose: boolean,
-    service_name: string,
+    nodes: any[],
+    level: string[],
+    search: string,
+    service_names: string[],
     rows: number = 100): Observable<LogTaskResponse> {
-    const query = `SELECT * FROM logs ${this.getWhereClause(verbose, service_name)}ORDER BY ingest_timestamp DESC`;
+    const query = `SELECT * FROM logs ${this.getWhereClause(level, service_names, search, nodes)}ORDER BY ingest_timestamp DESC`;
 
     const logQuery = {
       logQuery: query,
@@ -31,47 +36,76 @@ export class LogApiService {
       end: end,
       rows: rows
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
   postToTasksCount(
     start: number,
     end: number,
-    replicaId: string,
-    verbose: boolean,
-    service_name: string,
+    nodes: any[],
+    level: string[],
+    search: string,
+    service_names: string[],
     interval: number): Observable<LogTaskResponse> {
     const query = `SELECT COUNT(*), timestamp FROM logs ` +
-      `${this.getWhereClause(verbose, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
+      `${this.getWhereClause(level, service_names, search, nodes)}` +
+      `GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
 
     const logQuery = {
       logQuery: query,
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
-  postToPureCount(start: number, end: number, replicaId: string, verbose: boolean, service_name: string): Observable<LogTaskResponse> {
-    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(verbose, service_name)}`;
+  postToPureCount(
+    start: number,
+    end: number,
+    nodes: string[],
+    level: string[],
+    search: string,
+    service_names: string[]): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(level, service_names, search, nodes)}`;
 
     const logQuery = {
       logQuery: query,
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
-  getWhereClause(verbose: boolean, service_name: string) {
-    if (!verbose && service_name !== 'all') {
-      return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
-    } else if (!verbose) {
-      return `WHERE (level = 'INFO' OR level = 'ERROR') `;
-    } else if (service_name && service_name !== 'all') {
-      return `WHERE service_name = '${service_name}' `;
+  getWhereClause(
+    level: string[],
+    service_names: string[],
+    search: string,
+    nodes: any[]
+  ) {
+    let where = '';
+    // @ts-ignore
+    const flatNodes = nodes.flatMap(obj => obj.id);
+    // Start our where clause if needed
+    if (level.length || service_names.length || search.length || flatNodes.length) {
+      where = 'WHERE';
+    } else {
+      return where;
     }
-    return '';
+
+    where = this.logQueryListHelper(where, 'service_name', service_names);
+    where = this.logQueryListHelper(where, 'level', level);
+    where = this.logQueryListHelper(where, 'replica_id', flatNodes);
+
+    if (search.length) {
+      // If other clause has been added, then we need an AND
+      if (where.length > 5) {
+        where += 'AND';
+      }
+
+      where += ` text = '${search}' `;
+    }
+
+    return where;
   }
 
   fetchLogStatus(path: string): Observable<LogTaskCompletedResponse> {
@@ -126,9 +160,35 @@ export class LogApiService {
     });
   }
 
-  private logQueryTask(logQuery: LogTaskParams, replicaId: string = ''): Observable<LogTaskResponse> {
+  private logQueryListHelper(queryString: string, key: string, list: string[]): string {
+    if (list.length) {
+      let listQuery = '';
+
+      // Create our string
+      list.forEach((l, i) => {
+        // Add an or statement if more than one level
+        if (i !== 0) {
+          listQuery += ' OR ';
+        }
+
+        listQuery += `${key} = '${l}'`;
+      });
+
+      // If other clause has been added, then we need an AND
+      if (queryString.length > 5) {
+        queryString += 'AND';
+      }
+
+      queryString += ` (${listQuery}) `;
+    }
+
+    return queryString;
+  }
+
+  private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
+
     return this.httpClient.post<LogTaskResponse>(
-      `api/lint/ops/query/log-query-tasks?replica_id=${replicaId}`,
+      `api/lint/ops/query/log-query-tasks?blockchain_id=${this.blockchainService.blockchainId}`,
       logQuery
     );
   }

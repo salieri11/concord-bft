@@ -23,8 +23,10 @@ export class ExportLogEventsModalComponent implements OnInit {
   @Input('startTime') startTime: number;
   @Input('endTime') endTime: number;
   @Input('totalCount') totalCount: number;
-  @Input('replicaId') replicaId: number;
-  @Input('serviceName') serviceName: string;
+  @Input('nodes') nodes: any[];
+  @Input('serviceName') serviceName: string[];
+  @Input('search') search: string;
+  @Input('logLevels') logLevels: string[];
 
   isLoading: boolean = false;
   exportLogs: LogListEntry[] = [];
@@ -51,8 +53,9 @@ export class ExportLogEventsModalComponent implements OnInit {
     this.logApiService.postToTasks(
       this.startTime,
       this.endTime,
-      this.replicaId.toString(),
-      false,
+      this.nodes,
+      this.logLevels,
+      this.search,
       this.serviceName,
       1000
     ).subscribe((taskResponse) => {

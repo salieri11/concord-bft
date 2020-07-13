@@ -147,11 +147,14 @@ export class NodesService {
     ).pipe(
       map(response => {
         // Add zone name
-        response.forEach(client => {
+        response.forEach((client, i) => {
           if (zonesMap[client.zone_id]) {
             client['zone_name'] = zonesMap[client.zone_id].name;
           } else {
             client['zone_name'] = undefined;
+          }
+          if (!client['name']) {
+            client['name'] = 'Client' + (i + 1);
           }
         });
         return response;
@@ -163,6 +166,23 @@ export class NodesService {
     return this.http.get<NodeCredentials>(
       Apis.nodeCredentials(this.blockchainService.blockchainId, nodeId)
     );
+  }
+
+  getAllNodeTypes(): Observable<any[]> {
+    return zip(this.getList(), this.getClients())
+      .pipe(
+        map(response => {
+          let nodes = [];
+          const clients = response[1];
+          clients.forEach(cl => {
+            cl.name = cl.host_name ? cl.host_name : cl.name;
+          });
+          nodes = nodes.concat(response[0].nodes);
+          nodes = nodes.concat(clients);
+          // Merge client and replica nodes together in one array
+          return nodes;
+        })
+       );
   }
 
   /**
@@ -189,10 +209,10 @@ export class NodesService {
       .pipe(take(1));
   }
 
-  refreshAllNodesList() {
+  refreshAllNodesList(): Observable<any> {
     const committersDataObservable = this.getList();
     const clientsObservable = this.getClients();
-    zip(committersDataObservable, clientsObservable).pipe(
+    return zip(committersDataObservable, clientsObservable).pipe(
       map(r => {
         const committersData = r[0] as CommittersData;
         const clients = r[1];
@@ -242,7 +262,7 @@ export class NodesService {
         });
         this.onNodeList.next(true);
       }),
-    ).subscribe();
+    );
   }
 
   private trimNodeName(prefix: string, node: BlockchainNode, index: number) {

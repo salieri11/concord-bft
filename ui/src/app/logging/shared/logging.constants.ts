@@ -21,7 +21,8 @@ export const ALL_SERVICES = 'all';
 export const DAML_SERVICE_NAMES = [
   'concord',
   'daml_ledger_api',
-  'daml_execution_engine'
+  'daml_execution_engine',
+  'daml_index_db'
 ];
 
 export const ETHEREUM_SERVICE_NAMES = [

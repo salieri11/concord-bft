@@ -85,4 +85,9 @@ public class BlockchainService {
     public Blockchain get(UUID id) {
         return genericDao.get(id, Blockchain.class);
     }
+
+    public Consortium getConsortium(UUID id) {
+        return genericDao.get(id, Consortium.class);
+    }
+
 }

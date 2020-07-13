@@ -4,9 +4,16 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { ClrInput } from '@clr/angular';
 
 import { LogApiService } from '../shared/log-api.service';
-import { LogTaskCompletedResponse, LogListEntry, LogCountEntry, LogTimePeriod } from '../shared/logging.model';
+import {
+  LogTaskCompletedResponse,
+  LogListEntry,
+  LogCountEntry,
+  LogTimePeriod,
+  LogLevels
+} from '../shared/logging.model';
 import { ExportLogEventsModalComponent } from '../export-log-events-modal/export-log-events-modal.component';
 import { ExportChartDataModalComponent } from '../export-chart-data-modal/export-chart-data-modal.component';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
@@ -29,7 +36,6 @@ import {
   THIRTY_DAYS,
   DAML_SERVICE_NAMES,
   ETHEREUM_SERVICE_NAMES,
-  ALL_SERVICES
 } from './../shared/logging.constants';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
@@ -46,8 +52,11 @@ enum LogQueryTypes {
 export class LoggingComponent implements OnInit {
   @ViewChild('exportLogEventsModal', { static: true }) exportLogEventsModal: ExportLogEventsModalComponent;
   @ViewChild('exportChartDataModal', { static: true }) exportChartDataModal: ExportChartDataModalComponent;
+  @ViewChild('searchInput', { static: true }) searchInput: ClrInput;
+
   logs: LogListEntry[] = [];
   logCounts: LogCountEntry[] = [];
+  search: string = '';
   totalCount: number = null;
   listLoading: boolean = true;
   countLoading: boolean = true;
@@ -59,11 +68,19 @@ export class LoggingComponent implements OnInit {
   documentSelfLink: string = null;
 
   nodes: any[] = [];
-  replicaId: string;
+  selectedNodes: any[] = [];
   verbose: boolean = true;
-  service_name: string = ALL_SERVICES;
+  selectedServiceNames: string[] = [];
 
-  service_names: any[];
+  service_names: any[] = [];
+
+  levels: LogLevels[] = [
+    LogLevels.info,
+    LogLevels.warn,
+    LogLevels.error,
+    LogLevels.debug
+  ];
+  selectedLevels: LogLevels[] = [];
 
   timePeriods: LogTimePeriod[] = [
     {
@@ -142,13 +159,21 @@ export class LoggingComponent implements OnInit {
     } else if (this.blockchainService.type === ContractEngines.ETH) {
       this.service_names = ETHEREUM_SERVICE_NAMES;
     }
+
   }
 
   fetchLogs() {
     this.listLoading = true;
-    this.logApiService.postToTasks(this.startTime, this.endTime, this.replicaId, this.verbose, this.service_name).subscribe((resp) => {
-      this.documentSelfLink = resp.documentSelfLink;
-      this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
+    this.logApiService.postToTasks(
+      this.startTime,
+      this.endTime,
+      this.selectedNodes,
+      this.selectedLevels,
+      this.search,
+      this.selectedServiceNames
+      ).subscribe((resp) => {
+        this.documentSelfLink = resp.documentSelfLink;
+        this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
     }, this.handleLogsError.bind(this));
   }
 
@@ -158,9 +183,9 @@ export class LoggingComponent implements OnInit {
     this.logApiService.postToTasksCount(
       this.startTime,
       this.endTime,
-      this.replicaId,
-      this.verbose,
-      this.service_name,
+      this.selectedNodes,
+      this.selectedLevels, this.search,
+      this.selectedServiceNames,
       this.selectedTimePeriod.interval).subscribe((resp) => {
         this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
           this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
@@ -194,6 +219,45 @@ export class LoggingComponent implements OnInit {
 
     this.refresh();
   }
+
+  onSelectService(service) {
+    const levIdx = this.selectedServiceNames.indexOf(service);
+    if (levIdx === -1) {
+      this.selectedServiceNames.push(service);
+    } else {
+      this.selectedServiceNames.splice(levIdx, 1);
+    }
+
+    this.refresh();
+  }
+
+  onSelectNode(node) {
+    const levIdx = this.selectedNodes.indexOf(node);
+    if (levIdx === -1) {
+      this.selectedNodes.push(node);
+    } else {
+      this.selectedNodes.splice(levIdx, 1);
+    }
+
+    this.refresh();
+  }
+
+  nodeNames(): string {
+    // @ts-ignore
+    return this.selectedNodes.flatMap(obj => obj.name).join(', ');
+  }
+
+  onSelectLevels(level) {
+    const levIdx = this.selectedLevels.indexOf(level);
+    if (levIdx === -1) {
+      this.selectedLevels.push(level);
+    } else {
+      this.selectedLevels.splice(levIdx, 1);
+    }
+
+    this.refresh();
+  }
+
 
   refresh() {
     // fetch logs again with new parameters
@@ -235,10 +299,9 @@ export class LoggingComponent implements OnInit {
 
   // Load replica list in dropdown to filter logs
   private loadNodes() {
-    return this.nodesService.getList().subscribe((resp) => {
-      this.nodes = resp.nodes;
+    return this.nodesService.getAllNodeTypes().subscribe((resp) => {
+      this.nodes = resp;
 
-      this.replicaId = this.nodes && this.nodes[0] ? this.nodes[0].id : '';
       this.onSelectTimePeriod(this.timePeriods[3]);
     });
   }

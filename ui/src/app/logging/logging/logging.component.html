@@ -1,44 +1,59 @@
 <div class="p-2">
-  <div class="clr-row">
-    <div class="clr-col-5 log-header">
-      <!-- select service -->
-      <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading"
-        class="service-dropdown">
-        <option selected [value]="'all'">{{ 'logging.serviceName.all' | translate }}
-        </option>
-        <option *ngFor="let service of service_names" [value]="service">
-          {{'logging.serviceName.' + service | translate}}
-        </option>
-      </select>
+  <div class="clr-row log-header">
+    <div class="clr-col-8 left">
+      <clr-dropdown [clrCloseMenuOnItemClick]="false">
+        <button type="button" class="btn btn-sm btn-outline-primary services-selector" clrDropdownTrigger
+          [disabled]="countLoading || listLoading">
+          {{'logging.serviceName.title' | translate}}: {{  selectedServiceNames.length ? selectedServiceNames.join(', ') : 'common.all' | translate }}
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+          <button type="button" *ngFor="let service of service_names"
+            [ngClass]="{'active': selectedServiceNames.indexOf(service) !== -1}" (click)="onSelectService(service)"
+            clrDropdownItem>
+            {{service}}
+          </button>
+        </clr-dropdown-menu>
+      </clr-dropdown>
 
-      <!-- logging title -->
-      <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
+      <clr-dropdown [clrCloseMenuOnItemClick]="false">
+        <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
+          [disabled]="countLoading || listLoading">
+          {{'nodes.nodes' | translate}}: {{  selectedNodes.length ? nodeNames() : 'common.all' | translate }}
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+          <button type="button" *ngFor="let node of nodes"
+            [ngClass]="{'active': selectedNodes.indexOf(node) !== -1}" (click)="onSelectNode(node)"
+            clrDropdownItem>
+            {{node.name}}
+          </button>
+        </clr-dropdown-menu>
+      </clr-dropdown>
 
-      <!-- select replica id -->
-      <select clrSelect (change)="refresh()" [(ngModel)]="replicaId" [disabled]="countLoading || listLoading">
-        <option *ngFor="let node of nodes" [value]="node?.id">{{ node.name }}
-        </option>
-      </select>
+      <clr-dropdown [clrCloseMenuOnItemClick]="false">
+        <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
+          [disabled]="countLoading || listLoading">
+          {{'logging.logLevel' | translate}}: {{  selectedLevels.length ? selectedLevels.join(', ') : 'common.all' | translate }}
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+          <button type="button" *ngFor="let level of levels"
+            [ngClass]="{'active': selectedLevels.indexOf(level) !== -1}" (click)="onSelectLevels(level)"
+            clrDropdownItem>
+            {{level}}
+          </button>
+        </clr-dropdown-menu>
+      </clr-dropdown>
     </div>
-    <div class="clr-col-7">
+    <div class="clr-col-4 right">
       <div class="text-right">
-        <button type="button" class="btn btn-link right-margined" (click)="refresh()"
+        <button type="button" class="btn btn-link refresh" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
-          {{'logging.refresh' | translate}}
         </button>
-
-        <!-- verbose toggle button -->
-        <clr-toggle-container>
-          <clr-toggle-wrapper>
-            <input type="checkbox" clrToggle name="verbose" value="verbose" [(ngModel)]="verbose" (change)="refresh()"
-              [disabled]="countLoading || listLoading" />
-            <label>{{ 'logging.verbose' | translate }}</label>
-          </clr-toggle-wrapper>
-        </clr-toggle-container>
-
         <clr-dropdown>
-          <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary time-selector" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
@@ -53,7 +68,7 @@
         </clr-dropdown>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-sm btn-outline-primary left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
             <clr-icon shape="caret down"></clr-icon>
@@ -70,6 +85,17 @@
           </clr-dropdown-menu>
         </clr-dropdown>
       </div>
+    </div>
+    <div class="clr-col-12 search-wrapper">
+      <clr-icon shape="search"></clr-icon>
+      <input placeholder="Search logs text"
+             clrInput
+             name="input"
+             [(ngModel)]="search"
+             #searchInput
+             (keyup.enter)="refresh()"
+             class="clr-col-12 search">
+      <button class="btn btn-primary btn-sm" (click)="refresh()">{{'common.search' | translate}}</button>
     </div>
     <div class="clr-col-12">
       <div class="card area-chart-container">
@@ -116,7 +142,7 @@
     </div>
   </div>
   <concord-export-log-events-modal #exportLogEventsModal [startTime]="startTime" [endTime]="endTime"
-    [totalCount]="totalCount" [replicaId]="replicaId" [serviceName]="service_name"></concord-export-log-events-modal>
+    [totalCount]="totalCount" [nodes]="selectedNodes" [serviceName]="selectedServiceNames" [search]="search" [logLevels]="selectedLevels"></concord-export-log-events-modal>
   <concord-export-chart-data-modal #exportChartDataModal [chartData]="logCounts" [startTime]="startTime"
     [endTime]="endTime">
   </concord-export-chart-data-modal>

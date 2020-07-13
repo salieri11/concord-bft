@@ -2,14 +2,20 @@
 
 
 .log-header {
-  clr-select-container {
-    margin-right: .3rem;
-  }
-  select {
-    font-size: 110%;
+  .margin-top: 1rem;
+  .services-selector {
+    margin-left: 0;
   }
 }
 
+.refresh {
+  padding-right: 0;
+  padding-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  min-width: 1.5rem;
+  height: 1.2rem;
+}
 concord-log-graph {
   height: 300px;
 }
@@ -87,6 +93,7 @@ concord-log-heat-map {
   .page-title {
     display: inline;
     margin-right: 0.3rem;
+    font-size: 16px;
   }
 
   clr-select-container {
@@ -102,4 +109,52 @@ concord-log-heat-map {
     width: 6.5rem;
   }
 
+.search-wrapper {
+  $button-width: 85px;
+
+  position: relative;
+  margin-top: .5rem;
+  margin-bottom: 1rem;
+
+  .clr-form-control {
+    display: inherit;
+    margin-top: 0;
+    width: calc(100% - 85px);
+    float:left;
+  }
+  .clr-control-container {
+    width: 100%;
+  }
+  clr-icon {
+    position: absolute;
+    float: left;
+    margin-top: .25rem;
+    left: 22px;
+  }
+  .search {
+    border: 1px solid $clr-light-midtone-gray;
+    max-height: 1.25rem;
+    height: 1.25rem;
+    font-size: .6rem;
+    padding-left: 1.35rem;
+    background: $clr-white;
+    border-radius: 2px 0 0 2px;
+  }
+  .btn {
+    width: $button-width;
+    height: 1.25rem;
+    margin: 0;
+    border-radius: 0;
+    border-radius: 0 2px 2px 0;
+  }
 }
+
+}
+
+.dark :host ::ng-deep .search-wrapper {
+  .search {
+    background: transparent;
+    border-color: #acbac3;
+  }
+}
+
