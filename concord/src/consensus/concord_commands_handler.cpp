@@ -79,6 +79,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     uint32_t max_response_size,
                                     char *response_buffer,
                                     uint32_t &out_response_size,
+                                    uint32_t &out_replica_specific_info_size,
                                     concordUtils::SpanWrapper &parent_span) {
   LOG_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
                          << client_id << ", seq: " << sequence_num);

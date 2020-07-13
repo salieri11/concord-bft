@@ -5184,16 +5184,22 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
            path.subpath->subpath->subpath->useInstance);
 
     if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val")) {
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
       return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                           2 * config.getValue<uint16_t>("c_val") + 1;
+    auto numOfInternalClientsPerReplica =
+        config.getValue<uint16_t>("client_proxies_per_replica");
+    auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                         2 * config.getValue<uint16_t>("c_val") + 1;
+    uint16_t numOfAllCommitterNodePrincipals =
+        numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
 
     uint16_t numParticipants =
         config.getValue<uint16_t>("clients_per_participant_node");
 
-    *output = std::to_string(path.index * numParticipants + numReplicas +
+    *output = std::to_string(path.index * numParticipants +
+                             numOfAllCommitterNodePrincipals +
                              (path.subpath->subpath->index));
   }
 
@@ -5285,6 +5291,14 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
   // Validation of c_val is based on f_val and num_replicas .
   config.declareParameter("c_val", "C parameter to the SBFT algorithm.");
   config.tagParameter("c_val", publicInputTags);
+  // Parameter declarations
+  config.declareParameter("client_proxies_per_replica",
+                          "The number of SBFT client proxies configured on "
+                          "each Concord committer node",
+                          "4");
+  config.tagParameter("client_proxies_per_replica", defaultableByUtilityTags);
+  config.addValidator("client_proxies_per_replica",
+                      validateClientProxiesPerReplica, nullptr);
   // Validation is based on f_val and c_val .
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");
@@ -5365,42 +5379,83 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
   vector<std::string> defaultableByUtilityTags(
       {"config_generation_time", "defaultable", "public"});
 
+  config.declareParameter("client_initial_retry_timeout_milli",
+                          "The starting request retry timeout.", "150");
+  config.tagParameter("client_initial_retry_timeout_milli",
+                      defaultableByUtilityTags);
+
   config.declareParameter("client_min_retry_timeout_milli",
-                          "Min retry timeout configuration", "50");
+                          "The minimum dynamically settable request timeout.",
+                          "50");
   config.tagParameter("client_min_retry_timeout_milli",
                       defaultableByUtilityTags);
   config.addValidator(
       "client_min_retry_timeout_milli", ValidateTimeOutMilli,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
   config.declareParameter("client_max_retry_timeout_milli",
-                          "Max retry timeout configuration", "1000");
+                          "The maximum dynamically settable request timeout.",
+                          "1000");
   config.tagParameter("client_max_retry_timeout_milli",
                       defaultableByUtilityTags);
-  config.declareParameter("client_initial_retry_timeout_milli",
-                          "The initial retry timeout configuration", "150");
-  config.tagParameter("client_initial_retry_timeout_milli",
+
+  config.declareParameter("client_number_of_standard_deviations_to_tolerate",
+                          "The number of standard deviations within the "
+                          "average that we expect reply times to fall into.",
+                          "2");
+  config.tagParameter("client_number_of_standard_deviations_to_tolerate",
                       defaultableByUtilityTags);
-  config.declareParameter("client_sends_request_to_all_replicas_first_thresh",
-                          "The first thresh configuration for client sends "
-                          "requests to all replicas",
-                          "4");
+  config.addValidator(
+      "client_number_of_standard_deviations_to_tolerate", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
+  config.declareParameter("client_samples_per_evaluation",
+                          "The number of replies we sample before we attempt "
+                          "to recalculate the rolling average and variance.",
+                          "32");
+  config.tagParameter("client_samples_per_evaluation",
+                      defaultableByUtilityTags);
+  config.addValidator(
+      "client_samples_per_evaluation", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
+  config.declareParameter(
+      "client_samples_until_reset",
+      "The number of samples before we reset the rolling average and variance "
+      "to its empty state.",
+      "1000");
+  config.tagParameter("client_samples_until_reset", defaultableByUtilityTags);
+  config.addValidator(
+      "client_samples_until_reset", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
+  config.declareParameter(
+      "client_sends_request_to_all_replicas_first_thresh",
+      "The scaling factor at which the request timeout can be increased. A "
+      "factor of 2 "
+      "means that the upper limit can be doubled on each evaluation period.",
+      "2");
   config.tagParameter("client_sends_request_to_all_replicas_first_thresh",
                       defaultableByUtilityTags);
   config.addValidator(
       "client_sends_request_to_all_replicas_first_thresh", config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
-  config.declareParameter("client_sends_request_to_all_replicas_period_thresh",
-                          "The period thresh configuration for client sends "
-                          "requests to all replicas",
-                          "2");
+
+  config.declareParameter(
+      "client_sends_request_to_all_replicas_period_thresh",
+      "The scaling factor at which the request timeout can be decreased. A "
+      "factor of "
+      "2 means that the upper limit can be halved on each evaluation period.",
+      "2");
   config.tagParameter("client_sends_request_to_all_replicas_period_thresh",
                       defaultableByUtilityTags);
   config.addValidator(
       "client_sends_request_to_all_replicas_period_thresh",
       config::validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+
   config.declareParameter("client_periodic_reset_thresh",
-                          "The client periodic reset thresh configuration",
+                          "The client periodic reset thresh configuration.",
                           "30");
   config.tagParameter("client_periodic_reset_thresh", defaultableByUtilityTags);
   config.addValidator(

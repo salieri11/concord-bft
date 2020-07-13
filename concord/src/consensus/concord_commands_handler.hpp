@@ -82,6 +82,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
               uint32_t request_size, const char *request,
               uint32_t max_reply_size, char *out_reply,
               uint32_t &out_reply_size,
+              uint32_t &out_replica_specific_info_size,
               concordUtils::SpanWrapper &parent_span) override;
 
   // Parses the request buffer in case it contains a pre-execution response
