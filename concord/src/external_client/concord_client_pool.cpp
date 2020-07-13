@@ -184,12 +184,35 @@ void ConcordClientPool::setUpClientParams(SimpleClientParams &client_params,
       config.getValue<uint64_t>(pool_config.MIN_RETRY_TIMEOUT);
   client_params.clientMaxRetryTimeoutMilli =
       config.getValue<uint64_t>(pool_config.MAX_RETRY_TIMEOUT);
+  client_params.numberOfStandardDeviationsToTolerate =
+      config.getValue<uint16_t>(pool_config.STANDARD_DEVIATIONS_TO_TOLERATE);
+  client_params.samplesPerEvaluation =
+      config.getValue<uint16_t>(pool_config.SAMPLES_PER_EVALUATION);
+  client_params.samplesUntilReset =
+      config.getValue<uint16_t>(pool_config.SAMPLES_UNTIL_RESET);
   client_params.clientSendsRequestToAllReplicasFirstThresh =
       config.getValue<uint16_t>(pool_config.FIRST_THRESH);
   client_params.clientSendsRequestToAllReplicasPeriodThresh =
       config.getValue<uint16_t>(pool_config.PERIODIC_THRESH);
   client_params.clientPeriodicResetThresh =
       config.getValue<uint16_t>(pool_config.RESET_THRESH);
+  LOG_INFO(logger_,
+           "clientInitialRetryTimeoutMilli="
+               << client_params.clientInitialRetryTimeoutMilli
+               << " clientMinRetryTimeoutMilli="
+               << client_params.clientMinRetryTimeoutMilli
+               << " clientMaxRetryTimeoutMilli="
+               << client_params.clientMaxRetryTimeoutMilli
+               << " numberOfStandardDeviationsToTolerate="
+               << client_params.numberOfStandardDeviationsToTolerate
+               << " samplesPerEvaluation=" << client_params.samplesPerEvaluation
+               << " samplesUntilReset=" << client_params.samplesUntilReset
+               << " clientSendsRequestToAllReplicasFirstThresh="
+               << client_params.clientSendsRequestToAllReplicasFirstThresh
+               << " clientSendsRequestToAllReplicasPeriodThresh="
+               << client_params.clientSendsRequestToAllReplicasPeriodThresh
+               << " clientPeriodicResetThresh="
+               << client_params.clientPeriodicResetThresh);
 }
 
 void ConcordClientPool::CreatePool(std::istream &config_stream,

@@ -118,13 +118,15 @@ TEST(daml_test, successful_commit_creates_block) {
   concord_request.SerializeToString(&req_string);
 
   uint32_t reply_size = 0;
+  uint32_t replica_specific_info_size = 0;  // unused.
   char reply_buffer[OUT_BUFFER_SIZE];
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
 
   concordUtils::SpanWrapper span;
   int result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::EMPTY_FLAGS, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size,
+      replica_specific_info_size, span);
 
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);

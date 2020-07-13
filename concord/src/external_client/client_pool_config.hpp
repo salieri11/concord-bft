@@ -43,6 +43,10 @@ class ClientPoolConfig {
       "client_initial_retry_timeout_milli";
   const std::string MIN_RETRY_TIMEOUT = "client_min_retry_timeout_milli";
   const std::string MAX_RETRY_TIMEOUT = "client_max_retry_timeout_milli";
+  const std::string STANDARD_DEVIATIONS_TO_TOLERATE =
+      "client_number_of_standard_deviations_to_tolerate";
+  const std::string SAMPLES_PER_EVALUATION = "client_samples_per_evaluation";
+  const std::string SAMPLES_UNTIL_RESET = "client_samples_until_reset";
   const std::string FIRST_THRESH =
       "client_sends_request_to_all_replicas_first_thresh";
   const std::string PERIODIC_THRESH =

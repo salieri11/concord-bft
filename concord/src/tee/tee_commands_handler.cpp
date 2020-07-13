@@ -172,6 +172,7 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(
   const auto max_response_size = request_context.max_response_size;
 
   uint32_t reply_size = 0;
+  uint32_t replica_specific_info_size = 0;  // unused
   char reply_buffer[max_response_size];
   memset(reply_buffer, 0, max_response_size);
 
@@ -179,7 +180,7 @@ bool TeeCommandsHandler::ExecuteSkvbcRequest(
   int result = skvbc_commands_handler_.execute(
       request_context.client_id, request_context.sequence_num, flags,
       request_content.size(), request_content.c_str(), max_response_size,
-      reply_buffer, reply_size, span);
+      reply_buffer, reply_size, replica_specific_info_size, span);
 
   if (result != 0) {
     LOG_ERROR(logger_, "Failed to process SKVBC request.");
