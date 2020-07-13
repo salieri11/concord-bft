@@ -3,11 +3,15 @@
     {{ 'details.blockchain' | translate }}:
     {{ blockchainService.selectedBlockchain?.consortium_name }}
   </h2>
+  
+  <!-- Used for detecting the page is set with all data -->
+  <span *ngIf="ready" id="details-page-ready"></span>
+  
   <clr-tabs>
 
     <!-- Blockchain Information -->
     <clr-tab>
-      <button clrTabLink [routerLink]="['../blockchain']" id="detailsBlockchainLink">
+      <button clrTabLink [routerLink]="['../blockchain']" id="details-page-about-tab-button">
         {{ 'details.tabs.blockchain' | translate }}
       </button>
       <clr-tab-content id="content1" *clrIfActive="selectedTab === 'blockchain'">
@@ -64,7 +68,8 @@
             </div>
             <div class="prop-container">
               <label>{{ 'dashboard.organizationId' | translate }}:</label>
-              <div class="prop-value">{{ orgId }}
+              <div class="prop-value" id="details-page-organization-id">
+                {{ orgId }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -75,7 +80,8 @@
             </div>
             <div class="prop-container">
               <label>{{ 'dashboard.consortiumId' | translate }}:</label>
-              <div class="prop-value">{{ blockchainService?.selectedBlockchain?.consortium_id }}
+              <div class="prop-value" id="details-page-consortium-id">
+                {{ blockchainService?.selectedBlockchain?.consortium_id }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -86,7 +92,8 @@
             </div>
             <div class="prop-container">
               <label>{{ 'dashboard.blockchainId' | translate }}:</label>
-              <div class="prop-value">{{ blockchainService?.selectedBlockchain?.id }}
+              <div class="prop-value" id="details-page-blockchain-id">
+                {{ blockchainService?.selectedBlockchain?.id }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -97,7 +104,8 @@
             </div>
             <div class="prop-container">
               <label>{{ 'details.productVersion' | translate }}:</label>
-              <div class="prop-value">{{ productVersion }}
+              <div class="prop-value" id="details-page-product-version">
+                {{ productVersion }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -108,7 +116,8 @@
             </div>
             <div class="prop-container" *ngIf="execEngineVersionFull">
               <label>{{ 'details.execEngineVersion' | translate }}:</label>
-              <div class="prop-value">{{ execEngineVersionFull }}
+              <div class="prop-value" id="details-page-exec-engine-version">
+                {{ execEngineVersionFull }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -119,7 +128,8 @@
             </div>
             <div class="prop-container">
               <label>{{ 'details.createdBy' | translate }}:</label>
-              <div class="prop-value">{{ createdBy }}
+              <div class="prop-value" id="details-page-created-by">
+                {{ createdBy }}
                 <concord-copy-to-clipboard-button
                   class="ctc-btn-inline"
                   [tooltip]="'common.copyToClip' | translate"
@@ -131,7 +141,9 @@
             <div class="prop-container">
               <label>{{ 'details.createdDate' | translate }}:</label>
               <div class="prop-value">
-                {{ createdDate | date: 'medium' }}
+                <span id="details-page-created-date">
+                  {{ createdDate | date: 'medium' }}
+                </span>
                 <span class="prop-small">({{ (createdDateLocalTimezone) }})</span>
               </div>
               <div class="prop-value-nextline" *ngIf="createdDateISO">
@@ -154,13 +166,13 @@
 
     <!-- Committer Nodes Information -->
     <clr-tab>
-      <button clrTabLink [routerLink]="['../committers']" id="detailsCommittersLink">
+      <button clrTabLink [routerLink]="['../committers']" id="details-page-committers-tab-button">
         {{ 'details.tabs.committers' | translate }} {{ committers.length ? '('+committers.length+')' : '(_)' }}
       </button>
       <clr-tab-content *clrIfActive="selectedTab === 'committers'">
         <div class="clr-row">
           <div *ngFor="let committer of committers; let i = index" class="clr-col-lg-6 clr-col-12">
-            <div class="card">
+            <div class="card" [attr.id]="'details-page-committer-' + i">
               <div class="card-header">
                 {{ committer.name_ordinal }}
                 <span *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
@@ -178,7 +190,8 @@
               <div class="card-block">
                 <div class="nodeprop-container">
                   <label>{{ 'details.node.id' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.id }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-id'">
+                    {{ committer.id }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -189,7 +202,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="committer.public_ip">
                   <label>{{ 'details.node.publicIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.public_ip }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-public-ip'">
+                    {{ committer.public_ip }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -200,7 +214,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="committer.private_ip">
                   <label>{{ 'details.node.privateIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.private_ip }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-private-ip'">
+                    {{ committer.private_ip }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -211,7 +226,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="committer.rpc_url">
                   <label>{{ 'details.committer.ethrpc' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.rpc_url }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-rpc-url'">
+                    {{ committer.rpc_url }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -222,7 +238,8 @@
                 </div>
                 <div class="nodeprop-container">
                   <label>{{ 'details.node.zoneId' | translate }}:</label>
-                  <div class="nodeprop-value">{{ committer.zone_id }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-zone-id'">
+                    {{ committer.zone_id }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -232,7 +249,7 @@
                   </div>
                 </div>
                 <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(committer.zone_id)">
-                  <div class="nodeprop-value">
+                  <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-zone-human-readable'">
                     <span class="nodeprop-inner-value">
                       {{ getZoneInfo(committer.zone_id) }}
                     </span>
@@ -248,13 +265,13 @@
 
     <!-- Client Nodes Information -->
     <clr-tab *ngIf="blockchainService.type === 'DAML'">
-      <button clrTabLink [routerLink]="['../clients']" id="detailsClientsLink">
+      <button clrTabLink [routerLink]="['../clients']" id="details-page-clients-tab-button">
         {{ 'details.tabs.clients' | translate }} {{ clients.length ? '('+clients.length+')' : '(_)' }}
       </button>
       <clr-tab-content *clrIfActive="selectedTab === 'clients'">
         <div class="clr-row">
           <div *ngFor="let client of clients; let i = index" class="clr-col-lg-6 clr-col-12">
-            <div class="card">
+            <div class="card" [attr.id]="'details-page-client-' + i">
               <div class="card-header">
                 {{ client.name_ordinal }}
                 <span *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
@@ -272,7 +289,8 @@
               <div class="card-block">
                 <div class="nodeprop-container">
                   <label>{{ 'details.node.id' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.id }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-id'">
+                    {{ client.id }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -283,7 +301,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="client.public_ip">
                   <label>{{ 'details.node.publicIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.public_ip }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-public-ip'">
+                    {{ client.public_ip }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -294,7 +313,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="client.private_ip">
                   <label>{{ 'details.node.privateIp' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.private_ip }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-private-ip'">
+                    {{ client.private_ip }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -305,7 +325,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="client.auth_jwt_url">
                   <label>{{ 'details.client.authUrl' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.auth_jwt_url }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-auth-url'">
+                    {{ client.auth_jwt_url }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -316,7 +337,8 @@
                 </div>
                 <div class="nodeprop-container" *ngIf="client.url">
                   <label>{{ 'details.client.endpoint' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.url }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-url'">
+                    {{ client.url }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -327,7 +349,8 @@
                 </div>
                 <div class="nodeprop-container">
                   <label>{{ 'details.node.zoneId' | translate }}:</label>
-                  <div class="nodeprop-value">{{ client.zone_id }}
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-zone-id'">
+                    {{ client.zone_id }}
                     <concord-copy-to-clipboard-button
                       class="ctc-btn-inline"
                       [tooltip]="'common.copyToClip' | translate"
@@ -338,7 +361,7 @@
                 </div>
                 <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(client.zone_id)">
                   <div class="nodeprop-value">
-                    <span class="nodeprop-inner-value">
+                    <span class="nodeprop-inner-value" [attr.id]="'details-page-client-' + i + '-zone-human-readable'">
                       {{ getZoneInfo(client.zone_id) }}
                     </span>
                   </div>

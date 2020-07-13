@@ -18,6 +18,7 @@ export class OnboardingPage {
       element(by.id('accept')).click();
     });
   }
+
   expectationsAndNext() {
     element(by.id('next')).click();
   }

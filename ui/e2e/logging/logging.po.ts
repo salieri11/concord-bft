@@ -6,7 +6,7 @@ import { browser, by, element } from 'protractor';
 
 export class LoggingPage {
   navigateTo() {
-    element(by.id('logging')).click();
+    element(by.id('sidenav-logging')).click();
   }
 
   getConcordOption() {

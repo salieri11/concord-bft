@@ -11,17 +11,21 @@ export class AppPage {
   }
 
   goToDeployWizard() {
-    const deploy = element(by.css('#sidebarDeploy'));
+    const deploy = element(by.id('sidenav-deploy'));
 
     if (deploy.isPresent()) {
       return deploy;
     } else {
-      return element(by.css('#sidebarDeploy'));
+      return element(by.id('sidenav-deploy'));
     }
   }
 
   goToZoneList() {
-    element(by.css('#zones')).click();
+    element(by.css('#sidenav-zones')).click();
+  }
+
+  goToDetailsPage() {
+    element(by.css('#sidenav-details')).click();
   }
 
   getTourTitle() {

@@ -17,7 +17,7 @@ describe('concord-ui Swagger Docs', () => {
   beforeEach(() => {
     swaggerPage = new SwaggerPage();
     browser.waitForAngularEnabled(false);
-    waitFor('#apis');
+    waitFor('#sidenav-apis');
     swaggerPage.navigateTo();
   });
 

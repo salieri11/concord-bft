@@ -7,7 +7,7 @@ import { waitFor } from '../helpers/utils';
 
 export class SmartContractPage {
   navigateTo() {
-    element(by.css('#smartContracts')).click();
+    element(by.id('sidenav-smart-contracts')).click();
     waitFor('.datagrid-row a');
     element(by.css('.datagrid-row a')).click();
   }
