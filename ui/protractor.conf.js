@@ -41,6 +41,7 @@ exports.config = {
   allScriptsTimeout: 3 * 60 * 1000, // 3 minutes, needed for deploying.
   specs: [
     './e2e/onboarding/onboarding.e2e-spec.ts',
+    './e2e/details/details.e2e-spec.ts',
     './e2e/zone/zone.e2e-spec.ts',
     './e2e/smart-contracts/smart-contracts.e2e-spec.ts',
     './e2e/swagger/swagger.e2e-spec.ts',

@@ -35,15 +35,7 @@ describe('concord-ui Onboarding Flow', () => {
 
   it('should login', () => {
     loginPage = new CSPLogin();
-    loginPage.navigateTo();
-    waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
-    browser.sleep(500);
-    loginPage.fillInEmail();
-    // URL Changed 5/13/2020 (See BC-2697)
-    // waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
-    waitForURLContains('csp-local.vidmpreview.com/authcontrol/auth/request');
-    browser.sleep(500);
-    loginPage.fillInPassword();
+    loginPage.loginIfNotAlready();
   });
 
   it('should accept terms of service', () => {

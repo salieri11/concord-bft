@@ -9,10 +9,10 @@ export class DashboardPage {
     return browser.get('/');
   }
 
-  navigateToDeploy() {
+  navigateToDeploy() { // This function is unreferenced anywhere
     element(by.id('menu')).click();
     browser.sleep(200);
-    element(by.id('deploy')).click();
+    element(by.id('sidenav-deploy')).click();
   }
 
   getPageTitle() {

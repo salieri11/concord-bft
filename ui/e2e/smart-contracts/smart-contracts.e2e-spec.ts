@@ -37,7 +37,7 @@ describe('concord-ui Smart Contracts', () => {
     compilerVersion = '0.5.4';
     file = '../files/somefile.sol';
     browser.waitForAngularEnabled(false);
-    waitFor('#smartContracts');
+    waitFor('#sidenav-smart-contracts');
     smartContractsPage.navigateTo();
   });
 

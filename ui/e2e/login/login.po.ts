@@ -3,13 +3,16 @@
  */
 
 import { browser, by, element } from 'protractor';
-import { waitFor, waitInteractableFor } from '../helpers/utils';
+import { waitFor, waitInteractableFor, waitForURLContains } from '../helpers/utils';
 
 // Safely injected credentials fron Jenkins (See BC-2712 for more information)
 const CSP_LOGIN_EMAIL = browser.params.credentials.login.username;
 const CSP_PASSWORD = browser.params.credentials.login.password;
 
 export class CSPLogin {
+
+  public static alreadyLoggedIn = false;
+
   navigateTo() {
     return browser.get('/');
   }
@@ -42,9 +45,31 @@ export class CSPLogin {
     browser.sleep(300);
     element(by.css(el)).sendKeys(CSP_PASSWORD);
     browser.sleep(100);
+  }
+
+  clickToAuthenticate() {
     // #signIn id in button is gone (See BC-2697)
     // element(by.css('#signIn')).click();
+    browser.sleep(100);
     element(by.css('[type="submit"]')).click();
+  }
+
+  loginIfNotAlready() {
+    if (CSPLogin.alreadyLoggedIn) {
+      console.log('Already logged in, no need to login');
+      return;
+    }
+    this.navigateTo();
+    waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
+    browser.sleep(500);
+    this.fillInEmail();
+    // URL Changed 5/13/2020 (See BC-2697)
+    // waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
+    waitForURLContains('csp-local.vidmpreview.com/authcontrol/auth/request');
+    browser.sleep(1000);
+    this.fillInPassword();
+    this.clickToAuthenticate();
+    CSPLogin.alreadyLoggedIn = true;
   }
 
 

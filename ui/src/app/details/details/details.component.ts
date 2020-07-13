@@ -57,6 +57,9 @@ export class DetailsComponent implements OnInit {
   concordName = 'Concord';
   concordVersion = 'Scalable BFT';
 
+  ready: boolean = false;
+  fetchedList = { organizations: false, nodes: false, zones: false };
+
   constructor(
     public blockchainService: BlockchainService,
     private blockchainResolver: BlockchainResolver,
@@ -69,12 +72,16 @@ export class DetailsComponent implements OnInit {
     this.orgService.getList().subscribe(resp => {
       this.orgId = resp[0].organization_id;
       this.securePasswordEnabled = resp[0].organization_properties['secure-password'];
+      this.fetchedList.organizations = true;
+      this.updateReady();
     });
     this.nodeService.onNodeList.subscribe(_ => {
       this.committers = this.nodeService.committers;
       this.clients = this.nodeService.clients;
       lastKnownCommitters = this.committers;
       lastKnownClients = this.clients;
+      this.fetchedList.nodes = true;
+      this.updateReady();
     });
     this.route.url.subscribe(url => {
       this.selectedTab = url[0].path;
@@ -82,6 +89,8 @@ export class DetailsComponent implements OnInit {
     this.zoneService.getZones().subscribe(zones => {
       for (const zone of zones) { this.zones[zone.id] = zone; }
       this.zonesSet = true;
+      this.fetchedList.zones = true;
+      this.updateReady();
     });
     this.nodeService.refreshAllNodesList().subscribe();
   }
@@ -97,6 +106,11 @@ export class DetailsComponent implements OnInit {
     const zone = this.zones[zoneId];
     const zoneType = zone.type === 'VMC_AWS' ? 'Cloud' : 'On-premises';
     return zone.name + ' (' + zoneType + ')';
+  }
+
+  updateReady() {
+    const f = this.fetchedList;
+    this.ready = (f.organizations && f.nodes && f.zones);
   }
 
   async updateBaseOnSelectedBlockchain() {

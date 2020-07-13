@@ -6,7 +6,7 @@ import { browser, by, element } from 'protractor';
 
 export class SwaggerPage {
   navigateTo() {
-    element(by.id('apis')).click();
+    element(by.id('sidenav-apis')).click();
   }
 
   getPageTitle() {
