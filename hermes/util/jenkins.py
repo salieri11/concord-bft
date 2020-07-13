@@ -387,6 +387,7 @@ def autoSetRunDescription():
   prevDesc = metadata["description"]
   if not prevDesc: prevDesc = ""
   newDesc = ""
+  triggerSourceInfo = {}
   if "GitLab Merge Request #" in prevDesc: # From MR
     # e.g. Desc set by Gitlab kick off
     # Triggered by <a href="https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/merge_requests/NNNN" target="_blank">
@@ -400,7 +401,11 @@ def autoSetRunDescription():
       jiraStoryURL = helper.JIRA_BASE_URL + "/browse/" + jiraId
       jiraStoryLink = '<a href="{}">{}</a>'.format(jiraStoryURL, jiraId)
       branchInfo = branchInfo.replace(jiraId, jiraStoryLink)
+      triggerSourceInfo["jira_ticket"] = jiraId
+      triggerSourceInfo["jira_url"] = jiraStoryURL
     mrURL = helper.GITLAB_BASE_URL + "/merge_requests/" + mrNumber
+    triggerSourceInfo["mr_number"] = mrNumber
+    triggerSourceInfo["mr_url"] = mrURL
     newDesc += '[ <a href="{}">{}</a> ]:\n{}<br>\n'.format(mrURL, 'MR ' + mrNumber, branchInfo)
 
   defaultDesc = ("[\n" +
@@ -412,6 +417,8 @@ def autoSetRunDescription():
                 "]\n<br>\n")
   newDesc += defaultDesc
   configSubmit(description=newDesc)
+  with open(os.getenv("WORKSPACE") + '/summary/trigger_info.json', 'w+') as f:
+    f.write(json.dumps(triggerSourceInfo, indent=4, default=str))
 
 
 def replaceRunDescription(replaceList):

@@ -19,6 +19,7 @@
         "vdaml-devops":{ "workspace": "vmw-da", "channelId": "CR94YNQPQ" },
         "vmwathena": { "workspace": "vmware", "channelId": "G9AC1C9E0" },
         "blockchain-build-fail": { "workspace": "vmware", "channelId": "C010S8DQF5Y" },
+        "blockchain-build-fail-mr": { "workspace": "vmware", "channelId": "C017ASAQG81" },
         "blockchain-long-tests-status": { "workspace": "vmware", "channelId": "C0109M6JQKE" },
         "blockchain-concierge": { "workspace": "vmware", "channelId": "C012X0T8N0G" },
         "blockchain-status": { "workspace": "vmware", "channelId": "GUA5WCCSC" }
