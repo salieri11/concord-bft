@@ -100,14 +100,18 @@
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
       </div>
-      <div class="divider"></div>
       <div formGroupName="network">
-        <clr-input-container>
-          <label>{{ 'onPrem.network.compNetwork' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate"
-                  formControlName="name" id="netName" (keyup)="onchange($event,'onPrem.network.name')"/>
-          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-        </clr-input-container>
+        <div [ngClass]="{'disabled-for-checking':onPremConnectionInProgress}">
+          <clr-input-container>
+            <label>{{ 'onPrem.network.compNetwork' | translate }}</label>
+            <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate" (blur)="handleOnPremTesting()"
+                    formControlName="name" id="netName" (keyup)="onchange($event,'onPrem.network.name')"
+                    [disabled]="onPremConnectionInProgress"
+                    />
+            <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+          </clr-input-container>
+        </div>
+        <div class="divider"></div>
         <clr-input-container>
           <label>{{ 'onPrem.network.gatewayIp' | translate }}</label>
           <input clrInput type="text" [placeholder]="'onPrem.network.gatewayIpPH' | translate"

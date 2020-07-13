@@ -152,15 +152,17 @@ export class ZoneFormComponent implements AfterViewInit {
   getVCenterCredentialIndex() {
     const onPrem = this.form.controls.onPrem.value;
     const vcenter = this.form.controls.onPrem.get('vcenter').value;
+    const network = this.form.controls.onPrem.get('network').value;
     const anyEmpty = (!vcenter.url || !vcenter.username || !vcenter.password || !onPrem.folder
-                        || !onPrem.resource_pool || !onPrem.storage);
+                        || !onPrem.resource_pool || !onPrem.storage || !network.name);
     if (anyEmpty && this.onPremConnectionSuccessful) {
       this.onPremConnectionSuccessful = false;
     }
     return {
       empty: anyEmpty,
-      index: vcenter.url + '|' + vcenter.username + '|' + vcenter.password +
-            '|' + onPrem.resource_pool + '|' + onPrem.storage + '|' + onPrem.folder
+      index: [vcenter.url, vcenter.username, vcenter.password,
+              onPrem.resource_pool, onPrem.storage, onPrem.folder,
+              network.name].join('|')
     };
   }
 
@@ -184,8 +186,7 @@ export class ZoneFormComponent implements AfterViewInit {
     // Mock if these mandatory network fields are not given, this means ui is testing vCenter creds
     // For testing only network fields can be ignored, becuase this section don't get checked on Helen
     const onPremNet = onPrem.value.network;
-    if (!onPremNet.name || !onPremNet.gateway || !onPremNet.subnet || !onPremNet.name_servers || !onPremNet.ip_pool) {
-      onPrem.value.network.name = 'X';
+    if (!onPremNet.gateway || !onPremNet.subnet || !onPremNet.name_servers || !onPremNet.ip_pool) {
       onPrem.value.network.gateway = '0.0.0.0';
       onPrem.value.network.subnet = '24';
       onPrem.value.network.name_servers = ['0.0.0.0', '0.0.0.0'];
@@ -305,7 +306,7 @@ export class ZoneFormComponent implements AfterViewInit {
   }
 
   private handleOnPremTesting() {
-    const vCenterInputs = ['vcUrl', 'vcUsername', 'vcPassword', 'vcRp', 'vcStorage', 'vcFolder'];
+    const vCenterInputs = ['vcUrl', 'vcUsername', 'vcPassword', 'vcRp', 'vcStorage', 'vcFolder', 'netName'];
     setTimeout(() => {
       // Still filling out vCenter, no need to check yet.
       if (vCenterInputs.indexOf(document.activeElement.id) >= 0) { return; }
@@ -367,7 +368,7 @@ export class ZoneFormComponent implements AfterViewInit {
           for (const location of locations) {
             this.locationCache[location.value] = location;
           }
-          this.locationInput.showLoading = false;
+          if (this.locationInput) { this.locationInput.showLoading = false; }
           this.locations = locations;
         });
     }
