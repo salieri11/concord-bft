@@ -1668,6 +1668,14 @@ bool initialize_config(int agrc, char** argv,
                        concord::config::ConcordConfiguration& config_out,
                        boost::program_options::variables_map& opts_out);
 
+// Returns a YAML node with the result of merging "a" with "b"
+// resolving conflicts by taking the values in "b" to overwrite
+// conflicting values in "a".
+// In case we have keys that must not have conflicts (either they
+// are not present in both "a" and "b" at the same level, or if
+// they are their values are equal) we pass their names to the set
+// "errorOnConflict", which will cause throwing an exception if
+// conflict is found in the values under the keys from "errorOnConflict".
 YAML::Node yaml_merge(
     const YAML::Node& a, const YAML::Node& b,
     std::set<std::string> errorOnConflict = {},

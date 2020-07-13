@@ -48,7 +48,7 @@ YAML::Node yaml_merge(const YAML::Node& a, const YAML::Node& b,
       }
     }
     // Add elements from "b" that have no conflicts with elements in "a",
-    // they have been resolved in the previous for loopd
+    // they have been resolved in the previous for loop
     for (auto it = b.begin(); it != b.end(); it++) {
       if (!c[it->first.as<std::string>()]) {
         c[it->first] = it->second;
@@ -63,6 +63,21 @@ YAML::Node yaml_merge(const YAML::Node& a, const YAML::Node& b,
              << " a.size=" << a.size() << "b.size=" << b.size();
       throw(std::runtime_error(errMsg.str()));
     }
+
+    // In merging sequences we have Concord configuration specifics, because we
+    // store in sequences the information for the current Replica as well as all
+    // the public parameters of peer replicas. Basically, in Application
+    // configuration we can have default cluster dimensions specified, and the
+    // current node in the sequence under the "node" key is identified by having
+    // a "current_node: true" element. In Deployment configuration we expect to
+    // have in one of the elements of the sequence also "current_node: true",
+    // and we need to merge those elements preserving in the result the index of
+    // current node in Deployment configuration. If the sequences do not contain
+    // "current_node: true" we merge each element from the first sequence with
+    // its corresponding element at the same position in the second sequence,
+    // resolving conflicts in them by taking with priority the value in the
+    // second.
+
     // helper function to Check in which postion in a sequence current_node is
     auto getCurrentNodePosition = [](const YAML::Node& node) {
       auto count = 0;
@@ -135,7 +150,7 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
   // specified as a property in configuration file.
   string configFile;
 
-  string appConfigFile;
+  string applicationConfigFile;
   string deploymentConfigFile;
   string secretsConfigFile;
 
@@ -151,7 +166,7 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
        boost::program_options::value<string>(&configFile),
        "Path for entire configuration file. Deprecated, use separate files for app, depl and secrets instead")
       ("application_config,a",
-       boost::program_options::value<string>(&appConfigFile),
+       boost::program_options::value<string>(&applicationConfigFile),
        "Path for Application configuration file")
       ("deployment_config,d",
        boost::program_options::value<string>(&deploymentConfigFile),
@@ -224,20 +239,21 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
              opts_out.count("deployment_config") &&
              opts_out.count("secrets_config")) {
     // Verify configuration files exist.
-    std::ifstream appInput(appConfigFile);
-    std::ifstream deplInput(deploymentConfigFile);
-    std::ifstream secrInput(secretsConfigFile);
-    if (checkConfigFile(appInput, "application", appConfigFile) &&
-        checkConfigFile(deplInput, "deployment", deploymentConfigFile) &&
-        checkConfigFile(secrInput, "secrets", secretsConfigFile)) {
+    std::ifstream applicationInput(applicationConfigFile);
+    std::ifstream deploymentInput(deploymentConfigFile);
+    std::ifstream secretsInput(secretsConfigFile);
+    if (checkConfigFile(applicationInput, "application",
+                        applicationConfigFile) &&
+        checkConfigFile(deploymentInput, "deployment", deploymentConfigFile) &&
+        checkConfigFile(secretsInput, "secrets", secretsConfigFile)) {
       // Parse configuration file.
       concord::config::specifyConfiguration(config_out);
       config_out.setConfigurationStateLabel(
           kConcordNodeConfigurationStateLabel);
 
-      YAML::Node yaml_app;
-      YAML::Node yaml_depl;
-      YAML::Node yaml_secr;
+      YAML::Node yamlApplicationConfiguration;
+      YAML::Node yamlDeploymentConfiguration;
+      YAML::Node yamlSecretsConfiguration;
 
       auto loadYaml = [](YAML::Node& n, std::ifstream& fileInput,
                          const std::string& configFile) {
@@ -253,18 +269,23 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
         return true;
       };
 
-      if (!(loadYaml(yaml_app, appInput, appConfigFile) &&
-            loadYaml(yaml_depl, deplInput, deploymentConfigFile) &&
-            loadYaml(yaml_secr, secrInput, secretsConfigFile))) {
+      if (!(loadYaml(yamlApplicationConfiguration, applicationInput,
+                     applicationConfigFile) &&
+            loadYaml(yamlDeploymentConfiguration, deploymentInput,
+                     deploymentConfigFile) &&
+            loadYaml(yamlSecretsConfiguration, secretsInput,
+                     secretsConfigFile))) {
         return false;
       }
 
-      YAML::Node yaml_merged;
+      YAML::Node yamlMerged;
 
-      yaml_merged = yaml_merge(yaml_app, yaml_depl, {"principal_id"});
-      yaml_merged = yaml_merge(yaml_merged, yaml_secr, {"principal_id"});
+      yamlMerged = yaml_merge(yamlApplicationConfiguration,
+                              yamlDeploymentConfiguration, {"principal_id"});
+      yamlMerged =
+          yaml_merge(yamlMerged, yamlSecretsConfiguration, {"principal_id"});
 
-      concord::config::YAMLConfigurationInput input(YAML::Clone(yaml_merged));
+      concord::config::YAMLConfigurationInput input(YAML::Clone(yamlMerged));
       concord::config::loadNodeConfiguration(config_out, input);
 
     } else {
