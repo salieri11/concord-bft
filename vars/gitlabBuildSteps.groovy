@@ -1814,16 +1814,17 @@ void sendNotifications(){
     // Master failure to blockchain-build-fail channel
     if (env.JOB_NAME.contains(env.tot_job_name)) {
       echo("Notifying ToT failure on slack...")
-      slackNotifyFailure("Master run", "blockchain-build-fail", "slackPost")
+      slackNotifyFailure(jobName: "Master run",  target: "blockchain-build-fail", master: true)
     
     // For MR runs, notify the MR authors (usually single person)
     } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
       echo("Notifying MR failure to authors through slack DM...")
       try {
+        slackNotifyFailure( jobName: "MR run",  target: "blockchain-build-fail-mr", mr: true )
         commitAuthorsJson = readFile(env.WORKSPACE + "/blockchain/vars/commits_authors.json")
         commitAuthorsInfo = new JsonSlurperClassic().parseText(commitAuthorsJson)
         for (authorEmail in commitAuthorsInfo["blame"]) {
-          slackNotifyFailure("MR run", authorEmail, "slackDM", true)
+          slackNotifyFailure( jobName: "MR run", target: authorEmail, mr: true)
         }
       } catch (Exception ex) {
         echo("Failure notification to commit authors: " + ex.toString())
@@ -1855,25 +1856,48 @@ void sendGeneralEmail(){
 // Getting users from GitLab would also not use the DA folks' "digitalassets" address,
 // but maybe that's close enough.
 // Getting all users who contributed to GitLab would include users who left the team.
-void slackNotifyFailure(jobName, target, invokeMethod, simpleFormat=false){
+void slackNotifyFailure(Map params){
   // recipients = "purnam-team@vmware.com"
   // emailext to: recipients,
   //          subject: subject,
   //          body: env.run_fail_msg,
   //          presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
 
-  echo("Sending slack notification (jobName=" + jobName + "; target=" + target + "; method=" + invokeMethod)
+  jobName = params.jobName
+  target = params.target
+  isMasterFailure = params.master ? true : false;
+  isMRFailure = params.mr ? true : false;
+  echo("Sending slack notification (jobName=" + jobName + "; target=" + target + ")")
 
   subject = ""
-  if (!simpleFormat) { // Master failure is serious; channel post needs @here
+  if (isMasterFailure) { // Master failure is serious; channel post needs @here
     Random rnd = new Random()
     emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
                   ":skull_and_crossbones:", ":jenkins-explode:"]
     emoji = emoji_list[rnd.nextInt(emoji_list.size)]
     subject = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|" +
             jobName + " " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji  
-  } else { // slack DM doesn't need @here
+  } else if (isMRFailure) { // slack DM doesn't need @here
     subject = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
+    try {
+      if (fileExists(env.WORKSPACE + "/summary/trigger_info.json")) {
+        triggerInfoJson = readFile(env.WORKSPACE + "/summary/trigger_info.json")
+        triggerInfo = new JsonSlurperClassic().parseText(triggerInfoJson)
+        if (triggerInfo["mr_number"] && triggerInfo["mr_url"]) {
+          subject += " (from *<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + ">*"
+        }
+        if (triggerInfo["jira_ticket"] && triggerInfo["jira_url"]) {
+          subject += " :: <" + triggerInfo["jira_url"] + "|" + triggerInfo["jira_ticket"] + ">)"
+        } else {
+          subject += ")"  
+        }
+      }
+    } catch(Exception ex) {
+      echo("Adding MR + Jira information has failed: " + ex.toString())
+    }
+  } else {
+    echo("Unknown type of notification (neither master or MR).")
+    return
   }
   env.run_fail_msg = subject + "\n<" + env.BUILD_URL + "console|Console>"
 
@@ -1925,7 +1949,7 @@ void slackNotifyFailure(jobName, target, invokeMethod, simpleFormat=false){
 
   // Too many backticks needing escape; much easier to just pass by Base64
   env.run_fail_msg_b64 = "__base64__" + env.run_fail_msg.bytes.encodeBase64().toString()
-  env.invoke_method = invokeMethod // "slackPost" | "slackDM"
+  env.invoke_method = target.contains("@") ? "slackDM" : "slackPost"; // slackDM for email, otherwise channel post
   env.slack_notify_target = target // "blockchain-build-fail" | email
 
   dir("blockchain/hermes"){
