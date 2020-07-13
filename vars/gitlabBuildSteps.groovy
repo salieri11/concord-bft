@@ -80,10 +80,10 @@ import hudson.util.Secret
     "enabled": true
   ],
   "SampleDAppTests": [
-    "enabled": true
+    "enabled": true,
   ],
   "EthCoreVmTests": [
-    "enabled": true
+    "enabled": true,
   ],
   "PerformanceSmoke": [
     "enabled": true,
@@ -100,41 +100,41 @@ import hudson.util.Secret
     "runWithGenericTests": false
   ],
   "HelenAPITests": [
-    "enabled": true
+    "enabled": true,
   ],
   "HelenBlockTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenBlockchainTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenClientTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenConsortiumTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenContractTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenOrganizationTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenMemberTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenReplicaTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenZoneTests": [
-          "enabled": true
+    "enabled": true,
   ],
   "HelenRoleTests": [
     "enabled": true,
     "runWithGenericTests": false
   ],
   "EthJsonRpcTests": [
-    "enabled": true
+    "enabled": true,
   ],
   "EthJsonRpcTestsEthrpc": [
     "enabled": true,
@@ -170,7 +170,7 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
   ],
   "ContractCompilerTests": [
-    "enabled": true
+    "enabled": true,
   ],
   "MetadataPersistencyTests": [
     "enabled": false,
@@ -300,7 +300,6 @@ import hudson.util.Secret
 ]
 
 
-
 def call(){
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -418,7 +417,6 @@ def call(){
               jenkinsbuilderlib = load "vars/util/jenkinsbuilderlib.groovy"
               artifactorylib = load "vars/util/artifactorylib.groovy"
               dockerutillib = load "vars/util/dockerutillib.groovy"
-              racetrack = load "vars/athenaspecific/racetrack.groovy"
               customathenautil = load "vars/athenaspecific/customathenautil.groovy"
               performancelib = load "vars/performance/performancelib.groovy"
 
@@ -665,8 +663,6 @@ def call(){
                 pythonlib.initializePython()
               }
 
-              racetrack.racetrack(action: "setBegin")
-
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
               failRun(ex)
@@ -682,6 +678,7 @@ def call(){
           script{
             env.additional_components_to_build = additional_components_to_build
             try{
+              racetrackUpdate(action: "setBegin", type: "building")
               customathenautil.saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
                 if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
@@ -728,9 +725,10 @@ def call(){
                 }
               }
               customathenautil.saveTimeEvent("Build", "Finished buildall.sh")
+              racetrackUpdate(action: "setEnd", type: "building", result: "SUCCESS")
             }catch(Exception ex){
               failRun(ex)
-              racetrack(action: "reportFailure", caseName: "pipeline_build_failure")
+              racetrackUpdate(action: "setEnd", type: "building", result: "FAILURE")
               throw ex
             }
           }
@@ -780,6 +778,7 @@ def call(){
         steps {
           script{
             try{
+              racetrackUpdate(action: "setBegin", type: "testing")
               dir('blockchain/hermes'){
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
@@ -868,7 +867,8 @@ def call(){
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
-                        env.fixture_setup_message = "Long-running test has failed to deploy blockchain fixture to SDDC.\n" + env.BUILD_URL + "console"
+                        env.fixture_setup_message = 'Long-running test ("${BUILD_NUMBER}") has failed to deploy blockchain fixture to SDDC. ' +
+                                                    '(<' + env.BUILD_URL + 'console|View Console>)'
                         sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${monitoring_notify_target}" "${fixture_setup_message}"'''
                         throw ex
                       }
@@ -884,7 +884,7 @@ def call(){
                       customathenautil.saveTimeEvent("Collect deployment support bundle", "Start")
                       sh '''
                         echo "Running script to collect deployment support bundle..."
-                        "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
                       '''
                       customathenautil.saveTimeEvent("Collect deployment support bundle", "End")
                     }
@@ -920,9 +920,11 @@ def call(){
                   }
                 }
               }
-            }catch(Exception ex){
+              racetrackUpdate(action: "setEnd", type:"testing", result:"SUCCESS")
+            } catch(Exception ex) {
               echo("A failure occurred while running the tests.")
               failRun(ex)
+              racetrackUpdate(action: "setEnd", type:"testing", result:"FAILURE")
               throw ex
             }
           }
@@ -1239,8 +1241,6 @@ def call(){
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
           if (!env.python) pythonlib.initializePython()
-
-          racetrack.racetrack(action: "setEnd")
 
           // Files created by the docker run belong to root because they were created by the docker process.
           // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
@@ -2414,4 +2414,27 @@ boolean findUnrecognizedSuites(component){
   }
 
   return false
+}
+
+void racetrackUpdate(Map params){
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    def action = params.action
+    env.set_type = params.type ? params.type : "testing" // "building" | "testing"
+    // future-proofing for repo split
+    env.repo = params.repo ? params.repo : "athena" // "athena" | "concord" | ...
+    script {
+      dir('blockchain/hermes') {
+        try {
+          if (action == "setBegin") {
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin --param "${repo}" "${set_type}"'  
+          } else if (action == "setEnd") {
+            env.run_result = params.result ? params.result : "FAILURE"
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${repo}" "${run_result}" "${set_type}"'
+          }
+        } catch (Exception ex) {
+          echo("Racetrack update operation has failed: " + ex.toString())
+        }
+      }
+    }
+  }
 }

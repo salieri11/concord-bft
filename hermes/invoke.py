@@ -44,32 +44,37 @@ def emailSend(args, options, secret):
   mailer.send(email=a[0], subject=a[1], message=a[2], senderName=a[3])
 
 def racetrackSetBegin(args, options, secret):
-  setId = racetrack.setStart()
-  racetrack.setSetId(setId)
+  a = prepareArgs(args)
+  repo = a[0] # default "athena"
+  forBuilding = True if a[1] == "building" else False # for building or testing
+  setId = racetrack.setStart(forBuilding=forBuilding)
+  racetrack.setSetId(setId, forBuilding=forBuilding)
   info = racetrack.getTestingEnvironmentInfo()
   if info["branch"] == "MR" or info["branch"] == "master":
-    jenkins.autoSetRunDescription()
+    if forBuilding:
+      jenkins.autoSetRunDescription() # BUILDING...
+    else:
+      jenkins.replaceRunDescription([ # Images building finished, go into testing
+        ("BUILDING...", ""),
+        (jenkins.JENKINS_RACETRACK_HTML, '<a href="{}">Racetrack</a>'.format(racetrack.getResultSetLink(setId=setId)))
+      ])
 
 def racetrackSetEnd(args, options, secret):
   a = prepareArgs(args)
-  racetrack.finalize(a[0]) # a[0] = SUCCESS | FAILURE | ABORTED
-  info = racetrack.getTestingEnvironmentInfo()
-  jenkins.publishRunsRetroactively(
-    jobName = info["jobName"],
-    limit = 3, # publish this one and 2 previous runs just in case
-    startFromBuildNumber = info["build"],
-    firstRunOverrideWith = a[0],
-    verbose = False
-  )
-  jenkins.setFailureSummaryInDescription()
-
-def racetrackCaseFailed(args, options, secret):
-  a = prepareArgs(args)
-  case.reportFailedCase(suiteName=a[0], caseName=a[1], description=[2])
-
-def racetrackCasePassed(args, options, secret):
-  a = prepareArgs(args)
-  case.reportPassedCase(suiteName=a[0], caseName=a[1], description=[2])
+  repo = a[0] # default "athena"
+  testResult = a[1] # a[0] = SUCCESS | FAILURE | ABORTED
+  forBuilding = True if a[2] == "building" else False # for building or testing
+  racetrack.finalize(testResult, forBuilding=forBuilding) # a[0] = SUCCESS | FAILURE | ABORTED
+  if not forBuilding:
+    info = racetrack.getTestingEnvironmentInfo()
+    jenkins.publishRunsRetroactively(
+      jobName = info["jobName"],
+      limit = 3, # publish this one and 2 previous runs just in case
+      startFromBuildNumber = info["build"],
+      firstRunOverrideWith = a[0],
+      verbose = False
+    )
+    jenkins.setFailureSummaryInDescription()
 
 def publishRuns(args, options, secret):
   a = prepareArgs(args)
@@ -131,8 +136,6 @@ DISPATCH = {
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
   "racetrackSetEnd": racetrackSetEnd,
-  "racetrackCasePassed": racetrackCasePassed,
-  "racetrackCaseFailed": racetrackCaseFailed,
 
   # Long-running Test
   "lrtPrintDashboardLink": printLongRunningTestDashboardLink,

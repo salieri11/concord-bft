@@ -38,7 +38,6 @@ def call() {
               jenkinsbuilderlib = load "vars/util/jenkinsbuilderlib.groovy"
               artifactorylib = load "vars/util/artifactorylib.groovy"
               dockerutillib = load "vars/util/dockerutillib.groovy"
-              racetrack = load "vars/athenaspecific/racetrack.groovy"
               customathenautil = load "vars/athenaspecific/customathenautil.groovy"
 
               dockerutillib.removeContainers()
@@ -146,14 +145,17 @@ def call() {
         steps {
           script {
             try {
+              racetrackUpdate(repo: "bcs", action: "setBegin", type: "building")
               dir('blockchain') {
                 sh '''
                     echo "Building All components..."
                     ./buildbcs.sh
                   '''
               }
+              racetrackUpdate(repo: "bcs", action: "setEnd", type: "building", result: "SUCCESS")
             } catch (Exception ex) {
               failRun(ex)
+              racetrackUpdate(repo: "bcs", action: "setEnd", type: "building", result: "FAILURE")
               throw ex
             }
           }
@@ -186,8 +188,6 @@ def call() {
 
             dockerutillib.removeContainers()
             dockerutillib.removeImages()
-
-            racetrack(action: "setEnd")
 
             jenkinsbuilderlib.ownWorkspace()
             collectArtifacts()
@@ -259,4 +259,27 @@ void setUpRepoVariables(){
   env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
   env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
 
+}
+
+void racetrackUpdate(Map params){
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    def action = params.action
+    env.set_type = params.type ? params.type : "testing" // "building" | "testing"
+    // future-proofing for repo split
+    env.repo = params.repo ? params.repo : "athena" // "athena" | "concord" | ...
+    script {
+      dir('blockchain/hermes') {
+        try {
+          if (action == "setBegin") {
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin --param "${repo}" "${set_type}"'  
+          } else if (action == "setEnd") {
+            env.run_result = params.result ? params.result : "FAILURE"
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${repo}" "${run_result}" "${set_type}"'
+          }
+        } catch (Exception ex) {
+          echo("Racetrack update operation has failed: " + ex.toString())
+        }
+      }
+    }
+  }
 }

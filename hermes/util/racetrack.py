@@ -17,7 +17,7 @@ PUBLISH_DEFAULT_PRODUCT = "blockchain"
 PUBLISH_DEFAULT_HOST_OS = "Linux"
 PUBLISH_DEFAULT_SET_TYPE = "Smoke"
 REQ_SESSION = requests.Session() # keep connection alive to avoid excessive HTTPS handshakes if possible
-DEFAULT_SET_ID = { "setId" : None, "errored": False }
+DEFAULT_SET_ID = { "setId" : None, "buildSetId": None, "errored": False }
 
 
 def getTestingEnvironmentInfo():
@@ -72,9 +72,9 @@ def getTestingEnvironmentInfo():
     }
 
 
-def finalize(result):
+def finalize(result, forBuilding=False):
   try:
-    setId = getSetId()
+    setId = getSetId(forBuilding=forBuilding)
     
     if not setId:
       print("Racetrack set cannot finalize; the set did not start and save the setId to file.")
@@ -83,7 +83,10 @@ def finalize(result):
     resultSetLink = getResultSetLink(setId)
     if resultSetLink:
       print("")
-      print("Racetrack result set for this run:")
+      if not forBuilding:
+        print("Testing-stage Racetrack result set for this run:")
+      else:
+        print("Build-stage only result set:")
       print(resultSetLink)
 
     if result == "ABORTED":
@@ -93,14 +96,14 @@ def finalize(result):
       if not os.path.exists(helper.getJenkinsWorkspace() + "/failure_summary.log"):
         # Failed but none of the cases reported as failed == likely pipeline error
         # Report this case to Racetrack so that failed runs are ALWAYS marked as failed.
-        caseId = caseStart("_Pipeline", "check_pipeline_result", "The run has failed.")
+        caseId = caseStart("_Pipeline", "check_pipeline_result", "The run has failed.", forBuilding=forBuilding)
         caseEnd(caseId, 'FAIL')
     setEnd(setId)
   except Exception as e:
     helper.hermesNonCriticalTrace(e)
 
 
-def setStart(testSetType="Smoke"):
+def setStart(testSetType="Smoke", forBuilding=False):
   '''
     Starts a stage or a set of tests
     https://wiki.eng.vmware.com/RacetrackWebServices#TestSetBegin  
@@ -113,8 +116,8 @@ def setStart(testSetType="Smoke"):
     "User": user,
     "Product": product,
     "Description": info["description"],
-    "BuildType": info["buildType"],
-    "Branch": info["branch"],
+    "BuildType": info["buildType"] if not forBuilding else info["buildType"] + "-build",
+    "Branch": info["branch"] if not forBuilding else info["branch"] + "-build",
     "HostOS": PUBLISH_DEFAULT_HOST_OS,
     "TestType": testSetType
   })
@@ -154,7 +157,8 @@ def setEnd(setId):
   })
 
 
-def caseStart(suiteName, caseName, description=None, setId=None, startTime=None, machineName=None, TCMSID=None, inputLanguage="EN", guestOS=None):
+def caseStart(suiteName, caseName, description=None, setId=None, startTime=None, 
+              machineName=None, TCMSID=None, inputLanguage="EN", guestOS=None, forBuilding=False):
   '''
     Creates and returns caseId with supplied parameters
     https://wiki.eng.vmware.com/RacetrackWebServices#TestCaseBegin  
@@ -172,7 +176,7 @@ def caseStart(suiteName, caseName, description=None, setId=None, startTime=None,
   # if setId is None, try to get it from setIdFile 
   # which was created when this Jenkins run passes python init point
   if setId is None:
-    setId = getSetId()
+    setId = getSetId(forBuilding=forBuilding)
     if not setId: return None # still no setId found.
       
   caseId = requestWithPathAndParams("/TestCaseBegin.php", {
@@ -262,38 +266,52 @@ def requestWithPathAndParams(requestPath, params):
 
 
 def getIdFilePath():
-  if helper.getJenkinsWorkspace():
+  if helper.getJenkinsWorkspace(): # Jenkins env
     return helper.getJenkinsWorkspace() + helper.RACETRACK_SET_ID_PATH
-  else:
+  else: # local env
     return "../vars/" + helper.RACETRACK_SET_ID_FILE
 
-def setSetId(setId):
+def setSetId(setId, forBuilding=False):
   if not setId: return None
-  DEFAULT_SET_ID["setId"] = setId
+  path = getIdFilePath()
+  data = json.load(open(path, 'r')) if os.path.isfile(path) else {}
+  if not forBuilding:
+    data["setId"] = setId
+    DEFAULT_SET_ID["setId"] = setId
+  else:
+    data["buildSetId"] = setId
+    DEFAULT_SET_ID["buildSetId"] = setId
   with open(getIdFilePath(), "w+") as f:
-    f.write(json.dumps({"setId": setId}, indent = 4))
+    f.write(json.dumps(data, indent = 4))
     return True
 
-def getSetId():
+def getSetId(forBuilding=False):
   # if errored once, no need to retry file read many times
   if DEFAULT_SET_ID["errored"]: return None
   # if exists, cached setId in this Jenkins run
-  if DEFAULT_SET_ID["setId"]: return DEFAULT_SET_ID["setId"]
+  if not forBuilding:
+    if DEFAULT_SET_ID["setId"]: return DEFAULT_SET_ID["setId"]
+  else:
+    if DEFAULT_SET_ID["buildSetId"]: return DEFAULT_SET_ID["buildSetId"]
   # else, fetch from id file
   idFilePath = getIdFilePath()
   if not os.path.exists(idFilePath): return None
   try:
     with open(idFilePath, "r") as f:
-      setId = json.loads(f.read())["setId"]
-      DEFAULT_SET_ID["setId"] = setId
-      return setId
+      data = json.loads(f.read())
+      DEFAULT_SET_ID["setId"] = data["setId"] if "setId" in data else None
+      DEFAULT_SET_ID["buildSetId"] = data["buildSetId"] if "buildSetId" in data else None
+      if not forBuilding:
+        return DEFAULT_SET_ID["setId"]
+      else:
+        return DEFAULT_SET_ID["buildSetId"]
   except Exception as e:
     DEFAULT_SET_ID["errored"] = True
     helper.hermesNonCriticalTrace(e)
   return None
 
 
-def getResultSetLink(setId=None):
-  if not setId: setId = getSetId()
+def getResultSetLink(setId=None, forBuilding=False):
+  if not setId: setId = getSetId(forBuilding=forBuilding)
   if setId: return BASE_PUBLISH_URL + "/result.php?id=" + setId
   else: return None

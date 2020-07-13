@@ -26,6 +26,7 @@ JOB_NAME_REPLACE_WITH = {
 }
 JENKINS_USER_OVERRIDE = os.getenv("JENKINS_USER")
 JENKINS_TOKEN_OVERRIDE = os.getenv("JENKINS_TOKEN")
+JENKINS_RACETRACK_HTML = '<span style="display:none">RACETRACK</span>'
 JENKINS_SUMMARY_LOG_HTML = '<span style="display:none">SUMMARY_LOG</span>'
 JENKINS_TEST_LOG_HTML = '<span style="display:none">TEST_LOG</span>'
 JENKINS_ERRORS_ONLY_HTML = '<span style="display:none">ERRORS_ONLY</span>'
@@ -403,17 +404,33 @@ def autoSetRunDescription():
     newDesc += '[ <a href="{}">{}</a> ]:\n{}<br>\n'.format(mrURL, 'MR ' + mrNumber, branchInfo)
 
   defaultDesc = ("[\n" +
-                  '<a href="{}">Racetrack</a>\n'.format(racetrack.getResultSetLink()) +
+                  'BUILDING...\n' +
+                  JENKINS_RACETRACK_HTML + '\n' + 
                   JENKINS_SUMMARY_LOG_HTML + '\n' + 
                   JENKINS_TEST_LOG_HTML + '\n' + 
                   JENKINS_ERRORS_ONLY_HTML + '\n' + 
-                "]")
+                "]\n<br>\n")
   newDesc += defaultDesc
   configSubmit(description=newDesc)
 
 
+def replaceRunDescription(replaceList):
+  metadata = getRunMetadata()
+  desc = metadata["description"]
+  if not desc: desc = ""
+  for replaceInfo in replaceList:
+    old = replaceInfo[0]
+    new = replaceInfo[1]
+    desc = desc.replace(old, new)
+  configSubmit(description=desc)
+
+
 def setFailureSummaryInDescription():
-  with open(os.getenv("WORKSPACE") + '/summary/failure_summary.json', 'r') as f:
+  summaryJsonPath = helper.getJenkinsWorkspace() + '/summary/failure_summary.json'
+  if not os.path.isfile(summaryJsonPath):
+    log.info("Cannot find failure_summary.json file, skipping setting summary link.")
+    return
+  with open(summaryJsonPath, 'r') as f:
     metadata = getRunMetadata()
     currentDescription = metadata["description"]
     if not currentDescription: return
@@ -421,7 +438,7 @@ def setFailureSummaryInDescription():
     summaryObj = json.loads(f.read(), strict=False)
     hasErrorLines = False
     with open(summaryObj["log_path_local"], 'r') as f2:
-      with open(os.getenv("WORKSPACE") + '/summary/errors_only.log', 'w+') as w:
+      with open(helper.getJenkinsWorkspace() + '/summary/errors_only.log', 'w+') as w:
         for line in f2: 
           if any(x in line for x in ["ERROR", "FAIL", "FATAL", "WARNING"]):
             hasErrorLines = True; w.write(line)
