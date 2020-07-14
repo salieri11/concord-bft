@@ -14,16 +14,6 @@ import java.util.concurrent.Flow;
 public interface Orchestrator {
 
     /**
-     * Test connectivity/sanity of the orchestration site.
-     *
-     * @return a [Publisher] of [Boolean] corresponding to the result of validating the orchestration site associated
-     * with this [Orchestrator] instance.
-     */
-    default boolean validate() {
-        throw new UnsupportedOperationException("Validation operation is unsupported");
-    }
-
-    /**
      * Method to initialize the orchestrator.
      */
     default void populate() {
