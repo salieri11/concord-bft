@@ -237,6 +237,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
     :return: None
     """
     try:
+
         if cmdline_args.useLocalConfigService:
             persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
                                                                                Product.PERSEPHONE_SERVICE_PROVISIONING)
@@ -285,6 +286,9 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 shutil.copy(persephone_config_file, modified_config_file)
                 shutil.move(persephone_config_file_orig, persephone_config_file)
                 log.info("Updated config file for this run: {}".format(modified_config_file))
+
+            helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
+                                        helper.get_docker_env("concord_tag"))
 
     except Exception as e:
         log.error(traceback.format_exc())
