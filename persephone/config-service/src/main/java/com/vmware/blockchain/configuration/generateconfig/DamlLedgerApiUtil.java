@@ -31,24 +31,27 @@ public class DamlLedgerApiUtil {
      * @return json string
      */
     public String generateConfig(NodesInfo.Entry nodeInfo) {
-        var nodeName = convertToParticipantId(nodeInfo.getId());
-
         StringBuilder builder = new StringBuilder();
+
         builder.append("export INDEXDB_HOST=daml_index_db");
         builder.append(System.getProperty("line.separator"));
+
         builder.append("export INDEXDB_PORT=5432");
         builder.append(System.getProperty("line.separator"));
+
         builder.append("export INDEXDB_USER=indexdb");
         builder.append(System.getProperty("line.separator"));
+
         builder.append("export REPLICAS=" + getReplicas(nodeInfo.getProperties()));
         builder.append(System.getProperty("line.separator"));
-        builder.append("export PARTICIPANT_ID=" + nodeName);
-        builder.append(System.getProperty("line.separator"));
+
         builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G "
                        + "-XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
         builder.append(System.getProperty("line.separator"));
+
         builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831\"");
-        addAuthJwt(builder, nodeInfo.getProperties());
+
+        addProperties(builder, nodeInfo);
 
         return builder.toString();
     }
@@ -63,16 +66,27 @@ public class DamlLedgerApiUtil {
     }
 
     /**
-     * Appends the auth jwt property if present.
+     * Appends the auth jwt and client group id properties if present.
      *
      * @param builder        builder
      * @param properties properties
      */
-    private void addAuthJwt(StringBuilder builder, Properties properties) {
+    private void addProperties(StringBuilder builder, NodesInfo.Entry nodeInfo) {
+        Properties properties = nodeInfo.getProperties();
+        // Add auth token
         var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.toString());
         if (!Strings.isNullOrEmpty(authToken)) {
             builder.append(System.getProperty("line.separator"));
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
+        }
+        // Add client group id
+        var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.toString());
+        if (!Strings.isNullOrEmpty(clientGroupId)) {
+            builder.append(System.getProperty("line.separator"));
+            builder.append("export PARTICIPANT_ID=" + clientGroupId);
+        } else {
+            builder.append(System.getProperty("line.separator"));
+            builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeInfo.getId()));
         }
     }
 

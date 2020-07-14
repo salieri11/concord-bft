@@ -175,7 +175,7 @@ public class SingleBouncyCertificateGenerator {
     }
 
     /**
-     * returns PEM string format of keys/certs
+     * returns PEM string format of keys/certs.
      * @param object : {@link java.security.Key} or {@link X509Certificate} object
      * @return PEM String
      */

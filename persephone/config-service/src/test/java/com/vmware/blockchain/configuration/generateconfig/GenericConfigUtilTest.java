@@ -59,13 +59,13 @@ public class GenericConfigUtilTest {
                         .putAllValue(clientMap).build());
 
         var expected = new HashMap<Integer, String>();
-        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=CLIENT-NODE0"
+        expected.put(0, "NODE_UUID=TEST-NODE0\nPARTICIPANT_ID=CLIENT-NODE0"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=CLIENT-NODE0"
+        expected.put(1, "NODE_UUID=TEST-NODE1\nPARTICIPANT_ID=CLIENT-NODE0"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=CLIENT-NODE1"
+        expected.put(2, "NODE_UUID=TEST-NODE2\nPARTICIPANT_ID=CLIENT-NODE1"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=CLIENT-NODE1"
+        expected.put(3, "NODE_UUID=TEST-NODE3\nPARTICIPANT_ID=CLIENT-NODE1"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);
@@ -85,13 +85,13 @@ public class GenericConfigUtilTest {
                         .putAllValue(nodeMap).build());
 
         var expected = new HashMap<Integer, String>();
-        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=TEST-NODE0"
+        expected.put(0, "NODE_UUID=TEST-NODE0\nPARTICIPANT_ID=TEST-NODE0"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=TEST-NODE1"
+        expected.put(1, "NODE_UUID=TEST-NODE1\nPARTICIPANT_ID=TEST-NODE1"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=TEST-NODE2"
+        expected.put(2, "NODE_UUID=TEST-NODE2\nPARTICIPANT_ID=TEST-NODE2"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
-        expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=TEST-NODE3"
+        expected.put(3, "NODE_UUID=TEST-NODE3\nPARTICIPANT_ID=TEST-NODE3"
                 + "\nBLOCKCHAIN_ID=unitTest\nCONSORTIUM_ID=testConsortium");
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList, properties);

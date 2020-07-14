@@ -63,7 +63,7 @@ public class GenericConfigUtil {
             builder.append("NODE_UUID=")
                     .append(value)
                     .append("\n")
-                    .append("CLIENT_GROUP_ID=")
+                    .append("PARTICIPANT_ID=")
                     .append(clientGroupIds.getOrDefault(node, value))
                     .append("\n")
                     .append("BLOCKCHAIN_ID=")
