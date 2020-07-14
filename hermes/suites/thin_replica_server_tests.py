@@ -38,7 +38,10 @@ def setup_test_suite():
 
     Upload DAR file so each test has something to query.
     """
-    TEST_DAR = "Test-stable.dar"    
+    # TODO why is only a single dar uploaded here, and why can the standard utility method
+    # def upload_test_tool_dars(host='localhost', port='6861', verbose=True):
+    # not be called to get dar names dynamically from the tool?
+    TEST_DAR = "model-tests.dar"    
     _, dars = daml_helper.download_ledger_api_test_tool("localhost")
     
     for dar in dars:

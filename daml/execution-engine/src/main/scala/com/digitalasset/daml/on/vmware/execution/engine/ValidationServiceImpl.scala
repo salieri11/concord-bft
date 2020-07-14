@@ -33,7 +33,7 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
 
   private val batchValidator =
     BatchedSubmissionValidator[Unit](
-      BatchedSubmissionValidatorParameters.default,
+      BatchedSubmissionValidatorParameters.reasonableDefault,
       new KeyValueCommitting(engine, metrics),
       new PatchedConflictDetection(metrics),
       metrics,

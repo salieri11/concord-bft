@@ -46,11 +46,11 @@ class KVBCValidatorServer(tracer: Tracer) {
   // available processors.
   private implicit val ec: ExecutionContext = ExecutionContext.global
   private implicit val system: ActorSystem = ActorSystem("validator")
-  private implicit val mat: Materializer = ActorMaterializer()
+  private implicit val mat: Materializer = Materializer(system)
   private implicit val esf: ExecutionSequencerFactory =
     new SingleThreadExecutionSequencerPool("validator-health", 1)
 
-  private val engine = new Engine
+  private val engine = new Engine(Engine.StableConfig)
   private val validator = new ValidationServiceImpl(engine, new Metrics(metricsRegistry.registry))
   private val healthChecks = new HealthChecks("validator" -> validator)
   private val apiHealthService = new GrpcHealthService(healthChecks)
