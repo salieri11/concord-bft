@@ -29,7 +29,6 @@ import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 
-
 import lombok.extern.slf4j.Slf4j;
 
 /**

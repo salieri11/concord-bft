@@ -2,6 +2,6 @@ export INDEXDB_HOST=daml_index_db
 export INDEXDB_PORT=5432
 export INDEXDB_USER=indexdb
 export REPLICAS=10.0.0.1:50051
-export PARTICIPANT_ID=pTEST_NODE
 export JAVA_OPTS="-XX:+UseG1GC -Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log"
 export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831"
+export PARTICIPANT_ID=pTEST_NODE
