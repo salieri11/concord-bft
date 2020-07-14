@@ -4640,13 +4640,15 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
 // principal IDs in the configuration are parameters with the name
 // "principal_id".
 void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
-                                         ostream& output) {
+                                         ostream& output, bool client_flag) {
   json principal_map;
-
-  if (config.containsScope("node") && config.scopeIsInstantiated("node")) {
-    for (size_t i = 0; i < config.scopeSize("node"); ++i) {
+  string scope_name = "node";
+  if (client_flag) scope_name = "participant_nodes";
+  if (config.containsScope(scope_name) &&
+      config.scopeIsInstantiated(scope_name)) {
+    for (size_t i = 0; i < config.scopeSize(scope_name); ++i) {
       string node_id = to_string(i + 1);
-      ConcordConfiguration& node = config.subscope("node", i);
+      ConcordConfiguration& node = config.subscope(scope_name, i);
 
       principal_map[node_id] = json::array();
       for (auto iter =

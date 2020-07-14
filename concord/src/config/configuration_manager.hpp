@@ -1559,7 +1559,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config);
 // from the output. Note this function may throw any I/O or JSON serializaation
 // exceptions that occur while attempting to output the requested file.
 void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
-                                         std::ostream& output);
+                                         std::ostream& output,
+                                         bool client_flag);
 
 // Declaration and implementation of various functions used by
 // specifyConfiguration to specify how to size scopes and validatate and
