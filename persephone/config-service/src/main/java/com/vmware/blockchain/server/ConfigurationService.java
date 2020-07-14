@@ -23,17 +23,16 @@ import org.springframework.beans.factory.annotation.Value;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
-import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequestV2;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.IdentityComponent;
-import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.NodeType;
@@ -54,6 +53,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      * Concord config Template path.
      **/
     private String concordConfigPath;
+
+    /**
+     * bftClient config Template path.
+     **/
+    private String bftClientConfigPath;
 
     /**
      * Telegraf config template path.
@@ -86,6 +90,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     ConfigurationService(ExecutorService executor,
                          @Value("${config.template.path:ConcordConfigTemplate.yaml}")
                                  String concordConfigTemplatePath,
+                         @Value("${config.template.path:BFTClientConfigTemplate.yaml}")
+                                 String bftClientConfigTemplatePath,
                          @Value("${config.template.path:TelegrafConfigTemplate.conf}")
                                  String telegrafConfigTemplatePath,
                          @Value("${config.template.path:wavefrontConfigTemplate.conf}")
@@ -94,6 +100,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String loggingEnvTemplatePath,
                          ConfigurationServiceHelper configurationServiceHelper) {
         this.concordConfigPath = concordConfigTemplatePath;
+        this.bftClientConfigPath = bftClientConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.wavefrontConfigPath = wavefrontConfigPath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
@@ -166,72 +173,74 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void createConfigurationV2(@NotNull ConfigurationServiceRequestV2 request,
                                       @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
         log.info(request.toString());
-        var sessionId = ConfigurationServiceUtil.newSessionUId();
+        var committerIps = new ArrayList<String>();
+        var participantIps = new ArrayList<String>();
+        var committerIds = new ArrayList<String>();
+        var participantNodeIds = new ArrayList<String>();
+        var nodeIdList = new ArrayList<String>();
 
-        // Add validation
+        // TODO : scope for refactoring
+        request.getNodesMap().get(NodeType.REPLICA.name()).getEntriesList().stream().forEach(
+            each -> {
+                committerIps.add(each.getNodeIp());
+                committerIds.add(each.getId());
+            });
+
+        request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().stream().forEach(each -> {
+            participantIps.add(each.getNodeIp());
+            participantNodeIds.add(each.getId());
+        });
+
+        nodeIdList.addAll(committerIds);
+
+        // Generate Configuration
+        var certGen = new ConcordEcCertificatesGenerator();
+        var configUtil = new ConcordConfigUtil(concordConfigPath);
+        var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath);
+        boolean isBftEnabled = false;
+        Map<String, String> bftClientConfig = new HashMap<>();
+        Map<String, String> concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
+                                                                    convertToLegacy(request.getBlockchainType()));
+
+        if (request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
+                .equalsIgnoreCase("True")) {
+            isBftEnabled = true;
+            bftClientConfig.putAll(bftClientConfigUtil
+                    .getbftClientConfig(participantNodeIds, committerIps, participantIps));
+            participantNodeIds.forEach(id -> {
+                int participantId = committerIds.size() + Integer.parseInt(id);
+                nodeIdList.add(Integer.toString(participantId));
+            });
+        }
+
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         request.getNodesMap().values().forEach(nodesByType -> nodesByType
                 .getEntriesList().forEach(eachNode ->
-                                                  configByNodeId
-                                                          .put(eachNode.getId(),
-                                                               configurationServiceHelper.nodeIndependentConfigs(
-                                                                       request.getConsortiumId(),
-                                                                       request.getBlockchainId(),
-                                                                       eachNode.getServicesList(),
-                                                                       eachNode))));
-        var hostList = new ArrayList<String>();
-        var nodeIdList = new ArrayList<String>();
-        request.getNodesMap().get(NodeType.REPLICA.name()).getEntriesList().stream().forEach(
-            each -> {
-                hostList.add(each.getNodeIp());
-                nodeIdList.add(each.getId());
-            });
+                        configByNodeId
+                                .put(eachNode.getId(),
+                                        configurationServiceHelper.nodeIndependentConfigs(
+                                                request.getConsortiumId(),
+                                                request.getBlockchainId(),
+                                                eachNode.getServicesList(),
+                                                eachNode))));
 
-        var certGen = new ConcordEcCertificatesGenerator();
+        Map<String, List<IdentityComponent>> concordIdentityComponents = configurationServiceHelper
+                .getTlsNodeIdentities(configUtil, bftClientConfigUtil, certGen, nodeIdList, committerIps, isBftEnabled);
+        Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
+        if (isBftEnabled) {
+            bftIdentityComponents.putAll(configurationServiceHelper
+                    .convertToBftTlsNodeIdentities(concordIdentityComponents));
+        }
 
-        // Generate Configuration
-        var configUtil = new ConcordConfigUtil(concordConfigPath);
-        Map<String, String> tlsConfig = configUtil.getConcordConfig(nodeIdList, hostList,
-                                                                    convertToLegacy(request.getBlockchainType()));
-
-        List<Identity> tlsIdentityList =
-                certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
-                                                       ServiceType.CONCORD);
+        var sessionId = ConfigurationServiceUtil.newSessionUId();
         log.info("Generated tls identity elements for session id: {}", sessionId);
-
-        Map<String, List<IdentityComponent>> tlsNodeIdentities = configurationServiceHelper.buildTlsIdentity(nodeIdList,
-                                                                                  tlsIdentityList,
-                                                                                  configUtil.nodePrincipal,
-                                                                                  configUtil.maxPrincipalId + 1,
-                                                                                  hostList.size());
 
         Map<String, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
-        configByNodeId.forEach((k, v) -> {
-            List<ConfigurationComponent> output = new ArrayList<>();
-            output.addAll(v);
-
-            if (tlsConfig.containsKey(k)) {
-                output.add(ConfigurationComponent.newBuilder()
-                                   .setType(ServiceType.CONCORD)
-                                   .setComponentUrl(ConcordConfigUtil.configPath)
-                                   .setComponent(tlsConfig.get(k))
-                                   .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                   .build());
-            }
-
-            if (tlsNodeIdentities.containsKey(k)) {
-                tlsNodeIdentities.get(k).forEach(entry ->
-                                                         output.add(ConfigurationComponent.newBuilder()
-                                                                            .setType(ServiceType.CONCORD)
-                                                                            .setComponentUrl(entry.getUrl())
-                                                                            .setComponent(entry.getBase64Value())
-                                                                            .setIdentityFactors(
-                                                                                    certGen.getIdentityFactor())
-                                                                            .build()));
-            }
-
-            nodeComponent.put(k, output);
+        configByNodeId.forEach((nodeId, componentList) -> {
+            nodeComponent.put(nodeId, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
+                    concordConfig, bftClientConfig, concordIdentityComponents, bftIdentityComponents));
         });
         log.info("Persisting configurations for session: {} in memory...", sessionId);
         cacheByNodeId.put(sessionId.getId(), nodeComponent);

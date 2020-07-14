@@ -34,6 +34,8 @@ public class BftClientConfigUtil {
 
     private String bftClientConfigTemplatePath;
 
+    public int maxPrincipalId;
+
     public BftClientConfigUtil(String bftClientConfigTemplatePath) {
         this.bftClientConfigTemplatePath = bftClientConfigTemplatePath;
     }
@@ -117,12 +119,7 @@ public class BftClientConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath) {
-        if (hostIps == null) {
-            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
-            return false;
-        }
-        if (hostIps.size() < 4) {
-            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
+        if (!ConfigUtilHelpers.validateSbft(hostIps)) {
             return false;
         }
         int clusterSize = hostIps.size();
@@ -137,16 +134,13 @@ public class BftClientConfigUtil {
     @SuppressWarnings({"unchecked"})
     boolean generateConfigYaml(List<String> hostIp, List<String> participantIps,
                                int fVal, int cVal, String configYamlPath) {
-        if (hostIp == null) {
-            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
-            return false;
-        }
-        if (hostIp.size() < 4) {
-            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
-            return false;
-        }
-        if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
-            log.error("generateInputConfigYaml: fVal / cVal are invalid for the list of host IP provided");
+
+        var maxCommitterPrincipalId = (hostIp.size()
+                + ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER * hostIp.size()) - 1;
+        maxPrincipalId = maxCommitterPrincipalId + ((participantIps.size()
+                + ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size()) - 1);
+
+        if (!ConfigUtilHelpers.validateSbft(hostIp, fVal, cVal)) {
             return false;
         }
 

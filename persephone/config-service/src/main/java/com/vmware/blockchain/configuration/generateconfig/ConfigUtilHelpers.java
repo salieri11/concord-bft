@@ -4,13 +4,19 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility Helpers.
  */
 public class ConfigUtilHelpers {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfigUtilHelpers.class);
 
     static final int DEFAULT_PORT = 3501;
     static final int CLIENT_PROXY_PER_COMMITTER = 4;
@@ -64,6 +70,40 @@ public class ConfigUtilHelpers {
     static int getCVal(int clusterSize, int fVal) {
         //return ((clusterSize-1) - 3*fVal )/ 2;
         return 0;
+    }
+
+    /**
+     * validate fval and cval.
+     */
+    static boolean validateSbft(List<String> hostIp, int fVal, int cVal) {
+        if (hostIp.isEmpty()) {
+            log.error("List of host IP provided is NULL!");
+            return false;
+        }
+        if (hostIp.size() < 4) {
+            log.error("Minimum cluster size is 4!");
+            return false;
+        }
+        if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
+            log.error("fVal / cVal are invalid for the list of host IP provided");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * validate host ips.
+     */
+    static boolean validateSbft(List<String> hostIps) {
+        if (hostIps == null) {
+            log.error("List of host IP provided is NULL!");
+            return false;
+        }
+        if (hostIps.size() < 4) {
+            log.error("Minimum cluster size is 4!");
+            return false;
+        }
+        return true;
     }
 
     /**

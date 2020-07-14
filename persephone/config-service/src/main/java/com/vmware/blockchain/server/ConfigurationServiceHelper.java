@@ -18,6 +18,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
+import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
@@ -63,8 +66,6 @@ public class ConfigurationServiceHelper {
      **/
     private String loggingEnvTemplatePath;
 
-    private String bftClientConfigTemplatePath;
-
     @Autowired
     ConfigurationServiceHelper(@Value("${config.template.path:TelegrafConfigTemplate.conf}")
                                        String telegrafConfigTemplatePath,
@@ -73,14 +74,11 @@ public class ConfigurationServiceHelper {
                                @Value("${config.template.path:wavefrontConfigTemplate.conf}")
                                        String wavefrontConfigPath,
                                @Value("${config.template.path:LoggingTemplate.env}")
-                                       String loggingEnvTemplatePath,
-                               @Value("${config.template.path:BFTClientConfigTemplate.yaml}")
-                                       String bftClientConfigTemplatePath) {
+                                       String loggingEnvTemplatePath) {
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
         this.wavefrontConfigPath = wavefrontConfigPath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
-        this.bftClientConfigTemplatePath = bftClientConfigTemplatePath;
     }
 
     List<ConfigurationComponent> getEthereumComponent() {
@@ -141,6 +139,7 @@ public class ConfigurationServiceHelper {
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
                     // placeholder to create bft config
+
                     break;
                 case DAML_INDEX_DB:
                     DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
@@ -217,6 +216,96 @@ public class ConfigurationServiceHelper {
     }
 
     /**
+     * build node config.
+     * TODO : refactor!!
+     */
+    List<ConfigurationComponent> buildNodeConifigs(String nodeId, List<ConfigurationComponent> componentList,
+                                                    ConcordEcCertificatesGenerator certGen,
+                                                    Map<String, String> concordConfig,
+                                                    Map<String, String> bftClientConfig,
+                                                    Map<String, List<IdentityComponent>> concordIdentityComponents,
+                                                    Map<String, List<IdentityComponent>> bftIdentityComponents) {
+        List<ConfigurationComponent> output = new ArrayList<>();
+        output.addAll(componentList);
+
+        if (concordConfig.containsKey(nodeId)) {
+            output.add(ConfigurationComponent.newBuilder()
+                    .setType(ServiceType.CONCORD)
+                    .setComponentUrl(ConcordConfigUtil.configPath)
+                    .setComponent(concordConfig.get(nodeId))
+                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                    .build());
+        }
+
+        if (concordIdentityComponents.containsKey(nodeId)) {
+            concordIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
+        }
+
+        if (bftIdentityComponents.containsKey(nodeId)) {
+            bftIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.DAML_LEDGER_API)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
+        }
+
+        if (bftClientConfig.containsKey(nodeId)) {
+            output.add(ConfigurationComponent.newBuilder()
+                    .setType(ServiceType.DAML_LEDGER_API)
+                    .setComponentUrl(BftClientConfigUtil.configPath)
+                    .setComponent(bftClientConfig.get(nodeId))
+                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                    .build());
+        }
+
+        return output;
+    }
+
+    /**
+     * Get tls node identities.
+     */
+    Map<String, List<IdentityComponent>> getTlsNodeIdentities(ConcordConfigUtil concordConfigUtil,
+                                                               BftClientConfigUtil bftClientConfigUtil,
+                                                               ConcordEcCertificatesGenerator certGen,
+                                                               ArrayList<String> nodeIdList,
+                                                               ArrayList<String> hostList,
+                                                               boolean isBftEnabled) {
+
+        Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
+        int numPrincipals = concordConfigUtil.maxPrincipalId + 1;
+
+        var concordNodePrincipals = concordConfigUtil.nodePrincipal;
+        nodePrincipal.putAll(concordNodePrincipals);
+
+        if (isBftEnabled) {
+            numPrincipals = bftClientConfigUtil.maxPrincipalId + 1;
+            var bftNodePrincipals = bftClientConfigUtil.nodePrincipal;
+            bftNodePrincipals.forEach((key, value) -> nodePrincipal.put(concordNodePrincipals.size() + key, value));
+        }
+
+        List<Identity> tlsIdentityList =
+                certGen.generateSelfSignedCertificates(numPrincipals,
+                        ServiceType.CONCORD);
+
+        Map<String, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(nodeIdList,
+                tlsIdentityList,
+                nodePrincipal,
+                numPrincipals,
+                hostList.size());
+        return tlsNodeIdentities;
+    }
+
+    /**
      * Filter tls identities based on nodes and principal ids.
      */
     Map<String, List<IdentityComponent>> buildTlsIdentity(List<String> nodeIds,
@@ -269,5 +358,31 @@ public class ConfigurationServiceHelper {
 
         log.info("Filtered tls identities based on nodes and principal ids.");
         return result;
+    }
+
+    /**
+     * transform concord node identities to bft node identities.
+     */
+    Map<String, List<IdentityComponent>> convertToBftTlsNodeIdentities(Map<String, List<IdentityComponent>>
+                                                                            tlsNodeIdentities) {
+        Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
+
+        tlsNodeIdentities.forEach((key, value) -> {
+            List<IdentityComponent> bftIdentities = new ArrayList<>();
+            value.forEach(val -> {
+                String newUrl = val.getUrl().replace(
+                        CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH,
+                        CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
+                IdentityComponent ident = IdentityComponent.newBuilder()
+                        .setType(val.getType())
+                        .setBase64Value(val.getBase64Value())
+                        .setUrl(newUrl)
+                        .build();
+                bftIdentities.add(ident);
+            });
+            bftIdentityComponents.put(key, bftIdentities);
+        });
+
+        return bftIdentityComponents;
     }
 }
