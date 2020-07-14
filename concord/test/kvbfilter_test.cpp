@@ -303,7 +303,9 @@ TEST(kvbfilter_test, kvbfilter_stop_exec_in_the_middle) {
   auto kvb_reader =
       std::async(std::launch::async, &KvbAppFilter::ReadBlockRange, kvb_filter,
                  0, kLastBlockId, std::ref(queue_out), std::ref(stop_exec));
-  std::this_thread::sleep_for(2ms);
+  while (queue_out.read_available() < 5) {
+    std::this_thread::sleep_for(1ms);
+  }
   stop_exec = true;
   kvb_reader.get();
   int num_of_blocks = 0;
