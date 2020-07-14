@@ -43,7 +43,7 @@ DAML_TESTS_WHITELIST = [
    "LedgerConfigurationServiceIT",
    "PackageManagementServiceIT",
    "PackageServiceIT",
-   # "PartyManagementServiceIT", # RESOURCE_EXHAUSTED, to be investigated
+   "PartyManagementServiceIT",
    "SemanticTests",
    "TransactionServiceIT"
    "WitnessesIT",

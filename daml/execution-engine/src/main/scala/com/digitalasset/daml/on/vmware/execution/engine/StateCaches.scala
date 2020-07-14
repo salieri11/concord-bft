@@ -1,7 +1,7 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.codahale.metrics.MetricRegistry
-import com.daml.caching.{Cache, Configuration}
+import com.daml.caching.{Cache, WeightedCache}
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
 import com.daml.ledger.participant.state.kvutils.caching.`Message Weight`
 import com.daml.metrics.ValidatorCacheMetrics
@@ -26,8 +26,8 @@ private[engine] object StateCaches {
 
   def createDefault(metricRegistry: MetricRegistry): StateCache = {
     val cacheSize = determineCacheSize()
-    Cache.from[DamlStateKey, DamlStateValue](
-      Configuration(maximumWeight = cacheSize),
+    WeightedCache.from[DamlStateKey, DamlStateValue](
+      WeightedCache.Configuration(maximumWeight = cacheSize),
       ValidatorCacheMetrics.create(metricRegistry))
   }
 }
