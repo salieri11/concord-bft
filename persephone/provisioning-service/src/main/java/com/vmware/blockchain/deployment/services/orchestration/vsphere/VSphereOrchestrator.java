@@ -74,12 +74,7 @@ public class VSphereOrchestrator implements Orchestrator {
 
         try {
             orchestratorSiteInformation = new OrchestratorSiteInformation();
-            // Temp till UI BC-3443
-            try {
-                orchestratorSiteInformation.setNetwork(getControlNetwork.get());
-            } catch (Exception e) {
-                log.warn("Invalid network segment " + datacenterInfo.getNetwork());
-            }
+            orchestratorSiteInformation.setNetwork(getControlNetwork.get());
             orchestratorSiteInformation.setDataStore(getDatastore.get());
             orchestratorSiteInformation.setResourcePool(getResourcePool.get());
             orchestratorSiteInformation.setFolder(getFolder.get());
@@ -87,20 +82,6 @@ public class VSphereOrchestrator implements Orchestrator {
             log.warn("Incorrect site information ", datacenterInfo);
             throw new BadRequestPersephoneException("Incorrect site information: ", e);
         }
-    }
-
-    @Override
-    public boolean validate() {
-        // TODO Could be made async.
-        try {
-            vSphereHttpClient.getDatastore(datacenterInfo.getDatastore());
-            vSphereHttpClient.getResourcePool(datacenterInfo.getResourcePool());
-            vSphereHttpClient.getFolder(datacenterInfo.getFolder());
-        } catch (PersephoneException e) {
-            log.info("Error validating the zone info");
-            throw new BadRequestPersephoneException("Error validating site: ", e);
-        }
-        return true;
     }
 
     @Override
