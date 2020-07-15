@@ -272,7 +272,8 @@ public class ClientControllerTest extends RuntimeException {
     @Test
     void getParticipantNodeListViaClient() throws Exception {
 
-        final Client replica1 = new Client("publicIp", "privateIp", "hostName", "url", "cert", BC_DAML, REPLICA_1_ZONE);
+        final Client replica1 = new Client("publicIp", "privateIp", "hostName", "url",
+                "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID());
         replica1.setId(REPLICA_1);
 
         when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(replica1));
@@ -298,7 +299,7 @@ public class ClientControllerTest extends RuntimeException {
         String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
 
         final Client client = new Client("publicIp", "privateIp", "testPassword",
-                "url", "cert", BC_DAML, REPLICA_1_ZONE);
+                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID());
         client.setId(C2_ID);
 
         when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(client));

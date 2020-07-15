@@ -351,7 +351,10 @@ def validateClientResponse(client):
     if client["auth_url_jwt"]:
         assert type(client["auth_url_jwt"]) == str, "Expecting str value for zone_id"
 
-    assert len(client.keys()) == 8, "Expecting 8 fields"
+    if client["group_id"]:
+        assert type(client["group_id"]) == str, "Expecting str value for zone_id"
+        assert len(client["id"]) == 36, "Expecting UUID of length 36"
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # REPLICA VALIDATORS

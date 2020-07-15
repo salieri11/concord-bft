@@ -1000,6 +1000,11 @@ paths:
                       description: Zone ID
                     auth_url_jwt:
                       type: string
+		    group_id:
+                      type: string
+                      format: uuid
+                      description: Logical group Id
+
   /blockchains/{bid}/clients/{client_id}/credentials:
     get:
       tags:
@@ -1983,6 +1988,10 @@ components:
           description: Username for credentials
           example:
             user@server.com
+	group_index:
+          type: string
+          description: Logical group identifier, preferably a number
+          example: 1
 
   responses:
     ErrorResponse:
