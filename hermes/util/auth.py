@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
 import json
@@ -10,9 +10,8 @@ import traceback
 import util
 from datetime import datetime
 from urllib3.util.retry import Retry
-
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+from util import hermes_logging
+log = hermes_logging.getMainLogger()
 CSP_STAGE_URL = "https://console-stg.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize"
 CUSTOM_ORG = "custom_org"
 CUSTOM_BLOCKCHAIN = "custom_blockchain"
@@ -26,6 +25,10 @@ ROLE_CON_PARTICIPANT = "consortium_participant"
 ROLE_ORG_ADMIN = "org_admin"
 ROLE_ORG_DEVELOPER = "org_dev"
 ROLE_ORG_USER = "org_user"
+ROLE_CON_ORG_ADMIN = "consortium_org_admin"
+
+SERVICE_DEFAULT = "https://localhost/blockchains/local"
+SERVICE_STAGING = "https://vmbc.us-west-2.vdp-stg.vmware.com"
 
 # This is a table of API keys used used for authentication with CSP.
 # Format:
@@ -60,6 +63,13 @@ default_con_admin = {
 # Note that roles include the listed role and the org user (except the "no roles" one).
 # To log into CSP to get a new refresh token, use the usernames below + "@csp.local".
 # URL: https://console-stg.cloud.vmware.com
+#
+# Here is a string of users to help with CSP manual user management:
+# HermesUtility@csp.local,vmbc_test_con_admin@csp.local,vmbc_test_con_operator@csp.local,
+# vmbc_test_con_participant@csp.local,vmbc_test_org_admin@csp.local,vmbc_test_org_dev@csp.local,
+# vmbc_test_org_user@csp.local
+
+# These tokens use the "Hermes test service 8" service.
 tokens = {
    CUSTOM_ORG: {}, # Populated when reading values from the user config file.
    "blockchain_service_dev": {
@@ -284,26 +294,318 @@ tokens = {
      }
    },
    "hermes_api_test_org": {
-         "vmbc_test_org_admin": {
-            ROLE_ORG_ADMIN: {
-               # Name in console-stg: hermes-test-org-token
-               # Last updated: Mar. 26, 2020.
-               # Expires Sep 22, 2020.
+      "vmbc_test_org_admin": {
+         ROLE_ORG_ADMIN: {
+            # Name in console-stg: hermes-test-org-token
+            # Last updated: Mar. 26, 2020.
+            # Expires Sep 22, 2020.
                "api_key": "6nwaP6VuLdezUKX0l0iCufO9GdDmCg50ifrMCzE1F6ovpogjZGY61KjYdjBV7UXo",
-               "access_token": None,
-               "last_retrieved": 0
-            }
+            "access_token": None,
+            "last_retrieved": 0
          }
+      }
+   },
+   "system_test_master": {
+      "admin-blockchain-dev": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "QUFN8ogb32YXPPKy8qp6qtiLCMSFq9oo9sIg1qqG36roEHECSt2lcPekEYxwPz2O",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "HermesUtility": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "Pj1jUOW5Ef51radoBoFOeU4OosgEiUCgwgziqPIqKb0BCeV64him96u7aGadUKqr",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin
+            # Never expires.
+            "api_key": "LXszJht3d4Xf74f6DMaXUpbCfB9XJ36EDXO7yXYPN3wpfrU7tPnObprsum2YGS75",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_operator": {
+         ROLE_CON_OPERATOR: {
+            # API key name in console-stg: Hermes consortium operator
+            # Never expires
+            "api_key": "WFUQe5NM31uCviKrjRl2O33Eq4irs7W9VI4oYH3V32e0oS3Hy5UxMUuzY8gNtgTL",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_participant": {
+         ROLE_CON_PARTICIPANT: {
+            # API key name in console-stg: Hermes consortium participant
+            # Never expires.
+            "api_key": "MXfs4LHZwZR7ZY8ySQ1Y7jwtr2SyoFf42jGHp9bjfXG2UuSgn4CJI2l6aZpzhpbI",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_admin": {
+         ROLE_ORG_ADMIN: {
+            # API key name in console-stg: Hermes org admin
+            # Never expires.
+            "api_key": "UWN4HKrifPVl51RSWggIvFZXOYhPDwCWcbBEMgHJ1fdmfrTBzo2JvqrNQu3YeHiv",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_dev": {
+         ROLE_ORG_DEVELOPER: {
+            # API key name in console-stg: Hermes org dev
+            # Never expires.
+            "api_key": "h6wxPVwTTggd4S9UJPhhTdXhttplOiSDW0383VNrjprsGEIQ8icCky1CLeHhblpT",
+            "access_token": None,
+            "last_retrieved": 0
+         },
+      },
+      "vmbc_test_org_user": {
+         ROLE_ORG_USER: {
+            # API key name in console-stg: Hermes org user
+            # Never expires.
+            "api_key": "2D5TJFkEFS1cmeSoObEP8o7Pw5E0t27scFQOLSKqsh7VhETpayhmMmcRjP8Mgal6",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_release_1": {
+      "admin-blockchain-dev": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "bX61KeUOwzbtHbOQQUfxhqSoP9VW3idOZXluJ6qTvWnhqyHc2pNckTwUxW3RwFWG",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "HermesUtility": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "YMiJwligHCZGND6QASBOskjqV5CwrJV7A67CB2VyfOASKq7ycY19J1O6vTAKcRSY",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin
+            # Never expires.
+            "api_key": "W8m7EeRz3BDFhMPO4vEBsiGf2aw1tDkY7pKiwvh3eag9hzW8pKuWK2m2Qmm8hsYT",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_operator": {
+         ROLE_CON_OPERATOR: {
+            # API key name in console-stg: Hermes consortium operator
+            # Never expires
+            "api_key": "2MaQhfPbS5eITHzhde6kkxVY82r3P5cF1NNyE58OW6Njk2H4NFPb2AVmXvVBYxXZ",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_participant": {
+         ROLE_CON_PARTICIPANT: {
+            # API key name in console-stg: Hermes Hermes consortium participant
+            # Never expires.
+            "api_key": "bGx1NZaJZXW8LXKxVztVQMTWa2bP3elLLa3IIkZkQzrN19L9e5TycEf2I1odpmdL",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_admin": {
+         ROLE_ORG_ADMIN: {
+            # API key name in console-stg: Hermes org admin
+            # Never expires.
+            "api_key": "4E5JwatuKl0iCk7uASlW4IAz4tGs0eIm4vfpu7wRZMpvpgVQ6bbdyuUR51YB1S9W",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_dev": {
+         ROLE_ORG_DEVELOPER: {
+            # API key name in console-stg: Hermes org dev
+            # Never expires.
+            "api_key": "Os8edMLJZPtW6W4QRtVau0s5Zr7ZCIRfzYcxX5Ge7JvP0tLvtvtxtbmIRox2xgT3",
+            "access_token": None,
+            "last_retrieved": 0
+         },
+      },
+      "vmbc_test_org_user": {
+         ROLE_ORG_USER: {
+            # API key name in console-stg: Hermes org user
+            # Never expires.
+            "api_key": "fwGp3Q2y45wGa552MPYkm29uXDnZeLEmEhcl3EWvhRilvEQz6lm6hb1TZxC7i6iW",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_release_2": {
+      "admin-blockchain-dev": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "vgXkmEtwQwbyzOprRmoWx4eZcH7vOPVleA8HBAbJNQovdRdiK6s2IZ0iadNR8P2J",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "HermesUtility": {
+         ROLE_ALL: {
+            # API key name in console-stg: Hermes all roles
+            # Never expires.
+            "api_key": "KEU2ng6aujwoQPYHYYavkiBkCjCjm1DIjs3S12TDQhSrgZvqca3LiR42O4lddfUK",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin
+            # Never expires.
+            "api_key": "WOpdi2RaOLbibptitUA56z44Jw1G4UND1Tc6NYElFxOQ9lX09eHDQw4xGlHMCCck",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_operator": {
+         ROLE_CON_OPERATOR: {
+            # API key name in console-stg: Hermes consortium operator
+            # Never expires
+            "api_key": "UPBVO3WrRHPMBrgGN8kMOMop1Em1q9lhAhhBFpzmbx8w6tHCCimJEhmD0LD3UbPo",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_participant": {
+         ROLE_CON_PARTICIPANT: {
+            # API key name in console-stg: Hermes consortium participant
+            # Never expires.
+            "api_key": "zFcdYwvOl8GX08rjPN1IOcITN5SFPdmpgBItj9dk4N7yU3ty8LVRRdYKBTYZlVv2",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_admin": {
+         ROLE_ORG_ADMIN: {
+            # API key name in console-stg: Hermes org admin
+            # Never expires.
+            "api_key": "e5Rxc3mJm0PrjbniksTl0Kk17O59SqeLDEXL8tkVS0gimXN01NtPjIV550fKiSNE",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_org_dev": {
+         ROLE_ORG_DEVELOPER: {
+            # API key name in console-stg: Hermes org dev
+            # Never expires.
+            "api_key": "P0cTC2P8p8GeuSdewmCxVLmnNOTbXkXlKfqwNtz6iimRou215bkUuwtpxjZ9MkwP",
+            "access_token": None,
+            "last_retrieved": 0
+         },
+      },
+      "vmbc_test_org_user": {
+         ROLE_ORG_USER: {
+            # API key name in console-stg: Hermes org user
+            # Never expires.
+            "api_key": "WDQ4n0Q1x68G0eeMtz4xPA64nT5n7vwKKQbaa5mDqGHiZPLQpMs31HO2eTICD5Zn",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
    }
 }
 
+
+# These tokens use the "VMware Blockchain Service - Staging" service.
+# Perhaps the service should be another dict level in the above.
+staging_tokens = {
+   "system_test_master": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Name in console-stg: Admin blockchain dev staging
+            # Never expires.
+            "api_key": "h6wN0gl7PEV1G3iR8O5zc494TGbDhGNOEAQgi74VFZerNcAMryhemuKzB5ULsxH7",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin staging
+            # Never expires.
+            "api_key": "A839L4B1MrHYGIQFiYO8D4CkxfxF6zpMouAjGiN5AukIrCEIcX9gXTOQxpRMYPwu",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_release_1": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Name in console-stg: Admin blockchain dev staging
+            # Never expires.
+            "api_key": "59L3FFiuy23yND6LJRLdYKq19YUI2Ysz3zD017Axjx4hyRlYqUgJgiGwmY7jxJ9k",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin staging
+            # Never expires.
+            "api_key": "V6L7hIJEBPNjU7piL7oHg5G5EQtqz08uUoPgLEobgaUjXwZ1NpNZJJksqw7aNWx4",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_release_2": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Name in console-stg: Admin blockchain dev staging
+            # Never expires.
+            "api_key": "r5edE3f9KnOTgZfXHfZi0QPzsR3NXtMYjtofW7VvLVlkAZeZ2XHAUDi0VjfII0NF",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # API key name in console-stg: Hermes consortium admin staging
+            # Never expires.
+            "api_key": "gZyxAEbxWtz17JTqumSpZ2q2WbgM849EU5QAGyuDP9M7HNyGVIgcU4CeQEQg6S8R",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   }
+}
+
+
 orgs = {
    "blockchain_dev_service_org": "ab29b4a8-40c8-4173-ba74-15e76f8f35e0",
+   "custom_org": "",
+   "hermes_api_test_org": "adc86e8a-b257-49a8-9a7f-d237570d2a4f",
    "hermes_org0": "7e162c74-ae9f-40b4-98ab-89e13f8a2b78",
    "hermes_org1": "923a2597-ba3a-4ef8-a41c-a22406379eac",
    "hermes_org2": "33878dd7-9a3f-447e-b0eb-17d5ea7d3991",
-   "hermes_api_test_org": "adc86e8a-b257-49a8-9a7f-d237570d2a4f",
-   "custom_org": ""
+   "system_test_master": "29717ffe-12dd-43ab-a86a-0003611a319d",
+   "system_test_release_1": "8ccd96cc-db11-442b-a9de-2e73d2dbfb9d",
+   "system_test_release_2": "5e55804a-07dc-4c07-bc4c-483dab274df9",
 }
 
 # How long a VMC access token is valid, in seconds, which is 24 minutes as of July 2019.
@@ -360,6 +662,18 @@ def getOrgName(org_id):
          return org_name
 
 
+def getTokenGroup(service=SERVICE_DEFAULT):
+   '''
+   Depending on the service we are using, there are different API keys.
+   '''
+   if service == SERVICE_STAGING:
+      return staging_tokens
+   elif service == SERVICE_DEFAULT:
+      return tokens
+   else:
+      raise Exception("No API keys defined in Hermes for service: '{}'".format(service))
+
+
 def getTokenDescriptor(role, useConfigFallback=True, defaultToken=None):
    '''
    Returns a token descriptor for the given role, searching in this order:
@@ -369,6 +683,10 @@ def getTokenDescriptor(role, useConfigFallback=True, defaultToken=None):
    3. The default passed in.
 
    Returns None if nothing is found.
+
+   TODO: This was written in simpler times and needs to be updated.
+         Accept a service, org, and role, and actually do the lookup. This is currently
+         just using the custom org if present, and returning defaultToken if not.
    '''
    global tokens
    tokenDescriptor = None
@@ -395,7 +713,7 @@ def getTokenDescriptor(role, useConfigFallback=True, defaultToken=None):
    return tokenDescriptor if tokenDescriptor else defaultToken
 
 
-def getAccessToken(token_descriptor=None, force_refresh=False):
+def getAccessToken(token_descriptor=None, force_refresh=False, service=None):
    '''
    Given a token descriptor, returns an access token which will work for at
    least TEST_BUFFER seconds, retrieving a new one from CSP if necessary.
@@ -411,7 +729,12 @@ def getAccessToken(token_descriptor=None, force_refresh=False):
       "user": "HermesUtility",
       "role": "all_roles"
    }
+
+   RV: There are better ways to do this work.
+       TODO: Rework the map at the top of this file and the fuctions which access it.
    '''
+   global tokens
+   global staging_tokens
 
    if token_descriptor:
       log.debug("Using token descriptor {}".format(token_descriptor))
@@ -421,6 +744,7 @@ def getAccessToken(token_descriptor=None, force_refresh=False):
          "user": "admin-blockchain-dev",
          "role": ROLE_ALL
       }
+      # Pointless?
       token_descriptor = getTokenDescriptor(ROLE_ALL,
                                             True,
                                             default_descriptor)
@@ -429,34 +753,39 @@ def getAccessToken(token_descriptor=None, force_refresh=False):
    org = token_descriptor["org"]
    role = token_descriptor["role"]
 
-   if not org in tokens:
+   if service == SERVICE_STAGING:
+      service_tokens = staging_tokens
+   else:
+      service_tokens = tokens
+
+   if not org in service_tokens:
       raise Exception("getAccessToken: Invalid org '{}'.  Choose one of {}" \
-                      .format(org, list(tokens.keys())))
+                      .format(org, list(service_tokens.keys())))
 
-   if not user in tokens[org]:
+   if not user in service_tokens[org]:
       raise Exception("getAccessToken: Invalid user '{}' for org '{}'.  Choose one of {}" \
-                      .format(user, org, list(tokens[org].keys())))
+                      .format(user, org, list(service_tokens[org].keys())))
 
-   if not role in tokens[org][user]:
+   if not role in service_tokens[org][user]:
       raise Exception("getAccessToken: Invalid role '{}' for user '{}' in org '{}'.  Choose one of {}" \
-                      .format(role, user, org, list(tokens[org][user].keys())))
+                      .format(role, user, org, list(service_tokens[org][user].keys())))
 
-   token_object = tokens[org][user][role]
-
-   if needNewAccessToken(org, user, role, force_refresh):
+   if needNewAccessToken(service_tokens, org, user, role, force_refresh):
       log.debug("getAccessToken() requesting a new access token.")
-      new_token = retrieveNewAccessToken(org, user, role)
-      tokens[org][user][role]["last_retrieved"] = datetime.now().timestamp()
-      tokens[org][user][role]["access_token"] = new_token
+      new_token = retrieveNewAccessToken(service_tokens, org, user, role)
+      service_tokens[org][user][role]["last_retrieved"] = datetime.now().timestamp()
+      service_tokens[org][user][role]["access_token"] = new_token
    else:
       log.debug("getAccessToken() using existing access token.")
 
-   return tokens[org][user][role]["access_token"]
+   log.debug("*** service_tokens[{}][{}][{}]['api_key']: {}".format(org, user, role, service_tokens[org][user][role]["api_key"]))
+   log.debug("*** service_tokens[{}][{}][{}]['access_token']: {}".format(org, user, role, service_tokens[org][user][role]["access_token"]))
+   log.debug("*** access_token being used: {}".format(service_tokens[org][user][role]["access_token"]))
+   return service_tokens[org][user][role]["access_token"]
 
 
-def needNewAccessToken(org, user, role, force_refresh):
+def needNewAccessToken(service_tokens, org, user, role, force_refresh):
    '''
-   Accepts a key from the global tokens table.
    Returns whether enough time has passed that we should request a new access token from CSP.
 
    |---------------------------------------------------------------------------------|
@@ -468,8 +797,8 @@ def needNewAccessToken(org, user, role, force_refresh):
    '''
    if force_refresh:
       return True
-   elif tokens[org][user][role]["last_retrieved"]:
-      expiration = tokens[org][user][role]["last_retrieved"]
+   elif service_tokens[org][user][role]["last_retrieved"]:
+      expiration = service_tokens[org][user][role]["last_retrieved"]
       expiration += ACCESS_TOKEN_LIFESPAN - TEST_BUFFER
       now = datetime.now().timestamp()
       log.debug("expiration: {}, now: {}".format(expiration, now))
@@ -478,9 +807,9 @@ def needNewAccessToken(org, user, role, force_refresh):
       return True
 
 
-def retrieveNewAccessToken(org, user, role):
+def retrieveNewAccessToken(service_tokens, org, user, role):
    '''
-   Given org, user, and role, retrieves an access token from CSP.
+   Given dict of orgs, org, user, and role, retrieves an access token from CSP.
 
    Retries for various error codes.  e.g. 104 ("Connection reset by peer") and various 500's.
 
@@ -493,24 +822,7 @@ def retrieveNewAccessToken(org, user, role):
    7 tries with backoff_factor of 0.5 = 63.5 seconds of retrying.
    '''
 
-   api_key = tokens[org][user][role]["api_key"]
-   # session = requests.Session()
-   # num_retries = 7
-   # retries = Retry(total=num_retries,
-   #                 backoff_factor=0.5,
-   #                 status_forcelist=[104, 500, 502, 503, 504],
-   #                 method_whitelist=False)
-   # session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
-
-   # try:
-   #    log.debug("In auth.py, retrieveNewAccessToken() sending request to CSP. Session: {}, " \
-   #              "URL: {}, API key: {}".format(session, CSP_STAGE_URL, api_key))
-   #    response = session.post(CSP_STAGE_URL, data={"refresh_token": api_key})
-   #    log.debug("In auth.py, received response from CSP: {}".format(response))
-   # except Exception as e:
-   #    log.error("***** Error communication with CSP. {} attempt(s) were made. Failing. *****\n".format(num_retries))
-   #    raise(e)
-
+   api_key = service_tokens[org][user][role]["api_key"]
    max_attempts = 5
    sleep_time = 5
    attempts = 0

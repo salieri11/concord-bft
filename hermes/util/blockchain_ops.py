@@ -14,7 +14,8 @@ import time
 import sys
 import yaml
 
-from util import helper, hermes_logging, infra
+import rest
+from util import auth, helper, hermes_logging, infra
 
 log = hermes_logging.getMainLogger()
 
@@ -22,7 +23,7 @@ log = hermes_logging.getMainLogger()
 
 
 # ===================================================================================
-#   State Information Operation 
+#   State Information Operation
 #   (e.g. primary info & which committers are the submission endpoints)
 # ===================================================================================
 def refresh_current_state_info(fxBlockchain, verbose=False):
@@ -74,7 +75,7 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
       # it's a sign that view change is happening.
       log.warning("         {} is undergoing view change; currentPrimary ({}) => activeView ({})"
                         .format(result["ip"], current_primary, current_active_view))
-      
+
   if len(primary_indexes.keys()) != 1: # disagreement on primary
     highest_agreed_idx = None; highest_agreed_count = 0
     for idx in primary_indexes.keys():
@@ -208,22 +209,22 @@ def map_participants_submission_endpoints(fxBlockchain, verbose=True):
 # ===================================================================================
 #   Fixture Reset Operations
 # ===================================================================================
-def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False, 
+def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
                         keepData=False, resetOnlyTheseIPs=None, verbose=True):
   '''
     ! DO NOT RUN AGAINST PRODUCTION BLOCKCHAIN
 
     Reset blockchain and remove all its persisted data
     (Only covers DAML network for now.)
-    
+
     `keepData` flag will skip persistency deletion (Currently, agent will fail if persistency is kept)
 
     `resetOnlyTheseIPs`:  list of target to be selectively reset; for wiping out only selected nodes.
                           Supplying it with [] or any falsey value will skip filtering and reset all nodes.
 
-    e.g.: helper.reset_blockchain(fxBlockchain, concordConfig={ 
-      "concord-bft_max_num_of_reserved_pages": 8192, 
-      "view_change_timeout": 20000, 
+    e.g.: helper.reset_blockchain(fxBlockchain, concordConfig={
+      "concord-bft_max_num_of_reserved_pages": 8192,
+      "view_change_timeout": 20000,
     })
   '''
   replicas = fxBlockchain.replicas
@@ -253,7 +254,7 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
         wipeOutConcordConfigSet.append(
           "sed -i '/{}/c\\{}: {}' /config/concord/config-local/concord.config".format(configParam, configParam, configParamValue))
   wipeOutPost = [
-    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",  
+    "df -h", "cat /config/concord/config-local/concord.config | grep concord-bft",
     "cp \"{}\" \"{}\"".format(helper.HEALTHD_LOG_PATH, helper.HEALTHD_LOG_PATH.replace(".log", "2.log")), # copy healthd.log => healthd2.log
   ]
   nodeWipeOutCommand = '; '.join(wipeOutPre + wipeOutDeleteData + wipeOutConcordConfigSet + wipeOutPost)
@@ -269,22 +270,22 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
   if participantIPs:
     if verbose: log.info("Wiping out participant nodes: {}".format(', '.join(participantIPs)))
     results = helper.ssh_parallel(participantIPs, nodeWipeOutCommand, verbose=verbose)
-    if verbose: 
+    if verbose:
       for result in results: log.debug("\n\n[Wiping participant containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
   if committerIPs:
     if verbose: log.info("Wiping out committer nodes: {}".format(', '.join(committerIPs)))
     results = helper.ssh_parallel(committerIPs, nodeWipeOutCommand, verbose=verbose)
-    if verbose: 
+    if verbose:
       for result in results: log.debug("\n\n[Wiping committer containers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
   if committerIPs:
     if verbose: log.info("Restarting committer nodes (through agent): {}".format(', '.join(committerIPs)))
     results = helper.ssh_parallel(committerIPs, nodeRetartCommand, verbose=verbose)
-    if verbose: 
+    if verbose:
       for result in results: log.debug("\n\n[Restart agent on committers] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
   if participantIPs:
     if verbose: log.info("Restarting participant nodes (through agent): {}".format(', '.join(participantIPs)))
     results = helper.ssh_parallel(participantIPs, nodeRetartCommand, verbose=verbose)
-    if verbose: 
+    if verbose:
       for result in results: log.debug("\n\n[Restart agent on participant] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
   initializationGracePeriod = 30
   if verbose:  log.info("Giving another {}s for all nodes to initialize...".format(initializationGracePeriod))
@@ -292,14 +293,14 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
   if allNodesIPs:
     if verbose: log.info("Resetting crash status of the nodes...")
     results = helper.ssh_parallel(allNodesIPs, nodeResetCrashStatusCommand, verbose=verbose)
-    if verbose: 
+    if verbose:
       for result in results: log.debug("\n\n[Reset crashed status] SSH outputs [{}]:\n{}".format(result["ip"], result["output"]))
   state_info = {
-    "primary_ip": None, "primary_index": None, "primary_rid": None, 
+    "primary_ip": None, "primary_index": None, "primary_rid": None,
     "committer_index_by_rid": None, "submission_endpoints": None
   }
   if committerIPs: map_committers_info(fxBlockchain, verbose=verbose)
-  if participantIPs: 
+  if participantIPs:
     # need to avoid submission endpoints until there are more connections from participants to other committers
     map_participants_submission_endpoints(fxBlockchain, verbose)
   if verbose: log.info("Blockchain network reset completed.")
@@ -393,3 +394,27 @@ def print_replica_info(fxBlockchain, interrupted_nodes=[]):
       if primary_should_be == '?' or principal_id == '?' or currentPrimary == '?':
         log.warning("Couldn't fetch replica_id/primary replica")
         log.info(ssh_output)
+
+
+def deregister_blockchain(org_name, bc_id, service):
+  '''
+  Utility method to deregister a blockchain.
+  '''
+  token_descriptor = {
+    "org": org_name,
+    "user": "vmbc_test_con_admin",
+    "role": auth.ROLE_CON_ADMIN
+  }
+
+  req = rest.request.Request("deregister_blockchain",
+                             "Deregister blockchain",
+                             service,
+                             None,
+                             tokenDescriptor=token_descriptor,
+                             service=service)
+
+  log.info("Deregistering blockchain {} from {}".format(bc_id, service))
+  resp = req.deregisterBlockchain(bc_id)
+  log.info("Response: {}".format(resp))
+  resp = req.getBlockchains()
+  log.info("Blockchains remaining: {}".format(resp))

@@ -1,20 +1,20 @@
 {
   "metainf": {
     "env":{
-      "name": "<METAINF_ENV_NAME>",
-      "jobName": "<METAINF_ENV_JOB_NAME>",
-      "buildNumber": "<METAINF_ENV_BUILD_NUMBER>",
-      "dockerTag": "<METAINF_ENV_DOCKER_TAG>",
-      "workspace": "<METAINF_ENV_WORKSPACE>"
+      "name": "JENKINS",
+      "jobName": "Master Branch Blockchain Run on GitLab___master",
+      "buildNumber": "1734",
+      "dockerTag": "0.0.0.1734",
+      "workspace": "___var___jenkins___workspace___kchain_Run_on_GitLab_master-HC55C3EOU25LVGPXHNLMVRH4SJXBPSCXM63VXDLCKFXXQ3NG2VQA"
     }
   },
-  "jenkins":{ "username": "svc.blockchain_1", "token": "<JENKINS_JSON_API_KEY>", "builderPassword": "<JENKINS_BUILDER_PASSWORD>" },
   "gitlab":{ "token": "<GITLAB_API_ONLY_TOKEN>" },
+  "jenkins":{ "username": "svc.blockchain_1", "token": "115ae8013f5e336d95c4d75d3dbbc4ad7b", "builderPassword": "build@11TheThingz" },
   "communication":{
     "slack": {
       "workspaces":{
-        "vmware": { "name": "VMware Internal Workspace", "teamId": "T024JFTN4", "appToken": "<SLACK_BOT_API_TOKEN>" },
-        "vmw-da":{ "name": "VMW-DA Joint Workspace", "teamId": "TGG9FQXCK", "appToken": "<VMW_DA_SLACK_BOT_API_TOKEN>" }
+        "vmware": { "name": "VMware Internal Workspace", "teamId": "T024JFTN4", "appToken": "xoxb-2154537752-964022036976-BvCBR84OTbPPKRPpnzWAmBQR" },
+        "vmw-da":{ "name": "VMW-DA Joint Workspace", "teamId": "TGG9FQXCK", "appToken": "xoxb-560321847427-965986031458-UPhsl9TLgnK1eMutmk1Tviap" }
       },
       "channels": {
         "vdaml-devops":{ "workspace": "vmw-da", "channelId": "CR94YNQPQ" },
@@ -30,7 +30,7 @@
   },
   "dashboard": {
     "devops": {
-      "wavefront": { "url": "https://vmware.wavefront.com", "token": "<DASHBOARD_WAVEFRONT_TOKEN>" }
+      "wavefront": { "url": "https://vmware.wavefront.com", "token": "dc4d5106-b2cb-4284-864e-26ab99622e6e" }
     }
   },
   "product": {
@@ -185,7 +185,7 @@
     "address": "10.78.20.10",
     "port": 9543,
     "username": "fluentd",
-    "password": "<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"
+    "password": "Fluentd!23"
   },
   "persephoneTests": {
     "modelService": {

@@ -244,8 +244,8 @@ import org.apache.commons.lang.exception.ExceptionUtils
   "HelenDeployToSDDCTemplate" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only" \
-      --suitesRealname HelenDeployToSDDCTemplate'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-k test_daml_deployment" \
+      --suitesRealname=HelenDeployToSDDCTemplate'
   ]
 ]
 
@@ -306,7 +306,6 @@ import org.apache.commons.lang.exception.ExceptionUtils
   persephone_test_job_name,
   ui_e2e_daml_on_prem_job_name,
 ]
-
 
 def call(){
   // This is a unique substring of the Jenkins job which tests ToT after a
@@ -863,13 +862,19 @@ def call(){
                       selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+                      // TODO: Move to a Hermes file.  The pipeline file should not have test implementation details.
                       if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
+                      deploymentOrg = ""
                       try {
                         env.blockchain_location = "sddc"
+                        deploymentOrg = setOrgPropsForLRT()
+
                         testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
                             " --blockchainType daml" +
                             " --blockchainLocation onprem" +
-                            " --numReplicas 7 --numParticipants 3 "
+                            " --numReplicas 7 --numParticipants 3 " +
+                            " --deploymentOrg " + deploymentOrg +
+                            " --deploymentService staging"
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
@@ -877,6 +882,8 @@ def call(){
                                                     ' has failed to deploy blockchain fixture to SDDC. (<' + env.BUILD_URL + 'console|View Console>)'
                         sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${monitoring_notify_target}" "${fixture_setup_message}"'''
                         throw ex
+                      } finally {
+                        deregisterLRTBlockchain(deploymentOrg)
                       }
                       sh '''
                         "${python}" invoke.py lrtPrintDashboardLink
@@ -1825,7 +1832,6 @@ void sendNotifications(){
     if (env.JOB_NAME.contains(env.tot_job_name)) {
       echo("Notifying ToT failure on slack...")
       slackNotifyFailure( jobName: "Master run",  target: "blockchain-build-fail", master: true )
-    
     // For MR runs, notify the MR authors (usually single person)
     } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
       echo("Notifying MR failure to authors through slack DM...")
@@ -1852,7 +1858,7 @@ void sendNotifications(){
         echo("Failure notification to triggerer " + triggererEmail + ": " + ex.toString())
       }
     }
- 
+
   }
 }
 
@@ -1875,7 +1881,7 @@ void sendGeneralEmail(){
 
 /**
  * slackNotifyFailure
- * 
+ *
  * @keyword_param jobName String: job name (e.g. "MR run") used for header
  * @keyword_param target String: Slack channel name or email of the recipient
  * @keyword_param master Boolean: is it master failure notification? default false
@@ -1911,7 +1917,7 @@ void slackNotifyFailure(Map param){
                   ":skull_and_crossbones:", ":jenkins-explode:"]
     emoji = emoji_list[rnd.nextInt(emoji_list.size)]
     message = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|" +
-            jobName + " " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji  
+            jobName + " " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji
   } else if (isMR) { // slack DM doesn't need @here
     message = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
     try {
@@ -1921,6 +1927,7 @@ void slackNotifyFailure(Map param){
         if (triggerInfo["author_slack_user_id"] && !param.dontMentionAuthor) {
           message = "<@" + triggerInfo["author_slack_user_id"] + "> " + message
         }
+
         if (triggerInfo["mr_data"]) {
           message += "\n>*<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + " - " + triggerInfo["mr_data"]["title"] + ">*"
           if (triggerInfo["mr_data"]["source_branch"]) {
@@ -1955,7 +1962,7 @@ void slackNotifyFailure(Map param){
       echo("Adding racetrack link has failed: " + ex.toString())
     }
   }
-  
+
   // Add other links (exact point of failure) if available
   if (fileExists(env.WORKSPACE + "/summary/failure_summary.json")) {
     try {
@@ -1979,10 +1986,10 @@ void slackNotifyFailure(Map param){
           message += ")"
         }
         if (summary["test_name_short"]) {
-          message += "\nTest: `" + summary["test_name_short"] + "`  "  
+          message += "\nTest: `" + summary["test_name_short"] + "`  "
           message += "(<" + rtUrl + "/resulthistory.php?product=blockchain&testcase=" + summary["test_name_short"] + "|View History>)"
         } else {
-          message += "\nTest: `" + summary["test_name"] + "`  "  
+          message += "\nTest: `" + summary["test_name"] + "`  "
         }
         if (summary["file"] && !summary["file"].startsWith("(") && summary["line_number"]) {
           fileAndLineNumber = summary["file"] + " :: line " + summary["line_number"]
@@ -2136,7 +2143,7 @@ EOF
 
       updateEnvFileForConcordOnDemand()
       updateEnvFileForPersephoneOnDemand()
-      updateEnvFileForBuildingMRs() 
+      updateEnvFileForBuildingMRs()
 
       sh '''
         cp blockchain/docker/.env blockchain/hermes/
@@ -2503,7 +2510,7 @@ void racetrackUpdate(Map param){
       dir('blockchain/hermes') {
         try {
           if (action == "setBegin") {
-            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin --param "${repo}" "${set_type}"'  
+            sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin --param "${repo}" "${set_type}"'
           } else if (action == "setEnd") {
             env.run_result = param.result ? param.result : "FAILURE"
             sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${repo}" "${run_result}" "${set_type}"'
@@ -2515,6 +2522,7 @@ void racetrackUpdate(Map param){
     }
   }
 }
+
 
 void capturePipelineError(ex) {
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
@@ -2540,4 +2548,54 @@ void capturePipelineError(ex) {
       }
     }
   }
+}
+
+
+// The long running test suite may need to be run from multiple branches
+// at a time.  Each would have different org properties, such as the
+// version of concord to deploy.
+// The file lrt_orgs_for_branches.json defines what org to use for what
+// branch.
+// We also set the max number of blockchains to 50 for the org.
+// Will throw an exception if needed values are not in the json file. Details are described
+// in the json file itself.
+// Returns the org to use for deployment.
+String setOrgPropsForLRT(){
+  raw_data = readFile(env.WORKSPACE + "/blockchain/vars/lrt_orgs_for_branches.json")
+  obj = new JsonSlurperClassic().parseText(raw_data)
+  org = obj[env.tot_branch]["org"]
+
+  env.setOrgPropsForLRT_org = org
+  sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py patchOrg --param ${setOrgPropsForLRT_org} add max_chains 50 staging'''
+
+  env.setOrgPropsForLRT_k = "org_docker_image_override"
+  env.setOrgPropsForLRT_v = env.docker_tag
+  sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py patchOrg --param ${setOrgPropsForLRT_org} add ${setOrgPropsForLRT_k} ${setOrgPropsForLRT_v} staging'''
+
+  extra_props = obj[env.tot_branch]["props"]
+
+  if (extra_props != null){
+    for (prop_name in obj[env.tot_branch]["props"].keySet()){
+      env.setOrgPropsForLRT_k = prop_name
+      env.setOrgPropsForLRT_v = obj[env.tot_branch]["props"][prop_name]
+      sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py patchOrg --param ${setOrgPropsForLRT_org} add ${setOrgPropsForLRT_k} ${setOrgPropsForLRT_v} staging'''
+    }
+  }
+
+  env.setOrgPropsForLRT_org = org
+  sh '''
+    sed -i -e 's/'"<DEPLOYMENT_ORG>"'/'"${setOrgPropsForLRT_org}"'/g' resources/long_running_tests.json
+  '''
+
+  return org
+}
+
+// Return the blockchain ID from the json file used by long running tests.
+void deregisterLRTBlockchain(org){
+  raw_data = readFile("/tmp/replicas.json")
+  obj = new JsonSlurperClassic().parseText(raw_data)
+  bc_id = obj["daml_committer"][0]["blockchain_id"]
+  env.deregisterLRTBlockchain_org = org
+  env.deregisterLRTBlockchain_bcid = bc_id
+  sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py deregisterBlockchain --param "${deregisterLRTBlockchain_org}" "${deregisterLRTBlockchain_bcid}"'''
 }
