@@ -1,0 +1,15 @@
+client_proxies_per_replica: 1
+c_val: 0
+f_val: 1
+FEATURE_time_service: true
+concord-bft_communication_buffer_length: 33554432
+concord-bft_max_reply_message_size: 4096
+concord-bft_max_num_of_reserved_pages: 8192
+comm_to_use: tls
+use_loopback_for_local_hosts: true
+tls_certificates_folder_path: /concord/config-local/cert
+node__TEMPLATE:
+  genesis_block: /concord/config-public/genesis.json
+  blockchain_db_path: /concord/rocksdbdata/
+  time_pusher_period_ms: 1000
+

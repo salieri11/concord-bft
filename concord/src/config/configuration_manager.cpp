@@ -29,12 +29,130 @@ using concord::config::ConcordConfiguration;
 using concord::config::detectLocalNode;
 using concord::config::kConcordNodeConfigurationStateLabel;
 
+YAML::Node yaml_merge(const YAML::Node& a, const YAML::Node& b,
+                      std::set<std::string> errorOnConflict,
+                      const YAML::Node& parent) {
+  if (a.IsMap() && b.IsMap()) {
+    auto c = YAML::Node(YAML::NodeType::Map);
+    // Take every element from "a" and if no conflict with "b" insert it in
+    // result -> "c"
+    for (auto it = a.begin(); it != a.end(); it++) {
+      if (!b[it->first.as<std::string>()]) {
+        // No conflict so just add the key/value pair
+        c[it->first] = it->second;
+      } else {
+        // We have conflict, so we need to merge what will be inserted in "c" at
+        // position with same key in both "a" and "b"
+        c[it->first] = yaml_merge(it->second, b[it->first.as<std::string>()],
+                                  errorOnConflict, it->first);
+      }
+    }
+    // Add elements from "b" that have no conflicts with elements in "a",
+    // they have been resolved in the previous for loop
+    for (auto it = b.begin(); it != b.end(); it++) {
+      if (!c[it->first.as<std::string>()]) {
+        c[it->first] = it->second;
+      }
+    }
+    return c;
+
+  } else if (a.IsSequence() && b.IsSequence()) {
+    if (a.size() > b.size()) {
+      std::stringstream errMsg;
+      errMsg << "Cannot shrink a sequence! key=" << parent
+             << " a.size=" << a.size() << "b.size=" << b.size();
+      throw(std::runtime_error(errMsg.str()));
+    }
+
+    // In merging sequences we have Concord configuration specifics, because we
+    // store in sequences the information for the current Replica as well as all
+    // the public parameters of peer replicas. Basically, in Application
+    // configuration we can have default cluster dimensions specified, and the
+    // current node in the sequence under the "node" key is identified by having
+    // a "current_node: true" element. In Deployment configuration we expect to
+    // have in one of the elements of the sequence also "current_node: true",
+    // and we need to merge those elements preserving in the result the index of
+    // current node in Deployment configuration. If the sequences do not contain
+    // "current_node: true" we merge each element from the first sequence with
+    // its corresponding element at the same position in the second sequence,
+    // resolving conflicts in them by taking with priority the value in the
+    // second.
+
+    // helper function to Check in which postion in a sequence current_node is
+    auto getCurrentNodePosition = [](const YAML::Node& node) {
+      auto count = 0;
+      auto currentNodePosition = -1;
+      for (auto it = node.begin(); it != node.end(); ++it, count++) {
+        auto n = YAML::Node(*it);
+        if (n["current_node"] &&
+            n["current_node"].as<std::string>() == "true") {
+          currentNodePosition = count;
+          break;
+        }
+      }
+      return currentNodePosition;
+    };
+
+    int currentNodePositionInA = getCurrentNodePosition(a);
+    int currentNodePositionInB = getCurrentNodePosition(b);
+
+    auto c = YAML::Node(YAML::NodeType::Sequence);
+    if (currentNodePositionInA != -1 && currentNodePositionInB != -1 &&
+        (currentNodePositionInB != currentNodePositionInA ||
+         a.size() < b.size())) {
+      int otherNodePositionInA = (currentNodePositionInA + 1) % a.size();
+      int count = 0;
+      for (auto it = b.begin(); it != b.end(); it++, count++) {
+        if (currentNodePositionInB == count) {
+          c[count] = yaml_merge(a[currentNodePositionInA], *it, errorOnConflict,
+                                parent);
+        } else {
+          c[count] =
+              yaml_merge(a[otherNodePositionInA], *it, errorOnConflict, parent);
+        }
+      }
+    } else {
+      int count = 0;
+      auto itA = a.begin();
+      auto itB = b.begin();
+      for (; itA != a.end() && itB != b.end(); ++itA, ++itB, count++) {
+        c[count] = yaml_merge(*itA, *itB, errorOnConflict, parent);
+      }
+      for (; itB != b.end(); ++itB, ++count) {
+        c[count] = YAML::Node(*itB);
+      }
+    }
+    // return merged sequence
+    return c;
+  } else if (a.IsScalar() && b.IsScalar()) {
+    if (errorOnConflict.find(parent.as<std::string>()) !=
+        errorOnConflict.end()) {
+      // throw error if vallues differ
+      if (a.as<std::string>() != b.as<std::string>()) {
+        std::stringstream errMsg;
+        errMsg << "Found conflicting values for key=" << parent
+               << " with values \"" << a << "\" and \"" << b << "\"!";
+        throw(std::runtime_error(errMsg.str()));
+      }
+      return b;
+    } else {
+      // we take "b" to override "a" in case of conflicts
+      return b;
+    }
+  }
+  return b;
+}
+
 bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
                        variables_map& opts_out) {
   // Holds the file name of path of the configuration file for Concordthis is
   // NOT same as logger configuration file. Logger configuration file can be
   // specified as a property in configuration file.
   string configFile;
+
+  string applicationConfigFile;
+  string deploymentConfigFile;
+  string secretsConfigFile;
 
   // Program options which are generic for most of the programs:
   // These are not available via configuration files
@@ -45,8 +163,17 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
   generic.add_options()
       ("help,h", "Print this help message")
       ("config,c",
-       boost::program_options::value<string>(&configFile)->required(),
-       "Path for configuration file")
+       boost::program_options::value<string>(&configFile),
+       "Path for entire configuration file. Deprecated, use separate files for app, depl and secrets instead")
+      ("application_config,a",
+       boost::program_options::value<string>(&applicationConfigFile),
+       "Path for Application configuration file")
+      ("deployment_config,d",
+       boost::program_options::value<string>(&deploymentConfigFile),
+       "Path for Deployment configuration file")
+      ("secrets_config,s",
+       boost::program_options::value<string>(&secretsConfigFile),
+       "Path for Secrets configuration file")
       ("debug", "Sleep for 20 seconds to attach debug");
   // clang-format on
 
@@ -70,32 +197,105 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
   // exception to exit the program if any parameters are invalid)
   notify(opts_out);
 
-  // Verify configuration file exists.
-  std::ifstream fileInput(configFile);
-  if (!fileInput.is_open()) {
-    cerr << "Concord could not open configuration file: " << configFile << endl;
+  auto checkConfigFile = [](std::ifstream& fileInput, std::string configName,
+                            const std::string& fileName) {
+    if (!fileInput.is_open()) {
+      cerr << "Concord could not open " << configName
+           << " configuration file: " << fileName << endl;
+      return false;
+    }
+    if (fileInput.peek() == EOF) {
+      cerr << "Concord " << configName << " configuration file " << fileName
+           << " appears to be an empty file." << endl;
+      return false;
+    }
+    return true;
+  };
+
+  if (opts_out.count("config")) {
+    // Verify configuration file exists.
+    std::ifstream fileInput(configFile);
+    if (!checkConfigFile(fileInput, "monolithic", configFile)) {
+      return false;
+    }
+
+    // Parse configuration file.
+    concord::config::specifyConfiguration(config_out);
+    config_out.setConfigurationStateLabel(kConcordNodeConfigurationStateLabel);
+    concord::config::YAMLConfigurationInput input(fileInput);
+
+    try {
+      input.parseInput();
+    } catch (std::exception& e) {
+      std::cerr << "An exception occurred while trying to read the "
+                   "configuration file "
+                << configFile << ": exception message: " << e.what()
+                << std::endl;
+    }
+
+    concord::config::loadNodeConfiguration(config_out, input);
+
+  } else if (opts_out.count("application_config") &&
+             opts_out.count("deployment_config") &&
+             opts_out.count("secrets_config")) {
+    // Verify configuration files exist.
+    std::ifstream applicationInput(applicationConfigFile);
+    std::ifstream deploymentInput(deploymentConfigFile);
+    std::ifstream secretsInput(secretsConfigFile);
+    if (checkConfigFile(applicationInput, "application",
+                        applicationConfigFile) &&
+        checkConfigFile(deploymentInput, "deployment", deploymentConfigFile) &&
+        checkConfigFile(secretsInput, "secrets", secretsConfigFile)) {
+      // Parse configuration file.
+      concord::config::specifyConfiguration(config_out);
+      config_out.setConfigurationStateLabel(
+          kConcordNodeConfigurationStateLabel);
+
+      YAML::Node yamlApplicationConfiguration;
+      YAML::Node yamlDeploymentConfiguration;
+      YAML::Node yamlSecretsConfiguration;
+
+      auto loadYaml = [](YAML::Node& n, std::ifstream& fileInput,
+                         const std::string& configFile) {
+        try {
+          n.reset(YAML::Load(fileInput));
+        } catch (std::exception& e) {
+          std::cerr << "An exception occurred while trying to read the "
+                       "configuration file "
+                    << configFile << ": exception message: " << e.what()
+                    << std::endl;
+          return false;
+        }
+        return true;
+      };
+
+      if (!(loadYaml(yamlApplicationConfiguration, applicationInput,
+                     applicationConfigFile) &&
+            loadYaml(yamlDeploymentConfiguration, deploymentInput,
+                     deploymentConfigFile) &&
+            loadYaml(yamlSecretsConfiguration, secretsInput,
+                     secretsConfigFile))) {
+        return false;
+      }
+
+      YAML::Node yamlMerged;
+
+      yamlMerged = yaml_merge(yamlApplicationConfiguration,
+                              yamlDeploymentConfiguration, {"principal_id"});
+      yamlMerged =
+          yaml_merge(yamlMerged, yamlSecretsConfiguration, {"principal_id"});
+
+      concord::config::YAMLConfigurationInput input(YAML::Clone(yamlMerged));
+      concord::config::loadNodeConfiguration(config_out, input);
+
+    } else {
+      return false;
+    }
+  } else {
+    cerr << "Insufficient configuration provided!" << std::endl;
     return false;
   }
-  if (fileInput.peek() == EOF) {
-    cerr << "Concord configuration file " << configFile
-         << " appears to be an empty file." << endl;
-    return false;
-  }
 
-  // Parse configuration file.
-  concord::config::specifyConfiguration(config_out);
-  config_out.setConfigurationStateLabel(kConcordNodeConfigurationStateLabel);
-  concord::config::YAMLConfigurationInput input(fileInput);
-
-  try {
-    input.parseInput();
-  } catch (std::exception& e) {
-    std::cerr
-        << "An exception occurred while trying to read the configuration file "
-        << configFile << ": exception message: " << e.what() << std::endl;
-  }
-
-  concord::config::loadNodeConfiguration(config_out, input);
   concord::config::loadSBFTCryptosystems(config_out);
 
   return true;
@@ -909,6 +1109,7 @@ ConcordConfiguration::ConcordConfiguration(const ConcordConfiguration& original)
       instance.parentScope = this;
     }
   }
+  confType_ = original.confType_;
 }
 
 ConcordConfiguration::~ConcordConfiguration() {
@@ -1014,6 +1215,7 @@ void ConcordConfiguration::declareScope(const string& scope,
   invalidateIterators();
   scopes[scope] = ConfigurationScope();
   scopes[scope].instanceTemplate.reset(new ConcordConfiguration());
+  scopes[scope].instanceTemplate->confType_ = confType_;
   scopes[scope].instantiated = false;
   scopes[scope].description = description;
   scopes[scope].size = size;
@@ -1054,14 +1256,13 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
                            printCompletePath(relativePath) +
                            ": scope does not have a size function.");
   }
-  size_t scopeSize;
   std::unique_ptr<ConfigurationPath> fullPath(getCompletePath(relativePath));
+  size_t scopeSize{};
   ParameterStatus result = scopeEntry.size(*(getRootConfig()), *fullPath,
                                            &scopeSize, scopeEntry.sizerState);
   if (result != ParameterStatus::VALID) {
     return result;
   }
-
   invalidateIterators();
   scopeEntry.instantiated = true;
   scopeEntry.instances.clear();
@@ -1444,9 +1645,16 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validateAll(
       containingScope = &(subscope(path.trimLeaf()));
     }
 
+    // We don't need to validate values that will not be instantiated.
+    if (!confType_.empty() &&
+        !containingScope->isTagged(path.getLeaf().name, confType_)) {
+      ++iterator;
+      continue;
+    }
     // We do not give an error message to getParameter in this case because we
     // do not expect getParameter to fail because the iterator over this should
     // not return paths that are not to existing parameters.
+
     const ConfigurationParameter& parameter =
         containingScope->getParameter(path.getLeaf().name, "");
 
@@ -1790,9 +1998,14 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
 YAMLConfigurationInput::YAMLConfigurationInput(std::istream& input)
     : input(&input), yaml(), success(false) {}
 
+YAMLConfigurationInput::YAMLConfigurationInput(const YAML::Node& y)
+    : input(nullptr), yaml(y), success(true) {}
+
 void YAMLConfigurationInput::parseInput() {
-  yaml.reset(YAML::Load(*input));
-  success = true;
+  if (input) {
+    yaml.reset(YAML::Load(*input));
+    success = true;
+  }
 }
 
 YAMLConfigurationInput::~YAMLConfigurationInput() {}
@@ -1835,6 +2048,11 @@ void YAMLConfigurationOutput::addParameterToYAML(
     addParameterToYAML(config.subscope(subscopePath), *(path.subpath),
                        subscope);
   } else {
+    // Add leafs only for the specific conf type.
+    if (!config.confType_.empty() &&
+        !config.isTagged(path.getLeaf().name, config.confType_)) {
+      return;
+    }
     yaml[path.name] = config.getValue<string>(path.name);
   }
 }
@@ -2972,11 +3190,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
   // Global optional config values
   vector<string> optionalTags({"optional"});
 
+  // Types of configuration to output
+  vector<string> applicationTag({"application", "optionalInput", "all"});
+  vector<string> deploymentTag({"deployment", "all"});
+  vector<string> secretsTag({"secrets", "all"});
+
   // Parameter declarations
   config.declareParameter("client_proxies_per_replica",
                           "The number of SBFT client proxies to create on each "
                           "Concord node with each SBFT replica.");
   config.tagParameter("client_proxies_per_replica", publicInputTags);
+  config.tagParameter("client_proxies_per_replica", deploymentTag);
   config.addValidator("client_proxies_per_replica",
                       validateClientProxiesPerReplica, nullptr);
 
@@ -2990,12 +3214,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "type if an elliptic curve cryptosystem is selected).",
       "threshold-bls BN-P254");
   config.tagParameter("commit_cryptosys", defaultableByUtilityTags);
+  config.tagParameter("commit_cryptosys", secretsTag);
   config.addValidator("commit_cryptosys", validateCryptosys, nullptr);
 
   config.declareParameter(
       "commit_public_key",
       "Public key for the general path commit cryptosystem.");
   config.tagParameter("commit_public_key", publicGeneratedTags);
+  config.tagParameter("commit_public_key", secretsTag);
   config.addValidator("commit_public_key", validatePublicKey,
                       &(auxState->commitCryptosys));
   config.addGenerator("commit_public_key", getThresholdPublicKey,
@@ -3010,6 +3236,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "64000");
   config.tagParameter("concord-bft_communication_buffer_length",
                       defaultableByUtilityTags);
+  config.tagParameter("concord-bft_communication_buffer_length",
+                      applicationTag);
   config.addValidator("concord-bft_communication_buffer_length", validateUInt,
                       const_cast<void*>(reinterpret_cast<const void*>(
                           &kConcordBFTCommunicationBufferSizeLimits)));
@@ -3021,12 +3249,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "participant nodes.",
       "15");
   config.tagParameter("num_of_external_clients", defaultableByUtilityTags);
+  config.tagParameter("num_of_external_clients", applicationTag);
 
   // TODO: The following parameters should be completely optional because
   // its default values are within concord-bft
   config.declareParameter("concord-bft_max_external_message_size",
                           "Maximum external message size");
   config.tagParameter("concord-bft_max_external_message_size", optionalTags);
+  config.tagParameter("concord-bft_max_external_message_size", applicationTag);
   config.addValidator(
       "concord-bft_max_external_message_size", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
@@ -3034,6 +3264,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("concord-bft_max_reply_message_size",
                           "Maximum reply message size");
   config.tagParameter("concord-bft_max_reply_message_size", optionalTags);
+  config.tagParameter("concord-bft_max_reply_message_size", applicationTag);
   config.addValidator(
       "concord-bft_max_reply_message_size", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
@@ -3041,6 +3272,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("concord-bft_max_num_of_reserved_pages",
                           "Maximum number of reserved pages");
   config.tagParameter("concord-bft_max_num_of_reserved_pages", optionalTags);
+  config.tagParameter("concord-bft_max_num_of_reserved_pages", applicationTag);
   config.addValidator(
       "concord-bft_max_num_of_reserved_pages", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
@@ -3048,6 +3280,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("concord-bft_size_of_reserved_page",
                           "Size of a reserved page");
   config.tagParameter("concord-bft_size_of_reserved_page", optionalTags);
+  config.tagParameter("concord-bft_size_of_reserved_page", applicationTag);
   config.addValidator(
       "concord-bft_size_of_reserved_page", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
@@ -3057,6 +3290,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "execute in parallel.",
                           "3");
   config.tagParameter("concurrency_level", defaultableByUtilityTags);
+  config.tagParameter("concurrency_level", applicationTag);
   config.addValidator(
       "concurrency_level", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -3067,6 +3301,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "crashed, or otherwise non-responsive replicas that can be tolerated "
       "before having to fall back on a slow path for consensus.");
   config.tagParameter("c_val", publicInputTags);
+  config.tagParameter("c_val", deploymentTag);
   config.addValidator("c_val", validateCVal, nullptr);
 
   config.declareParameter(
@@ -3075,6 +3310,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Byzantine-faulty replicas that can be tolerated in the system before "
       "safety guarantees are lost.");
   config.tagParameter("f_val", publicInputTags);
+  config.tagParameter("f_val", deploymentTag);
   config.addValidator("f_val", validateFVal, nullptr);
 
   config.declareParameter(
@@ -3084,6 +3320,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "do so from burdening the system.",
       "10000000");
   config.tagParameter("gas_limit", defaultableByUtilityTags);
+  config.tagParameter("gas_limit", applicationTag);
   config.addValidator(
       "gas_limit", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
@@ -3092,6 +3329,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "num_client_proxies",
       "Total number of Concord-BFT client proxies in this deployment.");
   config.tagParameter("num_client_proxies", publicGeneratedTags);
+  config.tagParameter("num_client_proxies", deploymentTag);
   config.addValidator("num_client_proxies", validateNumClientProxies, nullptr);
   config.addGenerator("num_client_proxies", computeNumClientProxies, nullptr);
 
@@ -3099,12 +3337,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "Combined total number of replicas and Concord-BFT "
                           "client proxies in this deployment.");
   config.tagParameter("num_principals", publicGeneratedTags);
+  config.tagParameter("num_principals", deploymentTag);
   config.addValidator("num_principals", validateNumPrincipals, nullptr);
   config.addGenerator("num_principals", computeNumPrincipals, nullptr);
 
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");
   config.tagParameter("num_replicas", publicGeneratedTags);
+  config.tagParameter("num_replicas", deploymentTag);
   config.addValidator("num_replicas", validateNumReplicas, nullptr);
   config.addGenerator("num_replicas", computeNumReplicas, nullptr);
 
@@ -3118,6 +3358,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "elliptic curve type if an elliptic curve cryptosystem is selected).",
       "multisig-bls BN-P254");
   config.tagParameter("optimistic_commit_cryptosys", defaultableByUtilityTags);
+  config.tagParameter("optimistic_commit_cryptosys", secretsTag);
   config.addValidator("optimistic_commit_cryptosys", validateCryptosys,
                       nullptr);
 
@@ -3127,6 +3368,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("optimistic_commit_public_key", publicGeneratedTags);
   config.addValidator("optimistic_commit_public_key", validatePublicKey,
                       &(auxState->optimisticCommitCryptosys));
+  config.tagParameter("optimistic_commit_public_key", secretsTag);
   config.addGenerator("optimistic_commit_public_key", getThresholdPublicKey,
                       &(auxState->optimisticCommitCryptosys));
 
@@ -3137,6 +3379,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "indicating no blocks can be pruned) and PruneRequest will return an "
       "error. If not specified, a value of false is assumed.");
   config.tagParameter("pruning_enabled", publicOptionalTags);
+  config.tagParameter("pruning_enabled", applicationTag);
   config.addValidator("pruning_enabled", validateBoolean, nullptr);
 
   config.declareParameter(
@@ -3146,6 +3389,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "is specified too, the more conservative pruning range will be used (the "
       "one that prunes less blocks).");
   config.tagParameter("pruning_num_blocks_to_keep", publicOptionalTags);
+  config.tagParameter("pruning_num_blocks_to_keep", applicationTag);
   config.addValidator(
       "pruning_num_blocks_to_keep", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
@@ -3160,6 +3404,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "one that prunes less blocks). This option requires the time service to "
       "be enabled.");
   config.tagParameter("pruning_duration_to_keep_minutes", publicOptionalTags);
+  config.tagParameter("pruning_duration_to_keep_minutes", applicationTag);
   config.addValidator(
       "pruning_duration_to_keep_minutes", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
@@ -3171,6 +3416,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "the private key corresponding to this public key will be refused). This "
       "parameter is required if pruning is enabled, and is ignored otherwise.");
   config.tagParameter("pruning_operator_public_key", publicOptionalTags);
+  config.tagParameter("pruning_operator_public_key", secretsTag);
 
   config.declareParameter(
       "slow_commit_cryptosys",
@@ -3182,11 +3428,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "type if an elliptic curve cryptosystem is selected).",
       "threshold-bls BN-P254");
   config.tagParameter("slow_commit_cryptosys", defaultableByUtilityTags);
+  config.tagParameter("slow_commit_cryptosys", secretsTag);
   config.addValidator("slow_commit_cryptosys", validateCryptosys, nullptr);
 
   config.declareParameter("slow_commit_public_key",
                           "Public key for the slow path commit cryptosystem.");
   config.tagParameter("slow_commit_public_key", publicGeneratedTags);
+  config.tagParameter("slow_commit_public_key", secretsTag);
   config.addValidator("slow_commit_public_key", validatePublicKey,
                       &(auxState->slowCommitCryptosys));
   config.addGenerator("slow_commit_public_key", getThresholdPublicKey,
@@ -3198,6 +3446,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "should send its status to the others.",
       "3000");
   config.tagParameter("status_time_interval", defaultableByUtilityTags);
+  config.tagParameter("status_time_interval", applicationTag);
   config.addValidator(
       "status_time_interval", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -3218,6 +3467,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "each other via the loopback IP.",
       "false");
   config.tagParameter("use_loopback_for_local_hosts", defaultableByUtilityTags);
+  config.tagParameter("use_loopback_for_local_hosts", applicationTag);
   config.addValidator("use_loopback_for_local_hosts", validateBoolean, nullptr);
 
   config.declareParameter(
@@ -3225,6 +3475,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Timeout, measured in milliseconds, after which Concord-BFT will attempt "
       "an SBFT view change if not enough replicas are responding.",
       "20000");
+  config.tagParameter("view_change_timeout", applicationTag);
   config.tagParameter("view_change_timeout", defaultableByUtilityTags);
   config.addValidator(
       "view_change_timeout", validateUInt,
@@ -3233,6 +3484,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter(
       "FEATURE_time_service",
       "Enable the Time Service, and switch Ethereum to using it.", "false");
+  config.tagParameter("FEATURE_time_service", applicationTag);
   config.tagParameter("FEATURE_time_service", publicDefaultableTags);
   config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
 
@@ -3255,6 +3507,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "is NOT recommended for production deployments).",
       "rsa-time-signing");
   config.tagParameter("time_verification", publicDefaultableTags);
+  config.tagParameter("time_verification", applicationTag);
   config.addValidator("time_verification", validateEnumeratedOption,
                       const_cast<void*>(reinterpret_cast<const void*>(
                           &timeVerificationOptions)));
@@ -3265,6 +3518,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "support are mutually exclusive.",
       "true");
   config.tagParameter("eth_enable", publicDefaultableTags);
+  config.tagParameter("eth_enable", deploymentTag);
   config.addValidator("eth_enable", validateBoolean, nullptr);
 
   config.declareParameter(
@@ -3273,11 +3527,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "support are mutually exclusive.",
       "false");
   config.tagParameter("daml_enable", publicDefaultableTags);
+  config.tagParameter("daml_enable", deploymentTag);
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
   config.declareParameter("pre_execute_all_requests",
                           "Enable pre-execution for all requests", "false");
   config.tagParameter("pre_execute_all_requests", publicDefaultableTags);
+  config.tagParameter("pre_execute_all_requests", applicationTag);
   config.addValidator("pre_execute_all_requests", validateBoolean, nullptr);
 
   node.declareParameter("daml_service_addr",
@@ -3285,12 +3541,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "DAML service can be reached.",
                         "0.0.0.0:50051");
   node.tagParameter("daml_service_addr", defaultableByReplicaTags);
+  node.tagParameter("daml_service_addr", deploymentTag);
 
   node.declareParameter("daml_execution_engine_addr",
                         "IP address and port (<IP>:<PORT>) to reach DAMLe. "
                         "Concord is a client to DAML's execution engine.",
                         "0.0.0.0:55000");
   node.tagParameter("daml_execution_engine_addr", defaultableByReplicaTags);
+  node.tagParameter("daml_execution_engine_addr", deploymentTag);
 
   // If the worker pool is exhausted then the gRPC server will return
   // RESOURCE_EXHAUSTED.
@@ -3298,6 +3556,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "Number of threads to be used by the gRPC server.",
                         "32");
   node.tagParameter("daml_service_threads", defaultableByReplicaTags);
+  node.tagParameter("daml_service_threads", applicationTag);
   node.addValidator(
       "daml_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
@@ -3307,6 +3566,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "interleaving read/writes by the submission validator.",
                         "true");
   node.tagParameter("FEATURE_daml_pipelined_commits", publicOptionalTags);
+  node.tagParameter("FEATURE_daml_pipelined_commits", applicationTag);
   node.addValidator("FEATURE_daml_pipelined_commits", validateBoolean, nullptr);
 
   // Test Execution Engine (TEE) Parameters
@@ -3316,6 +3576,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "DAML/Eth/HLF/TEE/Perf support are mutually exclusive.",
       "false");
   config.tagParameter("tee_enable", publicDefaultableTags);
+  config.tagParameter("tee_enable", deploymentTag);
   config.addValidator("tee_enable", validateBoolean, nullptr);
 
   node.declareParameter("tee_service_addr",
@@ -3323,12 +3584,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "TEE service can be reached.",
                         "0.0.0.0:50051");
   node.tagParameter("tee_service_addr", defaultableByReplicaTags);
+  node.tagParameter("tee_service_addr", deploymentTag);
 
   node.declareParameter("tee_service_threads",
                         "Number of threads to be used by the TEE gRPC"
                         "server.",
                         "32");
   node.tagParameter("tee_service_threads", defaultableByReplicaTags);
+  node.tagParameter("tee_service_threads", applicationTag);
   node.addValidator(
       "tee_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
@@ -3340,6 +3603,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "DAML/Eth/HLF/TEE/Perf support are mutually exclusive.",
       "false");
   config.tagParameter("perf_enable", publicDefaultableTags);
+  config.tagParameter("perf_enable", deploymentTag);
   config.addValidator("perf_enable", validateBoolean, nullptr);
 
   node.declareParameter("perf_service_addr",
@@ -3347,12 +3611,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "Perforamance service can be reached.",
                         "0.0.0.0:50051");
   node.tagParameter("perf_service_addr", defaultableByReplicaTags);
+  node.tagParameter("perf_service_addr", deploymentTag);
 
   node.declareParameter("perf_service_threads",
                         "Number of threads to be used by the Performance gRPC"
                         "server.",
                         "32");
   node.tagParameter("perf_service_threads", defaultableByReplicaTags);
+  node.tagParameter("perf_service_threads", applicationTag);
   node.addValidator(
       "perf_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
@@ -3362,6 +3628,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "How long to wait for a command execution response, in milliseconds.",
       to_string(UINT32_MAX));
   node.tagParameter("bft_client_timeout_ms", defaultableByReplicaTags);
+  node.tagParameter("bft_client_timeout_ms", applicationTag);
   node.addValidator(
       "bft_client_timeout_ms", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
@@ -3371,6 +3638,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "to this node's external API.",
                         "3");
   node.tagParameter("api_worker_pool_size", defaultableByReplicaTags);
+  node.tagParameter("api_worker_pool_size", applicationTag);
   node.addValidator("api_worker_pool_size", validatePositiveReplicaInt,
                     nullptr);
 
@@ -3379,6 +3647,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "persist blockchain state.",
                         "rocksdb");
   node.tagParameter("blockchain_db_impl", defaultableByReplicaTags);
+  node.tagParameter("blockchain_db_impl", applicationTag);
   node.addValidator("blockchain_db_impl", validateDatabaseImplementation,
                     nullptr);
 
@@ -3387,6 +3656,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Path to storage to use to persist blockchain data for this replica "
       "using the database implementation specified by blockchain_db_impl.",
       "rocksdbdata");
+  node.tagParameter("blockchain_db_path", applicationTag);
   node.tagParameter("blockchain_db_path", defaultableByReplicaTags);
 
   node.declareParameter(
@@ -3395,6 +3665,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "store. Possible values are: \"merkle\" and \"basic\"",
       "merkle");
   node.tagParameter("blockchain_storage_type", publicOptionalTags);
+  node.tagParameter("blockchain_storage_type", applicationTag);
   node.addValidator("blockchain_storage_type", validateStorageType, nullptr);
 
   node.declareParameter(
@@ -3405,6 +3676,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   node.tagParameter("concord-bft_enable_debug_statistics",
                     defaultableByReplicaTags);
+  node.tagParameter("concord-bft_enable_debug_statistics", applicationTag);
   node.addValidator("concord-bft_enable_debug_statistics", validateBoolean,
                     nullptr);
 
@@ -3413,6 +3685,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Path, in the node's local filesystem, to a JSON file containing the "
       "genesis block data for this blockchain.");
   node.tagParameter("genesis_block", privateOptionalTags);
+  node.tagParameter("genesis_block", applicationTag);
 
   node.declareParameter(
       "logger_config",
@@ -3420,6 +3693,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "the logging framework Concord uses.",
       "/concord/resources/log4cplus.properties");
   node.tagParameter("logger_config", defaultableByReplicaTags);
+  node.tagParameter("logger_config", applicationTag);
+
+  node.declareParameter("current_node",
+                        "hint to the current node in the configuration file.",
+                        "true");
+  node.tagParameter("current_node", defaultableByReplicaTags);
+  node.tagParameter("current_node", deploymentTag);
+  node.tagParameter("current_node", secretsTag);
+  node.tagParameter("current_node", applicationTag);
 
   node.declareParameter(
       "logger_reconfig_time",
@@ -3428,6 +3710,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "logging behavior.",
       "60000");
   node.tagParameter("logger_reconfig_time", defaultableByReplicaTags);
+  node.tagParameter("logger_reconfig_time", applicationTag);
   node.addValidator("logger_reconfig_time", validatePositiveReplicaInt,
                     nullptr);
 
@@ -3436,22 +3719,26 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Host:Port of the jaeger-agent process to receive traces "
       "(127.0.0.1:6831 by default).");
   node.tagParameter("jaeger_agent", privateOptionalTags);
+  node.tagParameter("jaeger_agent", deploymentTag);
 
   node.declareParameter("prometheus_port",
                         "Port of prometheus client to publish metrics on "
                         "(9891 by default).");
   node.tagParameter("prometheus_port", privateOptionalTags);
+  node.tagParameter("prometheus_port", deploymentTag);
 
   node.declareParameter("dump_metrics_interval_sec",
                         "Time interval for dumping concord metrics to log "
                         "(600 seconds by default).");
   node.tagParameter("dump_metrics_interval_sec", privateOptionalTags);
+  node.tagParameter("dump_metrics_interval_sec", applicationTag);
 
   config.declareParameter(
       "preexecution_enabled",
       "A flag to indicate if pre-execution feature is enabled for the replica.",
       "false");
   config.tagParameter("preexecution_enabled", publicDefaultableTags);
+  config.tagParameter("preexecution_enabled", applicationTag);
   config.addValidator("preexecution_enabled", validateBoolean, nullptr);
 
   config.declareParameter("preexec_requests_status_check_period_millisec",
@@ -3461,6 +3748,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "5000");
   config.tagParameter("preexec_requests_status_check_period_millisec",
                       publicDefaultableTags);
+  config.tagParameter("preexec_requests_status_check_period_millisec",
+                      applicationTag);
   config.addValidator(
       "preexec_requests_status_check_period_millisec", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
@@ -3469,16 +3758,19 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "Public IP address or hostname on which this replica's "
                         "external API service can be reached.");
   node.tagParameter("service_host", privateInputTags);
+  node.tagParameter("service_host", deploymentTag);
 
   node.declareParameter(
       "service_port",
       "Port on which this replica's external API service can be reached.");
   node.tagParameter("service_port", privateInputTags);
+  node.tagParameter("service_port", deploymentTag);
   node.addValidator("service_port", validatePortNumber, nullptr);
 
   node.declareParameter("bft_metrics_udp_port",
                         "Port for reading BFT metrics (JSON payload) via UDP.");
   node.tagParameter("bft_metrics_udp_port", privateOptionalTags);
+  node.tagParameter("bft_metrics_udp_port", deploymentTag);
   node.addValidator("bft_metrics_udp_port", validatePortNumber, nullptr);
 
   node.declareParameter(
@@ -3487,6 +3779,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "queries to its public API service requesting lists of transactions.",
       "10");
   node.tagParameter("transaction_list_max_count", defaultableByReplicaTags);
+  node.tagParameter("transaction_list_max_count", applicationTag);
   node.addValidator("transaction_list_max_count", validatePositiveReplicaInt,
                     nullptr);
 
@@ -3495,6 +3788,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "The source name `time-sourceX` is based on the node index."
       "Ignored unless FEATURE_time_service is \"true\".");
   node.tagParameter("time_source_id", publicGeneratedTags);
+  node.tagParameter("time_source_id", deploymentTag);
   node.addGenerator("time_source_id", computeTimeSourceId, nullptr);
 
   node.declareParameter(
@@ -3503,6 +3797,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "milliseconds. Ignored unless FEATURE_time_service is \"true\", and "
       "time_source_id is given.");
   node.tagParameter("time_pusher_period_ms", publicOptionalTags);
+  node.tagParameter("time_pusher_period_ms", applicationTag);
   node.addValidator(
       "time_pusher_period_ms", validateInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kInt32Limits)));
@@ -3511,6 +3806,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                            "Private key for this replica under the general "
                            "case commit cryptosystem.");
   replica.tagParameter("commit_private_key", privateGeneratedTags);
+  replica.tagParameter("commit_private_key", secretsTag);
   replica.addValidator("commit_private_key", validatePrivateKey,
                        &(auxState->commitCryptosys));
   replica.addGenerator("commit_private_key", getThresholdPrivateKey,
@@ -3521,6 +3817,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Public verification key for this replica's signature under the general "
       "case commit cryptosystem.");
   replica.tagParameter("commit_verification_key", publicGeneratedTags);
+  replica.tagParameter("commit_verification_key", secretsTag);
   replica.addValidator("commit_verification_key", validateVerificationKey,
                        &(auxState->commitCryptosys));
   replica.addGenerator("commit_verification_key", getThresholdVerificationKey,
@@ -3530,6 +3827,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                            "Private key for this replica under the optimistic "
                            "fast path commit cryptosystem.");
   replica.tagParameter("optimistic_commit_private_key", privateGeneratedTags);
+  replica.tagParameter("optimistic_commit_private_key", secretsTag);
   replica.addValidator("optimistic_commit_private_key", validatePrivateKey,
                        &(auxState->optimisticCommitCryptosys));
   replica.addGenerator("optimistic_commit_private_key", getThresholdPrivateKey,
@@ -3541,6 +3839,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "optimistic fast path commit cryptosystem.");
   replica.tagParameter("optimistic_commit_verification_key",
                        publicGeneratedTags);
+  replica.tagParameter("optimistic_commit_verification_key", secretsTag);
   replica.addValidator("optimistic_commit_verification_key",
                        validateVerificationKey,
                        &(auxState->optimisticCommitCryptosys));
@@ -3554,6 +3853,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "replicas and client proxies to be principals, each of which must have a "
       "unique ID.");
   replica.tagParameter("principal_id", publicGeneratedTags);
+  replica.tagParameter("principal_id", deploymentTag);
+  replica.tagParameter("principal_id", secretsTag);
   replica.addValidator("principal_id", validatePrincipalId, nullptr);
   replica.addGenerator("principal_id", computePrincipalId, nullptr);
 
@@ -3561,6 +3862,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "private_key",
       "RSA private key for this replica to use for general communication.");
   replica.tagParameter("private_key", privateGeneratedTags);
+  replica.tagParameter("private_key", secretsTag);
   replica.addValidator("private_key", validateRSAPrivateKey, nullptr);
   replica.addGenerator("private_key", getRSAPrivateKey, nullptr);
 
@@ -3568,6 +3870,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "public_key",
       "RSA public key corresponding to this replica's RSA private key.");
   replica.tagParameter("public_key", publicGeneratedTags);
+  replica.tagParameter("public_key", secretsTag);
   replica.addValidator("public_key", validateRSAPublicKey, nullptr);
   replica.addGenerator("public_key", getRSAPublicKey, nullptr);
 
@@ -3576,18 +3879,21 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Public IP address or host name with which other replicas can reach this "
       "one for consensus communication.");
   replica.tagParameter("replica_host", principalHostTags);
+  replica.tagParameter("replica_host", deploymentTag);
   replica.addValidator("replica_host", validatePrincipalHost, nullptr);
 
   replica.declareParameter("replica_port",
                            "Port number on which other replicas can reach this "
                            "one for consensus communication.");
   replica.tagParameter("replica_port", publicInputTags);
+  replica.tagParameter("replica_port", deploymentTag);
   replica.addValidator("replica_port", validatePortNumber, nullptr);
 
   replica.declareParameter(
       "slow_commit_private_key",
       "Private key for this replica under the slow path commit cryptosystem.");
   replica.tagParameter("slow_commit_private_key", privateGeneratedTags);
+  replica.tagParameter("slow_commit_private_key", secretsTag);
   replica.addValidator("slow_commit_private_key", validatePrivateKey,
                        &(auxState->slowCommitCryptosys));
   replica.addGenerator("slow_commit_private_key", getThresholdPrivateKey,
@@ -3598,6 +3904,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Public verification key for this replica's signature under the slow "
       "path commit cryptosystem.");
   replica.tagParameter("slow_commit_verification_key", publicGeneratedTags);
+  replica.tagParameter("slow_commit_verification_key", secretsTag);
+
   replica.addValidator("slow_commit_verification_key", validateVerificationKey,
                        &(auxState->slowCommitCryptosys));
   replica.addGenerator("slow_commit_verification_key",
@@ -3608,11 +3916,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
                                "Public IP address or host name with which this "
                                "client proxy can be reached.");
   clientProxy.tagParameter("client_host", principalHostTags);
+  clientProxy.tagParameter("client_host", deploymentTag);
   clientProxy.addValidator("client_host", validatePrincipalHost, nullptr);
 
   clientProxy.declareParameter(
       "client_port", "Port on which this client proxy can be reached.");
   clientProxy.tagParameter("client_port", publicInputTags);
+  clientProxy.tagParameter("client_port", deploymentTag);
   clientProxy.addValidator("client_port", validatePortNumber, nullptr);
 
   clientProxy.declareParameter(
@@ -3621,6 +3931,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "and client proxies to be principals, and it requires all principals "
       "have a unique ID.");
   clientProxy.tagParameter("principal_id", publicGeneratedTags);
+  clientProxy.tagParameter("principal_id", deploymentTag);
+  clientProxy.tagParameter("principal_id", secretsTag);
   clientProxy.addValidator("principal_id", validatePrincipalId, nullptr);
   clientProxy.addGenerator("principal_id", computePrincipalId, nullptr);
 
@@ -3631,66 +3943,80 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "support are mutually exclusive.",
       "false");
   config.tagParameter("hlf_enable", publicDefaultableTags);
+  config.tagParameter("hlf_enable", deploymentTag);
   config.addValidator("hlf_enable", validateBoolean, nullptr);
 
   node.declareParameter("hlf_peer_command_tool_path",
                         "Location of peer command tool.", "/concord/peer");
   node.tagParameter("hlf_peer_command_tool_path", defaultableByReplicaTags);
+  node.tagParameter("hlf_peer_command_tool_path", applicationTag);
 
   node.declareParameter("hlf_peer_command_tool_config_path",
                         "Config file for peer command tool.", "/concord");
   node.tagParameter("hlf_peer_command_tool_config_path",
                     defaultableByReplicaTags);
+  node.tagParameter("hlf_peer_command_tool_config_path", applicationTag);
 
   node.declareParameter("hlf_peer_msp_dir_path",
                         "Location of Membership Service Provider directory.",
                         "/concord/crypto-config/peerOrganizations/"
                         "org1.example.com/users/Admin@org1.example.com/msp");
   node.tagParameter("hlf_peer_msp_dir_path", defaultableByReplicaTags);
+  node.tagParameter("hlf_peer_msp_dir_path", applicationTag);
 
   node.declareParameter("hlf_peer_msp_id",
                         "MSP ID used to communicate with HLF peer.", "Org1MSP");
   node.tagParameter("hlf_peer_msp_id", defaultableByReplicaTags);
+  node.tagParameter("hlf_peer_msp_id", deploymentTag);
 
   node.declareParameter("hlf_peer_address",
                         "Public IP address of HLF peer to communicate with "
                         "(chaincode life cycle managment).",
                         "peer1.org1.example.com:7051");
   node.tagParameter("hlf_peer_address", defaultableByReplicaTags);
+  node.tagParameter("hlf_peer_address", deploymentTag);
 
   node.declareParameter("hlf_orderer_address",
                         "Public IP address of HLF orderer to communicate with "
                         "(channel management).",
                         "orderer1.example.com:7050");
   node.tagParameter("hlf_orderer_address", defaultableByReplicaTags);
+  node.tagParameter("hlf_orderer_address", deploymentTag);
 
   node.declareParameter("hlf_kv_service_address",
                         "Address of Concord to provide KV service"
                         "GoLang Peer connects to concord.",
                         "0.0.0.0:50052");
   node.tagParameter("hlf_kv_service_address", defaultableByReplicaTags);
+  node.tagParameter("hlf_kv_service_address", deploymentTag);
 
   node.declareParameter("hlf_chaincode_service_address",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
                         "HLF chaincode service can be reached.",
                         "0.0.0.0:50051");
   node.tagParameter("hlf_chaincode_service_address", defaultableByReplicaTags);
+  node.tagParameter("hlf_chaincode_service_address", deploymentTag);
 
   node.declareParameter("hlf_chaincode_path",
                         "Directory to store temporary chaincode file, "
                         "this must be the $GOPATH/src for chaincode in golang",
                         "/concord/src");
   node.tagParameter("hlf_chaincode_path", defaultableByReplicaTags);
+  node.tagParameter("hlf_chaincode_path", applicationTag);
 
   // TLS
   config.declareParameter("tls_cipher_suite_list",
                           "TLS cipher suite list to use");
   config.tagParameter("tls_cipher_suite_list", publicInputTags);
+  config.tagParameter("tls_cipher_suite_list", secretsTag);
   config.declareParameter("tls_certificates_folder_path",
                           "TLS certificates root folder path");
   config.tagParameter("tls_certificates_folder_path", publicInputTags);
+  config.tagParameter("tls_certificates_folder_path", applicationTag);
+
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);
+  config.tagParameter("comm_to_use", applicationTag);
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
@@ -3992,6 +4318,8 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
     }
     string name = path.getLeaf().name;
     if (containingScope->isTagged(name, "input") &&
+        !containingScope->isTagged(name, "optionalInput") &&
+        containingScope->isTagged(name, config.confType_) &&
         !config.hasValue<string>(path)) {
       missingParameter = true;
       parameters_missing.push_back(path.toString());
@@ -4104,6 +4432,7 @@ static bool selectParametersRequiredAtConfigurationGeneration(
     void* state) {
   // The configuration generator does not output tempalted parameters, as it
   // outputs specific values for each instance of a parameter.
+  auto type = (const char*)state;
   const ConfigurationPath* pathStep = &path;
   while (pathStep->isScope && pathStep->subpath) {
     if (!(pathStep->useInstance)) {
@@ -4116,8 +4445,9 @@ static bool selectParametersRequiredAtConfigurationGeneration(
   if (path.isScope) {
     containingScope = &(config.subscope(path.trimLeaf()));
   }
-  return containingScope->isTagged(path.getLeaf().name,
-                                   "config_generation_time");
+  return (containingScope->isTagged(path.getLeaf().name,
+                                    "config_generation_time") &&
+          containingScope->isTagged(path.getLeaf().name, type));
 }
 
 bool hasAllParametersRequiredAtConfigurationGeneration(
@@ -4125,7 +4455,8 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ParameterSelection requiredConfiguration(
-      config, selectParametersRequiredAtConfigurationGeneration, nullptr);
+      config, selectParametersRequiredAtConfigurationGeneration,
+      (void*)&config.confType_);
 
   bool hasAllRequired = true;
   for (auto iterator = requiredConfiguration.begin();
@@ -4211,6 +4542,7 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
       }
     }
   }
+
   ParameterSelection node_config_params(node_config, selectNodeConfiguration,
                                         &(node));
   output.outputConfiguration(node_config, node_config_params.begin(),
