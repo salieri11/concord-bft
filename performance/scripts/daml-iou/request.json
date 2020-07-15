@@ -55,8 +55,6 @@
     "workflow_id": "$workflow_id",
     "application_id": "$application_id",
     "command_id": "$command_id",
-    "party": "$party",
-    "ledger_effective_time": "$ledger_effective_time",
-    "maximum_record_time": "$maximum_record_time"
+    "party": "$party"
   }
 }

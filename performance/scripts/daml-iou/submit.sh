@@ -8,10 +8,8 @@ set_values() {
   export application_id="IouApp"
   export command_id=$(uuidgen)
   export party="Alice"
-  export ledger_effective_time=$(date -I'seconds')
-  export maximum_record_time=$(date --date='15 seconds' -I'seconds')
 
-  export package_id="b3ed27b3af1d8aa0e5a8789348ac7906a67d7eccd2fa5cc5b975a28a62c484bb" # corresponds to sdk-version: 0.13.54
+  export package_id="72656b4c7196dc6ecc0d9f1405834ef810022efdc42ef851e57fe6b5971ba303" # corresponds to sdk-version: 1.2.0
   export module_name="Iou"
   export entity_name="Iou"
 
@@ -27,7 +25,7 @@ main() {
 
   host=$1
   port=6865
-  service=com.digitalasset.ledger.api.v1.CommandService
+  service=com.daml.ledger.api.v1.CommandService
   method=SubmitAndWaitForTransactionId
 
   envsubst <request.json | grpcurl -plaintext -d @ "$host":"$port" "$service"/"$method"
