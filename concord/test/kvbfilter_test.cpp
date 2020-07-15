@@ -33,6 +33,7 @@ using concord::storage::SetOfKeyValuePairs;
 using concord::storage::memorydb::Sliver;
 using concordUtils::Status;
 using std::chrono_literals::operator""ms;
+using std::chrono_literals::operator""s;
 typedef std::pair<concord::kvbc::BlockId, concord::kvbc::SetOfKeyValuePairs>
     KvbUpdate;
 namespace {
@@ -296,6 +297,8 @@ TEST(kvbfilter_test, kvbfilter_stop_exec_in_the_middle) {
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
   storage.fillWithData(1000);
+  std::chrono::steady_clock::time_point end =
+      std::chrono::steady_clock::now() + 30s;
   BlockId block_id = 1;
   KvbUpdate temporary;
   spsc_queue<KvbUpdate> queue_out{storage.getLastBlock()};
@@ -305,6 +308,7 @@ TEST(kvbfilter_test, kvbfilter_stop_exec_in_the_middle) {
                  0, kLastBlockId, std::ref(queue_out), std::ref(stop_exec));
   while (queue_out.read_available() < 5) {
     std::this_thread::sleep_for(1ms);
+    if (end < std::chrono::steady_clock::now()) assert(false);
   }
   stop_exec = true;
   kvb_reader.get();
