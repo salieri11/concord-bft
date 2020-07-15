@@ -30,6 +30,8 @@ public class Replica extends AbstractEntity implements NodeInterface {
     String hostName;
     String url;
     String cert;
+
+    @LinkedEntityId
     UUID zoneId;
 
     /**

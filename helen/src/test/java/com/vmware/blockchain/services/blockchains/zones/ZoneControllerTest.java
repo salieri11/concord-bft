@@ -10,11 +10,13 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.VMC_AWS
 import static com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils.getOnpremZone;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -58,6 +60,10 @@ import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.clients.Client;
+import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Wavefront;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
@@ -72,7 +78,8 @@ import io.grpc.stub.StreamObserver;
 @ExtendWith({SpringExtension.class})
 @WebMvcTest(controllers = { ZoneController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class, ZoneConfig.class})
-@ComponentScan(basePackageClasses = {ZoneController.class, HelenExceptionHandler.class})
+@ComponentScan(basePackageClasses =
+        {ZoneController.class, HelenExceptionHandler.class})
 
 
 class ZoneControllerTest {
@@ -83,6 +90,18 @@ class ZoneControllerTest {
     private static final UUID OP_SITE2 = UUID.fromString("2aa01247-dd51-4460-bba0-0a0934f0419f");
     private static final UUID ORG_ID = UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902");
     private static final UUID OPER_ORG = UUID.fromString("0b93680b-e99d-4f83-bcfd-e2d52c6ea697");
+
+    private static final UUID DELETE_EMPTY_ZONE = UUID.fromString("184b9ead-4880-405b-be71-c801ff2e5a4f");
+    private static final UUID DELETE_ZONE_WITH_REPLICA = UUID.fromString("00d3a7bc-47ea-4b78-aa57-9d6951265e9e");
+    private static final UUID DELETE_ZONE_WITH_CLIENT = UUID.fromString("5cb50a70-9702-4cfc-ad99-819d1c859283");
+    private static final UUID DELETE_ZONE_WITH_REPLICA_AND_CLIENT =
+            UUID.fromString("070a2410-71ea-409b-a663-159f81514e5c");
+    private static final UUID BLOCKCHAIN_ID = UUID.fromString("021a1640-06c3-4fb0-9b85-1b2ee450301d");
+    private static final UUID CLIENT_ID_1 = UUID.fromString("0270a409-e73c-49ff-899e-d1df50b4f280");
+    private static final UUID CLIENT_ID_2 = UUID.fromString("57331489-0161-423d-b32f-0c6fa1104ba2");
+    private static final UUID REPLICA_ID_1 = UUID.fromString("fb2fa9cc-517f-4738-a760-9227d77f0a48");
+    private static final UUID REPLICA_ID_2 = UUID.fromString("02818461-ce12-4b3b-9af8-b24da240f7df");
+
 
     private static final String POST_ONPREM_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
@@ -701,6 +720,12 @@ class ZoneControllerTest {
     ZoneService zoneService;
 
     @MockBean
+    ClientService clientService;
+
+    @MockBean
+    ReplicaService replicaService;
+
+    @MockBean
     OrchestrationSiteServiceStub orchestrationClient;
 
     @BeforeEach
@@ -758,6 +783,36 @@ class ZoneControllerTest {
             return z;
         });
 
+        when(clientService.getClientsByParentId(DELETE_EMPTY_ZONE)).thenReturn(ImmutableList.of());
+        when(replicaService.getReplicasByParentId(DELETE_EMPTY_ZONE)).thenReturn(ImmutableList.of());
+        doNothing().when(zoneService).delete(DELETE_EMPTY_ZONE);
+
+        Client c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+                DELETE_ZONE_WITH_CLIENT);
+        c1.setId(CLIENT_ID_1);
+
+        Replica r1 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
+                DELETE_ZONE_WITH_REPLICA, Replica.ReplicaType.DAML_PARTICIPANT, BLOCKCHAIN_ID, "password");
+        r1.setId(REPLICA_ID_1);
+
+        Client c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT);
+        c2.setId(CLIENT_ID_2);
+
+        Replica r2 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT, Replica.ReplicaType.DAML_PARTICIPANT, BLOCKCHAIN_ID, "password");
+        r2.setId(REPLICA_ID_2);
+
+        when(clientService.getClientsByParentId(DELETE_ZONE_WITH_CLIENT)).thenReturn(ImmutableList.of(c1));
+        when(replicaService.getReplicasByParentId(DELETE_ZONE_WITH_CLIENT)).thenReturn(ImmutableList.of());
+
+        when(clientService.getClientsByParentId(DELETE_ZONE_WITH_REPLICA)).thenReturn(ImmutableList.of());
+        when(replicaService.getReplicasByParentId(DELETE_ZONE_WITH_REPLICA)).thenReturn(ImmutableList.of(r1));
+
+        when(clientService.getClientsByParentId(DELETE_ZONE_WITH_REPLICA_AND_CLIENT)).thenReturn(ImmutableList.of(c2));
+        when(replicaService.getReplicasByParentId(DELETE_ZONE_WITH_REPLICA_AND_CLIENT))
+                .thenReturn(ImmutableList.of(r2));
+
         ReflectionTestUtils.setField(BlockchainUtils.class,
                                      "wavefrontEndpoint",
                                      "https://vmware.wavefront.com");
@@ -789,7 +844,8 @@ class ZoneControllerTest {
 
     @Test
     void testGetDetails() throws Exception {
-        MvcResult result =  mockMvc.perform(get("/api/blockchains/zones/" + OP_SITE).with(authentication(adminAuth)))
+        MvcResult result =  mockMvc.perform(get("/api/blockchains/zones/" + OP_SITE)
+                .with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse z = objectMapper.readValue(body, ZoneResponse.class);
@@ -1099,6 +1155,63 @@ class ZoneControllerTest {
         Assertions.assertEquals(UUID.fromString("5e5ff1c8-34b9-4fa3-9924-83eb14354d4c"),
                 ((OnPremGetResponse) zone).getOrgId());
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+    }
+
+    @Test
+    void testDelete() throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_EMPTY_ZONE)
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(PATCH_ONPREM_BODY))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String id = objectMapper.readValue(body, Map.class).get("id").toString();
+
+        Assertions.assertEquals(DELETE_EMPTY_ZONE.toString(), id);
+    }
+
+    @Test
+    void testDeleteZoneWithClients() throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_ZONE_WITH_CLIENT)
+                .with(authentication(adminAuth)))
+                .andExpect(status().isBadRequest()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_CLIENT.toString()), errorMessage);
+    }
+
+    @Test
+    void testDeleteZoneWithReplicas() throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_ZONE_WITH_REPLICA)
+                .with(authentication(adminAuth)))
+                .andExpect(status().isBadRequest()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_REPLICA.toString()), errorMessage);
+    }
+
+    @Test
+    void testDeleteZoneWithReplicasAndClients() throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_ZONE_WITH_REPLICA_AND_CLIENT)
+                .with(authentication(adminAuth)))
+                .andExpect(status().isBadRequest()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT.toString()), errorMessage);
     }
 
     @Test
