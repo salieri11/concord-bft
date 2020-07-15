@@ -275,7 +275,7 @@ public class ClientControllerTest extends RuntimeException {
         final Client replica1 = new Client("publicIp", "privateIp", "hostName", "url", "cert", BC_DAML, REPLICA_1_ZONE);
         replica1.setId(REPLICA_1);
 
-        when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(replica1));
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(replica1));
         MvcResult result = mockMvc.perform(
                 get("/api/blockchains/" + BC_DAML.toString() + "/clients")
                         .with(authentication(adminAuth))
@@ -301,7 +301,7 @@ public class ClientControllerTest extends RuntimeException {
                 "url", "cert", BC_DAML, REPLICA_1_ZONE);
         client.setId(C2_ID);
 
-        when(clientService.getClientsByBlockchainId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
         MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();

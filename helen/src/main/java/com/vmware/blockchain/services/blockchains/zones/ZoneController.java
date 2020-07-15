@@ -44,6 +44,10 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.Orchestr
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.clients.Client;
+import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.OnPremZone.EndPoint;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Action;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
@@ -59,15 +63,19 @@ import lombok.NoArgsConstructor;
 @RequestMapping(path = "/api/blockchains/zones")
 public class ZoneController {
     private ZoneService zoneService;
+    private ClientService clientService;
+    private ReplicaService replicaService;
     private AuthHelper authHelper;
     private OrchestrationSiteServiceStub orchestrationClient;
 
     private static final Logger logger = LogManager.getLogger(ZoneController.class);
 
     @Autowired
-    public ZoneController(ZoneService zoneService, AuthHelper authHelper,
-                          OrchestrationSiteServiceStub orchestrationClient) {
+    public ZoneController(ZoneService zoneService, ClientService clientService, ReplicaService replicaService,
+                          AuthHelper authHelper, OrchestrationSiteServiceStub orchestrationClient) {
         this.zoneService = zoneService;
+        this.clientService = clientService;
+        this.replicaService = replicaService;
         this.authHelper = authHelper;
         this.orchestrationClient = orchestrationClient;
     }
@@ -371,9 +379,17 @@ public class ZoneController {
     //TODO: Think about this.  Do we really want to allow delete?
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.DELETE)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    ResponseEntity<DeleteResponse> patchZone(@PathVariable("zone_id") UUID zoneId) {
-        zoneService.delete(zoneId);
-        return new ResponseEntity<>(new DeleteResponse(zoneId), HttpStatus.OK);
+    ResponseEntity<DeleteResponse> deleteZone(@PathVariable("zone_id") UUID zoneId) {
+        List<Client> clientList = clientService.getClientsByParentId(zoneId);
+        List<Replica> replicaList = replicaService.getReplicasByParentId(zoneId);
+
+        if (clientList.size() > 0 || replicaList.size() > 0) {
+            throw new BadRequestException(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                    zoneId.toString()));
+        } else {
+            zoneService.delete(zoneId);
+            return new ResponseEntity<>(new DeleteResponse(zoneId), HttpStatus.OK);
+        }
     }
 
     // Zone and ZoneRequest have the same field names with one exception, so just use JSON to copy

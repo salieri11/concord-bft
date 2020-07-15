@@ -33,7 +33,9 @@ public class ClientService {
         return genericDao.get(id, Client.class);
     }
 
-    public List<Client> getClientsByBlockchainId(UUID id) {
+    // This will return a list of Clients for a given Zone ID or Blockchain ID.
+    // Retrieves based on fields marked @LinkedEntityId.
+    public List<Client> getClientsByParentId(UUID id) {
         return genericDao.getByParentId(id, Client.class);
     }
 }

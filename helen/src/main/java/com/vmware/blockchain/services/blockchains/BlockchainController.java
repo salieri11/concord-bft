@@ -165,7 +165,7 @@ public class BlockchainController {
         // If we are to populate nodes.
         //List<NodeInterface> nodes = new ArrayList<>();
         //nodes.addAll(replicaService.getReplicas(id));
-        //nodes.addAll(clientService.getClientsByBlockchainId(id));
+        //nodes.addAll(clientService.getClientsByParentId(id));
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
