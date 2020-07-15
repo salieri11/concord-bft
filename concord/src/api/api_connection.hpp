@@ -141,16 +141,16 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   boost::asio::ip::tcp::endpoint remotePeer_;
 
+  static constexpr uint8_t MSG_LENGTH_BYTES = 2;
+
   /* need to be adjusted to real msg max size */
-  static constexpr uint32_t BUFFER_LENGTH = 65536;
+  static constexpr uint32_t BUFFER_LENGTH = 65536 + MSG_LENGTH_BYTES;
 
   /* buffer for incoming messages */
   char inMsgBuffer_[BUFFER_LENGTH];
 
   /* buffer for incoming messages */
   char outMsgBuffer_[BUFFER_LENGTH];
-
-  const uint8_t MSG_LENGTH_BYTES = 2;
 
   concord::common::StatusAggregator sag_;
   const uint64_t gasLimit_;
