@@ -77,7 +77,8 @@ public class PerfWrite {
      */
     private PerfWriteRequest createAndWriteRequest() {
         PerfWriteExternal source = PerfWriteExternal.newBuilder()
-                .setKvPrefix(current().nextInt() + 1)
+                .setKeyPrefix(current().nextInt() + 1)
+                .setValPrefix(current().nextInt() + 1)
                 .setKvCount(kvCount)
                 .setKeySize(keySize)
                 .setValueSize(valueSize)
