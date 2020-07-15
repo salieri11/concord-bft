@@ -60,19 +60,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     private String bftClientConfigPath;
 
     /**
-     * Telegraf config template path.
-     **/
-    private String telegrafConfigPath;
-
-    /**
-     * Wavefront config template path.
-     **/
-    private String wavefrontConfigPath;
-
-    /** Logging config template path. **/
-    private String loggingEnvTemplatePath;
-
-    /**
      * Executor to use for all async service operations.
      */
     private final ExecutorService executor;
@@ -92,18 +79,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String concordConfigTemplatePath,
                          @Value("${config.template.path:BFTClientConfigTemplate.yaml}")
                                  String bftClientConfigTemplatePath,
-                         @Value("${config.template.path:TelegrafConfigTemplate.conf}")
-                                 String telegrafConfigTemplatePath,
-                         @Value("${config.template.path:wavefrontConfigTemplate.conf}")
-                                 String wavefrontConfigPath,
-                         @Value("${config.template.path:LoggingTemplate.env}")
-                                 String loggingEnvTemplatePath,
                          ConfigurationServiceHelper configurationServiceHelper) {
         this.concordConfigPath = concordConfigTemplatePath;
         this.bftClientConfigPath = bftClientConfigTemplatePath;
-        this.telegrafConfigPath = telegrafConfigTemplatePath;
-        this.wavefrontConfigPath = wavefrontConfigPath;
-        this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
         this.configurationServiceHelper = configurationServiceHelper;
         initialize();
@@ -186,10 +164,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 committerIds.add(each.getId());
             });
 
-        request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().stream().forEach(each -> {
-            participantIps.add(each.getNodeIp());
-            participantNodeIds.add(each.getId());
-        });
+        if (request.getNodesMap().containsKey(NodeType.CLIENT.name())) {
+            request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().stream().forEach(each -> {
+                participantIps.add(each.getNodeIp());
+                participantNodeIds.add(each.getId());
+            });
+        }
 
         nodeIdList.addAll(committerIds);
 
@@ -226,7 +206,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                                 eachNode))));
 
         Map<String, List<IdentityComponent>> concordIdentityComponents = configurationServiceHelper
-                .getTlsNodeIdentities(configUtil, bftClientConfigUtil, certGen, nodeIdList, committerIps, isBftEnabled);
+                .getTlsNodeIdentities(configUtil, bftClientConfigUtil, certGen, nodeIdList, isBftEnabled);
         Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
         if (isBftEnabled) {
             bftIdentityComponents.putAll(configurationServiceHelper

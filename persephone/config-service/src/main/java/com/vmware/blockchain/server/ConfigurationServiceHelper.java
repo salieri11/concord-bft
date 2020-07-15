@@ -278,7 +278,6 @@ public class ConfigurationServiceHelper {
                                                                BftClientConfigUtil bftClientConfigUtil,
                                                                ConcordEcCertificatesGenerator certGen,
                                                                ArrayList<String> nodeIdList,
-                                                               ArrayList<String> hostList,
                                                                boolean isBftEnabled) {
 
         Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
@@ -300,8 +299,7 @@ public class ConfigurationServiceHelper {
         Map<String, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(nodeIdList,
                 tlsIdentityList,
                 nodePrincipal,
-                numPrincipals,
-                hostList.size());
+                numPrincipals);
         return tlsNodeIdentities;
     }
 
@@ -311,13 +309,13 @@ public class ConfigurationServiceHelper {
     Map<String, List<IdentityComponent>> buildTlsIdentity(List<String> nodeIds,
                                                                   List<Identity> identities,
                                                                   Map<Integer, List<Integer>> principals,
-                                                                  int numCerts, int numHosts) {
+                                                                  int numCerts) {
 
         Map<String, List<IdentityComponent>> result = new HashMap<>();
 
         // TODO: May remove logic once principals are available
         if (principals.size() == 0) {
-            IntStream.range(0, numHosts).forEach(node -> {
+            IntStream.range(0, nodeIds.size()).forEach(node -> {
                 List<IdentityComponent> identityComponents = new ArrayList<>();
                 identities.forEach(identity -> {
                     identityComponents.add(identity.getCertificate());

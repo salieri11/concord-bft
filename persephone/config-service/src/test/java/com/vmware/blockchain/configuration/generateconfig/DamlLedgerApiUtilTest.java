@@ -114,8 +114,8 @@ public class DamlLedgerApiUtilTest {
         Properties properties = Properties.newBuilder()
                 .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
                         NodeProperty.Name.CLIENT_AUTH_JWT.toString(), authJwtToken,
-                        DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "True")).build();
-        
+                        DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "True"))
+                .build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
 
