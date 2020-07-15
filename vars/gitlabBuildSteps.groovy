@@ -149,6 +149,12 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
+  "SkvbcPreexecutionTests": [
+    "runAlone": true,
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-tee.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
+  ],
   "DamlPreexecutionTests": [
     "enabled": false,
     "runAlone": true,
