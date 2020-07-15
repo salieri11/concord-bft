@@ -272,11 +272,11 @@ public class ClientControllerTest extends RuntimeException {
     @Test
     void getParticipantNodeListViaClient() throws Exception {
 
-        final Client replica1 = new Client("publicIp", "privateIp", "hostName", "url",
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
                 "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID());
-        replica1.setId(REPLICA_1);
+        client1.setId(REPLICA_1);
 
-        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(replica1));
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
         MvcResult result = mockMvc.perform(
                 get("/api/blockchains/" + BC_DAML.toString() + "/clients")
                         .with(authentication(adminAuth))
