@@ -39,4 +39,10 @@ public class ReplicaService {
     public List<Replica> getReplicas(UUID id) {
         return genericDao.getByParentId(id, Replica.class);
     }
+
+    // This will return a list of Replicas for a given Zone ID.
+    // Retrieves based on fields marked @LinkedEntityId.
+    public List<Replica> getReplicasByParentId(UUID id) {
+        return genericDao.getByParentId(id, Replica.class);
+    }
 }

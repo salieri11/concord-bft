@@ -155,13 +155,17 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
       logger_(logging::getLogger("com.vmware.external_client_pool")) {
   std::ifstream config_file;
   config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
-  config_file.open(config_file_path.data());
+  try {
+    config_file.open(config_file_path.data());
+  } catch (const std::ifstream::failure &e) {
+    LOG_ERROR(logger_, "Could not find the configuration file at path="
+                           << config_file_path);
+    throw InternalError();
+  }
   ConcordConfiguration config;
   try {
     CreatePool(config_file, config);
   } catch (config::ConfigurationResourceNotFoundException &e) {
-    LOG_ERROR(logger_, "Could not find the configuration file at path="
-                           << config_file_path);
     throw InternalError();
   } catch (std::invalid_argument &e) {
     LOG_ERROR(logger_, "Communication module="
@@ -226,15 +230,20 @@ void ConcordClientPool::CreatePool(std::istream &config_stream,
   LOG_INFO(logger_, "Creating pool of num_clients=" << num_clients);
   auto f_val = config.getValue<uint16_t>(pool_config->F_VAL);
   auto c_val = config.getValue<uint16_t>(pool_config->C_VAL);
+  auto clients_per_replica =
+      config.getValue<uint16_t>(pool_config->CLIENT_PROXIES_PER_REPLICA);
   auto max_buf_size =
       stol(config.getValue<std::string>(pool_config->COMM_BUFF_LEN));
-  external_client::ConcordClient::setStatics(
-      2 * f_val + 1, 3 * f_val + 2 * c_val + 1, max_buf_size);
-
+  const auto num_replicas = 3 * f_val + 2 * c_val + 1;
+  const auto required_num_of_replicas = 2 * f_val + 1;
+  external_client::ConcordClient::setStatics(required_num_of_replicas,
+                                             num_replicas, max_buf_size);
+  auto num_of_principals = num_replicas * clients_per_replica + num_replicas;
   bftEngine::SimpleClientParams clientParams;
   setUpClientParams(clientParams, config, *pool_config);
   for (int i = 0; i < num_clients; i++) {
-    LOG_DEBUG(logger_, "Creating client_id=" << i);
+    auto client_id = num_of_principals + i;
+    LOG_DEBUG(logger_, "Creating client_id=" << client_id);
     clients_.push_back(std::make_shared<external_client::ConcordClient>(
         config, i, *pool_config, clientParams));
   }

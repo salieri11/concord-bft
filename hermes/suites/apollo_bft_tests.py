@@ -9,7 +9,6 @@
 #         ApolloBftTests
 #
 """Test BFT protocol"""
-import subprocess
 import sys
 import os
 import importlib.util
@@ -31,7 +30,6 @@ sys.path.append(os.path.abspath("../concord/submodules/concord-bft/util/pyclient
 import pytest
 
 import trio
-from functools import wraps
 from bft import BftTestNetwork, TestConfig, with_trio
 from bft_config import Replica
 from test_skvbc import SkvbcTest
@@ -39,13 +37,14 @@ from test_skvbc_fast_path import SkvbcFastPathTest
 from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 from test_skvbc_checkpoints import SkvbcCheckpointTest
-from test_skvbc_preexecution import SkvbcPreExecutionTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 from suites.case import describe
 import hermes_util.helper as helper
-from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient 
 from hermes_util.skvbc.concord_external_client import ExternalBftClient
+from hermes_util.apollo_helper import with_timeout
+from hermes_util.apollo_helper import start_replica_cmd
+from hermes_util.apollo_helper import stop_replica_cmd
 import hermes_util.hermes_logging as logging
 
 log = logging.getMainLogger()
@@ -53,36 +52,6 @@ log = logging.getMainLogger()
 # Read by the fxProduct fixture.
 productType = helper.TYPE_TEE
 
-
-def start_replica_cmd(builddir, replica_id):
-    log.info(f"Starting replica #{replica_id}")
-    return ["docker", "start", f"docker_concord{replica_id + 1}_1"]
-
-
-def stop_replica_cmd(replica_id):
-    log.info(f"Stopping replica #{replica_id}")
-    return ["docker", "kill", f"docker_concord{replica_id + 1}_1"]
-
-def with_timeout(async_fn):
-    """
-    Decorator that makes sure an async test case doesn't run indefinitely.
-    This could happen sometimes due to a co-routine waiting indefinitely for something to happen
-    (f.e. a view change).
-
-    In case the timeout is reached, we print the list of live Concord containers, to help debug such cases.
-    """
-    @wraps(async_fn)
-    async def timeout_wrapper(*args, **kwargs):
-        try:
-            with trio.fail_after(seconds=5*60):
-                return await async_fn(*args, **kwargs)
-        except trio.TooSlowError:
-            raw_output = subprocess.check_output(["docker", "ps", "--format", "{{ .Names }}"])
-            live_containers = [c.decode('utf-8') for c in raw_output.split()]
-            log.info(f"Live containers at the time of failure: {live_containers}")
-            raise
-
-    return timeout_wrapper
 
 @pytest.fixture(scope="module")
 @with_trio
@@ -174,40 +143,6 @@ async def _test_skvbc_checkpoint_creation(bft_network):
 
 
 @describe()
-def test_skvbc_preexecution_sequential(fxProduct, bft_network):
-    trio.run(_test_skvbc_preexecution_sequential, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_preexecution_sequential(bft_network):
-    skvbc_test = SkvbcPreExecutionTest()
-    log.info("Running SKVBC sequential pre-execution test...")
-    await skvbc_test.test_sequential_pre_process_requests(
-        bft_network=bft_network,
-        already_in_trio=True,
-        disable_linearizability_checks=True
-    )
-    log.info("SKVBC sequential pre-execution: OK.")
-
-
-@describe()
-def test_skvbc_preexecution_concurrent(fxProduct, bft_network):
-    trio.run(_test_skvbc_preexecution_concurrent, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_preexecution_concurrent(bft_network):
-    skvbc_preexecution_test = SkvbcPreExecutionTest()
-    log.info("Running SKVBC concurrent pre-execution test...")
-    await skvbc_preexecution_test.test_concurrent_pre_process_requests(
-        bft_network=bft_network,
-        already_in_trio=True,
-        disable_linearizability_checks=True
-    )
-    log.info("SKVBC concurrent pre-execution: OK.")
-
-
-@describe()
 def test_skvbc_state_transfer(fxProduct, bft_network):
     trio.run(_test_skvbc_state_transfer, bft_network)
 
@@ -238,4 +173,3 @@ async def _test_skvbc_view_change(bft_network):
         disable_linearizability_checks=True
     )
     log.info("SKVBC view change test: OK")
-

@@ -44,6 +44,8 @@
 
 #include "yaml-cpp/yaml.h"
 
+#include <array>
+#include <string_view>
 #include "ThresholdSignaturesTypes.h"
 
 namespace concord {
@@ -344,6 +346,14 @@ class ConcordConfiguration {
  public:
   // Return type for the three function type definitions immediately following.
   enum class ParameterStatus { VALID, INSUFFICIENT_INFORMATION, INVALID };
+  // Type
+  static constexpr std::string_view APPLICATION = "application";
+  static constexpr std::string_view DEPLOYMENT = "deployment";
+  static constexpr std::string_view SECRETS = "secrets";
+  static constexpr std::string_view ALL = "all";
+  static constexpr std::array<std::string_view, 4> CONF_TYPES = {
+      APPLICATION, DEPLOYMENT, SECRETS, ALL};
+  mutable std::string confType_;
 
   // Type for parameter validator functions.
   // A validator should return VALID if it finds the parameter's value valid,
@@ -476,6 +486,7 @@ class ConcordConfiguration {
   std::string getTypeName() const;
 
  public:
+  std::map<std::string, ConfigurationScope>& getScopes() { return scopes; }
   // Complete definition of the iterator type for iterating through a
   // ConcordConfiguration returned by begin and end.
   class ConfigurationIterator : public std::iterator<std::forward_iterator_tag,
@@ -961,30 +972,32 @@ class ConcordConfiguration {
   ParameterStatus validateAll(bool ignoreUninitializedParameters = true,
                               bool inclueTemplates = false);
 
-  // Runs a parameter's generation function and loads the result. generate will
-  // not attempt to load the generated value unless the generation function
-  // returns VALID. Generate also will not load any generated value for which
-  // the validator of the selected parameter returns INVALID. Parameters:
+  // Runs a parameter's generation function and loads the result. generate
+  // will not attempt to load the generated value unless the generation
+  // function returns VALID. Generate also will not load any generated value
+  // for which the validator of the selected parameter returns INVALID.
+  // Parameters:
   //   - name: Name of the parameter for which to generate a value. A
   //   ConfigurationResourceNotFoundException will be thrown if no parameter
-  //   exists with the given name or if the named parameter has no generation
-  //   funciton.
-  //   - failureMessage: If a non-null pointer is given for failure message, the
-  //   named parameter has both a generator and validator, and the geneerator
-  //   returns the status VALID but the validator returns a non-VALID status for
-  //   the generated value, then any failure message provided by the validator
-  //   will be written back to failureMessage.
+  //   exists with the given name or if the named parameter has no
+  //   generation funciton.
+  //   - failureMessage: If a non-null pointer is given for failure message,
+  //   the named parameter has both a generator and validator, and the
+  //   geneerator returns the status VALID but the validator returns a
+  //   non-VALID status for the generated value, then any failure message
+  //   provided by the validator will be written back to failureMessage.
   //   - overwrite: If the requested parameter is already initialized, the
-  //   existing value will only be overwritten if true is given for overwrite.
-  //   - prevValue: If generate does successfully overwrite an existing value
-  //   and a non-null pointer was given for prevValue, the existing value will
-  //   be written back to prevValue.
+  //   existing value will only be overwritten if true is given for
+  //   overwrite.
+  //   - prevValue: If generate does successfully overwrite an existing
+  //   value and a non-null pointer was given for prevValue, the existing
+  //   value will be written back to prevValue.
   // Returns:
-  // If the parameter's generation function returns a value other than VALID,
-  // then that value will be returned; otherwise, generate returns the result of
-  // running the parameter's validator (if any) on its generated values. If the
-  // generator reutnred VALID but the parameter has no validators, VALID will be
-  // returned.
+  // If the parameter's generation function returns a value other than
+  // VALID, then that value will be returned; otherwise, generate returns
+  // the result of running the parameter's validator (if any) on its
+  // generated values. If the generator reutnred VALID but the parameter has
+  // no validators, VALID will be returned.
   ParameterStatus generate(const std::string& name,
                            std::string* failureMessage = nullptr,
                            bool overwrite = false,
@@ -1236,6 +1249,7 @@ class YAMLConfigurationInput {
   // expected that the code using the YAMLConfiguration will call parseInput to
   // have this YAMLConfigurationInput parse the input from that stream.
   YAMLConfigurationInput(std::istream& input);
+  YAMLConfigurationInput(const YAML::Node& y);
 
   ~YAMLConfigurationInput();
 
@@ -1654,5 +1668,18 @@ const std::string kConcordExternalClientConfigurationStateLabel =
 bool initialize_config(int agrc, char** argv,
                        concord::config::ConcordConfiguration& config_out,
                        boost::program_options::variables_map& opts_out);
+
+// Returns a YAML node with the result of merging "a" with "b"
+// resolving conflicts by taking the values in "b" to overwrite
+// conflicting values in "a".
+// In case we have keys that must not have conflicts (either they
+// are not present in both "a" and "b" at the same level, or if
+// they are their values are equal) we pass their names to the set
+// "errorOnConflict", which will cause throwing an exception if
+// conflict is found in the values under the keys from "errorOnConflict".
+YAML::Node yaml_merge(
+    const YAML::Node& a, const YAML::Node& b,
+    std::set<std::string> errorOnConflict = {},
+    const YAML::Node& parent = YAML::Node(YAML::NodeType::Null));
 
 #endif  // CONFIG_CONFIGURATION_MANAGER_HPP

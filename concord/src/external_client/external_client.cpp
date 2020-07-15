@@ -126,6 +126,7 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   auto clientId = client_conf.getValue<uint16_t>(pool_config.CLIENT_ID);
   CommConfig comm_config;
   CreateCommConfig(comm_config, config, num_replicas, pool_config);
+  client_id_ = clientId;
   for (auto i = 0u; i < num_replicas; ++i) {
     const auto& node_conf = config.subscope(pool_config.NODE_VAR, i);
     const auto& replica_conf = node_conf.subscope(pool_config.REPLICA_VAR, 0);

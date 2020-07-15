@@ -33,6 +33,7 @@ public class Client extends AbstractEntity implements NodeInterface {
     @LinkedEntityId
     UUID blockchainId;
 
+    @LinkedEntityId
     UUID zoneId;
     // Logical Group Index Id supplied by the caller.
     //String groupIndex;

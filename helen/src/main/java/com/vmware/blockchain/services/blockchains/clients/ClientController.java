@@ -115,7 +115,7 @@ public class ClientController {
             throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
         }
 
-        var clients = clientService.getClientsByBlockchainId(bid);
+        var clients = clientService.getClientsByParentId(bid);
         List<ClientGetResponse> replicaGetResponseList;
         if (clients == null || clients.isEmpty()) {
             logger.warn("Using older flow for blockchain {}", bid);
@@ -150,7 +150,7 @@ public class ClientController {
             throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
         }
 
-        Optional<Client> clientOpt = clientService.getClientsByBlockchainId(bid).stream()
+        Optional<Client> clientOpt = clientService.getClientsByParentId(bid).stream()
                 .filter(c -> c.getId().equals(clientId)).findFirst();
         if (clientOpt.isEmpty()) {
             throw new NotFoundException(ErrorCode.NOT_FOUND);

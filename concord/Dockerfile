@@ -36,6 +36,7 @@ RUN cmake \
     CTEST_OUTPUT_ON_FAILURE=true make \
       -j$(nproc) all test
 
+RUN ./tools/conc_genconfig --configuration-type application --output-name app --configuration-input ../resources/appconf_input.yaml
 ## Base Run image
 FROM ubuntu:18.04
 LABEL Description="Concord"
@@ -172,7 +173,10 @@ COPY ./concord/test/concord.supp /concord/concord.supp
 # if no custom configuration was provided when the cluster was set up.
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
+COPY ./concord/resources/appconf_input.yaml /concord/resources/appconf_input.yaml
 COPY ./concord/submodules/concord-bft/diagnostics/concord-ctl /concord
+
+COPY --from=0 /concord/build/app1.config /concord/config/application.config
 
 # Management port
 EXPOSE 5458
