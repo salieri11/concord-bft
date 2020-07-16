@@ -5,6 +5,7 @@
 package com.vmware.blockchain.configuration.generateconfig;
 
 import com.google.common.base.Strings;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -53,6 +54,8 @@ public class DamlLedgerApiUtil {
 
         addProperties(builder, nodeInfo);
 
+        addBftClient(builder, nodeInfo.getProperties());
+
         return builder.toString();
     }
 
@@ -65,11 +68,21 @@ public class DamlLedgerApiUtil {
         }
     }
 
+    private void addBftClient(StringBuilder builder, Properties properties) {
+        if (properties.getValuesMap()
+                .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
+                .equalsIgnoreCase("True")) {
+            builder.append(System.getProperty("line.separator"));
+            builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
+                    + BftClientConfigUtil.configPath + "\"");
+        }
+    }
+
     /**
      * Appends the auth jwt and client group id properties if present.
      *
-     * @param builder        builder
-     * @param properties properties
+     * @param builder  builder
+     * @param nodeInfo nodeinfo
      */
     private void addProperties(StringBuilder builder, NodesInfo.Entry nodeInfo) {
         Properties properties = nodeInfo.getProperties();

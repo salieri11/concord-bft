@@ -1256,7 +1256,6 @@ def call(){
           // Needs to trigger after owning workspace
           customathenautil.collectArtifacts()
           sendNotifications()
-          cleanUpSDDCs()
         }
       }
     }
@@ -1990,61 +1989,6 @@ void announceSDDCCleanupFailures(failures){
       deactivate
     '''
   }
-}
-
-// Clean all SDDCs.
-// Store all failures in an array and report them in one message.
-void cleanUpSDDCs(){
-  customathenautil.saveTimeEvent("Clean up SDDCs", "Start")
-  sddcs = ['VMware-Blockchain-SDDC-1', 'VMware-Blockchain-SDDC-2', 'VMware-Blockchain-SDDC-3', 'VMware-Blockchain-SDDC-4']
-  failures = []
-
-  for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting", "1")
-    if (failure){
-      failures << failure
-    }
-  }
-
-  // LongTests Clean up older than 168 hours (7 days)
-  for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "168")
-    if (failure){
-      failures << failure
-    }
-  }
-
-  // HermesTesting-1day-Retention clean up older than 24 hrs (1 day)
-  for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting-1day-Retention", "24")
-    if (failure){
-      failures << failure
-    }
-  }
-
-  if (failures.size() > 0){
-    announceSDDCCleanupFailures(failures)
-  }
-
-  customathenautil.saveTimeEvent("Clean up SDDCs", "End")
-}
-
-// Given an SDDC name, folder, and age, cleans it.
-// Returns a string of information about the failure if it failed.
-String cleanSDDC(sddc, folder, age){
-  failure = null
-
-  try{
-    echo ("Calling Job Cleanup-SDDC-folder, SDDC: " + sddc + ", folder: " + folder + ", older than: " + age)
-    build job: "Cleanup-SDDC-folder", parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: sddc],
-                                                   [$class: 'StringParameterValue', name: 'VMFolder', value: folder],
-                                                   [$class: 'StringParameterValue', name: 'OLDERTHAN', value: age]]
-  }catch(Exception ex){
-    echo(ex.toString())
-    failure = "SDDC: " + sddc + ", folder: " + folder
-  }
-
-  return failure
 }
 
 void setEnvFileAndUserConfig(){

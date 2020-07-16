@@ -11,8 +11,8 @@
 [submit.sh](./submit.sh) uses [gRPCurl](https://github.com/fullstorydev/grpcurl) to communicate with the Ledger API. Following commands can be used to install the [latest package](https://github.com/fullstorydev/grpcurl/releases) and make the **grpcurl** command available on the system.
 
 ```bash
-wget https://github.com/fullstorydev/grpcurl/releases/download/v1.4.0/grpcurl_1.4.0_linux_x86_64.tar.gz
-tar -xf grpcurl_1.4.0_linux_x86_64.tar.gz
+wget https://github.com/fullstorydev/grpcurl/releases/download/v1.6.1/grpcurl_1.6.1_linux_x86_64.tar.gz
+tar -xf grpcurl_1.6.1_linux_x86_64.tar.gz
 sudo mv grpcurl /usr/local/bin/
 ```
 
