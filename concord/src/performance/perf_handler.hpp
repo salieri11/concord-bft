@@ -45,8 +45,7 @@ class PerformanceCommandsHandler
                                ba,     subscriber_list, prometheus_registry},
         logger_{logging::getLogger("concord.perf.handler")} {}
 
-  virtual void WriteEmptyBlock(
-      concord::time::TimeContract* time_contract) override {}
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override {}
 
  private:
   logging::Logger logger_;
@@ -86,16 +85,16 @@ class PerformanceCommandsHandler
     using namespace concord::kvbc;
     using namespace concordUtils;
 
-    string id = "";
+    string id;
     shared_ptr<MultiBlockData> data = nullptr;
     BlockId blockId = 0;
     if (request.has_from_init()) {
-      auto fromInit = request.from_init();
+      const auto& fromInit = request.from_init();
       id = fromInit.init_id();
       blockId = fromInit.block_id();
       init_data_.GetBlocksData(id, data);
     } else {
-      auto external = request.external();
+      const auto& external = request.external();
       auto keyPrefix = external.key_prefix();
       auto valPrefix = external.val_prefix();
       auto kv_count = external.kv_count();
@@ -142,12 +141,11 @@ class PerformanceCommandsHandler
     }
   }
 
-  virtual bool Execute(
-      const com::vmware::concord::ConcordRequest& request,
-      const concord::consensus::ConcordRequestContext& request_context,
-      uint8_t flags, concord::time::TimeContract* time_contract,
-      opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& response) override {
+  bool Execute(const com::vmware::concord::ConcordRequest& request,
+               const concord::consensus::ConcordRequestContext& request_context,
+               uint8_t flags, concord::time::TimeContract* time_contract,
+               opentracing::Span& parent_span,
+               com::vmware::concord::ConcordResponse& response) override {
     const PerfRequest& perf_req = request.perf_request();
     PerfResponse* perf_resp = response.mutable_perf_response();
 
