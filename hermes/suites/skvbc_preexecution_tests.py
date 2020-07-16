@@ -103,3 +103,55 @@ async def _test_skvbc_preexecution_concurrent(bft_network):
         disable_linearizability_checks=True
     )
     log.info("SKVBC concurrent pre-execution: OK.")
+
+
+@describe()
+def test_skvbc_preexecution_conflicting_requests(fxProduct, bft_network):
+    trio.run(_test_skvbc_preexecution_conflicting_requests, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_preexecution_conflicting_requests(bft_network):
+    skvbc_preexecution_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC pre-execution conflicts test...")
+    await skvbc_preexecution_test.test_conflicting_requests(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC pre-execution conflicts test: OK.")
+
+
+@describe()
+def test_skvbc_parallel_tx_after_f_nonprimary_crash(fxProduct, bft_network):
+    trio.run(_test_skvbc_parallel_tx_after_f_nonprimary_crash, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_parallel_tx_after_f_nonprimary_crash(bft_network):
+    skvbc_preexecution_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC parallel pre-executions test (f crashed replicas)...")
+    await skvbc_preexecution_test.test_parallel_tx_after_f_nonprimary_crash(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC parallel pre-executions test (f crashed replicas).")
+
+
+@describe()
+@pytest.mark.skip(reason="BC-3678")
+def test_skvbc_preexecution_view_change(fxProduct, bft_network):
+    trio.run(_test_skvbc_preexecution_view_change, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_preexecution_view_change(bft_network):
+    skvbc_preexecution_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC pre-execution with view change...")
+    await skvbc_preexecution_test.test_view_change(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC pre-execution with view change: OK.")
