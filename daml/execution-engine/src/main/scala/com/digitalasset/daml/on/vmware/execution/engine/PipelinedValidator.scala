@@ -76,16 +76,20 @@ class PipelinedValidator(
                   logger.debug(s"Submission with correlationId=${request.correlationId} validated")
                   val sortedReadSet =
                     recordingLedgerStateReader.getReadSet.toSeq.sorted
+                  val writeSet = ledgerStateOperations.getAndClearWriteSet()
+                  if (writeSet.isEmpty) {
+                    logger.error(s"Empty write-set generated, replicaId=${request.replicaId} correlationId=${request.correlationId}")
+                  }
                   val doneEvent = EventFromValidator.Done(
                     readSet = sortedReadSet,
-                    writeSet = ledgerStateOperations.getAndClearWriteSet())
+                    writeSet = writeSet)
                   responseObserver.onNext(EventFromValidator().withDone(doneEvent))
                   responseObserver.onCompleted()
                   logReadSet(sortedReadSet, ledgerStateOperations, request.correlationId)
                   logger.info(
                     s"Batch validation completed, correlationId=${request.correlationId} " +
                       s"participantId=${request.participantId} recordTime=${recordTime.toString} " +
-                      s"readSetSize=${sortedReadSet.size}")
+                      s"readSetSize=${sortedReadSet.size} writeSetSize=${writeSet.size}")
                   Future.unit
               }
           case EventToValidator.ToValidator.ReadResult(result) =>
