@@ -10,11 +10,11 @@ import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
 import com.daml.ledger.validator.batch.{
   BatchedSubmissionValidator,
-  BatchedSubmissionValidatorParameters
+  BatchedSubmissionValidatorParameters,
+  ConflictDetection
 }
 import com.daml.lf.engine.Engine
 import com.daml.metrics.{MetricName, Metrics}
-import com.digitalasset.daml.on.vmware.execution.engine.conflictdetection.PatchedConflictDetection
 import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition}
@@ -35,7 +35,7 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
     BatchedSubmissionValidator[Unit](
       BatchedSubmissionValidatorParameters.reasonableDefault,
       new KeyValueCommitting(engine, metrics),
-      new PatchedConflictDetection(metrics),
+      new ConflictDetection(metrics),
       metrics,
       engine,
     )
