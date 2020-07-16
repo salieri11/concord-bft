@@ -119,12 +119,7 @@ public class ConcordConfigUtil {
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
                                     BlockchainType blockchainType) {
-        if (hostIps == null) {
-            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
-            return false;
-        }
-        if (hostIps.size() < 4) {
-            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
+        if (!ConfigUtilHelpers.validateSbft(hostIps)) {
             return false;
         }
         int clusterSize = hostIps.size();
@@ -139,16 +134,7 @@ public class ConcordConfigUtil {
     @SuppressWarnings({"unchecked"})
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
                                     BlockchainType blockchainType) {
-        if (hostIp == null) {
-            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
-            return false;
-        }
-        if (hostIp.size() < 4) {
-            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
-            return false;
-        }
-        if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
-            log.error("generateInputConfigYaml: fVal / cVal are invalid for the list of host IP provided");
+        if (!ConfigUtilHelpers.validateSbft(hostIp, fVal, cVal)) {
             return false;
         }
 

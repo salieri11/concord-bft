@@ -146,6 +146,7 @@ enum DeploymentAttributes {
     VM_MEMORY = 6;
     DAML_SDK_VERSION = 7;
     BLOCKCHAIN_VERSION = 8;
+    ENABLE_BFT_CLIENT = 9;
 }
 
 /* [END messages] */
