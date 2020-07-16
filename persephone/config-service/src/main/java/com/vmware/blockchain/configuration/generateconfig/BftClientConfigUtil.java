@@ -71,7 +71,8 @@ public class BftClientConfigUtil {
                     inputYamlPath,
                     "--report-principal-locations",
                     principalsMapFile,
-                    "--client-conf")
+                    "--client-conf",
+                    "true")
                     .directory(outputPath.toFile())
                     .start()
                     .onExit();
@@ -93,8 +94,8 @@ public class BftClientConfigUtil {
                         principalsMap.forEach((key, value) -> nodePrincipal.putIfAbsent(key - 1, value));
 
 
-                        for (int num = 0; num < hostIps.size(); num++) {
-                            var path = outputPath.resolve("concord" + (num + 1) + ".config");
+                        for (int num = 0; num < participantIps.size(); num++) {
+                            var path = outputPath.resolve("Participant" + (num) + ".config");
                             result.put(nodeIds.get(num), Files.readString(path));
                         }
                     } catch (Throwable collectError) {

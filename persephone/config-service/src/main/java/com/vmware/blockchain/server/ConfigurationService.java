@@ -155,23 +155,22 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var participantIps = new ArrayList<String>();
         var committerIds = new ArrayList<String>();
         var participantNodeIds = new ArrayList<String>();
-        var nodeIdList = new ArrayList<String>();
 
         // TODO : scope for refactoring
-        request.getNodesMap().get(NodeType.REPLICA.name()).getEntriesList().stream().forEach(
+        request.getNodesMap().get(NodeType.REPLICA.name()).getEntriesList().forEach(
             each -> {
                 committerIps.add(each.getNodeIp());
                 committerIds.add(each.getId());
             });
 
         if (request.getNodesMap().containsKey(NodeType.CLIENT.name())) {
-            request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().stream().forEach(each -> {
+            request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().forEach(each -> {
                 participantIps.add(each.getNodeIp());
                 participantNodeIds.add(each.getId());
             });
         }
 
-        nodeIdList.addAll(committerIds);
+        var nodeIdList = new ArrayList<>(committerIds);
 
         // Generate Configuration
         var certGen = new ConcordEcCertificatesGenerator();
@@ -188,10 +187,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             isBftEnabled = true;
             bftClientConfig.putAll(bftClientConfigUtil
                     .getbftClientConfig(participantNodeIds, committerIps, participantIps));
-            participantNodeIds.forEach(id -> {
-                int participantId = committerIds.size() + Integer.parseInt(id);
-                nodeIdList.add(Integer.toString(participantId));
-            });
+            nodeIdList.addAll(participantNodeIds);
         }
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
