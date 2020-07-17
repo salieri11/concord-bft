@@ -918,7 +918,7 @@ def call(){
                         echo "Running Persephone deployment for concord..."
                         mkdir -p "${concord_deployment_test_logs}"
                         echo "**** Using concord tag: " + ${dep_comp_concord_tag}
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${concord_deployment_test_logs}" --blockchainType ${concord_type} --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTestsNew --dockerComposeFile ../docker/docker-compose-persephone.yml --tests="-k test_daml_7_node_onprem" --resultsDir "${concord_deployment_test_logs}" --keepBlockchains ${deployment_retention} > "${concord_deployment_test_logs}/concord_deployment_test.log" 2>&1
                       '''
                       jenkinsbuilderlib.ownWorkspace()
                       customathenautil.saveTimeEvent("Concord deployment test", "End")
