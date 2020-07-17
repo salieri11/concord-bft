@@ -54,6 +54,7 @@ lazy val common = (project in file("common"))
       "io.opentracing" % "opentracing-mock" % "0.33.0",
       "io.opentracing" % "opentracing-util" % "0.33.0",
       "io.opentracing.contrib" % "opentracing-grpc" % "0.2.1",
+      "io.opentracing.contrib" % "opentracing-tracerresolver" % "0.1.8",
       "io.prometheus" % "simpleclient" % "0.8.1",
       "io.prometheus" % "simpleclient_dropwizard" % "0.8.1",
       "io.prometheus" % "simpleclient_servlet" % "0.8.1",
@@ -187,6 +188,11 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
     ),
   )
   .dependsOn(write_service, common, trc_core, bft_client_core, trc_native % Runtime, bft_client_native % Runtime)
+
+lazy val `replay-tool` = (project in file("execution-engine-replay-tool"))
+  .enablePlugins(JavaAppPackaging)
+  .settings(commonSettings)
+  .dependsOn(common, execution_engine)
 
 lazy val trc_core = (project in file("thin-replica-client-core")) // regular scala code with @native methods
   .enablePlugins(JavaAppPackaging)
