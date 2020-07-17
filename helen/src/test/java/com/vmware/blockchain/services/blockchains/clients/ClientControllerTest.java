@@ -96,6 +96,9 @@ public class ClientControllerTest extends RuntimeException {
     private static final UUID REPLICA_2_ZONE = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
     private static final UUID REPLICA_3_ZONE = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
     private static final UUID REPLICA_4_ZONE = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
+    private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
+    private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+    static final UUID BC_DAML1 = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
 
     @Autowired
     private WebApplicationContext context;
@@ -252,7 +255,7 @@ public class ClientControllerTest extends RuntimeException {
 
 
     @Test
-        void getParticipantNodeList() throws Exception {
+    void getParticipantNodeList() throws Exception {
         MvcResult result = mockMvc.perform(
               get("/api/blockchains/" + BC_DAML.toString() + "/clients")
               .with(authentication(adminAuth))
@@ -273,7 +276,7 @@ public class ClientControllerTest extends RuntimeException {
     void getParticipantNodeListViaClient() throws Exception {
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID());
+                "cert", BC_DAML, REPLICA_1_ZONE, CLIENT_GROUP_ID);
         client1.setId(REPLICA_1);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
@@ -310,5 +313,31 @@ public class ClientControllerTest extends RuntimeException {
                 objectMapper.readValue(body, new TypeReference<NodeGetCredentialsResponse>() {});
         Assertions.assertEquals("root", clientCredentials.username);
         Assertions.assertEquals("testPassword", clientCredentials.password);
+    }
+
+    @Test
+    protected void testClientGrouping() throws Exception {
+
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID);
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_DAML.toString() + "/clients")
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        List<ClientController.ClientGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<ClientController.ClientGetResponse>>() {
+                });
+
+        ImmutableList<UUID> expected = ImmutableList.of(CLIENT_NODE_ID);
+        Assertions.assertEquals(expected, res.stream().map(clientGetResponse ->
+                                                                   clientGetResponse.getId())
+                .collect(Collectors.toList()));
+        Assertions.assertEquals(1, res.size());
+        Assertions.assertEquals(res.get(0).getGroupId(), CLIENT_GROUP_ID);
     }
 }
