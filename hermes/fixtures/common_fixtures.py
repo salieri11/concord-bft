@@ -295,7 +295,6 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
     :param num_participants: Number of participants to deploy (defaults to 1)
     :return: status, List of participant IPs
     """
-
     participant_replicas = []
     username = credentials["username"]
     password = credentials["password"]
@@ -303,7 +302,7 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
     participant_replicas = [participant_entry for participant_entry in participant_details]
 
     log.info(participant_replicas)
-    success = True
+    success = False
     try:
         # Upload DAR and verification block
         for participant_entry in participant_details:
@@ -322,6 +321,7 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
             log.info("Starting DAR upload verification test on participant {}".format(public_ip))
             daml_helper.verify_ledger_api_test_tool(host=public_ip, port=str(src_port))
             log.info("DAR upload and verification successful on participant {}".format(public_ip))
+            success = True
 
     except Exception as e:
         log.error(e)
