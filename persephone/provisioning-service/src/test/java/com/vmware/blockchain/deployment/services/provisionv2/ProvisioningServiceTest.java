@@ -124,7 +124,7 @@ public class ProvisioningServiceTest {
     // @Test
     void testDeployBlockchainEmptyRun() {
 
-        when(configHelper.generateConfigurationId(any())).thenReturn(mock(ConfigurationSessionIdentifier.class));
+        when(configHelper.generateConfigurationId(any(), any())).thenReturn(mock(ConfigurationSessionIdentifier.class));
         ConcurrentMap<UUID, CompletableFuture<DeploymentExecutionContext>> mockMap = mock(ConcurrentMap.class);
         when(mockMap.get(any())).thenReturn(new CompletableFuture<>());
         when(deploymentLogCache.asMap()).thenReturn(mockMap);
@@ -136,9 +136,9 @@ public class ProvisioningServiceTest {
                 .blockchainId(UUID.randomUUID())
                 .consortiumId(UUID.randomUUID())
                 .blockchainType(BlockchainType.DAML).build();
-        provisioningServiceV2.deployBlockchain(executionContext);
+        provisioningServiceV2.deployBlockchain(executionContext, any());
 
-        verify(configHelper, times(1)).generateConfigurationId(any());
+        verify(configHelper, times(1)).generateConfigurationId(any(), any());
         verifyNoMoreInteractions(configHelper);
     }
 
@@ -148,7 +148,7 @@ public class ProvisioningServiceTest {
         OrchestrationSiteIdentifier siteId = OrchestrationSiteIdentifier.newBuilder()
                 .setId(UUID.randomUUID().toString()).build();
 
-        when(configHelper.generateConfigurationId(any())).thenReturn(mock(ConfigurationSessionIdentifier.class));
+        when(configHelper.generateConfigurationId(any(), any())).thenReturn(mock(ConfigurationSessionIdentifier.class));
 
         when(networkHelper.createPrivateIpMap(any(), any(), any()))
                 .thenReturn(ImmutableMap.of(nodeUid,
@@ -176,9 +176,9 @@ public class ProvisioningServiceTest {
                 //.nodeTypeComponent(ImmutableMap.of(NodeType.REPLICA,
                 //                                   Arrays.asList(ConcordComponent.newBuilder().build())))
                 .blockchainType(BlockchainType.DAML).build();
-        provisioningServiceV2.deployBlockchain(executionContext);
+        provisioningServiceV2.deployBlockchain(executionContext, any());
 
-        verify(configHelper, times(1)).generateConfigurationId(any());
+        verify(configHelper, times(1)).generateConfigurationId(any(), any());
         verifyNoMoreInteractions(configHelper);
 
         verify(networkHelper, times(1)).createPrivateIpMap(any(), any(), any());
