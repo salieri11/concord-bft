@@ -19,7 +19,7 @@ public interface CertificatesGenerator {
     String CONCORD_TLS_SECURITY_IDENTITY_PATH = "file:/concord/config-local/cert";
 
     /** bft client security certificates generation path. */
-    String BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH = "file:/config/daml-ledger-api/config-local/cert";
+    String BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH = "file:/daml-ledger-api/config-local/cert";
 
     /** ethrpc security certificates generation path. */
     String CONCORD_ETHRPC_SECURITY_IDENTITY_PATH = "file:/ethrpc/cert";

@@ -173,15 +173,13 @@ public class BftClientConfigUtil {
 
         List resultNodes = new ArrayList();
 
-        int counter = 0;
         for (String s : hostIp) {
             replicaValues.put(ConfigUtilHelpers.ConfigProperty.REPLICA_HOST.name, s);
             replicaValues.put(ConfigUtilHelpers.ConfigProperty.COMMITTER_PORT.name,
-                    ConfigUtilHelpers.DEFAULT_PORT + counter);
+                    ConfigUtilHelpers.DEFAULT_PORT);
             nodeConfig.put(ConfigUtilHelpers.ConfigProperty.REPLICA.name,
                     new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(replicaValues))));
             resultNodes.add(ConfigUtilHelpers.clone(nodeConfig));
-            counter = counter + 1;
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.NODE.name, resultNodes);
@@ -200,10 +198,11 @@ public class BftClientConfigUtil {
 
         List participantNodeRes = new ArrayList();
         Map<String, Object> participantNodeResMap = new HashMap<>();
-        for (String s : participantIps) {
+        int counter = 1;
+        for (String ignored : participantIps) {
             List resultClients = new ArrayList();
             var participantConfigRes = ConfigUtilHelpers.clone(participantConfig);
-            participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE_HOST.name, s);
+            participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE_HOST.name, "0.0.0.0");
 
             for (int j = 0; j < ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT; j++) {
                 var port = ConfigUtilHelpers.DEFAULT_PORT + counter + j;
