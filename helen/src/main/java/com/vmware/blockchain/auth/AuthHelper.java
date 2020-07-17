@@ -201,7 +201,7 @@ public class AuthHelper extends BaseAuthHelper {
      * @param bId blockchainId bId
      * @return true if the user is administrator, false otherwise.
      */
-    public boolean isUserConsortiumAdminForBlockchain(UUID bId) {
+    public boolean isConsortiumAdminForBlockchain(UUID bId) {
         // How do we populate UserProfile:
         // Blockchain is linked with Consortium.
         // We get orgId for the logged-in user.

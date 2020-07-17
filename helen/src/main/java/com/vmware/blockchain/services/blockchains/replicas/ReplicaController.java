@@ -280,7 +280,7 @@ public class ReplicaController {
      * @return          200 with ReplicaGetCredentialsResponse
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas/{replicaId}/credentials"})
-    @PreAuthorize("@authHelper.isUserConsortiumAdminForBlockchain(#bid)")
+    @PreAuthorize("@authHelper.isConsortiumAdminForBlockchain(#bid)")
     public ResponseEntity<NodeGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
                                                                             @PathVariable UUID replicaId) {
         Blockchain b = blockchainService.get(bid);
