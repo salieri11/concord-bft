@@ -73,8 +73,14 @@ class ReplicaControllerTest {
     private static UUID B1 = UUID.fromString("6d2bc86f-8556-4092-a9d6-5436f6c113d1");
     private static UUID Z1 = UUID.fromString("112e5c35-5d69-474b-a742-62bb3fc9396b");
 
+    static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
+
     private static String N1Password = "TestPassword!11";
     private static String N2Password = "TestPassword!22";
+
+    private static String GET_REPLICA_CREDENTIALS_URL = String.format("/api/blockchains/%s/replicas/%s/credentials",
+                                                                      B1.toString(), N1.toString());
+
 
     @Autowired
     WebApplicationContext context;
@@ -115,6 +121,7 @@ class ReplicaControllerTest {
 
     private AuthenticationContext adminAuth;
     private AuthenticationContext userAuth;
+    private AuthenticationContext consortiumAuth;
 
     private void setCallbacks(Answer answer) {
 
@@ -239,4 +246,39 @@ class ReplicaControllerTest {
         Peer p2 = Peer.newBuilder().setAddress("4.3.2.2").setHostname("replica2").setStatus("live").build();
         return ImmutableList.of(p1, p2);
     }
+
+    @Test
+    void testGetCredsUserNotConsortiumAuth() throws Exception {
+        // Bad case where user is *not* a Consortium admin.
+        mockMvc.perform(get(GET_REPLICA_CREDENTIALS_URL).with(authentication(userAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testGetCredsNoAccessToBc() throws Exception {
+        // Bad case where user is Consortium admin, but does not have access to this Blockchain.
+        consortiumAuth = createContext("consortium", ORG_ID, ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN),
+                                       ImmutableList.of(C2_ID), ImmutableList.of(Z1), "");
+
+        mockMvc.perform(get(GET_REPLICA_CREDENTIALS_URL).with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testGetCredsGoodAuth() throws Exception {
+        // Good case where the user is consortium admin, and has access to this Blockchain.
+        when(replicaService.getReplicas(B1)).thenReturn(nodeEntries());
+        consortiumAuth = createContext("consortium", ORG_ID, ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN,
+                                                                              VmbcRoles.ORG_USER),
+                                       ImmutableList.of(consortium.getId()), ImmutableList.of(B1), "");
+        mockMvc.perform(get(GET_REPLICA_CREDENTIALS_URL).with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isOk());
+    }
+
 }
