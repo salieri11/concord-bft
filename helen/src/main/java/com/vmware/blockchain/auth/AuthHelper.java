@@ -197,6 +197,23 @@ public class AuthHelper extends BaseAuthHelper {
     }
 
     /**
+     * Is the logged-in user a Consortium admin for the supplied Blockchain?
+     * @param bId blockchainId bId
+     * @return true if the user is administrator, false otherwise.
+     */
+    public boolean isConsortiumAdminForBlockchain(UUID bId) {
+        // How do we populate UserProfile:
+        // Blockchain is linked with Consortium.
+        // We get orgId for the logged-in user.
+        // Pull all the Consortiums for this organization.
+        // Pull Blockchain for each Consortium.
+        // Finally user details has lists of Consortium and Blockchain Ids that this user has access to.
+        // So whether the user has Consortium Admin role, and access to this blockchain is all we need to check.
+        return hasAnyAuthority(vmbcRoles.consortiumAdmin()) && getAccessChains().contains(bId);
+    }
+
+
+    /**
      * Mostly used for testing.  Set the context.
      * @param authenticationContext Authoriztion context.
      */
