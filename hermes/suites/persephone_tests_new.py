@@ -114,9 +114,10 @@ def teardown(hermes_settings, ps_helper):
     yield True  # yield dummy value to run teardown code below after test case is completed
     log.info("Starting teardown")
     cmdline_args = hermes_settings["cmdline_args"]
+    deprovision(hermes_settings, ps_helper)
     # Reset provisioning service application properties file
     update_provisioning_service_application_properties(cmdline_args, mode="RESET")
-    deprovision(hermes_settings, ps_helper)
+    print_deployment_summary(ps_helper)
 
 
 def create_deployment(ps_helper, deployment_params, zone_config):
@@ -685,6 +686,24 @@ def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deploy
     retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
     return status
 
+def print_deployment_summary(ps_helper):
+    log.info("Tests are done.")
+    log.info("")
+    log.info("############################################################")
+    log.info("##########          Deployment Summary            ##########")
+    log.info("############################################################")
+    for deployment_info in ps_helper.deployment_info:
+        session_id = deployment_info["deployment_session_id"]
+        log.info("Node type: {} (deployment {})".format(
+            deployment_info["concord_type"], session_id[0]))
+        log.info("Replicas (public IP)/Private IP")
+        for index, public_ip in enumerate(deployment_info["replicas"]):
+            log.info("{}) {:>15}/{}".format(index + 1, public_ip,
+                                            deployment_info["private_ips"][
+                                                index]))
+        log.info("")
+    log.info("############################################################")
+
 
 def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployment_session_id=None):
     """
@@ -697,7 +716,7 @@ def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployme
     """
     log.info("Checking deployment retention for deployment session id: {}".format(deployment_session_id))
     if deployment_session_id:
-        if (cmdline_args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ALWAYS) or \
+        if (helper.KEEP_BLOCKCHAINS_ALWAYS in cmdline_args.keepBlockchains) or \
                 (cmdline_args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ON_FAILURE and (not status)):
             log.info("Adding deployment session id to retention list: {}".format(deployment_session_id))
             session_ids_to_retain.append(deployment_session_id)
