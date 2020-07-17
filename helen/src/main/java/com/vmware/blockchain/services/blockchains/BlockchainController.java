@@ -307,7 +307,7 @@ public class BlockchainController {
             }
 
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_ENABLE_BFT_CLIENT)) {
-                basePropBuilder.putValues("enable-bft",
+                basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(),
                                           organization.getOrganizationProperties()
                                                   .get(Constants.ORG_ENABLE_BFT_CLIENT));
             }
