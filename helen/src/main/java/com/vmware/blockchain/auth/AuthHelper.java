@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,6 +26,7 @@ import com.vmware.blockchain.base.auth.BaseAuthHelper;
 import com.vmware.blockchain.base.auth.BaseUserDetails;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.security.HelenUserDetails;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.VmbcRoles;
@@ -195,6 +197,23 @@ public class AuthHelper extends BaseAuthHelper {
     public void evictToken() {
         baseCacheHelper.evict(Constants.CSP_TOKEN_CACHE, getAuthToken());
     }
+
+    /**
+     * Is the logged-in user a Consortium admin for the supplied Blockchain?
+     * @param bId blockchainId bId
+     * @return true if the user is administrator, false otherwise.
+     */
+    public boolean isUserConsortiumAdminForBlockchain(UUID bId) {
+        // How do we populate UserProfile:
+        // Blockchain is linked with Consortium.
+        // We get orgId for the logged-in user.
+        // Pull all the Consortiums for this organization.
+        // Pull Blockchain for each Consortium.
+        // Finally user details has lists of Consortium and Blockchain Ids that this user has access to.
+        // So whether the user has Consortium Admin role, and access to this blockchain is all we need to check.
+        return hasAnyAuthority(vmbcRoles.consortiumAdmin()) && getAccessChains().contains(bId);
+    }
+
 
     /**
      * Mostly used for testing.  Set the context.

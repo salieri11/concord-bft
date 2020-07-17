@@ -280,13 +280,16 @@ public class ReplicaController {
      * @return          200 with ReplicaGetCredentialsResponse
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas/{replicaId}/credentials"})
-    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    @PreAuthorize("@authHelper.isUserConsortiumAdminForBlockchain(#bid)")
     public ResponseEntity<NodeGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
                                                                             @PathVariable UUID replicaId) {
         Blockchain b = blockchainService.get(bid);
         if (b == null) {
             throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
         }
+
+
+
 
         Optional<Replica> replicaOpt = replicaService.getReplicas(bid).stream()
                                                         .filter(r -> r.getId().equals(replicaId)).findFirst();
