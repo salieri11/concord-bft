@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,7 +25,6 @@ import com.vmware.blockchain.base.auth.BaseAuthHelper;
 import com.vmware.blockchain.base.auth.BaseUserDetails;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.security.HelenUserDetails;
-import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.VmbcRoles;
