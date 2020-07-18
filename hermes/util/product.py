@@ -117,8 +117,10 @@ class Product():
 
          self.updateHelenTestPropertiesFile()
 
+         sourceException = None 
          while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
             try:
+               util.helper.CURRENT_SUITE_PRODUCT_ATTEMPT_NUMBER = numAttempts
                self._productLogsDir = self._productLogsDir.split("_attempt_")[0]
                self._productLogsDir += "_attempt_{}".format(numAttempts)
                pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
@@ -129,13 +131,18 @@ class Product():
                log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
                   numAttempts, str(e)))
                log.info(traceback.format_exc())
+               sourceException = e
 
                if numAttempts < self._cmdlineArgs.productLaunchAttempts:
                   log.info("Stopping whatever was launched and attempting to launch again.")
                   self.stopProduct()
 
          if not launched:
-            raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
+            errorMessage = "Failed to launch the product after {} attempt(s). Exiting".format(numAttempts)
+            log.error(errorMessage)
+            if sourceException: raise sourceException # re-raise without swallowing.
+            else: raise Exception(errorMessage)
+
 
 
    @describe("Should launch persephone with no error")

@@ -151,6 +151,7 @@ JIRA_BASE_URL = "https://jira.eng.vmware.com"
 # Current suite name and log path set by `main.py`
 CURRENT_SUITE_NAME = ""
 CURRENT_SUITE_LOG_FILE = ""
+CURRENT_SUITE_PRODUCT_ATTEMPT_NUMBER = 0 # set by product.py when retrying launchProduct
 
 # Hermes-specific traces for NON-CRITICAL exceptions (avoiding log file contamination)
 # e.g. exceptions that are good to know but does not belong in product & test logs

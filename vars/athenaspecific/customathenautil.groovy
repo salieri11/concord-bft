@@ -113,7 +113,11 @@ void handleKnownHosts(host){
 }
 
 void saveTimeEvent(stage, event){
-  sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
+  try {
+    sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
+  } catch(Exception ex) {
+    echo "Save time event has failed: " + ex.toString()
+  }
 }
 
 return this

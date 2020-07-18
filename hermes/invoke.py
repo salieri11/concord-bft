@@ -93,12 +93,10 @@ def publishRunsMR(args, options, secret):
   jenkins.publishRunsMR(limit=a[0], startFromBuildNumber=a[1])
 
 def printLongRunningTestDashboardLink(args, options, secret):
-  a = prepareArgs(args)
   link = helper.longRunningTestDashboardLink()
   log.info(link)
 
 def ownAllJenkinsNodesWorkspace(args, options, secret):
-  a = prepareArgs(args)
   jenkins.ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True)
 
 def resetBlockchain(args, options, secret):
@@ -106,6 +104,12 @@ def resetBlockchain(args, options, secret):
   replicas = helper.parseReplicasConfig(replicas=a[0])
   fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas)
   ops.reset_blockchain(fxBlockchain)
+
+def capturePipelineError(args, options, secret):
+  a = prepareArgs(args)
+  pipelineError = json.loads(a[0])
+  case.extractAndSavePipelineFailurePoint(pipelineError=pipelineError)
+  jenkins.setFailureSummaryInDescription()
 
 def localTestFunction(args, options, secret):
   '''A placeholder function for local testing of new code, pre-commit'''
@@ -130,8 +134,9 @@ DISPATCH = {
   "publishRunsReleases": publishRunsReleases,
   "publishRunsMR": publishRunsMR,
 
-  # Jenkins Master/Executor Nodes Ops
+  # Jenkins-related functions 
   "ownAllWorkspaces": ownAllJenkinsNodesWorkspace,
+  "capturePipelineError": capturePipelineError,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
