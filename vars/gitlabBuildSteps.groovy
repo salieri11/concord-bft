@@ -2,6 +2,7 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurperClassic
 import groovy.transform.Field
 import hudson.util.Secret
+import org.apache.commons.lang.exception.ExceptionUtils
 
 // Notes about this map:
 // - Possible fields per suite:
@@ -665,9 +666,7 @@ def call(){
               setUpRepoVariables()
               setEnvFileAndUserConfig()
 
-              dir('blockchain'){
-                pythonlib.initializePython()
-              }
+              dir('blockchain') { pythonlib.initializePython() }
 
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
@@ -1246,7 +1245,8 @@ def call(){
           dockerutillib.removeImages()
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
-          if (!env.python) pythonlib.initializePython()
+          if (!env.user_config_set) { setEnvFileAndUserConfig( hermesConfigOnly: true ) }
+          if (!env.python) { dir('blockchain') { pythonlib.initializePython() } }
 
           // Files created by the docker run belong to root because they were created by the docker process.
           // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
@@ -1342,6 +1342,10 @@ void failRun(Exception ex = null){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
   if (ex != null){
     echo "The run has failed with an exception: " + ex.toString()
+    // If summary file doesn't exist, capture pipeline error itself as failure point.
+    if ( ! fileExists(env.WORKSPACE + "/summary/failure_summary.log") ) { capturePipelineError(e) }
+  } else {
+    echo "The run has failed, but the exception object was not given."
   }
 }
 
@@ -1819,7 +1823,7 @@ void sendNotifications(){
     // Master failure to blockchain-build-fail channel
     if (env.JOB_NAME.contains(env.tot_job_name)) {
       echo("Notifying ToT failure on slack...")
-      slackNotifyFailure(jobName: "Master run",  target: "blockchain-build-fail", master: true)
+      slackNotifyFailure( jobName: "Master run",  target: "blockchain-build-fail", master: true )
     
     // For MR runs, notify the MR authors (usually single person)
     } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
@@ -1829,12 +1833,24 @@ void sendNotifications(){
         commitAuthorsJson = readFile(env.WORKSPACE + "/blockchain/vars/commits_authors.json")
         commitAuthorsInfo = new JsonSlurperClassic().parseText(commitAuthorsJson)
         for (authorEmail in commitAuthorsInfo["blame"]) {
-          slackNotifyFailure( jobName: "MR run", target: authorEmail, mr: true)
+          slackNotifyFailure( jobName: "MR run", target: authorEmail, mr: true )
         }
       } catch (Exception ex) {
-        echo("Failure notification to commit authors: " + ex.toString())
+        echo("Failure notification to MR commit authors: " + ex.toString())
+      }
+    
+    // For manual runs, notify whoever triggered
+    } else if (env.JOB_NAME.contains(manual_with_params_job_name)){
+      echo("Notifying manual run failure to triggerer of the build via slack DM...")
+      try {
+        triggererLDAP = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause).properties.userId
+        triggererEmail = triggererLDAP + "@vmware.com"
+        slackNotifyFailure( jobName: "Manual run",  target: triggererEmail, otherBuilds: true )
+      } catch (Exception ex) {
+        echo("Failure notification to triggerer " + triggererEmail + ": " + ex.toString())
       }
     }
+ 
   }
 }
 
@@ -1855,56 +1871,69 @@ void sendGeneralEmail(){
 }
 
 
-// When a ToT (e.g. master) run fails, notify users on Slack.
-// Regarding email, I don't have a good solution for recipients yet.
-// I am not sure if purnam-team is appropriate because of the non-engineering members.
-// Getting users from GitLab would also not use the DA folks' "digitalassets" address,
-// but maybe that's close enough.
-// Getting all users who contributed to GitLab would include users who left the team.
-void slackNotifyFailure(Map params){
+/**
+ * slackNotifyFailure
+ * 
+ * @keyword_param jobName String: job name (e.g. "MR run") used for header
+ * @keyword_param target String: Slack channel name or email of the recipient
+ * @keyword_param master Boolean: is it master failure notification? default false
+ * @keyword_param mr Boolean: is it MR failure notification? default false
+ */
+void slackNotifyFailure(Map param){
+
+  // When a ToT (e.g. master) run fails, notify users on Slack.
+  // Regarding email, I don't have a good solution for recipients yet.
+  // I am not sure if purnam-team is appropriate because of the non-engineering members.
+  // Getting users from GitLab would also not use the DA folks' "digitalassets" address,
+  // but maybe that's close enough.
+  // Getting all users who contributed to GitLab would include users who left the team.
+
   // recipients = "purnam-team@vmware.com"
   // emailext to: recipients,
   //          subject: subject,
   //          body: env.run_fail_msg,
   //          presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
 
-  jobName = params.jobName
-  target = params.target
-  isMasterFailure = params.master ? true : false;
-  isMRFailure = params.mr ? true : false;
+  jobName = param.jobName
+  target = param.target
+  isMaster = param.master ? true : false;
+  isMR = param.mr ? true : false;
+  isOtherBuilds = !isMaster && !isMR
   echo("Sending slack notification (jobName=" + jobName + "; target=" + target + ")")
 
-  subject = ""
-  if (isMasterFailure) { // Master failure is serious; channel post needs @here
+  message = ""
+  if (isMaster) { // Master failure is serious; channel post needs @here
     Random rnd = new Random()
     emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
                   ":skull_and_crossbones:", ":jenkins-explode:"]
     emoji = emoji_list[rnd.nextInt(emoji_list.size)]
-    subject = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|" +
+    message = emoji + emoji + " <!here> [ *<" + env.BUILD_URL + "|" +
             jobName + " " + env.BUILD_NUMBER + ">* ] has failed! " + emoji + emoji  
-  } else if (isMRFailure) { // slack DM doesn't need @here
-    subject = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
+  } else if (isMR) { // slack DM doesn't need @here
+    message = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
     try {
       if (fileExists(env.WORKSPACE + "/summary/trigger_info.json")) {
         triggerInfoJson = readFile(env.WORKSPACE + "/summary/trigger_info.json")
         triggerInfo = new JsonSlurperClassic().parseText(triggerInfoJson)
         if (triggerInfo["mr_number"] && triggerInfo["mr_url"]) {
-          subject += " (from *<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + ">*"
+          message += " (from *<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + ">*"
         }
         if (triggerInfo["jira_ticket"] && triggerInfo["jira_url"]) {
-          subject += " :: <" + triggerInfo["jira_url"] + "|" + triggerInfo["jira_ticket"] + ">)"
+          message += " :: <" + triggerInfo["jira_url"] + "|" + triggerInfo["jira_ticket"] + ">)"
         } else {
-          subject += ")"  
+          message += ")"  
         }
       }
     } catch(Exception ex) {
       echo("Adding MR + Jira information has failed: " + ex.toString())
     }
+  } else if (isOtherBuilds) {
+    message = "[ *<" + env.BUILD_URL + "|" + jobName + " " + env.BUILD_NUMBER + ">* ] has failed."
   } else {
-    echo("Unknown type of notification (neither master or MR).")
+    echo("Unknown type of notification (neither master, MR, or other).")
     return
   }
-  env.run_fail_msg = subject + "\n<" + env.BUILD_URL + "console|Console>"
+  message += "\n<" + env.BUILD_URL + "console|Console>"
 
   // Add Racetrack link
   rtUrl = "https://racetrack.eng.vmware.com"
@@ -1913,39 +1942,72 @@ void slackNotifyFailure(Map params){
       racetrackJson = readFile(env.WORKSPACE + "/blockchain/vars/racetrack_set_id.json")
       racetrackInfo = new JsonSlurperClassic().parseText(racetrackJson)
       if (racetrackInfo["setId"]) {
-        env.run_fail_msg += " :: <" + rtUrl + "/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
+        message +=  " :: <" + rtUrl + "/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
+      } else {
+        message +=  " :: <" + env.BUILD_URL + "artifact/|Artifacts>"
       }
     } catch(Exception ex) {
       echo("Adding racetrack link has failed: " + ex.toString())
     }
+  } else { // No Racetrack? At least add Artifacts link
+    message += " :: <" + env.BUILD_URL + "artifact/|Artifacts>"
   }
   
   // Add other links (exact point of failure) if available
-  if (fileExists(env.WORKSPACE + "/summary/failure_summary.log")) {
+  if (fileExists(env.WORKSPACE + "/summary/failure_summary.json")) {
     try {
       summaryJson = readFile(env.WORKSPACE + "/summary/failure_summary.json")
       summary = new JsonSlurperClassic().parseText(summaryJson)
-      env.run_fail_msg += " :: <" + summary["summary_url"] + "|Summary>"
-      env.run_fail_msg += " :: <" + summary["log_path"] + "|Logs>"
-      if (fileExists(env.WORKSPACE + "/summary/errors_only.log")) {
-        env.run_fail_msg += " :: <" + summary["filtered_url"] + "|Filtered>"
+      message += " :: <" + summary["summary_url"] + "|Summary>"
+      if (summary["log_path"]) {
+        message += " :: <" + summary["log_path"] + "|Logs>"  
       }
-      env.run_fail_msg += "   (Code: *" + summary["sig"]["short"] + "*)"
-      env.run_fail_msg += "\n```" + summary["message"] + "```"
-      env.run_fail_msg += "\nSuite: `" + summary["suite_name"] + "`"
-      if (summary["test_name_short"]) {
-        env.run_fail_msg += "\nTest: `" + summary["test_name_short"] + "`  "  
-        env.run_fail_msg += "(<" + rtUrl + "/resulthistory.php?product=blockchain&testcase=" + summary["test_name_short"] + "|View History>)"
-      } else {
-        env.run_fail_msg += "\nTest: `" + summary["test_name"] + "`  "  
+      if ((summary["from"] == "Hermes" && fileExists(env.WORKSPACE + "/summary/errors_only.log")) || summary["filtered_url"]) {
+        message += " :: <" + summary["filtered_url"] + "|Filtered>"
       }
-      fileAndLineNumber = summary["file"] + " :: line " + summary["line_number"]
-      if (env.GIT_COMMIT) {
-        fileURL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/blob/"
-        fileURL += env.GIT_COMMIT + "/" + summary["file"] + "#L" + summary["line_number"]
-        env.run_fail_msg += "\n        at <" + fileURL + "|" + fileAndLineNumber + ">"
-      } else {
-        env.run_fail_msg += "\n        at " + fileAndLineNumber
+      if (summary["from"] == "Hermes") {
+        message += "   (Code: *" + summary["sig"]["short"] + "*)"
+        message += "\n```" + summary["message"] + "```"
+        message += "\nSuite: `" + summary["suite_name"] + "`"
+        if (summary["test_folder_url"]) {
+          if (summary["product_folder_url"]) {
+            message += "  (<" + summary["test_folder_url"] + "|Test Folder> :: <" + summary["product_folder_url"] + "|Product Logs>)"
+          } else {
+            message += "  (<" + summary["test_folder_url"] + "|Test Folder>)"  
+          }
+        }
+        if (summary["test_name_short"]) {
+          message += "\nTest: `" + summary["test_name_short"] + "`  "  
+          message += "(<" + rtUrl + "/resulthistory.php?product=blockchain&testcase=" + summary["test_name_short"] + "|View History>)"
+        } else {
+          message += "\nTest: `" + summary["test_name"] + "`  "  
+        }
+        if (summary["file"] && !summary["file"].startsWith("(") && summary["line_number"]) {
+          fileAndLineNumber = summary["file"] + " :: line " + summary["line_number"]
+          if (env.GIT_COMMIT && (isMaster || isMR)) { // Only master & MR have accurate file view for commit
+            fileURL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/blob/"
+            fileURL += env.GIT_COMMIT + "/" + summary["file"] + "#L" + summary["line_number"]
+            message += "\n        at <" + fileURL + "|" + fileAndLineNumber + ">"
+          } else {
+            message += "\n        at " + fileAndLineNumber
+          }
+        }
+      } else if (summary["from"] == "Build") {
+        message += "\nComponent build failed for `" + summary["image"] + "`"
+        message += "\n```" + summary["build_error_log_short"] + "```"
+      } else if (summary["from"] == "Pipeline") {
+        message += "\n```" + summary["message"] + "```"
+        message += "\nPipeline Stage: `" + summary["stage_name"] + "`"
+        if (summary["file"] && !summary["file"].startsWith("(") && summary["line_number"]) {
+          fileAndLineNumber = summary["file"] + " :: line " + summary["line_number"]
+          if (env.GIT_COMMIT && (isMaster || isMR)) { // Only master & MR have accurate file view for commit
+            fileURL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain/blob/"
+            fileURL += env.GIT_COMMIT + "/" + summary["file"] + "#L" + summary["line_number"]
+            message += "\n        at <" + fileURL + "|" + fileAndLineNumber + ">"
+          } else {
+            message += "\n        at " + fileAndLineNumber
+          }
+        }
       }
     } catch(Exception ex) {
       echo("Adding failure summary links has failed: " + ex.toString())
@@ -1953,7 +2015,7 @@ void slackNotifyFailure(Map params){
   }
 
   // Too many backticks needing escape; much easier to just pass by Base64
-  env.run_fail_msg_b64 = "__base64__" + env.run_fail_msg.bytes.encodeBase64().toString()
+  env.run_fail_msg_b64 = "__base64__" + message.bytes.encodeBase64().toString()
   env.invoke_method = target.contains("@") ? "slackDM" : "slackPost"; // slackDM for email, otherwise channel post
   env.slack_notify_target = target // "blockchain-build-fail" | email
 
@@ -1991,7 +2053,15 @@ void announceSDDCCleanupFailures(failures){
   }
 }
 
-void setEnvFileAndUserConfig(){
+
+/**
+ * setEnvFileAndUserConfig
+ *
+ * @keyword_param hermesConfigOnly Boolean: whether to only set Hermes-related credentials; default false
+ */
+void setEnvFileAndUserConfig(Map param = [:]) {
+  if (env.user_config_set) { return }
+  env.user_config_set = true
   withCredentials([
     string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
     string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
@@ -2011,7 +2081,7 @@ void setEnvFileAndUserConfig(){
     usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'UI_E2E_CSP_LOGIN_CREDENTIALS', usernameVariable: 'UI_E2E_CSP_LOGIN_USERNAME', passwordVariable: 'UI_E2E_CSP_LOGIN_PASSWORD'),
   ]) {
-    sh '''
+    if (!param.hermesConfigOnly) { sh '''
       echo "${PASSWORD}" | sudo -S ls
       sudo cat >blockchain/docker/.env <<EOF
 asset_transfer_repo=${internal_asset_transfer_repo}
@@ -2059,26 +2129,27 @@ PRODUCT_VERSION=${product_version}
 EOF
     '''
 
-    updateEnvFileForConcordOnDemand()
-    updateEnvFileForPersephoneOnDemand()
-    updateEnvFileForBuildingMRs()
+      updateEnvFileForConcordOnDemand()
+      updateEnvFileForPersephoneOnDemand()
+      updateEnvFileForBuildingMRs() 
 
-    sh '''
-      cp blockchain/docker/.env blockchain/hermes/
-      cp blockchain/docker/.env blockchain/vars/env.log
-    '''
+      sh '''
+        cp blockchain/docker/.env blockchain/hermes/
+        cp blockchain/docker/.env blockchain/vars/env.log
+      '''
+    }
 
+
+    // Hermes-related credentials setting
     env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
     env.WORKSPACE_ESCAPED = env.WORKSPACE.replaceAll('/', '___')
     sh '''
       # Update provisioning service application-test.properties
-      sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
       sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<JENKINS_BUILDER_PASSWORD>"'/'"${PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
       sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
@@ -2098,17 +2169,6 @@ EOF
       sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-
-      # For UI E2E zone test (vCenter form filling out)
-      sed -i -e 's/'"<CREDENTIALS_NOT_INJECTED_FROM_JENKINS>"'/'"set"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<UI_E2E_CSP_LOGIN_USERNAME>"'/'"${UI_E2E_CSP_LOGIN_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<UI_E2E_CSP_LOGIN_PASSWORD>"'/'"${UI_E2E_CSP_LOGIN_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/ui/e2e/credentials.json
-      sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
 
       # For running CHESS+, in order to get the Spider version.
       sed -i -e 's/'"<DOCKERHUB_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/long_running_tests.json
@@ -2130,21 +2190,48 @@ EOF
       }
     }
 
-    if (env.JOB_NAME.contains(persephone_test_job_name)) {
+    // All other credentials settings (UI, Helen Zone, Persephone)
+    if (!param.hermesConfigOnly) {
+      // UI e2e credentials.json
       sh '''
-        # Update provisioning service application-test.properties with bintray registry for nightly runs
-        sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        # For UI E2E zone test (vCenter form filling out)
+        sed -i -e 's/'"<CREDENTIALS_NOT_INJECTED_FROM_JENKINS>"'/'"set"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<UI_E2E_CSP_LOGIN_USERNAME>"'/'"${UI_E2E_CSP_LOGIN_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<UI_E2E_CSP_LOGIN_PASSWORD>"'/'"${UI_E2E_CSP_LOGIN_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/ui/e2e/credentials.json
+        sed -i -e 's/'"<LOG_INSIGHT_ON_ONECLOUD_PASSWORD>"'/'"${LOG_INSIGHT_ON_ONECLOUD_PASSWORD}"'/g' blockchain/ui/e2e/credentials.json
       '''
-    } else {
+
+      // Default zone migration
       sh '''
-        # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
-        sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
       '''
+
+      // Persephone configs
+      sh '''
+        sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+      '''
+      if (env.JOB_NAME.contains(persephone_test_job_name)) {
+        sh '''
+          # Update provisioning service application-test.properties with bintray registry for nightly runs
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      } else {
+        sh '''
+          # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      }
     }
+
   }
 }
 
@@ -2390,23 +2477,59 @@ boolean findUnrecognizedSuites(component){
   return false
 }
 
-void racetrackUpdate(Map params){
+
+/**
+ * racetrackUpdate
+ *
+ * @keyword_param action String: what Racetrack action? "setBegin" | "setEnd"
+ * @keyword_param repo String: repo name of the Racetrack set default "athena"
+ * @keyword_param type String: which Racetrack set to use; "building" | "testing"
+ * @keyword_param result String: result of the Racetrack result set; "SUCCESS" | "FAILURE"
+ */
+void racetrackUpdate(Map param){
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-    def action = params.action
-    env.set_type = params.type ? params.type : "testing" // "building" | "testing"
+    def action = param.action
+    if (!action) { echo("Racetrack update cannot continue without action param given"); return; }
+    env.set_type = param.type ? param.type : "testing" // "building" | "testing"
     // future-proofing for repo split
-    env.repo = params.repo ? params.repo : "athena" // "athena" | "concord" | ...
+    env.repo = param.repo ? param.repo : "athena" // "athena" | "concord" | ...
     script {
       dir('blockchain/hermes') {
         try {
           if (action == "setBegin") {
             sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin --param "${repo}" "${set_type}"'  
           } else if (action == "setEnd") {
-            env.run_result = params.result ? params.result : "FAILURE"
+            env.run_result = param.result ? param.result : "FAILURE"
             sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd --param "${repo}" "${run_result}" "${set_type}"'
           }
         } catch (Exception ex) {
           echo("Racetrack update operation has failed: " + ex.toString())
+        }
+      }
+    }
+  }
+}
+
+void capturePipelineError(ex) {
+  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+    script {
+      if (!env.user_config_set) { setEnvFileAndUserConfig( hermesConfigOnly: true ) }
+      if (!env.python) { dir('blockchain') { pythonlib.initializePython() } }
+      dir('blockchain/hermes') {
+        try {
+          topStack = ex.getStackTrace()[0]
+          pipelineError = [
+            stage_name: env.STAGE_NAME,
+            build_url: env.BUILD_URL,
+            error_message: ex.toString(),
+            stack_trace: ExceptionUtils.getStackTrace(ex),
+          ]
+          pipelineErrorJson = JsonOutput.toJson(pipelineError)
+          pipelineErrorJsonBase64 = "__base64__" + pipelineErrorJson.bytes.encodeBase64().toString()
+          env.pipeline_error_json_b64 = pipelineErrorJsonBase64
+          sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py capturePipelineError --param "${pipeline_error_json_b64}"'
+        } catch (Exception errorWhileCapturing) {
+          echo "Failed to pinpoint-summarize pipeline error: " + errorWhileCapturing.toString()
         }
       }
     }

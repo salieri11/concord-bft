@@ -433,6 +433,7 @@ def replaceRunDescription(replaceList):
 
 
 def setFailureSummaryInDescription():
+  if not helper.thisHermesIsFromJenkins(): return
   summaryJsonPath = helper.getJenkinsWorkspace() + '/summary/failure_summary.json'
   if not os.path.isfile(summaryJsonPath):
     log.info("Cannot find failure_summary.json file, skipping setting summary link.")
@@ -440,19 +441,36 @@ def setFailureSummaryInDescription():
   with open(summaryJsonPath, 'r') as f:
     metadata = getRunMetadata()
     currentDescription = metadata["description"]
-    if not currentDescription: return
+    if not currentDescription or \
+       JENKINS_SUMMARY_LOG_HTML not in currentDescription: # summary already set
+      return
     newDescription = currentDescription
     summaryObj = json.loads(f.read(), strict=False)
     hasErrorLines = False
-    with open(summaryObj["log_path_local"], 'r') as f2:
-      with open(helper.getJenkinsWorkspace() + '/summary/errors_only.log', 'w+') as w:
-        for line in f2: 
-          if any(x in line for x in ["ERROR", "FAIL", "FATAL", "WARNING"]):
-            hasErrorLines = True; w.write(line)
-    summaryFileHTML = '| <a href="{}">Summary</a>'.format(summaryObj["summary_url"])
-    logFileHTML = '| <a href="{}">Logs</a>'.format(summaryObj["log_path"])
-    newDescription = newDescription.replace(JENKINS_SUMMARY_LOG_HTML, summaryFileHTML)
-    newDescription = newDescription.replace(JENKINS_TEST_LOG_HTML, logFileHTML)
+    if summaryObj["from"] == "Hermes":
+      with open(summaryObj["log_path_local"], 'r') as f2:
+        with open(helper.getJenkinsWorkspace() + '/summary/errors_only.log', 'w+') as w:
+          for line in f2: 
+            if any(x in line for x in ["ERROR", "FAIL", "FATAL", "WARNING", "FAILURE"]):
+              hasErrorLines = True
+              if '\\n' in line: 
+                # error with escaped line breaks are shown in one line forever 
+                # and therefore, very hard to read; break them apart into lines.
+                allSubLines = line.split('\\n')
+                for subline in allSubLines: w.write(subline)
+                w.write('\n')
+              else:
+                w.write(line)
+    elif summaryObj["from"] == "Build":
+      hasErrorLines = True
+    elif summaryObj["from"] == "Pipeline":
+      hasErrorLines = False
+    if summaryObj["summary_url"]:
+      summaryFileHTML = '| <a href="{}">Summary</a>'.format(summaryObj["summary_url"])
+      newDescription = newDescription.replace(JENKINS_SUMMARY_LOG_HTML, summaryFileHTML)
+    if summaryObj["log_path"]:
+      logFileHTML = '| <a href="{}">Logs</a>'.format(summaryObj["log_path"])
+      newDescription = newDescription.replace(JENKINS_TEST_LOG_HTML, logFileHTML)
     if hasErrorLines: # file with lines contaning ERROR
       errorsOnlyHTML = '| <a href="{}">Filtered</a>'.format(summaryObj["filtered_url"])
       newDescription = newDescription.replace(JENKINS_ERRORS_ONLY_HTML, errorsOnlyHTML)

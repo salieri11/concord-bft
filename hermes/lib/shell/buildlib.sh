@@ -142,14 +142,16 @@ printBuildFailure(){
   # few characters, and then show the next several lines.
   local BUILD_NAME="${1}"
   local LOG_FILE=`pwd`/${BUILD_LOGS["${BUILD_NAME}"]}
+  echo "${BUILD_NAME}" >> "${WORKSPACE}/summary/failed_build_name.log" # save failed build name.
+  echo "${LOG_FILE}" >> "${WORKSPACE}/summary/failed_build_path.log" # save failed build log file path.
   info "================================================================================"
   info "=========================== Attempting auto-triage! ============================"
   info "================================================================================"
   info "Searching ${LOG_FILE} for errors.  Results:"
-  grep -A10 -i "^ *.\{0,5\}error" "${LOG_FILE}"
+  grep -A10 -i "^ *.\{0,5\}error" "${LOG_FILE}" | tee "${WORKSPACE}/summary/failed_build_error.log"
   if [ $? -ne 0 ]; then
       info "No lines with 'error' near the beginning found. Here are the last few lines of the log:"
-      tail -n 10 "${LOG_FILE}"
+      tail -n 10 "${LOG_FILE}" | tee "${WORKSPACE}/summary/failed_build_error.log"
   fi
   info "================================================================================"
   info "================================================================================"
