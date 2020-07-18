@@ -41,6 +41,7 @@ class DeploymentParams:
 
 
 @pytest.fixture
+@describe("fixture; provisioning service")
 def ps_setup(request, hermes_settings):
     """
     Sets up provisioning service docker instance
@@ -73,6 +74,7 @@ def ps_setup(request, hermes_settings):
 
 
 @pytest.fixture
+@describe("fixture; provisioning service helper")
 def ps_helper(request, hermes_settings, ps_setup):
     """
     Returns instance of ProvisioningServiceNewRPCHelper
@@ -91,6 +93,7 @@ def ps_helper(request, hermes_settings, ps_setup):
 
 
 @pytest.fixture
+@describe("fixture; file_root path")
 def file_root(request, hermes_settings):
     """
     Sets the file_root path for a test case
@@ -105,6 +108,7 @@ def file_root(request, hermes_settings):
 
 
 @pytest.fixture
+@describe("fixture; teardown")
 def teardown(hermes_settings, ps_helper):
     """
     This fixture is used for cleanup activities, which is why it yields a dummy return value.

@@ -54,6 +54,7 @@ productType = helper.TYPE_TEE
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; bft network")
 @with_trio
 async def bft_network():
     config = TestConfig(n=4,

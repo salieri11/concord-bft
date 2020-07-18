@@ -33,6 +33,7 @@ LOG = logging.getLogger("main")
 productType = helper.TYPE_DAML
 
 @pytest.fixture(scope="module")
+@describe("fixture; set up")
 def setup_test_suite():
     """Setup function for the whole test suite
 

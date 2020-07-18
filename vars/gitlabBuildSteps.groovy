@@ -198,14 +198,14 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
-      --repeatSuiteRun 6',
+      --repeatSuiteRun 6 --suitesRealname=MemoryLeakNightly',
     "runWithGenericTests": false
   ],
   "MemoryLeakSmoke": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
-      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\'',
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\' --suitesRealname=MemoryLeakSmoke',
     "runWithGenericTests": true
   ],
   "UiTests": [
@@ -1343,7 +1343,7 @@ void failRun(Exception ex = null){
   if (ex != null){
     echo "The run has failed with an exception: " + ex.toString()
     // If summary file doesn't exist, capture pipeline error itself as failure point.
-    if ( ! fileExists(env.WORKSPACE + "/summary/failure_summary.log") ) { capturePipelineError(e) }
+    if ( ! fileExists(env.WORKSPACE + "/summary/failure_summary.json") ) { capturePipelineError(ex) }
   } else {
     echo "The run has failed, but the exception object was not given."
   }

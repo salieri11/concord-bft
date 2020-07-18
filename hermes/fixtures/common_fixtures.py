@@ -15,6 +15,7 @@ from rpc.rpc_call import RPC
 from util import auth, helper, infra, hermes_logging, numbers_strings, blockchain_ops, node_interruption_helper
 from util.daml import daml_helper
 from util.blockchain import eth as eth_helper
+from suites.case import describe
 import util.generate_zones_migration as migration
 
 log = hermes_logging.getMainLogger()
@@ -400,6 +401,7 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; run settings")
 def fxHermesRunSettings(request):
     '''
     Returns a dictionary of information about the Hermes run.
@@ -408,11 +410,13 @@ def fxHermesRunSettings(request):
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; product")
 def fxProduct(request, fxHermesRunSettings):
    '''
    An fxProduct provides a launched instance of the product
    to the tests being run.
    '''
+   
    if not fxHermesRunSettings["hermesCmdlineArgs"].noLaunch:
       logDir = os.path.join(fxHermesRunSettings["hermesTestLogDir"], "fxBlockchain")
       if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
@@ -497,6 +501,7 @@ def fxProduct(request, fxHermesRunSettings):
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; blockchain")
 def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
@@ -551,6 +556,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; Helen with initial org registered")
 def fxInitializeOrgs(request):
    '''
    Inserts some orgs used for testing into the Helen database.  This is needed, for example,
@@ -581,6 +587,7 @@ def fxInitializeOrgs(request):
 
 
 @pytest.fixture(scope="module")
+@describe("fixture; blockchain and run settings")
 def fxNodeInterruption(request, fxBlockchain, fxHermesRunSettings):
    committers = blockchain_ops.committers_of(fxBlockchain)
    participants = blockchain_ops.participants_of(fxBlockchain)
@@ -600,6 +607,7 @@ def fxNodeInterruption(request, fxBlockchain, fxHermesRunSettings):
 
 
 @pytest.fixture
+@describe("fixture; authenticated API connection to Helen")
 def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    '''
    This returns a basic fixture containing a Hermes Request object,
