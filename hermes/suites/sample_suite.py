@@ -6,6 +6,7 @@ from suites.case import describe
 
 
 @pytest.fixture
+@describe("fixture; sample")
 def sampleFixture(request):
    '''
    A fixture is a resource that can be created per test suite,

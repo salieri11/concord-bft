@@ -65,9 +65,17 @@ def getInvocationProxy(testFunc):
             if "description" in overrides: description = overrides["description"]
         if suiteName in SUITENAME_OVERRIDE:
           suiteName = SUITENAME_OVERRIDE[suiteName]
+        if hasattr(testFunc, "_is_fixture"):
+          caseName = caseName + '_during_' + suiteName
+        setattr(testFunc, "_current_suite_name", suiteName)
+        setattr(testFunc, "_current_case_name", caseName)
+        setattr(testFunc, "_current_description", description)
         if dontReport:
           setattr(testFunc, "_case_id", False)
           return
+        if hasattr(testFunc, "_is_fixture"): # don't report fixtures more than once
+          if hasattr(testFunc, "_reported_before"): return
+          else: setattr(testFunc, "_reported_before", True)
         caseId = racetrack.caseStart(
           suiteName = suiteName,
           caseName = caseName,
@@ -83,13 +91,20 @@ def getInvocationProxy(testFunc):
       Script to be executed after test case function finished
     '''
     try:
-      if helper.thisHermesIsFromJenkins() and hasattr(testFunc, "_case_id") and testFunc._case_id:
-        racetrack.caseEnd(
-          caseId = testFunc._case_id,
-          result = "PASS" if result else "FAIL"
-        )
-      dontReport = hasattr(testFunc, "_dont_report")
-      if result is False and not dontReport and helper.CURRENT_SUITE_LOG_FILE:
+      suiteName = getattr(testFunc, "_current_suite_name", None)
+      caseName = getattr(testFunc, "_current_case_name", None)
+      description = getattr(testFunc, "_current_description", None)
+      if helper.thisHermesIsFromJenkins():
+        if hasattr(testFunc, "_case_id") and testFunc._case_id:
+          racetrack.caseEnd(
+            caseId = testFunc._case_id,
+            result = "PASS" if result else "FAIL"
+          )
+        elif not result and hasattr(testFunc, "_fixture_reported"):
+          # fixture error must be reported
+          caseId = racetrack.caseStart(suiteName, caseName, description)
+          racetrack.caseEnd(caseId, "FAIL")
+      if result is False and helper.CURRENT_SUITE_LOG_FILE:
         extractAndSaveFailurePoint(testFunc, errorMessage, stackInfo, originalE, args, kwargs)
     except Exception as e:
       helper.hermesNonCriticalTrace(e, "Cannot execute post function of {}".format(testFunc._name))
@@ -182,6 +197,12 @@ def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicR
     provided arguments to the test function. `dynamicReportOverride` function
     must have the same argument signature as the test function it is trying to
     override (e.g. `def dynamicReportOverride_func(arg1, arg2):` )
+
+    `dontReport` flag will skip pass/fail reporting on Racetrack
+    (failure summary still saved when errored.)
+
+    For decorating fixtures, supplied description starting with "fixture;" and 
+    put `@describe` the decorator BELOW the fixture decorator.
   '''
   def wrapper(func):
     setTestCaseAttributes(func, description, casetype, stack())
@@ -192,8 +213,19 @@ def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicR
   return wrapper
 
 
+def addExceptionToSummary(e):
+  '''Add any generic exception to failure summary'''
+  try:
+    tb = traceback.extract_tb(e.__traceback__)
+    failurePoint = tb[1] if len(tb) > 1 else tb[0]
+    stackInfo = stack()[1:]
+    stackInfo.insert(0, failurePoint)
+    errorMessage = e.__class__.__name__ + ': ' + str(e)
+    extractAndSaveFailurePoint(e.__traceback__, errorMessage, stackInfo, e, [], {})
+  except Exception as e: helper.hermesNonCriticalTrace(e)
 
-def catchFailurePoint(func):
+
+def summarizeExceptions(func):
   '''
     Decorator function to capture and exception when func throw it
     without external reporting (e.g. Racetrack, Wavefront)
@@ -226,6 +258,8 @@ def setTestCaseAttributes(func, description, casetype, stackInfo):
   setattr(func, "_description", description)
   setattr(func, "_decorators", decoratorsList)
   setattr(func, "_casetype", casetype)
+  if description.startswith("fixture;") or shortCaseName.startswith("fx"):
+    setattr(func, "_is_fixture", True)
 
 
 def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, kwargs):
@@ -239,22 +273,24 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     # Save arguments supplied to the test function
     testArgsMap = kwargs
     nofixtureArgsMap = {} # avoid randomized props in fixtures hindering signature pinpointing
-    funcArgs = inspect.getfullargspec(func)[0]
-    for i, argName in enumerate(funcArgs):
-      if i >= len(args): break
-      testArgsMap[argName] = args[i]
-      if not argName.startswith("fx"): nofixtureArgsMap[argName] = args[i]
-    testArgsMap = filterOutUnnecessaryArguments(testArgsMap)
-    testArgsSerial = json.dumps(nofixtureArgsMap, indent=4, default=lambda o: '<NOT_SERIALIZABLE>')
-    testArgsSummary = []
-    for testArgName in testArgsMap:
-      testArgValue = testArgsMap[testArgName]
-      if type(testArgValue) in [dict, list, tuple]:
-        try: testArgValue = json.dumps(testArgValue, indent=4, default=str)
-        except: pass
-      testArgValue = re.sub(r" at 0x[0-9a-fA-F]+", "", str(testArgValue)) # remove object refs (e.g."at 0x7f8f7a70d898")
-      testArgsSummary.append("{} = {}".format(testArgName, testArgValue))
-    testArgsSummary = "\n".join(testArgsSummary)
+    testArgsSerial = ""; testArgsSummary = ""
+    if callable(func): # only extract arg info if callable
+      funcArgs = inspect.getfullargspec(func)[0]
+      for i, argName in enumerate(funcArgs):
+        if i >= len(args): break
+        testArgsMap[argName] = args[i]
+        if not argName.startswith("fx"): nofixtureArgsMap[argName] = args[i]
+      testArgsMap = filterOutUnnecessaryArguments(testArgsMap)
+      testArgsSerial = json.dumps(nofixtureArgsMap, indent=4, default=lambda o: '<NOT_SERIALIZABLE>')
+      testArgsSummary = []
+      for testArgName in testArgsMap:
+        testArgValue = testArgsMap[testArgName]
+        if type(testArgValue) in [dict, list, tuple]:
+          try: testArgValue = json.dumps(testArgValue, indent=4, default=str)
+          except: pass
+        testArgValue = re.sub(r" at 0x[0-9a-fA-F]+", "", str(testArgValue)) # remove object refs (e.g."at 0x7f8f7a70d898")
+        testArgsSummary.append("{} = {}".format(testArgName, testArgValue))
+      testArgsSummary = "\n".join(testArgsSummary)
     
     # If from Jenkins, output directly to workspace, otherwise defulat log path
     artifactSummaryLogPath = ""
@@ -293,8 +329,10 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     # Capture unique signature of the failure point
     suiteName = func._suite_name if hasattr(func, "_suite_name") else helper.CURRENT_SUITE_NAME
     returnCodeLine = failurePointInfo["line"].strip()
-    caseName = func.__name__
-    caseNameShort = getCaseNameShort(caseName)
+    caseName = func.__name__ if callable(func) else failurePointInfo["name"] # actual function whole name
+    caseNameShort = getCaseNameShort(caseName) # short name reported to Racetrack
+    if hasattr(func, "_current_case_name"): 
+      caseNameShort = getattr(func, "_current_case_name")
     suiteAndCase = suiteName + '::' + caseName
     if hasattr(func, "_dynamic_report_override"): # implies multiple calls to single test function
       # For varying arguments like `EthCoreVMTests`, since there are multiple cases
@@ -340,7 +378,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n{}".format(
       "{}{} :: {}\n{}".format(
         "=============================================== Context =================================================================\n",
-        helper.CURRENT_SUITE_NAME, func.__name__,
+        helper.CURRENT_SUITE_NAME, caseName,
         testLogPath
       ),
       "{}{}\n\n{}Failed at {}:{}   (Signature={})\n\n{}{}".format(
@@ -373,7 +411,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     failureSummaryJson = {
       "from": "Hermes",
       "suite": helper.CURRENT_SUITE_NAME,
-      "function_name": func.__name__,
+      "function_name": caseName,
       "file": failurePointInfo["file"],
       "line_number": failurePointInfo["lineno"],
       "line": returnCodeLine,
@@ -564,6 +602,8 @@ def traceStackData(stackData, func):
     and target function (test function)
   '''
   try:
+    if not callable(func): # must be traceback object
+      stackData = inspect.getinnerframes(func)[0]
     failurePoint = stackData
     failureLineNumber = failurePoint.lineno
     failureLineNumber = int(failureLineNumber)
@@ -571,7 +611,7 @@ def traceStackData(stackData, func):
       failureTestFile = "hermes/" + failurePoint.filename.split("/hermes/")[1]
     else:
       failureTestFile = failurePoint.filename
-    testFuncName = func.__name__
+    testFuncName = func.__name__ if callable(func) else failurePoint.function
     sourceInfo = inspect.getsourcelines(func)
     sourceCodeLines = sourceInfo[0]
     sourceLineNumber = int(sourceInfo[1])

@@ -30,7 +30,7 @@ from suites import (
   ui_tests,
   websocket_rpc_tests,
 )
-from suites.case import catchFailurePoint
+from suites.case import summarizeExceptions, addExceptionToSummary
 from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
@@ -91,7 +91,7 @@ def initialize():
       sys.path.append(path)
 
 
-@catchFailurePoint
+@summarizeExceptions
 def main():
    suite = None
 
@@ -333,11 +333,13 @@ def main():
             resultFile, product = suite.run()
             log.info("Finished running {}".format(suiteName))
          except ProductLaunchException as e:
+            addExceptionToSummary(e)
             log.error("Product launch exception with suite {}".format(suiteName))
             traceback.print_exc()
             resultFile = e.logFile
             product = None
          except Exception as e:
+            addExceptionToSummary(e)
             log.error("Uncaught test exception in suite {}".format(suiteName))
             log.error(e)
             traceback.print_exc()
@@ -359,7 +361,8 @@ def main():
                for blockchain_type, replica_ips in all_replicas_and_type.items():
                   helper.create_concord_support_bundle(replica_ips, blockchain_type, args.resultsDir)
                log.info("*************************************")
-         except Exception:
+         except Exception as e:
+            addExceptionToSummary(e)
             suiteSuccess = False
             suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultFile, suiteName)
 

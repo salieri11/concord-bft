@@ -66,6 +66,7 @@ def get_start_to_end_ms(start=1, end=0):
 # First it creates a query task with a replica ID
 # Then polls on query task until it's completed
 @pytest.fixture
+@describe("fixture; log intelligent query")
 def li_cloud_query(fxConnection, fxBlockchain):
     def _init(data={}):
         log_dict = {}

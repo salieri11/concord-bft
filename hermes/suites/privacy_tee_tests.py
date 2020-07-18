@@ -50,6 +50,7 @@ LOG = util.hermes_logging.getMainLogger()
 productType = helper.TYPE_TEE
 
 @pytest.fixture(scope="module")
+@describe("fixture; set up tee")
 def setup_test_suite():
     """Setup function for the whole test suite
     """

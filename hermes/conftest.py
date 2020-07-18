@@ -8,6 +8,7 @@ import os
 import types
 import pytest
 import util
+from suites.case import describe
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -122,6 +123,7 @@ def removeSkippedTests(testList, ethereumTestRoot):
 
 
 @pytest.fixture
+@describe("fixture; run settings")
 def hermes_settings(request):
     """
     Given a PyTest fixture's request object, returns a dictionary of various
