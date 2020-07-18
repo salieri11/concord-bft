@@ -167,7 +167,7 @@ export class DetailsComponent implements OnInit {
     };
     const cachedSecurePassword = this.securePasswordCached[node.id];
     if (cachedSecurePassword) { return finalizeNodeCredentialInfo(cachedSecurePassword); }
-    this.nodeService.getNodeCredentials(node.id).subscribe(credentials => {
+    this.nodeService.getNodeCredentials(node).subscribe(credentials => {
       this.securePasswordCached[node.id] = credentials;
       const t2 = Date.now();
       // Give minimum half-second loading time to give more consistent UX feel
