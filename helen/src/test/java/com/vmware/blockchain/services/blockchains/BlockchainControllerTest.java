@@ -68,6 +68,7 @@ import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
+import com.vmware.blockchain.services.blockchains.clients.Client;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
@@ -130,7 +131,13 @@ public class BlockchainControllerTest {
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
+                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                         + "    ,\"client_nodes\": [{"
+                                         + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "            \"auth_url_jwt\": \"user@server.com\","
+                                         + "            \"group_index\": \"1\""
+                                         + "      }]"
+                                         + "}";
 
     static final String POST_BODY_BAD_CONS = "{"
                                          + "    \"consortium_id\": \"a4b8f7ed-00b3-451e-97bc-4aa51a211288\","
@@ -159,6 +166,12 @@ public class BlockchainControllerTest {
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
+
+    private static final UUID REPLICA_1 = UUID.fromString("73ba5deb-1046-48e3-a369-3982177cabed");
+    private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
+    private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
+    private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+
 
     @Autowired
     private WebApplicationContext context;
@@ -630,6 +643,12 @@ public class BlockchainControllerTest {
             return null;
         });
 
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID);
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BODY_DAML).characterEncoding("utf-8"))
@@ -653,6 +672,9 @@ public class BlockchainControllerTest {
         Blockchain blockchain = blockchainResultAnswer.getResult();
         Assertions.assertEquals(BC_NEW, blockchain.getId());
         Assertions.assertEquals(BlockchainType.DAML, blockchain.getType());
+
+        // Also verify if the client response is correct.
+        //verifyClientApi();
     }
 
     @Test

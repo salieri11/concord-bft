@@ -35,4 +35,6 @@ public class Client extends AbstractEntity implements NodeInterface {
 
     @LinkedEntityId
     UUID zoneId;
+    // Id for the logical group that this client belongs to.
+    UUID groupId;
 }

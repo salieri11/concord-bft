@@ -13,6 +13,7 @@ import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.Bl
 import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -321,6 +322,8 @@ public class BlockchainController {
                                                                                 .setId(k.toString()).build())));
 
         if (body.getClientNodes() != null) {
+            // A map to hold groupIndex to groupId (UUID) mapping.
+            final Map<String, UUID> groupMap = new HashMap<String, UUID>();
             body.getClientNodes()
                     .forEach(k -> {
                         Properties.Builder propBuilder = Properties.newBuilder();
@@ -328,6 +331,20 @@ public class BlockchainController {
                             propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
                                                   k.getAuthUrlJwt());
                         }
+                        if (!Strings.isNullOrEmpty(k.getGroupIndex())) {
+                            // Did we see this groupIndex earlier?
+                            // If yes, then get the Id from the map.
+                            // Or else, generate a new one and put it in the map.
+                            UUID groupId = null;
+                            if (groupMap.containsKey(k.getGroupIndex())) {
+                                groupId = groupMap.get(k.getGroupIndex());
+                            } else {
+                                groupId = UUID.randomUUID();
+                                groupMap.put(k.getGroupIndex(), groupId);
+                            }
+                            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId.toString());
+                        }
+
                         nodeAssignment.addEntries(NodeAssignment.Entry
                                                           .newBuilder()
                                                           .setType(NodeType.CLIENT)

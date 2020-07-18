@@ -57,6 +57,7 @@ public class ClientController {
         private String cert;
         private UUID zoneId;
         private String authUrlJwt;
+        private UUID groupId;
 
         /**
          * Constructor for ClientGetResponse Class.
@@ -84,6 +85,7 @@ public class ClientController {
             this.url = client.getUrl();
             this.zoneId = client.getZoneId();
             this.authUrlJwt = client.getAuthJwtUrl();
+            this.groupId = client.getGroupId();
         }
     }
 
