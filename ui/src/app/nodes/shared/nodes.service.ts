@@ -162,10 +162,14 @@ export class NodesService {
     );
   }
 
-  getNodeCredentials(nodeId: string): Observable<NodeCredentials> {
-    return this.http.get<NodeCredentials>(
-      Apis.nodeCredentials(this.blockchainService.blockchainId, nodeId)
-    );
+  getNodeCredentials(node: BlockchainNode): Observable<NodeCredentials> {
+    if (this.committers.filter(item => item.id === node.id).length > 0) {
+      return this.http.get<NodeCredentials>(
+        Apis.committerNodeCredentials(this.blockchainService.blockchainId, node.id));
+    } else if (this.clients.filter(item => item.id === node.id).length > 0) {
+      return this.http.get<NodeCredentials>(
+        Apis.clientNodeCredentials(this.blockchainService.blockchainId, node.id));
+    }
   }
 
   getAllNodeTypes(): Observable<any[]> {

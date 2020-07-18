@@ -96,7 +96,8 @@ def getBlockchainFullDetails(blockchainId, conAdminRequest):
     clientDetails["type_name"] = helper.TYPE_DAML_PARTICIPANT
   for nodeDetails in allNodesDetails: # get strong passwords for each node
     try:
-      nodeCredentials = conAdminRequest.getReplicaCredentials(blockchainId, nodeDetails["id"])
+      nodeCredentials = conAdminRequest.getNodeCredentials(
+                          blockchainId, nodeDetails["id"], nodeDetails["type_name"])
       nodeDetails["password"] = nodeCredentials["password"]
     except Exception as e:
       helper.hermesNonCriticalTrace(e)

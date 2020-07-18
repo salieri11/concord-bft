@@ -259,14 +259,27 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     # If from Jenkins, output directly to workspace, otherwise defulat log path
     artifactSummaryLogPath = ""
     artifactFilteredLogPath = ""
+    artifactTestFolderPath = ""
+    artifactProductFolderPath = ""
     if helper.thisHermesIsFromJenkins():
       run = helper.getJenkinsJobNameAndBuildNumber()
       # link to test log should be changed to Jenkins artifacts path
+      workspaceTestFolder = "/".join(helper.CURRENT_SUITE_LOG_FILE.split("/")[:-1])
       basePath = jenkins.getJenkinRunBaseUrl(run["jobName"], run["buildNumber"])
       testLogPath = '/artifact/testLogs/' + helper.CURRENT_SUITE_LOG_FILE.split('/testLogs/')[1]
+      testLogFolder = "/".join(testLogPath.split("/")[:-1]) if "/" in testLogPath else "" # drop filename
+      attemptFolder = "/product_logs_attempt_" + str(helper.CURRENT_SUITE_PRODUCT_ATTEMPT_NUMBER)
+      if os.path.isdir(workspaceTestFolder + attemptFolder):
+        productLogFolder = testLogFolder + attemptFolder
+      elif os.path.isdir(workspaceTestFolder + "/product_logs"):
+        productLogFolder = testLogFolder + "/product_logs"
+      else:
+        productLogFolder = ""
       testLogPath = basePath + testLogPath.replace(' ', '%20') # encodeURL
       artifactSummaryLogPath = basePath + '/artifact/summary/' + FAILURE_SUMMARY_FILENAME + '.log'
       artifactFilteredLogPath = basePath + '/artifact/summary/errors_only.log'
+      artifactTestFolderPath = basePath + testLogFolder.replace(' ', '%20')
+      artifactProductFolderPath = basePath + productLogFolder.replace(' ', '%20')
       outputPath = helper.getJenkinsWorkspace() + '/summary/' # summary folder
     elif helper.CURRENT_SUITE_LOG_FILE:
       testLogPath = helper.CURRENT_SUITE_LOG_FILE
@@ -358,6 +371,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     )
 
     failureSummaryJson = {
+      "from": "Hermes",
       "suite": helper.CURRENT_SUITE_NAME,
       "function_name": func.__name__,
       "file": failurePointInfo["file"],
@@ -378,6 +392,8 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "log_path_local": helper.CURRENT_SUITE_LOG_FILE,
       "summary_url": artifactSummaryLogPath,
       "filtered_url": artifactFilteredLogPath,
+      "test_folder_url": artifactTestFolderPath,
+      "product_folder_url": artifactProductFolderPath,
     }
 
     # There may be multiple failures per run or test suite
@@ -401,8 +417,144 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
 
   except Exception as e:
-    log.info(e)
-    traceback.print_exc()
+    helper.hermesNonCriticalTrace(e)
+
+
+def extractAndSavePipelineFailurePoint(pipelineError):
+  '''
+    Captures pipeline error reported from groovy file.
+    ```python
+      pipelineError = {
+        "stage_name": stageName,
+        "build_url": env.BUILD_URL,
+        "error_message": e.toString(),
+        "stack_trace": ExceptionUtils.getStackTrace(e),
+      }
+    ```
+  '''
+  try:
+    if not helper.thisHermesIsFromJenkins(): return
+    stageName = pipelineError["stage_name"]
+    buildURL = pipelineError["build_url"] # ends with /
+    errorMessage = pipelineError["error_message"]
+    filename = "(anonymous function)"
+    lineNumber = "(unknown)"
+    stackTrace = pipelineError["stack_trace"]
+    stackTraceOriginal = stackTrace
+    try: # try to parse only groovy errors if possible
+      stackTrace = pipelineError["stack_trace"]
+      stackTraceLines = stackTrace.split("\n")
+      targetLines = []; targetLines.append(stackTraceLines[0])
+      alreadyDetected = False
+      for stackTraceLine in stackTraceLines:
+        if ".groovy:" in stackTraceLine:
+          if not alreadyDetected:
+            lineNumber = int(re.search(r'\d+', stackTraceLine.split(".groovy:")[1]).group(0))
+            filename = stackTraceLine.split("/JenkinsLibOnGitlab/")[1].split(":")[0]
+            alreadyDetected = True
+          targetLines.append(stackTraceLine)
+      stackTrace = "\n".join(targetLines)
+    except Exception as e: helper.hermesNonCriticalTrace(e)
+    workspace = helper.getJenkinsWorkspace()
+    imageNamePath = workspace + '/summary/failed_build_name.log'
+    outputFileName = workspace + '/summary/failure_summary'
+    # Image Build Failures
+    if stageName == "Build" and os.path.isfile(imageNamePath):
+      imageName = ""; buildLogPath = ""; buildErrorLog = ""
+      with open(workspace + '/summary/failed_build_name.log', 'r') as f: imageName = f.read().strip()
+      with open(workspace + '/summary/failed_build_path.log', 'r') as f: buildLogPath = f.read().strip()
+      with open(workspace + '/summary/failed_build_error.log', 'r') as f: buildErrorLog = f.read().strip()
+      buildErrorLogOriginal = buildErrorLog
+      deepScanErrorLines = scanBuildErrorLines(buildLogPath, buildErrorLogOriginal)
+      if deepScanErrorLines:
+        buildErrorLog = deepScanErrorLines
+        with open(workspace + '/summary/failed_build_error.log', 'w+') as w: w.write(buildErrorLog)
+      buildErrorLogSummary = buildErrorLog
+      buildErrorLogLines = buildErrorLog.split("\n")
+      if len(buildErrorLogLines) > 15: # error log too long to display, cut it
+        buildErrorLogSummary = "\n".join(buildErrorLogLines[-15:]) # last 15 lines
+      originalErrorMessage = errorMessage
+      errorMessage = "Error while building Docker image for '" + imageName + "'"
+      buildLogFile = buildLogPath.split('/blockchain/')[1]
+      failureSummaryLog = "\n{}\n\n\n{}\n\n\n".format(
+        "{}{} :: {}\n{}".format(
+          "=============================================== Context =================================================================\n",
+          "Build", imageName,
+          buildURL + 'artifacts/blockchain/' + buildLogFile
+        ),
+        "{}{}\n\n{}\n{}".format(
+          "=========================================== Failure Message =============================================================\n",
+          errorMessage,
+          "============================================ Error Vicinity =============================================================\n",
+          buildErrorLog
+        ),
+      )
+      failureSummaryJson = {
+        "from": "Build",
+        "stage_name": "Build",
+        "message": errorMessage,
+        "original_error": originalErrorMessage,
+        "build_error_log": buildErrorLog,
+        "build_error_log_short": buildErrorLogSummary,
+        "image": imageName,
+        "log_path": buildURL + 'artifact/blockchain/' + buildLogFile,
+        "summary_url": buildURL + 'artifact/summary/failure_summary.log',
+        "filtered_url": buildURL + 'artifact/summary/failed_build_error.log',
+        "file": filename,
+        "line_number": lineNumber,
+        "stack_trace": stackTrace,
+        "stack_trace_original": stackTraceOriginal,
+      }
+      with open(outputFileName + '.log', "w+") as f:
+        f.write(failureSummaryLog)
+      with open(outputFileName + '.json', "w+") as f:
+        f.write(json.dumps(failureSummaryJson, indent=4, default=str))
+    
+    # Other Pipeline Failures
+    else:
+      originalErrorMessage = errorMessage
+      errorMessage = "Pipeline error: " + originalErrorMessage
+      if stageName == "Run tests in containers" and "script returned exit code" in errorMessage:
+        errorMessage = "Uncaptured error while running test suites."
+      if filename.startswith("("): errorMessage += " (Couldn't find useful info to report in stack trace.)"
+      failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n".format(
+        "{}{} :: {}".format(
+          "=============================================== Context =================================================================\n",
+          "Pipeline Stage", stageName,
+        ),
+        "{}{}\n\n{}Failed at {}:{}".format(
+          "=========================================== Failure Message =============================================================\n",
+          errorMessage,
+          "========================================== Failure Location =============================================================\n",
+          filename, lineNumber
+        ),
+        "{}{}".format(
+          "============================================= Stack Trace ===============================================================\n",
+          stackTrace
+        ),
+        "{}{}".format(
+          "======================================== Original Stack Trace ===========================================================\n",
+          stackTraceOriginal
+        ),
+      )
+      failureSummaryJson = {
+        "from": "Pipeline",
+        "stage_name": stageName,
+        "message": errorMessage,
+        "original_error": originalErrorMessage,
+        "log_path": None,
+        "summary_url": buildURL + 'artifact/summary/failure_summary.log',
+        "file": filename,
+        "line_number": lineNumber,
+        "stack_trace": stackTrace,
+        "stack_trace_original": stackTraceOriginal,
+      }
+      with open(outputFileName + '.log', "w+") as f:
+        f.write(failureSummaryLog)
+      with open(outputFileName + '.json', "w+") as f:
+        f.write(json.dumps(failureSummaryJson, indent=4, default=str))
+
+  except Exception as e:
     helper.hermesNonCriticalTrace(e)
 
 
@@ -512,4 +664,56 @@ def filterOutUnnecessaryArguments(testArgsMap):
   if "hermes_settings" in testArgsMap:
     testArgsMap["hermes_settings"] = "<HermesRunSettings object; displayed at the bottom>"
   return testArgsMap
+
+
+def cleanBashColors(line):
+  line = re.sub(r'\[.*?;.*?m', '', line) # remove bash colors
+  line = line.replace("[m]", " ")
+  line = line.replace("[m", " ")
+  line = line.replace("[1m]", " ")
+  line = line.replace("[1m", " ")
+  line = ' '.join(line.split()) # remove multiple spaces
+  return line
+
+
+def scanBuildErrorLines(buildLogPath, originalLogs):
+  if not os.path.isfile(buildLogPath): return None
+  workspace = helper.getJenkinsWorkspace()
+  # Note: just for easier matching, line content is turned to upper.
+  lookFor = ["ERROR", "ERR!", "FAIL", "FATAL", "FAILURE", "FAILED"]
+  ignoreFor = ["DEBUG", "WARN"]
+  preErrorLinesKept = 4; postErrorLinesKept = 5 # how wide vicinity to keep
+  allLines = []; keptLines = []; warm = 0; errorFound = False
+  with open(buildLogPath, 'r') as f:
+    for line in f:
+      try:
+        line = line.strip()
+        if len(line) == 0: continue
+        line = cleanBashColors(line)
+        lineKept = False; prependList = []
+        lineAllCaps = line.upper()
+        if any(x in lineAllCaps for x in lookFor) and \
+           not any(x in lineAllCaps for x in ignoreFor):
+          errorFound = True
+          warm = postErrorLinesKept; lineKept = True
+          lastIndex = len(allLines) - 1
+          for i in range(preErrorLinesKept): # go back and get prev lines if not kept
+            idx = lastIndex - i
+            if idx < 0: break
+            if not allLines[idx]["kept"]:
+              prependList.append(allLines[idx]["line"])
+              allLines[idx]["kept"] = True
+          if len(prependList) > 0: prependList = list(reversed(prependList))
+        elif warm > 0: # error is still warm; keep a few lines after the error line
+          warm -= 1; lineKept = True
+        if len(prependList) > 0:
+          for lineToBePrepended in prependList: keptLines.append(lineToBePrepended)
+        if lineKept: keptLines.append(line)
+        allLines.append({"line": line, "kept": lineKept})
+      except Exception as e: helper.hermesNonCriticalTrace(e)
+    newlyFilteredErrorLog = "\n".join(keptLines)
+    if errorFound:
+      return newlyFilteredErrorLog
+    else:
+      return "No error lines are detected. Here are the last few lines:\n\n" + originalLogs
 

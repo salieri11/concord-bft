@@ -200,11 +200,14 @@ class Request():
 
       return self._send()
 
-   def getReplicaCredentials(self, blockchainId, replicaId, certs=False):
+   def getNodeCredentials(self, blockchainId, nodeId, nodeType, certs=False):
       '''
       Get strong password (SSH) of the node with given replica id
       '''
-      self._subPath = "/api/blockchains/" + blockchainId + "/replicas/" + replicaId+ "/credentials"
+      nodeCategoryPath = 'replicas'
+      if nodeType == helper.TYPE_DAML_COMMITTER: nodeCategoryPath = 'replicas'
+      elif nodeType == helper.TYPE_DAML_PARTICIPANT: nodeCategoryPath = 'clients'
+      self._subPath = "/api/blockchains/" + blockchainId + "/" + nodeCategoryPath + "/" + nodeId+ "/credentials"
       if certs:
          self._params = "certs=true"
       else:
