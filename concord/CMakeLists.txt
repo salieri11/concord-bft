@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS Off)
 
 # ELF security flags
-string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all")
+string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all -O3")
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
 # Storage options
