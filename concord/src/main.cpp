@@ -897,7 +897,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     if (bft_metrics_server) {
       bft_metrics_server->Stop();
     }
-
+    diagnostics_server.stop();
     replica.stop();
   } catch (std::exception &ex) {
     LOG_FATAL(logger, ex.what());
