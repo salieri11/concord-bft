@@ -18,6 +18,17 @@ DEFAULT_MARKET_FLAVOR = "sample"
 DEFAULT_CONCURRENCY = "3"
 DEFAULT_NO_OF_REQUESTS = "1"
 CHESSPLUS_TEST_LAUNCHER = "util/chessplus/chessplus_test_launcher.sh"
+chess_plus_run_timeout = {
+   DEFAULT_MARKET_FLAVOR: DEFAULT_TEST_TIMEOUT,
+   "nfr": "432000"
+}
+
+def get_test_timeout(market_flavor):
+   try:
+      return chess_plus_run_timeout[market_flavor]
+   except:
+      log.warning("Market flavor '{}' not found. Returning default timeout {}".format(market_flavor, DEFAULT_TEST_TIMEOUT))
+      return DEFAULT_TEST_TIMEOUT
 
 
 def run_chess_plus(args, participant_ip):
@@ -50,7 +61,7 @@ def run_chess_plus(args, participant_ip):
       raise
 
    cmd = [
-      "timeout", DEFAULT_TEST_TIMEOUT,
+      "timeout", get_test_timeout(args.marketFlavor),
       "bash", CHESSPLUS_TEST_LAUNCHER,
       "--ledgerHost", participant_ip,
       "--spiderImageTag", spider_image_tag,
@@ -58,7 +69,8 @@ def run_chess_plus(args, participant_ip):
       "--damlSDKVersion", daml_sdk_version,
       "--concurrency", args.concurrency,
       "--noOfRequests", args.noOfRequests,
-      "--resultsDir", args.resultsDir
+      "--resultsDir", args.resultsDir,
+      "--logLevel", str(args.logLevel)
    ]
 
    status, output = helper.execute_ext_command(cmd)

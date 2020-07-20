@@ -2,9 +2,9 @@
 #!/bin/bash
 
 EXIT_STATUS=1
-MARKET_FLAVOUR=sample
 LEDGER_HOST=localhost
 LEDGER_PORT=6865
+MARKET_FLAVOR_NFR=nfr
 
 TMP=/tmp
 TIME_STAMP=`date +%Y%m%d_%H%M%S`
@@ -123,8 +123,8 @@ run_chess_plus_test() {
     execute_command --commandToRun start-spider --validateString "returned: 0"
     execute_command --commandToRun market-genesis --validateString "Create: 1" --initializeOnce
     execute_command --commandToRun "import-data-set ${MARKET_FLAVOUR}" --validateString "Failure: 0" --initializeOnce
-    execute_command --commandToRun "load-runner --simulation bmw.open-market" --validateString "failed[' ']*0"
-    execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file /home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv --loop-file --trade-timeout 60s --requests ${NO_OF_REQUESTS} --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
+    execute_command --commandToRun "load-runner --simulation bmw.open-market" --validateString "failed[' ']*0" --initializeOnce
+    execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file ${TRADE_FILE} --loop-file --trade-timeout 60s --requests ${NO_OF_REQUESTS} --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
     execute_command --commandToRun stop-spider
     EXIT_STATUS=0
 }
@@ -173,11 +173,19 @@ while [ "$1" != "" ] ; do
             shift
             WORK_DIR="$1"
             ;;
+        "--logLevel")
+            shift
+            LOG_LEVEL="$1"
+            ;;
     esac
     shift
 done
 
 check_usage
+if [ "$LOG_LEVEL" == "10" ] # DEBUG
+then
+    set -x
+fi
 
 if  [ ! -d "${WORK_DIR}" ]
 then
@@ -191,6 +199,7 @@ then
 fi
 cd "${WORK_SUBDIR}"
 
+TRADE_FILE=/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv
 CHESS_PLUS_RUN_LOG_FILE="${WORK_SUBDIR}/run.log"
 export SPIDER_IMAGE_TAG="$SPIDER_IMAGE_TAG"
 export DAML_SDK_VERSION="$DAML_SDK_VERSION"
@@ -198,6 +207,20 @@ export LEDGER_HOST="$LEDGER_HOST"
 export LEDGER_PORT="$LEDGER_PORT"
 export MARKET_FLAVOUR="$MARKET_FLAVOUR"
 export CONCURRENCY="$CONCURRENCY"
+export MIN_LEDGER_TIME_REL=0
+
+if [ "${MARKET_FLAVOUR}" == "${MARKET_FLAVOR_NFR}" ]
+then
+    export DAY_T1=2019-12-06
+    export DAY_T2=2019-12-09
+    export DAY_T3=2019-12-10
+    export DAY_T4=2019-12-11
+    export DAY_T5=2019-12-12
+    export DAY_T6=2019-12-13
+    export DAY_T7=2019-12-16
+
+    TRADE_FILE=/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/20191205_Trades.zip
+fi
 
 run_chess_plus_test 2>&1 > "${CHESS_PLUS_RUN_LOG_FILE}"
 
