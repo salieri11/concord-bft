@@ -67,6 +67,8 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.header.signOut.subscribe(() => {
         window.location.href = this.authenticationService.logoutPath;
       });
+
+      this.header.tokenRefreshNeeded.subscribe(() => this.authenticationService.saveLastLocationAndReAuth());
     }
   }
 

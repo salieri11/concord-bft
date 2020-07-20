@@ -64,6 +64,9 @@ describe('ForbiddenComponent', () => {
             getOrgDefaultPaymentMethod: () => {
               return true;
             },
+            fetchServiceFamiliesForParentService: () => {
+              return true;
+            },
             getRedirectLink: () => {
               return 'string';
             }
