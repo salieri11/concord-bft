@@ -26,7 +26,7 @@ import { AppInitService } from './app.init';
 import { MainComponent } from './main/main/main.component';
 import { AuthenticatedGuard } from './shared/authenticated-guard.service';
 import { AgreementGuard } from './shared/agreement-guard.service';
-import { BlockchainResolver } from './blockchain/shared/blockchain.service';
+import { BlockchainResolver } from './blockchain/shared/blockchain.resolver';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, 'static/i18n/', '.json');

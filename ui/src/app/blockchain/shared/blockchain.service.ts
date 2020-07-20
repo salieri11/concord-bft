@@ -4,8 +4,6 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { BehaviorSubject, Observable, from, timer, zip, of, throwError } from 'rxjs';
 import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
 import { TranslateService } from '@ngx-translate/core';
@@ -14,7 +12,6 @@ import { ConsortiumService } from '../../consortium/shared/consortium.service';
 import {
   BlockchainRequestParams,
   BlockchainResponse,
-  BlockchainMeta,
   DeployStates,
   ContractEngines
 } from './blockchain.model';
@@ -131,64 +128,44 @@ export class BlockchainService {
       .pipe(take(1));
   }
 
-  set(bId?: string): Observable<boolean> {
+  set(blockchainId?: string): Observable<boolean> {
     const consortiumList = this.consortiumService.getList();
     const blockchainList = this.http.get(Apis.blockchains);
     const zoneList = this.getZones();
-
     return zip(consortiumList, blockchainList, zoneList)
       .pipe(
         map((response) => {
-          const cList = response[0] as Array<any>;
-          const bList = response[1] as Array<any>;
+          const cList = response[0] as any[];
+          const bList = response[1] as any[];
           this.zones = response[2] as Zone[];
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
-              if (consortium['consortium_id'] === blockchain['consortium_id']) {
-                blockchain['consortium_name'] = consortium['consortium_name'];
+              if (consortium.consortium_id === blockchain.consortium_id) {
+                blockchain.consortium_name = consortium.consortium_name;
               }
             });
           });
-
           this.blockchains = bList;
-
           return this.blockchains;
         }),
-        flatMap(() => this.select(bId ? bId : this.blockchainId))
+        flatMap(() => this.select(blockchainId))
       );
   }
 
-  select(bId: string): Observable<boolean> {
-    if (!bId) {
-      this.blockchainId = null;
-      return of(false);
-    } else if (!this.isUUID(bId) && this.blockchains.length === 0) {
-      this.blockchainId = undefined;
-      return of(false);
-    } else if (!this.isUUID(bId) && this.blockchains.length) {
-      bId = this.blockchains[0].id;
-    }
-
-    this.blockchainId = bId;
-    if (this.blockchains && this.blockchains.length) {
-      this.blockchains.forEach(bc => {
-        if (bc.id === bId) {
-          this.selectedBlockchain = bc;
-          this.blockchainId = this.selectedBlockchain.id;
-        }
-      });
-      if (this.blockchains.filter(item => (item.id === this.blockchainId)).length === 0) {
-        this.blockchainId = this.blockchains[0].id;
-      } else {
-        this.saveSelectedConsortium(this.blockchainId);
+  select(blockchainId?: string): Observable<boolean> {
+    this.blockchainId = null;
+    this.selectedBlockchain = null;
+    if (!this.blockchains || this.blockchains.length === 0) { return of(false); }
+    this.blockchains.forEach(blockchain => { // check blockchain actually exists on list
+      if (blockchain.id === blockchainId) {
+        this.selectedBlockchain = blockchain;
+        this.blockchainId = this.selectedBlockchain.id;
       }
-    }
-    return this.getMetaData().pipe(
-      map(metadata => {
-        this.metadata = metadata;
-        return true;
-      }),
-    );
+    });
+    if (!this.selectedBlockchain) { return of(false); }
+    this.type = this.selectedBlockchain.blockchain_type;
+    this.saveSelectedBlockchain(blockchainId);
+    return of(true);
   }
 
   getZones(): Observable<Zone[]> {
@@ -207,17 +184,6 @@ export class BlockchainService {
         }
       })
     );
-  }
-
-  getMetaData(): Observable<BlockchainMeta> {
-    return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
-      .pipe(
-        map(meta => {
-          this.metadata = meta;
-          this.type = meta.blockchain_type;
-          return this.metadata;
-        })
-      );
   }
 
   isUUID(uuid: string): boolean {
@@ -251,39 +217,16 @@ export class BlockchainService {
     }
   }
 
-  saveSelectedConsortium(consortiumId: string) {
-    localStorage.setItem('selectedConsortium', consortiumId);
+  saveSelectedBlockchain(blockchainId: string) {
+    localStorage.setItem('selectedBlockchain', blockchainId);
   }
 
-  loadSelectedConsortium() {
-    return localStorage.getItem('selectedConsortium');
+  loadSelectedBlockchain() {
+    return localStorage.getItem('selectedBlockchain');
   }
 
 }
 
-@Injectable({
-  providedIn: 'root'
-})
-export class BlockchainResolver implements Resolve<boolean> {
-
-  resolveObservable: Observable<boolean | any>;
-  constructor(
-    private blockchainService: BlockchainService,
-    private router: Router
-  ) { }
-
-  resolve(route?: ActivatedRouteSnapshot): Observable<boolean | any> {
-    const consortiumId = route ? route.params['consortiumId'] : undefined;
-    return this.blockchainService.set(consortiumId).pipe(
-      catchError(error => {
-        this.router.navigate(['/error'], {
-          queryParams: { error: JSON.stringify(error) }
-        });
-        return error;
-      })
-    );
-  }
-}
 
 export class MockBlockchainsService {
   notify = new BehaviorSubject({ message: '', type: '' });
@@ -315,10 +258,4 @@ export class MockBlockchainsService {
     return localStorage.getItem('selectedConsortium');
   }
 
-}
-
-export class MockBlockchainResolver implements Resolve<boolean> {
-  resolve(): Observable<boolean | any> {
-    return of(true);
-  }
 }

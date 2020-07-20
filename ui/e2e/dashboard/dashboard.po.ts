@@ -95,7 +95,7 @@ export class DashboardPage {
   }
 
   switchToDefault() {
-    element(by.css('.consortium-select option:nth-child(1)')).click();
+    element(by.css('.blockchain-select option:nth-child(1)')).click();
   }
 
   startTour() {

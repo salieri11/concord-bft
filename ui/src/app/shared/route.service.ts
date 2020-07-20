@@ -3,7 +3,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { BlockchainService, BlockchainResolver } from '../blockchain/shared/blockchain.service';
+import { BlockchainService } from '../blockchain/shared/blockchain.service';
+import { BlockchainResolver } from '../blockchain/shared/blockchain.resolver';
 import { Router, NavigationEnd, ActivatedRoute, NavigationStart } from '@angular/router';
 import { mainRoutes, fleetingRoutesList, ConsortiumStates, uuidRegExp } from './urls.model';
 import { DeployStates } from '../blockchain/shared/blockchain.model';
@@ -94,13 +95,13 @@ export class RouteService {
   redirectToDefault(fragment?: string) {
     if (this.outputAllRouterEvents) { console.log(new Error('Redirect to default called from stack trace:')); }
     if (this.blockchainService.blockchains && this.blockchainService.blockchains.length > 0) {
-      let consortiumId = this.blockchainService.loadSelectedConsortium();
-      if (!consortiumId || this.blockchainService.blockchains.filter(
-                            item => item.id === consortiumId).length > 0
+      let blockchainId = this.blockchainService.loadSelectedBlockchain();
+      if (!blockchainId || this.blockchainService.blockchains.filter( // not found
+                            item => item.id === blockchainId).length === 0
         ) {
-        consortiumId = this.blockchainService.blockchains[0].id;
+          blockchainId = this.blockchainService.blockchains[0].id;
       }
-      this.router.navigate([consortiumId, mainRoutes.dashboard], {
+      this.router.navigate([blockchainId, mainRoutes.dashboard], {
         fragment: fragment ? fragment : null
       });
     } else { // No consortium joined, redirect to welcome to let user deploy

@@ -8,7 +8,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { MainComponent } from './main.component';
 import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
 import { AgreementGuard } from '../../shared/agreement-guard.service';
-import { BlockchainResolver } from '../../blockchain/shared/blockchain.service';
+import { BlockchainResolver } from '../../blockchain/shared/blockchain.resolver';
 import { ZonesComponent } from '../../zones/zones.component';
 import { DeployComponent } from '../deploy/deploy.component';
 import { WelcomeComponent } from '../welcome/welcome.component';
@@ -30,9 +30,9 @@ import { detailsRoutes } from '../../details/details-routing';
 
 
 const routes: Routes = [
-  // ROUTE: /:consortiumId
+  // ROUTE: /:blockchainId
   {
-    path: ':consortiumId',
+    path: ':blockchainId',
     component: MainComponent,
     canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],

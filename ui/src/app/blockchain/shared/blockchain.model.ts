@@ -2,8 +2,6 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Zone } from '../../zones/shared/zones.model';
-
 export class BlockchainRequestParams {
   consortium_id?: string;
   consortium_name: string;
@@ -33,22 +31,8 @@ export interface BlockchainResponse {
   created: number;
   created_by: string;
   version: string;
-  blockchain_type: string;
-  blockchain_state: string;
-}
-
-export interface BlockchainMeta {
-  consortium_id: string;
-  id: string;
   blockchain_type: ContractEngines;
-  node_list: {
-    cert: string,
-    ip: string,
-    node_id: string,
-    url: string,
-    zone_id: string,
-    zone?: Zone
-  }[];
+  blockchain_state: string;
 }
 
 export enum DeployStates {

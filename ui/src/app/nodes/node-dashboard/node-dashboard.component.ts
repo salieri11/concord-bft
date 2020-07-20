@@ -238,11 +238,9 @@ export class NodeDashboardComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.nodesService.getList().subscribe(list => {
-      this.nodesInfo = list;
-      this.updateNodesInfo();
-      ++this.updateTrigger;
-    });
+    this.nodesInfo = this.nodesService.committersData;
+    this.updateNodesInfo();
+    ++this.updateTrigger;
   }
 
   valueFormatting(value) {

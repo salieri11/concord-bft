@@ -18,9 +18,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute, CanActivateChild, CanActivate } from '@angular/router';
 
-import { BlockchainService, MockBlockchainsService,
-  MockBlockchainResolver, BlockchainResolver
-} from '../blockchain/shared/blockchain.service';
+import { BlockchainService, MockBlockchainsService } from '../blockchain/shared/blockchain.service';
+import { MockBlockchainResolver, BlockchainResolver } from '../blockchain/shared/blockchain.resolver';
 import { FeatureFlagService } from './feature-flag.service';
 import { TranslateService } from '@ngx-translate/core';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';

@@ -7,11 +7,11 @@ import { HttpClient } from '@angular/common/http';
 // import { FormData } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, from, timer, of, Subject, zip } from 'rxjs';
-import { map, concatMap, filter, take, delay } from 'rxjs/operators';
+import { map, concatMap, filter, take, delay, catchError } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
 import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams,
-        CommittersData, BlockchainNode, NodeCredentials } from './nodes.model';
+        CommittersData, BlockchainNode, NodeCredentials, NodeType } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -42,8 +42,6 @@ export class NodesService {
   committersData: CommittersData = null;
   allNodesList: BlockchainNode[] = [];
 
-  onNodeList: Subject<boolean> = new Subject();
-
   committersWithOnlyPublicIP: boolean = false;
   committersWithOnlyPrivateIP: boolean = false;
   clientsWithOnlyPublicIP: boolean = false;
@@ -52,6 +50,9 @@ export class NodesService {
   clientsWithoutRPCURL: boolean = false;
   committersWithNoZoneInfo: boolean = false;
 
+  allOnPremZones: boolean = false;
+  allCloudZones: boolean = false;
+
   constructor(
     private http: HttpClient,
     private blockchainService: BlockchainService,
@@ -59,107 +60,113 @@ export class NodesService {
     private translate: TranslateService
   ) { }
 
-  getList(): Observable<CommittersData> {
-    return this.http.get<NodeInfo[]>(Apis.nodes(this.blockchainService.blockchainId)).pipe(
-      map(replicas => {
-        const zonesMap = this.blockchainService.zonesMap;
-        const groupedNodes: NodeProperties[] = [];
-        const tempNode = {};
-
-        replicas.forEach((replica, i) => {
-          let zoneData = zonesMap[replica.zone_id];
-
-          if (!zoneData) {
-            const loc = locations[i];
-            zoneData = {longitude: loc.geo[0], latitude: loc.geo[1], name: loc.region};
-          }
-
-          replica.geo = [Number(zoneData.longitude), Number(zoneData.latitude)];
-          replica.location = zoneData.name;
-          replica.zone_type = zoneData.type;
-          replica['state'] = replica['status'];
-
-          // Fake Single location
-          // replica['location'] = 'Palo Alto CA USA';
-          // replica['geo'] = [-122.143936,37.468319]
-
-          let text = '';
-          let labelClass = '';
-
-          if (replica.millis_since_last_message < replica.millis_since_last_message_threshold) {
-            text = this.translate.instant('nodes.healthy');
-            labelClass = 'label-success';
-            replica['healthy'] = true;
-            replica['status'] = text;
-          } else {
-            text = this.translate.instant('nodes.unhealthy');
-            labelClass = 'label-danger';
-            replica['healthy'] = false;
-            replica['status'] = text;
-          }
-
-          // This is useful for testing random health in the UI
-          // if (Math.random() >= 0.5) {
-          //   text = this.translate.instant('replicas.unhealthy');
-          //   labelClass = 'label-danger';
-          //   replica['healthy'] = false;
-          //   replica['status'] = text;
-          // }
-
-          replica['healthHTML'] = `<div class="label-container"><span class="label ${labelClass}">${text}</span></div>`;
-
-          //
-          // Cluster replicas
-          if (tempNode[replica.location]) {
-            tempNode[replica.location].push(replica);
-          } else {
-            tempNode[replica.location] = [replica];
-          }
-
-        });
-
-        Object.values(tempNode).forEach(temp => {
-          groupedNodes.push({
-            location: temp[0].location,
-            geo: temp[0].geo,
-            type: temp[0].type,
-            // @ts-ignore
-            nodes: temp
-          });
-        });
-
-        const onlyOnPremZones = groupedNodes.some(zone => zone.type === ZoneType.ON_PREM);
-
-        return {
-          nodes: replicas,
-          nodesByLocation: groupedNodes,
-          onlyOnPrem: onlyOnPremZones
-        };
-      })
+  fetchAndSet(blockchainId: string) {
+    return zip(
+      this.getCommitters(blockchainId),
+      this.getClients(blockchainId)
+    ).pipe(
+      map(responses => { this.setNodesList(responses[0], responses[1]); })
     );
   }
 
+  getCommitters(blockchainId: string) {
+    return this.http.get<NodeInfo[]>(Apis.nodes(blockchainId)).pipe(
+      catchError(() => of([]))); // used by resolver; it cannot fail; return [] on error;
+  }
 
-  getClients(): Observable<ClientNode[]> {
+  getClients(blockchainId: string) {
+    return this.http.get<ClientNode[]>(Apis.clients(blockchainId)).pipe(
+      catchError(() => of([]))); // used by resolver; it cannot fail; return [] on error;
+  }
+
+  prepareCommitters(replicas: NodeInfo[]): CommittersData {
     const zonesMap = this.blockchainService.zonesMap;
-    return this.http.get<ClientNode[]>(
-      Apis.clients(this.blockchainService.blockchainId)
-    ).pipe(
-      map(response => {
-        // Add zone name
-        response.forEach((client, i) => {
-          if (zonesMap[client.zone_id]) {
-            client['zone_name'] = zonesMap[client.zone_id].name;
-          } else {
-            client['zone_name'] = undefined;
-          }
-          if (!client['name']) {
-            client['name'] = 'Client' + (i + 1);
-          }
-        });
-        return response;
-      })
-    );
+    const groupedNodes: NodeProperties[] = [];
+    const tempNode = {};
+
+    replicas.forEach((replica, i) => {
+      let zoneData = zonesMap[replica.zone_id];
+
+      if (!zoneData) {
+        const loc = locations[i];
+        zoneData = {longitude: loc.geo[0], latitude: loc.geo[1], name: loc.region};
+      }
+
+      replica.geo = [Number(zoneData.longitude), Number(zoneData.latitude)];
+      replica.location = zoneData.name;
+      replica.zone_type = zoneData.type;
+      replica['state'] = replica['status'];
+
+      // Fake Single location
+      // replica['location'] = 'Palo Alto CA USA';
+      // replica['geo'] = [-122.143936,37.468319]
+
+      let text = '';
+      let labelClass = '';
+
+      if (replica.millis_since_last_message < replica.millis_since_last_message_threshold) {
+        text = this.translate.instant('nodes.healthy');
+        labelClass = 'label-success';
+        replica['healthy'] = true;
+        replica['status'] = text;
+      } else {
+        text = this.translate.instant('nodes.unhealthy');
+        labelClass = 'label-danger';
+        replica['healthy'] = false;
+        replica['status'] = text;
+      }
+
+      // This is useful for testing random health in the UI
+      // if (Math.random() >= 0.5) {
+      //   text = this.translate.instant('replicas.unhealthy');
+      //   labelClass = 'label-danger';
+      //   replica['healthy'] = false;
+      //   replica['status'] = text;
+      // }
+
+      replica['healthHTML'] = `<div class="label-container"><span class="label ${labelClass}">${text}</span></div>`;
+
+      //
+      // Cluster replicas
+      if (tempNode[replica.location]) {
+        tempNode[replica.location].push(replica);
+      } else {
+        tempNode[replica.location] = [replica];
+      }
+    });
+
+    Object.values(tempNode).forEach(temp => {
+      groupedNodes.push({
+        location: temp[0].location,
+        geo: temp[0].geo,
+        type: temp[0].type,
+        // @ts-ignore
+        nodes: temp
+      });
+    });
+
+    const onlyOnPremZones = groupedNodes.some(zone => zone.type === ZoneType.ON_PREM);
+
+    return {
+      nodes: replicas,
+      nodesByLocation: groupedNodes,
+      onlyOnPrem: onlyOnPremZones
+    };
+  }
+
+  prepareClients(clients: ClientNode[]): ClientNode[] {
+    const zonesMap = this.blockchainService.zonesMap;
+    clients.forEach((client, i) => {
+      if (zonesMap[client.zone_id]) {
+        client.zone_name = zonesMap[client.zone_id].name;
+      } else {
+        client.zone_name = undefined;
+      }
+      if (!client.name) {
+        client.name = client.host_name ? client.host_name : 'Client' + (i + 1);
+      }
+    });
+    return clients;
   }
 
   getNodeCredentials(node: BlockchainNode): Observable<NodeCredentials> {
@@ -170,23 +177,6 @@ export class NodesService {
       return this.http.get<NodeCredentials>(
         Apis.clientNodeCredentials(this.blockchainService.blockchainId, node.id));
     }
-  }
-
-  getAllNodeTypes(): Observable<any[]> {
-    return zip(this.getList(), this.getClients())
-      .pipe(
-        map(response => {
-          let nodes = [];
-          const clients = response[1];
-          clients.forEach(cl => {
-            cl.name = cl.host_name ? cl.host_name : cl.name;
-          });
-          nodes = nodes.concat(response[0].nodes);
-          nodes = nodes.concat(clients);
-          // Merge client and replica nodes together in one array
-          return nodes;
-        })
-       );
   }
 
   /**
@@ -213,60 +203,55 @@ export class NodesService {
       .pipe(take(1));
   }
 
-  refreshAllNodesList(): Observable<any> {
-    const committersDataObservable = this.getList();
-    const clientsObservable = this.getClients();
-    return zip(committersDataObservable, clientsObservable).pipe(
-      map(r => {
-        const committersData = r[0] as CommittersData;
-        const clients = r[1];
-        this.allNodesList = [];
-        this.committersData = committersData;
-        this.committers = committersData.nodes;
-        this.clients = clients;
-        this.committers.forEach((committer, i) => {
-          const committerNameI18N = this.translate.instant('nodes.committer');
-          committer.name = this.trimNodeName(committerNameI18N, committer, i);
-          committer.name_ordinal = this.trimNodeName(committerNameI18N, null, i);
-        });
-        this.clients.forEach((client, i) => {
-          const clientNameI18N = this.translate.instant('nodes.client');
-          client.name = this.trimNodeName(clientNameI18N, client, i);
-          client.name_ordinal = this.trimNodeName(clientNameI18N, null, i);
-        });
-        this.committersWithOnlyPublicIP = true;
-        this.committersWithOnlyPrivateIP = true;
-        this.committersWithoutRPCURL = true;
-        this.committersWithNoZoneInfo = true;
-        for (const committer of committersData.nodes) {
-          committer.node_type = 'committer';
-          this.allNodesList.push(committer);
-          if (committer.public_ip) { this.committersWithOnlyPrivateIP = false; }
-          if (committer.private_ip) { this.committersWithOnlyPublicIP = false; }
-          if (committer.rpc_url) { this.committersWithoutRPCURL = false; }
-        }
-        this.clientsWithOnlyPublicIP = true;
-        this.clientsWithOnlyPrivateIP = true;
-        this.clientsWithoutRPCURL = true;
-        for (const client of clients) {
-          client.node_type = 'client';
-          this.allNodesList.push(client);
-          if (client.public_ip) { this.clientsWithOnlyPrivateIP = false; }
-          if (client.private_ip) { this.clientsWithOnlyPublicIP = false; }
-          if (client.url) { this.clientsWithoutRPCURL = false; }
-        }
-        this.committersWithNoZoneInfo = true;
-        this.allNodesList.forEach(node => {
-          const zone = this.blockchainService.zonesMap[node.zone_id];
-          if (zone) {
-            if (node.node_type === 'committer') { this.committersWithNoZoneInfo = false; }
-            node['zone'] = zone;
-            node['zone_name'] = zone.name;
-          }
-        });
-        this.onNodeList.next(true);
-      }),
-    );
+  setNodesList(committers: NodeInfo[], clients: ClientNode[]) {
+    this.allNodesList = [];
+    this.committersData = this.prepareCommitters(committers); // add props not in API response
+    this.committers = this.committersData.nodes;
+    this.clients = this.prepareClients(clients); // add props not in API response
+    this.committers.forEach((committer, i) => {
+      const committerNameI18N = this.translate.instant('nodes.committer');
+      committer.name = this.trimNodeName(committerNameI18N, committer, i);
+      committer.name_ordinal = this.trimNodeName(committerNameI18N, null, i);
+    });
+    this.clients.forEach((client, i) => {
+      const clientNameI18N = this.translate.instant('nodes.client');
+      client.name = this.trimNodeName(clientNameI18N, client, i);
+      client.name_ordinal = this.trimNodeName(clientNameI18N, null, i);
+    });
+    this.committersWithOnlyPublicIP = true;
+    this.committersWithOnlyPrivateIP = true;
+    this.committersWithoutRPCURL = true;
+    this.committersWithNoZoneInfo = true;
+    for (const committer of this.committers) {
+      committer.node_type = NodeType.committers;
+      this.allNodesList.push(committer);
+      if (committer.public_ip) { this.committersWithOnlyPrivateIP = false; }
+      if (committer.private_ip) { this.committersWithOnlyPublicIP = false; }
+      if (committer.rpc_url) { this.committersWithoutRPCURL = false; }
+    }
+    this.clientsWithOnlyPublicIP = true;
+    this.clientsWithOnlyPrivateIP = true;
+    this.clientsWithoutRPCURL = true;
+    for (const client of clients) {
+      client.node_type = NodeType.clients;
+      this.allNodesList.push(client);
+      if (client.public_ip) { this.clientsWithOnlyPrivateIP = false; }
+      if (client.private_ip) { this.clientsWithOnlyPublicIP = false; }
+      if (client.url) { this.clientsWithoutRPCURL = false; }
+    }
+    this.committersWithNoZoneInfo = true;
+    this.allOnPremZones = true;
+    this.allCloudZones = true;
+    this.allNodesList.forEach(node => {
+      const zone = this.blockchainService.zonesMap[node.zone_id];
+      if (zone) {
+        node.zone = zone;
+        node.zone_name = zone.name;
+        if (node.node_type === NodeType.committers) { this.committersWithNoZoneInfo = false; }
+        if (node.zone.type !== ZoneType.ON_PREM) { this.allOnPremZones = false; }
+        if (node.zone.type !== ZoneType.VMC_AWS) { this.allCloudZones = false; }
+      }
+    });
   }
 
   private trimNodeName(prefix: string, node: BlockchainNode, index: number) {

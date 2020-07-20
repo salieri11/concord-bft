@@ -248,7 +248,7 @@
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
-                <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(committer.zone_id)">
+                <div class="nodeprop-container nodeprop-inner" *ngIf="getZoneInfo(committer.zone_id)">
                   <div class="nodeprop-value" [attr.id]="'details-page-committer-' + i + '-zone-human-readable'">
                     <span class="nodeprop-inner-value">
                       {{ getZoneInfo(committer.zone_id) }}
@@ -359,7 +359,7 @@
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
-                <div class="nodeprop-container nodeprop-inner" *ngIf="zonesSet && getZoneInfo(client.zone_id)">
+                <div class="nodeprop-container nodeprop-inner" *ngIf="getZoneInfo(client.zone_id)">
                   <div class="nodeprop-value">
                     <span class="nodeprop-inner-value" [attr.id]="'details-page-client-' + i + '-zone-human-readable'">
                       {{ getZoneInfo(client.zone_id) }}
