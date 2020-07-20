@@ -17,7 +17,6 @@ import { TourService } from '../../shared/tour.service';
 import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
-import { ZoneType } from '../../zones/shared/zones.model';
 
 import { ClrModal } from '@clr/angular';
 import { RouteService } from '../../shared/route.service';
@@ -56,17 +55,17 @@ export class MainComponent implements OnInit, OnDestroy {
   routePaths = mainRoutes;
 
   // Blockchain Service is resolved in the router before loading
-  get selectedConsortium(): string {
+  get selectedBlockchainId(): string {
     return this.blockchainService.blockchainId;
   }
 
-  set selectedConsortium(id: string) {
+  set selectedBlockchainId(id: string) {
     if (this.blockchainService.blockchainId === id) { return; }
-    let selectObs;
-    selectObs = this.blockchainService.select(id).subscribe(selected => {
-      if (selected) { this.routeService.outletEnabled = selected; }
-      if (selectObs) { selectObs.unsubscribe(); }
-    });
+    let selectObs; selectObs = this.blockchainService.select(id).subscribe(
+      blockchainIsSet => {
+        this.routeService.outletEnabled = blockchainIsSet;
+        if (selectObs) { selectObs.unsubscribe(); }
+      });
   }
 
   get blockchains(): BlockchainResponse[] {
@@ -103,12 +102,11 @@ export class MainComponent implements OnInit, OnDestroy {
       this.orgProps = this.authenticationService.orgProps;
       this.checkAuthorization();
     }
-    this.nodesService.onNodeList.subscribe(_ => { this.setPlatform(); });
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
-    this.selectedConsortium = this.route.snapshot.params['consortiumId'];
+    this.selectedBlockchainId = this.route.snapshot.params['blockchainId'];
 
     this.routerFragmentChange = this.route.fragment
       .subscribe(fragment => this.handleFragment(fragment));
@@ -123,19 +121,18 @@ export class MainComponent implements OnInit, OnDestroy {
     }
   }
 
-  consortiumChange(): void {
+  blockchainChange(): void {
     this.routeService.outletEnabled = false;
     this.navDisabled = false;
-    if (this.selectedConsortium) {
+    if (this.selectedBlockchainId) {
       const subpaths = this.router.url.split('/');
-      subpaths.shift(); subpaths.shift(); // remove front slash & consortium id
-      subpaths.unshift('/' + this.selectedConsortium); // change to selected consortium id
+      subpaths.shift(); subpaths.shift(); // remove front slash & blockchain id
+      subpaths.unshift('/' + this.selectedBlockchainId); // change to selected blockchain id
       const newPath = subpaths.join('/');
       this.router.navigate([newPath])
         .then(() => {
           // This is to refresh all child components
           this.blockchainType = this.blockchainService.type;
-          this.nodesService.refreshAllNodesList();
         });
     }
   }
@@ -167,20 +164,14 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   private handleParams(param: Params): void {
-    const blockchainId = param.consortiumId as string;
-    // Refresh sidebar
-    const $sub = this.nodesService.refreshAllNodesList().subscribe(() => {
-      this.setPlatform();
-      if ($sub) {
-        $sub.unsubscribe();
-      }
-    });
+    const blockchainId = param.blockchainId as string;
+    this.isOnPrem = this.nodesService.allOnPremZones;
     this.blockchainType = this.blockchainService.type;
 
     // valid uuidv4 resource string
     if (blockchainId && (uuidRegExp.test(blockchainId)
         || blockchainId === mainRoutes.blockchain)) {
-      this.selectedConsortium = blockchainId;
+      this.selectedBlockchainId = blockchainId;
       this.navDisabled = false;
       this.sidemenuVisible = true;
       this.routeService.outletEnabled = true;
@@ -281,20 +272,6 @@ export class MainComponent implements OnInit, OnDestroy {
     this.blockchainService.canDeploy.next(this.enableDeploy);
 
     return this.enableDeploy;
-  }
-
-  // Set if all nodes are on prem
-  private setPlatform(): void {
-    if (this.blockchainService.selectedBlockchain) {
-      const zonesMap = this.blockchainService.zonesMap;
-      this.isOnPrem = true;
-      this.nodesService.allNodesList.forEach(node => {
-         if (node && node.zone_id && zonesMap[node.zone_id]
-              && zonesMap[node.zone_id].type === ZoneType.VMC_AWS) {
-           this.isOnPrem = false;
-         }
-      });
-    }
   }
 
   onClickToHelp() {

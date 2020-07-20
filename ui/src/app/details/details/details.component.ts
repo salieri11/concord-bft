@@ -2,13 +2,12 @@
  * Copyright 2018-2020 VMware, all rights reserved.
  */
 import { Component, OnInit } from '@angular/core';
-import { BlockchainService, BlockchainResolver } from '../../blockchain/shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { OrgService } from '../../orgs/shared/org.service';
 import { NodesService } from '../../nodes/shared/nodes.service';
 import { ContractEngines } from '../../blockchain/shared/blockchain.model';
 import { ActivatedRoute } from '@angular/router';
-import { ZonesService } from '../../zones/shared/zones.service';
-import { Zone } from '../../zones/shared/zones.model';
+import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { BlockchainNode, NodeCredentials } from '../../nodes/shared/nodes.model';
 import { Personas } from '../../shared/persona.service';
 
@@ -30,7 +29,6 @@ export class DetailsComponent implements OnInit {
   clients = lastKnownClients;
   zones: {[id: string]: Zone} = {};
   zoneFirst: Zone = null;
-  zonesSet: boolean = false;
   blockchainType: ContractEngines;
 
   securePasswordEnabled: boolean = false;
@@ -62,37 +60,25 @@ export class DetailsComponent implements OnInit {
 
   constructor(
     public blockchainService: BlockchainService,
-    private blockchainResolver: BlockchainResolver,
     private orgService: OrgService,
     private nodeService: NodesService,
-    private zoneService: ZonesService,
     private route: ActivatedRoute,
   ) {
-    this.updateBaseOnSelectedBlockchain();
+    this.route.url.subscribe(url => {
+      this.selectedTab = url[0].path;
+    });
     this.orgService.getList().subscribe(resp => {
       this.orgId = resp[0].organization_id;
       this.securePasswordEnabled = resp[0].organization_properties['secure-password'];
       this.fetchedList.organizations = true;
-      this.updateReady();
+      this.ready = true;
     });
-    this.nodeService.onNodeList.subscribe(_ => {
-      this.committers = this.nodeService.committers;
-      this.clients = this.nodeService.clients;
-      lastKnownCommitters = this.committers;
-      lastKnownClients = this.clients;
-      this.fetchedList.nodes = true;
-      this.updateReady();
-    });
-    this.route.url.subscribe(url => {
-      this.selectedTab = url[0].path;
-    });
-    this.zoneService.getZones().subscribe(zones => {
-      for (const zone of zones) { this.zones[zone.id] = zone; }
-      this.zonesSet = true;
-      this.fetchedList.zones = true;
-      this.updateReady();
-    });
-    this.nodeService.refreshAllNodesList().subscribe();
+    this.committers = this.nodeService.committers;
+    this.clients = this.nodeService.clients;
+    lastKnownCommitters = this.committers;
+    lastKnownClients = this.clients;
+    this.fetchedList.nodes = true;
+    this.updateBaseOnSelectedBlockchain();
   }
 
   ngOnInit() {
@@ -102,24 +88,14 @@ export class DetailsComponent implements OnInit {
   }
 
   getZoneInfo(zoneId: string) {
-    if (!this.zonesSet || !this.zones[zoneId]) { return null; }
+    if (!this.zones[zoneId]) { return null; }
     const zone = this.zones[zoneId];
-    const zoneType = zone.type === 'VMC_AWS' ? 'Cloud' : 'On-premises';
+    const zoneType = zone.type === ZoneType.VMC_AWS ? 'Cloud' : 'On-premises';
     return zone.name + ' (' + zoneType + ')';
   }
 
-  updateReady() {
-    const f = this.fetchedList;
-    this.ready = (f.organizations && f.nodes && f.zones);
-  }
-
   async updateBaseOnSelectedBlockchain() {
-    let blockchain = this.blockchainService.selectedBlockchain;
-    if (!blockchain) { // Force Firefox to resolve blockchain
-      await this.blockchainResolver.resolve(this.route.snapshot).pipe().toPromise();
-      blockchain = this.blockchainService.selectedBlockchain;
-      if (!blockchain) { return console.error(new Error('Blockchain cannot be resolved.')); }
-    }
+    const blockchain = this.blockchainService.selectedBlockchain;
     this.blockchainType = blockchain.blockchain_type as ContractEngines;
     if (this.blockchainType === ContractEngines.DAML) {
       this.execEngineName = 'DAML Ledger';

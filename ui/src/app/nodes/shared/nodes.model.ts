@@ -1,7 +1,7 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { ZoneType } from '../../zones/shared/zones.model';
+import { ZoneType, Zone } from '../../zones/shared/zones.model';
 
 /**
  * GET response of fetching a list of members
@@ -22,9 +22,11 @@ export interface NodeInfo {
   rpc_url?: string;
   state?: string;
   status?: string;
+  zone?: Zone;
   zone_id?: string;
   zone_type?: ZoneType;
-  node_type?: string;
+  zone_name?: string;
+  node_type?: NodeType;
   strong_password?: string;
 }
 
@@ -36,9 +38,11 @@ export interface ClientNode {
   host_name: string;
   name?: string;
   private_ip: string;
+  zone?: Zone;
   zone_id?: string;
   zone_type?: ZoneType;
-  node_type?: string;
+  zone_name?: string;
+  node_type?: NodeType;
   strong_password?: string;
 }
 

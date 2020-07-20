@@ -148,18 +148,17 @@ export class LoggingComponent implements OnInit {
     private nodesService: NodesService,
     private blockchainService: BlockchainService
   ) {
+    this.nodes = this.nodesService.allNodesList;
+    this.onSelectTimePeriod(this.timePeriods[3]);
     this.xAxisTickFormatting = this.xAxisTickFormatting.bind(this);
   }
 
   ngOnInit() {
-    this.loadNodes();
-
     if (this.blockchainService.type === ContractEngines.DAML) {
       this.service_names = DAML_SERVICE_NAMES;
     } else if (this.blockchainService.type === ContractEngines.ETH) {
       this.service_names = ETHEREUM_SERVICE_NAMES;
     }
-
   }
 
   fetchLogs() {
@@ -295,15 +294,6 @@ export class LoggingComponent implements OnInit {
     return this.selectedTimePeriod.value > TWELVE_HOURS ?
       this.translate.instant('logging.heatMap.dailyTitle') :
       this.translate.instant('logging.heatMap.hourlyTitle');
-  }
-
-  // Load replica list in dropdown to filter logs
-  private loadNodes() {
-    return this.nodesService.getAllNodeTypes().subscribe((resp) => {
-      this.nodes = resp;
-
-      this.onSelectTimePeriod(this.timePeriods[3]);
-    });
   }
 
   private getHeatMapLabelMinutes(minutes) {

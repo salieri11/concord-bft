@@ -58,7 +58,7 @@
   margin: 0 .5rem 0 1rem;
 }
 
-:host ::ng-deep .consortium-select {
+:host ::ng-deep .blockchain-select {
   width: 100%;
   min-width: 204px;
   height: 1.3rem;
@@ -68,7 +68,7 @@
   border-color: #adbbc4;
 }
 
-:host ::ng-deep div[name="consortiums-select-wrapper"] {
+:host ::ng-deep div[name="blockchains-select-wrapper"] {
   .clr-select-wrapper::after {
     top: .491666rem;
   }
@@ -128,7 +128,7 @@ a.disable {
   }
 }
 
-.consortiums-select-wrapper{
+.blockchains-select-wrapper{
   margin-bottom: 0.2rem;
 }
 

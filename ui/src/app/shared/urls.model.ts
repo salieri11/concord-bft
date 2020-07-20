@@ -29,8 +29,11 @@ export enum FeatureFlagSource {
 export const hexAddress160RegExp = /^0x[a-fA-F0-9]{40}$/; // hex, eth address 160-bit
 export const hexHash256HexRegExp = /^0x[a-fA-F0-9]{64}$/; // hex, tx hash, block hash, 256-bit
 
-export const uuidRegExp
+export const uuidRegExp // strict UUIDv4
   = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+
+export const uuidRegExpLax // free bytes UUID
+  = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
 
 export const authRoutes = {
   base: 'auth',

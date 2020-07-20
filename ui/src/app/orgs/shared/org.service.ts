@@ -16,7 +16,7 @@ import { Org } from './org.model';
 })
 export class OrgService {
   get orgConsortiumPath() {
-    return `/api/consortiums/${this.blockchainService.metadata.consortium_id}/organizations`;
+    return `/api/consortiums/${this.blockchainService.selectedBlockchain.consortium_id}/organizations`;
   }
 
   constructor(

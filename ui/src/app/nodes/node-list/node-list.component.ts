@@ -45,16 +45,13 @@ export class NodeListComponent implements OnInit {
   ) {
     this.blockchainType = this.blockchainService.type;
     this.nodeDashboardEnabled = this.ff.check('node_dashboard');
-    this.nodesService.onNodeList.subscribe(_ => {
-      this.committers = this.nodesService.committers;
-      this.clients = this.nodesService.clients;
-    });
+    this.committers = this.nodesService.committers;
+    this.clients = this.nodesService.clients;
   }
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.type = params.nodeTypeOrId;
-      this.nodesService.refreshAllNodesList().subscribe();
     });
     //
     // Commenting out node start stop functionality until it's ready to be implemented on the backend.

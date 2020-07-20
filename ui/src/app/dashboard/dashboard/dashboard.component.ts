@@ -102,9 +102,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private translate: TranslateService,
     private tourService: TourService,
-  ) {
-    this.nodesService.onNodeList.subscribe(_ => { this.setComponents(); });
-  }
+  ) {}
 
   ngOnInit() {
     this.blockchainType = this.blockchainService.type;
