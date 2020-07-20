@@ -1,5 +1,6 @@
 #include "external_client_pool.h"
 
+#include <endian.h>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -18,9 +19,13 @@ using com::vmware::concord::SkvbcRequest;
  * to the external client pool for execution.
  *
  * The wrapper uses a simple UDP protocol to transfer messages:
- * | MSG FLAGS (8bits) | MSG PAYLOAD (variable size) |
+ * | MSG FLAGS (8bits) | SEQUENCE NUMBER (64 bits) | MSG PAYLOAD (variable size)
+ * |
  *
  * MSG FLAGS are handled in ReadConcordRequest() method.
+ *
+ * The response is either -1 (on error) or the actual response received from the
+ * replica.
  *
  * This class use use for testing purposes - to execute ApolloBftTests suite
  * from Hermes.
@@ -52,7 +57,8 @@ std::string BufToHex(const char *buf, const int len) {
 
 ConcordRequest ExternalClient::ReadConcordRequest(
     struct sockaddr &src_addr, socklen_t &src_addr_size, uint8_t *recv_buf,
-    const int recv_buf_size, bftEngine::ClientMsgFlag &msg_flags) {
+    const int recv_buf_size, bftEngine::ClientMsgFlag &msg_flags,
+    uint64_t &seq_num) {
   ConcordRequest conc_request;
   ssize_t recv_size = 0;
   src_addr_size = sizeof(src_addr);
@@ -62,7 +68,7 @@ ConcordRequest ExternalClient::ReadConcordRequest(
                         << corr_id_ << " Size: " << recv_size
                         << " Data: " << BufToHex(recv_buf, recv_size));
 
-  if (recv_size < 1) {
+  if (recv_size < 1 + 8) {  // 1 byte flags, 8 bytes seq num
     // message is too short
     LOG_ERROR(logger_,
               "Message is too short. Expected message size to be > 8.");
@@ -70,10 +76,18 @@ ConcordRequest ExternalClient::ReadConcordRequest(
   }
 
   msg_flags = static_cast<bftEngine::ClientMsgFlag>(recv_buf[0]);
+  seq_num = be64toh(static_cast<uint64_t>(
+      recv_buf[1]));  // Big Entian 64bit to Host byte order. Linux specific -
+                      // not portable
+
+  LOG_INFO(logger_, "Details about request with corr id: "
+                        << corr_id_ << " flags: " << msg_flags
+                        << " seq_num: " << seq_num);
 
   SkvbcRequest *skvbc_request =
       conc_request.mutable_tee_request()->mutable_skvbc_request();
-  skvbc_request->set_request_content(recv_buf + 1, recv_size - 1);
+  skvbc_request->set_request_content(
+      recv_buf + 1 + 8, recv_size - 1 - 8);  // 1 byte flags, 8 bytes seq num
 
   return conc_request;
 }
@@ -122,8 +136,9 @@ void ExternalClient::ServerLoop() {
   uint8_t recv_buf[kDefaultBufSize];
   while (1) {
     bftEngine::ClientMsgFlag rq_flags;
+    uint64_t seq_num = 0;
     ConcordRequest conc_request = ReadConcordRequest(
-        src_addr, src_addr_size, recv_buf, sizeof(recv_buf), rq_flags);
+        src_addr, src_addr_size, recv_buf, sizeof(recv_buf), rq_flags, seq_num);
 
     std::string reply(kDefaultBufSize, '\0');
 
@@ -143,7 +158,7 @@ void ExternalClient::ServerLoop() {
 
       rq_result = client_pool_.SendRequest(
           std::move(request), rq_flags, kDefaultRqTimeout, reply.data(),
-          reply.size(), std::to_string(corr_id_++));
+          reply.size(), std::to_string(corr_id_++), seq_num);
 
       if (rq_result !=
           concord::concord_client_pool::SubmitResult::Acknowledged) {

@@ -171,6 +171,9 @@ uint64_t ConcordClient::getClientSeqNum() const { return seq_num_; }
 void ConcordClient::generateClientSeqNum() {
   seq_num_ = seqGen_->generateUniqueSequenceNumberForRequest();
 }
+
+void ConcordClient::setClientSeqNum(uint64_t seq_num) { seq_num_ = seq_num; }
+
 void ConcordClient::setStartRequestTime() {
   start_job_time_ = std::chrono::steady_clock::now();
 }

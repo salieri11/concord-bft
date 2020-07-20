@@ -25,8 +25,9 @@ using namespace bftEngine;
 SubmitResult ConcordClientPool::SendRequest(
     std::vector<char> &&request, ClientMsgFlag flags,
     std::chrono::milliseconds timeout_ms, char *reply_buffer,
-    std::uint32_t max_reply_size, std::string correlation_id,
+    std::uint32_t max_reply_size, uint64_t seq_num, std::string correlation_id,
     std::string span_context) {
+
   std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -40,8 +41,14 @@ SubmitResult ConcordClientPool::SendRequest(
       return SubmitResult::Overloaded;
     }
   }
-  client->generateClientSeqNum();
+
+  if (seq_num > 0)
+    client->setClientSeqNum(seq_num);
+  else
+    client->generateClientSeqNum();
+
   if (max_reply_size) client->setReplyBuffer(reply_buffer, max_reply_size);
+  
   LOG_INFO(
       logger_,
       "client_id=" << client->getClientId() << " starts handling reqSeqNum="
@@ -49,6 +56,7 @@ SubmitResult ConcordClientPool::SendRequest(
                    << "span_context exists=" << !span_context.empty()
                    << " flags=" << flags << " request_size=" << request.size()
                    << " timeout_ms=" << timeout_ms.count());
+
   client->setStartRequestTime();
   auto *job = new ConcordClientProcessingJob(
       *this, client, std::move(request), flags, timeout_ms, max_reply_size,

@@ -76,6 +76,7 @@ class ConcordClient {
   uint64_t getClientSeqNum() const;
 
   void generateClientSeqNum();
+  void setClientSeqNum(uint64_t seq_num);
 
   void setStartRequestTime();
 
