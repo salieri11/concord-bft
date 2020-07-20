@@ -262,3 +262,23 @@ baseos:deb:postgresql-10:10.12-0ubuntu0.18.04.1:ubuntu:
     version: '10.12-0ubuntu0.18.04.1'
     baseos-style: deb
     baseos-osname: 'ubuntu'
+baseos:deb:clang-tidy-10:1:10.0.0-4ubuntu1~18.04.1:ubuntu:
+    repository: BaseOS
+    name: 'clang-tidy-10'
+    version: '1:10.0.0-4ubuntu1~18.04.1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'llvm-toolchain-10'
+baseos:deb:gdb:8.1-0ubuntu3.2:ubuntu:
+    repository: BaseOS
+    name: 'gdb'
+    version: '8.1-0ubuntu3.2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+baseos:deb:gdbserver:8.1-0ubuntu3.2:ubuntu:
+    repository: BaseOS
+    name: 'gdbserver'
+    version: '8.1-0ubuntu3.2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'gdb'
