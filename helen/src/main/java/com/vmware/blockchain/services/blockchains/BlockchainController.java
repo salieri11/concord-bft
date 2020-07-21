@@ -13,9 +13,12 @@ import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.Bl
 import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -37,18 +40,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ForbiddenException;
+import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
 import com.vmware.blockchain.deployment.v1.DeploymentSpec;
+import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
+import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
@@ -260,6 +268,54 @@ public class BlockchainController {
         }
     }
 
+
+    /**
+     * Temporary pre IA/GA to handle resources/POC. Should not be published in the API doc or provided to the customer.
+     * @param bid BlockchainId
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.DELETE)
+    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    public ResponseEntity<BlockchainGetResponse> deprovision(@PathVariable("bid") UUID bid) {
+        Blockchain blockchain = blockchainService.get(bid);
+        if (blockchain == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
+        if (blockchain.getState() != Blockchain.BlockchainState.ACTIVE) {
+            Set<UUID> zoneIds = new HashSet<>();
+            zoneIds.addAll(replicaService.getReplicas(blockchain.getId()).stream().map(k -> k.getZoneId())
+                                   .collect(Collectors.toList()));
+            zoneIds.addAll(clientService.getClientsByParentId(blockchain.getId()).stream().map(k -> k.getZoneId())
+                                   .collect(Collectors.toList()));
+            List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
+
+            // This will need modification when versioning kicks in.
+            List<DeployedResource> resource = blockchain.getRawResourceInfo().values().stream()
+                    .flatMap(Collection::stream).collect(Collectors.toList()).stream().map(k -> {
+                        try {
+                            DeployedResource.Builder builder = DeployedResource.newBuilder();
+                            com.google.protobuf.util.JsonFormat.parser().ignoringUnknownFields().merge(k, builder);
+                            return builder.build();
+                        } catch (InvalidProtocolBufferException e) {
+                            throw new HelenException(
+                                    String.format("Error accepting request for deletion {}", bid.toString()));
+                        }
+                    }).collect(Collectors.toList());
+
+            var request = DeprovisionDeploymentRequest.newBuilder()
+                    .setSites(Sites.newBuilder().addAllInfoList(sitesInfo).build())
+                    .addAllResource(resource)
+                    .build();
+
+            var promise = new CompletableFuture<DeprovisionDeploymentResponse>();
+            provisioningClient.deprovisionDeployment(request, FleetUtils.blockedResultObserver(promise));
+            // Does not wait for response.
+            return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
+
+        } else {
+            throw new BadRequestException(String.format("Blockchain %s is in active state and cannot be deleted."
+                                                        + "Deregister the blockchain first.", bid.toString()));
+        }
+    }
     // --------------------- Private methods -------------------- //
 
 
@@ -362,16 +418,7 @@ public class BlockchainController {
 
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
 
-        var sitesInfo = zoneIds.stream()
-                .distinct() // Until prov service fixes it.
-                .map(zoneService::get)
-                .map(z -> OrchestrationSite.newBuilder()
-                        .setInfo(toInfo(z))
-                        .setId(OrchestrationSiteIdentifier.newBuilder()
-                                       .setId(z.getId().toString())
-                                       .build())
-                        .build())
-                .collect(Collectors.toList());
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(new HashSet(zoneIds));
 
         var deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(body.getConsortiumId().toString())
@@ -427,5 +474,18 @@ public class BlockchainController {
         }
         // m == 0 means no limit
         return m == 0 ? Integer.MAX_VALUE : m;
+    }
+
+    private List<OrchestrationSite> getOrchestrationSites(Set<UUID> zoneIds) {
+        return zoneIds.stream()
+                .distinct() // Until prov service fixes it.
+                .map(zoneService::get)
+                .map(z -> OrchestrationSite.newBuilder()
+                        .setInfo(toInfo(z))
+                        .setId(OrchestrationSiteIdentifier.newBuilder()
+                                       .setId(z.getId().toString())
+                                       .build())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
