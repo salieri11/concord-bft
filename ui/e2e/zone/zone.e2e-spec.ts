@@ -6,7 +6,7 @@ import { browser, element, by } from 'protractor';
 
 import { AppPage } from '../app/app.po';
 import { Zone } from './zone.po';
-import { waitFor, waitForText, waitForURLContains } from '../helpers/utils';
+import { waitFor, waitForText, waitForURLContains, waitInteractableFor } from '../helpers/utils';
 
 describe('concord-ui Add Zone', () => {
   let appPage: AppPage;
@@ -47,8 +47,8 @@ describe('concord-ui Add Zone', () => {
     element(by.css('#locationDesignation')).clear();
     element(by.css('#locationDesignation')).sendKeys('B');
     browser.sleep(1000);
+    waitInteractableFor('#updateZone');
     zone.update();
-    browser.sleep(3000);
     waitFor('#zoneNothingToUpdate');
     const newZoneDesig = element(by.css('#locationDesignation')).getAttribute('value');
     expect(newZoneDesig).toBe('B');
