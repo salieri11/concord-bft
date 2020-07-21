@@ -83,7 +83,7 @@ async def _test_skvbc_preexecution_sequential(bft_network):
     await skvbc_test.test_sequential_pre_process_requests(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True
+        disable_linearizability_checks=False
     )
     log.info("SKVBC sequential pre-execution: OK.")
 
@@ -100,7 +100,7 @@ async def _test_skvbc_preexecution_concurrent(bft_network):
     await skvbc_preexecution_test.test_concurrent_pre_process_requests(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True
+        disable_linearizability_checks=False
     )
     log.info("SKVBC concurrent pre-execution: OK.")
 

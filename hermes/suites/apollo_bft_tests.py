@@ -104,7 +104,7 @@ async def _test_skvbc_fast_path(bft_network):
     await skvbc_fast_path_test.test_fast_path_only(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True
+        disable_linearizability_checks=False
     )
     log.info("SKVBC (fast path only): OK")
 
@@ -122,7 +122,7 @@ async def _test_skvbc_slow_path(bft_network):
     await skvbc_slow_path_test.test_slow_to_fast_path_transition(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True
+        disable_linearizability_checks=False
     )
     log.info("SKVBC slow to fast path transition: OK")
 
@@ -172,6 +172,6 @@ async def _test_skvbc_view_change(bft_network):
     await skvbc_view_change_test.test_single_vc_only_primary_down(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True
+        disable_linearizability_checks=False
     )
     log.info("SKVBC view change test: OK")
