@@ -183,7 +183,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         if (request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
-                .equalsIgnoreCase("True")) {
+                .equalsIgnoreCase("True") && request.getBlockchainType().equals(BlockchainType.DAML)) {
             isBftEnabled = true;
             bftClientConfig.putAll(bftClientConfigUtil
                     .getbftClientConfig(participantNodeIds, committerIps, participantIps));

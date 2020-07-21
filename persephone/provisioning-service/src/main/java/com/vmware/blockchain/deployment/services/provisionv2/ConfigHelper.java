@@ -50,7 +50,8 @@ public class ConfigHelper {
     }
 
 
-    ConfigurationSessionIdentifier generateConfigurationId(DeploymentExecutionContext context) {
+    ConfigurationSessionIdentifier generateConfigurationId(DeploymentExecutionContext context,
+                                                           Properties genericProperties) {
 
         var nodesByType = context.nodeAssignment.getEntriesList().stream()
                 .collect(Collectors.groupingBy(NodeAssignment.Entry::getType));
@@ -97,7 +98,8 @@ public class ConfigHelper {
                 .setBlockchainId(context.blockchainId.toString())
                 .putAllNodes(nodeInfo.entrySet().stream().collect(Collectors.toMap((e) -> e.getKey().name(),
                     (e) -> e.getValue().build())))
-                .setBlockchainType(context.blockchainType);
+                .setBlockchainType(context.blockchainType)
+                .setGenericProperties(genericProperties);
 
         ListenableFuture<ConfigurationSessionIdentifier> completable
                 = configurationServiceClient.withWaitForReady().createConfigurationV2(requestBuilder.build());

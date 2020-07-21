@@ -90,9 +90,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         final val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
         final val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         final val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
+        final var genericProperties = request.getSpec().getProperties();
         var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
-                                                                          request.getSpec().getProperties(),
-                                                                          request.getSpec().getNodePropertiesMap());
+                genericProperties,
+                request.getSpec().getNodePropertiesMap());
 
 
         Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators = new HashMap<>();
@@ -107,13 +108,13 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         // Info fields only
         Properties.Builder responseInfoProperties = Properties.newBuilder();
         responseInfoProperties.putValues(DeploymentAttributes.BLOCKCHAIN_VERSION.name(),
-                                         request.getSpec().getProperties()
-                                                 .getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
-                                                                     nodeConfiguration.getDockerImageBaseVersion()));
+                genericProperties
+                        .getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
+                                nodeConfiguration.getDockerImageBaseVersion()));
 
-        responseInfoProperties.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(), request.getSpec().getProperties()
+        responseInfoProperties.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(), genericProperties
                 .getValuesOrDefault(DeploymentAttributes.DAML_SDK_VERSION.name(),
-                                    nodeConfiguration.getDamlSdkVersion()));
+                        nodeConfiguration.getDamlSdkVersion()));
 
         //TODO add site specific restriction.
 
@@ -139,7 +140,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         if (!deploymentLogCache.asMap().containsKey(sessionId)) {
             deploymentLogCache.put(sessionId, new CompletableFuture<>());
             // Start the async workflow to carry out the deployment plan.
-            CompletableFuture.runAsync(() -> deployBlockchain(deploymentSession));
+            CompletableFuture.runAsync(() -> deployBlockchain(deploymentSession, genericProperties));
 
             // Emit the acknowledgement and signal completion of the request.
             responseObserver
@@ -207,7 +208,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
     //////////////////// Private methods ///////////////////////////////////
 
-    void deployBlockchain(DeploymentExecutionContext session) {
+    void deployBlockchain(DeploymentExecutionContext session, Properties genericProperties) {
 
         DeploymentExecutionEvent.Status status = DeploymentExecutionEvent.Status.FAILURE;
         try {
@@ -220,7 +221,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                     networkHelper.createPrivateIpMap(session.nodeAssignment, session.orchestrators, session.results);
 
             log.info("Generating configuration for the deployment");
-            ConfigurationSessionIdentifier configGenerated = configHelper.generateConfigurationId(session);
+            ConfigurationSessionIdentifier configGenerated = configHelper.generateConfigurationId(session,
+                    genericProperties);
 
             log.info("Create replica/committer nodes (if applicable)");
             var committerNodes = computeHelper.getComputeNodes(session, configGenerated, NodeType.REPLICA);
