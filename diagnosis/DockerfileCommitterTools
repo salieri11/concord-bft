@@ -3,6 +3,8 @@ LABEL Description="Committer Tools"
 
 COPY ./committer-tools /committer-tools
 RUN tdnf update -y && tdnf install -y \
+  coreutils \
+  docker \
   vim \
   jq \
   gawk \
@@ -15,4 +17,4 @@ RUN tdnf update -y && tdnf install -y \
 
 WORKDIR /committer-tools
 ENV PATH=$PATH:/committer-tools
-CMD ["/bin/ls"]
+CMD ["/committer-tools/start-container-command"]

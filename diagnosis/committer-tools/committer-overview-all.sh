@@ -1,7 +1,6 @@
 #!/bin/bash
 
 source ./concord-container-status.sh
-source ./num-concord-coredumps.sh
 source ./replica-ip-to-id.sh
 source ./replica-ips.sh
 source ./ssh-probe.sh
@@ -10,6 +9,9 @@ if [ -z "${SSHPASS}" ]; then
   >&2 echo "Please set SSHPASS"
   exit 1
 fi
+
+CONCORD_COREDUMP_DIR=/config/concord/cores
+NUM_CONCORD_COREDUMPS="ls ${CONCORD_COREDUMP_DIR} 2>/dev/null | wc -l || echo 0"
 
 TMP_DIR=/tmp/diagnosis
 mkdir ${TMP_DIR} 2>/dev/null
