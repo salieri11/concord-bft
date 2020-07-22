@@ -22,6 +22,7 @@ export interface NodeCommitter {
 export interface NodeClientParam {
   zone_id: string;
   auth_url_jwt: string;
+  group_index: string;
 }
 
 export enum BlockchainStates {

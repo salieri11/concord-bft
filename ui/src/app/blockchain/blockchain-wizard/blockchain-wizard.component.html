@@ -193,11 +193,24 @@
           </select>
         </clr-select-container>
         <clr-input-container class="compact-input-container">
-          <label class="short-label">{{ 'nodes.deployClientModal.authUrl' | translate }}</label>
-          <input clrInput #clientAuthUrlInput id="clientAuthUrlInput" type="text" class="auth-input"
+          <label class="short-label">
+            {{ 'nodes.deployClientModal.authUrl' | translate }}
+            <br><span class="optional-field-span">({{ 'common.optional' | translate }})</span>
+          </label>
+          <input clrInput id="clientAuthUrlInput" type="text" class="auth-input"
                 formControlName="auth_url" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
           <clr-control-helper>{{ 'blockchainWizard.clients.authUrlHelper' | translate }}</clr-control-helper>
           <clr-control-error>{{ 'blockchainWizard.clients.authUrlError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container class="compact-input-container">
+          <label class="short-label">
+            {{ 'blockchainWizard.clients.logicalGrouping' | translate }}
+            <br><span class="optional-field-span">({{ 'common.optional' | translate }})</span>
+          </label>
+          <input clrInput class="grouping-input" type="number" [placeholder]="'blockchainWizard.clients.logicalGroupingPH' | translate"
+                  formControlName="group_index" id="clientGroupingInput"/>
+          <clr-control-helper>{{ 'blockchainWizard.clients.logicalGroupingHelper' | translate }}</clr-control-helper>
+          <clr-control-error>{{ 'blockchainWizard.clients.logicalGroupingError' | translate }}</clr-control-error>
         </clr-input-container>
         <div class="add-button-margins">
           <button class="btn btn-sm margins" (click)="addClientNode()" [disabled]="!clientForm.valid" id="addClientNode">
@@ -211,6 +224,7 @@
 
       <clr-datagrid #grid class="datagrid-compact grid-min-height">
         <clr-dg-column class="remove-col">&nbsp;</clr-dg-column>
+        <clr-dg-column class="group-column">{{ 'blockchainWizard.clients.group' | translate }}</clr-dg-column>
         <clr-dg-column>{{ 'blockchainWizard.clients.zone' | translate }}</clr-dg-column>
         <clr-dg-column>{{ 'blockchainWizard.clients.authUrl' | translate }}</clr-dg-column>
         <clr-dg-row *clrDgItems="let client of form.get('clients').value; let i = index">
@@ -219,6 +233,7 @@
               <clr-icon size="16" shape="minus-circle"></clr-icon>
             </button>
           </clr-dg-cell>
+          <clr-dg-cell class="group-column">{{ client.group_index.value }}</clr-dg-cell>
           <clr-dg-cell>{{ client.zone_name }}</clr-dg-cell>
           <clr-dg-cell>{{ client.auth_url_jwt.value }}</clr-dg-cell>
         </clr-dg-row>

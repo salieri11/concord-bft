@@ -172,7 +172,7 @@ label {
 }
 
 .client-form {
-  margin-top: 1rem;
+  margin-top: 0.7rem;
 }
 
 :host ::ng-deep .compact-input-container {
@@ -181,15 +181,24 @@ label {
   margin-bottom: 0.75rem;
   padding: 0;
   .short-label {
-    max-width: 90px !important;
+    max-width: 120px !important;
+    .optional-field-span {
+      opacity: 0.75;
+      font-size: 85%;
+      font-weight: 300;
+    }
   }  
   .auth-input {
     min-width: 350px;
     margin-top: -0.15rem;
   }
+  .grouping-input {
+    min-width: 350px;
+    margin-top: -0.15rem;
+  }
   .zone-selector {
     min-width: 200px;
-    margin-top: -0.15rem;
+    margin-top: -0.2rem;
   }
 }
 
@@ -228,4 +237,10 @@ label {
 
 .pagination-message {
   opacity: 0.6;
+}
+
+.group-column {
+  width: 60px;
+  max-width: 60px;
+  min-width: 60px;
 }

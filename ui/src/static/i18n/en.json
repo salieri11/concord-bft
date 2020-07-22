@@ -32,7 +32,8 @@
     "usernamePh": "username",
     "verify": "Verify",
     "skip": "Skip",
-    "clone": "Clone"
+    "clone": "Clone",
+    "optional": "Optional"
   },
   "error": {
     "title": "Error",
@@ -260,7 +261,7 @@
       "highAvailabilityDesc": "Two clients nodes to ensure high availability",
       "clientNodeNamePlaceholder": "Client Node 1",
       "authUrl": "Auth URL",
-      "authUrlPlaceholder": "https://<JWKS-endpoint> (optional)",
+      "authUrlPlaceholder": "https://<JWKS-endpoint>",
       "authUrlDesc": "URL that returns JWT public key",
       "authUrlError": "The supplied URL is not valid"
     }
@@ -1142,8 +1143,13 @@
       "zone": "Zone",
       "authUrl": "Auth URL",
       "authUrlPH": "https://<jwks-endpoint>",
-      "authUrlHelper": "(Optional) endpoint for fetching IAM public key",
-      "authUrlError": "Please provide a valid url.",
+      "authUrlHelper": "Endpoint for fetching IAM public key for LedgerAPI authentication.",
+      "authUrlError": "Please provide a valid URL.",
+      "group": "Group",
+      "logicalGrouping": "Group Number",
+      "logicalGroupingPH": "Leave empty for regular standalone client node.",
+      "logicalGroupingHelper": "Client nodes in the same group are duplicates of each other helping availability.",
+      "logicalGroupingError": "Please provide a valid whole number group index.",
       "paginationTotal": "Viewing {{start}} - {{finish}} of total {{total}} client nodes.",
       "selectZone": "Select Zone",
       "number": "Number of Client Nodes"
