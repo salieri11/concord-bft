@@ -65,7 +65,7 @@ export class DeployingInterstitialComponent implements OnDestroy {
   }
 
   private pollUntilDeployFinished(taskId: string) {
-    const message = this.startMessaging().subscribe();
+    const message = this.startMessaging(taskId).subscribe();
 
     this.blockchainService.pollDeploy(taskId)
       .subscribe((response) => {
@@ -90,72 +90,80 @@ export class DeployingInterstitialComponent implements OnDestroy {
       });
   }
 
-  startMessaging(): Observable<any> {
+  startMessaging(taskId: string): Observable<any> {
     const multiplier = this.blockchainType === ContractEngines.ETH ? 7 : 15;
     const duration = 1000 * multiplier;
+    const tracker = this.blockchainService.loadDeployingData(taskId);
+    const previousPercentage = tracker.at ? tracker.at : 0;
 
     this.loop = true;
     this.message = this.translate.instant('deployLoader.initial');
 
+    // Helper function
+    const saveProgress = () => {
+      tracker.at = this.progress;
+      this.blockchainService.saveDeployingData(tracker);
+    };
+
     return of(true).pipe(
-      delay(duration),
+      delay(previousPercentage < 10 ? duration : 0),
       map(response => {
         this.loop = false;
-        this.progress = 10;
+        this.progress = 10; saveProgress();
         this.message = this.translate.instant('deployLoader.first');
         return response;
       }),
-      delay(duration),
-      map(() => {this.progress = 12; }),
-      delay(duration / 2),
-      map(() => {this.progress = 13; }),
-      delay(duration / 2),
-      map(() => {this.progress = 16; }),
-      delay(duration),
-      map(() => {this.progress = 18; }),
-      delay(duration),
+      delay(previousPercentage < 12 ? duration : 0),
+      map(() => {this.progress = 12; saveProgress(); }),
+      delay(previousPercentage < 13 ? duration / 2 : 0),
+      map(() => {this.progress = 13; saveProgress(); }),
+      delay(previousPercentage < 16 ? duration / 2 : 0),
+      map(() => {this.progress = 16; saveProgress(); }),
+      delay(previousPercentage < 18 ? duration : 0),
+      map(() => {this.progress = 18; saveProgress(); }),
+      delay(previousPercentage < 25 ? duration : 0),
       map(() => {
-        this.progress = 25;
+        this.progress = 25; saveProgress();
         this.message = this.translate.instant('deployLoader.second');
       }),
-      delay(duration),
-      map(() => {this.progress = 30; }),
-      delay(duration),
-      map(() => {this.progress = 34; }),
-      delay(duration),
-      map(() => {this.progress = 36; }),
-      delay(duration / 2),
-      map(() => {this.progress = 37; }),
-      delay(duration / 2),
-      map(() => {this.progress = 39; }),
-      delay(duration / 2),
+      delay(previousPercentage < 30 ? duration : 0),
+      map(() => {this.progress = 30; saveProgress(); }),
+      delay(previousPercentage < 34 ? duration : 0),
+      map(() => {this.progress = 34; saveProgress(); }),
+      delay(previousPercentage < 36 ? duration : 0),
+      map(() => {this.progress = 36; saveProgress(); }),
+      delay(previousPercentage < 37 ? duration / 2 : 0),
+      map(() => {this.progress = 37; saveProgress(); }),
+      delay(previousPercentage < 39 ? duration / 2 : 0),
+      map(() => {this.progress = 39; saveProgress(); }),
+      delay(previousPercentage < 40 ? duration / 2 : 0),
       map(() => {
-        this.progress = 40;
+        this.progress = 40; saveProgress();
         this.message = this.translate.instant('deployLoader.third');
       }),
-      delay(duration),
-      map(() => {this.progress = 43; }),
-      delay(duration),
+      delay(previousPercentage < 43 ? duration : 0),
+      map(() => {this.progress = 43; saveProgress(); }),
+      delay(previousPercentage < 45 ? duration : 0),
       map(() => {
-        this.progress = 45;
+        this.progress = 45; saveProgress();
         this.message = this.translate.instant('deployLoader.fourth');
       }),
-      delay(duration),
-      map(() => {this.progress = 45; }),
-      delay(duration / 2),
-      map(() => {this.progress = 50; }),
-      delay(duration / 2),
-      map(() => {this.progress = 53; }),
-      delay(duration),
-      map(() => {this.progress = 60; }),
-      delay(duration / 2),
-      map(() => {this.progress = 62; }),
-      delay(duration / 2),
-      map(() => {this.progress = 72; }),
-      delay(duration / 2),
-      map(() => {this.progress = 80; }),
-      delay(duration),
-      map(() => {this.progress = 85; }),
+      delay(previousPercentage < 45 ? duration : 0),
+      map(() => {this.progress = 45; saveProgress(); }),
+      delay(previousPercentage < 50 ? duration / 2 : 0),
+      map(() => {this.progress = 50; saveProgress(); }),
+      delay(previousPercentage < 53 ? duration / 2 : 0),
+      map(() => {this.progress = 53; saveProgress(); }),
+      delay(previousPercentage < 60 ? duration : 0),
+      map(() => {this.progress = 60; saveProgress(); }),
+      delay(previousPercentage < 62 ? duration / 2 : 0),
+      map(() => {this.progress = 62; saveProgress(); }),
+      delay(previousPercentage < 72 ? duration / 2 : 0),
+      map(() => {this.progress = 72; saveProgress(); }),
+      delay(previousPercentage < 80 ? duration / 2 : 0),
+      map(() => {this.progress = 80; saveProgress(); }),
+      delay(previousPercentage < 85 ? duration : 0),
+      map(() => {this.progress = 85; saveProgress(); }),
       delay(duration),
     );
 

@@ -56,7 +56,7 @@
         </select>
       </div>
       <ng-container>
-        <div class="nav-overlay-container" [ngClass]="{'sidemanu-disable':!selectedBlockchainId}">
+        <div class="nav-overlay-container" [ngClass]="{'sidemanu-disable':navDisabled}">
           <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active" id="sidenav-dashboard">
             <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
             {{'nav.dashboard' | translate}}

@@ -69,7 +69,7 @@ export const mainRoutes = {
   transactions: 'transactions',
   developer: 'developer',
 
-  get consortiumIdChildren() { return [ // allowed paths under /:consortiumId/*
+  get blockchainIdChildren() { return [ // allowed paths under /:consortiumId/*
     this.dashboard, this.blocks, this.nodes, this.smartContracts, this.logging,
     this.consortiums, this.organizations, this.users, this.transactions, this.developer,
     this.zones, this.new, this.details

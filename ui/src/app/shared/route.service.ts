@@ -36,12 +36,13 @@ export class RouteService {
   private initialized: boolean = false;
   private currentQueryParams: any;
   private outputAllRouterEvents = false;
+  private unfinishedTaskIds: string[] = [];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private blockchainService: BlockchainService,
-    private blockchainResolver: BlockchainResolver
+    private blockchainResolver: BlockchainResolver,
   ) { this.initialize(); }
 
   public static isLinkAction(url: string) {
@@ -93,6 +94,7 @@ export class RouteService {
   }
 
   redirectToDefault(fragment?: string) {
+    this.outletEnabled = false;
     if (this.outputAllRouterEvents) { console.log(new Error('Redirect to default called from stack trace:')); }
     if (this.blockchainService.blockchains && this.blockchainService.blockchains.length > 0) {
       let blockchainId = this.blockchainService.loadSelectedBlockchain();
@@ -107,6 +109,7 @@ export class RouteService {
     } else { // No consortium joined, redirect to welcome to let user deploy
       this.router.navigate([mainRoutes.blockchain, mainRoutes.welcome]);
     }
+    this.outletEnabled = true;
   }
 
   // Reloads router outlet to fresh fetch data and update view as needed
@@ -124,8 +127,8 @@ export class RouteService {
   }
 
   async resumeUnfinishedDeployIfExists(): Promise<boolean> {
-    const deployingRegistry = this.blockchainService.loadDeployingData();
-    let unfinishedTaskId;
+    const deployingRegistry = this.blockchainService.loadDeployingRegistry();
+    this.unfinishedTaskIds = [];
     for (const deployDataKey of Object.keys(deployingRegistry)) {
       const deployData = deployingRegistry[deployDataKey];
       if (Date.now() - deployData.requested > 3600 * 1000) { // Expire old; 1 hour
@@ -143,15 +146,13 @@ export class RouteService {
             deployData.state = DeployStates.FAILED;
             continue;
           }
-          unfinishedTaskId = deployDataKey;
+          this.unfinishedTaskIds.push(deployDataKey);
         } catch (e) { console.log(e); }
       }
     }
-    this.blockchainService.saveDeployingData(deployingRegistry, true);
+    this.blockchainService.saveDeployingRegistry(deployingRegistry);
 
-    if (unfinishedTaskId) {
-      // go to /blockchain/deploying/{taskId}
-      this.goToDeploying(unfinishedTaskId);
+    if (this.unfinishedTaskIds.length > 0) {
       return true;
     } else { return false; }
 
