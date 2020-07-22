@@ -39,7 +39,8 @@ export const uuidLaxRegExp // Free bytes hex uuid
   = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
 
 export async function textContentOf(id: string): Promise<string> {
-  const found = await browser.executeScript((`return document.getElementById('${id}');`));
+  const script = `return document.getElementById('${id}');`;
+  const found: HTMLBaseElement = await browser.executeScript(script);
   if (found) {
     return element(by.id(id)).getText();
   } else {
