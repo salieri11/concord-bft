@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.codahale.metrics.MetricRegistry
@@ -15,7 +17,8 @@ import com.daml.ledger.validator.privacy.{
 }
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
 import com.daml.lf.data.Ref.IdString
-import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
+import com.digitalasset.daml.on.vmware.execution.engine.caching.StateCaches.StateCache
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator, ValidateRequest}
 import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
@@ -179,8 +182,8 @@ class PipelinedValidatorSpec
     }
   }
 
-  private def createMetrics(): ConcordLedgerStateOperations.Metrics =
-    new ConcordLedgerStateOperations.Metrics(new MetricRegistry)
+  private def createMetrics(): ConcordLedgerStateOperationsMetrics =
+    new ConcordLedgerStateOperationsMetrics(new MetricRegistry)
 
   def commitParty(partyName: String, commitStrategy: CommitStrategy[Unit])(
       implicit executionContext: ExecutionContext): Future[Unit] =

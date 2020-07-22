@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import java.time.Instant
@@ -12,7 +14,8 @@ import com.daml.ledger.validator.privacy.{
 }
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, LedgerStateOperations}
 import com.daml.lf.data.Time
-import com.digitalasset.daml.on.vmware.execution.engine.StateCaches.StateCache
+import com.digitalasset.daml.on.vmware.execution.engine.caching.StateCaches.StateCache
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator}
 import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
@@ -36,7 +39,7 @@ class PipelinedValidator(
     readerCommitterFactory: (Long, LedgerStateOperationsWithAccessControl) => (
         DamlLedgerStateReader with QueryableReadSet,
         CommitStrategy[Unit]),
-    metricsForLedgerStateOperations: ConcordLedgerStateOperations.Metrics)(
+    metricsForLedgerStateOperations: ConcordLedgerStateOperationsMetrics)(
     implicit materializer: Materializer,
     val executionContext: ExecutionContext) {
   private val logger = LoggerFactory.getLogger(this.getClass)

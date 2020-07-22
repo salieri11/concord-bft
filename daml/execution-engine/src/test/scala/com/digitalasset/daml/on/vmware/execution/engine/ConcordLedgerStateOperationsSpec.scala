@@ -1,12 +1,16 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import com.codahale.metrics.MetricRegistry
 import com.daml.ledger.participant.state.v1
+import com.daml.ledger.validator.LedgerStateOperations.Value
 import com.daml.ledger.validator.privacy.{PublicAccess, RestrictedAccess}
 import com.digitalasset.daml.on.vmware.execution.engine.ConcordLedgerStateOperations.{
   VisibleToThisReplicaOnly,
   accessControlListToThinReplicaIds
 }
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{
   EventFromValidator,
   EventToValidator,
@@ -14,57 +18,22 @@ import com.digitalasset.kvbc.daml_validator.{
   ProtectedKeyValuePair
 }
 import com.google.protobuf.ByteString
-import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
-import org.scalatest.{AsyncWordSpec, Matchers}
-import org.scalatestplus.mockito.MockitoSugar
 
 import scala.concurrent.Future
 
-class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with MockitoSugar {
-  private trait SendEventFunction {
-    def sendEvent(event: EventFromValidator): Unit
-  }
-
-  "ledger state operations" should {
-    "resolve a read after a corresponding handleReadResult" in {
-      val instance = new ConcordLedgerStateOperations(mock[SendEventFunction].sendEvent, metrics)
-      val expectedReadTag = instance.nextReadTag.get()
-      val readFuture = instance.read(Seq(aKey()))
-
-      instance.pendingReads should contain key expectedReadTag
-      val readResult = EventToValidator
-        .ReadResult()
-        .withTag(expectedReadTag.toString)
-        .withKeyValuePairs(aKeyValuePair())
-      instance.handleReadResult(readResult)
-      readFuture.map { actual =>
-        actual should have size 1
-        actual.head shouldBe Some(aKeyValuePair().head.value)
-        instance.pendingReads should have size 0
-      }
-    }
-
-    "throw in case of an unknown read tag received" in {
-      val instance = new ConcordLedgerStateOperations(mock[SendEventFunction].sendEvent, metrics)
-      val input = EventToValidator.ReadResult().withTag("an invalid tag")
-      assertThrows[RuntimeException](instance.handleReadResult(input))
-    }
-
-    "update and reset correlation ID" in {
-      val instance = new ConcordLedgerStateOperations(mock[SendEventFunction].sendEvent, metrics)
-      instance.correlationId should have size 0
-      instance.updateCorrelationId(Some("correlation ID"))
-      instance.correlationId.toString === "correlation ID"
-      instance.updateCorrelationId(None)
-      instance.correlationId should have size 0
-    }
-  }
+class ConcordLedgerStateOperationsSpec
+    extends ConcordLedgerStateReadHandlerFixture[
+      EventFromValidator,
+      EventToValidator.ReadResult,
+      KeyValuePair,
+      Option[Value],
+      ConcordLedgerStateOperations] {
 
   "read" should {
     "create promise and send Read event" in {
       val mockEventSender = mock[SendEventFunction]
-      val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
+      val instance = createLedgerStateOperations(mockEventSender)
       val expectedReadTag = instance.nextReadTag.get()
       val _ = instance.read(Seq(aKey()))
 
@@ -78,7 +47,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
     }
 
     "return None for an empty value" in {
-      val instance = new ConcordLedgerStateOperations(mock[SendEventFunction].sendEvent, metrics)
+      val instance = createLedgerStateOperations(mock[SendEventFunction])
       val expectedReadTag = instance.nextReadTag.get()
       val readFuture = instance.read(Seq(aKey()))
       val readResult = EventToValidator
@@ -95,7 +64,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
 
     "update metric" in {
       val metricRegistry = new MetricRegistry
-      val metrics = new ConcordLedgerStateOperations.Metrics(metricRegistry)
+      val metrics = new ConcordLedgerStateOperationsMetrics(metricRegistry)
       val instance =
         new ConcordLedgerStateOperations(mock[SendEventFunction].sendEvent, metrics)
       val expectedReadTag = instance.nextReadTag.get()
@@ -118,7 +87,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
   "write" should {
     "buffer key-value pairs" in {
       val mockEventSender = mock[SendEventFunction]
-      val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
+      val instance = createLedgerStateOperations(mockEventSender)
       val expectedKey = aKey()
       val expectedValue = ByteString.copyFromUtf8("some value")
 
@@ -132,7 +101,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
   "clearing write set" should {
     "return written key-value pair" in {
       val mockEventSender = mock[SendEventFunction]
-      val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
+      val instance = createLedgerStateOperations(mockEventSender)
       val expectedKey = aKey()
       val expectedValue = ByteString.copyFromUtf8("some value")
 
@@ -155,7 +124,7 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
     "update metric" in {
       val mockEventSender = mock[SendEventFunction]
       val metricRegistry = new MetricRegistry
-      val metrics = new ConcordLedgerStateOperations.Metrics(metricRegistry)
+      val metrics = new ConcordLedgerStateOperationsMetrics(metricRegistry)
       val instance = new ConcordLedgerStateOperations(mockEventSender.sendEvent, metrics)
       val expectedKey = aKey()
       val expectedValue = ByteString.copyFromUtf8("some value")
@@ -193,11 +162,28 @@ class ConcordLedgerStateOperationsSpec extends AsyncWordSpec with Matchers with 
     }
   }
 
-  private val metrics = new ConcordLedgerStateOperations.Metrics(new MetricRegistry)
+  override protected def createLedgerStateOperations(
+      sendEventFunction: SendEventFunction): ConcordLedgerStateOperations =
+    new ConcordLedgerStateOperations(sendEventFunction.sendEvent, metrics)
 
-  private def aKey(): ByteString = ByteString.copyFromUtf8("a key")
+  override protected def read(
+      stateOperations: ConcordLedgerStateOperations,
+      keys: Seq[Value]): Future[Seq[Option[Value]]] = stateOperations.read(keys)
 
-  private def aKeyValuePair(): Seq[KeyValuePair] = Seq(
+  override protected def aReadResultWithTagAndOneKey(tag: String): EventToValidator.ReadResult =
+    EventToValidator
+      .ReadResult()
+      .withTag(tag)
+      .withKeyValuePairs(aKeyValuePair())
+
+  override protected def anEmptyReadResultWithInvalidTag(): EventToValidator.ReadResult =
+    EventToValidator
+      .ReadResult()
+      .withTag(AnInvalidTag)
+
+  protected def aKeyValuePair(): Seq[KeyValuePair] = Seq(
     KeyValuePair().withKey(aKey()).withValue(ByteString.copyFromUtf8("some value"))
   )
+
+  override protected def aReadElementWithOneKey(): Option[Value] = Some(aKeyValuePair().head.value)
 }

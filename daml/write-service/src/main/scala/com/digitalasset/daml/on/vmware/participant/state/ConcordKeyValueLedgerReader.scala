@@ -4,7 +4,7 @@ package com.digitalasset.daml.on.vmware.participant.state
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-import com.daml.ledger.participant.state.kvutils.KVOffset
+import com.daml.ledger.participant.state.kvutils.OffsetBuilder
 import com.daml.ledger.participant.state.pkvutils.api.{KeyValueLedgerReader, LedgerBlockContent}
 import com.daml.ledger.participant.state.v1.{LedgerId, Offset}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
@@ -23,7 +23,7 @@ class ConcordKeyValueLedgerReader(
   def events(offset: Option[Offset]): Source[LedgerBlockContent, NotUsed] = {
     val beginFromBlockId =
       offset
-        .map(KVOffset.highestIndex)
+        .map(OffsetBuilder.highestIndex)
         .getOrElse(ConcordKeyValueLedgerReader.StartIndex)
 
     committedBlocksSource(beginFromBlockId)
@@ -33,7 +33,7 @@ class ConcordKeyValueLedgerReader(
             s"Processing blockId=${block.blockId} correlationId=${block.correlationId} size=${block.kvPairs.length}")
           Source.single(
             LedgerBlockContent(
-              KVOffset.fromLong(block.blockId),
+              OffsetBuilder.fromLong(block.blockId),
               block.kvPairs.toSeq.map {
                 case (keyByteArray, valueByteArray) =>
                   (ByteString.copyFrom(keyByteArray), ByteString.copyFrom(valueByteArray))
