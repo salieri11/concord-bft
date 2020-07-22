@@ -140,7 +140,6 @@ async def _test_skvbc_parallel_tx_after_f_nonprimary_crash(bft_network):
 
 
 @describe()
-@pytest.mark.skip(reason="BC-3678")
 def test_skvbc_preexecution_view_change(fxProduct, bft_network):
     trio.run(_test_skvbc_preexecution_view_change, bft_network)
 
