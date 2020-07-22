@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
+import { environment } from './../../environments/environment';
 import { Personas, PersonaService } from './persona.service';
 import { User, UserAuthResponse } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
@@ -67,6 +68,11 @@ export class AuthenticationService {
       }),
       mergeMap(response => this.resolveOrgProperties(response))
     );
+  }
+
+  saveLastLocationAndReAuth() {
+    localStorage.setItem('lastLocation', `${new Date()}--${window.location.pathname}`);
+    window.location.href = environment.loginPath;
   }
 
   refreshToken(): Observable<any> {
