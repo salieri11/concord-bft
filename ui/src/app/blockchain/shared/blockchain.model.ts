@@ -24,6 +24,13 @@ export interface NodeClientParam {
   auth_url_jwt: string;
 }
 
+export enum BlockchainStates {
+  // As specified in api.yaml (/blockchains)
+  ACTIVE = 'ACTIVE',
+  FAILED = 'FAILED',
+  INACTIVE = 'INACTIVE',
+}
+
 export interface BlockchainResponse {
   id: string;
   consortium_id: string;
@@ -32,7 +39,7 @@ export interface BlockchainResponse {
   created_by: string;
   version: string;
   blockchain_type: ContractEngines;
-  blockchain_state: string;
+  blockchain_state: BlockchainStates;
 }
 
 export enum DeployStates {
@@ -46,4 +53,25 @@ export enum ContractEngines {
   DAML = 'DAML',
   ETH = 'ETHEREUM',
   HLF = 'HLF'
+}
+
+// Deploying data
+export interface TempDeployTracker {
+  key: string;
+  create_params: BlockchainRequestParams;
+  requested: number;
+  responded?: number;
+  responded_task?: number;
+  consortium_id?: string;
+  consortium_name?: string;
+  organization_id?: string;
+  task_id?: string;
+  state?: string; // DeployStates, NONE | RUNNING | SUCCEEDED | FAILED
+  stage_name?: string; // Deployment stage name
+  stage?: number; // Stage number
+  at?: number; // Last known percentage for interstitial
+}
+
+export interface TempDeployTrackerRegistry {
+  [key: string]: TempDeployTracker;
 }

@@ -9,15 +9,18 @@ import { concatMap, filter, map, take, catchError, mergeMap } from 'rxjs/operato
 import { TranslateService } from '@ngx-translate/core';
 
 import { ConsortiumService } from '../../consortium/shared/consortium.service';
+import { ConsortiumResponse } from '../../consortium/shared/consortium.model';
 import {
   BlockchainRequestParams,
   BlockchainResponse,
   DeployStates,
-  ContractEngines
+  ContractEngines,
+  TempDeployTracker,
+  TempDeployTrackerRegistry,
+  BlockchainStates,
 } from './blockchain.model';
 
 import { Zone, fakeZones } from './../../zones/shared/zones.model';
-
 import { Apis, uuidRegExp } from '../../shared/urls.model';
 
 @Injectable({
@@ -27,7 +30,11 @@ export class BlockchainService {
   taskId: string;
   blockchainId: string;
   selectedBlockchain: BlockchainResponse;
+
   blockchains: BlockchainResponse[];
+  inactiveBlockchains: BlockchainResponse[];
+  failedBlockchains: BlockchainResponse[];
+
   zones: Zone[];
   zonesMap: {[zone_id: string]: Zone};
   metadata: any;
@@ -51,7 +58,8 @@ export class BlockchainService {
 
     const deployRequestTime = Date.now();
     const tempKey = 'unassigned_' + deployRequestTime;
-    this.saveDeployingData({ key: tempKey, create_params: params, requested: deployRequestTime });
+    const tracker: TempDeployTracker = { key: tempKey, create_params: params, requested: deployRequestTime };
+    this.saveDeployingData(tracker);
 
     return this.consortiumService.create(params.consortium_name).pipe(
       mergeMap(consort => {
@@ -67,17 +75,15 @@ export class BlockchainService {
       map(response => {
         const taskId = response['task_id'];
         if (taskId) {
-          const deployData = this.loadDeployingData();
-          deployData[tempKey].responded_task = Date.now();
-          deployData[tempKey].task_id = taskId;
-
+          const deployRegistry = this.loadDeployingRegistry();
+          deployRegistry[tempKey].responded_task = Date.now();
+          deployRegistry[tempKey].task_id = taskId;
           // change 'unassigned' to known taskId on registry, delete temp key
-          deployData[taskId] = deployData[tempKey];
-          delete deployData[tempKey];
-
-          this.saveDeployingData(deployData, true);
-
-          this.blockchainId = deployData.consortium_id;
+          deployRegistry[taskId] = deployRegistry[tempKey];
+          deployRegistry[taskId].key = taskId;
+          delete deployRegistry[tempKey];
+          this.saveDeployingRegistry(deployRegistry);
+          this.blockchainId = deployRegistry[taskId].consortium_id;
         }
         return response;
       })
@@ -113,13 +119,13 @@ export class BlockchainService {
         const completed = backendData.state !== DeployStates.RUNNING;
         const failed = (backendData.state === DeployStates.FAILED);
         if (completed) {
-          const deployRegistry = this.loadDeployingData();
+          const deployRegistry = this.loadDeployingRegistry();
           if (!failed) {
-            delete deployRegistry[taskId];
+            delete deployRegistry[taskId]; // succeeded, remove temp deploy object
           } else {
             deployRegistry[taskId].state = DeployStates.FAILED;
           }
-          this.saveDeployingData(deployRegistry, true);
+          this.saveDeployingRegistry(deployRegistry);
         }
 
         return completed;
@@ -134,8 +140,8 @@ export class BlockchainService {
     return zip(consortiumList, blockchainList, zoneList)
       .pipe(
         map((response) => {
-          const cList = response[0] as any[];
-          const bList = response[1] as any[];
+          const cList = response[0] as Array<ConsortiumResponse>;
+          const bList = response[1] as Array<BlockchainResponse>;
           this.zones = response[2] as Zone[];
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
@@ -144,7 +150,12 @@ export class BlockchainService {
               }
             });
           });
-          this.blockchains = bList;
+
+          // Classify based on current state
+          this.blockchains = bList.filter(item => item.blockchain_state === BlockchainStates.ACTIVE);
+          this.inactiveBlockchains = bList.filter(item => item.blockchain_state === BlockchainStates.FAILED);
+          this.failedBlockchains = bList.filter(item => item.blockchain_state === BlockchainStates.FAILED);
+
           return this.blockchains;
         }),
         mergeMap(() => this.select(blockchainId))
@@ -189,31 +200,20 @@ export class BlockchainService {
     return uuidRegExp.test(uuid);
   }
 
-  saveDeployingData(deployData, entire: boolean = false) {
-    const data = localStorage.getItem('deployingNow');
-    let registry;
-    if (!data) { registry = {};
-    } else { try { registry = JSON.parse(data); } catch (e) { registry = {}; } }
-    if (entire) {
-      registry = deployData; // save as entire list
-    } else {
-      registry[deployData.key] = deployData; // save only the specific deploy
-    }
-    localStorage.setItem('deployingNow', JSON.stringify(registry));
+  saveDeployingData(deployData: TempDeployTracker) {
+    const data = this.getDeployingRegistry();
+    data[deployData.key] = deployData;
+    localStorage.setItem('deployingNow', JSON.stringify(data));
   }
-
-  loadDeployingData(key?: string) {
-    const data = localStorage.getItem('deployingNow');
-    if (!data) { return {};
-    } else {
-      try {
-        if (!key) {
-          return JSON.parse(data); // get all list
-        } else {
-          return JSON.parse(data)[key]; // get specific deploy try
-        }
-      } catch (e) { return {}; }
-    }
+  saveDeployingRegistry(deployDataRegistry: TempDeployTrackerRegistry) {
+    localStorage.setItem('deployingNow', JSON.stringify(deployDataRegistry));
+  }
+  loadDeployingData(key: string): TempDeployTracker {
+    const data = this.getDeployingRegistry();
+    return data[key];
+  }
+  loadDeployingRegistry(): TempDeployTrackerRegistry {
+    return this.getDeployingRegistry();
   }
 
   saveSelectedBlockchain(blockchainId: string) {
@@ -222,6 +222,15 @@ export class BlockchainService {
 
   loadSelectedBlockchain() {
     return localStorage.getItem('selectedBlockchain');
+  }
+
+  private getDeployingRegistry(): TempDeployTrackerRegistry {
+    const data = localStorage.getItem('deployingNow');
+    if (!data) {
+      return {} as TempDeployTrackerRegistry;
+    } else {
+      try { return JSON.parse(data) as TempDeployTrackerRegistry; } catch (e) { return null; }
+    }
   }
 
 }

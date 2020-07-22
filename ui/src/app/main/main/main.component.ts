@@ -61,11 +61,10 @@ export class MainComponent implements OnInit, OnDestroy {
 
   set selectedBlockchainId(id: string) {
     if (this.blockchainService.blockchainId === id) { return; }
-    let selectObs; selectObs = this.blockchainService.select(id).subscribe(
-      blockchainIsSet => {
-        this.routeService.outletEnabled = blockchainIsSet;
-        if (selectObs) { selectObs.unsubscribe(); }
-      });
+    let selectObs; selectObs = this.blockchainService.select(id).subscribe(() => {
+      this.routeService.outletEnabled = true;
+      if (selectObs) { selectObs.unsubscribe(); }
+    });
   }
 
   get blockchains(): BlockchainResponse[] {
@@ -94,7 +93,6 @@ export class MainComponent implements OnInit, OnDestroy {
     const validPath = this.handlePaths();
     if (!validPath) {
       this.routeService.redirectToDefault();
-      this.routeService.outletEnabled = false;
     } else {
       this.routeParamsSub = this.route.params.subscribe(param => this.handleParams(param));
       this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
@@ -152,25 +150,22 @@ export class MainComponent implements OnInit, OnDestroy {
       return false;
     } else if (categoryPath === mainRoutes.blockchain) { // path is /blockchain*
       this.blockchainUnresolved = true;
-      if (mainRoutes.blockchainChildren.indexOf(childPath) === -1) {
-        return false;
-      }
-    } else if (uuidRegExp.test(categoryPath)) { // valid :consortiumId
-      if (mainRoutes.consortiumIdChildren.indexOf(childPath) === -1) {
-        return false;
-      }
+      if (mainRoutes.blockchainChildren.indexOf(childPath) === -1) { return false; }
+    } else if (uuidRegExp.test(categoryPath)) { // valid :blockchainId
+      if (mainRoutes.blockchainIdChildren.indexOf(childPath) === -1) { return false; }
     }
     return true;
   }
 
   private handleParams(param: Params): void {
+    const validPath = this.handlePaths();
+    if (!validPath) { this.routeService.redirectToDefault(); return; }
     const blockchainId = param.blockchainId as string;
     this.isOnPrem = this.nodesService.allOnPremZones;
     this.blockchainType = this.blockchainService.type;
 
     // valid uuidv4 resource string
-    if (blockchainId && (uuidRegExp.test(blockchainId)
-        || blockchainId === mainRoutes.blockchain)) {
+    if (blockchainId && uuidRegExp.test(blockchainId)) {
       this.selectedBlockchainId = blockchainId;
       this.navDisabled = false;
       this.sidemenuVisible = true;
@@ -259,7 +254,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   private checkAuthorization(): boolean {
     const blockchainCount = this.blockchains.length;
-    const maxChain = this.orgProps.max_chains;
+    const maxChain = this.orgProps ? this.orgProps.max_chains : null;
     // Must be a system admin or consortium admin to deploy
     if (!(this.personaService.hasAuthorization(Personas.SystemsAdmin)
       || this.personaService.hasAuthorization(Personas.ConsortiumAdmin))) {
