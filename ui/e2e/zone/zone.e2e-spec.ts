@@ -6,7 +6,7 @@ import { browser, element, by } from 'protractor';
 
 import { AppPage } from '../app/app.po';
 import { Zone } from './zone.po';
-import { waitFor, waitForText, waitForURLContains, waitInteractableFor } from '../helpers/utils';
+import { waitFor, waitInteractableFor, waitToDisappear } from '../helpers/utils';
 
 describe('concord-ui Add Zone', () => {
   let appPage: AppPage;
@@ -32,7 +32,7 @@ describe('concord-ui Add Zone', () => {
     browser.sleep(1000);
   });
 
-  it('should fill in the rest of the form add and update', () => {
+  it('should fill in the rest of the form add and update', async () => {
     browser.sleep(100);
     zone.fillOutRest();
     zone.add();
@@ -48,6 +48,7 @@ describe('concord-ui Add Zone', () => {
     element(by.css('#locationDesignation')).sendKeys('B');
     browser.sleep(1000);
     waitInteractableFor('#updateZone');
+    waitToDisappear('.toast-title');
     zone.update();
     waitFor('#zoneNothingToUpdate');
     const newZoneDesig = element(by.css('#locationDesignation')).getAttribute('value');
@@ -55,7 +56,7 @@ describe('concord-ui Add Zone', () => {
   });
 
 
-  it('should reload and all data should be there', () => {
+  it('should reload and all data should be there', async () => {
     browser.navigate().back();
     browser.sleep(2000);
     browser.navigate().forward();
