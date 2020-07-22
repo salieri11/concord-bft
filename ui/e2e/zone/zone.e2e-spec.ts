@@ -48,7 +48,7 @@ describe('concord-ui Add Zone', () => {
     element(by.css('#locationDesignation')).sendKeys('B');
     browser.sleep(1000);
     waitInteractableFor('#updateZone');
-    waitToDisappear('.toast-title');
+    browser.sleep(5000);
     zone.update();
     waitFor('#zoneNothingToUpdate');
     const newZoneDesig = element(by.css('#locationDesignation')).getAttribute('value');
