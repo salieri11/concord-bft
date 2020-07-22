@@ -8,6 +8,7 @@ import requests
 import os
 import json
 import urllib.parse
+import threading
 from . import helper, cert, hermes_logging
 log = hermes_logging.getMainLogger()
 
@@ -18,6 +19,7 @@ PUBLISH_DEFAULT_HOST_OS = "Linux"
 PUBLISH_DEFAULT_SET_TYPE = "Smoke"
 REQ_SESSION = requests.Session() # keep connection alive to avoid excessive HTTPS handshakes if possible
 DEFAULT_SET_ID = { "setId" : None, "buildSetId": None, "errored": False }
+PENDING_IDS = {}
 
 
 def getTestingEnvironmentInfo():
@@ -232,7 +234,7 @@ def perfLog(setId, featureName, caseName, value, perfType=None):
   })
 
 
-def requestWithPathAndParams(requestPath, params):
+def requestWithPathAndParams(requestPath, params, asynchronous=False):
   '''
     Racetrack WebService are interactable with POST and REQUEST.
     Since {reqPath + param} format is recurring in all publish methods
@@ -246,20 +248,39 @@ def requestWithPathAndParams(requestPath, params):
     TODO Also selective implement http REQUEST method for paths (
       TestCaseLog, TestCaseTriage, UpdateRecommended, TestCaseLogViewer
     )
+    `asynchronous` param only works for cases; making HTTP call async
   '''
-  try: 
-    paramsValidated = {}
-    for paramName in params: # ignore all dict entry with None value
-      if params[paramName] is not None:
-        paramsValidated[paramName] = params[paramName]
-    urlEncodedParams = urllib.parse.urlencode(paramsValidated)
-    response = REQ_SESSION.post( url = BASE_PUBLISH_URL + requestPath + "?" + urlEncodedParams )
-    if response.status_code == 200:
-      return str(response.content.decode('utf-8'))
-    else:
-      content = response.content.decode('utf-8')
-      log.info("Racetrack {} has returned with {}, content: {}".format(requestPath, response.status_code, content))
-      return None
+  try:
+    asyncIndex = helper.hermesGetFreeAsyncThreadIndex()
+    outcome = { "result" : None }
+    def reportAsync(verboseError):
+      if "ID" in params and params["ID"].startswith('THREAD-'):
+        pendingId = params["ID"]
+        while pendingId in PENDING_IDS and PENDING_IDS[pendingId] is None: time.sleep(0.5)
+        params["ID"] = PENDING_IDS[pendingId] # resolved
+      paramsValidated = {}
+      for paramName in params: # ignore all dict entry with None value
+        if params[paramName] is not None:
+          paramsValidated[paramName] = params[paramName]
+      urlEncodedParams = urllib.parse.urlencode(paramsValidated)
+      response = REQ_SESSION.post( url = BASE_PUBLISH_URL + requestPath + "?" + urlEncodedParams )
+      if response.status_code == 200:
+        outcome["result"] = str(response.content.decode('utf-8'))
+        if asyncIndex in PENDING_IDS: PENDING_IDS[asyncIndex] = outcome["result"]
+      else:
+        if verboseError:
+          content = response.content.decode('utf-8')
+          log.info("Racetrack {} has returned with {}, content: {}".format(requestPath, response.status_code, content))
+    thd = threading.Thread(target = lambda verboseError: reportAsync(verboseError), args = (True, ))
+    thd.start()
+    if asynchronous:
+      # Don't join thread now and block process; move on to next case ASAP
+      helper.FREE_ASYNC_THREADS[asyncIndex] = thd
+      PENDING_IDS[asyncIndex] = None
+      return asyncIndex
+    else: # join and wait for result if synchronous
+      thd.join()
+      return outcome["result"]
   except Exception as e:
     helper.hermesNonCriticalTrace(e)
     return None

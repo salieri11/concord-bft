@@ -15,6 +15,7 @@ import os
 import urllib
 import tempfile
 import base64
+import time
 from fixtures.common_fixtures import BlockchainFixture
 from util import (hermes_logging, helper, slack, mailer, wavefront,
                  racetrack, jenkins, infra, blockchain_ops as ops)
@@ -113,6 +114,7 @@ def capturePipelineError(args, options, secret):
 
 def localTestFunction(args, options, secret):
   '''A placeholder function for local testing of new code, pre-commit'''
+  # ! temp
   return
 
 
@@ -188,7 +190,7 @@ def main():
     if not helper.thisHermesIsFromJenkins():
       traceback.print_exc()
     helper.hermesNonCriticalTrace(e)
-  helper.hermesNonCriticalTraceFinalize()
+  helper.hermesPreexitWrapUp()
   return
 
 
