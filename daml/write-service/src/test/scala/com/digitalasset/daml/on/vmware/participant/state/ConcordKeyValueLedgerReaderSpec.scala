@@ -4,7 +4,7 @@ package com.digitalasset.daml.on.vmware.participant.state
 
 import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
-import com.daml.ledger.participant.state.kvutils.KVOffset
+import com.daml.ledger.participant.state.kvutils.OffsetBuilder
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.google.protobuf.ByteString
@@ -35,11 +35,11 @@ class ConcordKeyValueLedgerReaderSpec
           Source.single(Update(123, expectedKeyValuePairs.toArray, "aCorrelationId", aSpanContext)))
       val instance =
         new ConcordKeyValueLedgerReader(blockSource.streamFrom, "aLedgerId")
-      val stream = instance.events(Some(KVOffset.fromLong(123)))
+      val stream = instance.events(Some(OffsetBuilder.fromLong(123)))
       stream.runWith(Sink.seq).map { actual =>
         actual should have size 1
         val actualBlock = actual.head
-        KVOffset.highestIndex(actualBlock.offset) shouldBe 123
+        OffsetBuilder.highestIndex(actualBlock.offset) shouldBe 123
         actualBlock.keyValuePairs should have size expectedKeyValuePairs.size
         for ((expectedKeyValuePair, actualKeyValuePair) <- expectedKeyValuePairs
             .zip(actualBlock.keyValuePairs)) {

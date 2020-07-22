@@ -1,4 +1,4 @@
-package com.digitalasset.daml.on.vmware.execution.engine
+package com.digitalasset.daml.on.vmware.execution.engine.metrics
 
 import com.codahale.metrics.MetricRegistry
 import com.github.benmanes.caffeine.cache.stats.{CacheStats, StatsCounter}

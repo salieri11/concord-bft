@@ -8,13 +8,23 @@ import akka.stream.Materializer
 import com.codahale.metrics.{InstrumentedExecutorService, MetricRegistry}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
+import com.daml.ledger.participant.state.pkvutils.PrefixingKeySerializationStrategy
 import com.daml.ledger.validator.batch.{
   BatchedSubmissionValidator,
   BatchedSubmissionValidatorParameters,
   ConflictDetection
 }
+import com.daml.ledger.validator.preexecution.PreExecutingSubmissionValidator
+import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy
+import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
 import com.daml.lf.engine.Engine
 import com.daml.metrics.{MetricName, Metrics}
+import com.digitalasset.daml.on.vmware.execution.engine.caching.{
+  PreExecutionStateCaches,
+  StateCaches
+}
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
+import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator
 import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition}
@@ -31,19 +41,44 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
   private val readerCommitterFactoryFunction =
     PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
 
-  private val batchValidator =
+  private val keyValueCommitting = new KeyValueCommitting(engine, metrics)
+
+  private val batchSubmissionValidator =
     BatchedSubmissionValidator[Unit](
       BatchedSubmissionValidatorParameters.reasonableDefault,
-      new KeyValueCommitting(engine, metrics),
+      keyValueCommitting,
       new ConflictDetection(metrics),
       metrics,
-      engine,
     )
 
+  private val serializationStrategy = PrefixingKeySerializationStrategy()
+
+  private val preExecutingReaderFactoryFunction =
+    PreExecutingValidator.getOrCreateReader(
+      () => PreExecutionStateCaches.createDefault(metrics.registry),
+      serializationStrategy) _
+
+  private val preExecutingSubmissionValidator =
+    new PreExecutingSubmissionValidator[KeyValuePairsWithAccessControlList](
+      keyValueCommitting,
+      metrics,
+      serializationStrategy,
+      LogFragmentsPreExecutingCommitStrategy(serializationStrategy)
+    )
+
+  private val concordLedgerStateOperationsMetrics =
+    new ConcordLedgerStateOperationsMetrics(metrics.registry)
+
   private val pipelinedValidator = new PipelinedValidator(
-    batchValidator,
+    batchSubmissionValidator,
     readerCommitterFactoryFunction,
-    new ConcordLedgerStateOperations.Metrics(metrics.registry)
+    concordLedgerStateOperationsMetrics
+  )
+
+  private val preExecutingValidator = new PreExecutingValidator(
+    preExecutingSubmissionValidator,
+    preExecutingReaderFactoryFunction,
+    concordLedgerStateOperationsMetrics
   )
 
   override def validate(
@@ -52,7 +87,7 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
 
   override def preexecute(responseObserver: StreamObserver[PreprocessorFromEngine])
     : StreamObserver[PreprocessorToEngine] =
-    throw new NotImplementedError("Pre-execution is not yet supported")
+    preExecutingValidator.preExecuteSubmission(responseObserver)
 
   override def currentHealth(): HealthStatus = Healthy
 

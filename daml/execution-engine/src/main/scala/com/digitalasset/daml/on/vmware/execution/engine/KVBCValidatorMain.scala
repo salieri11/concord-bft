@@ -14,6 +14,7 @@ import com.digitalasset.daml.on.vmware.common.{
   KVBCMetricsRegistry,
   KVBCPrometheusMetricsEndpoint
 }
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.KVBCGraphMetricsEndpoint
 import com.digitalasset.daml.on.vmware.tracing.TracingHelper
 import io.grpc.protobuf.services.ProtoReflectionService
 import io.grpc.{Server, ServerBuilder}

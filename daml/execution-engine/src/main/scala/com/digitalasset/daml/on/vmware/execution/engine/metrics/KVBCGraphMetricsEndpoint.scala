@@ -1,13 +1,12 @@
-package com.digitalasset.daml.on.vmware.execution.engine
+package com.digitalasset.daml.on.vmware.execution.engine.metrics
 
 import java.net.URI
 
+import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheckRegistry
 import com.codahale.metrics.servlets.{AdminServlet, HealthCheckServlet, MetricsServlet}
-import com.codahale.metrics.MetricRegistry
-import org.eclipse.jetty.servlet.ServletContextHandler
+import org.eclipse.jetty.servlet.{DefaultServlet, ServletContextHandler, ServletHolder}
 import org.eclipse.jetty.util.resource.Resource
-import org.eclipse.jetty.servlet.{DefaultServlet, ServletHolder}
 
 final class KVBCGraphMetricsEndpoint(registry: MetricRegistry, context: ServletContextHandler) {
 
