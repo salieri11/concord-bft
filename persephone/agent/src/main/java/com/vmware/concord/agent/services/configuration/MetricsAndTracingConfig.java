@@ -45,7 +45,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
             List.of(new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090))),
             List.of(Bind.parse("/config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf"),
                     Bind.parse("/var/run/docker.sock:/var/run/docker.sock:ro"),
-                    Bind.parse("/:/hostfs:ro")),
+                    Bind.parse("/sys:/hostfs/sys:ro"),
+                    Bind.parse("/proc:/hostfs/proc:ro")),
             null, null,
             List.of("HOST_MOUNT_PREFIX=/hostfs",
                     "HOST_PROC=/hostfs/proc"));
