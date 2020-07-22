@@ -382,7 +382,7 @@ def main():
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
    printAllResults(allResults)
-   helper.hermesNonCriticalTraceFinalize()
+   helper.hermesPreexitWrapUp()
 
    if not totalSuccess:
       exit(2)

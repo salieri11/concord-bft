@@ -160,6 +160,11 @@ NON_CRITICAL_HERMES_EXCEPTIONS = []
 NON_CRITICAL_HERMES_OUTPUT_FILE = "non_critical.log"
 NON_CRITICAL_HERMES_OUTPUT_PATH = "/summary/" + NON_CRITICAL_HERMES_OUTPUT_FILE
 
+# All free async threads that needs to be joined before script exits
+# (populated by racetrack.py `reportAsync`)
+FREE_ASYNC_THREADS_INDEX = 0
+FREE_ASYNC_THREADS = {}
+
 # Super user privilege; with all Jenkins injected credentials available in user_config
 WITH_JENKINS_INJECTED_CREDENTIALS = False
 
@@ -1734,6 +1739,28 @@ def hermesNonCriticalTraceFinalize():
       f.write("\n".join(allLines))
   except Exception as e:
     pass
+
+
+def hermesGetFreeAsyncThreadIndex():
+  global FREE_ASYNC_THREADS_INDEX
+  asyncIndex = 'THREAD-' + str(FREE_ASYNC_THREADS_INDEX)
+  FREE_ASYNC_THREADS_INDEX += 1
+  return asyncIndex
+
+
+def hermesJoinAllFreeAsyncThreads():
+  '''Joins all non-essential async worker threads to join before process exits'''
+  for threadKey in FREE_ASYNC_THREADS:
+    try:
+      thd = FREE_ASYNC_THREADS[threadKey]
+      thd.join(timeout=30)
+    except Exception as e:
+      hermesNonCriticalTrace(e)
+
+
+def hermesPreexitWrapUp():
+  hermesJoinAllFreeAsyncThreads()
+  hermesNonCriticalTraceFinalize()
 
 
 def parseReplicasConfig(replicas):
