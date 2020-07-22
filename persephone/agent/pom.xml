@@ -15,29 +15,10 @@
     <name>Blockchain - Fleet Management Node Agent</name>
     <properties>
         <!-- Project properties. -->
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- Maven-related properties. -->
-        <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
-        <maven.plugin.compiler>3.7.0</maven.plugin.compiler>
-        <maven.plugin.jar>3.1.1</maven.plugin.jar>
-        <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
-        <maven.plugin.os>1.3.0.Final</maven.plugin.os>
-        <maven.plugin.resources>3.0.2</maven.plugin.resources>
-        <maven.plugin.source>3.0.1</maven.plugin.source>
-        <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
-
-        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
-        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
         <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
 
-        <!-- Dependency-related properties. -->
-        <assertj.version>3.15.0</assertj.version>
-        <grpc.runtime.java.version>1.27.1</grpc.runtime.java.version>
-        <junit.jupiter.version>5.6.0</junit.jupiter.version>
-        <junit.platform.version>1.2.0</junit.platform.version>
-        <persephone.version>1.0.0-SNAPSHOT</persephone.version>
-        <slf4j.version>1.7.28</slf4j.version>
+        <docker.java.version>3.1.2</docker.java.version>
+        <javax.activation.version>1.1.1</javax.activation.version>
     </properties>
 
     <dependencies>
@@ -48,12 +29,10 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.11.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
-            <version>3.11.1</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
@@ -62,7 +41,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-guava</artifactId>
-            <version>2.10.1</version>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ Special dependencies. (Custom order)                      ~
@@ -124,39 +102,31 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
-            <version>${grpc.runtime.java.version}</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>${grpc.runtime.java.version}</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>${grpc.runtime.java.version}</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>${grpc.runtime.java.version}</version>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -166,7 +136,6 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
@@ -180,12 +149,12 @@
         <dependency>
             <groupId>com.github.docker-java</groupId>
             <artifactId>docker-java</artifactId>
-            <version>3.1.2</version>
+            <version>${docker.java.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
-            <version>1.1.1</version>
+            <version>${javax.activation.version}</version>
         </dependency>
     </dependencies>
 
@@ -194,7 +163,7 @@
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.2</version>
+                <version>${kr.motd.maven.version}</version>
             </extension>
         </extensions>
         <plugins>
