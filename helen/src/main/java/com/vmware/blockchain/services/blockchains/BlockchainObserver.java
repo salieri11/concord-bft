@@ -318,6 +318,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                 clientNode.setBlockchainId(rawBlockchain.getId());
                 resources.forEach(each -> {
                     var attributes = each.getAdditionalInfo().getValuesMap();
+
+                    // CLIENT_GROUP_ID is available regardless of the resource type.
+                    String clientGroupId = attributes.get(NodeProperty.Name.CLIENT_GROUP_ID);
+                    if (clientGroupId != null && !clientGroupId.isEmpty()) {
+                        clientNode.setGroupId(UUID.fromString(clientGroupId));
+                    }
+
                     switch (each.getType()) {
                         case COMPUTE_RESOURCE:
                             clientNode.setPassword(attributes.get(
