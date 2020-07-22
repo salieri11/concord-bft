@@ -18,8 +18,8 @@ export class ZonesService {
 
   constructor(private http: HttpClient) { }
 
-  getZone(id: string): Observable<Zone> {
-    return this.http.get<Zone>(`${Apis.zones}/${id}`);
+  getZone(id: string): Observable<OnPremZone> {
+    return this.http.get<OnPremZone>(`${Apis.zones}/${id}`);
   }
 
   getZones(): Observable<Zone[]> {

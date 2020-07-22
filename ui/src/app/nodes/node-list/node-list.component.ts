@@ -13,6 +13,7 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { ContractEngines } from '../../blockchain/shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
 import { FeatureFlagService } from '../../shared/feature-flag.service';
+import { ZoneType } from '../../zones/shared/zones.model';
 
 @Component({
   selector: 'concord-node-list',
@@ -33,6 +34,7 @@ export class NodeListComponent implements OnInit {
   personas = Personas;
   blockchainType: ContractEngines;
   engines = ContractEngines;
+  cloudZone = ZoneType.VMC_AWS;
 
   // ! temporary feature flag
   nodeDashboardEnabled: boolean = false;

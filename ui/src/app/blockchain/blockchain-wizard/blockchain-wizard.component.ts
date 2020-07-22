@@ -168,7 +168,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     return { 'countIsCorrect': true };
   }
 
-  private setupZones(tabMoved: boolean = false) {
+  private setupZones(tabMoved?: boolean) {
     if (tabMoved || !this.zonesSetUp) {
       this.zonesSetUp = true;
       this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
@@ -181,19 +181,19 @@ export class BlockchainWizardComponent implements AfterViewInit {
         pastZones.forEach(zone => { zones.removeControl(zone.id); });
         if (this.onPremActive) {
           onPremZones.forEach(zone => {
-            zones.addControl(zone.id, new FormControl('', Validators.required));
+            zones.addControl(zone.id, new FormControl(''));
           });
           this.zones = onPremZones;
         } else {
           this.cloudActive = true;
           cloudZones.forEach(zone => {
-            zones.addControl(zone.id, new FormControl('', Validators.required));
+            zones.addControl(zone.id, new FormControl(''));
           });
           this.zones = cloudZones;
         }
       }
+      this.distributeZones();
     }
-    this.distributeZones();
   }
 
   onSubmit() {
@@ -250,6 +250,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const regionKeys = Object.keys(zones.value);
     const ratio = regionKeys.length;
     const spread = [];
+
     // Clear out previous distribution
     zones.reset();
 

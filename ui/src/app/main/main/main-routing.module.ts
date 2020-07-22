@@ -51,11 +51,7 @@ const routes: Routes = [
         }]
       },
       // ROUTE: /:consortiumId/zones
-      {
-        component: ZonesComponent,
-        path: mainRoutes.zones,
-        children: zonesRoutes
-      },
+      { path: mainRoutes.zones, children: zonesRoutes, component: ZonesComponent },
       // ROUTE: /:consortiumId/dashboard
       { path: mainRoutes.dashboard, children: dashboardRoutes },
       // ROUTE: /:consortiumId/blocks

@@ -82,8 +82,8 @@
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
               <clr-dg-cell *ngIf="!nodesService.committersWithNoZoneInfo">
-                <a *ngIf="node?.zone?.id" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
-                <span *ngIf="!node?.zone?.id">{{ node.zone_name }}</span>
+                <a *ngIf="node?.zone?.id && node?.zone?.type !== cloudZone" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
+                <span *ngIf="!node?.zone?.id || node?.zone?.type === cloudZone">{{ node.zone_name }}</span>
               </clr-dg-cell>
             </clr-dg-row>
           </clr-datagrid>
@@ -162,8 +162,8 @@
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
               <clr-dg-cell>
-                <a *ngIf="node?.zone?.id" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
-                <span *ngIf="!node?.zone?.id">{{ node.zone_name }}</span>
+                <a *ngIf="node?.zone?.id && node?.zone?.type !== cloudZone" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
+                <span *ngIf="!node?.zone?.id || node?.zone?.type === cloudZone">{{ node.zone_name }}</span>
               </clr-dg-cell>
             </clr-dg-row>
           </clr-datagrid>

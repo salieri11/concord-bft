@@ -12,6 +12,7 @@ export interface Zone {
 }
 
 export interface OnPremZone extends Zone {
+  org_id?: string;
   folder: string;
   resource_pool: string;
   storage: string;
@@ -19,6 +20,9 @@ export interface OnPremZone extends Zone {
   container_repo: OnPremContainerRepo;
   network: OnPremNetwork;
   log_managements: LogManagements[];
+  wavefront?: OnPremWavefront;
+  elasticsearch?: OnPremElasticsearch;
+  outbound_proxy?: OnPremOutboundProxy;
 }
 
 export interface OnPremVCenter {
@@ -46,6 +50,24 @@ export interface LogManagements {
   port: number;
   username: string;
   password: string;
+}
+
+export interface OnPremWavefront {
+  url?: string;
+  token?: string;
+}
+
+export interface OnPremElasticsearch {
+  url?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface OnPremOutboundProxy {
+  http_host?: string;
+  http_port?: number;
+  https_host?: string;
+  https_port?: number;
 }
 
 export enum ZoneType {

@@ -67,12 +67,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   infoList: any;
 
   blockchainId: string;
+
   blocks: BlockInfo[] = [];
   orgs: any[] = [];
   nodes: NodeInfo[] = [];
   clients: ClientNode[] = [];
   smartContracts: SmartContract[] = [];
   nodesByLocation: NodeProperties[] = [];
+
   onlyOnPrem: boolean = false;
   nodeGeoJson = NodeGeoJson;
   routerFragmentChange: Subscription;
@@ -93,7 +95,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   commitersConfig: DashboardListConfig = null;
 
   constructor(
-    public blockchainService: BlockchainService,
+    private blockchainService: BlockchainService,
     private orgService: OrgService,
     private smartContractsService: SmartContractsService,
     private blocksService: BlocksService,
@@ -287,9 +289,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.dashItems = [{
           title: this.translate.instant('nodes.clients'),
           link: ['/' + this.blockchainId, mainRoutes.nodes, mainRoutes.clients],
-          count: null,
+          count: this.clients.length ? this.clients.length : null,
         }, {
-          title: this.translate.instant('organization.title'), link: [], count: null,
+          title: this.translate.instant('organization.title'), link: [], count: this.orgCount ? this.orgCount : null,
         }];
         this.infoLists = [
           { config: this.commitersConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
@@ -304,19 +306,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.dashItems = [{
           title: this.translate.instant('organization.title'),
           link: ['/' + this.blockchainId, mainRoutes.organizations],
-          count: null,
+          count: this.orgCount ? this.orgCount : null,
         }, {
           title: this.translate.instant('blocks.currentBlock'),
           link: ['/' + this.blockchainId, mainRoutes.blocks],
-          count: null,
+          count: this.blocks.length ? this.blocks.length : null,
         }, {
           title: this.translate.instant('dashboard.deployedContracts'),
           link: ['/' + this.blockchainId, mainRoutes.smartContracts],
-          count: null,
+          count: this.smartContracts.length,
         }, {
           title: this.translate.instant('transactions.transactions'),
           link: ['/' + this.blockchainId, mainRoutes.transactions],
-          count: null,
+          count: this.transactionCount ? this.transactionCount :  null,
         }];
 
         this.infoLists = [
@@ -344,7 +346,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadBlocks() {
     this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
       this.blocks = resp.blocks;
-      this.dashItems[this.dashInfo.currentBlock].count = this.currentBlock;
+      this.dashItems[this.dashInfo.currentBlock].count = this.blocks.length;
       this.dashItems[this.dashInfo.transactions].count = this.transactionCount;
       this.infoLists[this.infoList.blocks].items = this.blocks;
     });

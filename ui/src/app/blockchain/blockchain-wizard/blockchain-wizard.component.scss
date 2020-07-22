@@ -148,7 +148,7 @@ label {
 }
 .regions {
   margin-top: $formTopMargin;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   input {
     width: $inputWidth;
   }
@@ -218,8 +218,12 @@ label {
   outline: none;
   border: none;
   font-size: 0.45rem;
-  color: #e02200;
+  color: $clr-red;
   cursor: pointer;
+}
+
+.committer-dist-error {
+  color: $clr-red;
 }
 
 .pagination-message {
