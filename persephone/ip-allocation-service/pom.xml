@@ -15,12 +15,6 @@
     <name>Blockchain - Fleet Management IP Allocation Service</name>
     <properties>
         <!-- Project properties. -->
-        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
-        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
-        <mockito.inline.version>2.28.2</mockito.inline.version>
-        <kr.motd.maven.version>1.6.2</kr.motd.maven.version>
-        <springframework.security.version>5.1.8.RELEASE</springframework.security.version>
-        <com.github.tomakehurst.version>2.20.0</com.github.tomakehurst.version>
         <io.zonky.test.version>1.5.2</io.zonky.test.version>
         <io.zonky.test.postgres.version>10.6.0</io.zonky.test.postgres.version>
         <spring.boot.mainclass>com.vmware.blockchain.ipam.server.Application</spring.boot.mainclass>
@@ -121,7 +115,6 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -175,12 +168,10 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-inline</artifactId>
-            <version>${mockito.inline.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
-            <version>${com.github.tomakehurst.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -190,7 +181,6 @@
             <!-- Make method-based security testing easier. -->
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
-            <version>${springframework.security.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
