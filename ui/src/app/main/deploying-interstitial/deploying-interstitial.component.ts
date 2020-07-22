@@ -39,11 +39,11 @@ export class DeployingInterstitialComponent implements OnDestroy {
     private router: Router,
     private translate: TranslateService
   ) {
-    this.blockchainNotifySub = this.blockchainService.notify.subscribe(message => {
-      if (message && message.message === 'deploying') {
+    this.blockchainNotifySub = this.blockchainService.notify.subscribe(e => {
+      if (e && e.message === 'deploying') {
         this.loading = true;
-        this.blockchainType = message.type;
-        this.isOnlyOnPrem = message.isOnlyOnPrem;
+        this.blockchainType = e.type;
+        this.isOnlyOnPrem = e.isOnlyOnPrem;
       }
     });
     this.message = this.translate.instant('deployLoader.waiting');
@@ -73,13 +73,13 @@ export class DeployingInterstitialComponent implements OnDestroy {
           message.unsubscribe();
           this.progress = 100;
           this.message = this.translate.instant('deployLoader.ending');
-
-          this.blockchainService.set(response.resource_id).subscribe(() => {
+          const deployedBlockchainId = response.resource_id;
+          this.blockchainService.set(deployedBlockchainId).subscribe(() => {
             setTimeout(() => {
               const fragment = this.isOnlyOnPrem ? null : 'orgTour';
               // TODO: enable the dashboard to show a toast - response.resource_id is the bid
-              this.router.navigate([`/${response.resource_id}`, 'dashboard'], {fragment: fragment});
-              this.blockchainService.notify.next({message: 'deployed'});
+              this.router.navigate([`/${deployedBlockchainId}`, 'dashboard'], {fragment: fragment});
+              this.blockchainService.notify.next({message: 'deployed', blockchainId: deployedBlockchainId});
             }, 3000);
           });
         } else {

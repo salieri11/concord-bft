@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 
 import { ZonesService } from '../shared/zones.service';
 import { Personas } from '../../shared/persona.service';
@@ -14,13 +14,14 @@ import { TranslateService } from '@ngx-translate/core';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { VmwToastType } from '@vmw/ngx-components';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Component({
   selector: 'concord-zone-list',
   templateUrl: './zone-list.component.html',
   styleUrls: ['./zone-list.component.scss']
 })
-export class ZoneListComponent implements OnInit {
+export class ZoneListComponent {
   @ViewChild('confirm', { static: true }) confirm: ConfirmModalComponent;
   selected: Zone[] = [];
   zones: Zone[];
@@ -36,18 +37,18 @@ export class ZoneListComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private taskService: VmwTasksService,
-  ) { }
-
-  ngOnInit() {
+    private blockchainService: BlockchainService,
+  ) {
+    this.zones = this.blockchainService.zones;
     this.refreshList();
   }
 
   refreshList() {
     this.loading = true;
-    this.zonesService.getZones().subscribe(zones => {
-      this.zones = zones;
+    this.blockchainService.getZones().subscribe(() => {
+      this.zones = this.blockchainService.zones;
       this.loading = false;
-    }, () => this.loading = false);
+    });
   }
 
   onClickToHelp(helpId) {

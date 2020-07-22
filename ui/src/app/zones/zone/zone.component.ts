@@ -16,7 +16,7 @@ import { VmwTasksService } from '../../shared/components/task-panel/tasks.servic
 import { ZoneFormComponent } from '../zone-form/zone-form.component';
 import { VmwToastType } from '@vmw/ngx-components';
 import { VmwClarityThemeService, VmwClarityTheme } from '../../shared/theme.provider';
-import { Zone } from '../shared/zones.model';
+import { OnPremZone, ZoneType } from '../shared/zones.model';
 
 @Component({
   selector: 'concord-zone',
@@ -33,14 +33,14 @@ export class ZoneComponent implements OnInit {
   isNewZoneState: boolean;
   zoneFormVisible: boolean = false;
   themeDark: boolean = false;
-  zoneData: Zone;
+  zoneData: OnPremZone;
 
   personas = Personas;
 
   constructor(
     private loc: Location,
-    private route: ActivatedRoute,
     private zoneService: ZonesService,
+    private route: ActivatedRoute,
     private router: Router,
     private translate: TranslateService,
     private taskService: VmwTasksService,
@@ -54,16 +54,26 @@ export class ZoneComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.zoneId = params['zoneId'];
-      if (this.zoneId === mainRoutes.new) {
+      if (this.zoneId === mainRoutes.new) { // New Zone Form
         this.isNewZoneState = true;
         this.zoneFormVisible = true;
-      } else {
+      } else { // UUID; Edit Existing Zone
         this.isNewZoneState = false;
         this.zoneService.getZone(this.zoneId).subscribe(async zone => {
+          // Cloud zones are forbidden to edit, go back to list if trying to access cloud zone.
+          if (zone.type === ZoneType.VMC_AWS) {
+            this.router.navigate(['../'],  { relativeTo: this.route });
+            return;
+          }
           this.zoneData = zone;
           this.setZone(zone);
           await this.zoneForm.afterLoadingFormForUpdate();
           this.zoneFormVisible = true;
+        }, e => {
+          if (e && e.error && e.error.status === 404) {
+            // Zone not found; go back to list
+            this.router.navigate(['../'],  { relativeTo: this.route });
+          }
         });
       }
     });
@@ -95,9 +105,7 @@ export class ZoneComponent implements OnInit {
   deleteZone() {
     this.deleting = true;
     this.zoneService.delete(this.zoneId).subscribe(() => {
-      const path = this.loc.path().split('/');
-      path.pop();
-      this.router.navigate([path.join('/')]);
+      this.router.navigate(['../', { relativeTo: this.route }]);
       this.deleting = false;
       this.taskService.addToast({
         title: this.translate.instant('zones.actions.deleted'),

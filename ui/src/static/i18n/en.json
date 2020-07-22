@@ -1131,7 +1131,8 @@
       "regionalTitle": "Selected Zones",
       "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
-      "add": "Add On Premises Region"
+      "add": "Add On Premises Region",
+      "distributionHelper": "Current distribution does not match the total number of nodes specified."
     },
     "clients": {
       "pageTitle": "Add Client Nodes",

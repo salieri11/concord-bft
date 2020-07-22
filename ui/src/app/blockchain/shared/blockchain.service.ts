@@ -5,7 +5,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
+import { concatMap, filter, map, take, catchError, mergeMap } from 'rxjs/operators';
 import { TranslateService } from '@ngx-translate/core';
 
 import { ConsortiumService } from '../../consortium/shared/consortium.service';
@@ -40,8 +40,7 @@ export class BlockchainService {
     private http: HttpClient,
     private consortiumService: ConsortiumService,
     private translateService: TranslateService,
-  ) {
-  }
+  ) { }
 
   deploy(params: BlockchainRequestParams, isOnlyOnPrem: boolean): Observable<any> {
     this.notify.next({
@@ -55,7 +54,7 @@ export class BlockchainService {
     this.saveDeployingData({ key: tempKey, create_params: params, requested: deployRequestTime });
 
     return this.consortiumService.create(params.consortium_name).pipe(
-      flatMap(consort => {
+      mergeMap(consort => {
         params.consortium_id = consort.consortium_id;
         const deployData = this.loadDeployingData(tempKey);
         deployData.responded = Date.now();
@@ -148,7 +147,7 @@ export class BlockchainService {
           this.blockchains = bList;
           return this.blockchains;
         }),
-        flatMap(() => this.select(blockchainId))
+        mergeMap(() => this.select(blockchainId))
       );
   }
 

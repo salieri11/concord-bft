@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { map, flatMap } from 'rxjs/operators';
+import { map, mergeMap } from 'rxjs/operators';
 
 import { Personas, PersonaService } from './persona.service';
 import { User, UserAuthResponse } from '../users/shared/user.model';
@@ -65,7 +65,7 @@ export class AuthenticationService {
 
         return response;
       }),
-      flatMap(response => this.resolveOrgProperties(response))
+      mergeMap(response => this.resolveOrgProperties(response))
     );
   }
 

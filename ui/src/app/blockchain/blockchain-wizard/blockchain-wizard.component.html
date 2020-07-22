@@ -156,6 +156,10 @@
           </clr-tabs>
 
         </div>
+        <clr-control-error *ngIf="form.controls.nodes.get('numberOfNodes').value && !form.controls.nodes.errors?.countIsCorrect"
+          class="committer-dist-error">
+          {{'blockchainWizard.nodes.distributionHelper' | translate}}
+        </clr-control-error>
         <div class="divider"></div>
         <!--         <clr-alert [clrAlertClosable]="false">
           <clr-alert-item>
