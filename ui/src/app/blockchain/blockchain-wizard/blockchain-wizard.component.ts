@@ -26,6 +26,7 @@ import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+const numberOnlyRegex = /^\d+$/;
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -54,7 +55,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
   @ViewChild('onPremForm', { static: false }) onPremForm: ZoneFormComponent;
   @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
-  @ViewChild('clientAuthUrlInput', { static: false }) clientAuthUrlInput: ElementRef;
 
   @Output('events') events: EventEmitter<EventData> = new EventEmitter<EventData>();
 
@@ -98,6 +98,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.clientForm = new FormGroup({
       zone_id: new FormControl('', Validators.required),
       auth_url: new FormControl('', [Validators.pattern(urlValidateRegex)]),
+      group_index: new FormControl('', [Validators.pattern(numberOnlyRegex)]),
     });
 
   }
@@ -148,10 +149,14 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const zoneId = this.clientForm.get('zone_id').value;
     const zoneName =  this.blockchainService.zones
                             .filter(zone => zone.id === zoneId)[0].name;
+    let groupIndex = this.clientForm.get('group_index').value;
+    if (!groupIndex && groupIndex !== 0) { groupIndex = ''; }
+    groupIndex = groupIndex + ''; // group_index field is of type string
     const clientData = new FormControl({
       zone_id: new FormControl(zoneId),
       auth_url_jwt: new FormControl(this.clientForm.get('auth_url').value),
-      zone_name: zoneName
+      zone_name: zoneName,
+      group_index: new FormControl(groupIndex),
     });
     clientsFormArray.push(clientData);
   }
@@ -214,6 +219,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
       clients.push({
         zone_id: client.zone_id.value,
         auth_url_jwt: client.auth_url_jwt.value,
+        group_index: client.group_index.value,
       });
     }
     params.client_nodes = clients;
