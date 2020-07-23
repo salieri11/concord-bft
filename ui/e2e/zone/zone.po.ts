@@ -47,7 +47,7 @@ export class Zone {
     // Log management
     element(by.css('#liUrl')).sendKeys('10.78.20.10');
     element(by.css('#liPort')).sendKeys('9543');
-    element(by.css('#liUsername')).sendKeys('fluentd');
+    element(by.css('#liUsername')).sendKeys(zoneCreds.logInsight.username);
     element(by.css('#liPasswor')).sendKeys(zoneCreds.logInsight.password);
     element(by.css('#nextButtonLogManagement')).click();
     browser.sleep(stepperExpandDelay);
