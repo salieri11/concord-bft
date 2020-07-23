@@ -14,17 +14,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
-import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
  * Utility class to generate telegraf configurations.
@@ -43,123 +39,6 @@ public class TelegrafConfigUtil {
      * telegraf config path.
      */
     public static final String configPath = "/telegraf/telegraf.conf";
-
-    /**
-     * Generate telegraf configurations.
-     * @param nodeProperties node properties
-     * @param properties raw properties.
-     * @param servicesList services list.
-     * @return map of host ips vs configs.
-     */
-    @Deprecated
-    public Map<Integer, String> getTelegrafConfig(List<NodeProperty> nodeProperties,
-                                                  Properties properties,
-                                                  List<ConcordComponent.ServiceType> servicesList) {
-
-        Map<Integer, String> configMap = new HashMap<>();
-
-        String content = "";
-        try {
-            InputStream inputStream = new FileInputStream(telegrafTemplatePath);
-            content = new String(inputStream.readAllBytes());
-        } catch (IOException e) {
-            // For unit tests only.
-            log.warn("File {} does not exist: {}\n Using localized telegraf config input template",
-                    telegrafTemplatePath, e.getLocalizedMessage());
-            ClassLoader classLoader = getClass().getClassLoader();
-            try {
-                File file = new File(classLoader.getResource("TelegrafConfigTemplate.conf").getFile());
-                content = new String(Files.readAllBytes(file.toPath()));
-            } catch (IOException | NullPointerException ex) {
-                log.warn("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());
-                return null;
-            }
-        }
-
-        var prometheusUrlList = getPrometheusUrls(servicesList);
-        String prometheusUrls = "";
-        if (!prometheusUrlList.isEmpty()) {
-            prometheusUrls = String.join(",", prometheusUrlList);
-        }
-
-        content = content
-                .replace("$BLOCKCHAIN_ID", properties.getValuesMap()
-                        .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
-                .replace("$CONSORTIUM_ID", properties.getValuesMap()
-                        .getOrDefault(NodeProperty.Name.CONSORTIUM_ID.toString(), ""))
-                .replace("$URL", "[" + prometheusUrls + "]");
-
-        Map<Integer, String> nodeIps = new HashMap<>();
-        Map<Integer, String> nodeIds = new HashMap<>();
-
-        // elasticsearch data
-        Map<Integer, String> esUrls = new HashMap<>();
-        Map<Integer, String> esUsername = new HashMap<>();
-        Map<Integer, String> espassword = new HashMap<>();
-
-        String postgressPluginStr = "#[[inputs.postgresql]]";
-        String indexDbInput = "address = \"postgres://indexdb@daml_index_db/$DBNAME\"";
-
-        nodeProperties.stream().forEach(nodeProperty -> {
-            switch (nodeProperty.getName()) {
-                case NODE_IP:
-                    nodeIps.putAll(nodeProperty.getValueMap());
-                    break;
-                case NODE_ID:
-                    nodeIds.putAll(nodeProperty.getValueMap());
-                    break;
-                case ELASTICSEARCH_URL:
-                    esUrls.putAll(nodeProperty.getValueMap());
-                    break;
-                case ELASTICSEARCH_USER:
-                    esUsername.putAll(nodeProperty.getValueMap());
-                    break;
-                case ELASTICSEARCH_PWD:
-                    espassword.putAll(nodeProperty.getValueMap());
-                    break;
-                default:
-                    log.debug("property {} not relevant for telegraf", nodeProperty.getName());
-            }
-        });
-
-        // TODO : remove after concord name unification
-        List<ConcordComponent.ServiceType> committerList = List.of(
-                ConcordComponent.ServiceType.CONCORD,
-                ConcordComponent.ServiceType.DAML_CONCORD,
-                ConcordComponent.ServiceType.HLF_CONCORD);
-
-        for (Map.Entry<Integer, String> nodeIp : nodeIps.entrySet()) {
-            String hostConfigCopy = content.replace("$REPLICA", nodeIp.getValue());
-
-            if (servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
-                var nodeName = DamlLedgerApiUtil.convertToParticipantId(nodeIds.get(nodeIp.getKey()));
-                String indexDbAddr = indexDbInput.replace("$DBNAME", nodeName);
-                String postgressPlugin = postgressPluginStr.replace("#", "");
-                hostConfigCopy = hostConfigCopy
-                        .replace("#$DBINPUT", indexDbAddr)
-                        .replace(postgressPluginStr, postgressPlugin);
-            }
-
-            if (servicesList.stream().anyMatch(element -> committerList.contains(element))) {
-                hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
-            } else {
-                hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
-            }
-
-            if (!esUrls.isEmpty()) {
-                String url = esUrls.get(nodeIp.getKey());
-                String username = esUsername.getOrDefault(nodeIp.getKey(), "");
-                String pwd = espassword.getOrDefault(nodeIp.getKey(), "");
-
-                hostConfigCopy = hostConfigCopy.concat("\n\n" + getElasticsearchConfig(url, username, pwd,
-                        properties.getValuesMap().getOrDefault(
-                                NodeProperty.Name.BLOCKCHAIN_ID.toString(), "vmware-blockchain")));
-            }
-            configMap.put(nodeIp.getKey(), hostConfigCopy);
-        }
-
-        return configMap;
-    }
 
     /**
      * Generate telegraf configurations.
