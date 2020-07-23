@@ -86,24 +86,24 @@ class ConcordClientPool {
   // thread pool and a positive answer is immediately returned to the
   // application. If there is no available client, a negative answer is returned
   // to the application.
-  // timeout_ms is the request time out and not the time out for waiting to
-  // available client
+  // request - a vector that holds the request from the client application.
+  // flags - holds the request flag (EMPTY_FLAG, READ_ONLY, PRE_PROCESS).
+  // timeout_ms - the request timeout which specifies for how long a client
+  // should wait for the request execution response.
+  // reply_buffer - client application allocated buffer that stores returned
+  // response.
+  // max_reply_size - holds the size of reply_buffer.
   SubmitResult SendRequest(std::vector<char>&& request,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
-                           std::uint32_t reply_size,
+                           char* reply_buffer, std::uint32_t max_reply_size,
                            const std::string correlation_id = {});
-
-  SubmitResult SendRequest(std::vector<char>&& request,
-                           bftEngine::ClientMsgFlag flags,
-                           std::chrono::milliseconds timeout_ms,
-                           std::uint32_t reply_size, char* extReplyBuffer,
-                           std::uint32_t extReplySize,
-                           const std::string correlation_id = {});
-
+  // This method is responsible to get write requests with the new client
+  // paramters and parse it to the old SimpleClient interface.
   SubmitResult SendRequest(const bft::client::WriteConfig& config,
                            bft::client::Msg&& request);
-
+  // This method is responsible to get read requests with the new client
+  // paramters and parse it to the old SimpleClient interface.
   SubmitResult SendRequest(const bft::client::ReadConfig& config,
                            bft::client::Msg&& request);
 

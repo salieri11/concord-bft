@@ -93,7 +93,7 @@ class ConcordClient {
   // will be used ONLY in conjunction with external callback.
   // the better solution is to pass it via the Send function but due to the time
   // constraints we are not changing the interface now.
-  void setExternalReplyBuffer(char* buf, uint32_t size);
+  void setReplyBuffer(char* buf, uint32_t size);
 
  private:
   void CreateClient(const config::ConcordConfiguration& config,
