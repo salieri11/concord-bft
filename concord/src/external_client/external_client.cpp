@@ -197,7 +197,7 @@ void ConcordClient::setStatics(uint16_t required_num_of_replicas,
   ConcordClient::num_of_replicas_ = num_of_replicas;
 }
 
-void ConcordClient::setExternalReplyBuffer(char* buf, uint32_t size) {
+void ConcordClient::setReplyBuffer(char* buf, uint32_t size) {
   externalReplyBuffer = buf;
   externalReplyBufferSize = size;
 }

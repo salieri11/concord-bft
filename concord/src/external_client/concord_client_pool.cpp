@@ -24,9 +24,8 @@ using namespace bftEngine;
 
 SubmitResult ConcordClientPool::SendRequest(
     std::vector<char> &&request, ClientMsgFlag flags,
-    std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-    char *extReplyBuffer, std::uint32_t extReplySize,
-    std::string correlation_id) {
+    std::chrono::milliseconds timeout_ms, char *reply_buffer,
+    std::uint32_t max_reply_size, std::string correlation_id) {
   std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -41,8 +40,7 @@ SubmitResult ConcordClientPool::SendRequest(
     }
   }
   client->generateClientSeqNum();
-  if (extReplyBuffer)
-    client->setExternalReplyBuffer(extReplyBuffer, extReplySize);
+  if (max_reply_size) client->setReplyBuffer(reply_buffer, max_reply_size);
   LOG_INFO(logger_, "client_id=" << client->getClientId()
                                  << " starts handling reqSeqNum="
                                  << client->getClientSeqNum() << " cid="
@@ -51,20 +49,12 @@ SubmitResult ConcordClientPool::SendRequest(
                                  << " timeout_ms=" << timeout_ms.count());
   client->setStartRequestTime();
   auto *job = new ConcordClientProcessingJob(
-      *this, client, std::move(request), flags, timeout_ms, reply_size,
+      *this, client, std::move(request), flags, timeout_ms, max_reply_size,
       correlation_id, client->getClientSeqNum());
   requests_counter_.Increment();
   clients_gauge_.Decrement();
   jobs_thread_pool_.add(job);
   return SubmitResult::Acknowledged;
-}
-
-SubmitResult ConcordClientPool::SendRequest(
-    std::vector<char> &&request, ClientMsgFlag flags,
-    std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-    const std::string correlation_id) {
-  return SendRequest(std::forward<std::vector<char>>(request), flags,
-                     timeout_ms, reply_size, nullptr, 0, correlation_id);
 }
 
 SubmitResult ConcordClientPool::SendRequest(
@@ -74,7 +64,7 @@ SubmitResult ConcordClientPool::SendRequest(
   auto request_flag = ClientMsgFlag::EMPTY_FLAGS_REQ;
   if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
   return SendRequest(std::forward<std::vector<char>>(request), request_flag,
-                     config.request.timeout, config.request.max_reply_size,
+                     config.request.timeout, nullptr, 0,
                      config.request.correlation_id);
 }
 
@@ -84,8 +74,7 @@ SubmitResult ConcordClientPool::SendRequest(
            "Read request generated with cid=" << config.request.correlation_id);
   return SendRequest(std::forward<std::vector<char>>(request),
                      ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
-                     config.request.max_reply_size,
-                     config.request.correlation_id);
+                     nullptr, 0, config.request.correlation_id);
 }
 
 ConcordClientPool::ConcordClientPool(std::istream &config_stream)
@@ -99,12 +88,12 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                       .Help("counts rejected requests")
                                       .Register(*registry_)),
       total_clients_gauges_(prometheus::BuildGauge()
-                                .Name("total_used_external_clients")
-                                .Help("counts used clients")
+                                .Name("total_available_external_clients")
+                                .Help("counts available clients")
                                 .Register(*registry_)),
       last_request_time_gauges_(prometheus::BuildGauge()
-                                    .Name("average_time_for_requests")
-                                    .Help("calculates the average request time")
+                                    .Name("last_request_time")
+                                    .Help("calculates the last request time")
                                     .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
@@ -139,12 +128,12 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                       .Help("counts rejected requests")
                                       .Register(*registry_)),
       total_clients_gauges_(prometheus::BuildGauge()
-                                .Name("total_used_external_clients")
-                                .Help("counts used clients")
+                                .Name("total_available_external_clients")
+                                .Help("counts available clients")
                                 .Register(*registry_)),
       last_request_time_gauges_(prometheus::BuildGauge()
-                                    .Name("average_time_for_requests")
-                                    .Help("calculates the average request time")
+                                    .Name("last_request_time")
+                                    .Help("calculates the last request time")
                                     .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
