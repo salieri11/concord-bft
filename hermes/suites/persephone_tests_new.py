@@ -108,7 +108,6 @@ def file_root(request, hermes_settings):
 
 
 @pytest.fixture
-@describe("fixture; teardown")
 def teardown(hermes_settings, ps_helper):
     """
     This fixture is used for cleanup activities, which is why it yields a dummy return value.
