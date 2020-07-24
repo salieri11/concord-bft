@@ -1,11 +1,11 @@
 #include "external_client_pool.h"
 
-#include <endian.h>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
+#include "endianness.hpp"
 #include "grpc_services.hpp"
 
 using com::vmware::concord::ConcordRequest;
@@ -76,13 +76,12 @@ ConcordRequest ExternalClient::ReadConcordRequest(
   }
 
   msg_flags = static_cast<bftEngine::ClientMsgFlag>(recv_buf[0]);
-  seq_num = be64toh(static_cast<uint64_t>(
-      recv_buf[1]));  // Big Entian 64bit to Host byte order. Linux specific -
-                      // not portable
 
-  LOG_INFO(logger_, "Details about request with corr id: "
-                        << corr_id_ << " flags: " << msg_flags
-                        << " seq_num: " << seq_num);
+  seq_num = concordUtils::fromBigEndianBuffer<uint64_t>(&recv_buf[1]);
+
+  LOG_DEBUG(logger_, "Details about request with corr id: "
+                         << corr_id_ << " flags: " << msg_flags
+                         << " seq_num: " << seq_num);
 
   SkvbcRequest *skvbc_request =
       conc_request.mutable_tee_request()->mutable_skvbc_request();
