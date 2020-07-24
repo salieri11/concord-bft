@@ -98,9 +98,9 @@
         <maven.plugin.surefire.version>2.22.0</maven.plugin.surefire.version>
 
         <!-- Library properties. -->
-        <bouncycastle.version>1.53</bouncycastle.version>
+        <bouncycastle.version>1.66</bouncycastle.version>
         <ehcache.version>2.10.6</ehcache.version>
-        <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
+        <grpc.runtime.java.version>1.30.2</grpc.runtime.java.version>
         <guava.version>27.0-jre</guava.version>
         <h2.version>1.4.197</h2.version>
         <javassist.version>3.23.1-GA</javassist.version>
