@@ -43,6 +43,7 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <map>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -77,7 +78,6 @@ class TimeContract {
         storage_(storage),
         config_(config),
         verifier_(),
-        samples_(nullptr),
         changed_(false),
         time_samples_key_(new char[1]{concord::storage::kKvbKeyTimeSamples}, 1),
         summarized_time_key_(
@@ -98,7 +98,7 @@ class TimeContract {
     }
   }
 
-  virtual ~TimeContract() { delete samples_; }
+  virtual ~TimeContract() = default;
 
   // Update the latest time reading from a given source. Any invalid update is
   // simply ignored, though the time contract may also choose to log
@@ -146,7 +146,7 @@ class TimeContract {
 
   // Has the contract been updated since being loaded or since last
   // serialization?
-  bool Changed() { return changed_; }
+  bool Changed() const { return changed_; }
 
   bool SignaturesEnabled() const {
     return (verifier_ && verifier_->UsesSignatures());
@@ -162,10 +162,8 @@ class TimeContract {
   SerializeSummarizedTime();
 
   // Clear all cached data.
-  void Reset() {
-    if (samples_) {
-      delete samples_;
-    }
+  void Reset() noexcept {
+    samples_.reset();
     changed_ = false;
   }
 
@@ -182,6 +180,13 @@ class TimeContract {
     // was published by the time source it is recorded for. Otherwise, this
     // pointer should point to null.
     std::unique_ptr<std::vector<uint8_t>> signature;
+
+    // Ensure it is an exception-safe, move-only type.
+    SampleBody() = default;
+    SampleBody(const SampleBody&) = delete;
+    SampleBody(SampleBody&&) noexcept = default;
+    SampleBody& operator=(const SampleBody&) = delete;
+    SampleBody& operator=(SampleBody&&) noexcept = default;
   };
 
   // Gets a const reference to the current set of time samples this time
@@ -197,13 +202,14 @@ class TimeContract {
   const concord::kvbc::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
-  std::map<std::string, SampleBody>* samples_;
+  std::optional<std::map<std::string, SampleBody>> samples_;
   bool changed_;
   const concordUtils::Sliver time_samples_key_;
   const concordUtils::Sliver summarized_time_key_;
 
-  void LoadLatestSamples();
-  google::protobuf::Timestamp SummarizeTime();
+  void LoadSamplesFromStorageImpl();
+  void LoadSamplesFromStorage();
+  google::protobuf::Timestamp SummarizeTime() const;
 };
 
 }  // namespace time

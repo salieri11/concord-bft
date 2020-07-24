@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "assertUtils.hpp"
 #include "concord_storage.pb.h"
 #include "config/configuration_manager.hpp"
 #include "sliver.hpp"
@@ -29,7 +30,8 @@ namespace time {
 Timestamp TimeContract::Update(const string &source, uint16_t client_id,
                                const Timestamp &time,
                                const vector<uint8_t> *signature) {
-  LoadLatestSamples();
+  LoadSamplesFromStorage();
+  Assert(samples_.has_value());
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
@@ -38,10 +40,14 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
       if (time > old_sample->second.time) {
         LOG_DEBUG(logger_,
                   "Applying time " << time << " from source " << source);
-        old_sample->second.time = time;
+        auto new_sample = SampleBody{};
+        new_sample.time = time;
         if (verifier_ && signature && verifier_->UsesSignatures()) {
-          old_sample->second.signature.reset(new vector<uint8_t>(*signature));
+          new_sample.signature.reset(new vector<uint8_t>(*signature));
         }
+        // Expect that the samples's move assignment operator is noexcept,
+        // making the assignment atomic in terms of its members.
+        old_sample->second = std::move(new_sample);
         changed_ = true;
       }
     } else {
@@ -61,7 +67,7 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
 // Get the current time at the latest block (including any updates that have
 // been applied since this TimeContract was instantiated).
 Timestamp TimeContract::GetTime() {
-  LoadLatestSamples();
+  LoadSamplesFromStorage();
 
   return SummarizeTime();
 }
@@ -90,8 +96,8 @@ Timestamp TimeContract::GetSummarizedTimeAtBlock(BlockId id) const {
 //
 // TODO: refuse to give a summary if there are not enough samples to guarantee
 // monotonicity
-Timestamp TimeContract::SummarizeTime() {
-  assert(samples_);
+Timestamp TimeContract::SummarizeTime() const {
+  Assert(samples_.has_value());
 
   if (samples_->empty()) {
     return TimeUtil::GetEpoch();
@@ -122,7 +128,8 @@ Timestamp TimeContract::SummarizeTime() {
 
 // Get the list of samples.
 const std::map<string, TimeContract::SampleBody> &TimeContract::GetSamples() {
-  LoadLatestSamples();
+  LoadSamplesFromStorage();
+  Assert(samples_.has_value());
   return *samples_;
 }
 
@@ -135,26 +142,14 @@ static bool TimeSourceIdSelector(const ConcordConfiguration &config,
          path.subpath->name == "time_source_id";
 }
 
-// Load samples from storage, if they haven't been already.
-//
-// An exception is thrown if data was found in the time key in storage, but that
-// data could not be parsed.
-//
-// If time signing is enabled, any entries in the storage containing invalid
-// signatures will be ignored (with the special exception of entries for a
-// recognized source containing both a 0 time and an empty signature, which may
-// be used to indicate no samples is yet available for the given source. If the
-// sample for a recognized source is rejected, that source's sample for this
-// TimeContract will be initialized to the default of time 0. Any sample for an
-// unrecognized source will always be completely ignored.
-void TimeContract::LoadLatestSamples() {
-  if (samples_) {
+void TimeContract::LoadSamplesFromStorageImpl() {
+  if (samples_.has_value()) {
     // we already loaded the samples; don't load them again, or we could
     // overwrite updates that have been made
     return;
   }
 
-  samples_ = new std::map<string, SampleBody>();
+  samples_ = std::map<string, SampleBody>{};
 
   Sliver raw_time;
   Status read_status = storage_.get(time_samples_key_, raw_time);
@@ -243,6 +238,29 @@ void TimeContract::LoadLatestSamples() {
 
     LOG_INFO(logger_, "Initializing time contract with " << samples_->size()
                                                          << " sources");
+  }
+}
+
+// Load samples from storage, if they haven't been already.
+//
+// An exception is thrown if data was found in the time key in storage, but that
+// data could not be parsed.
+//
+// If time signing is enabled, any entries in the storage containing invalid
+// signatures will be ignored (with the special exception of entries for a
+// recognized source containing both a 0 time and an empty signature, which may
+// be used to indicate no samples is yet available for the given source. If the
+// sample for a recognized source is rejected, that source's sample for this
+// TimeContract will be initialized to the default of time 0. Any sample for an
+// unrecognized source will always be completely ignored.
+void TimeContract::LoadSamplesFromStorage() {
+  try {
+    LoadSamplesFromStorageImpl();
+  } catch (...) {
+    // Make sure that if sample loading has failed, the contract is left in a
+    // consistent (empty) state.
+    Reset();
+    throw;
   }
 }
 
