@@ -15,6 +15,7 @@
         <module>ethrpc</module>
         <module>persephone</module>
         <module>helen</module>
+        <module>castor</module>
         <module>vmbc-base</module>
     </modules>
 </project>

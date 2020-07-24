@@ -1,0 +1,20 @@
+{
+  "committers": [
+    "test-zone-1 - A",
+    "test-zone-1 - A",
+    "test-zone-1 - A",
+    "test-zone-1 - A"
+  ],
+  "clients": [
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    }
+  ],
+  "blockchain": {
+    "consortiumName": "consortium-1",
+    "bockchainType": "DAML"
+  }
+}
