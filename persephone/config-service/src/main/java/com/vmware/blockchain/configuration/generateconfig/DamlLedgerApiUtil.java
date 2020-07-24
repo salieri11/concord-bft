@@ -92,11 +92,17 @@ public class DamlLedgerApiUtil {
             builder.append(System.getProperty("line.separator"));
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
         }
+        addClientGroupId(builder, nodeInfo, properties);
+    }
+
+    private void addClientGroupId(StringBuilder builder, NodesInfo.Entry nodeInfo, Properties properties) {
         // Add client group id
         var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.toString());
         if (!Strings.isNullOrEmpty(clientGroupId)) {
             builder.append(System.getProperty("line.separator"));
-            builder.append("export PARTICIPANT_ID=" + clientGroupId);
+
+            // TODO Remove the convertor after new release.
+            builder.append("export PARTICIPANT_ID=" + convertToParticipantId(clientGroupId));
         } else {
             builder.append(System.getProperty("line.separator"));
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeInfo.getId()));

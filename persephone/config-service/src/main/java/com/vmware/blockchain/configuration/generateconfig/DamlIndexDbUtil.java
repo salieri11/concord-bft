@@ -11,6 +11,7 @@ import java.io.InputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 
 /**
@@ -32,7 +33,10 @@ public class DamlIndexDbUtil {
      * @return json string
      */
     public String generateConfig(NodesInfo.Entry nodeInfo) {
-        var nodeName = DamlLedgerApiUtil.convertToParticipantId(nodeInfo.getId());
+        var clientGroupId =
+                nodeInfo.getProperties().getValuesMap().getOrDefault(NodeProperty.Name.CLIENT_GROUP_ID.toString(),
+                                                                     nodeInfo.getId());
+        var nodeName = DamlLedgerApiUtil.convertToParticipantId(clientGroupId);
 
         StringBuilder builder = new StringBuilder();
         builder.append("export POSTGRES_USER=indexdb");
