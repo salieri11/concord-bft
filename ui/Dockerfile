@@ -1,4 +1,4 @@
-FROM node:11.15.0 as node
+FROM node:10.17.0 as node
 LABEL Description="VMware Blockchain UI"
 
 WORKDIR /app
