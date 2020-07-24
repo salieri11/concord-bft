@@ -28,6 +28,27 @@ using google::protobuf::Timestamp;
 namespace concord {
 namespace consensus {
 
+// Resets the TimeContract on construction and destruction.
+class TimeContractResetter {
+ public:
+  TimeContractResetter(time::TimeContract *time_contract) noexcept
+      : time_contract_{time_contract} {
+    Reset();
+  }
+
+  ~TimeContractResetter() noexcept { Reset(); }
+
+  TimeContractResetter(const TimeContractResetter &) = delete;
+  TimeContractResetter &operator=(const TimeContractResetter &) = delete;
+
+ private:
+  void Reset() noexcept {
+    if (time_contract_) time_contract_->Reset();
+  }
+
+  time::TimeContract *time_contract_;
+};
+
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
     const concord::config::ConcordConfiguration &node_config,
@@ -81,6 +102,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     uint32_t &out_response_size,
                                     uint32_t &out_replica_specific_info_size,
                                     concordUtils::SpanWrapper &parent_span) {
+  // Make sure there is no leftover state in the TimeContract across execute()
+  // calls by resetting the TimeContract now and when the execute() scope is
+  // left.
+  auto time_contract_resetter = TimeContractResetter{time_.get()};
+
   LOG_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
                          << client_id << ", seq: " << sequence_num);
 
