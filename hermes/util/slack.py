@@ -25,9 +25,7 @@ def sendMessageToPerson(email, message, ts=None, token=None):
   token = token if token else slackConfig["workspaces"]["vmware"]["appToken"]
   client = slack.WebClient(token=token, ssl=cert.getSecureContext())
   
-  userData = client.users_lookupByEmail(
-    email = email
-  )
+  userData = client.users_lookupByEmail(email = email)
   if userData["ok"] is not True:
     log.info(f"Cannot look up user_id given email {email}, response not OK.\nResponse Body: {json.dumps(userData)}")
     return
@@ -112,6 +110,18 @@ def postFileUpload(channelNameOrEmail, message, fileName, filePath, token=None):
     log.info(f"Cannot upload file on '{channelName}', response not OK.\nResponse Body: {json.dumps(responseData)}")
     return
   return responseData
+
+
+
+def getUserIdByEmail(email):
+  token = helper.getUserConfig()["communication"]["slack"]["workspaces"]["vmware"]["appToken"]
+  if not token: return None
+  client = slack.WebClient(token=token, ssl=cert.getSecureContext())
+  userData = client.users_lookupByEmail(email = email)
+  if userData["ok"] is not True:
+    log.info(f"Cannot look up user_id given email {email}, response not OK.\nResponse Body: {json.dumps(userData)}")
+    return None
+  return userData["user"]["id"]
 
 
 

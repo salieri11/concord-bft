@@ -1345,6 +1345,7 @@ def loadConfigFile(args=None, filepath=None):
         if configs:
           CONFIG_CACHED["zoneConfigOverrideFromSU"] = configs["zoneConfig"]
           configObject = jenkins.overrideOnlyDefaultConfig(configObject, configs["userConfig"])
+          configObject["metainf"]["env"]["name"] = "LOCAL"
           configObject["metainf"]["env"]["jobName"] = "None"
           configObject["metainf"]["env"]["buildNumber"] = "None"
           configObject["metainf"]["env"]["dockerTag"] = ""

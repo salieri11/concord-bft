@@ -18,6 +18,10 @@ while [ "$1" != "" ] ; do
          shift
          RESULTS_DIR="$1"
          ;;
+      "--suitesRealname")
+         shift
+         SUITES_REALNAME="$1"
+         ;;
    esac
    shift
 done
@@ -27,6 +31,7 @@ echo - TEST_SUITE: "${TEST_SUITE}"
 echo - NO_OF_RUNS: "${NO_OF_RUNS}"
 echo - TESTS: "${TESTS}"
 echo - RESULTS_DIR: "${RESULTS_DIR}"
+echo - SUITES_REALNAME: "${SUITES_REALNAME}"
 
 retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
@@ -67,7 +72,7 @@ launch_memory_test() {
         SPECIFIC_TESTS="\"--tests=-k ${TESTS}\""
     fi
 
-    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug > \"${RESULTS_DIR}/memory_leak_tests.log\" 2>&1 &"
+    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --suitesRealname ${SUITES_REALNAME} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug > \"${RESULTS_DIR}/memory_leak_tests.log\" 2>&1 &"
     echo python: "${python}"
     echo COMMAND: "${COMMAND}"
     eval "${python}" "${COMMAND}"

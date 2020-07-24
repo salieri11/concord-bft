@@ -4,6 +4,7 @@ import groovy.transform.Field
 import hudson.util.Secret
 import org.apache.commons.lang.exception.ExceptionUtils
 
+
 // Notes about this map:
 // - Possible fields per suite:
 //   "enabled": Boolean. If false, the test absolutely cannot be run, no matter
@@ -198,14 +199,14 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
-      --repeatSuiteRun 6 --suitesRealname=MemoryLeakNightly',
+      --repeatSuiteRun 6 --suitesRealname MemoryLeakNightly',
     "runWithGenericTests": false
   ],
   "MemoryLeakSmoke": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
-      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\' --suitesRealname=MemoryLeakSmoke',
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\' --suitesRealname MemoryLeakSmoke',
     "runWithGenericTests": true
   ],
   "UiTests": [
@@ -231,20 +232,20 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json" --suitesRealname=HelenDeployEthereumToSDDC'
+      --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
   ],
   "HelenDeployDAMLToSDDC" : [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml  \
       --blockchainLocation onprem --numReplicas 7 --numParticipants 1 \
-      --tests="-m deployment_only" --suitesRealname=HelenDeployDAMLToSDDC'
+      --tests="-m deployment_only" --suitesRealname HelenDeployDAMLToSDDC'
   ],
   "HelenDeployToSDDCTemplate" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only" \
-      --suitesRealname=HelenDeployToSDDCTemplate'
+      --suitesRealname HelenDeployToSDDCTemplate'
   ]
 ]
 
@@ -872,8 +873,8 @@ def call(){
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
-                        env.fixture_setup_message = 'Long-running test ("${BUILD_NUMBER}") has failed to deploy blockchain fixture to SDDC. ' +
-                                                    '(<' + env.BUILD_URL + 'console|View Console>)'
+                        env.fixture_setup_message = 'Long-running test (' + env.JOB_NAME + '/' + env.BUILD_NUMBER + ')' +
+                                                    ' has failed to deploy blockchain fixture to SDDC. (<' + env.BUILD_URL + 'console|View Console>)'
                         sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py slackReportMonitoring --param "${monitoring_notify_target}" "${fixture_setup_message}"'''
                         throw ex
                       }
@@ -1829,7 +1830,7 @@ void sendNotifications(){
     } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
       echo("Notifying MR failure to authors through slack DM...")
       try {
-        slackNotifyFailure( jobName: "MR run",  target: "blockchain-build-fail-mr", mr: true )
+        slackNotifyFailure( jobName: "MR run",  target: "blockchain-build-fail-mr", mr: true, dontMentionAuthor: true )
         commitAuthorsJson = readFile(env.WORKSPACE + "/blockchain/vars/commits_authors.json")
         commitAuthorsInfo = new JsonSlurperClassic().parseText(commitAuthorsJson)
         for (authorEmail in commitAuthorsInfo["blame"]) {
@@ -1839,13 +1840,14 @@ void sendNotifications(){
         echo("Failure notification to MR commit authors: " + ex.toString())
       }
     
-    // For manual runs, notify whoever triggered
-    } else if (env.JOB_NAME.contains(manual_with_params_job_name)){
-      echo("Notifying manual run failure to triggerer of the build via slack DM...")
+    // For all other runs, notify whoever triggered the build
+    } else {
+      echo("Notifying build failure to triggerer of the build via slack DM...")
       try {
         triggererLDAP = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause).properties.userId
         triggererEmail = triggererLDAP + "@vmware.com"
-        slackNotifyFailure( jobName: "Manual run",  target: triggererEmail, otherBuilds: true )
+        slackNotifyFailure( jobName: env.JOB_NAME,  target: "blockchain-build-fail-other" )
+        slackNotifyFailure( jobName: env.JOB_NAME,  target: triggererEmail )
       } catch (Exception ex) {
         echo("Failure notification to triggerer " + triggererEmail + ": " + ex.toString())
       }
@@ -1878,6 +1880,7 @@ void sendGeneralEmail(){
  * @keyword_param target String: Slack channel name or email of the recipient
  * @keyword_param master Boolean: is it master failure notification? default false
  * @keyword_param mr Boolean: is it MR failure notification? default false
+ * @keyword_param dontMentionAuthor Boolean: mention @username of the author? default false
  */
 void slackNotifyFailure(Map param){
 
@@ -1915,13 +1918,15 @@ void slackNotifyFailure(Map param){
       if (fileExists(env.WORKSPACE + "/summary/trigger_info.json")) {
         triggerInfoJson = readFile(env.WORKSPACE + "/summary/trigger_info.json")
         triggerInfo = new JsonSlurperClassic().parseText(triggerInfoJson)
-        if (triggerInfo["mr_number"] && triggerInfo["mr_url"]) {
-          message += " (from *<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + ">*"
+        if (triggerInfo["author_slack_user_id"] && !param.dontMentionAuthor) {
+          message = "<@" + triggerInfo["author_slack_user_id"] + "> " + message
         }
-        if (triggerInfo["jira_ticket"] && triggerInfo["jira_url"]) {
-          message += " :: <" + triggerInfo["jira_url"] + "|" + triggerInfo["jira_ticket"] + ">)"
-        } else {
-          message += ")"  
+        if (triggerInfo["mr_data"]) {
+          message += "\n>*<" + triggerInfo["mr_url"] + "|!" + triggerInfo["mr_number"] + " - " + triggerInfo["mr_data"]["title"] + ">*"
+          if (triggerInfo["mr_data"]["source_branch"]) {
+            message += "\n>Source Branch: `" + triggerInfo["mr_data"]["source_branch"] + "`"
+            if (triggerInfo["jira_ticket"]) { message += "   Jira: <" + triggerInfo["jira_url"] + "|" + triggerInfo["jira_ticket"] + ">" }
+          }
         }
       }
     } catch(Exception ex) {
@@ -1933,7 +1938,9 @@ void slackNotifyFailure(Map param){
     echo("Unknown type of notification (neither master, MR, or other).")
     return
   }
-  message += "\n<" + env.BUILD_URL + "console|Console>"
+
+  // Default link list of Console and Artifacts
+  message += "\n<" + env.BUILD_URL + "console|Console> :: <" + env.BUILD_URL + "artifact/|Artifacts>"
 
   // Add Racetrack link
   rtUrl = "https://racetrack.eng.vmware.com"
@@ -1943,14 +1950,10 @@ void slackNotifyFailure(Map param){
       racetrackInfo = new JsonSlurperClassic().parseText(racetrackJson)
       if (racetrackInfo["setId"]) {
         message +=  " :: <" + rtUrl + "/result.php?id=" + racetrackInfo["setId"] + "|Racetrack>"
-      } else {
-        message +=  " :: <" + env.BUILD_URL + "artifact/|Artifacts>"
       }
     } catch(Exception ex) {
       echo("Adding racetrack link has failed: " + ex.toString())
     }
-  } else { // No Racetrack? At least add Artifacts link
-    message += " :: <" + env.BUILD_URL + "artifact/|Artifacts>"
   }
   
   // Add other links (exact point of failure) if available
@@ -1960,21 +1963,20 @@ void slackNotifyFailure(Map param){
       summary = new JsonSlurperClassic().parseText(summaryJson)
       message += " :: <" + summary["summary_url"] + "|Summary>"
       if (summary["log_path"]) {
-        message += " :: <" + summary["log_path"] + "|Logs>"  
+        if (summary["from"] == "Hermes") { message += " :: <" + summary["log_path"] + "|Test Log>" }
+        else if (summary["from"] == "Build") { message += " :: <" + summary["log_path"] + "|Build Log>" }
       }
       if ((summary["from"] == "Hermes" && fileExists(env.WORKSPACE + "/summary/errors_only.log")) || summary["filtered_url"]) {
         message += " :: <" + summary["filtered_url"] + "|Filtered>"
       }
       if (summary["from"] == "Hermes") {
-        message += "   (Code: *" + summary["sig"]["short"] + "*)"
         message += "\n```" + summary["message"] + "```"
         message += "\nSuite: `" + summary["suite_name"] + "`"
         if (summary["test_folder_url"]) {
-          if (summary["product_folder_url"]) {
-            message += "  (<" + summary["test_folder_url"] + "|Test Folder> :: <" + summary["product_folder_url"] + "|Product Logs>)"
-          } else {
-            message += "  (<" + summary["test_folder_url"] + "|Test Folder>)"  
-          }
+          message += "  (<" + summary["test_folder_url"] + "|Test Folder>"
+          if (summary["product_folder_url"]) { message += " :: <" + summary["product_folder_url"] + "|Product Logs>" }
+          if (summary["results_html_url"]) { message += " :: <" + summary["results_html_url"] + "|Results>" }
+          message += ")"
         }
         if (summary["test_name_short"]) {
           message += "\nTest: `" + summary["test_name_short"] + "`  "  
@@ -1991,6 +1993,7 @@ void slackNotifyFailure(Map param){
           } else {
             message += "\n        at " + fileAndLineNumber
           }
+          message += "  (Code: *" + summary["sig"]["short"] + "*)"
         }
       } else if (summary["from"] == "Build") {
         message += "\nComponent build failed for `" + summary["image"] + "`"
@@ -2062,9 +2065,11 @@ void announceSDDCCleanupFailures(failures){
 void setEnvFileAndUserConfig(Map param = [:]) {
   if (env.user_config_set) { return }
   env.user_config_set = true
+
   withCredentials([
     string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
     string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
+    string(credentialsId: 'GITLAB_API_ONLY_TOKEN', variable: 'GITLAB_API_ONLY_TOKEN'),
     string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
     string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
     string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
@@ -2146,6 +2151,7 @@ EOF
     sh '''
       # Update provisioning service application-test.properties
       sed -i -e 's/'"<JENKINS_JSON_API_KEY>"'/'"${JENKINS_JSON_API_KEY}"'/g' blockchain/hermes/resources/user_config.json
+      sed -i -e 's/'"<GITLAB_API_ONLY_TOKEN>"'/'"${GITLAB_API_ONLY_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<JENKINS_BUILDER_PASSWORD>"'/'"${PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json

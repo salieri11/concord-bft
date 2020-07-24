@@ -13,7 +13,8 @@ import urllib
 import re
 from itertools import islice
 from datetime import datetime
-from . import helper, hermes_logging, wavefront, racetrack
+from . import helper, hermes_logging, wavefront, racetrack, gitlab, slack
+from suites import case
 log = hermes_logging.getMainLogger()
 
 MAIN_JENKINS_URL = "blockchain.svc.eng.vmware.com"
@@ -417,8 +418,17 @@ def autoSetRunDescription():
                 "]\n<br>\n")
   newDesc += defaultDesc
   configSubmit(description=newDesc)
-  with open(os.getenv("WORKSPACE") + '/summary/trigger_info.json', 'w+') as f:
-    f.write(json.dumps(triggerSourceInfo, indent=4, default=str))
+  if "mr_number" in triggerSourceInfo:
+    mrData = gitlab.getMRDetails(triggerSourceInfo["mr_number"])
+    if mrData:
+      if "author" in mrData:
+        authorEmail = mrData["author"]["username"] + "@vmware.com"
+        authorSlackUserId = slack.getUserIdByEmail(authorEmail)
+        triggerSourceInfo["author_email"] = authorEmail
+        triggerSourceInfo["author_slack_user_id"] = authorSlackUserId
+      triggerSourceInfo["mr_data"] = mrData
+    with open(os.getenv("WORKSPACE") + '/summary/trigger_info.json', 'w+') as f:
+      f.write(json.dumps(triggerSourceInfo, indent=4, default=str))
 
 
 def replaceRunDescription(replaceList):
@@ -448,19 +458,13 @@ def setFailureSummaryInDescription():
     summaryObj = json.loads(f.read(), strict=False)
     hasErrorLines = False
     if summaryObj["from"] == "Hermes":
-      with open(summaryObj["log_path_local"], 'r') as f2:
-        with open(helper.getJenkinsWorkspace() + '/summary/errors_only.log', 'w+') as w:
-          for line in f2: 
-            if any(x in line for x in ["ERROR", "FAIL", "FATAL", "WARNING", "FAILURE"]):
-              hasErrorLines = True
-              if '\\n' in line: 
-                # error with escaped line breaks are shown in one line forever 
-                # and therefore, very hard to read; break them apart into lines.
-                allSubLines = line.split('\\n')
-                for subline in allSubLines: w.write(subline)
-                w.write('\n')
-              else:
-                w.write(line)
+      lookFor = ["ERROR", "FAIL", "FATAL", "FAILURE"]
+      ignoreFor = ["ERRORS:"]
+      filteredLogText = case.filterErrorsInLogs(summaryObj["log_path_local"], lookFor, ignoreFor)
+      if filteredLogText:
+        hasErrorLines = True
+        filteredLogFilePath = helper.getJenkinsWorkspace() + '/summary/errors_only.log'
+        with open(filteredLogFilePath, 'w+') as w: w.write(filteredLogText)
     elif summaryObj["from"] == "Build":
       hasErrorLines = True
     elif summaryObj["from"] == "Pipeline":
