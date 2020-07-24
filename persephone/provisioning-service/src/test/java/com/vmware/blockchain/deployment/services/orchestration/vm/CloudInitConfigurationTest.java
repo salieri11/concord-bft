@@ -73,9 +73,6 @@ public class CloudInitConfigurationTest {
     private ConfigurationSessionIdentifier configGenId;
 
     @Mock
-    private Endpoint configServiceEndpoint;
-
-    @Mock
     private Endpoint configServiceRestEndpoint;
 
     @Mock
@@ -88,7 +85,7 @@ public class CloudInitConfigurationTest {
     void init() {
         cloudInitConfiguration =
                 new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
-                                           nodeIdString, configGenId, configServiceEndpoint,
+                                           nodeIdString, configGenId,
                                            configServiceRestEndpoint, outboundProxy, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
 
