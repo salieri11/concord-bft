@@ -432,6 +432,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "filtered_url": artifactFilteredLogPath,
       "test_folder_url": artifactTestFolderPath,
       "product_folder_url": artifactProductFolderPath,
+      "results_html_url": artifactTestFolderPath + '/results.html'
     }
 
     # There may be multiple failures per run or test suite
@@ -479,6 +480,8 @@ def extractAndSavePipelineFailurePoint(pipelineError):
     lineNumber = "(unknown)"
     stackTrace = pipelineError["stack_trace"]
     stackTraceOriginal = stackTrace
+    forceStopped = "hudson.AbortException" in errorMessage and "143" in errorMessage
+    if forceStopped: errorMessage = "Force-terminated by a user."
     try: # try to parse only groovy errors if possible
       stackTrace = pipelineError["stack_trace"]
       stackTraceLines = stackTrace.split("\n")
@@ -497,20 +500,25 @@ def extractAndSavePipelineFailurePoint(pipelineError):
     imageNamePath = workspace + '/summary/failed_build_name.log'
     outputFileName = workspace + '/summary/failure_summary'
     # Image Build Failures
-    if stageName == "Build" and os.path.isfile(imageNamePath):
+    if stageName == "Build" and os.path.isfile(imageNamePath) and not forceStopped:
       imageName = ""; buildLogPath = ""; buildErrorLog = ""
       with open(workspace + '/summary/failed_build_name.log', 'r') as f: imageName = f.read().strip()
       with open(workspace + '/summary/failed_build_path.log', 'r') as f: buildLogPath = f.read().strip()
       with open(workspace + '/summary/failed_build_error.log', 'r') as f: buildErrorLog = f.read().strip()
       buildErrorLogOriginal = buildErrorLog
-      deepScanErrorLines = scanBuildErrorLines(buildLogPath, buildErrorLogOriginal)
+      lookFor = ["ERROR", "Error", "ERR!", "FAILURE", "Failures: ", "Exception: ", "\tat "]
+      ignoreFor = ["DEBUG", "WARN", "Downloading", "Downloaded"]
+      deepScanErrorLines = filterErrorsInLogs(buildLogPath, lookFor, ignoreFor)
       if deepScanErrorLines:
         buildErrorLog = deepScanErrorLines
         with open(workspace + '/summary/failed_build_error.log', 'w+') as w: w.write(buildErrorLog)
+      else:
+        buildErrorLog = "No error lines are detected. Here are the last few lines:\n\n" + buildErrorLogOriginal
       buildErrorLogSummary = buildErrorLog
       buildErrorLogLines = buildErrorLog.split("\n")
-      if len(buildErrorLogLines) > 15: # error log too long to display, cut it
-        buildErrorLogSummary = "\n".join(buildErrorLogLines[-15:]) # last 15 lines
+      maxDisplayLines = 25
+      if len(buildErrorLogLines) > maxDisplayLines: # error log too long to display, cut it
+        buildErrorLogSummary = "\n".join(buildErrorLogLines[-maxDisplayLines:]) # last maxDisplayLines lines
       originalErrorMessage = errorMessage
       errorMessage = "Error while building Docker image for '" + imageName + "'"
       buildLogFile = buildLogPath.split('/blockchain/')[1]
@@ -554,7 +562,8 @@ def extractAndSavePipelineFailurePoint(pipelineError):
       errorMessage = "Pipeline error: " + originalErrorMessage
       if stageName == "Run tests in containers" and "script returned exit code" in errorMessage:
         errorMessage = "Uncaptured error while running test suites."
-      if filename.startswith("("): errorMessage += " (Couldn't find useful info to report in stack trace.)"
+      if filename.startswith("(") and not forceStopped: 
+        errorMessage += " (groovy stack trace not parsable)"
       failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n".format(
         "{}{} :: {}".format(
           "=============================================== Context =================================================================\n",
@@ -707,37 +716,38 @@ def filterOutUnnecessaryArguments(testArgsMap):
 
 
 def cleanBashColors(line):
-  line = re.sub(r'\[.*?;.*?m', '', line) # remove bash colors
-  line = line.replace("[m]", " ")
-  line = line.replace("[m", " ")
-  line = line.replace("[1m]", " ")
-  line = line.replace("[1m", " ")
-  line = ' '.join(line.split()) # remove multiple spaces
+  bashColorRegExp = r'[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]'
+  line = re.sub(bashColorRegExp, '', line) # remove bash colors
   return line
 
 
-def scanBuildErrorLines(buildLogPath, originalLogs):
-  if not os.path.isfile(buildLogPath): return None
+def filterErrorsInLogs(logFilePath, lookFor, ignoreFor=[], 
+                        preErrorKept=4, postErrorKept=5, expandMultilines=True):
+  '''
+    scans the log file for errors
+    :param: `logFilePath` full path of the log file
+    :param: `lookFor` list of things that match as error (case-sensitive, exact match)
+    :param: `ignoreFor` list of lines to ignore if contains any from the list (exact)
+    :param: `preErrorKept` how many lines BEFORE the error line should be kept
+    :param: `postErrorKept` how many lines AFTER the error line should be kept
+    :param: `expandMultilines` expand multilines? default True
+  '''
+  if not os.path.isfile(logFilePath): return None
   workspace = helper.getJenkinsWorkspace()
-  # Note: just for easier matching, line content is turned to upper.
-  lookFor = ["ERROR", "ERR!", "FAIL", "FATAL", "FAILURE", "FAILED"]
-  ignoreFor = ["DEBUG", "WARN"]
-  preErrorLinesKept = 4; postErrorLinesKept = 5 # how wide vicinity to keep
   allLines = []; keptLines = []; warm = 0; errorFound = False
-  with open(buildLogPath, 'r') as f:
+  with open(logFilePath, 'r') as f:
     for line in f:
       try:
         line = line.strip()
         if len(line) == 0: continue
         line = cleanBashColors(line)
         lineKept = False; prependList = []
-        lineAllCaps = line.upper()
-        if any(x in lineAllCaps for x in lookFor) and \
-           not any(x in lineAllCaps for x in ignoreFor):
+        if any(x in line for x in lookFor) and \
+           (not ignoreFor or not any(x in line for x in ignoreFor)):
           errorFound = True
-          warm = postErrorLinesKept; lineKept = True
+          warm = postErrorKept; lineKept = True
           lastIndex = len(allLines) - 1
-          for i in range(preErrorLinesKept): # go back and get prev lines if not kept
+          for i in range(preErrorKept): # go back and get prev lines if not kept
             idx = lastIndex - i
             if idx < 0: break
             if not allLines[idx]["kept"]:
@@ -751,9 +761,23 @@ def scanBuildErrorLines(buildLogPath, originalLogs):
         if lineKept: keptLines.append(line)
         allLines.append({"line": line, "kept": lineKept})
       except Exception as e: helper.hermesNonCriticalTrace(e)
-    newlyFilteredErrorLog = "\n".join(keptLines)
+    if expandMultilines: # expand json encoded line or compressed lines in Pytest
+      expandedKeptLines = []
+      for line in keptLines:
+        if '\\n' in line: # has inner encoded lines (json)
+          expandedLinesList = line.split('\\n')
+          line = '\n'.join(expandedLinesList)
+        elif line.count(" DEBUG ") + line.count(" INFO ") + line.count(" ERROR ") + line.count(" WARNING ") > 1:
+          line = line.replace(" DEBUG ", "\n    DEBUG ")
+          line = line.replace(" INFO ",  "\n    INFO ")
+          line = line.replace(" WARNING ",  "\n    WARNING ")
+          line = line.replace(" ERROR ", "\n    ERROR ")
+        expandedKeptLines.append(line)
+      newlyFilteredErrorLog = "\n".join(expandedKeptLines)
+    else:
+      newlyFilteredErrorLog = "\n".join(keptLines)
     if errorFound:
       return newlyFilteredErrorLog
     else:
-      return "No error lines are detected. Here are the last few lines:\n\n" + originalLogs
+      return None
 
