@@ -66,12 +66,24 @@ DA_SPIDER_MAPPING_FILE = "resources/da_spider_sdk_mappings.json"
 
 DA_SPIDER_IMAGE = "digitalasset/spider-application"
 
-def get_ledger_api_version(host):
+def get_ledger_api_version(host, results_dir=None):
    '''
    Returns the daml ledger api version from the daml ledger api repo Hermes is given
    or, if host is given, from the ledger api running on that host.
    '''
    global _ledger_api_version
+
+   if results_dir:
+      saved_ledger_api_version_file = os.path.join(results_dir, '..',
+                                                   'ledger_api_version.json')
+
+      if os.path.exists(saved_ledger_api_version_file):
+         with open(saved_ledger_api_version_file, "r") as fp:
+            data = json.load(fp)
+            _ledger_api_version = data["ledger_api_version"]
+            log.debug(
+               "Daml ledger api version from version file ({}): {}".format(
+                  saved_ledger_api_version_file, _ledger_api_version))
 
    if not _ledger_api_version:
       log.debug("Getting ledger api version from '{}'".format(host))
@@ -112,10 +124,21 @@ def get_ledger_api_version(host):
                else:
                   log.info("Unable to get the ledger api version.  Retrying.")
 
+      # save ledger api version
+      if results_dir:
+         saved_ledger_api_version_file = os.path.join(results_dir, '..',
+                                                      'ledger_api_version.json')
+         if not os.path.exists(saved_ledger_api_version_file):
+            ledger_api_version_dict = {"ledger_api_version": _ledger_api_version}
+            log.debug("Writing ledger api version json with value: {}".format(
+               ledger_api_version_dict))
+            with open(saved_ledger_api_version_file, 'w') as fp:
+               json.dump(ledger_api_version_dict, fp, indent=2)
+
    return _ledger_api_version
 
 
-def get_ledger_api_test_tool_name(host, file_format=True):
+def get_ledger_api_test_tool_name(host, file_format=True, results_dir=None):
    '''
    Returns the ledger api test tool name.
    file_format indicates whether to return the name of the jar file.
@@ -128,7 +151,7 @@ def get_ledger_api_test_tool_name(host, file_format=True):
    else:
       name += ":"
 
-   name += get_ledger_api_version(host)
+   name += get_ledger_api_version(host, results_dir=results_dir)
 
    if file_format:
       name += ".jar"
@@ -159,7 +182,7 @@ def extract_dars(jar):
    return dars
 
 
-def download_ledger_api_test_tool(host, verbose=True):
+def download_ledger_api_test_tool(host, results_dir=None, verbose=True):
    '''
    Downloads the ledger api test tool jar and returns:
    - The path to the jar.
@@ -172,7 +195,8 @@ def download_ledger_api_test_tool(host, verbose=True):
       mvn_repo = os.path.join(os.getcwd(), "resources", "mvn_repo")
 
       cmd = ["mvn", "--settings", VMWARE_MAVEN_SETTINGS, "dependency:get",
-             "-Dartifact=com.daml:" + get_ledger_api_test_tool_name(host, False),
+             "-Dartifact=com.daml:" + get_ledger_api_test_tool_name(host, False,
+                                                                    results_dir=results_dir),
              "-Dmaven.repo.local=" + mvn_repo]
 
       max_attempts = 3
@@ -186,7 +210,7 @@ def download_ledger_api_test_tool(host, verbose=True):
 
          if result:
             jar_path = None
-            pattern = get_ledger_api_test_tool_name(host, True)
+            pattern = get_ledger_api_test_tool_name(host, True, results_dir=results_dir)
 
             for d,_,_ in os.walk(mvn_repo):
               jar_paths = glob.glob(os.path.join(d, pattern))
@@ -210,13 +234,13 @@ def download_ledger_api_test_tool(host, verbose=True):
    return _ledger_api_test_tool_path, _ledger_api_dars
 
 
-def upload_test_tool_dars(host='localhost', port='6861', verbose=True):
+def upload_test_tool_dars(host='localhost', port='6861', results_dir=None, verbose=True):
    '''
    Helper method to upload test tool dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
-   dars = download_ledger_api_test_tool(host, verbose=verbose)[1]
+   dars = download_ledger_api_test_tool(host, results_dir=results_dir, verbose=verbose)[1]
    if verbose: log.info("Upload DAR files...")
 
    for test_dar in dars:

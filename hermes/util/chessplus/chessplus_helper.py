@@ -29,7 +29,9 @@ def run_chess_plus(args, participant_ip):
    :return: Chess plus run status
    '''
    try:
-      daml_sdk_version = daml_helper.get_ledger_api_version(participant_ip)
+      daml_sdk_version = daml_helper.get_ledger_api_version(participant_ip,
+                                                            results_dir=args.resultsDir)
+      log.debug("daml sdk version: {}".format(daml_sdk_version))
 
       if args.spiderImageTag and args.spiderImageTag != "autoFetch":
          spider_image_tag = args.spiderImageTag
@@ -37,6 +39,7 @@ def run_chess_plus(args, participant_ip):
          spider_image_tag = daml_helper.get_spider_version(daml_sdk_version,
                                                            args.dockerHubUser,
                                                            args.dockerHubPassword)
+      log.debug("spider image tag: {}".format(spider_image_tag))
       if spider_image_tag:
          daml_helper.download_spider_app(spider_image_tag)
       else:
