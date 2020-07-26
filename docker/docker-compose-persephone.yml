@@ -3,7 +3,8 @@ services:
   config-service:
     image: "${persephone_configuration_repo}:${persephone_configuration_tag}"
     ports:
-      - 8000:9003
+      - 9003:9003
+      - 8000:9023
     volumes:
       - ../hermes/resources/persephone/configuration:/config:ro
   persephone-provisioning:

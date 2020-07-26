@@ -41,7 +41,6 @@ public class CloudInitConfiguration {
     private ConcordClusterIdentifier clusterId;
     private String nodeIdString;
     private ConfigurationSessionIdentifier configGenId;
-    private Endpoint configServiceEndpoint;
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
     private String vmPassword;
@@ -58,7 +57,6 @@ public class CloudInitConfiguration {
                                   ConcordClusterIdentifier clusterId,
                                   String nodeIdString,
                                   ConfigurationSessionIdentifier configGenId,
-                                  Endpoint configServiceEndpoint,
                                   Endpoint configServiceRestEndpoint,
                                   OutboundProxyInfo outboundProxy,
                                   String vmPassword) {
@@ -71,7 +69,6 @@ public class CloudInitConfiguration {
         this.clusterId = clusterId;
         this.nodeIdString = nodeIdString;
         this.configGenId = configGenId;
-        this.configServiceEndpoint = configServiceEndpoint;
         this.configServiceRestEndpoint = configServiceRestEndpoint;
         this.outboundProxy = outboundProxy;
 
@@ -130,8 +127,7 @@ public class CloudInitConfiguration {
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
                 .setModel(model)
-                .setConfigService(outboundProxy == null || Strings.isNullOrEmpty(outboundProxy.getHttpsHost())
-                                  ? configServiceEndpoint : configServiceRestEndpoint)
+                .setConfigService(configServiceRestEndpoint)
                 .setConfigurationSession(configGenId)
                 .setOutboundProxyInfo(outboundProxy);
 

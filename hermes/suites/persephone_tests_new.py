@@ -256,6 +256,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 ports = helper.get_docker_compose_value(cmdline_args.dockerComposeFile, Product.PERSEPHONE_CONFIG_SERVICE,
                                                         "ports")
                 config_service_port = ports[0].split(':')[0]
+                config_service_rest_port = ports[1].split(':')[0]
                 command = ["/sbin/ifconfig", "ens160"]
                 ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 ifconfig_output.check_returncode()
@@ -273,13 +274,18 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                             host_ip = fields[1]
                         break
 
-                log.info("Updating configService[\"address\"] to: {}:{}".format(host_ip, config_service_port))
+                log.info("Updating configService grpc[\"address\"] to: {}:{}".format(host_ip, config_service_port))
+                log.info("Updating configService rest[\"address\"] to: {}:{}".format(host_ip, config_service_rest_port))
 
                 provisioning_config_service_address = "{}:{}".format(host_ip, config_service_port)
+                provisioning_config_service_rest_address = "http://{}:{}".format(host_ip, config_service_rest_port)
+
                 helper.set_props_file_value(persephone_config_file, 'provisioning.config.service.address',
                                             provisioning_config_service_address)
                 helper.set_props_file_value(persephone_config_file,
                                             'provisioning.config.service.transportSecurity.type', "NONE")
+                helper.set_props_file_value(persephone_config_file, 'provisioning.config.service.rest.address',
+                                                            provisioning_config_service_rest_address)
                 log.info("Update completed!")
 
             if mode == "RESET":

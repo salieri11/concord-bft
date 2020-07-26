@@ -69,16 +69,14 @@ public final class NodeStartupOrchestrator {
     public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
-        // Temporary hack for supporting proxy and rest.
-        boolean useRest = !configuration.getOutboundProxyInfo().getHttpsHost().isBlank();
-        this.configServiceInvoker = new ConfigServiceInvoker(configuration.getConfigService(), useRest);
+        this.configServiceInvoker = new ConfigServiceInvoker(configuration.getConfigService());
     }
 
     /**
      * Start the local setup as a Concord node.
      */
     @PostConstruct
-    public void bootstrapConcord() throws Exception {
+    public void bootstrapConcord() {
         try {
             // Download configuration and certs.
             setupConfig();
