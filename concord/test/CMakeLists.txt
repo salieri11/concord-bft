@@ -15,6 +15,7 @@ enable_testing()
 add_test(NAME UtilsTests COMMAND UtilsTests)
 add_test(NAME SignTests COMMAND SignTests)
 add_test(NAME ConfigTests COMMAND ConfigTests)
+add_test(NAME YamlMergeTest COMMAND YamlMergeTest)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
@@ -213,3 +214,16 @@ target_link_libraries(OpenSSLCryptoWrapperTest
                       ${CRYPTOPP_LIBRARIES}
 		                  pthread
                       logging)
+
+add_executable(YamlMergeTest
+        yaml_merge_test.cpp
+        ../src/config/configuration_manager.cpp)
+
+target_link_libraries(YamlMergeTest
+        ${Boost_LIBRARIES}
+        ${GTEST_LIBRARY}
+        ${yaml-cpp_LIBRARIES}
+        concord_utils
+        concord_consensus
+        logging
+        )
