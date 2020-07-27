@@ -8,10 +8,13 @@ FEATURE_time_service: true
 perf_enable: true
 eth_enable: false
 tee_enable: false
+preexecution_enabled: true
 concord-bft_communication_buffer_length: 16000000
 concord-bft_max_external_message_size: 2000000
 #concord-bft_max_reply_message_size: 16777216
 #concord-bft_max_num_of_reserved_pages: 65536
+concord-bft_max_reply_message_size: 16384
+concord-bft_max_num_of_reserved_pages: 144
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
   genesis_block: /concord/config-public/genesis.json
