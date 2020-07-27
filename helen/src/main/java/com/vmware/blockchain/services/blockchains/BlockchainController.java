@@ -28,6 +28,7 @@ import javax.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -102,6 +103,8 @@ public class BlockchainController {
     private ClientService clientService;
     private ZoneService zoneService;
     private ConnectionPoolManager connectionPoolManager;
+    private Integer clientNumber;
+    private List<Integer> replicaNumber;
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
@@ -114,7 +117,11 @@ public class BlockchainController {
                                 ReplicaService replicaService,
                                 ClientService clientService,
                                 ZoneService zoneService,
-                                ConnectionPoolManager connectionPoolManager) {
+                                ConnectionPoolManager connectionPoolManager,
+                                @Value("${vmbc.client.number}")
+                                int clientNumber,
+                                @Value("#{${vmbc.replica.number}}")
+                                List<Integer> replicaNumber) {
         this.blockchainService = blockchainService;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
@@ -126,6 +133,9 @@ public class BlockchainController {
         this.clientService = clientService;
         this.zoneService = zoneService;
         this.connectionPoolManager = connectionPoolManager;
+        this.clientNumber = clientNumber;
+        this.replicaNumber = replicaNumber;
+
     }
 
     /**
@@ -324,7 +334,12 @@ public class BlockchainController {
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
         var zoneIds = body.getReplicaZoneIds();
-
+        if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
+            throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
+                                         "user input replicas %s", body.getReplicaZoneIds().size(),
+                                         "Expected number of clients is <= %s", clientNumber,
+                                         "user input clients is %s", body.getClientNodes().size()));
+        }
         NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
         Properties.Builder basePropBuilder = Properties.newBuilder();
         if (organization.getOrganizationProperties() != null) {
@@ -459,6 +474,18 @@ public class BlockchainController {
                 .build();
         provisioningClient.streamDeploymentSessionEvents(streamRequest, bo);
     }
+
+    private boolean validateNumberofReplicas(BlockchainPost body) {
+        int m = body.getReplicaZoneIds().size();
+        return (replicaNumber.contains(m));
+    }
+
+    private boolean validateNumberOfClients(BlockchainPost body) {
+        int m = body.getClientNodes().size();
+        return m <= clientNumber;
+    }
+
+
 
     private int getMaxChains(Organization organization) {
         // admins can create any number
