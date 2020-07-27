@@ -115,6 +115,10 @@ MIGRATION_USER_NAME = "svc.blockchain_1@vmware.com"
 PROPERTIES_TEST_FILE = "../docker/config-helen/app/profiles/application-test.properties"
 PROPERTIES_VMBC_ENABLED_VMC_ZONES = "vmbc.enabled.vmc.zones"
 
+# Persephone gRPC bindings paths
+PERSEPHONE_GRPC_BINDINGS_SRC_PATH = "../persephone/api/src/protobuf"
+PERSEPHONE_GRPC_BINDINGS_DEST_PATH = "lib/persephone"
+
 # Where Racetrack setId (run identifier) is stored in Jenkins runs
 # default: ${WORKSPACE}/blockchain/vars/racetrack_set_id.json
 RACETRACK_SET_ID_FILE = "racetrack_set_id.json"
