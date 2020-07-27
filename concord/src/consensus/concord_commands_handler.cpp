@@ -58,6 +58,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
     concord::time::TimeContract *time_contract)
     : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
+      executing_bft_sequence_num_(0),
       subscriber_list_(subscriber_list),
       storage_(storage),
       metadata_storage_(storage),
@@ -82,8 +83,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     if (time_contract) {
       time_ = std::unique_ptr<concord::time::TimeContract>(time_contract);
     } else {
-      time_ = std::unique_ptr<concord::time::TimeContract>(
-          new concord::time::TimeContract(storage_, config));
+      time_ = std::make_unique<concord::time::TimeContract>(storage_, config);
     }
   }
 
@@ -133,12 +133,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                               max_response_size};
 
   bool result;
-  if ((!has_pre_executed &&
-       request.ParseFromArray(request_buffer, request_size)) ||
+  if ((request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
-       parseFromPreExecutionResponse(request_buffer, request_size, request)) ||
-      (has_pre_executed &&
-       request.ParseFromArray(request_buffer, request_size))) {
+       parseFromPreExecutionResponse(request_buffer, request_size, request))) {
     if (parent_span) {
       const auto &ctx = parent_span.impl()->context();
       execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
@@ -156,8 +153,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       if (!read_only) {
         auto time_update_span = tracer->StartSpan(
             "time_update", {opentracing::ChildOf(&execute_span->context())});
-        TimeRequest tr = request.time_request();
-        TimeSample ts = tr.sample();
+        const TimeRequest &tr = request.time_request();
+        const TimeSample &ts = tr.sample();
         if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
           time_->Update(ts.source(), client_id, ts.time());
         } else if (ts.has_source() && ts.has_time() && ts.has_signature()) {
@@ -186,12 +183,12 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
     result = Execute(request, request_context, flags, time_.get(),
-                     *addBlock_parent_span.get(), response);
+                     *addBlock_parent_span, response);
     // Manually stopping the span after execute.
     addBlock_parent_span.reset();
 
     if (time_ && request.has_time_request()) {
-      TimeRequest tr = request.time_request();
+      const TimeRequest &tr = request.time_request();
 
       if (time_->Changed()) {
         // We had a sample that updated the time contract, and the execution of
@@ -442,7 +439,7 @@ void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
   // DD: Since Thin Replica mechanism is supposed to be replaced with the
   // Read-Only Replica, we don't want to extend ICommandsHandler interface with
   // spans. Thus, we transmit span context here
-  std::string cid = "";
+  std::string cid;
   auto iter = updates.find(cid_key_);
   if (iter != updates.end()) {
     cid = iter->second.toString();
