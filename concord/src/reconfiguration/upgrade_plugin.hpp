@@ -22,8 +22,11 @@ class UpgradePlugin : public IReconfigurationPlugin {
   }
 
   PluginReply executeUpgradeCommand(
-      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand&
-          cmd) {
+      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand& cmd,
+      uint64_t sequence_num,
+      bftEngine::ControlStateManager& control_state_manager) {
+    // write in reserved pages the required checkpoint (probably the next one)
+    // to stop at.s
     return {true, "Upgraded"};
   }
 
@@ -31,8 +34,10 @@ class UpgradePlugin : public IReconfigurationPlugin {
   explicit UpgradePlugin(
       com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId)
       : IReconfigurationPlugin(pluginId) {}
-  virtual PluginReply Handle(const std::string& command, bool readOnly,
-                             opentracing::Span& parent_span) override {
+  virtual PluginReply Handle(const std::string& command, uint64_t sequence_num,
+                             bool readOnly, opentracing::Span& parent_span,
+                             std::shared_ptr<bftEngine::ControlStateManager>
+                                 control_state_manager = nullptr) override {
     com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand cmd;
     cmd.ParseFromString(command);
     switch (cmd.type()) {
@@ -44,7 +49,7 @@ class UpgradePlugin : public IReconfigurationPlugin {
         return executeValidateVersionCommand(cmd);
       case com::vmware::concord::
           ReconfigurationSmRequest_UpgradeCommand_UpgradeType_EXECUTE_UPGRADE:
-        return executeUpgradeCommand(cmd);
+        return executeUpgradeCommand(cmd, sequence_num, *control_state_manager);
     }
     return PluginReply{false, "Unknown_upgrade_command"};
   }

@@ -8,6 +8,7 @@
 #include <storage/kvb_key_types.h>
 #include <Logger.hpp>
 #include <array>
+#include <bftengine/ControlStateManager.hpp>
 #include <cstdint>
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/openssl_crypto_utils.hpp>
@@ -49,8 +50,11 @@ class ReconfigurationSM {
    * responsibility of each plugin to write its own commands to the blockchain.
    */
   void Handle(const com::vmware::concord::ReconfigurationSmRequest& request,
-              com::vmware::concord::ConcordResponse& response, bool readOnly,
-              opentracing::Span& parent_span);
+              com::vmware::concord::ConcordResponse& response,
+              uint64_t sequence_num, bool readOnly,
+              opentracing::Span& parent_span,
+              std::shared_ptr<bftEngine::ControlStateManager>
+                  control_state_manager = nullptr);
 };
 }  // namespace reconfiguration
 }  // namespace concord

@@ -21,9 +21,10 @@ IReconfigurationPlugin* ReconfigurationSM::GetPlugin(
   return nullptr;
 }
 
-void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
-                               ConcordResponse& response, bool readOnly,
-                               opentracing::Span& parent_span) {
+void ReconfigurationSM::Handle(
+    const ReconfigurationSmRequest& request, ConcordResponse& response,
+    uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
+    std::shared_ptr<bftEngine::ControlStateManager> control_state_manager) {
   SCOPED_MDC("r.p.id", std::to_string(request.pluginid()));
   auto reconfiguration_span = opentracing::Tracer::Global()->StartSpan(
       "reconfiguration_request",
@@ -40,7 +41,8 @@ void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
     response.mutable_reconfiguration_sm_response()->set_success(false);
     return;
   }
-  auto rep = plugin->Handle(request.command(), readOnly, *reconfiguration_span);
+  auto rep = plugin->Handle(request.command(), sequence_num, readOnly,
+                            *reconfiguration_span, control_state_manager);
   auto res = response.mutable_reconfiguration_sm_response();
   res->set_success(rep.succ);
   res->set_additionaldata(rep.data);

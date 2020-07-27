@@ -29,13 +29,19 @@ struct ConcordRequestContext {
   uint32_t max_response_size;
 };
 
+class ConcordControlHandlers : public bftEngine::ControlHandlers {
+ public:
+  virtual void onSuperStableCheckpoint() override{};
+  virtual ~ConcordControlHandlers() {}
+};
+
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
   logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
-
+  std::shared_ptr<ConcordControlHandlers> concord_control_handlers_;
   // The tracing span that should be used as the parent to the span covering the
   // addBlock function.
   std::unique_ptr<opentracing::Span> addBlock_parent_span;
@@ -57,6 +63,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       new decltype(storage::kKvbKeyCorrelationId)[1]{
           storage::kKvbKeyCorrelationId},
       1);
+  std::shared_ptr<bftEngine::ControlStateManager> controlStateManager_;
 
   std::string SerializeFingerprint(const kvbc::BlockId fingerprint) const;
   kvbc::BlockId DeserializeFingerprint(const std::string &data) const;
@@ -122,6 +129,12 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
   virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
+
+  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
+                                  controlStateManager) override;
+
+  virtual std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers()
+      override;
 };
 
 }  // namespace consensus
