@@ -13,9 +13,10 @@ import com.daml.ledger.validator.preexecution._
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
+import com.digitalasset.daml.on.vmware.execution.engine.ConcordLedgerStateOperations.accessControlListToThinReplicaIds
+import com.digitalasset.daml.on.vmware.execution.engine.Digests
 import com.digitalasset.daml.on.vmware.execution.engine.caching.PreExecutionStateCaches.StateCacheWithFingerprints
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
-import com.digitalasset.daml.on.vmware.execution.engine.Digests
 import com.digitalasset.kvbc.daml_validator.{
   PreExecutionOutput,
   PreprocessorFromEngine,
@@ -23,6 +24,7 @@ import com.digitalasset.kvbc.daml_validator.{
 }
 import com.google.protobuf.ByteString
 import com.vmware.concord.concord._
+import com.vmware.concord.kvb.concord_storage.ValueWithTrids
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
@@ -189,6 +191,10 @@ object PreExecutingValidator {
       preExecutionCommitResultWriteSet: LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList)
     : WriteSet =
     WriteSet.of(preExecutionCommitResultWriteSet.map {
-      case (key, value, _) => KeyValuePair.of(key, value)
+      case (key, value, accessControlList) =>
+        val adaptedAccessControlList = accessControlListToThinReplicaIds(accessControlList)
+          .map(ByteString.copyFromUtf8)
+        val outputValue = ValueWithTrids.of(adaptedAccessControlList, Some(value)).toByteString
+        KeyValuePair.of(key, outputValue)
     })
 }
