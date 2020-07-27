@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from lib.persephone.provisioning_service_new_helper import ProvisioningServiceNewRPCHelper
 from suites.case import describe
-from util import helper, hermes_logging, infra, auth
+from util import helper, hermes_logging, infra, auth, generate_grpc_bindings
 from util.daml import daml_helper
 from util.product import Product
 
@@ -58,6 +58,12 @@ def ps_setup(request, hermes_settings):
     cmdline_args = hermes_settings["cmdline_args"]
     user_config = hermes_settings["user_config"]
     try:
+        # Generate gRPC bindings for Hermes
+        log.info("Generating Persephone gRPC bindings - source: {} ; destination: {}"
+                 .format(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH, helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH))
+        generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
+                                                 helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
+
         # Update provisioning service application properties file
         update_provisioning_service_application_properties(cmdline_args)
 

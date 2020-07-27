@@ -45,7 +45,7 @@ def generate_bindings(source_path: str, target_path: str) -> None:
     if not source_path or not target_path:
         return
 
-        # Create the package directory.
+    # Create the package directory.
     os.makedirs(target_path, exist_ok=True)
 
     proto_src_list = glob.glob(
