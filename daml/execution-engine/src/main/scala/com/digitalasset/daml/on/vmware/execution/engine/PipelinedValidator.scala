@@ -81,11 +81,11 @@ class PipelinedValidator(
                     recordingLedgerStateReader.getReadSet.toSeq.sorted
                   val writeSet = ledgerStateOperations.getAndClearWriteSet()
                   if (writeSet.isEmpty) {
-                    logger.error(s"Empty write-set generated, replicaId=${request.replicaId} correlationId=${request.correlationId}")
+                    logger.error(
+                      s"Empty write-set generated, replicaId=${request.replicaId} correlationId=${request.correlationId}")
                   }
-                  val doneEvent = EventFromValidator.Done(
-                    readSet = sortedReadSet,
-                    writeSet = writeSet)
+                  val doneEvent =
+                    EventFromValidator.Done(readSet = sortedReadSet, writeSet = writeSet)
                   responseObserver.onNext(EventFromValidator().withDone(doneEvent))
                   responseObserver.onCompleted()
                   logReadSet(sortedReadSet, ledgerStateOperations, request.correlationId)

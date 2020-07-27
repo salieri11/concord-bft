@@ -19,7 +19,7 @@ import com.daml.ledger.validator.preexecution.{
   PreExecutionOutput
 }
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
-import com.daml.ledger.validator.privacy.PublicAccess
+import com.daml.ledger.validator.privacy.{PublicAccess, RestrictedAccess}
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
 import com.digitalasset.daml.on.vmware.execution.engine.caching.PreExecutionStateCaches.StateCacheWithFingerprints
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
@@ -31,8 +31,17 @@ import com.digitalasset.kvbc.daml_validator.{
   PreExecutionOutput => ProtoPreExecutionOutput
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
+import com.vmware.concord.concord.{
+  KeyAndFingerprint,
+  KeyValuePair,
+  PreExecutionResult,
+  ReadSet,
+  WriteSet
+}
 import io.grpc.stub.StreamObserver
+import java.io
+
+import com.vmware.concord.kvb.concord_storage.ValueWithTrids
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
@@ -120,7 +129,7 @@ class PreExecutingValidatorSpec
     }
   }
 
-  "getReader" should {
+  "getOrCreateReader" should {
     "create a new reader for an unseen replica ID" in {
       val mockCacheFactory = mock[CacheFactoryFunction]
       when(mockCacheFactory.create()).thenReturn(mock[StateCacheWithFingerprints])
@@ -143,6 +152,31 @@ class PreExecutingValidatorSpec
     }
   }
 
+  "toWriteSet" should {
+    "populate ValueWithTrids message for restricted ACL" in {
+      val expectedThinReplicaId = "a participant"
+      val expectedValue = ValueWithTrids
+        .of(Seq(ByteString.copyFromUtf8(expectedThinReplicaId)), Some(aValue))
+        .toByteString
+      val input: KeyValuePairsWithAccessControlList = Seq(
+        (aKey, aValue, RestrictedAccess(Set(ParticipantId.assertFromString(expectedThinReplicaId))))
+      )
+      PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
+        Seq(
+          KeyValuePair.of(aKey, expectedValue)
+        ))
+    }
+
+    "populate ValueWithTrids message for public ACL" in {
+      val expectedValue = ValueWithTrids.of(Seq.empty, Some(aValue)).toByteString
+      val input: KeyValuePairsWithAccessControlList = Seq((aKey, aValue, PublicAccess))
+      PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
+        Seq(
+          KeyValuePair.of(aKey, expectedValue)
+        ))
+    }
+  }
+
   private def createMetrics(): ConcordLedgerStateOperationsMetrics =
     new ConcordLedgerStateOperationsMetrics(new MetricRegistry)
 
@@ -151,6 +185,8 @@ class PreExecutingValidatorSpec
   private val aCorrelationId = "aCorrelationId"
   private val aParticipantId = "aParticipantId"
   private val aSpanContext = ByteString.copyFromUtf8("aSpanContext")
+  private val aKey = ByteString.copyFromUtf8("a key")
+  private val aValue = ByteString.copyFromUtf8("a value")
 
   private def aPreExecutionRequest(): PreprocessorToEngine = {
     PreprocessorToEngine().withPreexecutionRequest(

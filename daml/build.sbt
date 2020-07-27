@@ -29,7 +29,7 @@ lazy val damlAndConcordProtos = (project in file("protos"))
       baseDirectory.value / "../../concord/proto",
       baseDirectory.value / "../../communication/src/main/proto",
     ),
-    includeFilter in PB.generate := "daml*.proto" || "concord.proto",
+    includeFilter in PB.generate := "daml*.proto" || "concord.proto" || "concord_storage.proto",
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
     ),
