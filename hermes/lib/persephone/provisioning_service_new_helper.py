@@ -134,7 +134,7 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         """
         site_ids, site_infos = self.get_orchestration_site_ids_and_infos(zone_type, zone_config)
         sites = self.create_sites(site_ids, site_infos)
-        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents}
+        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents, "ENABLE_BFT_CLIENT": "True"}
         properties = core_pb2.Properties(values=properties_dict)
         node_assignment = self.create_node_assignment(num_replicas, num_clients, site_ids)
         spec = ps_apis.DeploymentSpec(consortium_id=str(uuid.uuid4()), blockchain_id=str(uuid.uuid4()),
