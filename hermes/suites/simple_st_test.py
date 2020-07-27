@@ -129,6 +129,13 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                self.getName(),
                self.reverseProxyApiBaseUrl,
                self._userConfig)
+      cdir = os.getcwd()
+      log.debug(f'current dir: {cdir}')
+      files = [f for f in os.listdir(cdir)]
+      log.debug("folder content:")
+      for f in files:
+         log.debug(f)
+
       cFile = "resources/contracts/LargeBlockStorage.sol"
       cVersion = util.numbers_strings.random_string_generator()
       cId = util.numbers_strings.random_string_generator()
@@ -290,7 +297,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
    def _get_tests(self):
       return [("kill_replica", self._test_kill_replica), \
-              # ("pause_replica", self._test_pause_replica)
+              ("pause_replica", self._test_pause_replica)
               ]
 
 
@@ -299,8 +306,11 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       log.info("Starting tests")
 
       tests = self._get_tests()
+      originalCwd = os.getcwd() # save original `hermes` dir
       for (testName, testFunc) in tests:
          log.info("Starting test " + testName)
+         os.chdir(originalCwd)
+         log.debug(f'cwd set to {originalCwd}')
          testLogDir = os.path.join(self._testLogDir, testName)
          # When this suite is switched over to pytest, the request object
          # and the blockchain ID will be available from fixtures.  For now,
