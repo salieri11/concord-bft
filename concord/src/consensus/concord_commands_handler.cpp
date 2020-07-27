@@ -60,6 +60,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
       executing_bft_sequence_num_(0),
       subscriber_list_(subscriber_list),
+      concord_control_handlers_(std::make_shared<ConcordControlHandlers>()),
       storage_(storage),
       metadata_storage_(storage),
       command_handler_counters_{prometheus_registry->createCounterFamily(
@@ -449,6 +450,15 @@ void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
       {opentracing::SetTag{concord::utils::kCorrelationIdTag, cid}});
   utils::InjectSpan(block_read_span, updates);
   subscriber_list_.UpdateSubBuffers({block_id, updates});
+}
+void ConcordCommandsHandler::setControlStateManager(
+    std::shared_ptr<bftEngine::ControlStateManager> controlStateManager) {
+  controlStateManager_ = controlStateManager;
+}
+
+std::shared_ptr<bftEngine::ControlHandlers>
+ConcordCommandsHandler::getControlHandlers() {
+  return concord_control_handlers_;
 }
 
 }  // namespace consensus

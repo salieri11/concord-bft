@@ -64,8 +64,10 @@ class MockPlugin : public IReconfigurationPlugin {
  public:
   MockPlugin(ReconfigurationSmRequest::PluginId pluginId)
       : IReconfigurationPlugin(pluginId) {}
-  PluginReply Handle(const std::string& command, bool readOnly,
-                     opentracing::Span& parent_span) override {
+  PluginReply Handle(const std::string& command, uint64_t sequence_num,
+                     bool readOnly, opentracing::Span& parent_span,
+                     std::shared_ptr<bftEngine::ControlStateManager>
+                         control_state_manager = nullptr) override {
     return {true, command + "-world"};
   }
 };
@@ -93,7 +95,7 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
   ReconfigurationSmRequest reconfig_sm_req;
   reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
@@ -113,24 +115,24 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
 
   // Test that an empty reconfiguration request will be rejected
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command without signature will be rejected
   reconfig_sm_req.set_command("hello world");
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command with invalid signature will be rejected
   reconfig_sm_req.set_signature("hello world");
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that signature with a different key will be rejected
   auto config2 = defaultTestConfig();
   priv_key = ConfigureOperatorKey(config2);
   reconfig_sm_req.set_signature(priv_key->Sign("hello world"));
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
@@ -150,7 +152,7 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   reconfig_sm_req.set_signature(priv_key->Sign("hello"));
 
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "hello-world");
@@ -172,7 +174,7 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
   reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
 
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgrading");
@@ -194,7 +196,7 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
   reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
 
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Valid");
@@ -216,7 +218,7 @@ TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
   reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
 
   ConcordResponse res;
-  rsm.Handle(reconfig_sm_req, res, true, *test_span);
+  rsm.Handle(reconfig_sm_req, res, 0, true, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgraded");

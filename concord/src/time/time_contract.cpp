@@ -31,7 +31,7 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
                                const Timestamp &time,
                                const vector<uint8_t> *signature) {
   LoadSamplesFromStorage();
-  Assert(samples_.has_value());
+  ConcordAssert(samples_.has_value());
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
@@ -97,7 +97,7 @@ Timestamp TimeContract::GetSummarizedTimeAtBlock(BlockId id) const {
 // TODO: refuse to give a summary if there are not enough samples to guarantee
 // monotonicity
 Timestamp TimeContract::SummarizeTime() const {
-  Assert(samples_.has_value());
+  ConcordAssert(samples_.has_value());
 
   if (samples_->empty()) {
     return TimeUtil::GetEpoch();
@@ -129,7 +129,7 @@ Timestamp TimeContract::SummarizeTime() const {
 // Get the list of samples.
 const std::map<string, TimeContract::SampleBody> &TimeContract::GetSamples() {
   LoadSamplesFromStorage();
-  Assert(samples_.has_value());
+  ConcordAssert(samples_.has_value());
   return *samples_;
 }
 
