@@ -3,7 +3,6 @@
 TOOLS_IMAGE='$(docker images | sed -nE '"'"'s#^(.*committer-tools)\s+(\S*)\s.*$#\1:\2#p'"'"')'
 
 CONCORD_CONFIG=/config/concord/config-local/concord.config:/config/concord/config-local/concord.config
-DOCKER_SOCKET=/var/run/docker.sock:/var/run/docker.sock
-MY_IP='$(ip addr show eth0 | sed -nE '"'"'s#^.*inet (.*)/.*$#\1#p'"'"')'
+HOST_IP='$(ip addr show eth0 | sed -nE '"'"'s#^.*inet (.*)/.*$#\1#p'"'"')'
 
-echo "docker run -it --rm -v ${CONCORD_CONFIG} -v ${DOCKER_SOCKET} -e MY_IP=${MY_IP} ${TOOLS_IMAGE} bash"
+echo "docker run -it -v ${CONCORD_CONFIG} -e HOST_IP=${HOST_IP} ${TOOLS_IMAGE} bash"

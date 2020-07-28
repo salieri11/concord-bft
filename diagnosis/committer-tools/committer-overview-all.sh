@@ -1,17 +1,16 @@
 #!/bin/bash
 
 source ./concord-container-status.sh
+source ./num-concord-coredumps.sh
 source ./replica-ip-to-id.sh
 source ./replica-ips.sh
+source ./ssh-exec.sh
 source ./ssh-probe.sh
 
 if [ -z "${SSHPASS}" ]; then
   >&2 echo "Please set SSHPASS"
   exit 1
 fi
-
-CONCORD_COREDUMP_DIR=/config/concord/cores
-NUM_CONCORD_COREDUMPS="ls ${CONCORD_COREDUMP_DIR} 2>/dev/null | wc -l || echo 0"
 
 TMP_DIR=/tmp/diagnosis
 mkdir ${TMP_DIR} 2>/dev/null
@@ -32,9 +31,9 @@ for ip in ${IP_LIST}; do
   fi
   echo "yes" > ${TMP}/ssh
 
-  sshpass -e ssh root@${ip} "${CONCORD_CONTAINER_STATUS}" | tr -d '"' > ${TMP}/concord &
-  sshpass -e ssh root@${ip} "df -h | grep root | awk '{print \$5}'" > ${TMP}/root &
-  sshpass -e ssh root@${ip} "${NUM_CONCORD_COREDUMPS}" > ${TMP}/core &
+  concord_container_status ${ip} > ${TMP}/concord &
+  ssh_exec ${ip} "df -h | grep root | awk '{print \$5}'" > ${TMP}/root &
+  num_concord_coredumps ${ip} > ${TMP}/core &
 done
 
 printf "REPLICA\tIP\t\tSSH\tCONCORD\t/root\tCOREDUMPS\n"

@@ -1,21 +1,28 @@
 #!/bin/bash
 
-if [ -z $1 ]; then
-  CONCORD_IMAGE=$(docker images | grep "concord-core" | awk '{print $1 ":" $2}')
-else
-  CONCORD_IMAGE=$(docker image ls $1 | sed '1d' | awk '{print $1 ":" $2}')
-fi
+source ./ssh-exec.sh
 
-if [ -z "${CONCORD_IMAGE}" ]; then
+SCRIPT_NAME="/tmp/concord-commit-hash-script.sh"
+cat <<EOS > ${SCRIPT_NAME}
+#!/bin/bash
+
+LATEST_CONCORD_IMAGE=\$(docker images | grep "concord-core" | awk '{print \$1 ":" \$2}' | sort | tail -1)
+if [ -z "\${LATEST_CONCORD_IMAGE}" ]; then
     >&2 echo "Coulnd't find concord docker image"
     exit 1
 fi
 
-for concord in ${CONCORD_IMAGE}; do
-  hash=$(docker image inspect ${concord} | jq '.[0].ContainerConfig.Labels["com.vmware.blockchain.commit"]')
-  if [ "${hash}" != "null" ]; then
-    hash=${hash%\"}
-    hash=${hash#\"}
-    echo ${hash}
-  fi
-done
+hash=\$(docker image inspect \${LATEST_CONCORD_IMAGE} | jq '.[0].ContainerConfig.Labels["com.vmware.blockchain.commit"]')
+if [ "\${hash}" != "null" ]; then
+  hash=\${hash%\"}
+  hash=\${hash#\"}
+  echo \${hash}
+fi
+EOS
+
+function concord_commit_hash {
+  if [ -z "$1" ]; then IP=${HOST_IP}; else IP=$1; fi
+  ssh_exec_script "${IP}" "${SCRIPT_NAME}"
+}
+
+[[ ${BASH_SOURCE[0]} = $0 ]] && concord_commit_hash $@
