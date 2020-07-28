@@ -149,6 +149,7 @@ object PipelinedValidator {
     PrivacyAwareSubmissionValidator.cachingReaderAndCommitStrategyFrom(
       ledgerStateOperations,
       cache,
-      ImmutablesOnlyCacheUpdatePolicy)
+      ImmutablesOnlyCacheUpdatePolicy,
+      SharedKeySerializationStrategy)
   }
 }
