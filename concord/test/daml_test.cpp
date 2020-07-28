@@ -132,7 +132,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
     if (!expect_call_on_validator_client) {
       EXPECT_CALL(*daml_validator_client, PreExecute(_, _, _, _, _, _))
-          .Times(Exactly(0));
+          .Times(NEVER);
     } else {
       EXPECT_CALL(*daml_validator_client, PreExecute(_, _, _, _, _, _))
           .Times(1)
@@ -180,7 +180,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
     if (expect_never) {
       EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
-          .Times(Exactly(0));
+          .Times(NEVER);
     } else {
       EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
           .Times(1)
@@ -232,6 +232,26 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     ConcordRequest concord_request;
     concord_request.mutable_daml_request()->MergeFrom(daml_request);
     return concord_request;
+  }
+
+  ConcordResponse BuildPreExecutionResponse(BlockId read_set_block_height) {
+    ConcordResponse concord_response;
+    PreExecutionResult pre_execution_result;
+
+    pre_execution_result.set_request_correlation_id(kCorrelationId);
+
+    const std::string read_key = "read_key";
+
+    auto* read_set = pre_execution_result.mutable_read_set();
+    auto* key_with_fingerprint = read_set->add_keys_with_fingerprints();
+    key_with_fingerprint->set_key(read_key);
+    key_with_fingerprint->set_fingerprint(
+        ConcordCommandsHandler::SerializeFingerprint(read_set_block_height));
+
+    concord_response.mutable_pre_execution_result()->MergeFrom(
+        pre_execution_result);
+
+    return concord_response;
   }
 
   static KeyValuePairWithThinReplicaIds CreateKeyValuePairWithThinReplicaIds(
@@ -304,6 +324,62 @@ TEST_F(DamlKvbCommandsHandlerTest,
                                      mock_time_contract_.get(), *kTestSpan,
                                      actual_response));
   EXPECT_FALSE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
+  auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
+  auto instance = CreateInstance(daml_validator_client);
+
+  const BlockId outdated_block_height = 90;
+  const BlockId current_block_height = outdated_block_height + 5;
+
+  const ConcordResponse concord_response =
+      BuildPreExecutionResponse(outdated_block_height);
+
+  const Sliver expected_key{std::string{"read_key"}};
+  EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<3>(current_block_height), Return(Status::OK())));
+
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _)).Times(NEVER);
+
+  std::string req_string;
+  concord_response.SerializeToString(&req_string);
+
+  ASSERT_EQ(1,
+            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+                              req_string.size(), req_string.c_str(),
+                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                              replica_specific_info_size_, span_wrapper_));
+
+  ConcordResponse actual_response;
+  ASSERT_TRUE(reply_size_ > 0);
+  EXPECT_FALSE(actual_response.has_daml_response());
+  EXPECT_FALSE(actual_response.has_pre_execution_result());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetUnknownKey) {
+  auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
+  auto instance = CreateInstance(daml_validator_client);
+
+  const ConcordResponse concord_response =
+      BuildPreExecutionResponse(kLastBlockId);
+
+  const Sliver expected_key{std::string{"read_key"}};
+  EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
+      .Times(1)
+      .WillOnce(Return(Status::NotFound("read_key")));
+
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _)).Times(NEVER);
+
+  std::string req_string;
+  concord_response.SerializeToString(&req_string);
+
+  EXPECT_ANY_THROW(instance->execute(
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+      replica_specific_info_size_, span_wrapper_));
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
