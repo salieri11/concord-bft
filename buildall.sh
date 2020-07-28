@@ -337,10 +337,16 @@ then
 
     concord
     ui
+    waitForProcesses
+
     fluentd
     ethereum
+    waitForProcesses
+
     helen
     trc-lib
+    waitForProcesses
+
     client-pool-lib
     waitForProcesses
 
@@ -348,9 +354,9 @@ then
     waitForProcesses
 
     memleak_concord # concord should be built as a pre-req
-    persephone    
+    persephone
     daml
-    trc-test-app 
+    trc-test-app
     waitForProcesses
 
     reverse-proxy
