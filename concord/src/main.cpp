@@ -20,6 +20,7 @@
 #include "ClientImp.h"
 #include "KVBCInterfaces.h"
 #include "Logger.hpp"
+#include "OpenTracing.hpp"
 #include "ReplicaImp.h"
 #include "api/api_acceptor.hpp"
 #include "bftengine/ReplicaConfig.hpp"
@@ -294,7 +295,9 @@ class IdleBlockAppender : public IBlocksAppender {
   IdleBlockAppender(IReplica *replica) : replica_(replica) {}
 
   concordUtils::Status addBlock(const SetOfKeyValuePairs &updates,
-                                BlockId &outBlockId) override {
+                                BlockId &outBlockId,
+                                const concordUtils::SpanWrapper &parent_span =
+                                    concordUtils::SpanWrapper{}) override {
     outBlockId = 0;  // genesis only!
     return replica_->addBlockToIdleReplica(updates);
   }

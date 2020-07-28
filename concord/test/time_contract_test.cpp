@@ -4,6 +4,7 @@
  */
 
 #include "time/time_contract.hpp"
+#include "OpenTracing.hpp"
 #include "config/configuration_manager.hpp"
 #include "direct_kv_db_adapter.h"
 #include "gtest/gtest.h"
@@ -93,8 +94,9 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween not supported in test");
   }
 
-  Status addBlock(const SetOfKeyValuePairs& updates,
-                  BlockId& outBlockId) override {
+  Status addBlock(const SetOfKeyValuePairs& updates, BlockId& outBlockId,
+                  const concordUtils::SpanWrapper& parent_span =
+                      concordUtils::SpanWrapper{}) override {
     for (auto u : updates) {
       Status status = db_.put(keyGen_->dataKey(u.first, 0), u.second);
       if (!status.isOK()) {

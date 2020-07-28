@@ -48,7 +48,8 @@ class HlfKvbCommandsHandler
                uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
-  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract,
+                       const opentracing::Span& parent_span) override;
 
  private:
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,

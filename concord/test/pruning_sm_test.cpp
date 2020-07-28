@@ -1,7 +1,6 @@
 // Copyright 2019-2020 VMware, all rights reserved
 
-// Keep googletest includes on top as the Assert macro from assertUtils.hpp can
-// interfere.
+#include "OpenTracing.hpp"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
 
@@ -93,8 +92,9 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween() not supported in test mode");
   }
 
-  Status addBlock(const SetOfKeyValuePairs& updates,
-                  BlockId& outBlockId) override {
+  Status addBlock(const SetOfKeyValuePairs& updates, BlockId& outBlockId,
+                  const concordUtils::SpanWrapper& p =
+                      concordUtils::SpanWrapper{}) override {
     outBlockId = ++blockId_;
     for (const auto& u : updates) {
       const auto status =

@@ -4,6 +4,7 @@
 
 // Keep googletest includes on top as the Assert macro from assertUtils.hpp can
 // interfere.
+#include "OpenTracing.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -64,7 +65,8 @@ class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
 
 class MockBlockAppender : public IBlocksAppender {
  public:
-  MOCK_METHOD2(addBlock, Status(const SetOfKeyValuePairs&, BlockId&));
+  MOCK_METHOD3(addBlock, Status(const SetOfKeyValuePairs&, BlockId&,
+                                const concordUtils::SpanWrapper&));
 };
 
 class MockPrometheusRegistry : public PrometheusRegistry {

@@ -4,6 +4,7 @@
 #include <daml_commit.pb.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <google/protobuf/util/time_util.h>
+#include <opentracing/noop.h>
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
 #include <memory>
@@ -85,6 +86,11 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     reply_size_ = 0;
     memset(reply_buffer_, 0, OUT_BUFFER_SIZE);
     time_update_key_ = CreateDamlKvbKey(DamlKvbCommandsHandler::kTimeUpdateKey);
+
+    auto tracer = opentracing::MakeNoopTracer();
+    auto raw_span = tracer->StartSpan("dummy");
+    span_wrapper_ =
+        concordUtils::startChildSpanFromContext(raw_span->context(), "dummy_1");
   }
 
   void TearDown() override {
@@ -310,7 +316,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 };
 
 TEST_F(DamlKvbCommandsHandlerTest, ExecuteCommitHappyPathCreatesBlock) {
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
       .Times(1)
       .WillOnce(
           DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
@@ -357,7 +363,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
       .WillOnce(
           DoAll(SetArgReferee<3>(current_block_height), Return(Status::OK())));
 
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _)).Times(NEVER);
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _)).Times(NEVER);
 
   std::string req_string;
   concord_response.SerializeToString(&req_string);
@@ -386,7 +392,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetUnknownKey) {
       .Times(1)
       .WillOnce(Return(Status::NotFound("read_key")));
 
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _)).Times(NEVER);
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _)).Times(NEVER);
 
   std::string req_string;
   concord_response.SerializeToString(&req_string);
@@ -418,7 +424,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
   SetOfKeyValuePairs actual_raw_write_set;
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
       .Times(1)
       .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
                       SetArgReferee<1>(kLastBlockId + 1),
@@ -464,7 +470,7 @@ TEST_F(DamlKvbCommandsHandlerTest,
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
   SetOfKeyValuePairs actual_raw_write_set;
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
       .Times(1)
       .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
                       SetArgReferee<1>(kLastBlockId + 1),
@@ -498,7 +504,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutePopulatesResponse) {
   PreExecutionResult pre_execution_result;
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
       .Times(1)
       .WillOnce(
           DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));

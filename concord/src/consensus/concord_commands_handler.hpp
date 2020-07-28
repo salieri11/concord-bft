@@ -39,12 +39,24 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   concord::thin_replica::SubBufferList &subscriber_list_;
   std::shared_ptr<reconfiguration::ConcordControlHandler>
       concord_control_handlers_;
-  // The tracing span that should be used as the parent to the span covering the
-  // addBlock function.
-  std::unique_ptr<opentracing::Span> addBlock_parent_span;
 
   void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
                                          kvbc::SetOfKeyValuePairs &updates);
+
+  uint32_t SerializeResponse(const opentracing::Span &parent_span,
+                             uint32_t max_response_size,
+                             com::vmware::concord::ConcordResponse &response,
+                             char *response_buffer) const;
+  void UpdateTime(const opentracing::Span &parent_span,
+                  const com::vmware::concord::ConcordRequest &request,
+                  bool read_only, uint16_t client_id);
+  void UpdateResponseWithTime(
+      const opentracing::Span &parent_span,
+      const com::vmware::concord::TimeRequest &time_request,
+      com::vmware::concord::ConcordResponse &response);
+  void AddTimeUpdateBlock(const opentracing::Span &parent_span,
+                          com::vmware::concord::ConcordResponse &response,
+                          int execute_result, bool read_only);
 
   uint16_t replica_id_;
 
@@ -97,7 +109,9 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // can add lower-level data like time contract status, before forwarding to
   // the true appender.
   concordUtils::Status addBlock(const kvbc::SetOfKeyValuePairs &updates,
-                                kvbc::BlockId &out_block_id) override;
+                                kvbc::BlockId &out_block_id,
+                                const concordUtils::SpanWrapper &parent_span =
+                                    concordUtils::SpanWrapper{}) override;
 
   // Checks the pre-executed result for read/write conflicts
   bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult
@@ -124,7 +138,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // store state that is not controlled by the subclass. This callback gives the
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
-  virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
+  virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract,
+                               const opentracing::Span &parent_span) = 0;
 
   void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
                                   controlStateManager) override;

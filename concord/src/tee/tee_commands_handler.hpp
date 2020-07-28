@@ -60,7 +60,8 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
 
-  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract,
+                       const opentracing::Span&) override;
 
  private:
   bool ExecuteSkvbcRequest(
