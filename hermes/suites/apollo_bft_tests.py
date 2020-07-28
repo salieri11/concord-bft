@@ -144,6 +144,7 @@ async def _test_skvbc_checkpoint_creation(bft_network):
 
 
 @describe()
+@pytest.mark.skip(reason="BC-3703")
 def test_skvbc_state_transfer(fxProduct, bft_network):
     trio.run(_test_skvbc_state_transfer, bft_network)
 
