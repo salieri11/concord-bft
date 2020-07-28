@@ -8,7 +8,6 @@ import akka.stream.Materializer
 import com.codahale.metrics.{InstrumentedExecutorService, MetricRegistry}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
-import com.daml.ledger.participant.state.pkvutils.PrefixingKeySerializationStrategy
 import com.daml.ledger.validator.batch.{
   BatchedSubmissionValidator,
   BatchedSubmissionValidatorParameters,
@@ -51,19 +50,17 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
       metrics,
     )
 
-  private val serializationStrategy = PrefixingKeySerializationStrategy()
-
   private val preExecutingReaderFactoryFunction =
     PreExecutingValidator.getOrCreateReader(
       () => PreExecutionStateCaches.createDefault(metrics.registry),
-      serializationStrategy) _
+      SharedKeySerializationStrategy) _
 
   private val preExecutingSubmissionValidator =
     new PreExecutingSubmissionValidator[KeyValuePairsWithAccessControlList](
       keyValueCommitting,
       metrics,
-      serializationStrategy,
-      LogFragmentsPreExecutingCommitStrategy(serializationStrategy)
+      SharedKeySerializationStrategy,
+      LogFragmentsPreExecutingCommitStrategy(SharedKeySerializationStrategy)
     )
 
   private val concordLedgerStateOperationsMetrics =

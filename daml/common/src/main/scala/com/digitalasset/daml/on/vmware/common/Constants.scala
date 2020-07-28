@@ -12,8 +12,4 @@ object Constants {
     */
   val fragmentKeyPrefix: ByteString =
     ByteString.copyFromUtf8("F")
-
-  /** The prefix to prepend to state keys. */
-  val stateKeyPrefix: ByteString =
-    ByteString.copyFromUtf8("S")
 }

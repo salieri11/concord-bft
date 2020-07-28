@@ -59,7 +59,7 @@ final class ConcordPreExecutionLedgerStateReader(
 }
 
 object ConcordPreExecutionLedgerStateReader {
-  private def flattenOptionalByteString(maybeByteString: Option[ByteString]) =
+  private def flattenOptionalByteString(maybeByteString: Option[ByteString]): Option[ByteString] =
     maybeByteString.flatMap { value =>
       if (value.isEmpty) None else Some(value)
     }

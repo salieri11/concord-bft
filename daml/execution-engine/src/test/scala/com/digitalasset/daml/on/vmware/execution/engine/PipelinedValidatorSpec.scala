@@ -17,6 +17,7 @@ import com.daml.ledger.validator.privacy.{
 }
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
 import com.daml.lf.data.Ref.IdString
+import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.daml.on.vmware.execution.engine.caching.StateCaches.StateCache
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator, ValidateRequest}
@@ -179,6 +180,10 @@ class PipelinedValidatorSpec
 
       verify(mockCacheFactory, times(2)).create()
       succeed
+    }
+
+    "must use same log fragment prefixes as thin-replica client" in {
+      SharedKeySerializationStrategy.isFragmentKey(Constants.fragmentKeyPrefix) shouldBe true
     }
   }
 
