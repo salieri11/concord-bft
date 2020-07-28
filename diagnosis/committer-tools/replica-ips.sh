@@ -18,8 +18,9 @@ function replica_ips {
   for ip in ${IPS}; do
     if [ "${ip}" = "127.0.0.1" ]; then
       my_ipv4
+    else
+      echo ${ip}
     fi
-    echo ${ip}
   done
 }
 
