@@ -363,14 +363,16 @@ bool ConcordCommandsHandler::parseFromPreExecutionResponse(
   }
 }
 
-std::string SerializeFingerprint(const BlockId fingerprint) {
+std::string ConcordCommandsHandler::SerializeFingerprint(
+    const BlockId fingerprint) {
   char buf[sizeof(BlockId)];
   memcpy(buf, &fingerprint, sizeof(BlockId));
   std::string serialized(buf, sizeof(BlockId));
   return serialized;
 }
 
-BlockId DeserializeFingerprint(const std::string &serialized) {
+BlockId ConcordCommandsHandler::DeserializeFingerprint(
+    const std::string &serialized) {
   BlockId fingerprint;
   memcpy(&fingerprint, serialized.data(), sizeof(BlockId));
   return fingerprint;
@@ -379,8 +381,11 @@ BlockId DeserializeFingerprint(const std::string &serialized) {
 concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
     concord::kvbc::BlockId &out_block_id) {
-  auto add_block_span = addBlock_parent_span->tracer().StartSpan(
-      "add_block", {opentracing::ChildOf(&addBlock_parent_span->context())});
+  std::unique_ptr<opentracing::Span> add_block_span;
+  if (addBlock_parent_span) {
+    add_block_span = addBlock_parent_span->tracer().StartSpan(
+        "add_block", {opentracing::ChildOf(&addBlock_parent_span->context())});
+  }
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,

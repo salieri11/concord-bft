@@ -20,6 +20,11 @@ typedef std::function<std::map<std::string, std::string>(
     const google::protobuf::RepeatedPtrField<std::string>&)>
     DamlKvbReadFunc;
 
+typedef std::pair<std::string, std::string> ValueFingerprintPair;
+typedef std::function<std::map<std::string, ValueFingerprintPair>(
+    const google::protobuf::RepeatedPtrField<std::string>&)>
+    KeyValueWithFingerprintReaderFunc;
+
 // Represents a key-value pair with an associated access control list.
 // The access control list is defined as a list of thin replica IDs.
 typedef std::pair<std::string, com::vmware::concord::kvb::ValueWithTrids>
@@ -34,6 +39,12 @@ class IDamlValidatorClient {
       const opentracing::Span& parent_span, DamlKvbReadFunc read_from_storage,
       std::vector<std::string>* read_set,
       std::vector<KeyValuePairWithThinReplicaIds>* write_set) = 0;
+
+  virtual grpc::Status PreExecute(
+      const std::string& submission, const std::string& participant_id,
+      const std::string& correlation_id, const opentracing::Span& parent_span,
+      KeyValueWithFingerprintReaderFunc read_from_storage,
+      com::vmware::concord::PreExecutionResult* pre_execution_result) = 0;
 
   virtual ~IDamlValidatorClient() = default;
 };
@@ -53,6 +64,12 @@ class DamlValidatorClient : public IDamlValidatorClient {
       std::vector<std::string>* read_set,
       std::vector<KeyValuePairWithThinReplicaIds>* write_set) override;
 
+  grpc::Status PreExecute(
+      const std::string& submission, const std::string& participant_id,
+      const std::string& correlation_id, const opentracing::Span& parent_span,
+      KeyValueWithFingerprintReaderFunc read_from_storage,
+      com::vmware::concord::PreExecutionResult* pre_execution_result) override;
+
  private:
   logging::Logger logger_ = logging::getLogger("concord.daml.validator");
   logging::Logger dtrmnsm_logger_ =
@@ -61,6 +78,12 @@ class DamlValidatorClient : public IDamlValidatorClient {
       const com::digitalasset::kvbc::EventFromValidator::Read& read_event,
       DamlKvbReadFunc read_from_storage,
       com::digitalasset::kvbc::EventToValidator* event);
+
+  void HandleReadEventForPreExecution(
+      const com::digitalasset::kvbc::PreprocessorFromEngine::ReadRequest&
+          read_request,
+      KeyValueWithFingerprintReaderFunc read_from_storage,
+      com::digitalasset::kvbc::PreprocessorToEngine* reply);
 
   void SwapWriteSet(
       google::protobuf::RepeatedPtrField<

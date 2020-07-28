@@ -167,5 +167,81 @@ void DamlValidatorClient::SwapWriteSet(
           << "]");
 }
 
+grpc::Status DamlValidatorClient::PreExecute(
+    const std::string& submission, const std::string& participant_id,
+    const std::string& correlation_id, const opentracing::Span& parent_span,
+    KeyValueWithFingerprintReaderFunc read_from_storage,
+    com::vmware::concord::PreExecutionResult* pre_execution_result) {
+  auto child_span = parent_span.tracer().StartSpan(
+      "daml_pre_execute", {opentracing::ChildOf(&parent_span.context())});
+
+  grpc::ClientContext context;
+  InjectSpanAsMetadata(*child_span, &context);
+  std::unique_ptr<grpc::ClientReaderWriterInterface<
+      da_kvbc::PreprocessorToEngine, da_kvbc::PreprocessorFromEngine>>
+      stream(stub_->Preexecute(&context));
+
+  // Initiate pre-execution by sending the submission to the validator.
+  {
+    da_kvbc::PreprocessorToEngine event;
+    da_kvbc::PreprocessorToEngine_PreExecutionRequest* request =
+        event.mutable_preexecution_request();
+    request->set_submission(submission);
+    request->set_submitting_participant_id(participant_id);
+    request->set_replica_id(replica_id_);
+    request->set_correlation_id(correlation_id);
+    // FIXME(erdemik): Remove span_context from proto (sent as metadata).
+    stream->Write(event);
+  }
+
+  // Handle events from the execution engine until pre-execution has finished.
+  bool done = false;
+  da_kvbc::PreprocessorFromEngine event;
+  while (!done && stream->Read(&event)) {
+    switch (event.from_engine_case()) {
+      case da_kvbc::PreprocessorFromEngine::kReadRequest: {
+        da_kvbc::PreprocessorToEngine reply;
+        HandleReadEventForPreExecution(event.read_request(), read_from_storage,
+                                       &reply);
+        stream->Write(reply);
+        break;
+      }
+
+      case da_kvbc::PreprocessorFromEngine::kPreexecutionResult: {
+        auto result = event.mutable_preexecution_result();
+        result->Swap(pre_execution_result);
+        stream->WritesDone();
+        done = true;
+        break;
+      }
+
+      case da_kvbc::PreprocessorFromEngine::FROM_ENGINE_NOT_SET:
+        throw std::runtime_error(
+            "DamlValidatorClient::PreExecute: FROM_ENGINE_NOT_SET");
+    }
+  }
+
+  return stream->Finish();
+}
+
+void DamlValidatorClient::HandleReadEventForPreExecution(
+    const com::digitalasset::kvbc::PreprocessorFromEngine::ReadRequest&
+        read_request,
+    KeyValueWithFingerprintReaderFunc read_from_storage,
+    com::digitalasset::kvbc::PreprocessorToEngine* reply) {
+  auto& keys = read_request.keys();
+  const auto values = read_from_storage(keys);
+  da_kvbc::PreprocessorToEngine_ReadResult* read_result =
+      reply->mutable_read_result();
+  read_result->set_tag(read_request.tag());
+  for (auto const& entry : values) {
+    da_kvbc::KeyValueFingerprintTriple* key_value_fingerprint =
+        read_result->add_key_value_pairs();
+    key_value_fingerprint->set_key(entry.first);
+    key_value_fingerprint->set_value(entry.second.first);
+    key_value_fingerprint->set_fingerprint(entry.second.second);
+  }
+}
+
 }  // namespace daml
 }  // namespace concord

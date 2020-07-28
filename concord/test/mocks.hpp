@@ -42,6 +42,12 @@ class MockDamlValidatorClient : public IDamlValidatorClient {
                             const opentracing::Span&, DamlKvbReadFunc,
                             std::vector<std::string>*,
                             std::vector<KeyValuePairWithThinReplicaIds>*));
+
+  MOCK_METHOD6(PreExecute,
+               grpc::Status(const std::string&, const std::string&,
+                            const std::string&, const opentracing::Span&,
+                            KeyValueWithFingerprintReaderFunc,
+                            com::vmware::concord::PreExecutionResult*));
 };
 
 class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {

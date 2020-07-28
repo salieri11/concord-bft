@@ -23,6 +23,11 @@ namespace daml {
 concordUtils::Sliver CreateSliver(char* content, const size_t size);
 concordUtils::Sliver CreateSliver(const std::string& content);
 concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
+concordUtils::Sliver CreateDamlKvbValue(const std::string& value,
+                                        const std::vector<string>& trid_list);
+bool CheckIfWithinTimeBounds(
+    const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
+    const google::protobuf::Timestamp& record_time);
 
 class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
@@ -83,10 +88,18 @@ class DamlKvbCommandsHandler
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                const concord::consensus::ConcordRequestContext& request_context,
-               uint8_t flags, concord::time::TimeContract* time_contract,
+               const uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
+
+  bool PostExecute(
+      const com::vmware::concord::PreExecutionResult& pre_execution_result,
+      concord::time::TimeContract* time, const opentracing::Span& parent_span,
+      com::vmware::concord::ConcordResponse& concord_response);
+
+  std::map<std::string, ValueFingerprintPair> ReadKeys(
+      const google::protobuf::RepeatedPtrField<string>& keys);
 
  private:
   bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
@@ -94,48 +107,44 @@ class DamlKvbCommandsHandler
 
   bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
                      uint8_t flags, concord::time::TimeContract* time_contract,
-                     opentracing::Span& parent_span,
+                     const opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
+  bool PreExecute(const com::digitalasset::kvbc::CommitRequest& commit_request,
+                  const opentracing::Span& parent_span,
+                  com::vmware::concord::ConcordResponse& concord_response);
 
-  bool PostExecute(
-      com::vmware::concord::PreExecutionResult& pre_execution_result,
-      concord::time::TimeContract* time, opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response);
+  bool GenerateWriteSetForPreExecution(
+      const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
+      const google::protobuf::Timestamp& record_time,
+      kvbc::SetOfKeyValuePairs& write_set) const;
+
+  void WriteSetToRawUpdates(
+      const com::vmware::concord::WriteSet& input_write_set,
+      kvbc::SetOfKeyValuePairs& updates) const;
 
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
                          const std::string& participant_id,
                          const std::string& correlation_id,
-                         opentracing::Span& parent_span,
+                         const opentracing::Span& parent_span,
                          std::vector<std::string>& read_set,
-                         kvbc::SetOfKeyValuePairs& updates,
-                         bool isPreExecution);
+                         kvbc::SetOfKeyValuePairs& updates);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
                       uint8_t flags, concord::time::TimeContract* time_contract,
-                      opentracing::Span& parent_span,
+                      const opentracing::Span& parent_span,
                       com::vmware::concord::ConcordResponse& response);
   bool ExecuteReadOnlyCommand(
       const com::vmware::concord::ConcordRequest& request,
       com::vmware::concord::ConcordResponse& response);
-  std::map<string, string> GetFromStorage(
+  std::map<string, std::pair<string, kvbc::BlockId>> GetFromStorage(
       const google::protobuf::RepeatedPtrField<std::string>& keys);
 
   void RecordTransaction(
-      const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
-      const string& correlation_id, opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response);
-
-  void BuildPreExecutionResult(
       const kvbc::SetOfKeyValuePairs& updates,
-      const kvbc::SetOfKeyValuePairs& updates_on_timeout,
-      const kvbc::SetOfKeyValuePairs& updates_on_conflict,
-      kvbc::BlockId current_block_id,
-      const std::optional<google::protobuf::Timestamp>& record_time,
-      const string& correlation_id,
-      const std::vector<std::string>& validation_read_set,
-      opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response) const;
+      const kvbc::BlockId current_block_id, const string& correlation_id,
+      const opentracing::Span& parent_span,
+      com::vmware::concord::ConcordResponse& concord_response);
 
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);

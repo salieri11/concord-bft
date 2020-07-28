@@ -2,9 +2,11 @@
 
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
+#include <google/protobuf/util/message_differencer.h>
 #include <google/protobuf/util/time_util.h>
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
+#include <memory>
 #include "Logger.hpp"
 #include "OpenTracing.hpp"
 #include "gmock/gmock.h"
@@ -17,12 +19,15 @@ using namespace std::placeholders;  // For _1, _2, etc.
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Cardinality;
+using ::testing::Contains;
 using ::testing::DoAll;
+using ::testing::Eq;
 using ::testing::Exactly;
 using ::testing::Return;
 using ::testing::ReturnRef;
 using ::testing::SetArgPointee;
 using ::testing::SetArgReferee;
+using ::testing::WithArg;
 
 using namespace concord::kvbc;
 using namespace concord::daml;
@@ -34,392 +39,503 @@ using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::PreExecutionResult;
+using com::vmware::concord::WriteSet;
 using com::vmware::concord::kvb::ValueWithTrids;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
+using concord::consensus::ConcordCommandsHandler;
+using concord::daml::CreateDamlKvbKey;
+using concord::daml::CreateDamlKvbValue;
+using concord::daml::CreateSliver;
+using concord::time::TimeContract;
 
+using google::protobuf::RepeatedPtrField;
 using google::protobuf::Timestamp;
+using google::protobuf::util::MessageDifferencer;
 using google::protobuf::util::TimeUtil;
 
 namespace {
 
+ACTION_P(CopyKeyValuePairs, write_set) {
+  write_set->insert(arg0.begin(), arg0.end());
+}
+
 constexpr size_t OUT_BUFFER_SIZE = 512000;
+const int64_t kCurrentTimeMillis = 12345678;
+google::protobuf::Timestamp kCurrentTime =
+    TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis);
 
 const auto NEVER = Exactly(0);
 
-ConcordRequest build_commit_request();
-std::shared_ptr<MockPrometheusRegistry> build_mock_prometheus_registry();
-std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
-    bool expect_never = false,
-    const std::optional<Timestamp>& max_record_time = std::nullopt);
-ConcordResponse build_pre_execution_response(
-    BlockId pre_execution_block_id,
-    const std::optional<Timestamp>& max_record_time = std::nullopt,
-    const std::vector<std::string>& reads = {"read-key"},
-    const std::map<std::string, std::string>& writes = {{"write-key",
-                                                         "write-value"}},
-    const std::map<std::string, std::string>& timeout_writes = {{"timeout",
-                                                                 "detected"}},
-    const std::map<std::string, std::string>& conflict_writes = {
-        {"conflict", "detected"}});
+auto kTestSpan = opentracing::Tracer::Global()
+                     -> StartSpan("daml_kvb_commands_handler_test");
 
-TEST(daml_test, validate_commit_command_type) {
-  da_kvbc::Command daml_commit_command;
-  da_kvbc::CommitRequest commit_request;
-  commit_request.set_participant_id("participant_id");
-  commit_request.set_correlation_id("correlation_id");
-  daml_commit_command.mutable_commit()->MergeFrom(commit_request);
+class DamlKvbCommandsHandlerTest : public ::testing::Test {
+ protected:
+  typedef std::map<std::string, std::string> StringStringMap;
 
-  EXPECT_EQ(daml_commit_command.cmd_case(), da_kvbc::Command::kCommit);
-}
+  void SetUp() override {
+    configuration_ = TestConfiguration(4, 4, 0, 0, false, false);
+    mock_ro_storage_ = std::make_unique<MockLocalKeyValueStorageReadOnly>();
+    EXPECT_CALL(*mock_ro_storage_, getLastBlock())
+        .WillRepeatedly(Return(kLastBlockId));
+    mock_block_appender_ = std::make_unique<MockBlockAppender>();
+    mock_time_contract_ = std::make_unique<MockTimeContract>(
+        *mock_ro_storage_, configuration_, kCurrentTime);
+    reply_size_ = 0;
+    memset(reply_buffer_, 0, OUT_BUFFER_SIZE);
+  }
 
-TEST(daml_test, validate_read_command_type) {
-  da_kvbc::Command daml_read_command;
-  da_kvbc::ReadCommand read_command;
-  read_command.set_participant_id("participant_id");
-  daml_read_command.mutable_read()->MergeFrom(read_command);
+  void TearDown() override {
+    instance_.reset();
+    // Make sure expectations are verified on the mocks.
+    mock_time_contract_.reset();
+    mock_ro_storage_.reset();
+    mock_block_appender_.reset();
+  }
 
-  EXPECT_EQ(daml_read_command.cmd_case(), da_kvbc::Command::kRead);
-}
+  DamlKvbCommandsHandler* CreateInstance() { return CreateInstance(false); }
 
-TEST(daml_test, successful_commit_creates_block) {
-  const BlockId last_block_id = 100;
+  DamlKvbCommandsHandler* CreateInstance(bool expect_call_on_validator_client) {
+    auto daml_validator_client = CreateMockDamlValidatorClientForPreExecution(
+        expect_call_on_validator_client);
+    return CreateInstance(daml_validator_client);
+  }
 
-  MockBlockAppender blocks_appender{};
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
+  DamlKvbCommandsHandler* CreateInstance(
+      std::unique_ptr<MockDamlValidatorClient>& daml_validator_client) {
+    prometheus_registry_ = CreatePrometheusRegistry();
+    instance_ = std::make_unique<DamlKvbCommandsHandler>(
+        configuration_, GetNodeConfig(configuration_, 1), *mock_ro_storage_,
+        *mock_block_appender_, subscriber_list_,
+        std::move(daml_validator_client), prometheus_registry_);
+    return instance_.get();
+  }
+
+  std::shared_ptr<PrometheusRegistry> CreatePrometheusRegistry() {
+    auto prometheus_registry = std::make_shared<MockPrometheusRegistry>();
+    auto default_counter_family =
+        prometheus::Family<prometheus::Counter>("a", "b", {});
+    auto default_counter = prometheus::Counter();
+    EXPECT_CALL(*prometheus_registry, createCounterFamily(_, _, _))
+        .WillRepeatedly(ReturnRef(default_counter_family));
+    EXPECT_CALL(*prometheus_registry, createCounter(_, _))
+        .WillRepeatedly(ReturnRef(default_counter));
+    return prometheus_registry;
+  }
+
+  std::unique_ptr<MockDamlValidatorClient>
+  CreateMockDamlValidatorClientForPreExecution(
+      bool expect_call_on_validator_client) {
+    std::unique_ptr<MockDamlValidatorClient> daml_validator_client =
+        std::make_unique<MockDamlValidatorClient>();
+
+    if (!expect_call_on_validator_client) {
+      EXPECT_CALL(*daml_validator_client, PreExecute(_, _, _, _, _, _))
+          .Times(Exactly(0));
+    } else {
+      EXPECT_CALL(*daml_validator_client, PreExecute(_, _, _, _, _, _))
+          .Times(1)
+          .WillOnce(testing::Invoke(
+              [this](const std::string& submission,
+                     const std::string& participant_id,
+                     const std::string& correlation_id,
+                     const opentracing::Span& parent_span,
+                     KeyValueWithFingerprintReaderFunc read_from_storage,
+                     PreExecutionResult* pre_execution_result) -> grpc::Status {
+                da_kvbc::PreExecutionOutput pre_execution_output;
+                pre_execution_output.mutable_min_record_time()->CopyFrom(
+                    this->mock_time_contract_->GetTime());
+                StringStringMap expected_key_value_pairs = {
+                    {"write-key1", "write-value1"},
+                    {"write-key2", "write-value2"}};
+                WriteSet expected_write_set;
+                PopulateWriteSet(expected_key_value_pairs, &expected_write_set);
+                pre_execution_output.mutable_success_write_set()->CopyFrom(
+                    expected_write_set);
+                expected_read_set_.Clear();
+                for (const auto& read_key : this->expected_read_keys_) {
+                  auto* key_with_fingerprint =
+                      expected_read_set_.add_keys_with_fingerprints();
+                  key_with_fingerprint->set_key(read_key);
+                  key_with_fingerprint->set_fingerprint(read_key);
+                }
+                pre_execution_result->mutable_read_set()->CopyFrom(
+                    expected_read_set_);
+                pre_execution_result->set_output(
+                    pre_execution_output.SerializeAsString());
+                pre_execution_result->set_request_correlation_id(
+                    correlation_id);
+                return grpc::Status();
+              }));
+    }
+
+    return daml_validator_client;
+  }
+
+  std::unique_ptr<MockDamlValidatorClient> CreateMockDamlValidatorClient(
+      bool expect_never) {
+    std::unique_ptr<MockDamlValidatorClient> daml_validator_client =
+        std::make_unique<MockDamlValidatorClient>();
+
+    if (expect_never) {
+      EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
+          .Times(Exactly(0));
+    } else {
+      EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
+          .Times(1)
+          .WillOnce(testing::Invoke(
+              [](const std::string& submission,
+                 const google::protobuf::Timestamp& record_time,
+                 const std::string& participant_id,
+                 const std::string& correlation_id,
+                 const opentracing::Span& parent_span,
+                 DamlKvbReadFunc read_from_storage,
+                 std::vector<std::string>* read_set,
+                 std::vector<KeyValuePairWithThinReplicaIds>* write_set)
+                  -> grpc::Status {
+                read_set->push_back("rk1");
+                read_set->push_back("rk2");
+                read_set->push_back("rk3");
+                std::vector<std::string> replicas;
+                replicas.push_back("replica1");
+                write_set->push_back(CreateKeyValuePairWithThinReplicaIds(
+                    "wk1", "wv1", replicas));
+                write_set->push_back(CreateKeyValuePairWithThinReplicaIds(
+                    "wk2", "wv2", replicas));
+                return grpc::Status();
+              }));
+    }
+
+    return daml_validator_client;
+  }
+
+  std::string BuildCommitRequest() {
+    auto concord_request = BuildConcordRequest();
+    std::string request_string;
+    concord_request.SerializeToString(&request_string);
+    return request_string;
+  }
+
+  ConcordRequest BuildConcordRequest() {
+    da_kvbc::CommitRequest commit_request;
+    commit_request.set_participant_id("participant_id");
+    commit_request.set_correlation_id(kCorrelationId);
+    da_kvbc::Command daml_commit_command;
+    daml_commit_command.mutable_commit()->MergeFrom(commit_request);
+    std::string cmd_string;
+    daml_commit_command.SerializeToString(&cmd_string);
+
+    DamlRequest daml_request;
+    daml_request.set_command(cmd_string);
+
+    ConcordRequest concord_request;
+    concord_request.mutable_daml_request()->MergeFrom(daml_request);
+    return concord_request;
+  }
+
+  static KeyValuePairWithThinReplicaIds CreateKeyValuePairWithThinReplicaIds(
+      const std::string& key, const std::string& value,
+      const std::vector<std::string>& replicas) {
+    ValueWithTrids value_with_thin_replica_ids;
+    value_with_thin_replica_ids.set_value(value);
+    for (auto replica_id : replicas) {
+      value_with_thin_replica_ids.add_trid(replica_id);
+    }
+    return {key, value_with_thin_replica_ids};
+  }
+
+  static void PopulateWriteSet(const std::map<std::string, std::string>& writes,
+                               WriteSet* output) {
+    for (const auto& entry : writes) {
+      auto added_pair = output->add_kv_writes();
+      added_pair->set_key(entry.first);
+      added_pair->set_value(entry.second);
+    }
+  }
+
+  const BlockId kLastBlockId = 100;
+  const std::string kCorrelationId = "correlation_id";
+
+  std::vector<std::string> expected_read_keys_;
+  com::vmware::concord::ReadSet expected_read_set_;
+
+  uint32_t reply_size_;
+  char reply_buffer_[OUT_BUFFER_SIZE];
+
+  uint32_t replica_specific_info_size_ = 0;
+  concordUtils::SpanWrapper span_wrapper_;
+  ConcordConfiguration configuration_;
+  std::shared_ptr<PrometheusRegistry> prometheus_registry_;
+  std::unique_ptr<DamlKvbCommandsHandler> instance_;
+  std::unique_ptr<MockLocalKeyValueStorageReadOnly> mock_ro_storage_;
+  std::unique_ptr<MockBlockAppender> mock_block_appender_;
+  std::unique_ptr<TimeContract> mock_time_contract_;
+  SubBufferList subscriber_list_;
+};
+
+TEST_F(DamlKvbCommandsHandlerTest, ExecuteCommitHappyPathCreatesBlock) {
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
       .Times(1)
       .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
+          DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
+  auto daml_validator_client = CreateMockDamlValidatorClient(false);
+  auto instance = CreateInstance(daml_validator_client);
+  std::string request_string = BuildCommitRequest();
 
-  MockLocalKeyValueStorageReadOnly ro_storage{};
-  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
-
-  SubBufferList subscriber_list{};
-
-  const auto replicas = 4;
-  const auto client_proxies = 4;
-  const auto config =
-      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
-
-  auto prometheus_registry = build_mock_prometheus_registry();
-  auto daml_validator_client = build_mock_daml_validator_client();
-
-  DamlKvbCommandsHandler daml_commands_handler{config,
-                                               GetNodeConfig(config, 1),
-                                               ro_storage,
-                                               blocks_appender,
-                                               subscriber_list,
-                                               std::move(daml_validator_client),
-                                               prometheus_registry};
-
-  ConcordRequest concord_request = build_commit_request();
-
-  std::string req_string;
-  concord_request.SerializeToString(&req_string);
-
-  uint32_t reply_size = 0;
-  uint32_t replica_specific_info_size = 0;  // unused.
-  char reply_buffer[OUT_BUFFER_SIZE];
-  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-  concordUtils::SpanWrapper span;
-  int result = daml_commands_handler.execute(
-      1, 1, bftEngine::MsgFlag::EMPTY_FLAGS, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size,
-      replica_specific_info_size, span);
+  ASSERT_EQ(0, instance->execute(1, 1, bftEngine::MsgFlag::EMPTY_FLAGS,
+                                 request_string.size(), request_string.c_str(),
+                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                                 replica_specific_info_size_, span_wrapper_));
 
   ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer, reply_size);
-
-  ASSERT_EQ(result, 0);
+  concord_response.ParseFromArray(reply_buffer_, reply_size_);
   ASSERT_TRUE(concord_response.has_daml_response());
 }
 
-// TEST(daml_test, pre_execute_commit_no_new_block) {
-//   const BlockId last_block_id = 100;
-
-//   MockBlockAppender blocks_appender{};
-//   EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
-
-//   MockLocalKeyValueStorageReadOnly ro_storage{};
-
-//   SubBufferList subscriber_list{};
-
-//   const auto replicas = 4;
-//   const auto client_proxies = 4;
-//   const auto config =
-//       TestConfiguration(replicas, client_proxies, 0, 0, false, false);
-
-//   auto prometheus_registry = build_mock_prometheus_registry();
-//   auto daml_validator_client =
-//       build_mock_daml_validator_client(false, TimeUtil::GetCurrentTime());
-
-//   DamlKvbCommandsHandler daml_commands_handler{config,
-//                                                GetNodeConfig(config, 1),
-//                                                ro_storage,
-//                                                blocks_appender,
-//                                                subscriber_list,
-//                                                std::move(daml_validator_client),
-//                                                prometheus_registry};
-
-//   ConcordRequest concord_request = build_commit_request();
-
-//   std::string req_string;
-//   concord_request.SerializeToString(&req_string);
-
-//   uint32_t reply_size = 0;
-//   char reply_buffer[OUT_BUFFER_SIZE];
-//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-//   concordUtils::SpanWrapper span;
-//   int result = daml_commands_handler.execute(
-//       1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG, req_string.size(),
-//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-//   ConcordResponse concord_response;
-//   concord_response.ParseFromArray(reply_buffer, reply_size);
-
-//   ASSERT_EQ(result, 0);
-//   ASSERT_FALSE(concord_response.has_daml_response());
-//   ASSERT_TRUE(concord_response.has_pre_execution_result());
-//   ASSERT_FALSE(concord_response.pre_execution_result().has_max_record_time());
-//   ASSERT_EQ(
-//       concord_response.pre_execution_result().write_set().kv_writes_size(),
-//       2);
-//   ASSERT_EQ(concord_response.pre_execution_result()
-//                 .conflict_write_set()
-//                 .kv_writes_size(),
-//             0);
-//   ASSERT_EQ(concord_response.pre_execution_result()
-//                 .timeout_write_set()
-//                 .kv_writes_size(),
-//             0);
-//   ASSERT_EQ(concord_response.pre_execution_result()
-//                 .read_set()
-//                 .keys_with_fingerprints_size(),
-//             3);
-//   ASSERT_EQ(concord_response.pre_execution_result().request_correlation_id(),
-//             "correlation_id");
-// }
-
-// TEST(daml_test, valid_pre_execution_creates_block) {
-//   const BlockId last_block_id = 100;
-
-//   MockBlockAppender blocks_appender{};
-//   EXPECT_CALL(blocks_appender, addBlock(_, _))
-//       .Times(1)
-//       .WillOnce(
-//           DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
-//   MockLocalKeyValueStorageReadOnly ro_storage{};
-//   EXPECT_CALL(ro_storage,
-//   getLastBlock()).WillRepeatedly(Return(last_block_id));
-//   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-//       .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
-
-//   SubBufferList subscriber_list{};
-
-//   const auto replicas = 4;
-//   const auto client_proxies = 4;
-//   const auto config =
-//       TestConfiguration(replicas, client_proxies, 0, 0, false, false);
-
-//   auto prometheus_registry = build_mock_prometheus_registry();
-//   auto daml_validator_client = build_mock_daml_validator_client(true);
-
-//   DamlKvbCommandsHandler daml_commands_handler{config,
-//                                                GetNodeConfig(config, 1),
-//                                                ro_storage,
-//                                                blocks_appender,
-//                                                subscriber_list,
-//                                                std::move(daml_validator_client),
-//                                                prometheus_registry};
-
-//   ConcordResponse pre_execution_response = build_pre_execution_response(50);
-
-//   std::string req_string;
-//   pre_execution_response.SerializeToString(&req_string);
-
-//   uint32_t reply_size = 0;
-//   char reply_buffer[OUT_BUFFER_SIZE];
-//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-//   concordUtils::SpanWrapper span;
-//   int result = daml_commands_handler.execute(
-//       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-//   ConcordResponse concord_response;
-//   concord_response.ParseFromArray(reply_buffer, reply_size);
-
-//   ASSERT_EQ(result, 0);
-// }
-
-// TEST(daml_test, timed_out_pre_execution_fails_but_adds_timeout_block) {
-//   const BlockId last_block_id = 100;
-
-//   MockBlockAppender blocks_appender{};
-//   EXPECT_CALL(blocks_appender, addBlock(_, _))
-//       .Times(1)
-//       .WillOnce(
-//           DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
-
-//   MockLocalKeyValueStorageReadOnly ro_storage{};
-//   EXPECT_CALL(ro_storage,
-//   getLastBlock()).WillRepeatedly(Return(last_block_id));
-
-//   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
-//       .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
-
-//   SubBufferList subscriber_list{};
-
-//   const auto replicas = 4;
-//   const auto client_proxies = 4;
-//   const auto config =
-//       TestConfiguration(replicas, client_proxies, 0, 0, false, true);
-
-//   auto prometheus_registry = build_mock_prometheus_registry();
-//   auto daml_validator_client = build_mock_daml_validator_client(true);
-
-//   auto* time_contract =
-//       new MockTimeContract{ro_storage, config, TimeUtil::GetCurrentTime()};
-
-//   DamlKvbCommandsHandler daml_commands_handler{config,
-//                                                GetNodeConfig(config, 1),
-//                                                ro_storage,
-//                                                blocks_appender,
-//                                                subscriber_list,
-//                                                std::move(daml_validator_client),
-//                                                prometheus_registry,
-//                                                time_contract};
-
-//   Timestamp long_expired_max_record_time;
-//   TimeUtil::FromString("2019-01-01T10:00:20.021Z",
-//                        &long_expired_max_record_time);
-//   ConcordResponse pre_execution_response =
-//       build_pre_execution_response(50, long_expired_max_record_time);
-
-//   std::string req_string;
-//   pre_execution_response.SerializeToString(&req_string);
-
-//   uint32_t reply_size = 0;
-//   char reply_buffer[OUT_BUFFER_SIZE];
-//   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-
-//   concordUtils::SpanWrapper span;
-//   int result = daml_commands_handler.execute(
-//       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-//       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size, span);
-
-//   ConcordResponse concord_response;
-//   concord_response.ParseFromArray(reply_buffer, reply_size);
-
-//   ASSERT_EQ(result, 1);
-// }
-
-KeyValuePairWithThinReplicaIds CreateKeyValuePairWithThinReplicaIds(
-    const std::string& key, const std::string& value,
-    const std::vector<std::string>& replicas) {
-  ValueWithTrids value_with_thin_replica_ids;
-  value_with_thin_replica_ids.set_value(value);
-  for (auto replica_id : replicas) {
-    value_with_thin_replica_ids.add_trid(replica_id);
-  }
-  return {key, value_with_thin_replica_ids};
-}
-
-std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
-    bool expect_never, const std::optional<Timestamp>& max_record_time) {
-  std::unique_ptr<MockDamlValidatorClient> daml_validator_client =
-      std::make_unique<MockDamlValidatorClient>();
-
-  if (expect_never) {
-    EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
-        .Times(Exactly(0));
-  } else {
-    EXPECT_CALL(*daml_validator_client, Validate(_, _, _, _, _, _, _, _))
-        .Times(1)
-        .WillOnce(testing::Invoke(
-            [](const std::string& submission,
-               const google::protobuf::Timestamp& record_time,
-               const std::string& participant_id,
-               const std::string& correlation_id,
-               const opentracing::Span& parent_span,
-               DamlKvbReadFunc read_from_storage,
-               std::vector<std::string>* read_set,
-               std::vector<KeyValuePairWithThinReplicaIds>* write_set)
-                -> grpc::Status {
-              read_set->push_back("rk1");
-              read_set->push_back("rk2");
-              read_set->push_back("rk3");
-              std::vector<std::string> replicas;
-              replicas.push_back("replica1");
-              write_set->push_back(
-                  CreateKeyValuePairWithThinReplicaIds("wk1", "wv1", replicas));
-              write_set->push_back(
-                  CreateKeyValuePairWithThinReplicaIds("wk2", "wv2", replicas));
-              return grpc::Status();
-            }));
-  }
-
-  return daml_validator_client;
-}
-
-std::shared_ptr<MockPrometheusRegistry> build_mock_prometheus_registry() {
-  auto prometheus_registry = std::make_shared<MockPrometheusRegistry>();
-  auto default_counter_family =
-      prometheus::Family<prometheus::Counter>("a", "b", {});
-  auto default_counter = prometheus::Counter();
-
-  EXPECT_CALL(*prometheus_registry, createCounterFamily(_, _, _))
-      .WillRepeatedly(ReturnRef(default_counter_family));
-
-  EXPECT_CALL(*prometheus_registry, createCounter(_, _))
-      .WillRepeatedly(ReturnRef(default_counter));
-  return prometheus_registry;
-}
-
-ConcordRequest build_commit_request() {
-  ConcordRequest concord_request;
-  DamlRequest daml_request;
-
-  da_kvbc::Command daml_commit_command;
-  da_kvbc::CommitRequest commit_request;
-  commit_request.set_participant_id("participant_id");
-  commit_request.set_correlation_id("correlation_id");
-  daml_commit_command.mutable_commit()->MergeFrom(commit_request);
-  std::string cmd_string;
-  daml_commit_command.SerializeToString(&cmd_string);
-
-  daml_request.set_command(cmd_string);
-
-  concord_request.mutable_daml_request()->MergeFrom(daml_request);
-  return concord_request;
-}
-
-ConcordResponse build_pre_execution_response(
-    BlockId pre_execution_block_id,
-    const std::optional<Timestamp>& max_record_time,
-    const std::vector<std::string>& reads,
-    const std::map<std::string, std::string>& writes,
-    const std::map<std::string, std::string>& timeout_writes,
-    const std::map<std::string, std::string>& conflict_writes) {
-  ConcordResponse pre_execution_response;
+TEST_F(DamlKvbCommandsHandlerTest,
+       PostExecuteFailsWithInvalidPreExecutionOutput) {
   PreExecutionResult pre_execution_result;
+  pre_execution_result.set_output("invalid");
+  auto instance = CreateInstance();
 
-  pre_execution_result.set_request_correlation_id("correlation_id");
+  ConcordResponse actual_response;
+  ASSERT_FALSE(instance->PostExecute(pre_execution_result,
+                                     mock_time_contract_.get(), *kTestSpan,
+                                     actual_response));
+  EXPECT_FALSE(actual_response.has_daml_response());
+}
 
-  auto* read_set = pre_execution_result.mutable_read_set();
-  for (const auto& r_key : reads) {
-    auto* key_with_fingerprint = read_set->add_keys_with_fingerprints();
-    key_with_fingerprint->set_key(r_key);
-    key_with_fingerprint->set_fingerprint(r_key);
+TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  pre_execution_output.mutable_min_record_time()->CopyFrom(
+      mock_time_contract_->GetTime());
+  pre_execution_output.mutable_max_record_time()->CopyFrom(
+      mock_time_contract_->GetTime());
+  StringStringMap expected_key_value_pairs = {{"write-key1", "write-value1"},
+                                              {"write-key2", "write-value2"}};
+  WriteSet expected_write_set;
+  PopulateWriteSet(expected_key_value_pairs, &expected_write_set);
+  pre_execution_output.mutable_success_write_set()->CopyFrom(
+      expected_write_set);
+  PreExecutionResult pre_execution_result;
+  pre_execution_result.set_output(pre_execution_output.SerializeAsString());
+
+  SetOfKeyValuePairs actual_raw_write_set;
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+      .Times(1)
+      .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
+                      SetArgReferee<1>(kLastBlockId + 1),
+                      Return(Status::OK())));
+  auto instance = CreateInstance();
+  ConcordResponse actual_response;
+
+  ASSERT_TRUE(instance->PostExecute(pre_execution_result,
+                                    mock_time_contract_.get(), *kTestSpan,
+                                    actual_response));
+
+  EXPECT_EQ(2 + 2, actual_raw_write_set.size());
+  // Check contents of write-set.
+  for (const auto& entry : expected_key_value_pairs) {
+    auto expected_key = CreateDamlKvbKey(entry.first);
+    auto expected_value = CreateSliver(entry.second);
+    ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
+    EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
   }
+  EXPECT_TRUE(actual_response.has_daml_response());
+}
 
-  pre_execution_response.mutable_pre_execution_result()->MergeFrom(
-      pre_execution_result);
+TEST_F(DamlKvbCommandsHandlerTest,
+       PostExecuteCreatesNewBlockOutOfTimeBoundsCase) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  pre_execution_output.mutable_min_record_time()->CopyFrom(
+      TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis + 1));
+  StringStringMap expected_key_value_pairs = {{"reject-key1", "reject-value1"},
+                                              {"reject-key2", "reject-value2"}};
+  WriteSet expected_write_set;
+  PopulateWriteSet(expected_key_value_pairs, &expected_write_set);
+  pre_execution_output.mutable_out_of_time_bounds_write_set()->CopyFrom(
+      expected_write_set);
+  const std::string expected_participant_id("an ID");
+  pre_execution_output.set_submitting_participant_id(expected_participant_id);
+  PreExecutionResult pre_execution_result;
+  pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
-  return pre_execution_response;
+  SetOfKeyValuePairs actual_raw_write_set;
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+      .Times(1)
+      .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
+                      SetArgReferee<1>(kLastBlockId + 1),
+                      Return(Status::OK())));
+  auto instance = CreateInstance();
+  ConcordResponse actual_response;
+
+  ASSERT_TRUE(instance->PostExecute(pre_execution_result,
+                                    mock_time_contract_.get(), *kTestSpan,
+                                    actual_response));
+
+  EXPECT_EQ(2 + 2, actual_raw_write_set.size());
+  // Check contents of write-set.
+  for (const auto& entry : expected_key_value_pairs) {
+    auto expected_key = CreateDamlKvbKey(entry.first);
+    auto expected_value = CreateSliver(entry.second);
+    ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
+    EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
+  }
+  EXPECT_TRUE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PostExecutePopulatesResponse) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  PreExecutionResult pre_execution_result;
+  pre_execution_result.set_output(pre_execution_output.SerializeAsString());
+
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
+  auto instance = CreateInstance();
+  ConcordResponse actual_response;
+
+  ASSERT_TRUE(instance->PostExecute(pre_execution_result,
+                                    mock_time_contract_.get(), *kTestSpan,
+                                    actual_response));
+
+  ASSERT_TRUE(actual_response.has_daml_response());
+  da_kvbc::CommandReply actual_command_reply;
+  actual_command_reply.ParseFromString(
+      actual_response.daml_response().command_reply());
+  ASSERT_TRUE(actual_command_reply.has_commit());
+  EXPECT_EQ(da_kvbc::CommitResponse_CommitStatus_OK,
+            actual_command_reply.commit().status());
+  EXPECT_EQ(kLastBlockId + 1, actual_command_reply.commit().block_id());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
+  std::string request_string = BuildCommitRequest();
+  auto instance = CreateInstance(true);
+
+  ASSERT_EQ(0, instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+                                 request_string.size(), request_string.c_str(),
+                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                                 replica_specific_info_size_, span_wrapper_));
+
+  ConcordResponse actual_response;
+  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  ASSERT_TRUE(actual_response.has_pre_execution_result());
+  EXPECT_TRUE(MessageDifferencer::Equals(
+      expected_read_set_, actual_response.pre_execution_result().read_set()));
+  EXPECT_NE("", actual_response.pre_execution_result().output());
+  EXPECT_EQ(kCorrelationId,
+            actual_response.pre_execution_result().request_correlation_id());
+  EXPECT_FALSE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PreExecuteExecutionEngineReturnsFailure) {
+  std::string request_string = BuildCommitRequest();
+  auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
+  EXPECT_CALL(*daml_validator_client, PreExecute(_, _, _, _, _, _))
+      .Times(1)
+      .WillOnce(
+          Return(grpc::Status(grpc::StatusCode::INTERNAL, "Internal error")));
+  auto instance = CreateInstance(daml_validator_client);
+
+  ASSERT_EQ(1, instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+                                 request_string.size(), request_string.c_str(),
+                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                                 replica_specific_info_size_, span_wrapper_));
+
+  ConcordResponse actual_response;
+  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  ASSERT_TRUE(actual_response.has_pre_execution_result());
+  EXPECT_FALSE(actual_response.pre_execution_result().has_read_set());
+  EXPECT_EQ(kCorrelationId,
+            actual_response.pre_execution_result().request_correlation_id());
+  EXPECT_FALSE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, ReadKeysPopulatesFingerprint) {
+  const std::string expected_key = "a key";
+  const std::string expected_value = "a value";
+  const BlockId expected_block_id = 1234;
+  EXPECT_CALL(*mock_ro_storage_,
+              get(_, Eq(CreateDamlKvbKey(expected_key)), _, _))
+      .Times(1)
+      .WillOnce(DoAll(SetArgReferee<2>(CreateDamlKvbValue(
+                          expected_value, std::vector<string>{})),
+                      SetArgReferee<3>(expected_block_id),
+                      Return(Status::OK())));
+  RepeatedPtrField<string> read_keys;
+  *read_keys.Add() = expected_key;
+  auto instance = CreateInstance();
+
+  auto actual = instance->ReadKeys(read_keys);
+
+  ASSERT_EQ(1, actual.size());
+  ASSERT_THAT(actual, Contains(::testing::Key(expected_key)));
+  EXPECT_EQ(expected_value, actual[expected_key].first);
+  EXPECT_EQ(expected_block_id, ConcordCommandsHandler::DeserializeFingerprint(
+                                   actual[expected_key].second));
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, ReadKeysThrowsKeyNotAvailableInStorage) {
+  const std::string expected_key = "a key";
+  EXPECT_CALL(*mock_ro_storage_,
+              get(_, Eq(CreateDamlKvbKey(expected_key)), _, _))
+      .Times(1)
+      .WillOnce(Return(Status::NotFound("n/a")));
+  RepeatedPtrField<string> read_keys;
+  *read_keys.Add() = expected_key;
+  auto instance = CreateInstance();
+
+  EXPECT_ANY_THROW({ instance->ReadKeys(read_keys); });
+}
+
+TEST(CheckIfWithinTimeBoundsTest, LessThanMin) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  pre_execution_output.mutable_min_record_time()->CopyFrom(
+      TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis + 1));
+  EXPECT_FALSE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                      kCurrentTime));
+}
+
+TEST(CheckIfWithinTimeBoundsTest, MoreThanMax) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  pre_execution_output.mutable_max_record_time()->CopyFrom(
+      TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis - 1));
+  EXPECT_FALSE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                      kCurrentTime));
+}
+
+TEST(CheckIfWithinTimeBoundsTest, OnBoundary) {
+  {
+    da_kvbc::PreExecutionOutput pre_execution_output;
+    pre_execution_output.mutable_min_record_time()->CopyFrom(kCurrentTime);
+    EXPECT_TRUE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                       kCurrentTime));
+  }
+  {
+    da_kvbc::PreExecutionOutput pre_execution_output;
+    pre_execution_output.mutable_max_record_time()->CopyFrom(kCurrentTime);
+    EXPECT_TRUE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                       kCurrentTime));
+  }
+}
+
+TEST(CheckIfWithinTimeBoundsTest, WithinBounds) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  pre_execution_output.mutable_min_record_time()->CopyFrom(
+      TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis - 1));
+  pre_execution_output.mutable_max_record_time()->CopyFrom(
+      TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis + 1));
+  EXPECT_TRUE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                     kCurrentTime));
+}
+
+TEST(CheckIfWithinTimeBoundsTest, NoBoundSpecified) {
+  da_kvbc::PreExecutionOutput pre_execution_output;
+  EXPECT_TRUE(concord::daml::CheckIfWithinTimeBounds(pre_execution_output,
+                                                     kCurrentTime));
 }
 
 }  // anonymous namespace

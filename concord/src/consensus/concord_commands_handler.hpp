@@ -65,9 +65,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       1);
   std::shared_ptr<bftEngine::ControlStateManager> controlStateManager_;
 
-  std::string SerializeFingerprint(const kvbc::BlockId fingerprint) const;
-  kvbc::BlockId DeserializeFingerprint(const std::string &data) const;
-
  public:
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
@@ -135,6 +132,9 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
 
   virtual std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers()
       override;
+
+  static std::string SerializeFingerprint(const kvbc::BlockId fingerprint);
+  static kvbc::BlockId DeserializeFingerprint(const std::string &data);
 };
 
 }  // namespace consensus
