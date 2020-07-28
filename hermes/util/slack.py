@@ -153,10 +153,13 @@ def reportMonitoring(target=None, message="", ts=None, msgType=None,
       replicasPath
     )
   else:
-    if "@" in channelNameOrEmail:
-      return sendMessageToPerson(channelNameOrEmail, message, ts=ts)
-    else:
-      return postMessageOnChannel(channelNameOrEmail, message, ts=ts)
+    try:
+      if "@" in channelNameOrEmail:
+        return sendMessageToPerson(channelNameOrEmail, message, ts=ts)
+      else:
+        return postMessageOnChannel(channelNameOrEmail, message, ts=ts)
+    except Exception as e:
+      helper.hermesNonCriticalTrace(e)
 
 
 def reportMonitoringIfTarget(target=None, message="", ts=None, msgType=None,
