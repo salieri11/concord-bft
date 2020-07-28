@@ -1,0 +1,22 @@
+{
+    "note": {
+        "text": "This file contains a mapping of what orgs the long running test suite will use for various branches, and properties to set. This note entry is a sample.",
+        "org": "some_org_defined_in_csp",
+        "props": {
+            "feature_foo": "true",
+            "meaning_of_life": "42"
+        }
+    },
+    "master": {
+        "org": "system_test_master",
+        "props": {}
+    },
+    "future_branch_1": {
+        "org": "system_test_release_1",
+        "props": {}
+    },
+    "future_branch_2": {
+        "org": "system_test_release_2",
+        "props": {}
+    }
+}

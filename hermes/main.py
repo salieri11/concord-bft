@@ -31,7 +31,7 @@ from suites import (
   websocket_rpc_tests,
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
-from util import helper, hermes_logging, html, json_helper, numbers_strings
+from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
 
@@ -283,8 +283,23 @@ def main():
                                      help="Replicas config file obtained after a helen/persephone deployment. "
                                      'Sample format: { "daml_committer": [ { "ip": "10.73.232.56", ... }, ... ], "daml_participant": [ { "ip": "10.73.232.65", ... } ] }',
                                      default=None)
+   nonLocalDeployConfig.add_argument("--deploymentOrg",
+                                     help="Org to use for the deployment for long running tests. An org can specify details such as the Concord version to deploy and feature flags. "
+                                          "Note that this org must first be created in CSP, with vmbc_test_con_admin@csp.local having the consortium admin role. "
+                                          "Also, an API key with deployment permissions must be created and added to hermes/util/auth.py.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--deploymentService",
+                                     help="The blockchain service to use for long running tests. (Feel free to adopt for other tests.) Valid values: " \
+                                     "A url or the word 'staging'. Defaults to https://localhost/blockchains/local (same as reverseProxyApiBaseUrl)". \
+                                     format(auth.SERVICE_STAGING),
+                                     default="https://localhost/blockchains/local")
 
    args = parser.parse_args()
+
+   # Don't make people memorize the staging url.
+   if args.deploymentService == "staging":
+      args.deploymentService = auth.SERVICE_STAGING
+
    parent_results_dir = args.resultsDir
 
    # In future, if the location of main.py changes from hermes/,
@@ -591,4 +606,3 @@ def tallyResults(results):
 
 
 main()
-

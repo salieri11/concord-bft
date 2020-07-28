@@ -4,7 +4,7 @@
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
-# Invocation of standalone utility functions that often 
+# Invocation of standalone utility functions that often
 # require Jenkins-injected credentials in user_config
 
 import argparse
@@ -17,7 +17,7 @@ import tempfile
 import base64
 import time
 from fixtures.common_fixtures import BlockchainFixture
-from util import (hermes_logging, helper, slack, mailer, wavefront,
+from util import (auth, csp, hermes_logging, helper, slack, mailer, wavefront,
                  racetrack, jenkins, infra, blockchain_ops as ops)
 import util.hermes_logging
 from suites import case
@@ -117,6 +117,80 @@ def localTestFunction(args, options, secret):
   # ! temp
   return
 
+def patchOrg(args, options, secret):
+  '''
+  Utility method to patch an org, defaulting to using Helen
+  on staging to do so.
+
+  args[0]: Org name
+  args[1]: Action ("add" or "delete")
+  args[2]: Key
+  args[3]: Value
+  args[4]: Service, optional.  Defaults to util.auth.SERVICE_STAGING.
+
+  Sample invocation to add foo=bar to the org system_test_master:
+    python invoke.py patchOrg --param system_test_master add foo bar staging
+  '''
+  a = prepareArgs(args)
+  orgName = args[0]
+  action = args[1]
+  patchKey = args[2]
+  patchValue = args[3]
+
+  if len(args) > 4:
+    service = args[4]
+  else:
+    service = util.auth.SERVICE_STAGING
+
+  util.csp.patch_org(orgName, action, patchKey, patchValue, service)
+
+
+def deregisterBlockchain(args, options, secret):
+  '''
+  Utility method to deregister a blockchain.
+
+  args[0]: Name of an org which contains the user vmbc_test_con_admin.
+           This org must be part of the consortium whose blockchain is being deleted.
+           There must be a consortium admin in the org named "vmbc_test_con_admin".
+           This parameter is used to look up the API key in util/auth.py
+  args[1]: Blockchain ID
+  args[2]: Service, optional.  Defaults to util.auth.SERVICE_STAGING.
+
+  Sample invocation to dergister blockchain 0123456789:
+    python invoke.py deregisterBlockchain --param system_test_master 0123456789
+  '''
+  a = prepareArgs(args)
+  orgName = args[0]
+  bcId = args[1]
+
+  if len(args) > 2:
+    service = args[2]
+  else:
+    service = util.auth.SERVICE_STAGING
+
+  ops.deregister_blockchain(orgName, bcId, service)
+
+
+def getZones(args, options, secret):
+  '''
+  Utility method to get zones
+
+  args[0]: Name of an org which contains the user vmbc_test_con_admin.
+  args[1]: Service, optional.  Defaults to util.auth.SERVICE_STAGING.
+
+  Sample invocation to dergister blockchain 0123456789:
+    python invoke.py getZones --param system_test_master
+  '''
+  a = prepareArgs(args)
+  orgName = args[0]
+
+  if len(args) > 1:
+    service = args[1]
+  else:
+    service = util.auth.SERVICE_STAGING
+
+  util.helper.get_zones(orgName, service)
+
 
 # Registry of callable standalone functions
 DISPATCH = {
@@ -136,7 +210,7 @@ DISPATCH = {
   "publishRunsReleases": publishRunsReleases,
   "publishRunsMR": publishRunsMR,
 
-  # Jenkins-related functions 
+  # Jenkins-related functions
   "ownAllWorkspaces": ownAllJenkinsNodesWorkspace,
   "capturePipelineError": capturePipelineError,
 
@@ -147,8 +221,15 @@ DISPATCH = {
   # Long-running Test
   "lrtPrintDashboardLink": printLongRunningTestDashboardLink,
 
-  # Reset Blockchain
+  # Blockchain-related functions
   "resetBlockchain" : resetBlockchain,
+  "deregisterBlockchain": deregisterBlockchain,
+
+  # Patch an org
+  "patchOrg": patchOrg,
+
+  # Zones
+  "getZones": getZones,
 }
 
 

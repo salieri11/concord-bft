@@ -11,6 +11,7 @@ import json
 import shutil
 import logging
 import paramiko
+import pprint
 import warnings
 import cryptography
 import re
@@ -29,13 +30,17 @@ import statistics
 from . import numbers_strings
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
+   import hermes_util.auth as auth
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.json_helper as json_helper_util
    import hermes_util.hermes_logging as hermes_logging_util
 else:
+   import util.auth as auth
    import util.daml.daml_helper as daml_helper
    import util.json_helper as json_helper_util
    import util.hermes_logging as hermes_logging_util
+   import rest
+
 
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
@@ -1248,10 +1253,10 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
                                   cmd_remove_support_bundle_base_dir)
          if verbose: log.debug("Output: {}".format(ssh_output))
          if verbose: log.info("")
-      
+
       threads = []
       for concord_ip in replicas:
-          thr = threading.Thread(target = lambda concord_ip: collect_on_ip(concord_ip), 
+          thr = threading.Thread(target = lambda concord_ip: collect_on_ip(concord_ip),
                                   args = (concord_ip, ))
           threads.append(thr); thr.start()
       for thd in threads: thd.join()
@@ -1395,7 +1400,7 @@ def loadZoneConfig(args=None, filepath=None):
       log.warning("Cannot find zone config source in either cmdline args, filepath, or default file {}"
                   .format(CONFIG_ZONE_FILE))
       return None
-  
+
    if "zoneConfigOverrideFromSU" in CONFIG_CACHED:
      from . import jenkins
      zone_config_object = jenkins.overrideOnlyDefaultConfig(
@@ -1716,9 +1721,9 @@ def thisHermesIsFromJenkins():
 
 
 def hermesNonCriticalTrace(e, message=None):
-  NON_CRITICAL_HERMES_EXCEPTIONS.append({ 
+  NON_CRITICAL_HERMES_EXCEPTIONS.append({
     "error": e, "message": message, "argv":sys.argv,
-    "suite": CURRENT_SUITE_NAME, 
+    "suite": CURRENT_SUITE_NAME,
   })
 
 
@@ -1781,7 +1786,7 @@ def parseReplicasConfig(replicas):
   else: # fxBlockchain dict or replicas dict directly.
     if hasattr(replicas, "replicas"):
       replicasObject = replicas
-      return getattr(replicasObject, "replicas") 
+      return getattr(replicasObject, "replicas")
     else: replicasObject = replicas
   nodeTypes = [
     TYPE_ETHEREUM, TYPE_DAML, TYPE_DAML_COMMITTER,
@@ -2097,3 +2102,36 @@ def run_daml_sanity(ledger_api_hosts, results_dir, run_all_tests=True, verbose=T
 
    log.info("  DAML tests passed")
    return True
+
+
+def get_zones(org_name, service):
+   '''
+   Utility method to get zones.
+   '''
+
+   token_descriptor = {
+     "org": org_name,
+     "user": "vmbc_test_con_admin",
+     "role": auth.ROLE_CON_ADMIN
+   }
+
+   log.info("1")
+   req = rest.request.Request("get_zones",
+                              "Get zones",
+                              service,
+                              None,
+                              tokenDescriptor=token_descriptor,
+                              service=service)
+   log.info("2")
+   resp = req.getZones()
+   zone_ids = []
+
+   for zone in resp:
+      zone_ids.append(zone["id"])
+
+   log.info("Zones:")
+   for zone_id in zone_ids:
+      resp = req.getZone(zone_id)
+      log.info("  {}:".format(resp["name"]))
+      for k in resp:
+         log.info("    {}: {}".format(k, resp[k]))

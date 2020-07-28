@@ -9,7 +9,7 @@ import pprint
 import subprocess
 import threading
 
-from util.auth import getAccessToken, tokens
+from util.auth import getAccessToken, tokens, SERVICE_DEFAULT
 import util.json_helper
 import util.product
 import util.generate_zones_migration as migration
@@ -35,7 +35,10 @@ class Request():
    _data = None
    _accessToken = None
 
-   def __init__(self, logDir, testName, baseUrl, userConfig, tokenDescriptor=None, forceNewToken=False):
+   def __init__(self, logDir, testName, baseUrl, userConfig,
+                tokenDescriptor=None,
+                forceNewToken=False,
+                service=SERVICE_DEFAULT):
       self.logDir = logDir
       os.makedirs(self.logDir, exist_ok=True)
 
@@ -44,14 +47,17 @@ class Request():
       self._subPath = ""
       self._params = ""
       self._userConfig = userConfig
-      self._accessToken = getAccessToken(tokenDescriptor, forceNewToken)
+      self._tokenDescriptor = tokenDescriptor
+      self._accessToken = getAccessToken(tokenDescriptor, forceNewToken, service=service)
 
 
    def __str__(self):
       return "testName: {}\n" \
          "_baseUrl: {}\n" \
          "_subPath: {}\n" \
-         "_params: {}".format(self.testName, self._baseUrl, self._subPath, self._params)
+         "_params: {}\n" \
+         "_tokenDescriptor: {}\n" \
+         "_service: {}".format(self.testName, self._baseUrl, self._subPath, self._params, self._tokenDescriptor, self._service)
 
 
    def newWithToken(self, tokenDescriptor, forceNewToken=False):
@@ -80,7 +86,6 @@ class Request():
       self._setUpOutput(self._endpointName)
       Request._idCounter += 1
       lock.release()
-      user = self._userConfig.get('product').get('db_users')[0]
       url = '{0}{1}'.format(self._baseUrl, self._subPath)
 
       if self._params:
@@ -559,6 +564,12 @@ class Request():
    def patchOrg(self, orgId, addProperties = None, delProperties = None):
       '''
       Given an organization ID, add or delete properties.
+      Format of addProperties and delProperties:
+      {
+         "additionalProp1": "string",
+         "additionalProp2": "string",
+         "additionalProp3": "string"
+      }
       '''
       self._subPath = "/api/organizations/{}".format(orgId)
       self._params = ""
@@ -686,6 +697,17 @@ class Request():
       return ids_added
 
 
+   def deregisterBlockchain(self, blockchainId):
+      '''
+      Deregister the passed in blockchain.
+      '''
+      self._subPath = "/api/blockchains/deregister/{}".format(blockchainId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "deregister_blockchains"
+      return self._send(verb="POST")
+      
+      
    '''
    =================================================================
    =================================================================
