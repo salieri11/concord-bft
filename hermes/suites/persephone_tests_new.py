@@ -354,14 +354,21 @@ def validate_stream_deployment_session_events(execution_events, num_nodes):
                          "COMPLETED": 1}
     for event in execution_events:
         event_type = event["type"]
+
+        # RESOURCE events
         if event_type == "RESOURCE":
             if event["resource"]["type"] == "COMPUTE_RESOURCE":
                 events_to_monitor["COMPUTE_RESOURCE"] -= 1
             else:
                 continue
 
-        if event_type in events_to_monitor:
-            events_to_monitor[event_type] -= 1
+        # ACKNOWLEDGED and COMPLETED events
+        elif event_type in events_to_monitor:
+            if event_type == "COMPLETED" and event["status"] != "SUCCESS":
+                log.error("Expected status SUCCESS in event COMPLETED, but received {}".format(event["status"].upper()))
+                continue
+            else:
+                events_to_monitor[event_type] -= 1
 
     validation_status = True
     for event_type, count in events_to_monitor.items():
@@ -700,6 +707,7 @@ def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deploy
 
     retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
     return status
+
 
 def print_deployment_summary(ps_helper):
     log.info("Tests are done.")
