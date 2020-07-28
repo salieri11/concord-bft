@@ -53,7 +53,7 @@ uint32_t concurrencyLevel = 16;
 const float kWarmUpPerc = 0.02;
 const string kPerfServiceHost = "127.0.0.1:50051";
 const string poolConfigPath = "external_client_tls_20.config";
-const log4cplus::LogLevel kLogLevel = log4cplus::OFF_LOG_LEVEL;
+const log4cplus::LogLevel kLogLevel = log4cplus::ERROR_LOG_LEVEL;
 
 bool done = false;
 chrono::steady_clock::time_point globalStart;
@@ -157,9 +157,12 @@ void req_callback(const uint64_t& sn, const string& cid, uint32_t replySize) {
   assert(pr.has_response_content());
   PerfWriteResponse pwr;
   pwr.ParseFromString(pr.response_content());
-  LOG_DEBUG(logger, "response msg: " << pwr.message()
-                                     << ", blockID: " << pwr.new_block_id()
-                                     << ", " << pr.response_content());
+  if (pwr.message() != "OK")
+    LOG_ERROR(logger, "request failed, response msg: " << pwr.message());
+  else
+    LOG_DEBUG(logger, "response msg: " << pwr.message() << ", new blockID: "
+                                       << pwr.new_block_id() << ", "
+                                       << pr.response_content());
 }
 
 void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
@@ -408,7 +411,7 @@ int main(int argc, char** argv) {
   durations.reserve(numOfBlocks);
 
   // wait for the pool to connect
-  this_thread::sleep_for(chrono::seconds(20));
+  this_thread::sleep_for(chrono::seconds(5));
 
   globalStart = chrono::steady_clock::now();
   // do_preloaded_test(logger, pool);
