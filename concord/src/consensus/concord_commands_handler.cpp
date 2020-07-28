@@ -19,6 +19,7 @@ using com::vmware::concord::TimeResponse;
 using com::vmware::concord::TimeSample;
 using concord::kvbc::BlockId;
 using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::Value;
 using concord::thin_replica::SubUpdate;
 using concord::thin_replica::SubUpdateBuffer;
 using concordUtils::Sliver;
@@ -342,6 +343,25 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::PreExecutionResult &pre_execution_result)
     const {
+  const auto &read_set = pre_execution_result.read_set();
+
+  for (const auto &kf : read_set.keys_with_fingerprints()) {
+    const Sliver key{std::string{kf.key()}};
+    const BlockId read_block_height = DeserializeFingerprint(kf.fingerprint());
+    BlockId current_block_height;
+    Value out;
+    if (!storage_.get(read_block_height, key, out, current_block_height)
+             .isOK()) {
+      std::stringstream msg;
+      msg << "Key " << key << " is not available in storage.";
+      throw std::runtime_error(msg.str());
+    }
+
+    if (current_block_height != read_block_height) {
+      return true;
+    }
+  }
+
   return false;
 }
 
