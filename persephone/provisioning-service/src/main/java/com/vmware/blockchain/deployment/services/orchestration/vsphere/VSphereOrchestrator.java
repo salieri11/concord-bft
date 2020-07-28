@@ -94,7 +94,6 @@ public class VSphereOrchestrator implements Orchestrator {
                     CompletableFuture
                             .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getCloudInitData()
                                                                                         .getModel().getTemplate()));
-            var libraryItem = getLibraryItem.get();
 
             var vmPassword = request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())
                              ? PasswordGeneratorUtil.generateCommonTextPassword() : "c0nc0rd";
@@ -116,6 +115,8 @@ public class VSphereOrchestrator implements Orchestrator {
                     datacenterInfo.getOutboundProxy(),
                     vmPassword
             );
+
+            var libraryItem = getLibraryItem.get();
             var instance = vSphereHttpClient
                     .createVirtualMachine(request.getVmId(),
                                           libraryItem, orchestratorSiteInformation.getDataStore(),
@@ -130,6 +131,8 @@ public class VSphereOrchestrator implements Orchestrator {
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .password(vmPassword)
                     .nodeId(request.getNodeId()).build();
+        } catch (PersephoneException e) {
+            throw e;
         } catch (Exception e) {
             throw new PersephoneException(e, "Error creating/starting the VM");
         }

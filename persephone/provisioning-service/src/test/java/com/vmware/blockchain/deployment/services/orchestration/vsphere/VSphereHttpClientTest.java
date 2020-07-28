@@ -321,6 +321,90 @@ class VSphereHttpClientTest {
     }
 
     @Test
+    void createVirtualMachineWithRetry() {
+        String goodVmCreateResponseString = "{\n"
+                                            + "    \"value\": \n"
+                                            + "        {\n"
+                                            + "            \"succeeded\": true,\n"
+                                            + "            \"resource_id\": {\n"
+                                            + "                 \"type\": \"Fire\",\n"
+                                            + "                 \"id\": \"Steins:Gate\""
+                                            + "            }"
+                                            + "        }"
+                                            + "}";
+
+        String emtpyVmCreateResponseString = "{\n"
+                                            + "    \"value\": \n"
+                                            + "        {\n"
+                                            + "            \"succeeded\": true\n"
+                                            + "        }"
+                                            + "}";
+
+        String libraryItem = "libraryItem";
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_OVF_LIBRARY_ITEM.getPath().replace("{library_item}",
+                                                                                                       libraryItem)))
+                               .withQueryParam("~action", WireMock.equalTo("deploy"))
+                               .willReturn(aResponse()
+                                                   .withHeader("Content-Type", "application/json")
+                                                   .withBody(emtpyVmCreateResponseString).withStatus(200)));
+
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_OVF_LIBRARY_ITEM.getPath().replace("{library_item}",
+                                                                                                       libraryItem)))
+                               .withQueryParam("~action", WireMock.equalTo("deploy"))
+                               .willReturn(aResponse()
+                                                   .withHeader("Content-Type", "application/json")
+                                                   .withBody(goodVmCreateResponseString).withStatus(200)));
+
+        String name = "Inverted Bridge";
+        String datastore = "dataStore";
+        String resourcePool = "resourcePool";
+        String folder = "folder";
+        Map.Entry<String, String> networks = new AbstractMap.SimpleEntry<>("frip", "Side");
+
+        CloudInitConfiguration cloudInit = mock(CloudInitConfiguration.class);
+        when(cloudInit.userData()).thenReturn("Gibberish for testing purposes");
+
+        String createVirtualMachine = vSphereHttpClient.createVirtualMachine(name, libraryItem, datastore,
+                                                                             resourcePool, folder, networks, cloudInit);
+
+        Assertions.assertEquals(createVirtualMachine, "Steins:Gate");
+    }
+
+    @Test
+    void createVirtualMachineWithRetryFailure() {
+
+        String emtpyVmCreateResponseString = "{\n"
+                                             + "    \"value\": \n"
+                                             + "        {\n"
+                                             + "            \"succeeded\": true\n"
+                                             + "        }"
+                                             + "}";
+
+        String libraryItem = "libraryItem";
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_OVF_LIBRARY_ITEM.getPath().replace("{library_item}",
+                                                                                                       libraryItem)))
+                               .withQueryParam("~action", WireMock.equalTo("deploy"))
+                               .willReturn(aResponse()
+                                                   .withHeader("Content-Type", "application/json")
+                                                   .withBody(emtpyVmCreateResponseString).withStatus(200)));
+
+        String name = "Inverted Bridge";
+        String datastore = "dataStore";
+        String resourcePool = "resourcePool";
+        String folder = "folder";
+        Map.Entry<String, String> networks = new AbstractMap.SimpleEntry<>("frip", "Side");
+
+        CloudInitConfiguration cloudInit = mock(CloudInitConfiguration.class);
+        when(cloudInit.userData()).thenReturn("Gibberish for testing purposes");
+
+        Assertions.assertThrows(
+                PersephoneException.class,
+            () -> vSphereHttpClient
+                        .createVirtualMachine(name, libraryItem, datastore, resourcePool, folder, networks, cloudInit)
+        );
+    }
+
+    @Test
     void updateVirtualMachineMemory() {
         String name = "skyv2008";
 

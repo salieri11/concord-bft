@@ -46,7 +46,7 @@ public class ConfigHelper {
      */
     public ConfigHelper(BootstrapComponent bootstrapComponent) {
         this.configurationServiceClient = (new ConfigServiceInvoker(bootstrapComponent.configService))
-                .generateConfigServiceFutureStub();
+                .generateConfigServiceFutureStub().withWaitForReady();
     }
 
 

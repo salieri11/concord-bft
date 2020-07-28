@@ -279,13 +279,21 @@ public class VSphereHttpClient {
             log.warn(e.toString());
         }
 
-        ResponseEntity<LibraryItemDeploy.LibraryItemDeployResponse> responseEntity
-                = restTemplate
-                .exchange(uri, HttpMethod.POST, requests, LibraryItemDeploy.LibraryItemDeployResponse.class);
+        ResponseEntity<LibraryItemDeploy.LibraryItemDeployResponse> responseEntity = null;
+        int retryCount = 2;
+        do {
+            responseEntity
+                    = restTemplate
+                    .exchange(uri, HttpMethod.POST, requests, LibraryItemDeploy.LibraryItemDeployResponse.class);
 
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return responseEntity.getBody().getValue().getResourceId().getId();
-        }
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                if (responseEntity.getBody().getValue() != null
+                    && responseEntity.getBody().getValue().getResourceId() != null) {
+                    return responseEntity.getBody().getValue().getResourceId().getId();
+                }
+                log.warn("Success response without VM creation {}", responseEntity.getBody());
+            }
+        } while (responseEntity.getStatusCode() == HttpStatus.OK && retryCount-- > 0);
 
         throw new PersephoneException("Error creating VM", name);
     }
