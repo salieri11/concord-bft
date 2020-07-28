@@ -17,10 +17,10 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.assertj.core.util.Strings;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
