@@ -27,9 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
 /**
- * Utility class for generating the input for Configuration Yaml file.
+ * Utility class for generating concord configurations.
  */
-
 public class ConcordConfigUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
@@ -119,7 +118,8 @@ public class ConcordConfigUtil {
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
                                     BlockchainType blockchainType, int bftClients) {
-        if (!ConfigUtilHelpers.validateSbft(hostIps)) {
+
+        if (!ConfigUtilHelpers.validateSbft(hostIps.size())) {
             return false;
         }
         int clusterSize = hostIps.size();
@@ -134,7 +134,8 @@ public class ConcordConfigUtil {
     @SuppressWarnings({"unchecked"})
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
                                     BlockchainType blockchainType, int bftClients) {
-        if (!ConfigUtilHelpers.validateSbft(hostIp, fVal, cVal)) {
+
+        if (!ConfigUtilHelpers.validateSbft(hostIp.size(), fVal, cVal)) {
             return false;
         }
 

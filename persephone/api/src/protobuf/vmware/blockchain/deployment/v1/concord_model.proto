@@ -169,6 +169,7 @@ message ContainerSpecification {
  */
 message ConcordModelSpecification {
 
+    /* TODO: dupe alert::BlockchainType/NodeType could be removed in favor of core.proto */
     enum BlockchainType {
         ETHEREUM = 0;
         DAML = 1;

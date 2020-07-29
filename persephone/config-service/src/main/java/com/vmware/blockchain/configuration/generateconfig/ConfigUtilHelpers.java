@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -18,9 +17,10 @@ public class ConfigUtilHelpers {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigUtilHelpers.class);
 
-    public static final int DEFAULT_PORT = 3501;
-    public static final int CLIENT_PROXY_PER_COMMITTER = 4;
-    public static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
+    static final int DEFAULT_PORT = 3501;
+    static final int CLIENT_PROXY_PER_COMMITTER = 4;
+    static final int CLIENT_PROXY_PER_COMMITTER_SPLIT = 1;
+    static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
 
     /**
      * Enum holding config properties.
@@ -44,7 +44,8 @@ public class ConfigUtilHelpers {
         CLIENT_HOST("client_host"),
         COMMITTER_PORT("replica_port"),
         CLIENT_PORT("client_port"),
-        NUM_EXTERNAL_CLIENTS("num_of_external_clients");
+        NUM_EXTERNAL_CLIENTS("num_of_external_clients"),
+        CLIENT_PROXY_PER_REPLICA("client_proxies_per_replica");
 
         String name;
 
@@ -76,16 +77,16 @@ public class ConfigUtilHelpers {
     /**
      * validate fval and cval.
      */
-    static boolean validateSbft(List<String> hostIp, int fVal, int cVal) {
-        if (hostIp.isEmpty()) {
+    static boolean validateSbft(int clusterSize, int fVal, int cVal) {
+        if (clusterSize == 0) {
             log.error("List of host IP provided is NULL!");
             return false;
         }
-        if (hostIp.size() < 4) {
+        if (clusterSize < 4) {
             log.error("Minimum cluster size is 4!");
             return false;
         }
-        if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
+        if ((3 * fVal + 2 * cVal + 1) > clusterSize) {
             log.error("fVal / cVal are invalid for the list of host IP provided");
             return false;
         }
@@ -95,12 +96,12 @@ public class ConfigUtilHelpers {
     /**
      * validate host ips.
      */
-    static boolean validateSbft(List<String> hostIps) {
-        if (hostIps == null) {
+    static boolean validateSbft(int clusterSize) {
+        if (clusterSize == 0) {
             log.error("List of host IP provided is NULL!");
             return false;
         }
-        if (hostIps.size() < 4) {
+        if (clusterSize < 4) {
             log.error("Minimum cluster size is 4!");
             return false;
         }
