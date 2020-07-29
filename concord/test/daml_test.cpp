@@ -84,6 +84,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
         *mock_ro_storage_, configuration_, kCurrentTime);
     reply_size_ = 0;
     memset(reply_buffer_, 0, OUT_BUFFER_SIZE);
+    time_update_key_ = CreateDamlKvbKey(DamlKvbCommandsHandler::kTimeUpdateKey);
   }
 
   void TearDown() override {
@@ -254,6 +255,19 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     return concord_response;
   }
 
+  Sliver ExpectedTimeUpdateValue(const std::list<string>& thin_replica_ids) {
+    ValueWithTrids expected_time_update_value;
+    for (const auto& id : thin_replica_ids) {
+      expected_time_update_value.add_trid(id);
+    }
+    da_kvbc::TimeUpdateLogEntry time_update_log_entry;
+    time_update_log_entry.mutable_record_time()->CopyFrom(
+        mock_time_contract_->GetTime());
+    expected_time_update_value.set_value(
+        time_update_log_entry.SerializeAsString());
+    return CreateSliver(expected_time_update_value.SerializeAsString());
+  }
+
   static KeyValuePairWithThinReplicaIds CreateKeyValuePairWithThinReplicaIds(
       const std::string& key, const std::string& value,
       const std::vector<std::string>& replicas) {
@@ -279,6 +293,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
   std::vector<std::string> expected_read_keys_;
   com::vmware::concord::ReadSet expected_read_set_;
+  Sliver time_update_key_;
 
   uint32_t reply_size_;
   char reply_buffer_[OUT_BUFFER_SIZE];
@@ -394,6 +409,11 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
   PopulateWriteSet(expected_key_value_pairs, &expected_write_set);
   pre_execution_output.mutable_success_write_set()->CopyFrom(
       expected_write_set);
+  std::list<std::string> expected_thin_replica_ids = {"id1", "id2"};
+  for (const auto& id : expected_thin_replica_ids) {
+    *pre_execution_output.mutable_informee_success_thin_replica_ids()->Add() =
+        id;
+  }
   PreExecutionResult pre_execution_result;
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
@@ -410,7 +430,9 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
                                     mock_time_contract_.get(), *kTestSpan,
                                     actual_response));
 
-  EXPECT_EQ(2 + 2, actual_raw_write_set.size());
+  // 2 key-value pairs added by ConcordCommandsHandler + the time update.
+  EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
+            actual_raw_write_set.size());
   // Check contents of write-set.
   for (const auto& entry : expected_key_value_pairs) {
     auto expected_key = CreateDamlKvbKey(entry.first);
@@ -418,6 +440,10 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
     ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
     EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
   }
+  ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(time_update_key_)));
+  auto expected_time_update_value =
+      ExpectedTimeUpdateValue(expected_thin_replica_ids);
+  EXPECT_EQ(expected_time_update_value, actual_raw_write_set[time_update_key_]);
   EXPECT_TRUE(actual_response.has_daml_response());
 }
 
@@ -450,7 +476,9 @@ TEST_F(DamlKvbCommandsHandlerTest,
                                     mock_time_contract_.get(), *kTestSpan,
                                     actual_response));
 
-  EXPECT_EQ(2 + 2, actual_raw_write_set.size());
+  // 2 key-value pairs added by ConcordCommandsHandler + the time update.
+  EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
+            actual_raw_write_set.size());
   // Check contents of write-set.
   for (const auto& entry : expected_key_value_pairs) {
     auto expected_key = CreateDamlKvbKey(entry.first);
@@ -458,6 +486,10 @@ TEST_F(DamlKvbCommandsHandlerTest,
     ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
     EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
   }
+  ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(time_update_key_)));
+  auto expected_time_update_value =
+      ExpectedTimeUpdateValue({expected_participant_id});
+  EXPECT_EQ(expected_time_update_value, actual_raw_write_set[time_update_key_]);
   EXPECT_TRUE(actual_response.has_daml_response());
 }
 

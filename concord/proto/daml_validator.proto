@@ -7,6 +7,7 @@ syntax = "proto3";
 package com.digitalasset.kvbc;
 option java_package = "com.digitalasset.kvbc";
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "concord.proto";
 
@@ -229,4 +230,14 @@ message PreExecutionOutput {
   // of the DAML Execution Engine
   // so that it makes it to post-execution.
   string submitting_participant_id = 6;
+}
+
+// Contents of a time update entry, as expected by participant state reader in Ledger API Server
+// for pre-executed submissions.
+// Must mirror relevant field numbers from com.daml.ledger.participant.state.kvutils.DamlLogEntry.
+message TimeUpdateLogEntry {
+  google.protobuf.Timestamp record_time = 1;
+  oneof payload {
+    google.protobuf.Empty time_update_entry = 101;
+  }
 }
