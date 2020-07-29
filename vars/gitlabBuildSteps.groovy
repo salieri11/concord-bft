@@ -866,7 +866,7 @@ def call(){
                     } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
                       selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
-                    } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+                    } else if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(ext_long_tests_job_name)) {
                       // TODO: Move to a Hermes file.  The pipeline file should not have test implementation details.
                       if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       deploymentOrg = ""
@@ -877,7 +877,7 @@ def call(){
                         testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] =
                             " --blockchainType daml" +
                             " --blockchainLocation onprem" +
-                            " --numReplicas 7 --numParticipants 3 " +
+                            " --numReplicas 7 --numParticipants 1 " +
                             " --deploymentOrg " + deploymentOrg +
                             " --deploymentService staging"
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
@@ -2192,7 +2192,7 @@ EOF
       sed -i -e 's/'"<DOCKERHUB_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/long_running_tests.json
     '''
 
-    if (env.JOB_NAME.contains(long_tests_job_name)) {
+    if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(ext_long_tests_job_name)) {
       sh '''
           sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/zone_config.json
       '''

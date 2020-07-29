@@ -315,7 +315,7 @@ def set_props_file_value(filename, key, value):
             f_out.write(line)
 
          if not found:
-            f_out.write("{}={}\n".format(key, value))
+            f_out.write("\n{}={}\n".format(key, value))
 
       os.replace(f_out.name, filename)
 

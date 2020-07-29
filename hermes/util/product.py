@@ -194,6 +194,10 @@ class Product():
          util.helper.set_props_file_value(propsFile,
                                           "concord.model.specification.dockerImageBuild",
                                           concordTag)
+         # concord.model.specification.dockerImageBuild is not working. Bug BC-3761
+         util.helper.set_props_file_value(persephoneConfigFile,
+                                          "docker.image.base.version",
+                                          concordTag)
 
    def _launchViaDocker(self):
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
