@@ -27,7 +27,7 @@ COPY ./castor/src ./castor/src
 RUN mvn -f castor/pom.xml package
 
 ## Runtime image.
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.0
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.1
 LABEL description="Blockchain On-prem Shell (Castor)"
 
 COPY ./helen/wait-for-it.sh ./castor/wait-for-it.sh
