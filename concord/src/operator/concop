@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import argparse
+import requests
+import json
+import sys
+from pprint import pprint
+
+base_url = "http://localhost:41444/concord"
+
+
+def release_download(args):
+    url = base_url + "/releases"
+    res = requests.put(url, json={'version': args.version})
+    print(res)
+
+
+def release_install(args):
+    url = base_url + "/releases/install"
+    res = requests.put(url, json={'version': args.version})
+    print(res)
+
+
+def release_status(args):
+    url = base_url + "/releases"
+    res = requests.get(url, timeout=args.timeout)
+    pprint(json.loads(res.text))
+
+
+def args_parser():
+    parser = argparse.ArgumentParser(description="Concord Operator CLI")
+    subparsers = parser.add_subparsers()
+    release = subparsers.add_parser("release",
+                                    help="Manage releases and upgrades")
+
+    release_subparsers = release.add_subparsers()
+    download = release_subparsers.add_parser(
+        "download", help="Download images for a release on all replicas")
+    download.add_argument("version",
+                          type=float,
+                          help="The release version to download")
+    download.set_defaults(func=release_download)
+
+    status = release_subparsers.add_parser(
+        "status", help="Get status of releases at all replicas")
+    status.add_argument("--timeout",
+                        type=int,
+                        help="Optional timeout in seconds",
+                        default=5)
+    status.set_defaults(func=release_status)
+
+    install = release_subparsers.add_parser(
+        "install", help="Install the downloaded release on all replicas")
+    install.add_argument("version",
+                         type=float,
+                         help="The release version to install")
+    install.set_defaults(func=release_install)
+    return parser
+
+
+def main(params):
+    parser = args_parser()
+    args = parser.parse_args(params)
+    if 'func' in args:
+        args.func(args)
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
