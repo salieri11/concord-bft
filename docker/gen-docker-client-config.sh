@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Usage: ./gen-docker-concord-config.sh config-public/dockerClientConfigInput.yaml
+# Usage: ./gen-docker-client-config.sh config-public/dockerClientConfigInput.yaml
 
 DOCKER_DIR=$(
   python -c 'import os; print(os.path.abspath(os.getcwd()))')

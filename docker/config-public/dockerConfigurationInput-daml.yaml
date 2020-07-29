@@ -1,6 +1,7 @@
 daml_enable: true
 eth_enable: false
 client_proxies_per_replica: 4
+num_of_external_clients: 20
 c_val: 0
 f_val: 1
 concord-bft_communication_buffer_length: 16777216

@@ -43,6 +43,7 @@ suiteList = [
    "ContractCompilerTests",
    "EthCoreVmTests",
    "DamlTests",
+   "ClientPoolDamlTests",
    "EvilTimeTests",
    "EthJsonRpcTests",
    "EthRegressionTests",
@@ -500,6 +501,8 @@ def createTestSuite(args, suiteName, product):
    elif (suiteName == "DeployDamlTests"):
       return ui_e2e_deploy_daml.DeployDamlTests(args, product)
    elif (suiteName == "DamlTests"):
+      return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
+   elif (suiteName == "ClientPoolDamlTests"):
       return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
    elif (suiteName == "HlfTests"):
       return hlf_tests.HlfTests(args, product)
