@@ -151,6 +151,11 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
+  "ClientPoolDamlTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-daml-pool.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
+  ],
   "SkvbcPreexecutionTests": [
     "runAlone": true,
     "enabled": true,
