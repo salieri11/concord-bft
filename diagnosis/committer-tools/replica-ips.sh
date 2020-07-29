@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./my-ipv4.sh
+source ./host-ip.sh
 
 function replica_ips {
   if [ -z ${CONCORD_CONFIG} ]; then
@@ -17,7 +17,7 @@ function replica_ips {
   IPS=$(yq r ${CONFIG} 'node[*].replica[0].replica_host')
   for ip in ${IPS}; do
     if [ "${ip}" = "127.0.0.1" ]; then
-      my_ipv4
+      host_ip
     else
       echo ${ip}
     fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./my-ipv4.sh
+source ./host-ip.sh
 
 function replica_ip_to_id {
   if [ -z $1 ]; then
@@ -20,7 +20,7 @@ function replica_ip_to_id {
   fi
 
   IP=$1
-  if [ "${IP}" = "$(my_ipv4)" ]; then
+  if [ "${IP}" = "$(host_ip)" ]; then
     IP="127.0.0.1"
   fi
 
