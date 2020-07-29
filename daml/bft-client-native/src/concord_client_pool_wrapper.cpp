@@ -11,6 +11,7 @@
 // terms and conditions of the sub-component's license, as noted in the LICENSE
 // file.
 
+#include <log4cplus/configurator.h>
 #include <memory>
 #include <unordered_map>
 
@@ -20,10 +21,26 @@ using bft::client::RequestConfig;
 using bft::client::WriteConfig;
 using concord::concord_client_pool::ConcordClientPool;
 using concord::concord_client_pool::PoolStatus;
+using log4cplus::Logger;
 
 static uint16_t current_id = 0;
 static std::unordered_map<uint16_t, std::unique_ptr<ConcordClientPool>>
     client_handles;
+
+// Replicate the HACK in thin-replica-client/lib/thin_replica_client_facade.cpp
+// Log initialization should happen in the "main" function
+// Re-read the log4cplus configuration at runtime. Given that we integrate with
+// JAVA and a different log framework, let's define a global variable here to
+// make sure this thread will stay alive as long as the process is alive. If we
+// integrate this library into C++ code then the application should do this.
+const static int kLogConfigRefreshIntervalInMs = 60 * 1000;
+
+const static char* GetLog4CplusConfigLocation() {
+  auto log_location = std::getenv("LOG4CPLUS_CONFIGURATION");
+  return log_location ? log_location : "LOG4CPLUS_CONFIGURATION_NOT_SET";
+}
+const static log4cplus::ConfigureAndWatchThread kLogConfigThread(
+    GetLog4CplusConfigLocation(), kLogConfigRefreshIntervalInMs);
 
 uint16_t BFTClient_create(const char *config_file_path) {
   uint16_t new_client_handle = current_id++;
