@@ -21,7 +21,6 @@ using bft::client::RequestConfig;
 using bft::client::WriteConfig;
 using concord::concord_client_pool::ConcordClientPool;
 using concord::concord_client_pool::PoolStatus;
-using log4cplus::Logger;
 
 static uint16_t current_id = 0;
 static std::unordered_map<uint16_t, std::unique_ptr<ConcordClientPool>>
