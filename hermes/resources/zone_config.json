@@ -6,9 +6,9 @@
       "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
       "sddcId": "a890ac97-941d-4479-a90c-98061c1e3639",
       "publicIP": "54.69.50.59",
-      "username": "cloudadmin@vmc.local",
-      "password": "uLKi4QKjYr!*yS6",
-      "vmcToken": "c8OSO03FQDjNpkqzUsTYd94pJgpjG5z7NOm3GZMsQMWxGS26KR6aZbPM5QQXsDJz",
+      "username": "<VMC_SDDC1_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
       "active": true
     },
     "SDDC2":{
@@ -17,9 +17,9 @@
       "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
       "sddcId": "3656526b-c74e-4f87-8e1f-a667975273c2",
       "publicIP": "54.145.245.241",
-      "username": "cloudadmin@vmc.local",
-      "password": "hAmTdo!2!Z1vANE",
-      "vmcToken": "c8OSO03FQDjNpkqzUsTYd94pJgpjG5z7NOm3GZMsQMWxGS26KR6aZbPM5QQXsDJz",
+      "username": "<VMC_SDDC2_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC2_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
       "active": true
     },
     "SDDC3":{
@@ -28,9 +28,9 @@
       "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
       "sddcId": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
       "publicIP": "35.156.16.204",
-      "username": "cloudadmin@vmc.local",
-      "password": "Q-nUfAE7-iGYjq5",
-      "vmcToken": "c8OSO03FQDjNpkqzUsTYd94pJgpjG5z7NOm3GZMsQMWxGS26KR6aZbPM5QQXsDJz",
+      "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
       "active": true
     },
     "SDDC4":{
@@ -39,9 +39,9 @@
       "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
       "sddcId": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
       "publicIP": "52.62.59.206",
-      "username": "cloudadmin@vmc.local",
-      "password": "o8Sa*SsI!rITsR9",
-      "vmcToken": "c8OSO03FQDjNpkqzUsTYd94pJgpjG5z7NOm3GZMsQMWxGS26KR6aZbPM5QQXsDJz",
+      "username": "<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
       "active": true
     }
   },
@@ -62,7 +62,7 @@
           "credential":{
             "type":"BEARER",
             "tokenCredential":{
-              "token":"c8OSO03FQDjNpkqzUsTYd94pJgpjG5z7NOm3GZMsQMWxGS26KR6aZbPM5QQXsDJz"
+              "token":"<VMC_API_TOKEN>"
             }
           }
         },
@@ -74,7 +74,7 @@
         "vsphere":{
           "resourcePool":"Compute-ResourcePool",
           "datastore":"WorkloadDatastore",
-          "folder":"HermesTesting",
+          "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
             "name":"vmware-vpn",
             "addressAllocation":"STATIC",
@@ -87,7 +87,7 @@
         },
         "wavefront":{
           "url":"https://vmware.wavefront.com/api/",
-          "token":"fbb8e2ec-7efa-4186-9c23-16d551e38595"
+          "token":"<WAVEFRONT_API_TOKEN>"
         },
         "logManagements":[
           {
@@ -97,7 +97,7 @@
               "credential":{
                 "type":"BEARER",
                 "tokenCredential":{
-                  "token":"6abhhoSL7C5tyUBiAhI6sxpKSjt10aRK"
+                  "token":"<FLUENTD_AUTHORIZATION_BEARER>"
                 }
               }
             }
@@ -144,7 +144,7 @@
         },
         "wavefront":{
           "url":"https://vmware.wavefront.com/api/",
-          "token":"fbb8e2ec-7efa-4186-9c23-16d551e38595"
+          "token":"<WAVEFRONT_API_TOKEN>"
         },
         "logManagements":[
           {
@@ -154,7 +154,7 @@
               "credential":{
                 "type":"BEARER",
                 "tokenCredential":{
-                  "token":"6abhhoSL7C5tyUBiAhI6sxpKSjt10aRK"
+                  "token":"<FLUENTD_AUTHORIZATION_BEARER>"
                 }
               }
             }
@@ -231,15 +231,15 @@
           "credential":{
             "type":"NONE",
             "passwordCredential":{
-              "username":"cloudadmin@vmc.local",
-              "password":"o8Sa*SsI!rITsR9"
+              "username":"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+              "password":"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
             }
           }
         },
         "vsphere":{
           "resourcePool":"Compute-ResourcePool",
           "datastore":"WorkloadDatastore",
-          "folder":"HermesTesting",
+          "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
             "name":"vmware-vpn-4b",
             "addressAllocation":"STATIC",
