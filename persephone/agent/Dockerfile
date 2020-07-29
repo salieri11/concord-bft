@@ -33,7 +33,7 @@ RUN apt-get update \
     && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
 
 # Runtime image.
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.0
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.1
 LABEL description="Node Agent"
 
 ## Install CA certificate.
