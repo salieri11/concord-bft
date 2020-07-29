@@ -44,6 +44,10 @@ class DamlKvbCommandsHandler
   prometheus::Summary& daml_kv_size_summary_;
 
  public:
+  // The key used to communicate record time to participants for pre-executed
+  // submissions.
+  static std::string kTimeUpdateKey;
+
   DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,

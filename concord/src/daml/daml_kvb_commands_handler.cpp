@@ -84,6 +84,13 @@ Sliver CreateDamlKvbValue(const ValueWithTrids& proto) {
   return Sliver(data, size);
 }
 
+// These constants must be identical to what is expected by participant state
+// reader in Ledger API Server.
+const std::string kLogFragmentKeyPrefix{"F"};
+const std::string kTimeUpdateKeySuffix{"_TIME_UPDATE_KEY"};
+std::string DamlKvbCommandsHandler::kTimeUpdateKey =
+    kLogFragmentKeyPrefix + kTimeUpdateKeySuffix;
+
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
   read_ops_.Increment();
@@ -294,18 +301,35 @@ bool CheckIfWithinTimeBounds(
   return true;
 }
 
+void AddTimeUpdate(const google::protobuf::Timestamp& record_time,
+                   const std::vector<std::string>& thin_replica_ids,
+                   SetOfKeyValuePairs& write_set) {
+  auto key = CreateDamlKvbKey(DamlKvbCommandsHandler::kTimeUpdateKey);
+  da_kvbc::TimeUpdateLogEntry time_update_log_entry;
+  time_update_log_entry.mutable_record_time()->CopyFrom(record_time);
+  auto value = CreateDamlKvbValue(time_update_log_entry.SerializeAsString(),
+                                  thin_replica_ids);
+  write_set[key] = value;
+}
+
 bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
     const google::protobuf::Timestamp& record_time,
     SetOfKeyValuePairs& write_set) const {
   bool within_time_bounds =
       CheckIfWithinTimeBounds(pre_execution_output, record_time);
-  // TODO(miklos): Add time update.
   if (within_time_bounds) {
     WriteSetToRawUpdates(pre_execution_output.success_write_set(), write_set);
+    auto thin_replica_ids = std::vector<std::string>(
+        pre_execution_output.informee_success_thin_replica_ids().begin(),
+        pre_execution_output.informee_success_thin_replica_ids().end());
+    AddTimeUpdate(record_time, thin_replica_ids, write_set);
   } else {
     WriteSetToRawUpdates(pre_execution_output.out_of_time_bounds_write_set(),
                          write_set);
+    AddTimeUpdate(record_time,
+                  {pre_execution_output.submitting_participant_id()},
+                  write_set);
   }
   return true;
 }
