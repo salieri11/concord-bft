@@ -72,7 +72,7 @@ def racetrackSetEnd(args, options, secret):
       jobName = info["jobName"],
       limit = 3, # publish this one and 2 previous runs just in case
       startFromBuildNumber = info["build"],
-      firstRunOverrideWith = a[0],
+      firstRunOverrideWith = a[1],
       verbose = False
     )
     jenkins.setFailureSummaryInDescription()
