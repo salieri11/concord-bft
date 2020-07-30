@@ -56,7 +56,7 @@ public class ConcordConfigUtil {
      * Utility to generate concord config.
      */
     public Map<String, String> getConcordConfig(List<String> nodeIds, List<String> hostIps,
-                                                 BlockchainType blockchainType) {
+                                                 BlockchainType blockchainType, int bftClients) {
         try {
             var result = new HashMap<String, String>();
 
@@ -64,7 +64,7 @@ public class ConcordConfigUtil {
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
 
-            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType);
+            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType, bftClients);
 
             var configFuture = new ProcessBuilder("/app/conc_genconfig",
                                                   "--configuration-input",
@@ -118,14 +118,14 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
-                                    BlockchainType blockchainType) {
+                                    BlockchainType blockchainType, int bftClients) {
         if (!ConfigUtilHelpers.validateSbft(hostIps)) {
             return false;
         }
         int clusterSize = hostIps.size();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath, blockchainType);
+        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath, blockchainType, bftClients);
     }
 
     /**
@@ -133,7 +133,7 @@ public class ConcordConfigUtil {
      */
     @SuppressWarnings({"unchecked"})
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
-                                    BlockchainType blockchainType) {
+                                    BlockchainType blockchainType, int bftClients) {
         if (!ConfigUtilHelpers.validateSbft(hostIp, fVal, cVal)) {
             return false;
         }
@@ -169,6 +169,7 @@ public class ConcordConfigUtil {
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
+        configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_EXTERNAL_CLIENTS.name, bftClients);
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.NODE.name);
