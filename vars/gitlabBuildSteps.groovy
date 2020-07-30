@@ -1836,7 +1836,13 @@ void sendNotifications(){
     // Master failure to blockchain-build-fail channel
     if (env.JOB_NAME.contains(env.tot_job_name)) {
       echo("Notifying ToT failure on slack...")
-      slackNotifyFailure( jobName: "Master run",  target: "blockchain-build-fail", master: true )
+      if (env.JOB_NAME.contains("releases")) { // release testing
+        releaseVersion = env.JOB_NAME.split(" ")[0] // version, e.g. 0.7, 0.8, ...
+        jobHeader = "Release branch " + releaseVersion + " run"
+        slackNotifyFailure( jobName: jobHeader,  target: "blockchain-build-fail-release" )
+      } else { // regular ToT master failure
+        slackNotifyFailure( jobName: "Master run",  target: "blockchain-build-fail", master: true )
+      }
     // For MR runs, notify the MR authors (usually single person)
     } else if (env.JOB_NAME.contains(main_mr_run_job_name)){
       echo("Notifying MR failure to authors through slack DM...")
