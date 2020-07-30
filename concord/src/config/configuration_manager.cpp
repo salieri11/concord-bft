@@ -4013,6 +4013,10 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "TLS certificates root folder path");
   config.tagParameter("tls_certificates_folder_path", publicInputTags);
   config.tagParameter("tls_certificates_folder_path", applicationTag);
+  config.declareParameter("signing_key_path", "Signing key root folder path",
+                          "resources/signing_keys");
+  config.tagParameter("signing_key_path", publicDefaultableTags);
+  config.tagParameter("signing_key_path", applicationTag);
 
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);
@@ -5207,6 +5211,43 @@ static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
 
   return ConcordConfiguration::ParameterStatus::VALID;
 }
+
+static ConcordConfiguration::ParameterStatus computeOperatorPrincipalId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  // The path to a principal Id should be of one of these forms:
+  //   node[i]/replica[0]/principal_id
+  //   participant_node[i]/external_client[j]/client[0]/principal_id
+
+  assert(path.isScope && path.subpath && path.useInstance);
+
+  if (path.subpath->name == "replica") {
+    *output = std::to_string(path.index);
+  } else {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    auto numParticipantsNodes =
+        config.getValue<uint16_t>("num_of_participant_nodes");
+    auto numOfInternalClientsPerReplica =
+        config.getValue<uint16_t>("client_proxies_per_replica");
+    auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                         2 * config.getValue<uint16_t>("c_val") + 1;
+    uint16_t numOfAllCommitterNodePrincipals =
+        numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
+
+    uint16_t numParticipants =
+        config.getValue<uint16_t>("clients_per_participant_node");
+
+    *output = std::to_string(path.index + numOfAllCommitterNodePrincipals +
+                             (numParticipantsNodes * numParticipants));
+  }
+
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     string* output, void* state) {
@@ -5250,6 +5291,11 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
       "participant_node_host",
       "IP address or host name this participant node can be reached at.");
   participant_node.tagParameter("participant_node_host", publicInputTags);
+  participant_node.declareParameter(
+      "operator_id", "The ID the operator of this specific participant node");
+  participant_node.tagParameter("operator_id", publicGeneratedTags);
+  participant_node.addGenerator("operator_id", computeOperatorPrincipalId,
+                                nullptr);
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "
