@@ -18,9 +18,9 @@ public class ConfigUtilHelpers {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigUtilHelpers.class);
 
-    static final int DEFAULT_PORT = 3501;
-    static final int CLIENT_PROXY_PER_COMMITTER = 4;
-    static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
+    public static final int DEFAULT_PORT = 3501;
+    public static final int CLIENT_PROXY_PER_COMMITTER = 4;
+    public static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
 
     /**
      * Enum holding config properties.
@@ -43,7 +43,8 @@ public class ConfigUtilHelpers {
         REPLICA_HOST("replica_host"),
         CLIENT_HOST("client_host"),
         COMMITTER_PORT("replica_port"),
-        CLIENT_PORT("client_port");
+        CLIENT_PORT("client_port"),
+        NUM_EXTERNAL_CLIENTS("num_of_external_clients");
 
         String name;
 

@@ -25,6 +25,7 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -178,8 +179,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath);
         boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
-        Map<String, String> concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
-                                                                    convertToLegacy(request.getBlockchainType()));
+        int numClients = 0;
 
         if (request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
@@ -188,7 +188,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             bftClientConfig.putAll(bftClientConfigUtil
                     .getbftClientConfig(participantNodeIds, committerIps, participantIps));
             nodeIdList.addAll(participantNodeIds);
+
+            numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
         }
+
+        Map<String, String> concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
+                convertToLegacy(request.getBlockchainType()), numClients);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         request.getNodesMap().values().forEach(nodesByType -> nodesByType

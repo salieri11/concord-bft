@@ -29,13 +29,13 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null)).isTrue();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 
     @Test
     void testConfigUtilNegative() {
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(null, filePath, null)).isFalse();
+        Assertions.assertThat(util.generateInputConfigYaml(null, filePath, null, 0)).isFalse();
     }
 
     @Test
@@ -45,7 +45,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.2");
         hostIps.add("10.0.0.3");
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null)).isFalse();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isFalse();
     }
 
     @Test
@@ -56,7 +56,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(hostIps, 1, 2, filePath, null)).isFalse();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, 1, 2, filePath, null, 0)).isFalse();
     }
 
     @Test
@@ -67,7 +67,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("concord3");
         hostIps.add("concord4");
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null)).isTrue();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 
     @Test
@@ -81,7 +81,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.6");
         hostIps.add("10.0.0.7");
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null)).isTrue();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 
     @AfterEach
