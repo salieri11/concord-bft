@@ -2,13 +2,18 @@ import os
 import subprocess
 import socket
 
+from bft_client import ReqSeqNum
+
 class ExternalBftClient:
     """
     This class communicates with ExternalClient class from concord/test/external_client/external_client_pool.cpp
     Check the comment at the start of the cpp file for details about the protocol they use.
     """
-    def __init__(self):
+    def __init__(self, client_id):
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      self.client_id = client_id
+      self.req_seq_num = ReqSeqNum()
+      self.retries = 0
 
     def _serialize_seq_num(self, seq_num):
       """

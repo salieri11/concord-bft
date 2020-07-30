@@ -64,12 +64,26 @@ async def bft_network():
 
     replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
                 for i in range(config.num_clients)]
-    clients = config.num_clients * [ExternalBftClient()]
+    clients = [ExternalBftClient(i) for i in range(config.num_clients)]
 
-    bft_network = BftTestNetwork.existing(config, replicas, clients)
+    bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
 
     return bft_network
 
+@describe()
+def test_skvbc_preexecution_concurrent(fxProduct, bft_network):
+    trio.run(_test_skvbc_preexecution_concurrent, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_preexecution_concurrent(bft_network):
+    skvbc_preexecution_test = SkvbcPreExecutionTest()
+    log.info("Running SKVBC concurrent pre-execution test...")
+    await skvbc_preexecution_test.test_concurrent_pre_process_requests(
+        bft_network=bft_network,
+        already_in_trio=True
+    )
+    log.info("SKVBC concurrent pre-execution: OK.")
 
 @describe()
 def test_skvbc_preexecution_sequential(fxProduct, bft_network):
@@ -83,26 +97,9 @@ async def _test_skvbc_preexecution_sequential(bft_network):
     await skvbc_test.test_sequential_pre_process_requests(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=False
+        disable_linearizability_checks=True
     )
     log.info("SKVBC sequential pre-execution: OK.")
-
-
-@describe()
-def test_skvbc_preexecution_concurrent(fxProduct, bft_network):
-    trio.run(_test_skvbc_preexecution_concurrent, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_preexecution_concurrent(bft_network):
-    skvbc_preexecution_test = SkvbcPreExecutionTest()
-    log.info("Running SKVBC concurrent pre-execution test...")
-    await skvbc_preexecution_test.test_concurrent_pre_process_requests(
-        bft_network=bft_network,
-        already_in_trio=True,
-        disable_linearizability_checks=False
-    )
-    log.info("SKVBC concurrent pre-execution: OK.")
 
 
 @describe()
