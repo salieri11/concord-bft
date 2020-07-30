@@ -320,7 +320,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                     var attributes = each.getAdditionalInfo().getValuesMap();
 
                     // CLIENT_GROUP_ID is available regardless of the resource type.
-                    String clientGroupId = attributes.get(NodeProperty.Name.CLIENT_GROUP_ID);
+                    String clientGroupId = attributes.get(NodeProperty.Name.CLIENT_GROUP_ID.name());
                     if (clientGroupId != null && !clientGroupId.isEmpty()) {
                         clientNode.setGroupId(UUID.fromString(clientGroupId));
                     }
