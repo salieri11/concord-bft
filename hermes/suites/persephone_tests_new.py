@@ -848,12 +848,12 @@ def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, tea
     log.info("Test {} completed successfully".format(request.node.name))
 
 
-@describe("Test to run a DAML ONPREM deployment (7 replicas + 1 client)")
+@describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client)")
 @pytest.mark.smoke
 def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, teardown):
 
     # Set the deployment params for this test case
-    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 1)
+    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 2)
     zone_type = helper.LOCATION_ONPREM
 
     # Rest of the code below shouldn't change between different combinations of DAML test cases
