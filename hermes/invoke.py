@@ -138,7 +138,10 @@ def patchOrg(args, options, secret):
   patchValue = args[3]
 
   if len(args) > 4:
-    service = args[4]
+    if args[4] == "staging":
+      service = util.auth.SERVICE_STAGING
+    else:
+      service = args[4]
   else:
     service = util.auth.SERVICE_STAGING
 
