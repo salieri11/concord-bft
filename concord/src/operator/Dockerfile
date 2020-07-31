@@ -7,21 +7,22 @@ FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v20 AS 
 ## Install gtest
 RUN make -C /googletest/_build install
 
+WORKDIR /concord
 COPY ./concord /concord
 COPY ./communication/src/main/proto /communication/src/main/proto
 
 WORKDIR /concord/build
-RUN cmake -DUSE_CONAN=OFF -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
     -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
-    make -j${nproc} && \
-    make install -j${nproc}
+    make operator_server
+
 
 ## Base Run image
 FROM ubuntu:18.04
 LABEL Description="Concord Operator"
 
-RUN apt-get update && apt-get -y install \
+RUN apt-get update && apt-get --no-install-recommends -y install \
     libboost-atomic1.65.1 \
     libboost-chrono1.65.1 \
     libboost-date-time1.65.1 \
@@ -30,7 +31,6 @@ RUN apt-get update && apt-get -y install \
     libboost-system1.65.1 \
     libboost-thread1.65.1 \
     libyaml-cpp0.5v5 \
-    gosu \
     lldb \
     vim \
     python3 \
@@ -61,10 +61,6 @@ RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
     ln -s $x ${x%%.0} && \
     ln -s $x ${x%%.0.8.0}; \
     done
-
-COPY --from=build /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
-RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
-RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so
 
 COPY --from=build /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib
 RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.so.1

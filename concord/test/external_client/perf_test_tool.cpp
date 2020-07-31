@@ -235,8 +235,8 @@ void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     }
 
     auto res = pool->SendRequest(
-        vector<char>{reqData->request.c_str(),
-                     reqData->request.c_str() + reqData->request.size()},
+        vector<uint8_t>{reqData->request.c_str(),
+                        reqData->request.c_str() + reqData->request.size()},
         flags, chrono::milliseconds::max(), reply, replyLength, 0, cid);
     assert(res == SubmitResult::Acknowledged);
   }
@@ -300,8 +300,8 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     }
 
     auto res = pool->SendRequest(
-        vector<char>{reqData->request.c_str(),
-                     reqData->request.c_str() + reqData->request.size()},
+        vector<uint8_t>{reqData->request.c_str(),
+                        reqData->request.c_str() + reqData->request.size()},
         flags, chrono::milliseconds::max(), reply, replyLength, 0, cid);
     assert(res == SubmitResult::Acknowledged);
   }

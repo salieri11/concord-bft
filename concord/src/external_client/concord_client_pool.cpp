@@ -23,7 +23,7 @@ using namespace config_pool;
 using namespace bftEngine;
 
 SubmitResult ConcordClientPool::SendRequest(
-    std::vector<char> &&request, ClientMsgFlag flags,
+    std::vector<uint8_t> &&request, ClientMsgFlag flags,
     std::chrono::milliseconds timeout_ms, char *reply_buffer,
     std::uint32_t max_reply_size, uint64_t seq_num, std::string correlation_id,
     std::string span_context) {
@@ -73,7 +73,7 @@ SubmitResult ConcordClientPool::SendRequest(
   auto request_flag = ClientMsgFlag::EMPTY_FLAGS_REQ;
   if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
   return SendRequest(
-      std::forward<std::vector<char>>(request), request_flag,
+      std::forward<std::vector<uint8_t>>(request), request_flag,
       config.request.timeout, nullptr, 0, config.request.sequence_number,
       config.request.correlation_id, config.request.span_context);
 }
@@ -83,7 +83,7 @@ SubmitResult ConcordClientPool::SendRequest(
   LOG_INFO(logger_,
            "Read request generated with cid=" << config.request.correlation_id);
   return SendRequest(
-      std::forward<std::vector<char>>(request), ClientMsgFlag::READ_ONLY_REQ,
+      std::forward<std::vector<uint8_t>>(request), ClientMsgFlag::READ_ONLY_REQ,
       config.request.timeout, nullptr, 0, config.request.sequence_number,
       config.request.correlation_id, config.request.span_context);
 }

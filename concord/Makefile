@@ -84,6 +84,20 @@ build: ## Build Concord source. Note: this command is mostly for developers
 	@echo
 	@echo "Build finished. The binaries are in ${CURDIR}/${CONCORD_BUILD_DIR}"
 
+.PHONY: operator
+operator:
+	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
+		make run-c; \
+	fi
+	docker exec -it ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+		${CONCORD_CONTAINER_SHELL} -c \
+		"mkdir -p ${CONCORD_BUILD_DIR} && \
+		cd ${CONCORD_BUILD_DIR} && \
+		cmake ${CONCORD_CMAKE_FLAGS} .. && \
+		make -j $$(nproc) operator_server"
+	@echo
+	@echo "Build finished. The binaries are in ${CURDIR}/${CONCORD_BUILD_DIR}"
+
 .PHONY: format
 format: ## Format Concord source
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
