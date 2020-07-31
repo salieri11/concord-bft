@@ -112,6 +112,13 @@ class HlfKvbCommandsHandler
   bool HandleHlfQueryChaincode(
       const com::vmware::concord::ConcordRequest& concord_request,
       com::vmware::concord::ConcordResponse& concord_response) const;
+
+  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
+    return nullptr;
+  }
+
+  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
+                                  controlStateManager) override {}
 };
 
 }  // namespace hlf
