@@ -27,6 +27,8 @@
         <mockito.inline.version>3.4.4</mockito.inline.version>
         <mockito.junit.jupiter.version>3.4.4</mockito.junit.jupiter.version>
         <org.hamcrest.version>2.2</org.hamcrest.version>
+        <io.grpc.tesing.version>1.31.0</io.grpc.tesing.version>
+        <grpc-spring-boot-starter.version>3.5.6</grpc-spring-boot-starter.version>
     </properties>
 
     <dependencies>
@@ -112,8 +114,25 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
         <!-- Test dependencies -->
+        <dependency>
+            <groupId>io.github.lognet</groupId>
+            <artifactId>grpc-spring-boot-starter</artifactId>
+            <version>${grpc-spring-boot-starter.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-testing</artifactId>
+            <version>${io.grpc.tesing.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
