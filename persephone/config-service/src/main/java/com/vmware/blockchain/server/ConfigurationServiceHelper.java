@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.server;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
@@ -217,20 +219,39 @@ public class ConfigurationServiceHelper {
      */
     List<ConfigurationComponent> buildNodeConifigs(String nodeId, List<ConfigurationComponent> componentList,
                                                     ConcordEcCertificatesGenerator certGen,
-                                                    Map<String, String> concordConfig,
+                                                    Map<String, Map<String, String>> concordConfig,
                                                     Map<String, String> bftClientConfig,
                                                     Map<String, List<IdentityComponent>> concordIdentityComponents,
                                                     Map<String, List<IdentityComponent>> bftIdentityComponents) {
-        List<ConfigurationComponent> output = new ArrayList<>();
-        output.addAll(componentList);
+        List<ConfigurationComponent> output = new ArrayList<>(componentList);
 
         if (concordConfig.containsKey(nodeId)) {
-            output.add(ConfigurationComponent.newBuilder()
-                    .setType(ServiceType.CONCORD)
-                    .setComponentUrl(ConcordConfigUtil.configPath)
-                    .setComponent(concordConfig.get(nodeId))
-                    .setIdentityFactors(IdentityFactors.newBuilder().build())
-                    .build());
+            concordConfig.get(nodeId).forEach((key, value) -> {
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.DEPLOY)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(ConcordConfigUtil.deployConfigPath)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                }
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.SECRET)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(ConcordConfigUtil.secretsConfigPath)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                }
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.CONCORD)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(ConcordConfigUtil.configPath)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                }
+            });
         }
 
         if (concordIdentityComponents.containsKey(nodeId)) {

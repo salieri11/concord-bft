@@ -164,6 +164,10 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
 
+        boolean isSplitConfig = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.toString(), "False")
+                .equalsIgnoreCase("True");
+
         if (request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
                 .equalsIgnoreCase("True") && request.getBlockchainType().equals(BlockchainType.DAML)) {
@@ -175,8 +179,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
         }
 
-        Map<String, String> concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
-                convertToLegacy(request.getBlockchainType()), numClients);
+        var concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
+                convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         request.getNodesMap().values().forEach(nodesByType -> nodesByType

@@ -35,7 +35,7 @@ public class ConcordConfigUtilTest {
     @Test
     void testConfigUtilNegative() {
         ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
-        Assertions.assertThat(util.generateInputConfigYaml(null, filePath, null, 0)).isFalse();
+        Assertions.assertThat(util.generateInputConfigYaml(new ArrayList<>(), filePath, null, 0)).isFalse();
     }
 
     @Test

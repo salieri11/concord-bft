@@ -4,7 +4,14 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -17,10 +24,12 @@ public class ConfigUtilHelpers {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigUtilHelpers.class);
 
-    static final int DEFAULT_PORT = 3501;
-    static final int CLIENT_PROXY_PER_COMMITTER = 4;
-    static final int CLIENT_PROXY_PER_COMMITTER_SPLIT = 1;
-    static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
+    public static final int DEFAULT_PORT = 3501;
+    public static final int CLIENT_PROXY_PER_COMMITTER = 4;
+    public static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
+    public static final String DEPLOY = "deploy";
+    public static final String SECRET = "secret";
+    public static final String CONCORD = "concord";
 
     /**
      * Enum holding config properties.
@@ -44,8 +53,7 @@ public class ConfigUtilHelpers {
         CLIENT_HOST("client_host"),
         COMMITTER_PORT("replica_port"),
         CLIENT_PORT("client_port"),
-        NUM_EXTERNAL_CLIENTS("num_of_external_clients"),
-        CLIENT_PROXY_PER_REPLICA("client_proxies_per_replica");
+        NUM_EXTERNAL_CLIENTS("num_of_external_clients");
 
         String name;
 
@@ -118,4 +126,80 @@ public class ConfigUtilHelpers {
                         Map.Entry::getValue));
     }
 
+    /**
+     * Creates conc_genconfig command.
+     * @return CompletableFuture
+     */
+    static List<CompletableFuture<Process>> getConcGenConfigCmd(String inputYamlPath,
+                                                          String principalsMapFile,
+                                                          Path outputPath,
+                                                          boolean isSplitConfig) throws IOException {
+        List<CompletableFuture<Process>> cmd = new ArrayList<>();
+        if (isSplitConfig) {
+            cmd.add(new ProcessBuilder("/app/conc_genconfig",
+                    "--configuration-input",
+                    inputYamlPath,
+                    "--report-principal-locations",
+                    principalsMapFile,
+                    "--configuration-type",
+                    "deployment",
+                    "--output-name",
+                    DEPLOY)
+                    .directory(outputPath.toFile())
+                    .start()
+                    .onExit());
+            cmd.add(new ProcessBuilder("/app/conc_genconfig",
+                    "--configuration-input",
+                    inputYamlPath,
+                    "--report-principal-locations",
+                    principalsMapFile,
+                    "--configuration-type",
+                    "secrets",
+                    "--output-name",
+                    SECRET)
+                    .directory(outputPath.toFile())
+                    .start()
+                    .onExit());
+        } else {
+            cmd.add(new ProcessBuilder("/app/conc_genconfig",
+                    "--configuration-input",
+                    inputYamlPath,
+                    "--report-principal-locations",
+                    principalsMapFile)
+                    .directory(outputPath.toFile())
+                    .start()
+                    .onExit());
+        }
+        return cmd;
+    }
+
+    /**
+     * Creates configs for concord.
+     * @param outputPath path where conc_genconfig outputs
+     * @param nodeIds nodeids
+     * @param splitconfig flag to denote split config
+     * @return map of node ids against configs
+     * @throws IOException .
+     */
+    static Map<String, Map<String, String>> getConcordNodeConfigs(Path outputPath,
+                                                     List<String> nodeIds,
+                                                     boolean splitconfig) throws IOException {
+        var result = new HashMap<String, Map<String, String>>();
+
+        if (splitconfig) {
+            for (int num = 0; num < nodeIds.size(); num++) {
+                Map<String, String> configs = Map.of(
+                        DEPLOY, Files.readString(outputPath.resolve(DEPLOY + (num + 1) + ".config")),
+                        SECRET, Files.readString(outputPath.resolve(SECRET + (num + 1) + ".config")));
+                result.put(nodeIds.get(num), configs);
+            }
+        } else {
+            for (int num = 0; num < nodeIds.size(); num++) {
+                var path = outputPath.resolve(CONCORD + (num + 1) + ".config");
+                var config = Map.of(CONCORD, Files.readString(path));
+                result.put(nodeIds.get(num), config);
+            }
+        }
+        return result;
+    }
 }
