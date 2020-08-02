@@ -15,6 +15,8 @@
 #include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "pruning/kvb_pruning_sm.hpp"
+#include "reconfiguration/concord_control_handler.hpp"
+#include "reconfiguration/reconfiguration_sm.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
@@ -29,19 +31,14 @@ struct ConcordRequestContext {
   uint32_t max_response_size;
 };
 
-class ConcordControlHandlers : public bftEngine::ControlHandlers {
- public:
-  virtual void onSuperStableCheckpoint() override{};
-  virtual ~ConcordControlHandlers() {}
-};
-
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
   logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
-  std::shared_ptr<ConcordControlHandlers> concord_control_handlers_;
+  std::shared_ptr<reconfiguration::ConcordControlHandler>
+      concord_control_handlers_;
   // The tracing span that should be used as the parent to the span covering the
   // addBlock function.
   std::unique_ptr<opentracing::Span> addBlock_parent_span;
@@ -69,6 +66,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
+  std::unique_ptr<concord::reconfiguration::ReconfigurationSM>
+      reconfiguration_sm_;
 
  public:
   ConcordCommandsHandler(

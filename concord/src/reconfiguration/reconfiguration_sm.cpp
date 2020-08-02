@@ -21,10 +21,9 @@ IReconfigurationPlugin* ReconfigurationSM::GetPlugin(
   return nullptr;
 }
 
-void ReconfigurationSM::Handle(
-    const ReconfigurationSmRequest& request, ConcordResponse& response,
-    uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
-    std::shared_ptr<bftEngine::ControlStateManager> control_state_manager) {
+void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
+                               ConcordResponse& response, uint64_t sequence_num,
+                               bool readOnly, opentracing::Span& parent_span) {
   SCOPED_MDC("r.p.id", std::to_string(request.pluginid()));
   auto reconfiguration_span = opentracing::Tracer::Global()->StartSpan(
       "reconfiguration_request",
@@ -42,7 +41,8 @@ void ReconfigurationSM::Handle(
     return;
   }
   auto rep = plugin->Handle(request.command(), sequence_num, readOnly,
-                            *reconfiguration_span, control_state_manager);
+                            *reconfiguration_span, *control_state_manager_,
+                            *control_handlers_);
   auto res = response.mutable_reconfiguration_sm_response();
   res->set_success(rep.succ);
   res->set_additionaldata(rep.data);
@@ -75,8 +75,6 @@ ReconfigurationSM::ReconfigurationSM(
         config.getValue<std::string>("reconfiguration_operator_public_key"));
     LOG_INFO(logger_, "Successfully read the system operator public key");
   }
-  LoadPlugin(std::make_unique<UpgradePlugin>(
-      com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE));
 }
 
 bool ReconfigurationSM::ValidateReconfigurationRequest(
@@ -85,4 +83,12 @@ bool ReconfigurationSM::ValidateReconfigurationRequest(
       !request.has_pluginid() || operator_public_key_ == nullptr)
     return false;
   return operator_public_key_->Verify(request.command(), request.signature());
+}
+void ReconfigurationSM::setControlHandlers(
+    std::shared_ptr<ConcordControlHandler> control_handlers) {
+  control_handlers_ = control_handlers;
+}
+void ReconfigurationSM::setControlStateManager(
+    std::shared_ptr<bftEngine::ControlStateManager> control_state_manager) {
+  control_state_manager_ = control_state_manager;
 }

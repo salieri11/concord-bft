@@ -334,6 +334,7 @@ message ReconfigurationSmRequest {
    enum PluginId {
       MOCK = 0;
       UPGRADE = 1;
+      WEDGE = 2;
    }
    required PluginId pluginId = 1;
    optional bytes command = 2;
@@ -346,6 +347,10 @@ message ReconfigurationSmRequest {
          EXECUTE_UPGRADE = 3;
       }
       required UpgradeType type = 1;
+   }
+
+   message WedgeCommand {
+      optional int64 seqNumToStopAt = 1;
    }
 }
 
