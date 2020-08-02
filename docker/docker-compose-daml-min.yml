@@ -99,6 +99,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
+      - INDEX_DB_SCHEMA=daml_ledger_api1
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - ENABLE_BATCHING=false
       - PARTICIPANT_ID=daml_ledger_api1
@@ -121,6 +122,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
+      - INDEX_DB_SCHEMA=daml_ledger_api2
       - REPLICAS=concord2:50051,concord3:50051,concord4:50051,concord1:50051
       - ENABLE_BATCHING=false
       - PARTICIPANT_ID=daml_ledger_api2
@@ -182,7 +184,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=indexdb
-      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1,daml_ledger_api2
+      - POSTGRES_MULTIPLE_SCHEMAS=daml_ledger_api1,daml_ledger_api2
       - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/index_db:/var/lib/postgresql/data
