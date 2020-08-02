@@ -9,6 +9,7 @@
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
+#include <reconfiguration/wedge_plugin.hpp>
 #include <string>
 #include <utils/open_tracing_utils.hpp>
 #include <vector>
@@ -61,7 +62,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
       executing_bft_sequence_num_(0),
       subscriber_list_(subscriber_list),
-      concord_control_handlers_(std::make_shared<ConcordControlHandlers>()),
+      concord_control_handlers_(
+          std::make_shared<reconfiguration::ConcordControlHandler>()),
       storage_(storage),
       metadata_storage_(storage),
       command_handler_counters_{prometheus_registry->createCounterFamily(
@@ -94,6 +96,12 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
       storage, config, node_config, time_.get());
+  reconfiguration_sm_ =
+      std::make_unique<concord::reconfiguration::ReconfigurationSM>(
+          config, prometheus_registry);
+  reconfiguration_sm_->LoadPlugin(
+      std::make_unique<concord::reconfiguration::WedgePlugin>());
+  reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 
 int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
@@ -268,6 +276,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     if (request.has_prune_request() ||
         request.has_latest_prunable_block_request()) {
       pruning_sm_->Handle(request, response, read_only, *execute_span);
+    }
+    if (request.has_reconfiguration_sm_request()) {
+      reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
+                                  response, sequence_num, read_only,
+                                  *execute_span);
     }
   } else {
     ErrorResponse *err = response.add_error_response();
@@ -479,6 +492,7 @@ void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
 void ConcordCommandsHandler::setControlStateManager(
     std::shared_ptr<bftEngine::ControlStateManager> controlStateManager) {
   controlStateManager_ = controlStateManager;
+  reconfiguration_sm_->setControlStateManager(controlStateManager_);
 }
 
 std::shared_ptr<bftEngine::ControlHandlers>

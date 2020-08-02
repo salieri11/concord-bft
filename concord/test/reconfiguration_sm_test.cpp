@@ -62,12 +62,12 @@ ConcordConfiguration defaultTestConfig() {
 
 class MockPlugin : public IReconfigurationPlugin {
  public:
-  MockPlugin(ReconfigurationSmRequest::PluginId pluginId)
-      : IReconfigurationPlugin(pluginId) {}
+  MockPlugin() { pluginId_ = ReconfigurationSmRequest_PluginId_MOCK; }
   PluginReply Handle(const std::string& command, uint64_t sequence_num,
                      bool readOnly, opentracing::Span& parent_span,
-                     std::shared_ptr<bftEngine::ControlStateManager>
-                         control_state_manager = nullptr) override {
+                     bftEngine::ControlStateManager& control_state_manager,
+                     concord::reconfiguration::ConcordControlHandler&
+                         control_handlers) override {
     return {true, command + "-world"};
   }
 };
@@ -107,8 +107,7 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   auto priv_key = ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
 
-  rsm.LoadPlugin(
-      std::make_unique<MockPlugin>(ReconfigurationSmRequest_PluginId_MOCK));
+  rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
   reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
@@ -143,8 +142,7 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(
-      std::make_unique<MockPlugin>(ReconfigurationSmRequest_PluginId_MOCK));
+  rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
   reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
@@ -162,7 +160,7 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-
+  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
       ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
@@ -184,7 +182,7 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-
+  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
       ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
@@ -206,7 +204,7 @@ TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
   auto config = defaultTestConfig();
   auto priv_key = ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-
+  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
   upgrade_command.set_type(
       ReconfigurationSmRequest_UpgradeCommand_UpgradeType::

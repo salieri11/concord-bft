@@ -14,9 +14,10 @@
 #include <utils/openssl_crypto_utils.hpp>
 #include <vector>
 #include "IReconfigurationPlugin.hpp"
+#include "bftengine/Replica.hpp"
 #include "concord.pb.h"
+#include "concord_control_handler.hpp"
 #include "config/configuration_manager.hpp"
-
 namespace concord {
 namespace reconfiguration {
 
@@ -26,6 +27,8 @@ class ReconfigurationSM {
   prometheus::Family<prometheus::Counter>& reconfiguration_counters_;
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
       operator_public_key_{nullptr};
+  std::shared_ptr<bftEngine::ControlStateManager> control_state_manager_;
+  std::shared_ptr<ConcordControlHandler> control_handlers_;
 
   bool ValidateReconfigurationRequest(
       const com::vmware::concord::ReconfigurationSmRequest& request);
@@ -37,6 +40,11 @@ class ReconfigurationSM {
       const config::ConcordConfiguration& config,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   void LoadPlugin(std::unique_ptr<IReconfigurationPlugin> plugin);
+
+  void setControlHandlers(
+      std::shared_ptr<ConcordControlHandler> control_handlers);
+  void setControlStateManager(
+      std::shared_ptr<bftEngine::ControlStateManager> control_state_manager);
   /*
    * This method is the gate for all reconfiguration actions. It works as
    * follows:
@@ -52,9 +60,7 @@ class ReconfigurationSM {
   void Handle(const com::vmware::concord::ReconfigurationSmRequest& request,
               com::vmware::concord::ConcordResponse& response,
               uint64_t sequence_num, bool readOnly,
-              opentracing::Span& parent_span,
-              std::shared_ptr<bftEngine::ControlStateManager>
-                  control_state_manager = nullptr);
+              opentracing::Span& parent_span);
 };
 }  // namespace reconfiguration
 }  // namespace concord
