@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.castor.service;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -29,13 +30,12 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class DeployerServiceImpl implements DeployerService {
 
-    private static final String DEPL_DESC_LOC_KEY = "castor.deployment.descriptor.location";
-    private static final String INFRA_DESC_LOC_KEY = "castor.infrastructure.descriptor.location";
     private static final String DEPLOYMENT_TIMEOUT_MINUTES_KEY = "castor.deployment.timeout.minutes";
 
     private final Environment environment;
     private final DescriptorService descriptorService;
     private final ProvisionerService provisionerService;
+    private final ValidatorService validatorService;
 
     /**
      * Deployer service entrypoint.
@@ -62,7 +62,11 @@ public class DeployerServiceImpl implements DeployerService {
                 descriptorService.readDeploymentDescriptorSpec(deploymentDescriptorLocation);
 
         // Validate properties for correctness
-        validate(infrastructureDescriptor, deploymentDescriptor);
+        List<ValidationError> errors = validatorService.validate(infrastructureDescriptor, deploymentDescriptor);
+        if (errors.size() > 0) {
+            log.error("Infrastructure and/or deployment descriptor specification has errors");
+            throw new CastorException(ErrorCode.VALIDATION_ERRORS, INFRA_DESC_LOC_KEY);
+        }
 
         // This is used so the application will wait until the async deployment process finishes
         CompletableFuture<String> deploymentCompletionFuture = new CompletableFuture<>();
@@ -87,10 +91,5 @@ public class DeployerServiceImpl implements DeployerService {
                 log.error("Deployment failure: timed out in {} minutes", deploymentTimeoutMinutes, e);
             }
         }
-    }
-
-    private void validate(InfrastructureDescriptorModel infrastructureDescriptor,
-                          DeploymentDescriptorModel deploymentDescriptor) {
-        // DINKARTODO: Move this to a service. Validate entries. See BlockchainController::createDeployment()
     }
 }

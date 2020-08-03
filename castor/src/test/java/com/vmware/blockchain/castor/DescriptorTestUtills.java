@@ -19,6 +19,7 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
  */
 public class DescriptorTestUtills {
 
+    private static final String SDDC_URL_STRING = "https://console-stg.cloud.vmware.com/";
     private static final URL sddcUrl;
 
     private static final String CONSORTIUM_NAME = "consortium-1";
@@ -38,7 +39,7 @@ public class DescriptorTestUtills {
 
     static {
         try {
-            sddcUrl = new URL("https://console-stg.cloud.vmware.com/");
+            sddcUrl = new URL(SDDC_URL_STRING);
         } catch (MalformedURLException e) {
             throw new Error(e);
         }
@@ -51,12 +52,9 @@ public class DescriptorTestUtills {
      */
     public static InfrastructureDescriptorModel.Organization buildOrganization() {
         InfrastructureDescriptorModel.Organization organization = InfrastructureDescriptorModel.Organization.builder()
-                .orgId(UUID.randomUUID())
                 .sddcUrl(sddcUrl)
-
                 // .dockerImage("dockerImage v1")
                 .damlSdk("1.0.1")
-                // DINKARTODO: Find real template id
                 // .templateId(UUID.randomUUID())
                 .cpuCount(4)
                 .memoryGb(4)

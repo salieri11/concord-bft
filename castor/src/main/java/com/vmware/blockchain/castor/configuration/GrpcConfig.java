@@ -19,6 +19,7 @@ import org.springframework.util.ResourceUtils;
 
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -39,6 +40,9 @@ public class GrpcConfig {
     public GrpcConfig(Environment environment) {
         this.environment = environment;
     }
+
+    @Autowired
+    public ManagedChannel provisioningServerChannel;
 
     /**
      * gRPC {@link ManagedChannel} to use to communicate with provisioning server.
@@ -98,5 +102,15 @@ public class GrpcConfig {
         } else {
             return ManagedChannelBuilder.forTarget(url.getAuthority()).usePlaintext().build();
         }
+    }
+
+    @Bean
+    ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub provisioningServiceStub() {
+        return ProvisioningServiceV2Grpc.newStub(provisioningServerChannel);
+    }
+
+    @Bean
+    ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub provisioningServiceBlockingStub() {
+        return ProvisioningServiceV2Grpc.newBlockingStub(provisioningServerChannel);
     }
 }

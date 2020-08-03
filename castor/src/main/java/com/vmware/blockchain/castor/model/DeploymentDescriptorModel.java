@@ -6,6 +6,12 @@ package com.vmware.blockchain.castor.model;
 
 import java.util.List;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+
+import com.vmware.blockchain.castor.service.BlockchainTypesValid;
+
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,7 +35,7 @@ public class DeploymentDescriptorModel {
     @EqualsAndHashCode
     public static class Client {
         // This MUST match the zone name in the Infrastructure descriptor.
-        // DINKARTODO: add validation for this condition.
+        @NotBlank(message = "deployment.client.zone.invalid")
         private String zoneName;
         private String authUrlJwt;
     }
@@ -53,14 +59,18 @@ public class DeploymentDescriptorModel {
     @EqualsAndHashCode
     public static class Blockchain {
         String consortiumName;
+        @BlockchainTypesValid(allowedTypes = {BlockchainType.DAML, BlockchainType.ETHEREUM, BlockchainType.HLF})
         BlockchainType bockchainType;
     }
 
     // List of zone ids on which the committers should be deployed
     // These MUST match the zone name in the Infrastructure descriptor.
-    // DINKARTODO: add validation for this condition.
+    @NotEmpty(message = "deployment.commiters.not.specified")
     private List<String> committers;
 
+    @Valid
     private List<Client> clients;
+
+    @Valid
     private Blockchain blockchain;
 }

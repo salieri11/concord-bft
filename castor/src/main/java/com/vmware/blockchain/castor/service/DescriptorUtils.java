@@ -26,8 +26,6 @@ public class DescriptorUtils {
                 infrastructureDescriptorModel.getZones().stream()
                         .filter(z -> Objects.equals(zoneName, z.getName()))
                         .findFirst();
-
-        // DINKARTODO: Make sure validate() catches this
         return zoneInfoOpt;
     }
 }
