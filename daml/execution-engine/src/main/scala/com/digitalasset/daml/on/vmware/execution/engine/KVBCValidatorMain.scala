@@ -3,10 +3,10 @@
 package com.digitalasset.daml.on.vmware.execution.engine
 
 import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.Materializer
 import com.daml.grpc.adapter.{ExecutionSequencerFactory, SingleThreadExecutionSequencerPool}
 import com.daml.ledger.api.health.HealthChecks
-import com.daml.lf.engine.Engine
+import com.daml.lf.engine.{Engine, EngineConfig}
 import com.daml.metrics.Metrics
 import com.daml.platform.server.api.services.grpc.GrpcHealthService
 import com.digitalasset.daml.on.vmware.common.{
@@ -51,7 +51,7 @@ class KVBCValidatorServer(tracer: Tracer) {
   private implicit val esf: ExecutionSequencerFactory =
     new SingleThreadExecutionSequencerPool("validator-health", 1)
 
-  private val engine = new Engine(Engine.StableConfig)
+  private val engine = new Engine(EngineConfig.Stable)
   private val validator = new ValidationServiceImpl(engine, new Metrics(metricsRegistry.registry))
   private val healthChecks = new HealthChecks("validator" -> validator)
   private val apiHealthService = new GrpcHealthService(healthChecks)

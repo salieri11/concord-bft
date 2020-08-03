@@ -85,16 +85,14 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
         writeClientLabel = "secondary",
         clientsToBeWaitedFor = 2 * config.extra.maxFaultyReplicas))
 
-    val ledgerId =
-      config.ledgerId.getOrElse(Ref.LedgerString.assertFromString(UUID.randomUUID.toString))
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
-      ledgerId,
+      config.ledgerId,
       () => concordClients.primaryWriteClient.currentHealth)
     logger.info(s"Connecting to the first core replica ${config.extra.replicas.head}")
     val concordWriter =
       new ConcordLedgerWriter(
-        ledgerId,
+        config.ledgerId,
         participantConfig.participantId,
         concordClients.primaryWriteClient.commitTransaction(_)(executionContext),
         () => concordClients.primaryWriteClient.currentHealth
