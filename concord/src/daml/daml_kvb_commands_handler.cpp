@@ -132,6 +132,7 @@ DamlKvbCommandsHandler::GetFromStorage(
     }
     result[skey] = std::make_pair(proto.value(), actual_block_id);
   }
+  read_keys_count_.Observe(keys.size());
   return result;
 }
 
@@ -178,17 +179,16 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
             end - record_transaction_start);
     LOG_INFO(
         logger_,
-        "Done handle DAML commit command, time: "
-            << TimeUtil::ToString(record_time)
-            << ", execDur: " << total_duration.count()
-            << ", recordTransactionDur: " << record_transaction_duration.count()
-            << ", clock: "
+        "Done handling DAML commit command, time: "
+            << TimeUtil::ToString(record_time) << ", totalDuration: "
+            << total_duration.count() << ", recordTransactionDuration: "
+            << record_transaction_duration.count() << ", clock: "
             << std::chrono::steady_clock::now().time_since_epoch().count());
     execution_time_.Increment((double)total_duration.count());
     daml_hdlr_exec_dur_.Observe(total_duration.count());
     return true;
   } else {
-    LOG_INFO(logger_, "Failed handle DAML commit command, cid: "
+    LOG_INFO(logger_, "Failed handling DAML commit command, cid: "
                           << correlation_id
                           << ", time: " << TimeUtil::ToString(record_time));
     return false;
@@ -214,7 +214,7 @@ bool DamlKvbCommandsHandler::PreExecute(
                       std::chrono::steady_clock::now() - start)
                       .count();
   daml_exec_eng_dur_.Observe(duration);
-  LOG_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+  LOG_INFO(logger_, "DAML external PreExecute duration [" << duration << "ms]");
   if (!status.ok()) {
     LOG_ERROR(logger_, "Pre-execution failed " << status.error_code() << ": "
                                                << status.error_message());
@@ -324,12 +324,14 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
         pre_execution_output.informee_success_thin_replica_ids().begin(),
         pre_execution_output.informee_success_thin_replica_ids().end());
     AddTimeUpdate(record_time, thin_replica_ids, write_set);
+    post_execution_success_.Increment();
   } else {
     WriteSetToRawUpdates(pre_execution_output.out_of_time_bounds_write_set(),
                          write_set);
     AddTimeUpdate(record_time,
                   {pre_execution_output.submitting_participant_id()},
                   write_set);
+    post_execution_timeout_.Increment();
   }
   return true;
 }
@@ -344,6 +346,37 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
     auto value = CreateSliver(entry.value());
     daml_kv_size_summary_.Observe(value.length());
     updates.insert(std::make_pair(std::move(key), std::move(value)));
+  }
+}
+
+void HashAndLogWriteSet(
+    const std::vector<KeyValuePairWithThinReplicaIds>& write_set,
+    const SetOfKeyValuePairs& updates, logging::Logger& logger) {
+  if (logger.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
+    std::string input_bytes;
+    input_bytes.reserve(1000);
+    for (const auto& entry : write_set) {
+      input_bytes += entry.first;
+      input_bytes += entry.second.value();
+    }
+
+    std::string stored_bytes;
+    stored_bytes.reserve(1000);
+    for (const auto& entry : updates) {
+      stored_bytes += entry.first.toString();
+      stored_bytes += entry.second.toString();
+    }
+
+    LOG_DEBUG(logger, "Hash of raw input ["
+                          << Hash(SHA3_256().digest(input_bytes.c_str(),
+                                                    input_bytes.size()))
+                                 .toString()
+                          << "]");
+    LOG_DEBUG(logger, "Hash of serialized input ["
+                          << Hash(SHA3_256().digest(stored_bytes.c_str(),
+                                                    stored_bytes.size()))
+                                 .toString()
+                          << "]");
   }
 }
 
@@ -362,10 +395,10 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     }
     return adapted_result;
   };
-  std::vector<KeyValuePairWithThinReplicaIds> write_set;
 
   auto start = std::chrono::steady_clock::now();
 
+  std::vector<KeyValuePairWithThinReplicaIds> write_set;
   grpc::Status status = validator_client_->Validate(
       submission, record_time, participant_id, correlation_id, parent_span,
       kvb_read, &read_set, &write_set);
@@ -374,40 +407,17 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
                       std::chrono::steady_clock::now() - start)
                       .count();
   daml_exec_eng_dur_.Observe(duration);
-
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
 
-  // Hash and log
-  std::string raw;
-  raw.reserve(1000);
-  std::string ser;
-  ser.reserve(1000);
-
   // Wrap key/value pairs appropriately for storage.
   for (const auto& entry : write_set) {
-    raw += entry.first;
-    raw += entry.second.value();
-
     auto key = CreateDamlKvbKey(entry.first);
-    auto val = CreateDamlKvbValue(entry.second);
-
-    ser += key.toString();
-    ser += val.toString();
-
-    daml_kv_size_summary_.Observe(val.length());
-    updates.insert(std::make_pair(std::move(key), std::move(val)));
+    auto value = CreateDamlKvbValue(entry.second);
+    daml_kv_size_summary_.Observe(value.length());
+    updates.insert(std::make_pair(std::move(key), std::move(value)));
   }
-
-  LOG_DEBUG(dtrmnsm_logger_,
-            "Hash of raw input ["
-                << Hash(SHA3_256().digest(raw.c_str(), raw.size())).toString()
-                << "]");
-
-  LOG_DEBUG(dtrmnsm_logger_,
-            "Hash serialized input ["
-                << Hash(SHA3_256().digest(ser.c_str(), ser.size())).toString()
-                << "]");
+  HashAndLogWriteSet(write_set, updates, determinism_logger_);
 
   if (!status.ok()) {
     LOG_ERROR(logger_, "Validation failed " << status.error_code() << ": "
@@ -424,6 +434,7 @@ void DamlKvbCommandsHandler::RecordTransaction(
     ConcordResponse& concord_response) {
   auto record_transaction = concordUtils::startChildSpanFromContext(
       parent_span.context(), "record_transaction");
+  written_keys_count_.Observe(updates.size());
   SetOfKeyValuePairs amended_updates(updates);
   auto copied_correlation_id = correlation_id;
   auto cid_val = kvbc::Value(std::move(copied_correlation_id));
