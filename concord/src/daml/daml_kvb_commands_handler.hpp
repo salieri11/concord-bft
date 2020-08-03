@@ -31,18 +31,6 @@ bool CheckIfWithinTimeBounds(
 
 class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
- private:
-  logging::Logger logger_;
-  logging::Logger dtrmnsm_logger_;
-  std::unique_ptr<IDamlValidatorClient> validator_client_;
-  prometheus::Histogram& daml_exec_eng_dur_;
-  prometheus::Histogram& daml_hdlr_exec_dur_;
-  prometheus::Counter& write_ops_;
-  prometheus::Counter& read_ops_;
-  prometheus::Counter& failed_ops_;
-  prometheus::Counter& execution_time_;
-  prometheus::Summary& daml_kv_size_summary_;
-
  public:
   // The key used to communicate record time to participants for pre-executed
   // submissions.
@@ -60,7 +48,7 @@ class DamlKvbCommandsHandler
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry, time_contract),
         logger_(logging::getLogger("concord.daml")),
-        dtrmnsm_logger_(logging::getLogger("concord.daml.determinism")),
+        determinism_logger_(logging::getLogger("concord.daml.determinism")),
         validator_client_(std::move(validator)),
         daml_exec_eng_dur_{prometheus_registry->createHistogram(
             command_handler_histograms_,
@@ -85,6 +73,24 @@ class DamlKvbCommandsHandler
         execution_time_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_execution_time"}})},
+        post_execution_success_{prometheus_registry->createCounter(
+            command_handler_counters_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"operation", "post_execution_successes"}})},
+        post_execution_timeout_{prometheus_registry->createCounter(
+            command_handler_counters_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"operation", "post_execution_timeouts"}})},
+        read_keys_count_{prometheus_registry->createSummary(
+            command_handler_summaries_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"item", "daml_keys_read_count"}},
+            {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+        written_keys_count_{prometheus_registry->createSummary(
+            command_handler_summaries_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"item", "daml_keys_written_count"}},
+            {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
         daml_kv_size_summary_{prometheus_registry->createSummary(
             command_handler_summaries_,
             {{"item", "daml_kv_size"}, {"layer", "DamlKvbCommandsHandler"}},
@@ -153,6 +159,21 @@ class DamlKvbCommandsHandler
 
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);
+
+  logging::Logger logger_;
+  logging::Logger determinism_logger_;
+  std::unique_ptr<IDamlValidatorClient> validator_client_;
+  prometheus::Histogram& daml_exec_eng_dur_;
+  prometheus::Histogram& daml_hdlr_exec_dur_;
+  prometheus::Counter& write_ops_;
+  prometheus::Counter& read_ops_;
+  prometheus::Counter& failed_ops_;
+  prometheus::Counter& execution_time_;
+  prometheus::Counter& post_execution_success_;
+  prometheus::Counter& post_execution_timeout_;
+  prometheus::Summary& read_keys_count_;
+  prometheus::Summary& written_keys_count_;
+  prometheus::Summary& daml_kv_size_summary_;
 };
 
 }  // namespace daml
