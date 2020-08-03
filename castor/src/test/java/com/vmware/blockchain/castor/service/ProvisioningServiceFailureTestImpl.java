@@ -21,15 +21,14 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Implement test methods for Provisioning service's skeleton.
+ * Implement test methods for Provisioning service's skeleton. This tests failure by
+ * sending Status.FAILURE to the client callback.
  */
 @GRpcService
 @RequiredArgsConstructor
-public class ProvisioningServiceTestImpl extends ProvisioningServiceV2Grpc.ProvisioningServiceV2ImplBase {
+public class ProvisioningServiceFailureTestImpl extends ProvisioningServiceV2Grpc.ProvisioningServiceV2ImplBase {
 
     public static final UUID REQUEST_ID = UUID.randomUUID();
-    public static final String TEST_SUCCESS = "TEST SUCCESS";
-
     private final CompletableFuture<CastorDeploymentStatus> completableFuture;
 
     @Override
@@ -44,17 +43,20 @@ public class ProvisioningServiceTestImpl extends ProvisioningServiceV2Grpc.Provi
     @Override
     public void streamDeploymentSessionEvents(StreamDeploymentSessionEventRequest request,
                                               StreamObserver<DeploymentExecutionEvent> responseObserver) {
+        // Mark completed with failure
         responseObserver.onNext(DeploymentExecutionEvent.newBuilder()
                                         .setType(DeploymentExecutionEvent.Type.COMPLETED)
-                                        .setStatus(DeploymentExecutionEvent.Status.SUCCESS)
+                                        .setStatus(DeploymentExecutionEvent.Status.FAILURE)
                                         .build()
         );
-        completableFuture.complete(CastorDeploymentStatus.SUCCESS);
         responseObserver.onCompleted();
+        completableFuture.complete(CastorDeploymentStatus.FAILURE);
     }
 
     @Override
     public void deprovisionDeployment(DeprovisionDeploymentRequest request,
                                       StreamObserver<DeprovisionDeploymentResponse> responseObserver) {
+        responseObserver.onNext(DeprovisionDeploymentResponse.newBuilder().build());
+        responseObserver.onCompleted();
     }
 }

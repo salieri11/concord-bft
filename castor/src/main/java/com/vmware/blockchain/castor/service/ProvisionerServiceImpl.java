@@ -13,9 +13,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -29,6 +33,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
 import com.vmware.blockchain.deployment.v1.DeploymentSpec;
+import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.ElasticSearch;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
@@ -64,7 +69,9 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     private static final String NAME_KEY = "name";
     private static final String LAT_KEY = "geo-latitude";
     private static final String LONG_KEY = "geo-longitude";
+    private static final String PROVISIONING_TIMEOUT_MINUTES_KEY = "castor.deployment.timeout.minutes";
 
+    private final Environment environment;
     private final ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingProvisioningClient;
     private final ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub asyncProvisioningClient;
 
@@ -72,8 +79,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
 
     @Autowired
     public ProvisionerServiceImpl(
+            Environment environment,
             ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingProvisioningClient,
             ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub asyncProvisioningClient) {
+        this.environment = environment;
         this.blockingProvisioningClient = blockingProvisioningClient;
         this.asyncProvisioningClient = asyncProvisioningClient;
 
@@ -86,7 +95,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     public void provisioningHandoff(
             InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
-            CompletableFuture<String> deploymentCompletionFuture) throws CastorException {
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture) {
 
         DeploymentRequest deploymentRequest = constructDeploymentRequest(
                 infrastructureDescriptorModel, deploymentDescriptorModel);
@@ -95,13 +104,19 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         log.debug("Requesting a deployment with request info: {}", deploymentRequest);
         String deploymentRequestId = submitDeploymentRequest(deploymentRequest, deploymentCompletionFuture);
 
-        // Receive events from the provisioning service for this deployment
-        streamDeploymentSessionEvents(deploymentRequestId, deploymentCompletionFuture);
+        // Process callbacks from the provisioning service
+        CastorDeploymentStatus status = provisionAndComplete(deploymentRequestId);
+        if (CastorDeploymentStatus.FAILURE == status) {
+            deprovisionDeployment(infrastructureDescriptorModel, deploymentDescriptorModel, deploymentRequestId);
+            deploymentCompletionFuture.complete(CastorDeploymentStatus.FAILURE);
+        } else {
+            deploymentCompletionFuture.complete(CastorDeploymentStatus.SUCCESS);
+        }
     }
 
     private String submitDeploymentRequest(
             DeploymentRequest deploymentRequest,
-            CompletableFuture<String> deploymentCompletionFuture) throws CastorException {
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture) throws CastorException {
         try {
             DeploymentRequestResponse response = blockingProvisioningClient.createDeployment(deploymentRequest);
             String requestId = response.getId();
@@ -114,10 +129,30 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         }
     }
 
+    private CastorDeploymentStatus provisionAndComplete(String deploymentRequestId) {
+
+        // This future is for completion of provisioning itself, since those callbacks are asynchronous
+        CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture = new CompletableFuture<>();
+
+        // Request callbacks from Persephone to the previously issued deployment request.
+        streamDeploymentSessionEvents(deploymentRequestId, provisioningCompletionFuture);
+
+        // Wait until the deployment session is completed.
+        long provisioningTimeoutMinutes = environment.getProperty(PROVISIONING_TIMEOUT_MINUTES_KEY, Long.class, 30L);
+        try {
+            CastorDeploymentStatus provisioningStatus =
+                    provisioningCompletionFuture.get(provisioningTimeoutMinutes, TimeUnit.MINUTES);
+            return provisioningStatus;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error("Encountered error during provisioning call: {0}", e);
+            return CastorDeploymentStatus.FAILURE;
+        }
+    }
+
     private void streamDeploymentSessionEvents(String deploymentRequestId,
-                                               CompletableFuture<String> deploymentCompletionFuture) {
+                                               CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture) {
         DeploymentExecutionEventResponseObserver deero =
-                new DeploymentExecutionEventResponseObserver(deploymentRequestId, deploymentCompletionFuture);
+                new DeploymentExecutionEventResponseObserver(deploymentRequestId, provisioningCompletionFuture);
 
         StreamDeploymentSessionEventRequest request =
                 StreamDeploymentSessionEventRequest.newBuilder()
@@ -483,5 +518,27 @@ public class ProvisionerServiceImpl implements ProvisionerService {
                 .build();
 
         return orchestrationSite;
+    }
+
+    private void deprovisionDeployment(
+            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            DeploymentDescriptorModel deploymentDescriptorModel,
+            String requestId) {
+        log.info("Initiating deprovisioning for deployment with request id: {}", requestId);
+        List<OrchestrationSite> orchestrationSites =
+                buildSites(infrastructureDescriptorModel, deploymentDescriptorModel);
+        Sites sites = Sites.newBuilder()
+                .addAllInfoList(orchestrationSites)
+                .build();
+
+        DeprovisionDeploymentRequest deprovisionDeploymentRequest =
+                DeprovisionDeploymentRequest.newBuilder()
+                        .setSessionId(requestId)
+                        .setSites(sites)
+                        .build();
+
+        // Use the blocking API since DeprovisionDeploymentResponse has no useful info.
+        blockingProvisioningClient.deprovisionDeployment(deprovisionDeploymentRequest);
+        log.info("Deprovisioning completed for deployment with request id: {}", requestId);
     }
 }

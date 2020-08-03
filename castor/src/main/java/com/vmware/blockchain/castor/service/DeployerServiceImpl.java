@@ -69,20 +69,19 @@ public class DeployerServiceImpl implements DeployerService {
         }
 
         // This is used so the application will wait until the async deployment process finishes
-        CompletableFuture<String> deploymentCompletionFuture = new CompletableFuture<>();
+        CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture = new CompletableFuture<>();
 
-        int deploymentTimeoutMinutes = environment.getProperty(DEPLOYMENT_TIMEOUT_MINUTES_KEY, Integer.class, 30);
+        long deploymentTimeoutMinutes = environment.getProperty(DEPLOYMENT_TIMEOUT_MINUTES_KEY, Long.class, 30L);
 
         // Process deployment
         try {
             provisionerService.provisioningHandoff(
                     infrastructureDescriptor, deploymentDescriptor, deploymentCompletionFuture);
-        } catch (Throwable t) {
-            // caught by ExecutionException below
-            deploymentCompletionFuture.completeExceptionally(t);
         } finally {
             try {
-                String result = deploymentCompletionFuture.get(deploymentTimeoutMinutes, TimeUnit.MINUTES);
+                CastorDeploymentStatus result =
+                        deploymentCompletionFuture.get(deploymentTimeoutMinutes, TimeUnit.MINUTES);
+                log.info("Deployment completed with status: {}", result);
             } catch (InterruptedException e) {
                 log.error("Deployment failure. Provisioning was interrupted", e);
             } catch (ExecutionException e) {
