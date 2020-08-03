@@ -157,7 +157,7 @@ void ExternalClient::ServerLoop() {
 
       rq_result = client_pool_.SendRequest(
           std::move(request), rq_flags, kDefaultRqTimeout, reply.data(),
-          reply.size(), std::to_string(corr_id_++), seq_num);
+          reply.size(), seq_num, std::to_string(corr_id_++));
 
       if (rq_result !=
           concord::concord_client_pool::SubmitResult::Acknowledged) {

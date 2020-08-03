@@ -27,7 +27,6 @@ SubmitResult ConcordClientPool::SendRequest(
     std::chrono::milliseconds timeout_ms, char *reply_buffer,
     std::uint32_t max_reply_size, uint64_t seq_num, std::string correlation_id,
     std::string span_context) {
-
   std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -48,7 +47,7 @@ SubmitResult ConcordClientPool::SendRequest(
     client->generateClientSeqNum();
 
   if (max_reply_size) client->setReplyBuffer(reply_buffer, max_reply_size);
-  
+
   LOG_INFO(
       logger_,
       "client_id=" << client->getClientId() << " starts handling reqSeqNum="
@@ -73,20 +72,20 @@ SubmitResult ConcordClientPool::SendRequest(
                         << config.request.correlation_id);
   auto request_flag = ClientMsgFlag::EMPTY_FLAGS_REQ;
   if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
-  return SendRequest(std::forward<std::vector<char>>(request), request_flag,
-                     config.request.timeout, nullptr, 0,
-                     config.request.correlation_id,
-                     config.request.span_context);
+  return SendRequest(
+      std::forward<std::vector<char>>(request), request_flag,
+      config.request.timeout, nullptr, 0, config.request.sequence_number,
+      config.request.correlation_id, config.request.span_context);
 }
 
 SubmitResult ConcordClientPool::SendRequest(
     const bft::client::ReadConfig &config, bft::client::Msg &&request) {
   LOG_INFO(logger_,
            "Read request generated with cid=" << config.request.correlation_id);
-  return SendRequest(std::forward<std::vector<char>>(request),
-                     ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
-                     nullptr, 0, config.request.correlation_id,
-                     config.request.span_context);
+  return SendRequest(
+      std::forward<std::vector<char>>(request), ClientMsgFlag::READ_ONLY_REQ,
+      config.request.timeout, nullptr, 0, config.request.sequence_number,
+      config.request.correlation_id, config.request.span_context);
 }
 
 ConcordClientPool::ConcordClientPool(std::istream &config_stream)
