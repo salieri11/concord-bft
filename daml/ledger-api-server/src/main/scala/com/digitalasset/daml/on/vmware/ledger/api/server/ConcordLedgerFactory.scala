@@ -28,7 +28,10 @@ import com.digitalasset.daml.on.vmware.participant.state.{
   ConcordKeyValueLedgerReader,
   ConcordLedgerWriter
 }
-import com.digitalasset.daml.on.vmware.read.service.ThinReplicaReadClient
+import com.digitalasset.daml.on.vmware.read.service.{
+  ThinReplicaReadClient,
+  ThinReplicaReadClientMetrics
+}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import com.digitalasset.daml.on.vmware.write.service.bft.BftWriteClient
@@ -196,7 +199,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
       config.maxTrcReadHashTimeout,
       config.jaegerAgentAddress,
       new ThinReplicaClientJni,
-      metricRegistry)
+      new ThinReplicaReadClientMetrics(metricRegistry))
     // format: on
   }
 
