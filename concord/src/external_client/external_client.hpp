@@ -68,7 +68,8 @@ class ConcordClient {
                        bftEngine::ClientMsgFlag flags,
                        std::chrono::milliseconds timeout_ms,
                        std::uint32_t reply_size, uint64_t seq_num,
-                       const std::string correlation_id = {});
+                       const std::string correlation_id = {},
+                       std::string span_context = std::string());
 
   int getClientId() const;
 

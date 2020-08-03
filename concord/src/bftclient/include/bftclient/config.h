@@ -76,7 +76,8 @@ struct RequestConfig {
   uint64_t sequence_number = 0;
   uint32_t max_reply_size = 64 * 1024;
   std::chrono::milliseconds timeout = 5s;
-  std::string correlation_id = "";
+  std::string correlation_id;
+  std::string span_context;
 };
 
 // The configuration for a single write request.
