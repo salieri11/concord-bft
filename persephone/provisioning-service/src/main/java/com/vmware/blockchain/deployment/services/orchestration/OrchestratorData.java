@@ -83,6 +83,7 @@ public class OrchestratorData {
     public static class CreateNetworkResourceRequest {
 
         String name;
+        String ip;
         Boolean publicResource;
     }
 

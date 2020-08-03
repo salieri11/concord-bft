@@ -163,6 +163,7 @@ message LogManagement {
 
 /**
  * Enum supporting properties per node
+ * TODO: Duplicate alert : some enums are duplicate of DeploymentAttributes, need cleanup from here.
  */
 message NodeProperty {
     enum Name {
@@ -188,6 +189,7 @@ message NodeProperty {
         VM_CPU_COUNT = 19;
         VM_CORES_PER_SOCKET = 20;
         VM_MEMORY = 21;
+        VM_IP = 22;
     }
 
     Name name = 1;

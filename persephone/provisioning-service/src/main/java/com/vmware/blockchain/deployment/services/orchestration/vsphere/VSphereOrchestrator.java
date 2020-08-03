@@ -7,16 +7,17 @@ package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 
-import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorSiteInformation;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
 import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
@@ -160,14 +161,16 @@ public class VSphereOrchestrator implements Orchestrator {
     public OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request) {
 
-        val privateIpAddress = ipamClient.allocatedPrivateIp(datacenterInfo.getNetwork().getName());
+        AbstractMap.SimpleEntry<String, String> privateIpAddress = OrchestratorUtils.getAddress(ipamClient,
+                datacenterInfo.getNetwork().getName(),
+                request.getIp(), request.getName());
         log.info("Assigned private IP {}", privateIpAddress);
 
         return OrchestratorData.NetworkResourceEventCreated.builder()
                 .name(request.getName())
-                .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
+                .address(privateIpAddress.getValue())
                 .publicResource(false)
-                .resource(URI.create("/" + privateIpAddress.getName()))
+                .resource(URI.create("/" + privateIpAddress.getKey()))
                 .build();
     }
 
