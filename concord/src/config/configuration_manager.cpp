@@ -3579,6 +3579,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("tee_enable", deploymentTag);
   config.addValidator("tee_enable", validateBoolean, nullptr);
 
+  config.declareParameter(
+      "create_tee_genesis_block",
+      "Whether or not to create a genesis block on tee blockchain. This "
+      "parameter is for test environments only. E.g. run linearizability "
+      "tests against tee blockchain.",
+      "true");
+  config.tagParameter("create_tee_genesis_block", publicDefaultableTags);
+  config.tagParameter("create_tee_genesis_block", deploymentTag);
+  config.addValidator("create_tee_genesis_block", validateBoolean, nullptr);
+
   node.declareParameter("tee_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
                         "TEE service can be reached.",

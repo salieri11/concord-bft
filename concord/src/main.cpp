@@ -738,7 +738,17 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new TeeCommandsHandler(config, nodeConfig, replica, replica,
                                  subscriber_list, prometheus_registry));
-      create_tee_genesis_block(&replica, nodeConfig, logger);
+
+      auto should_create_tee_genesis_block = [&config]() {
+        // if the parameter is not set - create the block
+        if (!config.hasValue<bool>("create_tee_genesis_block"))
+          return true;
+        else
+          return config.getValue<bool>("create_tee_genesis_block");
+      };
+
+      if (should_create_tee_genesis_block())
+        create_tee_genesis_block(&replica, nodeConfig, logger);
     } else if (perf_enabled) {
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new concord::performance::PerformanceCommandsHandler(

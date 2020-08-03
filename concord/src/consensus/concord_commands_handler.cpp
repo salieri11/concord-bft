@@ -433,6 +433,7 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
     concord::kvbc::BlockId &out_block_id,
     const concordUtils::SpanWrapper &parent_span) {
   auto span = concordUtils::startChildSpan("add_block", parent_span);
+
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,

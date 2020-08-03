@@ -71,6 +71,13 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   bool WriteKVData(const com::vmware::concord::WriteBlockRequest& wbr,
                    string& outstr);
   kvbc::BlockId RecordTransaction(const kvbc::SetOfKeyValuePairs& updates);
+
+  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
+    return nullptr;
+  }
+
+  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
+                                  controlStateManager) override {}
 };
 
 }  // namespace tee

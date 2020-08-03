@@ -93,12 +93,14 @@ class ConcordClientPool {
   // reply_buffer - client application allocated buffer that stores returned
   // response.
   // max_reply_size - holds the size of reply_buffer.
+  // seq_num - sequence number for the request
   SubmitResult SendRequest(std::vector<char>&& request,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
                            char* reply_buffer, std::uint32_t max_reply_size,
-                           std::string correlation_id = {},
+                           uint64_t seq_num, std::string correlation_id = {},
                            std::string span_context = std::string());
+
   // This method is responsible to get write requests with the new client
   // paramters and parse it to the old SimpleClient interface.
   SubmitResult SendRequest(const bft::client::WriteConfig& config,
