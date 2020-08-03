@@ -21,7 +21,6 @@ import com.daml.ledger.validator.preexecution.{
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
 import com.daml.ledger.validator.privacy.{PublicAccess, RestrictedAccess}
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
-import com.digitalasset.daml.on.vmware.execution.engine.caching.PreExecutionStateCaches.StateCacheWithFingerprints
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator.toWriteSet
 import com.digitalasset.kvbc.daml_validator.PreprocessorToEngine.PreExecutionRequest
@@ -41,6 +40,7 @@ import com.vmware.concord.concord.{
 import io.grpc.stub.StreamObserver
 import java.io
 
+import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerprints.StateCacheWithFingerprints
 import com.vmware.concord.kvb.concord_storage.ValueWithTrids
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._

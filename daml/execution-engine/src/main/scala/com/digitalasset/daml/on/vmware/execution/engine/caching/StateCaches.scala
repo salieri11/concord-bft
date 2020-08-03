@@ -1,16 +1,14 @@
 package com.digitalasset.daml.on.vmware.execution.engine.caching
 
 import com.codahale.metrics.MetricRegistry
-import com.daml.caching.{Cache, WeightedCache}
-import com.daml.ledger.participant.state.kvutils.caching.`Message Weight`
+import com.daml.caching.WeightedCache
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
+import com.daml.ledger.participant.state.kvutils.caching.`Message Weight`
+import com.daml.ledger.validator.caching.CachingDamlLedgerStateReader.StateCache
 import com.daml.metrics.ValidatorCacheMetrics
 import org.slf4j.LoggerFactory
 
 private[engine] object StateCaches {
-  // TODO Remove once in SDK
-  type StateCache = Cache[DamlStateKey, DamlStateValue]
-
   val DefaultCacheSize: Int = 256 * 1024 * 1024
 
   private val logger = LoggerFactory.getLogger(this.getClass)

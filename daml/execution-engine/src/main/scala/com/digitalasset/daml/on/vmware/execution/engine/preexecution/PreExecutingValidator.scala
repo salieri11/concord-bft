@@ -5,6 +5,7 @@ package com.digitalasset.daml.on.vmware.execution.engine.preexecution
 import com.daml.api.util.TimestampConversion
 import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
+import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerprints.StateCacheWithFingerprints
 import com.daml.ledger.validator.caching.{
   CachingDamlLedgerStateReaderWithFingerprints,
   ImmutablesOnlyCacheUpdatePolicy
@@ -16,7 +17,6 @@ import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
 import com.digitalasset.daml.on.vmware.execution.engine.ConcordLedgerStateOperations.accessControlListToThinReplicaIds
 import com.digitalasset.daml.on.vmware.execution.engine.Digests
-import com.digitalasset.daml.on.vmware.execution.engine.caching.PreExecutionStateCaches.StateCacheWithFingerprints
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.PreprocessorToEngine.PreExecutionRequest
 import com.digitalasset.kvbc.daml_validator.{
@@ -179,24 +179,21 @@ object PreExecutingValidator {
     * @param cacheFactory          factory function for creating a state cache instance
     *                              (to be called per replica)
     * @param replicaId             ID of replica for which this instance is created for
-    * @param ledgerStateOperations defines how we access ledger state
+    * @param ledgerStateReader defines how we read ledger state
     */
   private[engine] def getOrCreateReader(
       cacheFactory: () => StateCacheWithFingerprints,
       keySerializationStrategy: KeySerializationStrategy)(
       replicaId: Long,
-      ledgerStateOperations: LedgerStateReaderWithFingerprints)(
+      ledgerStateReader: LedgerStateReaderWithFingerprints)(
       implicit executionContext: ExecutionContext): DamlLedgerStateReaderWithFingerprints =
     readerPerReplica.getOrElseUpdate(
       replicaId,
-      // TODO Use SDK factory method once available
-      new CachingDamlLedgerStateReaderWithFingerprints(
+      CachingDamlLedgerStateReaderWithFingerprints(
         cacheFactory(),
-        ImmutablesOnlyCacheUpdatePolicy.shouldCacheOnRead,
-        keySerializationStrategy,
-        new RawToDamlLedgerStateReaderWithFingerprintsAdapterAccess(
-          ledgerStateOperations,
-          keySerializationStrategy)
+        ImmutablesOnlyCacheUpdatePolicy,
+        ledgerStateReader,
+        keySerializationStrategy
       )
     )
 
