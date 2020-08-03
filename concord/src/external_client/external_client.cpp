@@ -48,7 +48,8 @@ uint32_t ConcordClient::SendRequest(const void* request,
                                     ClientMsgFlag flags,
                                     std::chrono::milliseconds timeout_ms,
                                     std::uint32_t reply_size, uint64_t seq_num,
-                                    const std::string correlation_id) {
+                                    const std::string correlation_id,
+                                    std::string span_context) {
   uint32_t replyBufSize =
       externalReplyBufferSize ? externalReplyBufferSize : reply_->size();
   char* replyBuffer =
@@ -57,7 +58,7 @@ uint32_t ConcordClient::SendRequest(const void* request,
   auto res = client_->sendRequest(flags, static_cast<const char*>(request),
                                   request_size, seq_num, timeout_ms.count(),
                                   reply_size, replyBuffer, replyBufSize,
-                                  correlation_id);
+                                  correlation_id, span_context);
 
   if (res == bftEngine::OperationResult::TIMEOUT)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id

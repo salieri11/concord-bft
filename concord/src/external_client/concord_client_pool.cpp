@@ -25,7 +25,8 @@ using namespace bftEngine;
 SubmitResult ConcordClientPool::SendRequest(
     std::vector<char> &&request, ClientMsgFlag flags,
     std::chrono::milliseconds timeout_ms, char *reply_buffer,
-    std::uint32_t max_reply_size, std::string correlation_id) {
+    std::uint32_t max_reply_size, std::string correlation_id,
+    std::string span_context) {
   std::shared_ptr<external_client::ConcordClient> client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
@@ -41,16 +42,17 @@ SubmitResult ConcordClientPool::SendRequest(
   }
   client->generateClientSeqNum();
   if (max_reply_size) client->setReplyBuffer(reply_buffer, max_reply_size);
-  LOG_INFO(logger_, "client_id=" << client->getClientId()
-                                 << " starts handling reqSeqNum="
-                                 << client->getClientSeqNum() << " cid="
-                                 << correlation_id << " flags=" << flags
-                                 << " request_size=" << request.size()
-                                 << " timeout_ms=" << timeout_ms.count());
+  LOG_INFO(
+      logger_,
+      "client_id=" << client->getClientId() << " starts handling reqSeqNum="
+                   << client->getClientSeqNum() << " cid=" << correlation_id
+                   << "span_context exists=" << !span_context.empty()
+                   << " flags=" << flags << " request_size=" << request.size()
+                   << " timeout_ms=" << timeout_ms.count());
   client->setStartRequestTime();
   auto *job = new ConcordClientProcessingJob(
       *this, client, std::move(request), flags, timeout_ms, max_reply_size,
-      correlation_id, client->getClientSeqNum());
+      correlation_id, client->getClientSeqNum(), span_context);
   requests_counter_.Increment();
   clients_gauge_.Decrement();
   jobs_thread_pool_.add(job);
@@ -65,7 +67,8 @@ SubmitResult ConcordClientPool::SendRequest(
   if (config.request.pre_execute) request_flag = ClientMsgFlag::PRE_PROCESS_REQ;
   return SendRequest(std::forward<std::vector<char>>(request), request_flag,
                      config.request.timeout, nullptr, 0,
-                     config.request.correlation_id);
+                     config.request.correlation_id,
+                     config.request.span_context);
 }
 
 SubmitResult ConcordClientPool::SendRequest(
@@ -74,7 +77,8 @@ SubmitResult ConcordClientPool::SendRequest(
            "Read request generated with cid=" << config.request.correlation_id);
   return SendRequest(std::forward<std::vector<char>>(request),
                      ClientMsgFlag::READ_ONLY_REQ, config.request.timeout,
-                     nullptr, 0, config.request.correlation_id);
+                     nullptr, 0, config.request.correlation_id,
+                     config.request.span_context);
 }
 
 ConcordClientPool::ConcordClientPool(std::istream &config_stream)
@@ -281,7 +285,7 @@ void ConcordClientPool::Done(const uint64_t sn, const std::string cid,
 void ConcordClientProcessingJob::execute() {
   uint32_t reply_size = processing_client_->SendRequest(
       request_.data(), request_.size(), flags_, timeout_ms_, reply_size_,
-      seq_num_, correlation_id_);
+      seq_num_, correlation_id_, span_context_);
   clients_pool_.InsertClientToQueue(processing_client_, seq_num_,
                                     correlation_id_, reply_size);
 }
