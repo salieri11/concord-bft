@@ -5,6 +5,7 @@ package com.digitalasset.daml.on.vmware.read.service
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
 import com.codahale.metrics.MetricRegistry
+import com.daml.metrics.VarGauge
 import com.digitalasset.daml.on.vmware.common.Constants
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClient, Update}
 import org.slf4j.LoggerFactory
@@ -19,13 +20,8 @@ class ThinReplicaReadClient(
     maxReadHashTimeout: Short,
     jaegerAgent: String,
     trcCore: ThinReplicaClient,
-    metricRegistry: MetricRegistry) {
+    metrics: ThinReplicaReadClientMetrics) {
   import ThinReplicaReadClient._
-
-  private object Metrics {
-    val prefix = "daml.trc"
-    val getBlockTimer = metricRegistry.timer(s"$prefix.get-block")
-  }
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -78,7 +74,14 @@ class ThinReplicaReadClient(
         subsResult =>
           // None return signals end of resource
           if (subsResult)
-            Metrics.getBlockTimer.time(() => trcCore.pop)
+            metrics.getBlockTimer
+              .time(() => trcCore.pop)
+              .map(
+                block => {
+                  metrics.lastBlockId.updateValue(block.blockId)
+                  block
+                }
+              )
           else
           None,
         // close
@@ -93,4 +96,11 @@ class ThinReplicaReadClient(
 
 object ThinReplicaReadClient {
   type Block = Update
+}
+
+class ThinReplicaReadClientMetrics(metricRegistry: MetricRegistry) {
+  val prefix = "daml.trc"
+  val getBlockTimer = metricRegistry.timer(s"$prefix.get-block")
+  val lastBlockId = new VarGauge[Long](0)
+  metricRegistry.register(s"$prefix.last-block-id", lastBlockId)
 }
