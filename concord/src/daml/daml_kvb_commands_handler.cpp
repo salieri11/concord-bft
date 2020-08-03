@@ -422,15 +422,15 @@ void DamlKvbCommandsHandler::RecordTransaction(
     const SetOfKeyValuePairs& updates, const BlockId current_block_id,
     const string& correlation_id, const opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
-  auto record_transaction = opentracing::Tracer::Global()->StartSpan(
-      "record_transaction", {opentracing::ChildOf(&parent_span.context())});
+  auto record_transaction = concordUtils::startChildSpanFromContext(
+      parent_span.context(), "record_transaction");
   SetOfKeyValuePairs amended_updates(updates);
   auto copied_correlation_id = correlation_id;
   auto cid_val = kvbc::Value(std::move(copied_correlation_id));
   internal_kv_size_summary_.Observe(cid_val.length());
   amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
-  concordUtils::Status status = addBlock(amended_updates, new_block_id);
+  auto status = addBlock(amended_updates, new_block_id, record_transaction);
   assert(status.isOK());
   assert(new_block_id == current_block_id + 1);
 
@@ -554,11 +554,14 @@ bool DamlKvbCommandsHandler::Execute(
   }
 }
 
-void DamlKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
+void DamlKvbCommandsHandler::WriteEmptyBlock(
+    TimeContract* time_contract, const opentracing::Span& parent_span) {
+  auto span = concordUtils::startChildSpanFromContext(parent_span.context(),
+                                                      "write_empty_block");
   BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;
-  auto status = addBlock(empty_updates, newBlockId);
+  auto status = addBlock(empty_updates, newBlockId, span);
   assert(status.isOK());
   assert(newBlockId == currentBlockId + 1);
 }

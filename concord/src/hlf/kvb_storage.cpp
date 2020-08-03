@@ -3,6 +3,7 @@
 #include "hlf/kvb_storage.hpp"
 #include <cstring>
 #include <vector>
+#include "OpenTracing.hpp"
 #include "common/concord_exception.hpp"
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
@@ -155,11 +156,13 @@ com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
 
 // Add block of hlf type to the database, this API should have more
 // functionalities in the future.
-Status HlfKvbStorage::WriteHlfBlock() {
+Status HlfKvbStorage::WriteHlfBlock(
+    const concordUtils::SpanWrapper &parent_span) {
   if (!ptr_block_appender_) {
     throw ReadOnlyModeException();
   }
 
+  auto span = concordUtils::startChildSpan("write_hlf_block", parent_span);
   com::vmware::concord::hlf::storage::HlfBlock block;
   // hlf block number start from 1
   block.set_number(next_block_number());
@@ -217,7 +220,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
 
   // Actually write the block
   BlockId out_blockId;
-  Status status = ptr_block_appender_->addBlock(updates_, out_blockId);
+  Status status = ptr_block_appender_->addBlock(updates_, out_blockId, span);
   if (status.isOK()) {
     LOG_DEBUG(logger_, "Appended block number " << out_blockId);
   } else {

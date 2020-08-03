@@ -4,6 +4,7 @@
 #define CONCORD_HLF_KVB_STORAGE_H_
 
 #include "Logger.hpp"
+#include "OpenTracing.hpp"
 #include "common/concord_types.hpp"
 #include "concord.pb.h"
 #include "concord_storage.pb.h"
@@ -81,7 +82,9 @@ class HlfKvbStorage {
   concordUtils::Status AddHlfTransaction(
       const com::vmware::concord::HlfRequest& hlf_request);
 
-  concordUtils::Status WriteHlfBlock();
+  concordUtils::Status WriteHlfBlock(
+      const concordUtils::SpanWrapper& parent_span =
+          concordUtils::SpanWrapper{});
 
   com::vmware::concord::hlf::storage::HlfBlock GetHlfBlock(uint64_t);
 };

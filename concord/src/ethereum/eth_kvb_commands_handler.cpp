@@ -131,7 +131,8 @@ bool EthKvbCommandsHandler::Execute(
 // This implementation depends on there being a 1:1 mapping between Ethereum
 // block and KVB block, so if there is something like a time update, but no
 // ethereum transaction, we still need to write a block.
-void EthKvbCommandsHandler::WriteEmptyBlock(TimeContract *time) {
+void EthKvbCommandsHandler::WriteEmptyBlock(TimeContract *time,
+                                            const opentracing::Span &) {
   // This is currently only called when time service is enabled, so timeContract
   // should always be non-null, but let's take the safest route for now.
   uint64_t timestamp = 0;

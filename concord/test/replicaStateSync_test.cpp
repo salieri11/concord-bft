@@ -3,6 +3,7 @@
  * Test ReplicaStateSyncImp class.
  */
 
+#include "OpenTracing.hpp"
 #define USE_ROCKSDB 1
 
 #include "Logger.hpp"
@@ -79,8 +80,9 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
 
 class MockIBlocksAppender : public IBlocksAppender {
  public:
-  Status addBlock(const SetOfKeyValuePairs &updates,
-                  BlockId &outBlockId) override {
+  Status addBlock(const SetOfKeyValuePairs &updates, BlockId &outBlockId,
+                  const concordUtils::SpanWrapper &parent_span =
+                      concordUtils::SpanWrapper{}) override {
     return Status::OK();
   }
 };

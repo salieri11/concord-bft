@@ -45,7 +45,8 @@ class PerformanceCommandsHandler
                                ba,     subscriber_list, prometheus_registry},
         logger_{logging::getLogger("concord.perf.handler")} {}
 
-  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override {}
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract,
+                       const opentracing::Span&) override {}
 
  private:
   logging::Logger logger_;

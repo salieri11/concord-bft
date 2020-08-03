@@ -1,6 +1,7 @@
 // Copyright 2019 VMware, all rights reserved
 //
 
+#include "OpenTracing.hpp"
 #include "concord.pb.h"
 #include "direct_kv_db_adapter.h"
 #include "gtest/gtest.h"
@@ -74,8 +75,9 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween not supported in test");
   }
 
-  Status addBlock(const SetOfKeyValuePairs& updates,
-                  BlockId& outBlockId) override {
+  Status addBlock(const SetOfKeyValuePairs& updates, BlockId& outBlockId,
+                  const concordUtils::SpanWrapper& parent_span =
+                      concordUtils::SpanWrapper{}) override {
     Status status = db_.multiPut(updates);
     outBlockId = 0;
     return status;

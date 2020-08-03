@@ -227,11 +227,15 @@ BlockId TeeCommandsHandler::RecordTransaction(
   return new_block_id;
 }
 
-void TeeCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
+void TeeCommandsHandler::WriteEmptyBlock(TimeContract* time_contract,
+                                         const opentracing::Span& parent_span) {
+  auto span = concordUtils::startChildSpanFromContext(parent_span.context(),
+                                                      "write_empty_block");
   BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;
-  assert(addBlock(empty_updates, newBlockId).isOK());
+  auto status = addBlock(empty_updates, newBlockId, span);
+  assert(status.isOK());
   assert(newBlockId == currentBlockId + 1);
 }
 
