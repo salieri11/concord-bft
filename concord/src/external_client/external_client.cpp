@@ -48,7 +48,8 @@ uint32_t ConcordClient::SendRequest(const void* request,
                                     ClientMsgFlag flags,
                                     std::chrono::milliseconds timeout_ms,
                                     std::uint32_t reply_size, uint64_t seq_num,
-                                    const std::string correlation_id) {
+                                    const std::string correlation_id,
+                                    std::string span_context) {
   uint32_t replyBufSize =
       externalReplyBufferSize ? externalReplyBufferSize : reply_->size();
   char* replyBuffer =
@@ -57,7 +58,7 @@ uint32_t ConcordClient::SendRequest(const void* request,
   auto res = client_->sendRequest(flags, static_cast<const char*>(request),
                                   request_size, seq_num, timeout_ms.count(),
                                   reply_size, replyBuffer, replyBufSize,
-                                  correlation_id);
+                                  correlation_id, span_context);
 
   if (res == bftEngine::OperationResult::TIMEOUT)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
@@ -170,6 +171,9 @@ uint64_t ConcordClient::getClientSeqNum() const { return seq_num_; }
 void ConcordClient::generateClientSeqNum() {
   seq_num_ = seqGen_->generateUniqueSequenceNumberForRequest();
 }
+
+void ConcordClient::setClientSeqNum(uint64_t seq_num) { seq_num_ = seq_num; }
+
 void ConcordClient::setStartRequestTime() {
   start_job_time_ = std::chrono::steady_clock::now();
 }

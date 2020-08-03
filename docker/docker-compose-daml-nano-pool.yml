@@ -133,7 +133,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=indexdb
-      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1
+      - POSTGRES_MULTIPLE_SCHEMAS=daml_ledger_api1
       - USE_POSTGRES_CONFIG_FILE=true
     volumes:
       - ./devdata/index_db:/var/lib/postgresql/data

@@ -1,0 +1,4 @@
+{
+  "test_suites": ["ClientPoolDamlTests", "DamlTests", "ThinReplicaServerTests","PersephoneSmokeNew"],
+  "build_targets": []
+}

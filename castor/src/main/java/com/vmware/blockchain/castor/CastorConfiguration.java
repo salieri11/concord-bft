@@ -4,14 +4,15 @@
 
 package com.vmware.blockchain.castor;
 
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.vmware.blockchain.castor.configuration.GrpcConfig;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
-import io.grpc.ManagedChannel;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -22,15 +23,26 @@ import lombok.RequiredArgsConstructor;
 @Import(GrpcConfig.class)
 public class CastorConfiguration {
 
-    private final ManagedChannel provisioningServerChannel;
-
+    /**
+     * Message source for localized messages.
+     * @return the message source
+     */
     @Bean
-    ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub provisioningServiceStub() {
-        return ProvisioningServiceV2Grpc.newStub(provisioningServerChannel);
+    public MessageSource messageSource() {
+        ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+        messageSource.setBasename("classpath:messages");
+        messageSource.setDefaultEncoding("UTF-8");
+        return messageSource;
     }
 
+    /**
+     * The bean validator factory bean.
+     * @return the validator factory bean
+     */
     @Bean
-    ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub provisioningServiceBlockingStub() {
-        return ProvisioningServiceV2Grpc.newBlockingStub(provisioningServerChannel);
+    public LocalValidatorFactoryBean validator() {
+        LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
+        validatorFactoryBean.setValidationMessageSource(messageSource());
+        return validatorFactoryBean;
     }
 }

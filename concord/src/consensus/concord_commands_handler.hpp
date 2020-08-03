@@ -15,6 +15,8 @@
 #include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "pruning/kvb_pruning_sm.hpp"
+#include "reconfiguration/concord_control_handler.hpp"
+#include "reconfiguration/reconfiguration_sm.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
@@ -29,25 +31,32 @@ struct ConcordRequestContext {
   uint32_t max_response_size;
 };
 
-class ConcordControlHandlers : public bftEngine::ControlHandlers {
- public:
-  virtual void onSuperStableCheckpoint() override{};
-  virtual ~ConcordControlHandlers() {}
-};
-
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
   logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
-  std::shared_ptr<ConcordControlHandlers> concord_control_handlers_;
-  // The tracing span that should be used as the parent to the span covering the
-  // addBlock function.
-  std::unique_ptr<opentracing::Span> addBlock_parent_span;
+  std::shared_ptr<reconfiguration::ConcordControlHandler>
+      concord_control_handlers_;
 
   void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
                                          kvbc::SetOfKeyValuePairs &updates);
+
+  uint32_t SerializeResponse(const opentracing::Span &parent_span,
+                             uint32_t max_response_size,
+                             com::vmware::concord::ConcordResponse &response,
+                             char *response_buffer) const;
+  void UpdateTime(const opentracing::Span &parent_span,
+                  const com::vmware::concord::ConcordRequest &request,
+                  bool read_only, uint16_t client_id);
+  void UpdateResponseWithTime(
+      const opentracing::Span &parent_span,
+      const com::vmware::concord::TimeRequest &time_request,
+      com::vmware::concord::ConcordResponse &response);
+  void AddTimeUpdateBlock(const opentracing::Span &parent_span,
+                          com::vmware::concord::ConcordResponse &response,
+                          int execute_result, bool read_only);
 
   uint16_t replica_id_;
 
@@ -69,6 +78,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
+  std::unique_ptr<concord::reconfiguration::ReconfigurationSM>
+      reconfiguration_sm_;
 
  public:
   ConcordCommandsHandler(
@@ -98,7 +109,9 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // can add lower-level data like time contract status, before forwarding to
   // the true appender.
   concordUtils::Status addBlock(const kvbc::SetOfKeyValuePairs &updates,
-                                kvbc::BlockId &out_block_id) override;
+                                kvbc::BlockId &out_block_id,
+                                const concordUtils::SpanWrapper &parent_span =
+                                    concordUtils::SpanWrapper{}) override;
 
   // Checks the pre-executed result for read/write conflicts
   bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult
@@ -125,7 +138,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // store state that is not controlled by the subclass. This callback gives the
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
-  virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
+  virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract,
+                               const opentracing::Span &parent_span) = 0;
 
   void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
                                   controlStateManager) override;

@@ -10,6 +10,7 @@ import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.daml.ledger.validator.batch.BatchedSubmissionValidator
+import com.daml.ledger.validator.caching.CachingDamlLedgerStateReader.StateCache
 import com.daml.ledger.validator.caching.QueryableReadSet
 import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
@@ -18,7 +19,6 @@ import com.daml.ledger.validator.privacy.{
 import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader}
 import com.daml.lf.data.Ref.IdString
 import com.digitalasset.daml.on.vmware.common.Constants
-import com.digitalasset.daml.on.vmware.execution.engine.caching.StateCaches.StateCache
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator, ValidateRequest}
 import com.google.protobuf.ByteString

@@ -68,11 +68,28 @@ async def bft_network():
 
     replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
                 for i in range(config.num_clients)]
-    clients = config.num_clients * [ExternalBftClient()]
+    clients = [ExternalBftClient(i) for i in range(config.num_clients)]
 
-    bft_network = BftTestNetwork.existing(config, replicas, clients)
+    bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
 
     return bft_network
+
+
+@describe()
+def test_skvbc_fast_path(fxProduct, bft_network):
+    trio.run(_test_skvbc_fast_path, bft_network)
+
+
+@with_timeout
+async def _test_skvbc_fast_path(bft_network):
+    skvbc_fast_path_test = SkvbcFastPathTest()
+    skvbc_fast_path_test.setUp()
+    log.info("Running SKVBC (fast path only)...")
+    await skvbc_fast_path_test.test_fast_path_only(
+        bft_network=bft_network,
+        already_in_trio=True
+    )
+    log.info("SKVBC (fast path only): OK")
 
 
 @describe()
@@ -89,24 +106,6 @@ async def _test_skvbc_get_block_data(bft_network):
         already_in_trio=True
     )
     log.info("SKVBC test_get_block_data: OK.")
-
-
-@describe()
-def test_skvbc_fast_path(fxProduct, bft_network):
-    trio.run(_test_skvbc_fast_path, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_fast_path(bft_network):
-    skvbc_fast_path_test = SkvbcFastPathTest()
-    skvbc_fast_path_test.setUp()
-    log.info("Running SKVBC (fast path only)...")
-    await skvbc_fast_path_test.test_fast_path_only(
-        bft_network=bft_network,
-        already_in_trio=True,
-        disable_linearizability_checks=True
-    )
-    log.info("SKVBC (fast path only): OK")
 
 
 @describe()

@@ -1,6 +1,5 @@
 {
   "organization": {
-    "orgId": "9a90cfaa-75c0-4807-a98c-89b072a75f01",
     "sddcUrl": "https://console-stg.cloud.vmware.com/",
     "damlSdk": "1.0.1",
     "cpuCount": 4,

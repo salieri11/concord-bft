@@ -10,7 +10,8 @@ final case class Update(
   override def toString(): String =
     this.getClass.getSimpleName +
       "(" + blockId.toString + ",[" +
-      kvPairs.map(p => "(" + new String(p._1) + "," + new String(p._2) + ")").mkString(",") + "])"
+      kvPairs.map(p => "(" + new String(p._1) + "," + new String(p._2) + ")").mkString(",") + "]," +
+      correlationId + ")"
 }
 
 trait ThinReplicaClient {

@@ -45,7 +45,8 @@ class PerformanceCommandsHandler
                                ba,     subscriber_list, prometheus_registry},
         logger_{logging::getLogger("concord.perf.handler")} {}
 
-  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override {}
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract,
+                       const opentracing::Span&) override {}
 
  private:
   logging::Logger logger_;
@@ -190,6 +191,11 @@ class PerformanceCommandsHandler
     return true;
   }
 
+  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
+    return nullptr;
+  }
+  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
+                                  controlStateManager) override {}
 };  // namespace performance
 
 }  // namespace performance

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
+#include "OpenTracing.hpp"
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
@@ -79,9 +80,12 @@ bool HlfKvbCommandsHandler::Execute(
   }
 }
 
-void HlfKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
+void HlfKvbCommandsHandler::WriteEmptyBlock(
+    TimeContract* time_contract, const opentracing::Span& parent_span) {
   HlfKvbStorage kvb_hlf_storage(storage_, this);
-  kvb_hlf_storage.WriteHlfBlock();
+  auto span = concordUtils::startChildSpanFromContext(parent_span.context(),
+                                                      "write_empty_block");
+  kvb_hlf_storage.WriteHlfBlock(span);
 }
 
 // Callback from SBFT/KVB. Process the request Returns

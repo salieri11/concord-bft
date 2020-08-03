@@ -48,5 +48,7 @@ EXPOSE 6865
 ENV THIN_REPLICA_SETTINGS="--use-thin-replica"
 ENV LOG4CPLUS_CONFIGURATION /doc/daml/ledger-api-server/src/main/resources/log4cplus.properties
 
+ENV INDEX_DB_SCHEMA=daml_ledger_api
+
 RUN chmod 755 /doc/daml/entrypoint.sh
 ENTRYPOINT /doc/daml/entrypoint.sh $@

@@ -93,11 +93,14 @@ class ConcordClientPool {
   // reply_buffer - client application allocated buffer that stores returned
   // response.
   // max_reply_size - holds the size of reply_buffer.
+  // seq_num - sequence number for the request
   SubmitResult SendRequest(std::vector<char>&& request,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
                            char* reply_buffer, std::uint32_t max_reply_size,
-                           const std::string correlation_id = {});
+                           uint64_t seq_num, std::string correlation_id = {},
+                           std::string span_context = std::string());
+
   // This method is responsible to get write requests with the new client
   // paramters and parse it to the old SimpleClient interface.
   SubmitResult SendRequest(const bft::client::WriteConfig& config,
@@ -157,7 +160,8 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
       std::shared_ptr<external_client::ConcordClient> client,
       std::vector<char>&& request, bftEngine::ClientMsgFlag flags,
       std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
-      const std::string correlation_id, uint64_t seq_num)
+      const std::string correlation_id, uint64_t seq_num,
+      std::string span_context)
       : clients_pool_{clients},
         processing_client_{std::move(client)},
         request_(std::move(request)),
@@ -165,6 +169,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
         timeout_ms_{timeout_ms},
         reply_size_{reply_size},
         correlation_id_{correlation_id},
+        span_context_{span_context},
         seq_num_{seq_num} {};
 
   virtual ~ConcordClientProcessingJob() = default;
@@ -181,6 +186,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   std::chrono::milliseconds timeout_ms_;
   std::uint32_t reply_size_;
   const std::string correlation_id_;
+  std::string span_context_;
   uint64_t seq_num_;
 };
 }  // namespace concord_client_pool

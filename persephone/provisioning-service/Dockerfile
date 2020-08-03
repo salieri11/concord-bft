@@ -27,7 +27,7 @@ RUN mvn -f pom.xml package -pl provisioning-service -am -B
 FROM openjdk:11.0.2-jdk-slim as environment
 
 RUN apt-get update \
-    && apt-get install -y wget \
+    && apt-get install --no-install-recommends -y wget \
     && wget --no-check-certificate --directory-prefix=/tmp/ https://dl.cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt \
     && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt \
     && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-test.crt \

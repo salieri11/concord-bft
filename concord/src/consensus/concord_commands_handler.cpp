@@ -3,12 +3,15 @@
 // Shim between generic KVB and Concord-specific commands handlers.
 
 #include "concord_commands_handler.hpp"
+#include "OpenTracing.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
+#include <opentracing/noop.h>
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
+#include <reconfiguration/wedge_plugin.hpp>
 #include <string>
 #include <utils/open_tracing_utils.hpp>
 #include <vector>
@@ -61,7 +64,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
       executing_bft_sequence_num_(0),
       subscriber_list_(subscriber_list),
-      concord_control_handlers_(std::make_shared<ConcordControlHandlers>()),
+      concord_control_handlers_(
+          std::make_shared<reconfiguration::ConcordControlHandler>()),
       storage_(storage),
       metadata_storage_(storage),
       command_handler_counters_{prometheus_registry->createCounterFamily(
@@ -94,6 +98,178 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
       storage, config, node_config, time_.get());
+  reconfiguration_sm_ =
+      std::make_unique<concord::reconfiguration::ReconfigurationSM>(
+          config, prometheus_registry);
+  reconfiguration_sm_->LoadPlugin(
+      std::make_unique<concord::reconfiguration::WedgePlugin>());
+  reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
+}
+
+uint32_t ConcordCommandsHandler::SerializeResponse(
+    const opentracing::Span &parent_span, uint32_t max_response_size,
+    com::vmware::concord::ConcordResponse &response,
+    char *response_buffer) const {
+  auto tracer = opentracing::Tracer::Global();
+  std::unique_ptr<opentracing::Span> serialize_span =
+      tracer->StartSpan("serialize_time_response",
+                        {opentracing::ChildOf(&parent_span.context())});
+
+  uint32_t response_size = 0;
+  if (response.ByteSizeLong() == 0) {
+    LOG_ERROR(logger_, "Request produced empty response.");
+    ErrorResponse *err = response.add_error_response();
+    err->set_description("Request produced empty response.");
+  }
+
+  if (response.SerializeToArray(response_buffer, max_response_size)) {
+    response_size = response.GetCachedSize();
+  } else {
+    size_t response_size = response.ByteSizeLong();
+
+    LOG_ERROR(logger_,
+              "Cannot send response to a client request: Response is too large "
+              "(size of this response: " +
+                  std::to_string(response_size) +
+                  ", maximum size allowed for this response: " +
+                  std::to_string(max_response_size) + ").");
+
+    response.Clear();
+    ErrorResponse *err = response.add_error_response();
+    err->set_description(
+        "Concord could not send response: Response is too large (size of this "
+        "response: " +
+        std::to_string(response_size) +
+        ", maximum size allowed for this response: " +
+        std::to_string(max_response_size) + ").");
+
+    if (response.SerializeToArray(response_buffer, max_response_size)) {
+      response_size = response.GetCachedSize();
+    } else {
+      // This case should never occur; we intend to enforce a minimum buffer
+      // size for the communication buffer size that Concord-BFT is configured
+      // with, and this minimum should be significantly higher than the size of
+      // this error messsage.
+      LOG_FATAL(
+          logger_,
+          "Cannot send error response indicating response is too large: The "
+          "error response itself is too large (error response size: " +
+              std::to_string(response.ByteSizeLong()) +
+              ", maximum size allowed for this response: " +
+              std::to_string(max_response_size) + ").");
+
+      // This will cause the replica to halt.
+      response_size = 0;
+    }
+  }
+  return response_size;
+}
+
+void ConcordCommandsHandler::UpdateTime(
+    const opentracing::Span &parent_span,
+    const com::vmware::concord::ConcordRequest &request, bool read_only,
+    uint16_t client_id) {
+  if (time_ && request.has_time_request() &&
+      request.time_request().has_sample()) {
+    if (!read_only) {
+      auto tracer = opentracing::Tracer::Global();
+      auto time_update_span = tracer->StartSpan(
+          "time_update", {opentracing::ChildOf(&parent_span.context())});
+      const TimeRequest &tr = request.time_request();
+      const TimeSample &ts = tr.sample();
+      if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
+        time_->Update(ts.source(), client_id, ts.time());
+      } else if (ts.has_source() && ts.has_time() && ts.has_signature()) {
+        std::vector<uint8_t> signature(ts.signature().begin(),
+                                       ts.signature().end());
+        time_->Update(ts.source(), client_id, ts.time(), &signature);
+      } else {
+        LOG_WARN(
+            logger_,
+            "Time Sample is missing:"
+                << " [" << (ts.has_source() ? " " : "X") << "] source"
+                << " [" << (ts.has_time() ? " " : "X") << "] time"
+                << (time_->SignaturesEnabled()
+                        ? (string(" [") + (ts.has_signature() ? " " : "X") +
+                           "] signature")
+                        : ""));
+      }
+    } else {
+      LOG_INFO(logger_, "Ignoring time sample sent in read-only command");
+    }
+  }
+}
+
+void ConcordCommandsHandler::UpdateResponseWithTime(
+    const opentracing::Span &parent_span,
+    const com::vmware::concord::TimeRequest &time_request,
+    com::vmware::concord::ConcordResponse &response) {
+  auto tracer = opentracing::Tracer::Global();
+  auto time_response_span = tracer->StartSpan(
+      "time_response", {opentracing::ChildOf(&parent_span.context())});
+
+  if (time_request.return_summary()) {
+    TimeResponse *tp = response.mutable_time_response();
+    Timestamp *sum = new Timestamp(time_->GetTime());
+    tp->set_allocated_summary(sum);
+  }
+
+  if (time_request.return_samples()) {
+    TimeResponse *tp = response.mutable_time_response();
+
+    for (auto &s : time_->GetSamples()) {
+      TimeSample *ts = tp->add_sample();
+      ts->set_source(s.first);
+      Timestamp *t = new Timestamp(s.second.time);
+      ts->set_allocated_time(t);
+      if (s.second.signature) {
+        ts->set_signature(s.second.signature->data(),
+                          s.second.signature->size());
+      }
+    }
+  }
+}
+
+void ConcordCommandsHandler::AddTimeUpdateBlock(
+    const opentracing::Span &parent_span,
+    com::vmware::concord::ConcordResponse &response, int execute_result,
+    bool read_only) {
+  if (!time_->Changed()) {
+    return;
+  }
+  // We had a sample that updated the time contract, and the execution of
+  // the rest of the command did not write its state. What should we do?
+  if (execute_result) {
+    if (!read_only) {
+      // The state machine might have had no commands in the request. Go
+      // ahead and store just the time update.
+      WriteEmptyBlock(time_.get(), parent_span);
+
+      // Create an empty time response, so that out_response_size is not
+      // zero.
+      response.mutable_time_response();
+    } else {
+      // If this happens, there is a bug above. Either the logic ignoring
+      // the update in this function is broken, or the subclass's Execute
+      // function modified timeContract_. Log an error for us to deal
+      // with, but otherwise ignore.
+      LOG_ERROR(logger_,
+                "Time Contract was modified during read-only operation");
+
+      ErrorResponse *err = response.add_error_response();
+      err->set_description("Ignoring time update during read-only operation");
+
+      // Also reset the time contract now, so that the modification is not
+      // accidentally written during the next command.
+      time_->Reset();
+    }
+  } else {
+    LOG_WARN(logger_, "Ignoring time update because Execute failed.");
+
+    ErrorResponse *err = response.add_error_response();
+    err->set_description(
+        "Ignoring time update because state machine execution failed");
+  }
 }
 
 int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
@@ -128,138 +304,39 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   com::vmware::concord::ConcordRequest request;
   com::vmware::concord::ConcordResponse response;
 
-  auto tracer = opentracing::Tracer::Global();
-
+  std::shared_ptr<opentracing::Tracer> tracer;
   std::unique_ptr<opentracing::Span> execute_span;
+  if (parent_span) {
+    const auto &ctx = parent_span.impl()->context();
+    tracer = opentracing::Tracer::Global();
+    execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
+  } else {
+    // If BFT client request does not have a span,
+    // use Noop Tracer to avoid polluting dashboard with partial traces
+    tracer = opentracing::MakeNoopTracer();
+    execute_span = tracer->StartSpan("execute");
+  }
+
   const ConcordRequestContext request_context{client_id, sequence_num,
                                               max_response_size};
 
-  bool result;
+  bool result = false;
   if ((request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
        parseFromPreExecutionResponse(request_buffer, request_size, request))) {
-    if (parent_span) {
-      const auto &ctx = parent_span.impl()->context();
-      execute_span = tracer->StartSpan("execute", {opentracing::ChildOf(&ctx)});
-    } else {
-      LOG_DEBUG(logger_, "Empty span from Conocrd-BFT");
-      execute_span = tracer->StartSpan("execute");
-    }
-
     execute_span->SetTag(concord::utils::kRequestSeqNumTag, sequence_num);
     execute_span->SetTag(concord::utils::kClientIdTag, client_id);
     execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);
     execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
-    if (time_ && request.has_time_request() &&
-        request.time_request().has_sample()) {
-      if (!read_only) {
-        auto time_update_span = tracer->StartSpan(
-            "time_update", {opentracing::ChildOf(&execute_span->context())});
-        const TimeRequest &tr = request.time_request();
-        const TimeSample &ts = tr.sample();
-        if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
-          time_->Update(ts.source(), client_id, ts.time());
-        } else if (ts.has_source() && ts.has_time() && ts.has_signature()) {
-          std::vector<uint8_t> signature(ts.signature().begin(),
-                                         ts.signature().end());
-          time_->Update(ts.source(), client_id, ts.time(), &signature);
-        } else {
-          LOG_WARN(
-              logger_,
-              "Time Sample is missing:"
-                  << " [" << (ts.has_source() ? " " : "X") << "] source"
-                  << " [" << (ts.has_time() ? " " : "X") << "] time"
-                  << (time_->SignaturesEnabled()
-                          ? (string(" [") + (ts.has_signature() ? " " : "X") +
-                             "] signature")
-                          : ""));
-        }
-      } else {
-        LOG_INFO(logger_, "Ignoring time sample sent in read-only command");
-      }
-    }
 
-    // Stashing this span in our state, so that if the subclass calls addBlock,
-    // we can use it as the parent for the add_block span.
+    UpdateTime(*execute_span, request, read_only, client_id);
 
-    addBlock_parent_span = tracer->StartSpan(
-        "sub_execute", {opentracing::ChildOf(&execute_span->context())});
     result = Execute(request, request_context, flags, time_.get(),
-                     *addBlock_parent_span, response);
-    // Manually stopping the span after execute.
-    addBlock_parent_span.reset();
+                     *execute_span, response);
 
     if (time_ && request.has_time_request()) {
-      const TimeRequest &tr = request.time_request();
-
-      if (time_->Changed()) {
-        // We had a sample that updated the time contract, and the execution of
-        // the rest of the command did not write its state. What should we do?
-        if (result) {
-          if (!read_only) {
-            // WriteEmptyBlock is going to call addBlock, and we need to tell it
-            // what tracing span to use as its parent.
-            addBlock_parent_span = std::move(execute_span);
-
-            // The state machine might have had no commands in the request. Go
-            // ahead and store just the time update.
-            WriteEmptyBlock(time_.get());
-
-            // Reclaim control of the addBlock_span.
-            execute_span = std::move(addBlock_parent_span);
-
-            // Create an empty time response, so that out_response_size is not
-            // zero.
-            response.mutable_time_response();
-          } else {
-            // If this happens, there is a bug above. Either the logic ignoring
-            // the update in this function is broken, or the subclass's Execute
-            // function modified timeContract_. Log an error for us to deal
-            // with, but otherwise ignore.
-            LOG_ERROR(logger_,
-                      "Time Contract was modified during read-only operation");
-
-            ErrorResponse *err = response.add_error_response();
-            err->set_description(
-                "Ignoring time update during read-only operation");
-
-            // Also reset the time contract now, so that the modification is not
-            // accidentally written during the next command.
-            time_->Reset();
-          }
-        } else {
-          LOG_WARN(logger_, "Ignoring time update because Execute failed.");
-
-          ErrorResponse *err = response.add_error_response();
-          err->set_description(
-              "Ignoring time update because state machine execution failed");
-        }
-      }
-
-      {  // scope for time_response_span
-        auto time_response_span = tracer->StartSpan(
-            "time_response", {opentracing::ChildOf(&execute_span->context())});
-        if (tr.return_summary()) {
-          TimeResponse *tp = response.mutable_time_response();
-          Timestamp *sum = new Timestamp(time_->GetTime());
-          tp->set_allocated_summary(sum);
-        }
-
-        if (tr.return_samples()) {
-          TimeResponse *tp = response.mutable_time_response();
-
-          for (auto &s : time_->GetSamples()) {
-            TimeSample *ts = tp->add_sample();
-            ts->set_source(s.first);
-            Timestamp *t = new Timestamp(s.second.time);
-            ts->set_allocated_time(t);
-            if (s.second.signature) {
-              ts->set_signature(s.second.signature->data(),
-                                s.second.signature->size());
-            }
-          }
-        }
-      }
+      AddTimeUpdateBlock(*execute_span, response, result, read_only);
+      UpdateResponseWithTime(*execute_span, request.time_request(), response);
     } else if (!time_ && request.has_time_request()) {
       ErrorResponse *err = response.add_error_response();
       err->set_description("Time service is disabled.");
@@ -269,6 +346,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         request.has_latest_prunable_block_request()) {
       pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
+    if (request.has_reconfiguration_sm_request()) {
+      reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
+                                  response, sequence_num, read_only,
+                                  *execute_span);
+    }
   } else {
     ErrorResponse *err = response.add_error_response();
     err->set_description("Unable to parse concord request");
@@ -277,60 +359,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     result = true;
   }
 
-  // Don't bother timing serialization of the response if we didn't successfully
-  // parse the request.
-  std::unique_ptr<opentracing::Span> serialize_span =
-      execute_span == nullptr
-          ? nullptr
-          : tracer->StartSpan("serialize",
-                              {opentracing::ChildOf(&execute_span->context())});
-
-  if (response.ByteSizeLong() == 0) {
-    LOG_ERROR(logger_, "Request produced empty response.");
-    ErrorResponse *err = response.add_error_response();
-    err->set_description("Request produced empty response.");
-  }
-
-  if (response.SerializeToArray(response_buffer, max_response_size)) {
-    out_response_size = response.GetCachedSize();
-  } else {
-    size_t response_size = response.ByteSizeLong();
-
-    LOG_ERROR(logger_,
-              "Cannot send response to a client request: Response is too large "
-              "(size of this response: " +
-                  std::to_string(response_size) +
-                  ", maximum size allowed for this response: " +
-                  std::to_string(max_response_size) + ").");
-
-    response.Clear();
-    ErrorResponse *err = response.add_error_response();
-    err->set_description(
-        "Concord could not send response: Response is too large (size of this "
-        "response: " +
-        std::to_string(response_size) +
-        ", maximum size allowed for this response: " +
-        std::to_string(max_response_size) + ").");
-
-    if (response.SerializeToArray(response_buffer, max_response_size)) {
-      out_response_size = response.GetCachedSize();
-    } else {
-      // This case should never occur; we intend to enforce a minimum buffer
-      // size for the communication buffer size that Concord-BFT is configured
-      // with, and this minimum should be significantly higher than the size of
-      // this error messsage.
-      LOG_FATAL(
-          logger_,
-          "Cannot send error response indicating response is too large: The "
-          "error response itself is too large (error response size: " +
-              std::to_string(response.ByteSizeLong()) +
-              ", maximum size allowed for this response: " +
-              std::to_string(max_response_size) + ").");
-
-      // This will cause the replica to halt.
-      out_response_size = 0;
-    }
-  }
+  out_response_size = SerializeResponse(*execute_span, max_response_size,
+                                        response, response_buffer);
 
   execute_span->SetTag(concord::utils::kExecResultTag, result);
   execute_span->SetTag(concord::utils::kExecRespSizeTag, out_response_size);
@@ -338,7 +368,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   LOG_DEBUG(logger_, "ConcordCommandsHandler::execute done, clientId: "
                          << client_id << ", seq: " << sequence_num);
   return result ? 0 : 1;
-}
+}  // namespace consensus
 
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::PreExecutionResult &pre_execution_result)
@@ -400,12 +430,10 @@ BlockId ConcordCommandsHandler::DeserializeFingerprint(
 
 concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
-    concord::kvbc::BlockId &out_block_id) {
-  std::unique_ptr<opentracing::Span> add_block_span;
-  if (addBlock_parent_span) {
-    add_block_span = addBlock_parent_span->tracer().StartSpan(
-        "add_block", {opentracing::ChildOf(&addBlock_parent_span->context())});
-  }
+    concord::kvbc::BlockId &out_block_id,
+    const concordUtils::SpanWrapper &parent_span) {
+  auto span = concordUtils::startChildSpan("add_block", parent_span);
+
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,
@@ -440,7 +468,7 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
             "ConcordCommandsHandler::addBlock, before add block, updates: "
                 << updates.size());
   concordUtils::Status status =
-      appender_.addBlock(amended_updates, out_block_id);
+      appender_.addBlock(amended_updates, out_block_id, span);
   if (!status.isOK()) {
     return status;
   }
@@ -479,6 +507,7 @@ void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
 void ConcordCommandsHandler::setControlStateManager(
     std::shared_ptr<bftEngine::ControlStateManager> controlStateManager) {
   controlStateManager_ = controlStateManager;
+  reconfiguration_sm_->setControlStateManager(controlStateManager_);
 }
 
 std::shared_ptr<bftEngine::ControlHandlers>

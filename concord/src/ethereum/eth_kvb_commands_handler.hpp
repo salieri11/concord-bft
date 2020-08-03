@@ -5,6 +5,7 @@
 #ifndef ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
 #define ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
 
+#include <opentracing/span.h>
 #include <boost/program_options.hpp>
 #include "Logger.hpp"
 
@@ -46,7 +47,8 @@ class EthKvbCommandsHandler
                uint8_t flags, concord::time::TimeContract *time,
                opentracing::Span &parent_span,
                com::vmware::concord::ConcordResponse &response) override;
-  void WriteEmptyBlock(concord::time::TimeContract *time) override;
+  void WriteEmptyBlock(concord::time::TimeContract *time,
+                       const opentracing::Span &) override;
 
  private:
   // Handlers
@@ -139,6 +141,12 @@ class EthKvbCommandsHandler
       const concord::common::EthBlock &block, EthKvbStorage &kvbStorage,
       const com::vmware::concord::LogsRequest &request,
       com::vmware::concord::LogsResponse *response) const;
+
+  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
+    return nullptr;
+  }
+  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
+                                  controlStateManager) override {}
 };
 
 }  // namespace ethereum

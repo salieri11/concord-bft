@@ -35,7 +35,7 @@ done
 
 >&2 echo $(eval $DATE_CMD) "Postgres is up - starting ledger api server"
 
-INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
+INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER"
 
 # Batching parameters. These are all overridable from the outside.
 ENABLE_BATCHING=${ENABLE_BATCHING:=true}
