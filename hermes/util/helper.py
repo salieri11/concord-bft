@@ -375,6 +375,10 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
       log.debug(resp)
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
+   except EOFError as e:
+      if "Error reading SSH protocol banner" in str(e):
+         log.error("SSH failure, most likely due to network congestion.")
+      raise
    except Exception as e:
       if verbose:
          if log_mode == "WARNING":
@@ -1581,7 +1585,22 @@ def check_docker_health(node, username, password, replica_type,
       log.debug(
          "Verifying docker containers (attempt: {})...".format(
             count))
-      ssh_output = ssh_connect(node, username, password, command_to_run)
+
+      # Don't fail just because of network congestion, etc...
+      attempt = 3
+      while True:
+         try:
+            ssh_output = ssh_connect(node, username, password, command_to_run)
+            break
+         except Exception as e:
+            attempt -= 1
+
+            if attempt == 0:
+               raise
+            else:
+               log.info("SSH error retrieving docker info from {}. Retrying in a few seconds".format(node))
+               time.sleep(5)
+
       log.debug("SSH output: {}".format(ssh_output))
       for container_name in expected_docker_containers:
          if container_name not in ssh_output:
@@ -2090,7 +2109,7 @@ def run_daml_sanity(ledger_api_hosts, results_dir, run_all_tests=True, verbose=T
       upload_port = test_port = str(forwarding_src_port)
 
       try:
-         daml_helper.upload_test_tool_dars(host=ledger_api_host, port=upload_port, verbose=False)
+         daml_helper.upload_test_tool_dars(host=ledger_api_host, port=upload_port, verbose=verbose)
          daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
                                                  port=test_port,
                                                  run_all_tests=run_all_tests,

@@ -241,7 +241,7 @@ def upload_test_tool_dars(host='localhost', port='6861', results_dir=None, verbo
    :param port: daml-ledger-api service port
    '''
    dars = download_ledger_api_test_tool(host, results_dir=results_dir, verbose=verbose)[1]
-   if verbose: log.info("Upload DAR files...")
+   if verbose: log.info("Upload DAR files to host '{}' and port '{}'...".format(host, port))
 
    for test_dar in dars:
       dar_uploaded = False
