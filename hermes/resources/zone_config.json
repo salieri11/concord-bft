@@ -80,7 +80,8 @@
             "addressAllocation":"STATIC",
             "gateway":172514817,
             "nameServers":[
-
+              "10.78.1.132",
+              "10.78.1.133"
             ],
             "subnet":24
           }
@@ -137,7 +138,8 @@
             "addressAllocation":"STATIC",
             "gateway":172321025,
             "nameServers":[
-
+              "10.78.1.132",
+              "10.78.1.133"
             ],
             "subnet":24
           }
@@ -192,7 +194,8 @@
             "addressAllocation":"STATIC",
             "gateway":172615681,
             "nameServers":[
-
+              "10.78.1.132",
+              "10.78.1.133"
             ],
             "subnet":23
           }
@@ -245,7 +248,8 @@
             "addressAllocation":"STATIC",
             "gateway":172367361,
             "nameServers":[
-
+              "10.78.1.132",
+              "10.78.1.133"
             ],
             "subnet":23
           }
