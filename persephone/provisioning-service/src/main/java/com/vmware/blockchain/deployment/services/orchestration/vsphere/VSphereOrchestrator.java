@@ -113,7 +113,8 @@ public class VSphereOrchestrator implements Orchestrator {
                     request.getCloudInitData().getConfigGenId(),
                     request.getCloudInitData().getConfigServiceRestEndpoint(),
                     datacenterInfo.getOutboundProxy(),
-                    vmPassword
+                    vmPassword,
+                    request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name())
             );
 
             var libraryItem = getLibraryItem.get();

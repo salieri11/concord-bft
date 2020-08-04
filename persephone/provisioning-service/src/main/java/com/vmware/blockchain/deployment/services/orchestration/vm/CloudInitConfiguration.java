@@ -44,6 +44,7 @@ public class CloudInitConfiguration {
     private Endpoint configServiceRestEndpoint;
     private OutboundProxyInfo outboundProxy;
     private String vmPassword;
+    private boolean noLaunch;
 
     /**
      * Constructor.
@@ -59,7 +60,8 @@ public class CloudInitConfiguration {
                                   ConfigurationSessionIdentifier configGenId,
                                   Endpoint configServiceRestEndpoint,
                                   OutboundProxyInfo outboundProxy,
-                                  String vmPassword) {
+                                  String vmPassword,
+                                  boolean noLaunch) {
         this.containerRegistry = containerRegistry;
         this.model = model;
         this.ipAddress = ipAddress;
@@ -71,8 +73,8 @@ public class CloudInitConfiguration {
         this.configGenId = configGenId;
         this.configServiceRestEndpoint = configServiceRestEndpoint;
         this.outboundProxy = outboundProxy;
-
         this.vmPassword = vmPassword;
+        this.noLaunch = noLaunch;
     }
 
     private String agentImageName() {
@@ -133,6 +135,9 @@ public class CloudInitConfiguration {
 
         if (!Strings.isNullOrEmpty(nodeIdString)) {
             builder.setNodeId(nodeIdString);
+        }
+        if (noLaunch) {
+            builder.setNoLaunch(true);
         }
         return builder.build();
     }

@@ -147,6 +147,7 @@ enum DeploymentAttributes {
     DAML_SDK_VERSION = 7;
     BLOCKCHAIN_VERSION = 8;
     ENABLE_BFT_CLIENT = 9;
+    NO_LAUNCH = 10;
 }
 
 /* [END messages] */

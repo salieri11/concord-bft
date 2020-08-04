@@ -86,7 +86,8 @@ public class CloudInitConfigurationTest {
         cloudInitConfiguration =
                 new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
                                            nodeIdString, configGenId,
-                                           configServiceRestEndpoint, outboundProxy, "c0nc0rd");
+                                           configServiceRestEndpoint, outboundProxy, "c0nc0rd",
+                                           false);
         cloudInitConfiguration = spy(cloudInitConfiguration);
 
         Credential mockCredential = mock(Credential.class);
