@@ -32,6 +32,7 @@ export class DetailsPage {
   async getValuesOfClientIndex(index: number = 0) {
     return {
       id: await textContentOf(`details-page-client-${index}-id`),
+      groupId: await textContentOf(`details-page-client-${index}-group-id`),
       publicIp: await textContentOf(`details-page-client-${index}-public-ip`),
       privateIp: await textContentOf(`details-page-client-${index}-private-ip`),
       authUrl: await textContentOf(`details-page-client-${index}-auth-url`),

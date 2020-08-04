@@ -53,6 +53,7 @@ describe('concord-ui Details Page', () => {
     browser.sleep(1500);
     const values = await detailsPage.getValuesOfClientIndex(0); // First client
     expect(values.id).toMatch(uuidLaxRegExp); // must be UUID
+    expect(values.groupId).toMatch(uuidLaxRegExp);
     expect(values.zoneId).toMatch(uuidLaxRegExp);
     const hasAtLeastOneIP = values.publicIp || values.privateIp;
     expect(hasAtLeastOneIP).toBeTruthy(); // must have at least one ip

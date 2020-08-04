@@ -1309,6 +1309,7 @@
     },
     "client":{
       "name": "Client",
+      "groupId": "Group ID",
       "logicalId": "Logical ID",
       "authUrl": "Auth URL",
       "endpoint": "Endpoint"
