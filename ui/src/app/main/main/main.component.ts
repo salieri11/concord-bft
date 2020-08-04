@@ -15,7 +15,7 @@ import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
 import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
-import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
+import { External, mainRoutes, uuidRegExp, mainFragments } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
 
 import { ClrModal } from '@clr/angular';
@@ -113,10 +113,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.routerFragmentChange) { this.routerFragmentChange.unsubscribe(); }
     if (this.alertSub) { this.alertSub.unsubscribe(); }
-
-    if (!environment.csp) {
-      this.deregisterWindowListeners();
-    }
+    if (!environment.csp) { this.deregisterWindowListeners(); }
   }
 
   blockchainChange(): void {
@@ -140,12 +137,9 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   private handlePaths(): boolean {
-    let path = decodeURI(this.router.url);
-    if (path.indexOf('#') >= 0) { path = path.substr(0, path.indexOf('#')); } // remove fragment part
-    if (path.indexOf('?') >= 0) { path = path.substr(0, path.indexOf('?')); } // remove param part
-    const paths = path.split('/'); paths.shift();
-    const categoryPath = paths[0];
-    const childPath = paths[1];
+    const paths = this.route.snapshot.url;
+    const categoryPath = paths[0] ? paths[0].path : null;
+    const childPath = paths[1] ? paths[1].path : null;
     if (!categoryPath) {
       return false;
     } else if (categoryPath === mainRoutes.blockchain) { // path is /blockchain*
@@ -153,7 +147,7 @@ export class MainComponent implements OnInit, OnDestroy {
       if (mainRoutes.blockchainChildren.indexOf(childPath) === -1) { return false; }
     } else if (uuidRegExp.test(categoryPath)) { // valid :blockchainId
       if (mainRoutes.blockchainIdChildren.indexOf(childPath) === -1) { return false; }
-    }
+    } else { return false; }
     return true;
   }
 
@@ -193,7 +187,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   private handleFragment(fragment: string): void {
     switch (fragment) {
-      case 'welcome':
+      case mainFragments.welcome:
         this.welcomeFragmentExists = true;
         this.welcomeModal.open();
         break;

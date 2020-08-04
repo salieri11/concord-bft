@@ -16,14 +16,11 @@ import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ActivatedRoute, CanActivateChild, CanActivate } from '@angular/router';
+import { ActivatedRoute, CanActivateChild, CanActivate, UrlSegment } from '@angular/router';
 
-import { BlockchainService, MockBlockchainsService } from '../blockchain/shared/blockchain.service';
-import { MockBlockchainResolver, BlockchainResolver } from '../blockchain/shared/blockchain.resolver';
 import { FeatureFlagService } from './feature-flag.service';
 import { TranslateService } from '@ngx-translate/core';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';
-import { MockTranslateService, mockLanguagePack } from '../mocks/mock-translate.module';
 
 import { defaultProvided } from './shared.module';
 
@@ -32,12 +29,24 @@ import { TourService } from './tour.service';
 
 import { AgreementGuard } from './agreement-guard.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
-import { SwaggerComponent, MockSwaggerComponent } from '../developer/swagger/swagger.component';
+
+import { BlockchainService, MockBlockchainService } from '../blockchain/shared/blockchain.service';
+import { MockBlockchainResolver, BlockchainResolver } from '../blockchain/shared/blockchain.resolver';
 import { MockBlocksService, BlocksService } from '../blocks/shared/blocks.service';
+import { MockTransactionService, TransactionsService } from '../transactions/shared/transactions.service';
 import { SmartContractsService, MockSmartContractsService } from '../smart-contracts/shared/smart-contracts.service';
+import { NodesService, MockNodesService } from '../nodes/shared/nodes.service';
+import { OrgService, MockOrgService } from '../orgs/shared/org.service';
+import { MockTranslateService, mockLanguagePack } from '../mocks/mock-translate.module';
+
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { MockRequestInterceptor } from '../app-interceptors';
 import { MainModule } from '../main/main.module';
+import { swaggerMocks, testController } from '../../test.controller';
+export { swaggerMocks }; // re-export
+
+import { BehaviorSubject } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
 
 declare var require: any;
 
@@ -46,29 +55,63 @@ class MockGuard implements CanActivateChild, CanActivate {
   async canActivate() { return true; }
 }
 
-interface ModuleInterface { imports?: any[]; provides?: any[]; exports?: any[]; declarations?: any[]; }
+interface ModuleInterface { imports?: any[]; providers?: any[]; provides?: any[]; exports?: any[]; declarations?: any[]; }
+
+class MockInstances {
+  blockchainsService: MockBlockchainService;
+  blockchainResolver: MockBlockchainResolver;
+  blocksService: MockBlocksService;
+  transactionService: MockTransactionService;
+  smartContractsService: MockSmartContractsService;
+  nodesService: MockNodesService;
+  orgService: MockOrgService;
+  translateService: MockTranslateService;
+  agreementGuard: MockGuard;
+  authenticatedGuard: MockGuard;
+  constructor() { this.reset(); }
+  reset() {
+    this.blockchainsService = new MockBlockchainService;
+    this.blockchainResolver = new MockBlockchainResolver;
+    this.blocksService = new MockBlocksService;
+    this.transactionService = new MockTransactionService;
+    this.smartContractsService = new MockSmartContractsService;
+    this.nodesService = new MockNodesService;
+    this.orgService = new MockOrgService;
+    this.translateService = new MockTranslateService;
+    this.agreementGuard = new MockGuard;
+    this.authenticatedGuard = new MockGuard;
+  }
+}
+
+// All mock instances
+export const mocks = new MockInstances;
 
 // All default provides for spec testing
-const testingSuiteBasicProvided = [
-  { provide: HTTP_INTERCEPTORS, useClass: MockRequestInterceptor, multi: true, },
+function testingSuiteBasicProvided() {
+  mocks.reset();
+  return [
+    { provide: HTTP_INTERCEPTORS, useClass: MockRequestInterceptor, multi: true, },
 
-  { provide: BlockchainService, useClass: MockBlockchainsService },
-  { provide: BlocksService, useClass: MockBlocksService },
-  { provide: BlockchainResolver, useClass: MockBlockchainResolver },
-  { provide: SmartContractsService, useClass: MockSmartContractsService },
+    { provide: BlockchainService, useValue: mocks.blockchainsService },
+    { provide: BlockchainResolver, useValue: mocks.blockchainResolver },
+    { provide: BlocksService, useValue: mocks.blocksService },
+    { provide: TransactionsService, useValue: mocks.transactionService },
+    { provide: SmartContractsService, useValue: mocks.smartContractsService },
+    { provide: NodesService, useValue: mocks.nodesService },
+    { provide: OrgService, useValue: mocks.orgService },
 
-  { provide: TranslateService, useClass: MockTranslateService },
+    { provide: TranslateService, useValue: mocks.translateService },
 
-  { provide: AgreementGuard, useClass: MockGuard },
-  { provide: AuthenticatedGuard, useClass: MockGuard },
+    { provide: AgreementGuard, useValue: mocks.agreementGuard },
+    { provide: AuthenticatedGuard, useValue: mocks.authenticatedGuard },
 
-  { provide: SwaggerComponent, useClass: MockSwaggerComponent },
-  FeatureFlagService,
-  FeatureFlagDirective,
-  TourService,
-  NgxTourService,
-  VmwTasksService,
-];
+    FeatureFlagService,
+    FeatureFlagDirective,
+    TourService,
+    NgxTourService,
+    VmwTasksService,
+  ];
+}
 
 // Spec testing common imports
 @NgModule({
@@ -93,27 +136,47 @@ export class SpecTestingModule {
   public provides: any[] = [];
   public exports: any[] = [];
   public declarations: any[] = [];
+  public activatedRoute: MockActivatedRoute;
+  public overrides: ModuleInterface;
+  public testStatic: ModuleInterface;
+  public fixed: ModuleInterface = { provides: [] };
+  public fullModule: ModuleInterface;
+  public services = {};
 
   public forTesting(): ModuleWithProviders {
+    testController.forTesting = true;
     return {
       ngModule: SpecTestingModule,
-      providers: testingSuiteBasicProvided
+      providers: testingSuiteBasicProvided()
     };
   }
 
   public init(obj: ModuleInterface = {}) {
     if (!obj) { obj = {}; }
-    const def: ModuleInterface = {
-      imports: this.imports,
-      provides: this.provides,
-      exports: this.exports,
-      declarations: this.declarations,
-    };
-    if (obj && Array.isArray(obj.imports)) { def.imports = def.imports.concat(obj.imports); }
-    if (obj && Array.isArray(obj.provides)) { def.provides = def.provides.concat(obj.provides); }
-    if (obj && Array.isArray(obj.exports)) { def.exports = def.exports.concat(obj.exports); }
-    if (obj && Array.isArray(obj.declarations)) { def.declarations = def.declarations.concat(obj.declarations); }
+    const def = this.merge(this.base(), obj);
+    this.overrides = obj;
+    this.testStatic = def;
     return def;
+  }
+
+  public merge(bottom: ModuleInterface, top: ModuleInterface) {
+    const result: ModuleInterface = {
+      imports: [].concat(arrval(bottom.imports), arrval(top.imports)),
+      providers: [].concat(arrval(bottom.provides), arrval(bottom.providers), arrval(top.provides), arrval(top.providers)),
+      exports: [].concat(arrval(bottom.exports), arrval(top.exports)),
+      declarations: [].concat(arrval(bottom.declarations), arrval(top.declarations)),
+    };
+    return result;
+  }
+
+  public base() {
+    const base: ModuleInterface = {
+      imports: [].concat(this.imports),
+      providers: [].concat(this.provides),
+      exports: [].concat(this.exports),
+      declarations: [].concat(this.declarations),
+    };
+    return base;
   }
 
   public importLanguagePack(lang: string = 'en') {
@@ -126,24 +189,62 @@ export class SpecTestingModule {
     mockLanguagePack.enabled = true;
   }
 
-  // TODO: make providing ActivateRoute more robust with easy options
-  // This would be quite frequently used.
-  public provideActivatedRoute(options?) {
-    const params = (options && options.params) ?  options.params : { consortiumId: 1 };
-    const fragment = (options && options.fragment) ? options.fragment : '';
-    const data = (options && options.data) ? options.data : {};
-    const queryParams = (options && options.queryParams) ? options.queryParams : {};
-    const snapshot = (options && options.snapshot) ? options.snapshot : { params: { consortiumId: 'test' } };
-    this.provides.push({
-      provide: ActivatedRoute,
-      useValue: {
-        snapshot: snapshot,
-        fragment: { subscribe: (fn: (value) => void) => fn(fragment), },
-        data: { subscribe: (fn: (value) => void) => fn(data), },
-        params: { subscribe: (fn: (value) => void) => fn(params), },
-        queryParams: { subscribe: (fn: (value) => void) => fn(queryParams), },
-      },
-    });
+  public getActivatedRoute(options?: ActivatedRouteOptions) {
+    if (!options) { options = {}; }
+    const params = options.params ?  options.params : {};
+    if (options.blockchainId) { params.blockchainId = options.blockchainId; }
+    const fragment = options.fragment ? options.fragment : '';
+    const data = options.data ? options.data : {};
+    const queryParams = options.queryParams ? options.queryParams : {};
+    const snapshot = options.snapshot ? options.snapshot : {
+      params: params,
+      fragment: fragment,
+      data: data,
+      queryParams: queryParams,
+      outlet: options.outlet ? options.outlet : 'primary',
+      url: options.url && options.url.length > 0 ? options.url : [
+        new UrlSegment(options.blockchainId ? options.blockchainId : 'test', params)
+      ]
+    };
+    const activatedRouteValue: MockActivatedRoute = {
+      snapshot: snapshot,
+      fragment: new BehaviorSubject<string>(fragment),
+      data: new BehaviorSubject<ParamMap>(data),
+      params: new BehaviorSubject<ParamMap>(params),
+      queryParams: new BehaviorSubject<ParamMap>(queryParams),
+      url: new BehaviorSubject<UrlSegment[]>(snapshot.url)
+    };
+    return activatedRouteValue;
+  }
+
+  public provideActivatedRoute(options?: ActivatedRouteOptions) {
+    const route = this.getActivatedRoute(options);
+    this.provides = this.provides.filter(prov => prov.provide !== ActivatedRoute); // remove old
+    this.provides.push({ provide: ActivatedRoute, useValue: route, });
+    return route;
+  }
+
+  public updateActivatedRoute(options?: ActivatedRouteOptions) {
+    this.activatedRoute = this.getActivatedRoute(options);
+    this.fullModule = this.merge(this.testStatic, this.fixed);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule(this.fullModule).compileComponents();
+  }
+
+  public dynamicActivatedRoute() {
+    this.fixed.provides.push({ provide: ActivatedRoute, useFactory: () => this.activatedRoute });
+    this.activatedRoute = this.getActivatedRoute();
+  }
+
+  public getService(serviceType) {
+    if (!this.services[serviceType]) {
+      const serviceInstance = TestBed.get(serviceType);
+      this.services[serviceType] = serviceInstance;
+      this.provides.push({ provide: serviceType, useValue: serviceInstance });
+      return serviceInstance;
+    } else {
+      return this.services[serviceType];
+    }
   }
 
   public getTestingModules(): any[] {
@@ -154,10 +255,41 @@ export class SpecTestingModule {
   }
 
   public reset() {
-    this.provides = [];
     mockLanguagePack.enabled = false;
   }
 
+}
+
+interface ParamMap {
+  [key: string]: any;
+}
+export interface MockActivatedRouteSnapshot {
+  params?: ParamMap;
+  queryParams?: ParamMap;
+  data?: ParamMap;
+  fragment?: string;
+  outlet?: 'primary' | string;
+  url?: UrlSegment[];
+}
+
+export interface ActivatedRouteOptions {
+  snapshot?: MockActivatedRouteSnapshot;
+  params?: ParamMap;
+  queryParams?: ParamMap;
+  data?: ParamMap;
+  fragment?: string;
+  outlet?: 'primary' | string;
+  url?: UrlSegment[];
+  blockchainId?: string;
+}
+
+export interface MockActivatedRoute {
+  snapshot: MockActivatedRouteSnapshot;
+  params: BehaviorSubject<ParamMap>;
+  queryParams: BehaviorSubject<ParamMap>;
+  data: BehaviorSubject<ParamMap>;
+  url: BehaviorSubject<UrlSegment[]>;
+  fragment: BehaviorSubject<string>;
 }
 
 
@@ -167,9 +299,6 @@ export const getSpecTestingModule = (): SpecTestingModule => {
   tester.imports = [ tester.forTesting() ].concat( tester.getTestingModules() );
   return tester;
 };
-
-
-
 
 
 function dotNotate(obj, target?, prefix?) {
@@ -183,5 +312,10 @@ function dotNotate(obj, target?, prefix?) {
     }
   });
   return target;
+}
+
+function arrval(a) {
+  if (!a) { return []; }
+  return a;
 }
 

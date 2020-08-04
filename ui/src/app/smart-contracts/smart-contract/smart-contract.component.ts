@@ -67,7 +67,7 @@ export class SmartContractComponent implements OnInit {
 
   loadVersionDetails(contractId, version) {
     this.smartContractsService.getVersionDetails(contractId, version).subscribe(
-      versionResponse => {this.version = versionResponse; },
+      versionResponse => { this.version = versionResponse; },
       e => { this.routeService.redirectToDefault(); console.log(e); }
     );
   }

@@ -65,7 +65,7 @@
     <clr-tab>
       <button clrTabLink>{{'smartContracts.version.tabs.execute' | translate}}</button>
       <clr-tab-content>
-        <ng-container *ngIf="version.metadata.compiler">
+        <ng-container *ngIf="version.metadata?.compiler">
           <form clrForm clrLayout="horizontal" class="p-0 clr-form-horizontal" [formGroup]="versionForm">
             <div class="clr-row">
               <div class="clr-col-sm-12 clr-col-md-7 contract-form">
@@ -292,7 +292,7 @@
     <clr-tab>
       <button clrTabLink>{{'smartContracts.version.tabs.metadata' | translate}}</button>
       <clr-tab-content>
-        <ng-container *ngIf="version.metadata.compiler">
+        <ng-container *ngIf="version.metadata?.compiler">
           <div class="clr-row">
             <div class="clr-col-sm-12 clr-col-md-10">
               <div class="card">

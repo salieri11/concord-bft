@@ -6,6 +6,8 @@ import { AfterViewInit, Component, ElementRef } from '@angular/core';
 
 import { environment } from './../../../environments/environment';
 import { Apis } from '../../shared/urls.model';
+import { testController } from '../../../test.controller';
+
 // Due to issues with SwaggerUI being undefined in certain scenarios
 // https://github.com/swagger-api/swagger-ui/issues/4303
 declare var require: any;
@@ -18,13 +20,13 @@ const SwaggerUI = require('swagger-ui');
 })
 export class SwaggerComponent implements AfterViewInit {
 
-  private disabled: boolean;
   constructor(private el: ElementRef) { }
 
-  ngAfterViewInit(disable?: boolean) {
-    if (disable) { this.disabled = true; }
-    if (this.disabled) { return; }
+  ngAfterViewInit() {
     try {
+      // During unit tests it cannot fetch api.yaml; useless.
+      // Swagger will be checked by e2e.
+      if (testController.forTesting) { return; }
       const jwt = localStorage.getItem('jwtToken');
       let loginPath;
       let apiPath = Apis.swaggerYAML;
@@ -34,8 +36,6 @@ export class SwaggerComponent implements AfterViewInit {
       apiPath = `${basePath}${apiPath}`;
       if (environment.csp) {
         loginPath = environment.loginPath;
-      } else {
-        loginPath = `${basePath}/auth/login`;
       }
 
       SwaggerUI({
@@ -72,8 +72,4 @@ export class SwaggerComponent implements AfterViewInit {
     } catch (e) {console.log(e); }
   }
 
-}
-
-export class MockSwaggerComponent implements AfterViewInit {
-  ngAfterViewInit() {}
 }

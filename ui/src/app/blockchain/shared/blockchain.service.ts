@@ -18,10 +18,12 @@ import {
   TempDeployTracker,
   TempDeployTrackerRegistry,
   BlockchainStates,
+  mockBlockchains,
 } from './blockchain.model';
 
-import { Zone, fakeZones } from './../../zones/shared/zones.model';
+import { Zone, mockZones } from './../../zones/shared/zones.model';
 import { Apis, uuidRegExp } from '../../shared/urls.model';
+import { swaggerMocks } from '../../../test.controller';
 
 @Injectable({
   providedIn: 'root'
@@ -236,34 +238,29 @@ export class BlockchainService {
 }
 
 
-export class MockBlockchainsService {
+export class MockBlockchainService {
   notify = new BehaviorSubject({ message: '', type: '' });
   canDeploy = new BehaviorSubject(true);
-  selectedBlockchain = { consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+  selectedBlockchain = mockBlockchains[0];
   blockchains = [];
-  zones = fakeZones;
-  blockchaindId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  zones = mockZones;
+  blockchaindId = mockBlockchains[0].id;
   type = ContractEngines.ETH;
-  metadata = {consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
 
-  select(id: string): Observable<boolean> {
-    return of(typeof id === 'string');
-  }
+  select(id: string): Observable<boolean> { return of(typeof id === 'string'); }
+  getZones(): Observable<Zone[]> { return of(mockZones); }
+  deploy(params: BlockchainRequestParams): Observable<any> { return of(params); }
+  getTasks() { return of([]); }
+  getTask() { return of(null); }
+  saveSelectedBlockchain(consortiumId: string) { return consortiumId; }
+  loadSelectedBlockchain() {}
 
-  getZones(): Observable<Zone[]> {
-    return of(fakeZones);
-  }
-
-  deploy(params: BlockchainRequestParams): Observable<any> {
-    return of(params);
-  }
-
-  saveSelectedConsortium(consortiumId: string) {
-    localStorage.setItem('selectedConsortium', consortiumId);
-  }
-
-  loadSelectedConsortium() {
-    return localStorage.getItem('selectedConsortium');
+  // Unit Test Only Functions
+  provideNoBlockchain() { this.blockchains = []; }
+  provideMockBlockchains() { this.blockchains = mockBlockchains; }
+  async provideMockBlockchainsFromSwagger() {
+    return swaggerMocks.sampleResponse('GET /blockchains', 200)
+              .then(blockchains => { this.blockchains = blockchains; });
   }
 
 }

@@ -76,3 +76,29 @@ export interface TempDeployTracker {
 export interface TempDeployTrackerRegistry {
   [key: string]: TempDeployTracker;
 }
+
+export const mockBlockchains = [{
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  blockchain_type: 'ETHEREUM',
+  blockchain_state: 'ACTIVE',
+  version: 'Blockchain Version: NA',
+  created_by: 'Helen',
+  created: 1596437339711
+}, {
+  id: 'baaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  consortium_id: 'baaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  blockchain_type: 'DAML',
+  blockchain_state: 'ACTIVE',
+  version: 'Blockchain Version: stable, DAML SDK Version: 1.3.0-snapshot.20200610.4413.0.11b5c362',
+  created_by: 'Helen',
+  created: 1596437339711
+}, {
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  blockchain_type: 'ETHEREUM',
+  blockchain_state: 'FAILED', // FAILED should not display
+  version: 'Blockchain Version: NA',
+  created_by: 'Helen',
+  created: 1596437339711
+}];

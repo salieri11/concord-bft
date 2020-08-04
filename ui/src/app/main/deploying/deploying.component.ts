@@ -69,7 +69,7 @@ export class DeployingComponent implements OnInit, OnDestroy {
     let tasks;
     try {
       tasks = await this.blockchainService.getTasks().toPromise();
-    } catch (e) { console.log(e.error); return []; }
+    } catch (e) { return []; }
 
     if (!tasks) { return []; }
     const runningTasks = tasks.filter(item => (item.state === DeployStates.RUNNING));
@@ -82,7 +82,7 @@ export class DeployingComponent implements OnInit, OnDestroy {
     let task;
     try {
       task = await this.blockchainService.getTask(taskId).toPromise();
-    } catch (e) { console.log(e.error); return null; }
+    } catch (e) { return null; }
     if (!task) { return null; }
     return task;
   }

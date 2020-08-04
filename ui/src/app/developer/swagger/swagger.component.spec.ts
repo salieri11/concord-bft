@@ -7,7 +7,6 @@ import { async, TestBed, ComponentFixture } from '@angular/core/testing';
 import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { SwaggerComponent } from './swagger.component';
 
-
 describe('SwaggerComponent', () => {
   let component: SwaggerComponent;
   let fixture: ComponentFixture<SwaggerComponent>;
@@ -22,7 +21,6 @@ describe('SwaggerComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(SwaggerComponent);
     component = fixture.componentInstance;
-    component.ngAfterViewInit(false); // disable
     fixture.detectChanges();
   });
 

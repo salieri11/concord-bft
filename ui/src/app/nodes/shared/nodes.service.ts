@@ -11,15 +11,9 @@ import { map, concatMap, filter, take, delay, catchError } from 'rxjs/operators'
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
 import {
-  NodeProperties,
-  NodeInfo,
-  ClientNode,
-  ClientNodeDeployParams,
-  CommittersData,
-  BlockchainNode,
-  NodeCredentials,
-  NodeType,
-  NodeTemplates
+  NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams, NodeTemplates,
+  CommittersData, BlockchainNode, NodeCredentials, NodeType, mockCommitters,
+  mockClients, mockNodeCredentials
 } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -526,4 +520,39 @@ export class NodesService {
   //     .pipe(take(1));
   // }
 
+}
+
+
+
+export class MockNodesService {
+  clients: ClientNode[] = [];
+  committers: NodeInfo[] = [];
+  committersData: CommittersData = null;
+  allNodesList: BlockchainNode[] = [];
+
+  committersWithOnlyPublicIP: boolean = false;
+  committersWithOnlyPrivateIP: boolean = false;
+  clientsWithOnlyPublicIP: boolean = false;
+  clientsWithOnlyPrivateIP: boolean = false;
+  committersWithoutRPCURL: boolean = false;
+  clientsWithoutRPCURL: boolean = false;
+  committersWithNoZoneInfo: boolean = false;
+
+  allOnPremZones: boolean = false;
+  allCloudZones: boolean = false;
+
+  fetchAndSet() {}
+  getCommitters() { return of(this.committers); }
+  getClients() { return of(this.clients); }
+  prepareCommitters(): CommittersData { return null; }
+  prepareClients() { return this.clients; }
+  getNodeCredentials() { return of(mockNodeCredentials); }
+
+  // Unit Test Only Functions
+  provideNoNodes() { this.committers = []; this.clients = []; this.allNodesList = []; }
+  provideNoCommitters() { this.committers = []; this.updateAllNodesList(); }
+  provideNoClients() { this.committers = []; this.updateAllNodesList(); }
+  provideMockCommitters() { this.committers = mockCommitters; this.updateAllNodesList(); }
+  provideMockClients() { this.clients = mockClients; this.updateAllNodesList(); }
+  private updateAllNodesList() { this.allNodesList = [].concat(this.committers, this.clients); }
 }
