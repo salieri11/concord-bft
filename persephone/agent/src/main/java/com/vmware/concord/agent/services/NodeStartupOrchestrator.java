@@ -275,11 +275,16 @@ public final class NodeStartupOrchestrator {
         log.info("Create container: {}", createContainerCmd.toString());
         var container = createContainerCmd.exec();
         if (container == null) {
-            log.error("Couldn't start {} container...!", containerParam.getContainerName());
+            log.error("Couldn't create {} container...!", containerParam.getContainerName());
         } else {
-            log.info("Starting {}: Id {} ", containerParam.getContainerName(), container.getId());
-            dockerClient.startContainerCmd(container.getId()).exec();
-            log.info("Started container {}: Id {} ", containerParam.getContainerName(), container.getId());
+            if (configuration.getNoLaunch()) {
+                log.info("Not Launching {}: Id {} ", containerParam.getContainerName(), container.getId());
+            } else {
+                log.info("Starting {}: Id {} ", containerParam.getContainerName(), container.getId());
+                dockerClient.startContainerCmd(container.getId()).exec();
+                log.info("Started container {}: Id {} ", containerParam.getContainerName(), container.getId());
+            }
+
         }
     }
 }
