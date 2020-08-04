@@ -299,6 +299,18 @@
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
+                <div class="nodeprop-container" *ngIf="client.group_id">
+                  <label>{{ 'details.client.groupId' | translate }}:</label>
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-group-id'">
+                    {{ client.group_id }}
+                    <concord-copy-to-clipboard-button
+                      class="ctc-btn-inline"
+                      [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right"
+                      [value]="client.group_id"
+                      [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
                 <div class="nodeprop-container" *ngIf="client.public_ip">
                   <label>{{ 'details.node.publicIp' | translate }}:</label>
                   <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-public-ip'">
