@@ -26,5 +26,6 @@ message ConcordAgentConfiguration {
     ConfigurationSessionIdentifier configuration_session = 7;
     OutboundProxyInfo outbound_proxy_info = 8;
     string node_id = 9;
+    bool no_launch = 10;
 }
 /* [END messages] */
