@@ -34,7 +34,6 @@ simpleConfig:
         - 16000 # Size of request (max 60 KB)
         - 2 # Value of f, just to validate that 3f+1 nodes are configured for TR subscription.
   numberThreads: 1 # No of concurrent requests
-  outputDir: ./perf_result
 advancedConfig:
   wavefront:
     enabled: false

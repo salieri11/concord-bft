@@ -4,10 +4,8 @@ import java.util.List;
 
 public class SimpleConfig {
   private String blockchain;
-  private String environment;
   private int nodeCount;
   private List<Node> nodes;
-  private String outputDir;
   private List<Workload> workloads;
   private int sleepTime;
   private int port;
@@ -47,11 +45,7 @@ public class SimpleConfig {
   }
 
   public String getOutputDir() {
-    return outputDir;
-  }
-
-  public void setOutputDir(String outputDir) {
-    this.outputDir = outputDir;
+    return System.getProperty("RESULT_DIR", "perf_result");
   }
 
   public List<Workload> getWorkloads() {
