@@ -8,7 +8,8 @@ enable_testing()
 add_test(NAME ThinReplicaClientTests COMMAND ThinReplicaClientTests)
 add_executable(ThinReplicaClientTests
                thin_replica_client_test.cpp
-	       thin_replica_client_mocks.hpp)
+	       thin_replica_client_mocks.hpp
+	       thin_replica_client_mocks.cpp)
 target_link_libraries(ThinReplicaClientTests
                       ${GTEST_LIBRARY}
 		      ${GMOCK_LIBRARY}

@@ -232,7 +232,6 @@ void ThinReplicaClient::CloseStream(unique_ptr<ReaderType>& stream,
   assert(context);
 
   context->TryCancel();
-  stream->Finish();
   stream.reset();
   context.reset();
 }

@@ -442,33 +442,37 @@ class ThinReplicaClient final {
   // before sending them. If a value for block_id is given, the
   // ThinReplicaClient will begin the subscription at and including that Block
   // ID, otherwise, subscription will begin by attempting to read all current
-  // state. The subscribe call should be expected to block the calling thread
-  // until the subscription is successfully completed and any initial state is
-  // read.
+  // state.
   //
-  // The Thin Replica mechanism subscription procedure begins with fetching of
-  // initial state, followed by the creation of a subscription stream through
-  // which further updates are pushed as they are generated. The updates
-  // contained in the initial state will all be synchronously pushed to the
-  // UpdateQueue this ThinReplicaClient was constructed with before the
-  // Subscribe function returns. Once the subscription stream is successfully
-  // setup, each update received via the stream will also be asynchronously
-  // pushed to that UpdateQueue (these asynchronous updates may begin before the
-  // Subscribe function returns and may continue after it returns until the
-  // Unsubscribe function is called and returned, Subscribe is called again to
-  // create another subscription and returns, or the ThinReplicaClient object is
-  // completely destoyed). It is expected that Thin Replica Client applications
-  // will make a reasonable effort to call AcknowledgeBlockID for the most
-  // recent Block ID they have received when they receive new update(s); please
-  // see ThinReplicaClient::AcknowledgeBlockID's comments in this header file
-  // for details.
+  // If no Block ID is given and the Thin Replica mechanism begins the
+  // subscription procedure by fetching of initial state, the Subscribe call
+  // will block until the initial state has been fetched; furthermore, Subscribe
+  // may throw an exception in this case if it cannot reach enough agreeing
+  // servers to collect the initial state. The updates contained in the initial
+  // state will all be synchronously pushed to the UpdateQueue this
+  // ThinReplicaClient was constructed with before the Subscribe function
+  // returns.
+  //
+  // Once a subscription has fetched all initial state (if no Block ID was
+  // given) or resumed an existing subscription from a given Block ID, each
+  // update received via the stream will be asynchronously pushed to the
+  // UpdateQueue (these asynchronous updates may begin before the Subscribe
+  // function returns and may continue after it returns until the Unsubscribe
+  // function is called and returned, Subscribe is called again to create
+  // another subscription and returns, or the ThinReplicaClient object is
+  // completely destoyed).
+  //
+  // It is expected that Thin Replica Client applications will make a reasonable
+  // effort to call AcknowledgeBlockID for the most recent Block ID they have
+  // received when they receive new update(s); please see
+  // ThinReplicaClient::AcknowledgeBlockID's comments in this header file for
+  // details.
   //
   // If this ThinReplicaClient already has an active subscription open when
   // Subscribe is called, that subscription may be ended when Subscribe is
   // called, and will always be ended before Subscribe returns if no error
   // occurs. If there are any updates leftover in update_queue when Subscribe is
-  // called, the queue will be cleared. Subscribe will throw an exception if it
-  // cannot successfully make the requested subscription.
+  // called, the queue will be cleared.
   void Subscribe(const std::string& key_prefix_bytes);
   void Subscribe(const std::string& key_prefix_bytes, uint64_t block_id);
 
