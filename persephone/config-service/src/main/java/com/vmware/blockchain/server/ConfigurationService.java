@@ -65,8 +65,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      */
     private final ExecutorService executor;
 
-    private final Cache<ConfigurationSessionIdentifier, Map<Integer, List<ConfigurationComponent>>> cache;
-
     private final Cache<String, Map<String, List<ConfigurationComponent>>> cacheByNodeId;
 
     private ConfigurationServiceHelper configurationServiceHelper;
@@ -87,13 +85,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         this.configurationServiceHelper = configurationServiceHelper;
         initialize();
 
-        cache = CacheBuilder.newBuilder()
-                .expireAfterAccess(10, TimeUnit.MINUTES)
-                .expireAfterWrite(2, TimeUnit.HOURS)
-                .build();
-
         cacheByNodeId = CacheBuilder.newBuilder()
-                .expireAfterAccess(10, TimeUnit.MINUTES)
+                .expireAfterAccess(20, TimeUnit.MINUTES)
                 .expireAfterWrite(2, TimeUnit.HOURS)
                 .build();
     }
@@ -114,22 +107,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
         try {
-            List<ConfigurationComponent> nodeComponents;
-
             log.info("Received request {}", request);
-            if (!request.getNodeId().isEmpty()) {
-                var components = cacheByNodeId.getIfPresent(request.getIdentifier().getId());
-                log.info("Configurations found for session id {}", request.getIdentifier());
-                log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
-                nodeComponents = components != null ? components.get(request.getNodeId()) : null;
-            } else {
-                var components = cache.getIfPresent(ConfigurationSessionIdentifier.newBuilder()
-                                                            .setIdentifier(request.getIdentifier().getIdentifier())
-                                                            .build());
-                log.info("Configurations found for session id {}", request.getIdentifier());
-                log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
-                nodeComponents = components != null ? components.get(request.getNode()) : null;
-            }
+            var components = cacheByNodeId.getIfPresent(request.getIdentifier().getId());
+            log.info("Configurations found for session id {}", request.getIdentifier());
+            log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
+            List<ConfigurationComponent>  nodeComponents
+                    = components != null ? components.get(request.getNodeId()) : null;
 
             if (nodeComponents != null && nodeComponents.size() != 0) {
                 NodeConfigurationResponse.Builder builder = NodeConfigurationResponse.newBuilder();
@@ -139,7 +122,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 observer.onCompleted();
             } else {
                 observer.onError(new StatusException(Status.NOT_FOUND.withDescription(
-                        "Node configuration is empty for node: " + request.getNode())));
+                        "Node configuration is empty for node: " + request.getNodeId())));
             }
         } catch (Exception e) {
             var errorMsg = String.format("Retrieving configuration results failed for id: %s with error: %s",
