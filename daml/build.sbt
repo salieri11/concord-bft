@@ -163,6 +163,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "com.daml" %% "daml-lf-engine" % sdkVersion,
       "com.daml" %% "daml-lf-language" % sdkVersion,
       "com.daml" %% "sandbox" % sdkVersion,
+      "com.daml" %% "testing-utils" % sdkVersion % Test,
       "com.daml" %% "ledger-api-auth" % sdkVersion,
 
       "com.daml" %% "participant-state" % sdkVersion,

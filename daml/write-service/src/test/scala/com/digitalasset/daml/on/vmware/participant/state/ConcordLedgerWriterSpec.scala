@@ -21,7 +21,6 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
 
   private val anEnvelope = ByteString.copyFrom(Array[Byte](0, 1, 2))
   private val aParticipantId = ParticipantId.assertFromString("aParticipantId")
-  private val aLedgerId = "aLedgerId"
 
   "ledger writer" should {
     "wrap parameters and call commitTransaction" in {
@@ -31,7 +30,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       when(commitFunction.commit(requestCaptor.capture()))
         .thenReturn(Future.successful(SubmissionResult.Acknowledged))
       val instance =
-        new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
+        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance.commit(correlationId = "aCorrelationId", envelope = anEnvelope).map { actual =>
         actual shouldBe SubmissionResult.Acknowledged
         val actualRequest = requestCaptor.getValue
@@ -46,7 +45,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       when(commitFunction.commit(any()))
         .thenReturn(Future.successful(SubmissionResult.Overloaded))
       val instance =
-        new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
+        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map { actual =>
         actual shouldBe SubmissionResult.Overloaded
       }
@@ -57,7 +56,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       when(commitFunction.commit(any()))
         .thenReturn(Future.successful(SubmissionResult.InternalError("ERROR")))
       val instance =
-        new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
+        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance.commit("aCorrelationId", anEnvelope).map {
         case SubmissionResult.InternalError(reason) =>
           reason should include("ERROR")
@@ -71,7 +70,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       when(commitFunction.commit(any()))
         .thenReturn(Future.successful[SubmissionResult](SubmissionResult.NotSupported))
       val instance =
-        new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
+        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance
         .commit("aCorrelationId", anEnvelope)
         .failed
@@ -88,7 +87,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       when(commitFunction.commit(any()))
         .thenReturn(Future.failed(expectedException))
       val instance =
-        new ConcordLedgerWriter(aLedgerId, aParticipantId, commitFunction.commit)
+        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance
         .commit("aCorrelationId", anEnvelope)
         .failed

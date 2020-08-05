@@ -16,6 +16,7 @@ import scala.concurrent.duration._
 
 sealed trait WriteClientsConfig {
   val replicas: Seq[String]
+  val maxFaultyReplicas: Short
   val useBftClient: Boolean
   val bftClientConfigPath: Option[Path]
   val bftClientRequestTimeout: Duration
@@ -24,9 +25,10 @@ sealed trait WriteClientsConfig {
 final case class ExtraConfig(
     override val replicas: Seq[String],
     useThinReplica: Boolean,
-    maxFaultyReplicas: Short,
+    override val maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
     authService: Option[AuthService],
+    preExecutionCostThreshold: Option[Long],
     enableBatching: Boolean, // Whether we're batching requests or not.
     maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
@@ -49,6 +51,7 @@ object ExtraConfig {
     maxFaultyReplicas = 1,
     jaegerAgentAddress = "localhost:6831",
     authService = Some(AuthServiceWildcard),
+    preExecutionCostThreshold = None,
     enableBatching = false,
     maxBatchQueueSize = 100,
     maxBatchSizeBytes = 4 * 1024 * 1024 /* 4MB */,
@@ -186,6 +189,13 @@ object ExtraConfig {
       .text("Enables JWT-based authorization, where the JWT is signed by RSA256 with a public key loaded from the given JWKS URL")
       .action((url, config) => config.copy(extra = config.extra.copy(authService = Some(AuthServiceJWT(JwksVerifier(url))))))
 
+    parser
+        .opt[Long]("pre-execution-cost-threshold")
+        .optional()
+        .text("Controls the interpretation cost threshold based on which requests are marked or not for pre-execution. Default is that we don't pre-execute any transactions.")
+      .action((preExecutionCostThreshold, config) => {
+        config.copy(extra = config.extra.copy(preExecutionCostThreshold = Some(preExecutionCostThreshold)))
+      })
     parser
       .opt[Map[String, String]]("batching")
       .optional()
