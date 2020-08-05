@@ -57,7 +57,7 @@ uint32_t ConcordClient::SendRequest(const void* request,
 
   auto res = client_->sendRequest(flags, static_cast<const char*>(request),
                                   request_size, seq_num, timeout_ms.count(),
-                                  reply_size, replyBuffer, replyBufSize,
+                                  replyBufSize, replyBuffer, replyBufSize,
                                   correlation_id, span_context);
 
   if (res == bftEngine::OperationResult::TIMEOUT)

@@ -100,6 +100,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
+      - INDEX_DB_SCHEMA=daml_ledger_api1
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
