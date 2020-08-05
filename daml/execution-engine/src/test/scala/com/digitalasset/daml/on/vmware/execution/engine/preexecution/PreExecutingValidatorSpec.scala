@@ -11,6 +11,7 @@ import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.DamlLedgerStateReader
+import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerprints.StateCacheWithFingerprints
 import com.daml.ledger.validator.caching.QueryableReadSet
 import com.daml.ledger.validator.preexecution.{
   DamlLedgerStateReaderWithFingerprints,
@@ -30,18 +31,9 @@ import com.digitalasset.kvbc.daml_validator.{
   PreExecutionOutput => ProtoPreExecutionOutput
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord.{
-  KeyAndFingerprint,
-  KeyValuePair,
-  PreExecutionResult,
-  ReadSet,
-  WriteSet
-}
-import io.grpc.stub.StreamObserver
-import java.io
-
-import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerprints.StateCacheWithFingerprints
+import com.vmware.concord.concord._
 import com.vmware.concord.kvb.concord_storage.ValueWithTrids
+import io.grpc.stub.StreamObserver
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._

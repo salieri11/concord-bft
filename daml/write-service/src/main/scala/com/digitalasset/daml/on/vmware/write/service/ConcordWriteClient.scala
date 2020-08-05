@@ -10,8 +10,8 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
-  * Implementations of this trait allow to asynchronously submit a [[CommitRequest]] to the Concord ledger and must
-  * be thread-safe.
+  * Implementations of this trait allow to asynchronously submit a [[CommitRequest]] to the Concord
+  * ledger and must be thread-safe.
   * They also provide resource management, health check and initialization status information.
   */
 trait ConcordWriteClient extends AutoCloseable {
@@ -36,6 +36,21 @@ trait ConcordWriteClient extends AutoCloseable {
 }
 
 object ConcordWriteClient {
+  // The below flags may be used for 'flags' field in [[CommitRequest]].
+  object MessageFlags {
+    val EmptyFlag = 0
+    val ReadOnlyFlag = 1
+    val PreExecuteFlag = 2
+  }
+
+  def markRequestForPreExecution(delegate: CommitRequest => Future[SubmissionResult])(
+      request: CommitRequest): Future[SubmissionResult] = {
+    val flaggedRequest = request.copy(
+      flags = request.flags | MessageFlags.PreExecuteFlag
+    )
+    delegate(flaggedRequest)
+  }
+
   private[service] def backOff(shouldRetry: Throwable => Boolean): RetryStrategy =
     RetryStrategy.exponentialBackoff(shouldRetry, attempts = 10, firstWaitTime = 100.milliseconds)
 }

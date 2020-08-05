@@ -37,6 +37,15 @@ done
 
 INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER"
 
+# Pre-execution cost threshold parameter.
+if [ -z "$PRE_EXECUTION_COST_THRESHOLD" ]; then
+  echo "Disabling pre-execution"
+  PRE_EXECUTION_COST_THRESHOLD_PARAMETER=""
+else
+  echo "Enabling pre-execution with cost threshold $PRE_EXECUTION_COST_THRESHOLD"
+  PRE_EXECUTION_COST_THRESHOLD_PARAMETER="--pre-execution-cost-threshold $PRE_EXECUTION_COST_THRESHOLD"
+fi
+
 # Batching parameters. These are all overridable from the outside.
 ENABLE_BATCHING=${ENABLE_BATCHING:=true}
 MAX_BATCH_SIZE_BYTES=${MAX_BATCH_SIZE_BYTES:=$((4 * 1024 * 1024))} # "Soft" limit for batch size (default to 4MB)
@@ -61,6 +70,7 @@ $API_SERVER \
   --maxTrcReadDataTimeout ${MAX_TRC_READ_DATA_TIMEOUT} \
   --maxTrcReadHashTimeout ${MAX_TRC_READ_HASH_TIMEOUT} \
   --ledger-id KVBC \
+  $PRE_EXECUTION_COST_THRESHOLD_PARAMETER \
   $THIN_REPLICA_SETTINGS \
   $BFT_CLIENT_SETTINGS \
   $AUTH_SETTINGS

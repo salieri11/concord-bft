@@ -2,11 +2,11 @@
 
 package com.digitalasset.daml.on.vmware.participant.state
 
-import com.daml.ledger.participant.state.kvutils.api.LedgerWriter
-import com.daml.ledger.participant.state.v1.{LedgerId, ParticipantId, SubmissionResult}
-import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.daml.ledger.api.health.{HealthStatus, Healthy}
+import com.daml.ledger.participant.state.kvutils.api.LedgerWriter
+import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient
+import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
 
@@ -14,7 +14,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class ConcordLedgerWriter(
-    ledgerId: LedgerId,
     override val participantId: ParticipantId,
     commitTransaction: CommitRequest => Future[SubmissionResult],
     fetchCurrentHealth: () => HealthStatus = () => Healthy)(
@@ -53,13 +52,11 @@ class ConcordLedgerWriter(
 
     logger.info(
       s"Sending commit request, correlationId=$correlationId envelopeSize=${envelope.size}")
-
     val commitRequest = CommitRequest(
       envelope,
       participantId.toString,
       correlationId
     )
-
     commitTransaction(commitRequest)
       .transform(resultHandler, exceptionHandler)
   }
@@ -68,10 +65,9 @@ class ConcordLedgerWriter(
 }
 
 object ConcordLedgerWriter {
-  def create(ledgerId: LedgerId, participantId: ParticipantId, client: KvbcWriteClient)(
+  def create(participantId: ParticipantId, client: KvbcWriteClient)(
       implicit executionContext: ExecutionContext): ConcordLedgerWriter =
     new ConcordLedgerWriter(
-      ledgerId,
       participantId,
       client.commitTransaction(_)(executionContext),
       () => client.currentHealth)

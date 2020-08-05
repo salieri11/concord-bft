@@ -5,10 +5,10 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.Mockito.{when, verify, times}
-import ConcordLedgerFactory.waitForConcordWriteClientsToBeReady
+import ConcordWriteClients.waitForConcordWriteClientsToBeReady
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 
-class WaitForConcordWriteClientsToBeReadySpec extends WordSpec with Matchers with MockitoSugar {
+class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
   "waitForConcordWriteClientsToBeReady()" should {
 
     "wait for clientsToBeWaitedFor clients to be ready" in {
