@@ -5,10 +5,12 @@ import com.vmware.concord.performance.PerformanceServiceGrpc.PerformanceServiceB
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
+import java.util.Random;
 
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.ThreadLocalRandom.current;
 import static org.apache.logging.log4j.LogManager.getLogger;
+import com.google.protobuf.ByteString;
 
 /**
  * PEE PerfWrite operation
@@ -21,6 +23,10 @@ public class PerfWrite {
     private final int keySize;
     private final int valueSize;
     private final int batchSize;
+    private final int payloadSize;
+
+    private final Random randomNo;
+    private final byte[] payload;
 
     private final PerformanceServiceBlockingStub blockingStub;
 
@@ -31,6 +37,12 @@ public class PerfWrite {
         keySize = parseInt(params.get(3));
         valueSize = parseInt(params.get(4));
         batchSize = parseInt(params.get(5));
+        payloadSize = parseInt(params.get(6));
+
+        // Create payload
+        randomNo = new Random();
+        payload = new byte[payloadSize];
+        randomNo.nextBytes(payload);
 
         this.blockingStub = blockingStub;
     }
@@ -69,7 +81,10 @@ public class PerfWrite {
      */
     private PerfWriteRequest referAndWriteRequest() {
         PerfWriteFromInit source = PerfWriteFromInit.newBuilder().setInitId(initId).build();
-        return PerfWriteRequest.newBuilder().setFromInit(source).build();
+        return PerfWriteRequest.newBuilder()
+        .setFromInit(source)
+        .setPayload(ByteString.copyFrom(payload))
+        .build();
     }
 
     /**
@@ -84,7 +99,10 @@ public class PerfWrite {
                 .setValueSize(valueSize)
                 .build();
 
-        return PerfWriteRequest.newBuilder().setExternal(source).build();
+        return PerfWriteRequest.newBuilder()
+            .setExternal(source)
+            .setPayload(ByteString.copyFrom(payload))
+            .build();
     }
 
     /**
