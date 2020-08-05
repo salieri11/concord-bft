@@ -25,7 +25,6 @@ simpleConfig:
         - 100                #numberVotes
         - ../data/proposals   #input data
   sleepTime: 1000
-  outputDir: ./perf_result
   numberThreads: 4 #0 or undefined is default
 
 advancedConfig:
