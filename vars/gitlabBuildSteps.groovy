@@ -1472,6 +1472,7 @@ void pushToArtifactory(){
     env.internal_ethrpc_repo,
     env.internal_fluentd_repo,
     env.internal_helen_repo,
+    env.internal_castor_repo,
     env.internal_memleak_concord_repo,
     env.internal_persephone_agent_repo,
     env.internal_persephone_configuration_repo,
@@ -1512,6 +1513,7 @@ void pushToDockerHub(){
     env.release_ethrpc_repo,
     env.release_fluentd_repo,
     env.release_helen_repo,
+    env.release_castor_repo,
     env.release_persephone_agent_repo,
     // env.release_persephone_configuration_repo,
     // env.release_persephone_ipam_repo,
@@ -1539,6 +1541,7 @@ void tagImagesForRelease(){
     docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
     docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
     docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+    docker tag ${internal_castor_repo}:${docker_tag} ${release_castor_repo}:${docker_tag}
     docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
     docker tag ${internal_persephone_configuration_repo}:${docker_tag} ${release_persephone_configuration_repo}:${docker_tag}
     docker tag ${internal_persephone_ipam_repo}:${docker_tag} ${release_persephone_ipam_repo}:${docker_tag}
@@ -1753,6 +1756,7 @@ void setUpRepoVariables(){
   env.release_ethrpc_repo = env.release_repo + "/ethrpc"
   env.release_fluentd_repo = env.release_repo + "/fluentd"
   env.release_helen_repo = env.release_repo + "/concord-ui"
+  env.release_castor_repo = env.release_repo + "/castor"
   env.release_memleak_concord_repo = env.release_repo + "/memleak-concord-core"
   env.release_persephone_agent_repo = env.release_repo + "/agent"
   env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
@@ -1774,6 +1778,7 @@ void setUpRepoVariables(){
   env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
   env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
   env.internal_helen_repo = env.internal_repo + "/helen"
+  env.internal_castor_repo = env.internal_repo + "/castor"
   env.internal_memleak_concord_repo = env.release_memleak_concord_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
@@ -2117,6 +2122,8 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
+castor_repo=${internal_castor_repo}
+castor_tag=${docker_tag}
 memleak_concord_repo=${internal_memleak_concord_repo}
 memleak_concord_tag=${docker_tag}
 persephone_agent_repo=${internal_persephone_agent_repo}

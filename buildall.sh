@@ -198,6 +198,11 @@ helen() {
     docker_build . helen/Dockerfile ${helen_repo} ${helen_tag}
 }
 
+castor() {
+    info "Build castor..."
+    docker_build . castor/Dockerfile ${castor_repo} ${castor_tag}
+}
+
 persephone() {
     # As a precondition to building Persephone with this function, the Concord
     # image ${concord_repo}:${concord_tag} should be complete and available, and
@@ -344,6 +349,7 @@ then
     waitForProcesses
 
     helen
+    castor
     trc-lib
     waitForProcesses
 
