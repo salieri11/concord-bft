@@ -263,7 +263,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
 @Field String chess_plus_on_predeployed_bc_job_name = "ChessPlusOnPre-deployedBlockchain"
 @Field String daml_test_on_predeployed_bc_job_name = "Daml Tests on pre-deployed Blockchain"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
-@Field String ext_long_tests_job_name = "BlockchainExtensiveLongTests"
+@Field String rel_long_tests_job_name = "BlockchainLongTests-Release"
 @Field String helen_role_test_job_name = "Helen Role Tests on GitLab"
 @Field String log_insight_test_job_name = "Log Insight Integration Test"
 @Field String long_tests_job_name = "BlockchainLongTests"
@@ -283,7 +283,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
-  ext_long_tests_job_name,
+  rel_long_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
   long_tests_job_name,
@@ -299,7 +299,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
-  ext_long_tests_job_name,
+  rel_long_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
   long_tests_job_name,
@@ -338,8 +338,8 @@ def call(){
     echo "**** Jenkins job for Generic Test Run"
   }
 
-  if (env.JOB_NAME.contains(ext_long_tests_job_name)) {
-    agentLabel = "ExtLongRunTest"
+  if (env.JOB_NAME.contains(rel_long_tests_job_name)) {
+    agentLabel = "RelLongRunTest"
   } else if (env.JOB_NAME.contains(long_tests_job_name)) {
     agentLabel = "LongRunTest"
   } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
@@ -656,7 +656,7 @@ def call(){
               } else if(
                   env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
-                  env.JOB_NAME.contains(ext_long_tests_job_name) ||
+                  env.JOB_NAME.contains(rel_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
@@ -727,7 +727,7 @@ def call(){
                 } else if (
                   env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
-                  env.JOB_NAME.contains(ext_long_tests_job_name) ||
+                  env.JOB_NAME.contains(rel_long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
                   env.JOB_NAME.contains(deployment_support_bundle_job_name) ||
@@ -880,7 +880,7 @@ def call(){
                     } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
                       selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
-                    } else if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(ext_long_tests_job_name)) {
+                    } else if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name)) {
                       // TODO: Move to a Hermes file.  The pipeline file should not have test implementation details.
                       if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       deploymentOrg = ""
@@ -2224,7 +2224,7 @@ EOF
       sed -i -e 's/'"<DOCKERHUB_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/long_running_tests.json
     '''
 
-    if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(ext_long_tests_job_name)) {
+    if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name)) {
       sh '''
           sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/zone_config.json
       '''

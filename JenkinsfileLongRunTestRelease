@@ -1,4 +1,4 @@
-node('blockchain-ExtLongRunTest'){
+node('blockchain-LongRunTestRel'){
   checkout scm
 
   def rootDir = pwd()
