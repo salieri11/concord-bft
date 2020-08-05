@@ -372,7 +372,7 @@ def get_spider_version(product_sdk_version, username, password):
             url = next_url
          else:
             # We can fetch up to 100 at a time, but it will probably be within the first few.
-            url = "https://hub.docker.com/v2/repositories/{}/tags/?page_size=20".format(DA_SPIDER_IMAGE)
+            url = "https://hub.docker.com/v2/repositories/{}/tags/?page_size=100".format(DA_SPIDER_IMAGE)
 
          log.info("Fetching {} tags from DockerHub".format(DA_SPIDER_IMAGE))
          response = requests.get(url, headers={"Authorization": "JWT " + token})
