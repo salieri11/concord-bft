@@ -200,9 +200,6 @@ EXPOSE 3503/udp
 EXPOSE 3504/udp
 EXPOSE 3505/udp
 
-# Metrics port
-EXPOSE 9891
-
 # Mountable volumes.
 VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/cores" ]
 
