@@ -16,5 +16,5 @@ public interface ProvisionerService {
     void provisioningHandoff(
             InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
-            CompletableFuture<String> deploymentCompletionFuture);
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
 }

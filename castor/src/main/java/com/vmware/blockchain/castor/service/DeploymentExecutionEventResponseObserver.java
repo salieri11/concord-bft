@@ -7,8 +7,6 @@ package com.vmware.blockchain.castor.service;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import com.vmware.blockchain.castor.exception.CastorException;
-import com.vmware.blockchain.castor.exception.ErrorCode;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 
 import io.grpc.stub.StreamObserver;
@@ -24,9 +22,9 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class DeploymentExecutionEventResponseObserver implements StreamObserver<DeploymentExecutionEvent> {
     private final String requestId;
-    private final CompletableFuture<String> deploymentCompletionFuture;
+    private final CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture;
 
-    private volatile boolean deploymentFailed;
+    private volatile boolean provisioningFailed;
 
     /**
      * onNext callback.
@@ -39,7 +37,7 @@ public class DeploymentExecutionEventResponseObserver implements StreamObserver<
         DeploymentExecutionEvent.Status status = deploymentExecutionEvent.getStatus();
         if (Objects.equals(DeploymentExecutionEvent.Type.COMPLETED, type)
             && Objects.equals(DeploymentExecutionEvent.Status.FAILURE, status)) {
-            deploymentFailed = true;
+            provisioningFailed = true;
         }
     }
 
@@ -50,8 +48,7 @@ public class DeploymentExecutionEventResponseObserver implements StreamObserver<
     @Override
     public void onError(Throwable t) {
         log.error("Error in blockchain provisioning", t);
-        deploymentCompletionFuture.completeExceptionally(t);
-        throw new CastorException(ErrorCode.PROVISIONING_ERROR, t);
+        provisioningCompletionFuture.completeExceptionally(t);
     }
 
     /**
@@ -59,11 +56,11 @@ public class DeploymentExecutionEventResponseObserver implements StreamObserver<
      */
     @Override
     public void onCompleted() {
-        if (deploymentFailed) {
+        if (provisioningFailed) {
             log.info("Deployment with requestId: {} failed", requestId);
-            deploymentCompletionFuture.complete("FAILED");
+            provisioningCompletionFuture.complete(CastorDeploymentStatus.FAILURE);
         } else {
-            deploymentCompletionFuture.complete("SUCCESS");
+            provisioningCompletionFuture.complete(CastorDeploymentStatus.SUCCESS);
             log.info("Deployment with requestId: {} succeeded", requestId);
         }
     }

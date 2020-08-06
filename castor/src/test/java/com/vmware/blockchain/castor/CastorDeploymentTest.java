@@ -6,6 +6,7 @@ package com.vmware.blockchain.castor;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,10 +29,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.service.CastorDeploymentStatus;
 import com.vmware.blockchain.castor.service.ProvisionerService;
 import com.vmware.blockchain.castor.service.ProvisioningServiceTestImpl;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
+import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 
@@ -48,7 +51,7 @@ import io.grpc.testing.GrpcCleanupRule;
 // Needs Junit4 for rules
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = CastorTestConfiguration.class)
-public class CastorDeployment2Test {
+public class CastorDeploymentTest {
     @Rule public final GrpcCleanupRule grpcCleanupRule = new GrpcCleanupRule();
 
     public static final String CASTOR_GRPC_TEST = "castor-grpc-test";
@@ -60,7 +63,7 @@ public class CastorDeployment2Test {
     private InfrastructureDescriptorModel infrastructureDescriptorModel;
     private DeploymentDescriptorModel deploymentDescriptorModel;
     ProvisioningServiceTestImpl provisioningServiceTest;
-    private CompletableFuture<String> completableFuture;
+    private CompletableFuture<CastorDeploymentStatus> completableFuture;
 
     @Autowired
     private ProvisionerService provisionerService;
@@ -115,8 +118,8 @@ public class CastorDeployment2Test {
         provisionerService.provisioningHandoff(
                 infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
         // The future should be set, TimeoutException is unexpected for successful test.
-        String result = completableFuture.get(5, TimeUnit.SECONDS);
-        assertEquals(ProvisioningServiceTestImpl.TEST_SUCCESS, result);
+        CastorDeploymentStatus result = completableFuture.get(5, TimeUnit.SECONDS);
+        assertEquals(CastorDeploymentStatus.SUCCESS, result);
         // the createDeployment() call should have been called twice: once explicitly as above, and one
         // via provisionerService.
         verify(provisioningServiceTest, times(2))
@@ -127,5 +130,9 @@ public class CastorDeployment2Test {
         verify(provisioningServiceTest, times(1))
                 .streamDeploymentSessionEvents(
                         any(StreamDeploymentSessionEventRequest.class), any(StreamObserver.class));
+
+        // Verify that deprovisionDeployment was NOT called - this is a successful deployment
+        verify(provisioningServiceTest, never())
+                .deprovisionDeployment(any(DeprovisionDeploymentRequest.class), any(StreamObserver.class));
     }
 }

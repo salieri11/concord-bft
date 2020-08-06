@@ -9,6 +9,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 import org.springframework.mock.env.MockEnvironment;
 
 import com.vmware.blockchain.castor.service.DeployerService;
@@ -27,6 +28,9 @@ import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 @Configuration
 @Import(CastorConfiguration.class)
 public class CastorTestConfiguration {
+
+    @Autowired
+    private Environment environment;
 
     @Autowired
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingProvisioningClient;
@@ -52,7 +56,7 @@ public class CastorTestConfiguration {
      */
     @Bean
     public ProvisionerService provisionerService() {
-        return new ProvisionerServiceImpl(blockingProvisioningClient, asyncProvisioningClient);
+        return new ProvisionerServiceImpl(environment, blockingProvisioningClient, asyncProvisioningClient);
     }
 
     @Bean
