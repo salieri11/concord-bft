@@ -23,10 +23,8 @@ public class PerfWrite {
     private final int keySize;
     private final int valueSize;
     private final int batchSize;
-    private final int payloadSize;
 
-    private final Random randomNo;
-    private final byte[] payload;
+    private final ByteString payload;
 
     private final PerformanceServiceBlockingStub blockingStub;
 
@@ -37,12 +35,13 @@ public class PerfWrite {
         keySize = parseInt(params.get(3));
         valueSize = parseInt(params.get(4));
         batchSize = parseInt(params.get(5));
-        payloadSize = parseInt(params.get(6));
+        int payloadSize = parseInt(params.get(6));
 
         // Create payload
-        randomNo = new Random();
-        payload = new byte[payloadSize];
-        randomNo.nextBytes(payload);
+        byte[] byteData = new byte[payloadSize];
+        Random randomNo = new Random();
+        randomNo.nextBytes(byteData);
+        payload = ByteString.copyFrom(byteData);
 
         this.blockingStub = blockingStub;
     }
@@ -83,7 +82,7 @@ public class PerfWrite {
         PerfWriteFromInit source = PerfWriteFromInit.newBuilder().setInitId(initId).build();
         return PerfWriteRequest.newBuilder()
         .setFromInit(source)
-        .setPayload(ByteString.copyFrom(payload))
+        .setPayload(payload)
         .build();
     }
 
@@ -101,7 +100,7 @@ public class PerfWrite {
 
         return PerfWriteRequest.newBuilder()
             .setExternal(source)
-            .setPayload(ByteString.copyFrom(payload))
+            .setPayload(payload)
             .build();
     }
 
