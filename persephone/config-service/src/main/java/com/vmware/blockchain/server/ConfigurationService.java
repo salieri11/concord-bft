@@ -157,12 +157,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var nodeIdList = new ArrayList<>(committerIds);
 
         // Generate Configuration
-        var certGen = new ConcordEcCertificatesGenerator();
         var configUtil = new ConcordConfigUtil(concordConfigPath);
         var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath);
+
         boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
+
+        boolean isSplitConfig = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.toString(), "False")
+                .equalsIgnoreCase("True");
 
         if (request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
@@ -175,8 +179,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
         }
 
-        Map<String, String> concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
-                convertToLegacy(request.getBlockchainType()), numClients);
+        var concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
+                convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         request.getNodesMap().values().forEach(nodesByType -> nodesByType
@@ -189,11 +193,19 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                                 eachNode.getServicesList(),
                                                 eachNode))));
 
-        Map<String, List<IdentityComponent>> concordIdentityComponents = configurationServiceHelper
-                .getTlsNodeIdentities(configUtil, bftClientConfigUtil, certGen, nodeIdList, isBftEnabled);
+        var certGen = new ConcordEcCertificatesGenerator();
+        Map<String, List<IdentityComponent>> concordIdentityComponents = new HashMap<>();
+
+        concordIdentityComponents.putAll(ConfigurationServiceUtil
+                .getTlsNodeIdentities(configUtil.maxPrincipalId,
+                        configUtil.nodePrincipal,
+                        bftClientConfigUtil.maxPrincipalId,
+                        bftClientConfigUtil.nodePrincipal,
+                        certGen, nodeIdList, isBftEnabled));
+
         Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
         if (isBftEnabled) {
-            bftIdentityComponents.putAll(configurationServiceHelper
+            bftIdentityComponents.putAll(ConfigurationServiceUtil
                     .convertToBftTlsNodeIdentities(concordIdentityComponents));
         }
 
@@ -212,6 +224,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         observer.onCompleted();
     }
 
+    // TODO: remove while cleanup
     private ConcordModelSpecification.BlockchainType convertToLegacy(BlockchainType type) {
         return ConcordModelSpecification.BlockchainType.valueOf(type.name());
     }

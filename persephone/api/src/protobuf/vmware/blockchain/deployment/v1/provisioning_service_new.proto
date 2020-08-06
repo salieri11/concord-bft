@@ -148,6 +148,7 @@ enum DeploymentAttributes {
     BLOCKCHAIN_VERSION = 8;
     ENABLE_BFT_CLIENT = 9;
     NO_LAUNCH = 10;
+    SPLIT_CONFIG = 11;
 }
 
 /* [END messages] */

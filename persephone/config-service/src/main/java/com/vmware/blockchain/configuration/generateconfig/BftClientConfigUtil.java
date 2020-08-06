@@ -120,7 +120,7 @@ public class BftClientConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath) {
-        if (!ConfigUtilHelpers.validateSbft(hostIps)) {
+        if (!ConfigUtilHelpers.validateSbft(hostIps.size())) {
             return false;
         }
         int clusterSize = hostIps.size();
@@ -141,7 +141,7 @@ public class BftClientConfigUtil {
         maxPrincipalId = maxCommitterPrincipalId + ((participantIps.size()
                 + ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size()) - 1);
 
-        if (!ConfigUtilHelpers.validateSbft(hostIp, fVal, cVal)) {
+        if (!ConfigUtilHelpers.validateSbft(hostIp.size(), fVal, cVal)) {
             return false;
         }
 
