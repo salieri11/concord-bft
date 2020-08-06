@@ -16,8 +16,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { SmartContractVersion, AbiFunctionDefinition } from '../shared/smart-contracts.model';
-import * as Web3EthAbi from 'web3-eth-abi';
-import * as Web3Utils from 'web3-utils';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { EthApiService } from '../../shared/eth-api.service';
@@ -35,6 +33,10 @@ import { delay } from 'rxjs/operators';
 import { IndexedDBService } from '../../shared/indexeddb.service';
 import { DamlDarAvailableActions } from '../../app-intercept.daml.proxy';
 import { FeatureFlags, FeatureFlagService } from '../../shared/feature-flag.service';
+
+import * as Web3Utils from 'web3-utils';
+declare var require: any;
+const abiCoder = require('web3-eth-abi');
 
 interface DamlDisplayData {
 
@@ -211,7 +213,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit, OnDestr
         this.alertType = 'alert-success';
         this.resultType = 'call';
         this.rawCallReturnValue = resp.result;
-        const decodedValues = Web3EthAbi.decodeParameters(this.outputs, resp.result);
+        const decodedValues = abiCoder.decodeParameters(this.outputs, resp.result);
         delete decodedValues.__length__;
         this.callReturnValue = JSON.stringify(decodedValues, null, 4);
       }
@@ -405,7 +407,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit, OnDestr
     const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
     const params = this.inputs.map((input) => {
       let value = paramsForm.value[input.name];
-
+      if (!value) { value = ''; } // package no longer takes null value for encoding
       if (bytesRegex.test(input.type)) {
         value = Web3Utils.asciiToHex(value);
       } else if (bytesArrayRegex.test(input.type)) {
@@ -414,10 +416,11 @@ export class SmartContractVersionComponent implements OnChanges, OnInit, OnDestr
           return Web3Utils.isHexStrict(x) ? x : Web3Utils.asciiToHex(x);
         });
       }
-
       return value;
     });
-    const output = this.functionDefinition ? Web3EthAbi.encodeFunctionCall(this.functionDefinition, params) : null;
+
+    let output = '';
+    try { output = abiCoder.encodeFunctionCall(this.functionDefinition, params); } catch (e) {}
 
     return {
       from: this.versionForm.value.contractForm.from,

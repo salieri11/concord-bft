@@ -5,7 +5,7 @@
 import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { ClrWizard } from '@clr/angular';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import * as Web3EthAccounts from 'web3-eth-accounts';
+import { Accounts as Web3EthAccounts } from 'web3-eth-accounts';
 
 import { EthApiService } from '../../shared/eth-api.service';
 import { UsersService } from '../shared/users.service';

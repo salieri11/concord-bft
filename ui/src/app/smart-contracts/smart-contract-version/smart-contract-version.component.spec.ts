@@ -164,7 +164,7 @@ describe('SmartContractVersionComponent', () => {
         from: null,
         to: 'address2',
         gas: '0xF4240',
-        data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
+        data: ''
       };
       const callSpy = spyOn((component as any).ethApiService, 'sendCall')
         .and.returnValue(observableOf({result: '0x0000000000000000000000000000000000000000000000000000000000000000'}));
@@ -208,7 +208,7 @@ describe('SmartContractVersionComponent', () => {
         from: null,
         to: 'address2',
         gas: '0xF4240',
-        data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
+        data: ''
       };
       const callSpy = spyOn((component as any).ethApiService, 'sendTransaction')
         .and.returnValue(observableOf({result: successResult}));
