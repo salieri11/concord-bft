@@ -48,10 +48,13 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     concord::config::ConcordConfiguration& node_config,
     const ILocalKeyValueStorageReadOnly& ro_storage,
     IBlocksAppender& block_appender,
+    concord::kvbc::IBlocksDeleter& block_deleter,
+    bftEngine::IStateTransfer& state_transfer,
     concord::thin_replica::SubBufferList& subscriber_list,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : ConcordCommandsHandler(config, node_config, ro_storage, block_appender,
-                             subscriber_list, prometheus_registry),
+                             block_deleter, state_transfer, subscriber_list,
+                             prometheus_registry),
       logger_(logging::getLogger("com.vmware.concord.hlf.handler")),
       chaincode_invoker_(chaincode_invoker),
       node_config_(node_config) {}

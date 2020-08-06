@@ -698,7 +698,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               .release()));
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
-              config, nodeConfig, replica, replica, subscriber_list,
+              config, nodeConfig, replica, replica, replica,
+              replica.getStateTransfer(), subscriber_list,
               std::move(daml_validator), prometheus_registry));
       const auto &status =
           create_daml_genesis_block(&replica, nodeConfig, logger);
@@ -732,12 +733,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
-              chaincode_invoker, config, nodeConfig, replica, replica,
-              subscriber_list, prometheus_registry));
+              chaincode_invoker, config, nodeConfig, replica, replica, replica,
+              replica.getStateTransfer(), subscriber_list,
+              prometheus_registry));
     } else if (tee_enabled) {
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new TeeCommandsHandler(config, nodeConfig, replica, replica,
-                                 subscriber_list, prometheus_registry));
+          new TeeCommandsHandler(config, nodeConfig, replica, replica, replica,
+                                 replica.getStateTransfer(), subscriber_list,
+                                 prometheus_registry));
 
       auto should_create_tee_genesis_block = [&config]() {
         // if the parameter is not set - create the block
@@ -752,7 +755,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     } else if (perf_enabled) {
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new concord::performance::PerformanceCommandsHandler(
-              config, nodeConfig, replica, replica, subscriber_list,
+              config, nodeConfig, replica, replica, replica,
+              replica.getStateTransfer(), subscriber_list,
               prometheus_registry));
       create_perf_genesis_block(&replica, nodeConfig, logger);
     } else {
@@ -760,7 +764,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
               *concevm, *ethVerifier, config, nodeConfig, replica, replica,
-              subscriber_list, prometheus_registry));
+              replica, replica.getStateTransfer(), subscriber_list,
+              prometheus_registry));
       // Genesis must be added before the replica is started.
       concordUtils::Status genesis_status =
           create_ethereum_genesis_block(&replica, params, logger);
