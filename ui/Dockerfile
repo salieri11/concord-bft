@@ -1,4 +1,4 @@
-FROM node:10.17.0 as node
+FROM node:12.16.2 as node
 LABEL Description="VMware Blockchain UI"
 
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN npm run $UI_BUILD
 
 
 # Stage 1, based on Nginx, to have only the compiled app, ready for production with Nginx
-FROM nginx:1.13
+FROM nginx:1.17
 
 COPY --from=node /app/dist/ /usr/share/nginx/html
 

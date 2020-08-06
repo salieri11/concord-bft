@@ -7,8 +7,6 @@ import { Validators, FormGroup, FormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { ClrWizard } from '@clr/angular';
-import * as Web3EthAbi from 'web3-eth-abi';
-import * as Web3Utils from 'web3-utils';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
@@ -19,6 +17,10 @@ import {
 } from '../shared/smart-contracts.model';
 import { newVersionValue } from '../shared/custom-validators';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
+
+import * as Web3Utils from 'web3-utils';
+declare var require: any;
+const abiCoder = require('web3-eth-abi');
 
 const addressValidators = [
   Validators.maxLength(ADDRESS_LENGTH),
@@ -300,7 +302,7 @@ export class ContractFormComponent implements OnInit {
         return value;
       });
 
-      encodedParams = Web3EthAbi.encodeParameters(paramTypes, paramValues).slice(2);
+      encodedParams = abiCoder.encodeParameters(paramTypes, paramValues).slice(2);
     }
 
     return encodedParams;

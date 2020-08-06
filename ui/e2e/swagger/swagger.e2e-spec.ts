@@ -45,7 +45,6 @@ describe('concord-ui Swagger Docs', () => {
     waitFor('.btn.execute.opblock-control__btn');
     swaggerPage.clickOpBlockExecuteButtonForId(consortiumListGetId);
     expect(swaggerPage.getResponseStatusForId(consortiumListGetId)).toEqual('200');
-    expect(swaggerPage.getResponseTextForId(consortiumListGetId)).toContain('Response headers');
     // Clear responses
     waitFor('.btn.try-out__btn.cancel');
     swaggerPage.clickCancelTryItOutButtonForId(consortiumListGetId);

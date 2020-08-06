@@ -240,8 +240,8 @@ function getBigNumberRange(controlType: string): any {
     hexMaxString = solidityNumberRange.signedInt.max[numberOfBits];
   }
   return {
-    min: Web3Utils.toBN(hexMinString, 16),
-    max: Web3Utils.toBN(hexMaxString, 16)
+    min: Web3Utils.toBN(hexMinString),
+    max: Web3Utils.toBN(hexMaxString)
   };
 }
 

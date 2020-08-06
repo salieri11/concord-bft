@@ -349,7 +349,7 @@ def call(){
   pipeline {
     agent { label params.jenkins_node ? params.jenkins_node : agentLabel }
     tools {
-      nodejs 'Node 11.15.0'
+      nodejs 'Node 12.16.2'
     }
     options{
       gitLabConnection('TheGitlabConnection')
