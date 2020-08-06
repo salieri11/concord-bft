@@ -36,6 +36,7 @@ import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
 import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/theme-switch-button.component';
+import { LogoComponent } from './components/logo/logo.component';
 
 import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 import { AppHeaderComponent } from './components/app-header/app-header.component';
@@ -88,7 +89,8 @@ export const defaultProvided: any[] = [
     CodeHighlighterComponent,
     AppHeaderComponent,
     VersionComponent,
-    ConfirmModalComponent
+    ConfirmModalComponent,
+    LogoComponent
   ],
   exports: [
     CommonModule,
@@ -111,7 +113,8 @@ export const defaultProvided: any[] = [
     CodeHighlighterComponent,
     AppHeaderComponent,
     VersionComponent,
-    ConfirmModalComponent
+    ConfirmModalComponent,
+    LogoComponent
   ]
 })
 export class SharedModule {
