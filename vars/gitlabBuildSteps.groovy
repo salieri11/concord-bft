@@ -631,6 +631,13 @@ def call(){
                 }
               }
 
+              withCredentials([usernamePassword(credentialsId: 'BLOCKCHAIN_ARTIFACTORY_DEPLOYER_PASSWORD', usernameVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME', passwordVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD')]) {
+                script{
+                  command = "docker login -u " + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME + " -p \'" + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD + "\' blockchain-docker-internal.artifactory.eng.vmware.com"
+                  jenkinsbuilderlib.retryCommand(command, true)
+                }
+              }
+
               // To invoke "git tag" and commit that change, git wants to know who we are.
               // This will be set up in template VM version 5, at which point these commands can
               // be removed.
@@ -754,7 +761,7 @@ def call(){
         }
       }
 
-      stage("Push Concord components to DockerHub"){
+      stage("Push Concord components to Registry"){
         when {
           expression {
             // Skip this step for nightly or other random runs.
@@ -767,10 +774,17 @@ def call(){
         }
         steps{
           script {
+            // Use internal artifactory for MR runs, bintray/dockerhub for post commit builds
             try{
-              customathenautil.saveTimeEvent("Push Concord components to DockerHub", "Start")
-              pushConcordComponentsToDockerHub()
-              customathenautil.saveTimeEvent("Push Concord components to DockerHub", "End")
+              if (env.JOB_NAME.contains(env.tot_job_name)) {
+                  customathenautil.saveTimeEvent("Push Concord components to DockerHub", "Start")
+                  pushConcordComponentsToRegistry("dockerhub")
+                  customathenautil.saveTimeEvent("Push Concord components to DockerHub", "End")
+                } else {
+                  customathenautil.saveTimeEvent("Push Concord components to Artifactory", "Start")
+                  pushConcordComponentsToRegistry("artifactory")
+                  customathenautil.saveTimeEvent("Push Concord components to Artifactory", "End")
+                }
             }catch(Exception ex){
               failRun(ex)
               throw ex
@@ -1746,6 +1760,7 @@ void setUpRepoVariables(){
   env.release_repo = "vmwblockchain"
   env.internal_repo_name = "athena-docker-local"
   env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
+  env.temp_repo = "blockchain-docker-internal.artifactory.eng.vmware.com/vmwblockchain"
 
   // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
   env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
@@ -1766,6 +1781,16 @@ void setUpRepoVariables(){
   env.release_client_pool_lib_repo = env.release_repo + "/client-pool-lib"
   env.release_participant_lib_repo = env.release_repo + "/participant-lib"
 
+  //repo variables required for concord components for MR testing
+  env.temp_daml_ledger_api_repo = env.temp_repo + "/daml-ledger-api"
+  env.temp_daml_execution_engine_repo = env.temp_repo + "/daml-execution-engine"
+  env.temp_daml_index_db_repo = env.temp_repo + "/daml-index-db"
+  env.temp_client_pool_lib_repo = env.temp_repo + "/client-pool-lib"
+  env.temp_participant_lib_repo = env.temp_repo + "/participant-lib"
+  env.temp_concord_repo = env.temp_repo + "/concord-core"
+  env.temp_ethrpc_repo = env.temp_repo + "/ethrpc"
+  env.temp_fluentd_repo = env.temp_repo + "/fluentd"
+  env.temp_persephone_agent_repo = env.temp_repo + "/agent"
 
   // These are constants which mirror the internal artifactory repos.  We put all merges
   // to master in the internal VMware artifactory.
@@ -1856,7 +1881,7 @@ void sendNotifications(){
       } catch (Exception ex) {
         echo("Failure notification to MR commit authors: " + ex.toString())
       }
-    
+
     // For all other runs, notify whoever triggered the build
     } else {
       echo("Notifying build failure to triggerer of the build via slack DM...")
@@ -2098,6 +2123,7 @@ void setEnvFileAndUserConfig(Map param = [:]) {
     string(credentialsId: 'LOG_INSIGHT_ON_ONECLOUD_PASSWORD', variable: 'LOG_INSIGHT_ON_ONECLOUD_PASSWORD'),
     usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
     usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
+    usernamePassword(credentialsId: 'BLOCKCHAIN_ARTIFACTORY_DEPLOYER_PASSWORD', usernameVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME', passwordVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC1_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC1_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC1_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC2_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC2_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC2_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
@@ -2246,6 +2272,13 @@ EOF
           sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
         '''
+      } else if (env.JOB_NAME.contains(main_mr_run_job_name)) {
+        sh '''
+          # Update provisioning service application-test.properties with bintray registry for nightly runs
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
       } else {
         sh '''
           # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
@@ -2339,36 +2372,73 @@ void startOfficialPerformanceRun(){
 }
 
 // Re-tag athena-docker-local.artifactory.eng.vmware.com:foo to vmwblockchain:foo.
-// "vmwblockchain" is what we call it on DockerHub.
+// "vmwblockchain" is a required namespace by the provisioning service.
 // This is needed for deployment testing, as SDDCs are located outside the firewall.
-void pushConcordComponentsToDockerHub(){
+void pushConcordComponentsToRegistry(repo){
   env_file_tag = getTagFromEnv(env.internal_persephone_agent_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.temp_persephone_agent_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_concord_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.temp_concord_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_ethrpc_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.temp_ethrpc_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_daml_ledger_api_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.temp_daml_ledger_api_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_daml_execution_engine_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.temp_daml_execution_engine_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_daml_index_db_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.temp_daml_index_db_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_fluentd_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.temp_fluentd_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_client_pool_lib_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.release_client_pool_lib_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.release_client_pool_lib_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.temp_client_pool_lib_repo, env_file_tag)
+  }
 
   env_file_tag = getTagFromEnv(env.internal_participant_lib_repo)
-  dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.release_participant_lib_repo, env_file_tag)
+  if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.release_participant_lib_repo, env_file_tag)
+    } else if (repo == "artifactory" ) {
+      dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.temp_participant_lib_repo, env_file_tag)
+  }
 }
+
 
 // Given a component like "athena-docker-local.artifactory.eng.vmware.com/concord-core", return its tag from the .env file.
 String getTagFromEnv(component){
