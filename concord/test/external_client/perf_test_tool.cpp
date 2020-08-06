@@ -251,7 +251,7 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
 
   std::random_device rd;
   std::mt19937_64 eng(rd());
-  std::uniform_int_distribution<uint32_t> distr;
+  std::uniform_int_distribution<uint32_t> distr(1, 4294967295);
 
   for (int i = 1; i <= numOfBlocks; i++) {
     if (done) break;

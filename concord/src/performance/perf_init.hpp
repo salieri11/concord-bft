@@ -86,10 +86,10 @@ class PerfInitData {
     string msg;
     if (kv_count == 0) msg = "kv_count must be >= 0";
     if (key_size < 3 * iSize)
-      msg += ",key_size should be at least " + to_string(3 * iSize);
+      msg += ", key_size should be at least " + to_string(3 * iSize);
     if (value_size < 3 * iSize)
-      msg += ",value_size should be at least " + to_string(3 * iSize);
-    if (blocks_count == 1 && ((keyRand & valRand) == 0))
+      msg += ", value_size should be at least " + to_string(3 * iSize);
+    if (blocks_count == 1 && ((keyRand && valRand) == 0))
       msg += ",either block_count should be > 1 or prefixes != 0";
     if (!msg.empty()) return msg;
 
