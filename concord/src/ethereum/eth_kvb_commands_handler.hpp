@@ -37,6 +37,8 @@ class EthKvbCommandsHandler
       const concord::config::ConcordConfiguration &nodeConfig,
       const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
       concord::kvbc::IBlocksAppender &appender,
+      concord::kvbc::IBlocksDeleter &deleter,
+      bftEngine::IStateTransfer &state_transfer,
       concord::thin_replica::SubBufferList &subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   ~EthKvbCommandsHandler();

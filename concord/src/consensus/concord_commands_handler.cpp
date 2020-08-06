@@ -58,6 +58,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &node_config,
     const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
     concord::kvbc::IBlocksAppender &appender,
+    concord::kvbc::IBlocksDeleter &deleter,
+    bftEngine::IStateTransfer &state_transfer,
     concord::thin_replica::SubBufferList &subscriber_list,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
     concord::time::TimeContract *time_contract)
@@ -97,7 +99,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
   replica_id_ = replicaConfig.getValue<uint16_t>("principal_id");
 
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
-      storage, config, node_config, time_.get());
+      storage, appender, deleter, state_transfer, config, node_config,
+      time_.get());
   reconfiguration_sm_ =
       std::make_unique<concord::reconfiguration::ReconfigurationSM>(
           config, prometheus_registry);
@@ -458,7 +461,7 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
                 "ConcordCommandsHandler::addBlock, time changed2, updates: "
                     << updates.size());
     }
-    // amended_updates.insert(time_->SerializeSummarizedTime());
+    amended_updates.insert(time_->SerializeSummarizedTime());
   }
 
   amended_updates[metadata_storage_.getKey()] =

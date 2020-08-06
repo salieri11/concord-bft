@@ -9,10 +9,12 @@
 #include <daml/daml_validator_client.hpp>
 #include <memory>
 #include "Logger.hpp"
+#include "NullStateTransfer.hpp"
 #include "OpenTracing.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
+#include "pruning/kvb_pruning_sm.hpp"
 #include "time/time_contract.hpp"
 
 using namespace std::placeholders;  // For _1, _2, etc.
@@ -48,6 +50,7 @@ using concord::consensus::ConcordCommandsHandler;
 using concord::daml::CreateDamlKvbKey;
 using concord::daml::CreateDamlKvbValue;
 using concord::daml::CreateSliver;
+using concord::pruning::KVBPruningSM;
 using concord::time::TimeContract;
 
 using google::protobuf::RepeatedPtrField;
@@ -81,6 +84,9 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     EXPECT_CALL(*mock_ro_storage_, getLastBlock())
         .WillRepeatedly(Return(kLastBlockId));
     mock_block_appender_ = std::make_unique<MockBlockAppender>();
+    mock_block_deleter_ = std::make_unique<MockBlockDeleter>();
+    mock_state_transfer_ =
+        std::make_unique<bftEngine::impl::NullStateTransfer>();
     mock_time_contract_ = std::make_unique<MockTimeContract>(
         *mock_ro_storage_, configuration_, kCurrentTime);
     reply_size_ = 0;
@@ -99,6 +105,8 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     mock_time_contract_.reset();
     mock_ro_storage_.reset();
     mock_block_appender_.reset();
+    mock_block_deleter_.reset();
+    mock_state_transfer_.reset();
   }
 
   DamlKvbCommandsHandler* CreateInstance() { return CreateInstance(false); }
@@ -111,11 +119,18 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
   DamlKvbCommandsHandler* CreateInstance(
       std::unique_ptr<MockDamlValidatorClient>& daml_validator_client) {
+    // Constructing a commands handler constructs a pruning state machine that
+    // will query for the GetSignablePruneCommandData key.
+    EXPECT_CALL(*mock_ro_storage_,
+                get(KVBPruningSM::LastAgreedPrunableBlockIdKey(), _))
+        .Times(1)
+        .WillOnce(Return(Status::NotFound("last_agreed_prunable_block_id")));
     prometheus_registry_ = CreatePrometheusRegistry();
     instance_ = std::make_unique<DamlKvbCommandsHandler>(
         configuration_, GetNodeConfig(configuration_, 1), *mock_ro_storage_,
-        *mock_block_appender_, subscriber_list_,
-        std::move(daml_validator_client), prometheus_registry_);
+        *mock_block_appender_, *mock_block_deleter_, *mock_state_transfer_,
+        subscriber_list_, std::move(daml_validator_client),
+        prometheus_registry_);
     return instance_.get();
   }
 
@@ -311,9 +326,11 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
   std::unique_ptr<DamlKvbCommandsHandler> instance_;
   std::unique_ptr<MockLocalKeyValueStorageReadOnly> mock_ro_storage_;
   std::unique_ptr<MockBlockAppender> mock_block_appender_;
+  std::unique_ptr<MockBlockDeleter> mock_block_deleter_;
+  std::unique_ptr<bftEngine::impl::NullStateTransfer> mock_state_transfer_;
   std::unique_ptr<TimeContract> mock_time_contract_;
   SubBufferList subscriber_list_;
-};
+};  // namespace
 
 TEST_F(DamlKvbCommandsHandlerTest, ExecuteCommitHappyPathCreatesBlock) {
   EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))

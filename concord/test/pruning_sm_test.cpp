@@ -4,9 +4,12 @@
 #include "gtest/gtest.h"
 #include "mocks.hpp"
 
+#include "IStateTransfer.hpp"
+#include "NullStateTransfer.hpp"
 #include "config/configuration_manager.hpp"
 #include "db_interfaces.h"
 #include "direct_kv_db_adapter.h"
+#include "endianness.hpp"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "pruning/kvb_pruning_sm.hpp"
@@ -31,6 +34,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace concord::config;
@@ -106,19 +110,36 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
     return Status::OK();
   }
 
-  void setBlockId(BlockId id) { blockId_ = id; }
+  void setLastBlockId(BlockId id) { blockId_ = id; }
 
-  BlockId getGenesisBlock() const override {
-    EXPECT_TRUE(false) << "getGenesisBlock() should not be called by this test";
-    return 0;
-  }
+  void setGenesisBlockId(BlockId id) { genesisBlockId_ = id; }
+
+  BlockId getGenesisBlock() const override { return genesisBlockId_; }
 
  private:
   KeyComparator comp_{new DBKeyComparator{}};
   Client db_{comp_};
+  BlockId genesisBlockId_{INITIAL_GENESIS_BLOCK_ID};
   BlockId blockId_{LAST_BLOCK_ID};
   std::unique_ptr<IDataKeyGenerator> keyGen_{
       std::make_unique<RocksKeyGenerator>()};
+};
+
+auto GetStrictBlocksDeleterMock() {
+  return ::testing::StrictMock<MockBlockDeleter>{};
+}
+
+class TestStateTransfer : public bftEngine::impl::NullStateTransfer {
+ public:
+  void addOnTransferringCompleteCallback(
+      std::function<void(uint64_t)> callback) override {
+    callback_ = callback;
+  }
+
+  void complete() { callback_(0); }
+
+ private:
+  std::function<void(uint64_t)> callback_;
 };
 
 using ReplicaIDs = std::set<std::uint64_t>;
@@ -172,13 +193,13 @@ void InitBlockchainStorage(TimeContract& tc, std::size_t replica_count,
   }
 
   if (empty_blockchain) {
-    s.setBlockId(0);
+    s.setLastBlockId(0);
     ASSERT_EQ(s.getLastBlock(), 0);
     return;
   }
 
   // ensure that blockId_ == LAST_BLOCK_ID at the end
-  s.setBlockId(GENESIS_BLOCK_ID - 1);
+  s.setLastBlockId(GENESIS_BLOCK_ID - 1);
   const Sliver key{new char[1]{kKvbKeySummarizedTime}, 1};
   for (auto i = GENESIS_BLOCK_ID; i <= LAST_BLOCK_ID; ++i) {
     // Blocks are spaced in 1-second intervals, except for the last block which
@@ -240,7 +261,7 @@ unique_ptr<AsymmetricPrivateKey> ConfigureOperatorKey(
 ConcordRequest ConstructPruneRequest(
     const ConcordConfiguration& config,
     const unique_ptr<AsymmetricPrivateKey>& pruning_operator_key,
-    std::size_t client_idx) {
+    std::size_t client_idx, BlockId min_prunable_block_id = LAST_BLOCK_ID) {
   ConcordRequest req;
   auto prune_req = req.mutable_prune_request();
 
@@ -257,7 +278,7 @@ ConcordRequest ConstructPruneRequest(
     latest_block->set_replica(
         replica_config.getValue<std::uint64_t>("principal_id"));
     // Send different block IDs.
-    latest_block->set_block_id(LAST_BLOCK_ID + i);
+    latest_block->set_block_id(min_prunable_block_id + i);
 
     const auto block_signer = RSAPruningSigner{GetNodeConfig(config, i)};
     block_signer.Sign(*latest_block);
@@ -273,14 +294,14 @@ ConcordRequest ConstructPruneRequest(
 
 TEST(pruning_sm_test, sign_verify_parse_configuration) {
   {
-    EXPECT_ANY_THROW({
+    ASSERT_ANY_THROW({
       const auto signer = RSAPruningSigner{EmptyConfiguration()};
     }) << "RSAPruningSigner cannot be constructed with no replicas in the "
           "configuraiton";
   }
 
   {
-    EXPECT_THROW(
+    ASSERT_THROW(
         { const auto verifier = RSAPruningVerifier{EmptyConfiguration()}; },
         PruningConfigurationException)
         << "RSAPruningVerifier cannot be constructed with no replicas in the "
@@ -291,7 +312,7 @@ TEST(pruning_sm_test, sign_verify_parse_configuration) {
     const auto replicas = 0;
     const auto client_proxies = 4;
     const auto config = TestConfiguration(replicas, client_proxies);
-    EXPECT_THROW({ const auto verifier = RSAPruningVerifier{config}; },
+    ASSERT_THROW({ const auto verifier = RSAPruningVerifier{config}; },
                  PruningConfigurationException)
         << "RSAPruningVerifier cannot be constructed with no replicas in the "
            "configuraiton";
@@ -305,7 +326,7 @@ TEST(pruning_sm_test, sign_verify_parse_configuration) {
         .subscope("replica", 0)
         .loadValue("principal_id",
                    std::to_string(REPLICA_PRINCIPAL_ID_START + 1));
-    EXPECT_THROW({ const auto verifier = RSAPruningVerifier{config}; },
+    ASSERT_THROW({ const auto verifier = RSAPruningVerifier{config}; },
                  PruningConfigurationException)
         << "RSAPruningVerifier cannot be constructed with duplicate replica "
            "principal_ids";
@@ -314,6 +335,8 @@ TEST(pruning_sm_test, sign_verify_parse_configuration) {
 
 TEST(pruning_sm_test, sm_parse_configuration) {
   TestStorage s;
+  TestStateTransfer st;
+  auto d = GetStrictBlocksDeleterMock();
 
   {
     const auto replicas = 4;
@@ -323,9 +346,9 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     ConfigureOperatorKey(base_config);
     const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({
+    ASSERT_NO_THROW({
       TimeContract tc(s, c);
-      KVBPruningSM sm(s, c, n, &tc);
+      KVBPruningSM sm(s, s, d, st, c, n, &tc);
     });
   }
 
@@ -337,9 +360,9 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     ConfigureOperatorKey(base_config);
     const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({
+    ASSERT_NO_THROW({
       TimeContract tc(s, c);
-      KVBPruningSM sm(s, c, n, &tc);
+      KVBPruningSM sm(s, s, d, st, c, n, &tc);
     });
   }
 
@@ -351,9 +374,9 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     ConfigureOperatorKey(base_config);
     const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({
+    ASSERT_NO_THROW({
       TimeContract tc(s, c);
-      KVBPruningSM sm(s, c, n, &tc);
+      KVBPruningSM sm(s, s, d, st, c, n, &tc);
     });
   }
 
@@ -365,9 +388,9 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     ConfigureOperatorKey(base_config);
     const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({
+    ASSERT_NO_THROW({
       TimeContract tc(s, c);
-      KVBPruningSM sm(s, c, n, &tc);
+      KVBPruningSM sm(s, s, d, st, c, n, &tc);
     });
   }
 
@@ -379,9 +402,9 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     ConfigureOperatorKey(base_config);
     const auto& c = base_config;
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({
+    ASSERT_NO_THROW({
       TimeContract tc(s, c);
-      KVBPruningSM sm(s, c, n, &tc);
+      KVBPruningSM sm(s, s, d, st, c, n, &tc);
     });
   }
 }
@@ -409,7 +432,7 @@ TEST(pruning_sm_test, sign_verify_correct) {
     block.set_block_id(LAST_BLOCK_ID);
     signers[sending_id].Sign(block);
 
-    EXPECT_TRUE(verifier.Verify(block));
+    ASSERT_TRUE(verifier.Verify(block));
   }
 
   // Sign and verify a PruneRequest message.
@@ -429,8 +452,8 @@ TEST(pruning_sm_test, sign_verify_correct) {
     unique_ptr<AsymmetricPublicKey> operator_public_key = DeserializePublicKey(
         config.getValue<string>("pruning_operator_public_key"));
 
-    EXPECT_TRUE(verifier.Verify(request));
-    EXPECT_TRUE(operator_public_key->Verify(
+    ASSERT_TRUE(verifier.Verify(request));
+    ASSERT_TRUE(operator_public_key->Verify(
         KVBPruningSM::GetSignablePruneCommandData(request),
         request.signature()));
   }
@@ -450,7 +473,7 @@ TEST(pruning_sm_test, sign_malformed_messages) {
   // Sign an empty LatestPrunableBlock.
   {
     LatestPrunableBlock block;
-    EXPECT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
+    ASSERT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
         << "RSAPruningSigner fails to sign an empty LatestPrunableBlock "
            "message";
   }
@@ -459,7 +482,7 @@ TEST(pruning_sm_test, sign_malformed_messages) {
   {
     LatestPrunableBlock block;
     block.set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    EXPECT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
+    ASSERT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
         << "RSAPruningSigner fails to sign a malformed(missing block ID) "
            "LatestPrunableBlock message";
   }
@@ -468,7 +491,7 @@ TEST(pruning_sm_test, sign_malformed_messages) {
   {
     LatestPrunableBlock block;
     block.set_block_id(LAST_BLOCK_ID);
-    EXPECT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
+    ASSERT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
         << "RSAPruningSigner fails to sign a malformed(missing replica ID) "
            "LatestPrunableBlock message";
   }
@@ -499,23 +522,23 @@ TEST(pruning_sm_test, verify_malformed_messages) {
 
     // Change the replica ID after signing.
     block.set_replica(REPLICA_PRINCIPAL_ID_START + sending_id + 1);
-    EXPECT_FALSE(verifier.Verify(block));
+    ASSERT_FALSE(verifier.Verify(block));
 
     // Make sure it works with the correct replica ID.
     block.set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    EXPECT_TRUE(verifier.Verify(block));
+    ASSERT_TRUE(verifier.Verify(block));
 
     // Change the block ID after signing.
     block.set_block_id(LAST_BLOCK_ID + 1);
-    EXPECT_FALSE(verifier.Verify(block));
+    ASSERT_FALSE(verifier.Verify(block));
 
     // Make sure it works with the correct block ID.
     block.set_block_id(LAST_BLOCK_ID);
-    EXPECT_TRUE(verifier.Verify(block));
+    ASSERT_TRUE(verifier.Verify(block));
 
     // Change a single byte from the signature and make sure it doesn't verify.
     block.mutable_signature()->at(0) += 1;
-    EXPECT_FALSE(verifier.Verify(block));
+    ASSERT_FALSE(verifier.Verify(block));
   }
 
   // Change the sender in PruneRequest after signing and verify.
@@ -534,8 +557,8 @@ TEST(pruning_sm_test, verify_malformed_messages) {
 
     request.set_sender(request.sender() + 1);
 
-    EXPECT_TRUE(verifier.Verify(request));
-    EXPECT_FALSE(
+    ASSERT_TRUE(verifier.Verify(request));
+    ASSERT_FALSE(
         DeserializePublicKey(
             config.getValue<string>("pruning_operator_public_key"))
             ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
@@ -558,8 +581,8 @@ TEST(pruning_sm_test, verify_malformed_messages) {
 
     request.mutable_signature()->at(0) += 1;
 
-    EXPECT_TRUE(verifier.Verify(request));
-    EXPECT_FALSE(
+    ASSERT_TRUE(verifier.Verify(request));
+    ASSERT_FALSE(
         DeserializePublicKey(
             config.getValue<string>("pruning_operator_public_key"))
             ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
@@ -580,8 +603,8 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     request.set_signature(operator_private_key->Sign(
         KVBPruningSM::GetSignablePruneCommandData(request)));
 
-    EXPECT_FALSE(verifier.Verify(request));
-    EXPECT_TRUE(DeserializePublicKey(
+    ASSERT_FALSE(verifier.Verify(request));
+    ASSERT_TRUE(DeserializePublicKey(
                     config.getValue<string>("pruning_operator_public_key"))
                     ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
                              request.signature()));
@@ -604,8 +627,8 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     request.set_signature(operator_private_key->Sign(
         KVBPruningSM::GetSignablePruneCommandData(request)));
 
-    EXPECT_FALSE(verifier.Verify(request));
-    EXPECT_TRUE(DeserializePublicKey(
+    ASSERT_FALSE(verifier.Verify(request));
+    ASSERT_TRUE(DeserializePublicKey(
                     config.getValue<string>("pruning_operator_public_key"))
                     ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
                              request.signature()));
@@ -628,8 +651,8 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     request.mutable_latest_prunable_block(0)->set_replica(
         REPLICA_PRINCIPAL_ID_START + replica_count + 8);
 
-    EXPECT_FALSE(verifier.Verify(request));
-    EXPECT_FALSE(
+    ASSERT_FALSE(verifier.Verify(request));
+    ASSERT_FALSE(
         DeserializePublicKey(
             config.getValue<string>("pruning_operator_public_key"))
             ->Verify(KVBPruningSM::GetSignablePruneCommandData(request),
@@ -647,12 +670,16 @@ TEST(pruning_sm_test, sm_latest_prunable_request_correct_num_bocks_to_keep) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   // Construct the pruning state machine with a nullptr TimeContract to verify
   // it works in case the time service is disabled.
-  const auto sm = KVBPruningSM{storage, config,
-                               GetNodeConfig(config, replica_idx), nullptr};
+  const auto sm =
+      KVBPruningSM{storage,        storage, blocks_deleter,
+                   state_transfer, config,  GetNodeConfig(config, replica_idx),
+                   nullptr};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -674,11 +701,18 @@ TEST(pruning_sm_test, sm_latest_prunable_request_big_num_blocks_to_keep) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -712,13 +746,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -759,13 +800,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_offset) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage, true);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -795,13 +843,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_empty_chain) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage, false, true);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -837,13 +892,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_missing_last) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage, false, false, true);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -872,13 +934,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_time_range_and_num_blocks) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -907,13 +976,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_no_pruning_conf) {
   ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -938,13 +1014,20 @@ TEST(pruning_sm_test, sm_latest_prunable_request_pruning_disabled) {
       TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
                         duration_to_keep_minutes, false);
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
   const auto verifier = RSAPruningVerifier{config};
 
   auto tc = TimeContract{storage, config};
   InitBlockchainStorage(tc, replica_count, storage);
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -972,10 +1055,17 @@ TEST(pruning_sm_test, sm_handle_prune_request_on_pruning_disabled) {
       ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
 
   auto tc = TimeContract{storage, config};
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   const auto req =
       ConstructPruneRequest(config, operator_private_key, client_idx);
@@ -1002,21 +1092,169 @@ TEST(pruning_sm_test, sm_handle_correct_prune_request) {
       ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
 
   auto tc = TimeContract{storage, config};
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
-  const auto req =
-      ConstructPruneRequest(config, operator_private_key, client_idx);
+  const auto latest_prunable_block_id =
+      storage.getLastBlock() - num_blocks_to_keep;
+  const auto req = ConstructPruneRequest(config, operator_private_key,
+                                         client_idx, latest_prunable_block_id);
   ConcordResponse resp;
+
+  // Add 1 as deleteBlocksUntil() deletes in the [genesis, to) range.
+  EXPECT_CALL(blocks_deleter, deleteBlocksUntil(latest_prunable_block_id + 1))
+      .Times(1);
 
   sm.Handle(req, resp, false, *test_span);
 
   ASSERT_TRUE(resp.has_prune_response());
   ASSERT_TRUE(resp.prune_response().has_ok());
-  EXPECT_TRUE(resp.prune_response().ok());
-  // TODO: Verify correct number of blocks have been pruned from storage.
+  ASSERT_TRUE(resp.prune_response().ok());
+
+  // Make sure the state machine has added the last agreed prunable block ID
+  // key.
+  auto key = Value{};
+  ASSERT_TRUE(
+      storage.get(KVBPruningSM::LastAgreedPrunableBlockIdKey(), key).isOK());
+  ASSERT_EQ(key.length(), sizeof(BlockId));
+  const auto persisted_last_agreed =
+      concordUtils::fromBigEndianBuffer<BlockId>(key.data());
+  ASSERT_EQ(latest_prunable_block_id, persisted_last_agreed);
+}
+
+TEST(pruning_sm_test, sm_prune_on_startup) {
+  const auto replica_count = 4;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
+  const auto replica_idx = 1;
+  ConcordConfiguration base_config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
+  TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
+
+  const auto last_agreed_prunable_block_id =
+      BlockId{storage.getLastBlock() - num_blocks_to_keep};
+
+  // Simulate a situation in which the replica hasn't fully executed pruning on
+  // startup. For example, that might happen due to a crash just before pruning
+  // has started, but after the last agreed prunable block ID has been
+  // persisted.
+  auto added_block_id = BlockId{0};
+  storage.addBlock(SetOfKeyValuePairs{std::make_pair(
+                       KVBPruningSM::LastAgreedPrunableBlockIdKey(),
+                       Sliver{concordUtils::toBigEndianStringBuffer(
+                           last_agreed_prunable_block_id)})},
+                   added_block_id);
+
+  // Add 1 as deleteBlocksUntil() deletes in the [genesis, to) range.
+  // Expect to be called on construction of the pruning state machine.
+  EXPECT_CALL(blocks_deleter,
+              deleteBlocksUntil(last_agreed_prunable_block_id + 1))
+      .Times(1);
+
+  auto tc = TimeContract{storage, config};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
+}
+
+TEST(pruning_sm_test, sm_already_pruned_on_startup) {
+  const auto replica_count = 4;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
+  const auto replica_idx = 1;
+  ConcordConfiguration base_config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
+  TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
+
+  const auto last_agreed_prunable_block_id =
+      BlockId{storage.getLastBlock() - num_blocks_to_keep};
+
+  auto added_block_id = BlockId{0};
+  storage.addBlock(SetOfKeyValuePairs{std::make_pair(
+                       KVBPruningSM::LastAgreedPrunableBlockIdKey(),
+                       Sliver{concordUtils::toBigEndianStringBuffer(
+                           last_agreed_prunable_block_id)})},
+                   added_block_id);
+
+  // Make sure the genesis block ID is bigger than the agreed prunable block ID.
+  // In that case, the state machine should not call any methods on
+  // 'blocks_deleter' (ensured by the strict mock).
+  storage.setGenesisBlockId(last_agreed_prunable_block_id + 1);
+
+  auto tc = TimeContract{storage, config};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
+}
+
+TEST(pruning_sm_test, sm_prune_on_state_transfer_complete) {
+  const auto replica_count = 4;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
+  const auto replica_idx = 1;
+  ConcordConfiguration base_config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
+  const unique_ptr<AsymmetricPrivateKey> operator_private_key =
+      ConfigureOperatorKey(base_config);
+  const auto& config = base_config;
+  TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
+
+  auto tc = TimeContract{storage, config};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
+
+  const auto last_agreed_prunable_block_id =
+      BlockId{storage.getLastBlock() - num_blocks_to_keep};
+
+  // Simulate a situation in which the current replica has missed blocks,
+  // pruning has been executed on other replicas and state transfer completes,
+  // bringing in a block that contains the last agreed prunable block ID.
+  auto added_block_id = BlockId{0};
+  storage.addBlock(SetOfKeyValuePairs{std::make_pair(
+                       KVBPruningSM::LastAgreedPrunableBlockIdKey(),
+                       Sliver{concordUtils::toBigEndianStringBuffer(
+                           last_agreed_prunable_block_id)})},
+                   added_block_id);
+
+  // Add 1 as deleteBlocksUntil() deletes in the [genesis, to) range.
+  // Expect to be called when state transfer has completed.
+  EXPECT_CALL(blocks_deleter,
+              deleteBlocksUntil(last_agreed_prunable_block_id + 1));
+  state_transfer.complete();
 }
 
 TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
@@ -1031,10 +1269,17 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
       ConfigureOperatorKey(base_config);
   const auto& config = base_config;
   TestStorage storage;
+  auto blocks_deleter = GetStrictBlocksDeleterMock();
+  TestStateTransfer state_transfer;
 
   auto tc = TimeContract{storage, config};
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+  const auto sm = KVBPruningSM{storage,
+                               storage,
+                               blocks_deleter,
+                               state_transfer,
+                               config,
+                               GetNodeConfig(config, replica_idx),
+                               &tc};
 
   // Set an invalid sender.
   {

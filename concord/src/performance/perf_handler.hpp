@@ -39,11 +39,19 @@ class PerformanceCommandsHandler
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,
       concord::kvbc::ILocalKeyValueStorageReadOnly& ros,
-      concord::kvbc::IBlocksAppender& ba,
+      concord::kvbc::IBlocksAppender& blocks_appender,
+      concord::kvbc::IBlocksDeleter& blocks_deleter,
+      bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
       shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
-      : ConcordCommandsHandler{config, node_config,     ros,
-                               ba,     subscriber_list, prometheus_registry},
+      : ConcordCommandsHandler{config,
+                               node_config,
+                               ros,
+                               blocks_appender,
+                               blocks_deleter,
+                               state_transfer,
+                               subscriber_list,
+                               prometheus_registry},
         logger_{logging::getLogger("concord.perf.handler")} {}
 
   void WriteEmptyBlock(concord::time::TimeContract* time_contract,

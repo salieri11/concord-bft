@@ -38,6 +38,8 @@ class HlfKvbCommandsHandler
       concord::config::ConcordConfiguration& node_config,
       const concord::kvbc::ILocalKeyValueStorageReadOnly& ro_storage,
       concord::kvbc::IBlocksAppender& block_appender,
+      concord::kvbc::IBlocksDeleter& block_deleter,
+      bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
 

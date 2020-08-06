@@ -145,6 +145,7 @@ add_executable(PruningSMTest
 target_link_libraries(PruningSMTest
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
+        ${GMOCK_LIBRARY}
         ${yaml-cpp_LIBRARIES}
         proto
         concord_utils

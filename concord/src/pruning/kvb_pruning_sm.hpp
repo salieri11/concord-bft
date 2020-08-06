@@ -8,9 +8,11 @@
 #include "rsa_pruning_signer.hpp"
 #include "rsa_pruning_verifier.hpp"
 
+#include "IStateTransfer.hpp"
 #include "config/configuration_manager.hpp"
 #include "db_interfaces.h"
 #include "kv_types.hpp"
+#include "sliver.hpp"
 #include "time/time_contract.hpp"
 #include "utils/openssl_crypto_utils.hpp"
 
@@ -19,6 +21,7 @@
 #include <opentracing/tracer.h>
 
 #include <cstdint>
+#include <optional>
 
 namespace concord {
 namespace pruning {
@@ -70,11 +73,14 @@ namespace pruning {
 // LatestPrunableBlock messages in the PruneRequest message.
 class KVBPruningSM {
  public:
-  // Construct by providing an interface to the storage engine, configuration
-  // and tracing facilities. Note this constructor may throw an exception if
-  // there is an issue with the configuration (for example, if the configuration
-  // enables pruning but does not provide a purning operator public key).
+  // Construct by providing an interface to the storage engine, state transfer,
+  // configuration and tracing facilities. Note this constructor may throw an
+  // exception if there is an issue with the configuration (for example, if the
+  // configuration enables pruning but does not provide a purning operator
+  // public key).
   KVBPruningSM(const kvbc::ILocalKeyValueStorageReadOnly&,
+               kvbc::IBlocksAppender&, kvbc::IBlocksDeleter&,
+               bftEngine::IStateTransfer&,
                const config::ConcordConfiguration& config,
                const config::ConcordConfiguration& node_config,
                concord::time::TimeContract*);
@@ -85,6 +91,8 @@ class KVBPruningSM {
   void Handle(const com::vmware::concord::ConcordRequest&,
               com::vmware::concord::ConcordResponse&, bool read_only,
               opentracing::Span& parent_span) const;
+
+  static concordUtils::Sliver LastAgreedPrunableBlockIdKey();
 
   // Given a PruneRequest Protobuf message, compute the exact byte string of
   // data that the pruning state machine expects the operator's signature to be
@@ -104,14 +112,30 @@ class KVBPruningSM {
               com::vmware::concord::ConcordResponse&, bool read_only,
               opentracing::Span& parent_span) const;
 
-  kvbc::BlockId LatestBasedOnNumBlocks() const;
-  kvbc::BlockId LatestBasedOnTimeRange() const;
+  kvbc::BlockId LatestBasedOnNumBlocksConfig() const;
+  kvbc::BlockId LatestBasedOnTimeRangeConfig() const;
+
+  kvbc::BlockId AgreedPrunableBlockId(
+      const com::vmware::concord::PruneRequest&) const;
+  // Returns the last agreed prunable block ID from storage, if existing.
+  std::optional<kvbc::BlockId> LastAgreedPrunableBlockId() const;
+  void PersistLastAgreedPrunableBlockId(kvbc::BlockId block_id) const;
+  // Prune blocks in the [genesis, block_id] range (both inclusive).
+  // Throws on errors.
+  void PruneThroughBlockId(kvbc::BlockId block_id) const;
+  void PruneThroughLastAgreedBlockId() const;
+  void PruneOnStateTransferCompletion(uint64_t checkpoint_number) const
+      noexcept;
+  void PruneThroughBlockId(kvbc::BlockId block_id,
+                           com::vmware::concord::PruneResponse&) const noexcept;
 
  private:
   logging::Logger logger_;
   RSAPruningSigner signer_;
   RSAPruningVerifier verifier_;
   const kvbc::ILocalKeyValueStorageReadOnly& ro_storage_;
+  kvbc::IBlocksAppender& blocks_appender_;
+  kvbc::IBlocksDeleter& blocks_deleter_;
   concord::time::TimeContract* time_contract_{nullptr};
   bool pruning_enabled_{false};
   std::uint64_t replica_id_{0};
@@ -119,6 +143,7 @@ class KVBPruningSM {
   std::uint32_t duration_to_keep_minutes_{0};
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
       operator_public_key_{nullptr};
+  static const concordUtils::Sliver last_agreed_prunable_block_id_key_;
 };
 
 }  // namespace pruning

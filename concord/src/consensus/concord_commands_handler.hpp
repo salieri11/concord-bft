@@ -8,6 +8,7 @@
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
 #include <utils/concord_prometheus_metrics.hpp>
+#include "IStateTransfer.hpp"
 #include "KVBCInterfaces.h"
 #include "Logger.hpp"
 #include "OpenTracing.hpp"
@@ -87,6 +88,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       const concord::config::ConcordConfiguration &node_config,
       const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
       concord::kvbc::IBlocksAppender &appender,
+      concord::kvbc::IBlocksDeleter &deleter,
+      bftEngine::IStateTransfer &state_transfer,
       concord::thin_replica::SubBufferList &subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
       concord::time::TimeContract *time_contract = nullptr);

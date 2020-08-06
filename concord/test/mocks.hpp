@@ -69,6 +69,12 @@ class MockBlockAppender : public IBlocksAppender {
                                 const concordUtils::SpanWrapper&));
 };
 
+class MockBlockDeleter : public IBlocksDeleter {
+ public:
+  MOCK_METHOD0(deleteGenesisBlock, void());
+  MOCK_METHOD1(deleteBlocksUntil, BlockId(BlockId));
+};
+
 class MockPrometheusRegistry : public PrometheusRegistry {
  public:
   MockPrometheusRegistry() : PrometheusRegistry("127.0.0.1:9891", 600) {}

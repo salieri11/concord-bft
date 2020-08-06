@@ -2,15 +2,20 @@
 
 #include "kvb_pruning_sm.hpp"
 
+#include "assertUtils.hpp"
 #include "blockchain_view.h"
 #include "config/configuration_manager.hpp"
+#include "endianness.hpp"
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
 #include <iterator>
+#include <stdexcept>
+#include <utility>
 
 namespace concord {
 
@@ -18,19 +23,29 @@ using com::vmware::concord::LatestPrunableBlock;
 using com::vmware::concord::PruneRequest;
 using concord::time::TimeContract;
 using concord::utils::openssl_crypto::DeserializePublicKey;
+using concordUtils::Sliver;
 using kvbc::BaseBlockInfo;
 using kvbc::BlockchainView;
 using kvbc::BlockId;
 using kvbc::ILocalKeyValueStorageReadOnly;
+using kvbc::SetOfKeyValuePairs;
 
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
 using std::invalid_argument;
 using std::stringstream;
 
+using namespace std::string_literals;
+
 namespace pruning {
 
+const Sliver KVBPruningSM::last_agreed_prunable_block_id_key_{
+    std::string{concord::storage::kKvbKeyLastAgreedPrunableBlockId}};
+
 KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
+                           kvbc::IBlocksAppender& blocks_appender,
+                           kvbc::IBlocksDeleter& blocks_deleter,
+                           bftEngine::IStateTransfer& state_transfer,
                            const config::ConcordConfiguration& config,
                            const config::ConcordConfiguration& node_config,
                            TimeContract* time_contract)
@@ -38,6 +53,8 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
       signer_{node_config},
       verifier_{config},
       ro_storage_{ro_storage},
+      blocks_appender_{blocks_appender},
+      blocks_deleter_{blocks_deleter},
       time_contract_{time_contract},
       replica_id_{node_config.subscope("replica", 0)
                       .getValue<decltype(replica_id_)>("principal_id")} {
@@ -72,6 +89,20 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
     operator_public_key_ = DeserializePublicKey(
         config.getValue<string>("pruning_operator_public_key"));
   }
+
+  // Make sure that blocks from old genesis through the last agreed block are
+  // pruned. That might be violated if there was a crash during pruning itself.
+  // Therefore, call it every time on startup to ensure no old blocks are
+  // present before we allow the system to proceed.
+  PruneThroughLastAgreedBlockId();
+
+  // If a replica has missed Prune commands for whatever reason, we still need
+  // to execute them. We do that by saving pruning data in the state and later
+  // using it to prune relevant blocks when we receive it from state transfer.
+  state_transfer.addOnTransferringCompleteCallback(
+      [this](uint64_t checkpoint_number) {
+        PruneOnStateTransferCompletion(checkpoint_number);
+      });
 }
 
 void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
@@ -101,6 +132,10 @@ void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
         "KVBPruningSM encountered an unknown exception");
     LOG_ERROR(logger_, "KVBPruningSM encountered an unknown exception");
   }
+}
+
+Sliver KVBPruningSM::LastAgreedPrunableBlockIdKey() {
+  return last_agreed_prunable_block_id_key_;
 }
 
 // Helper function to GetSignablePruneCommandData.
@@ -176,9 +211,9 @@ void KVBPruningSM::Handle(
   // If pruning is disabled, return 0. Otherwise, be conservative and prune the
   // smaller block range.
   const auto latest_prunable_block_id =
-      pruning_enabled_
-          ? std::min(LatestBasedOnNumBlocks(), LatestBasedOnTimeRange())
-          : 0;
+      pruning_enabled_ ? std::min(LatestBasedOnNumBlocksConfig(),
+                                  LatestBasedOnTimeRangeConfig())
+                       : 0;
   block->set_block_id(latest_prunable_block_id);
   signer_.Sign(*block);
 }
@@ -232,13 +267,16 @@ void KVBPruningSM::Handle(
     return;
   }
 
-  // TODO: Execute actual pruning.
-
-  auto response = concord_response.mutable_prune_response();
-  response->set_ok(true);
+  const auto latest_prunable_block_id = AgreedPrunableBlockId(request);
+  // Make sure we have persisted the agreed prunable block ID before proceeding.
+  // Rationale is that we want to be able to pick up in case of a crash.
+  PersistLastAgreedPrunableBlockId(latest_prunable_block_id);
+  // Execute actual pruning.
+  PruneThroughBlockId(latest_prunable_block_id,
+                      *concord_response.mutable_prune_response());
 }
 
-BlockId KVBPruningSM::LatestBasedOnNumBlocks() const {
+BlockId KVBPruningSM::LatestBasedOnNumBlocksConfig() const {
   const auto last_block_id = ro_storage_.getLastBlock();
   if (last_block_id < num_blocks_to_keep_) {
     return 0;
@@ -274,7 +312,7 @@ const auto TimestampCompare = [](const TimestampedBlockInfo& lhs,
 };
 }  // namespace
 
-BlockId KVBPruningSM::LatestBasedOnTimeRange() const {
+BlockId KVBPruningSM::LatestBasedOnTimeRangeConfig() const {
   const auto last_block_id = ro_storage_.getLastBlock();
   if (last_block_id == 0) {
     // Assume there is no block with ID of 0.
@@ -286,9 +324,8 @@ BlockId KVBPruningSM::LatestBasedOnTimeRange() const {
     return last_block_id;
   }
 
-  // TODO: Handle dynamic genesis block IDs.
   const auto view = BlockchainView<TimestampedBlockInfo, TimeContract*>{
-      1, last_block_id, time_contract_};
+      ro_storage_.getGenesisBlock(), last_block_id, time_contract_};
   const auto now = time_contract_->GetTime();
   const auto prune_to_ts_info = TimestampedBlockInfo{
       now - TimeUtil::MinutesToDuration(duration_to_keep_minutes_)};
@@ -316,6 +353,105 @@ BlockId KVBPruningSM::LatestBasedOnTimeRange() const {
     return block_it->id();
   }
   return (block_it - 1)->id();
+}
+
+kvbc::BlockId KVBPruningSM::AgreedPrunableBlockId(
+    const com::vmware::concord::PruneRequest& prune_request) const {
+  const auto latest_prunable_blocks = prune_request.latest_prunable_block();
+  const auto begin = std::cbegin(latest_prunable_blocks);
+  const auto end = std::cend(latest_prunable_blocks);
+  ConcordAssertNE(begin, end);
+  return std::min_element(begin, end,
+                          [](const auto& a, const auto& b) {
+                            return (a.block_id() < b.block_id());
+                          })
+      ->block_id();
+}
+
+std::optional<BlockId> KVBPruningSM::LastAgreedPrunableBlockId() const {
+  auto raw = Sliver{};
+  const auto status = ro_storage_.get(last_agreed_prunable_block_id_key_, raw);
+  // TODO: Handle get()'s behavior of returning an empty value in case the key
+  // is not found. Check the status for isNotFound() too, in case get()'s
+  // implementation changes. This is ugly.
+  if (!status.isOK()) {
+    if (status.isNotFound()) {
+      return std::nullopt;
+    }
+    throw std::runtime_error{
+        "KVBPruningSM failed to get latest agreed prunable block ID, reason: " +
+        status.toString()};
+  } else if (raw.empty()) {
+    return std::nullopt;
+  }
+  ConcordAssertEQ(raw.length(), sizeof(BlockId));
+  return concordUtils::fromBigEndianBuffer<BlockId>(raw.data());
+}
+
+void KVBPruningSM::PersistLastAgreedPrunableBlockId(
+    kvbc::BlockId block_id) const {
+  const auto block = SetOfKeyValuePairs{
+      std::make_pair(last_agreed_prunable_block_id_key_,
+                     concordUtils::toBigEndianStringBuffer(block_id))};
+  auto added_block_id = BlockId{};
+  const auto status = blocks_appender_.addBlock(block, added_block_id);
+  if (!status.isOK()) {
+    throw std::runtime_error{
+        "KVBPruningSM failed to persist last agreed prunable block ID, "
+        "reason: " +
+        status.toString()};
+  }
+}
+
+void KVBPruningSM::PruneThroughBlockId(BlockId block_id) const {
+  const auto genesis_block_id = ro_storage_.getGenesisBlock();
+  if (block_id >= genesis_block_id) {
+    blocks_deleter_.deleteBlocksUntil(block_id + 1);
+  }
+}
+
+void KVBPruningSM::PruneThroughLastAgreedBlockId() const {
+  const auto last_agreed = LastAgreedPrunableBlockId();
+  if (last_agreed.has_value()) {
+    PruneThroughBlockId(*last_agreed);
+  }
+}
+
+void KVBPruningSM::PruneOnStateTransferCompletion(uint64_t) const noexcept {
+  try {
+    PruneThroughLastAgreedBlockId();
+  } catch (const std::exception& e) {
+    LOG_FATAL(logger_,
+              "KVBPruningSM stopping replica due to failure to prune blocks on "
+              "state transfer completion, reason: "
+                  << e.what());
+    std::exit(-1);
+  } catch (...) {
+    LOG_FATAL(logger_,
+              "KVBPruningSM stopping replica due to failure to prune blocks on "
+              "state transfer completion");
+    std::exit(-1);
+  }
+}
+
+void KVBPruningSM::PruneThroughBlockId(
+    BlockId block_id, com::vmware::concord::PruneResponse& prune_response) const
+    noexcept {
+  try {
+    PruneThroughBlockId(block_id);
+    prune_response.set_ok(true);
+  } catch (const std::exception& e) {
+    const auto msg =
+        "KVBPruningSM failed to prune with an exception: "s + e.what();
+    LOG_ERROR(logger_, msg);
+    prune_response.set_ok(false);
+    prune_response.set_error_msg(msg);
+  } catch (...) {
+    const auto msg = "KVBPruningSM failed to prune with an exception";
+    LOG_ERROR(logger_, msg);
+    prune_response.set_ok(false);
+    prune_response.set_error_msg(msg);
+  }
 }
 
 }  // namespace pruning

@@ -24,6 +24,7 @@ const char kKvbKeyTimeSamples = 0x20;
 const char kKvbKeyMetadata = 0x21;
 const char kKvbKeySummarizedTime = 0x22;
 const char kKvbKeyCorrelationId = 0x23;
+const char kKvbKeyLastAgreedPrunableBlockId = 0x24;
 
 // DAML 0x30 - 0x3f
 const char kKvbKeyDaml = 0x30;
