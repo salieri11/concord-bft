@@ -11,6 +11,7 @@
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
 #include "kv_types.hpp"
+#include "kvstream.h"
 #include "perf_init.hpp"
 #include "performance.pb.h"
 #include "status.hpp"
@@ -82,7 +83,7 @@ class PerformanceCommandsHandler
   }
 
   void ExecuteWriteRequest(const PerfWriteRequest& request,
-                           PerfWriteResponse& outResponse) {
+                           PerfWriteResponse& outResponse, uint8_t flags) {
     using namespace concord::kvbc;
     using namespace concordUtils;
 
@@ -114,30 +115,37 @@ class PerformanceCommandsHandler
       }
     }
 
+    bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
+    bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
+    if (pre_execute && !has_pre_executed) {
+      LOG_DEBUG(
+          logger_,
+          "ExecuteWriteRequest, pre-execute: skip block addition, id: " << id);
+      outResponse.set_message(Status::OK().toString());
+      return;
+    }
+
+    const auto payload = request.payload().size();
     if (data && data->blocks.size() > blockId) {
-      LOG_DEBUG(logger_, "ExecuteWriteRequest, execution start, id: "
-                             << id
-                             << ", payload size: " << request.payload().size()
-                             << ", kv count: " << data->blocks[blockId].size());
+      const auto kvCount = data->blocks[blockId].size();
+      LOG_DEBUG(logger_, "ExecuteWriteRequest, execution start"
+                             << KVLOG(id, has_pre_executed, payload, kvCount));
       BlockId newBlockId;
       Status status = addBlock(data->blocks[blockId], newBlockId);
       if (!status.isOK()) {
-        LOG_ERROR(logger_, "ExecuteWriteRequest, addBlock fail: "
-                               << id
-                               << ", payload size: " << request.payload().size()
-                               << ", status: " << status.toString());
-        outResponse.set_message("addBlock error, " + status.toString());
+        const string statusStr = status.toString();
+        LOG_ERROR(logger_, "ExecuteWriteRequest, addBlock fail"
+                               << KVLOG(id, payload, statusStr));
+        outResponse.set_message("addBlock error, " + statusStr);
       }
+
       outResponse.set_message(status.toString());
       outResponse.set_new_block_id(newBlockId);
-      LOG_DEBUG(logger_, "ExecuteWriteRequest, execution done, id: "
-                             << id << ", new block ID: " << newBlockId
-                             << ", payload size: " << request.payload().size()
-                             << ", kv count: " << data->blocks[blockId].size());
+      LOG_DEBUG(logger_, "ExecuteWriteRequest, execution done"
+                             << KVLOG(id, newBlockId, payload, kvCount));
     } else {
-      LOG_ERROR(logger_, "ExecuteWriteRequest, execution done, id: "
-                             << id
-                             << ", payload size: " << request.payload().size());
+      LOG_ERROR(logger_,
+                "ExecuteWriteRequest, execution done" << KVLOG(id, payload));
       outResponse.set_message("internal error: " + id);
     }
   }
@@ -147,19 +155,26 @@ class PerformanceCommandsHandler
                uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override {
-    const PerfRequest& perf_req = request.perf_request();
-    PerfResponse* perf_resp = response.mutable_perf_response();
-
-    if (!request.has_perf_request()) {
-      return false;
+    if (!request.has_perf_request() && !request.has_pre_execution_result()) {
+      // We have to ignore this, to allow time-only updates
+      return true;
     }
+
+    bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
+    bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
+    PerfRequest perf_req;
+    if (has_pre_executed && request.has_pre_execution_result()) {
+      perf_req.ParseFromString(request.pre_execution_result().output());
+    } else
+      perf_req = request.perf_request();
 
     if (time_contract) {
       auto time = time_contract->GetTime();
     }
 
     auto type = perf_req.type();
-    LOG_DEBUG(logger_, "Execute, type: " << type);
+    LOG_DEBUG(logger_, KVLOG(type, pre_execute, has_pre_executed));
+    PerfResponse* perf_resp = response.mutable_perf_response();
     if (type == ::com::vmware::concord::PerfRequest_PerfRequestType::
                     PerfRequest_PerfRequestType_Init) {
       PerfInitRequest init_req;
@@ -182,12 +197,24 @@ class PerformanceCommandsHandler
       PerfWriteRequest write_req;
       write_req.ParseFromString(perf_req.request_content());
       PerfWriteResponse write_resp;
-      ExecuteWriteRequest(write_req, write_resp);
       string s;
+      if (has_pre_executed) {
+        // Reset max_exec_time, as the command has been already executed
+        write_req.mutable_external()->set_max_exec_time_milli(0);
+      }
+      // For request to be pre-executed ExecuteWriteRequest should be called
+      // to support long-running requests.
+      ExecuteWriteRequest(write_req, write_resp, flags);
+      if (pre_execute && !has_pre_executed) {
+        // For request to be pre-executed include the request in the response
+        perf_req.SerializeToString(&s);
+        auto* preExecutionResult = response.mutable_pre_execution_result();
+        preExecutionResult->set_output(s);
+        return true;
+      }
       write_resp.SerializeToString(&s);
       perf_resp->set_response_content(s);
     }
-
     return true;
   }
 
@@ -196,7 +223,7 @@ class PerformanceCommandsHandler
   }
   void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
                                   controlStateManager) override {}
-};  // namespace performance
+};
 
 }  // namespace performance
 }  // namespace concord
