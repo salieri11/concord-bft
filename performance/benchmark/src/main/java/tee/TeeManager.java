@@ -66,6 +66,7 @@ public class TeeManager extends WorkloadManager {
         return numOfRequests;
     }
 
+
     @Override
     protected String getOperationType() {
         return opType.getId();

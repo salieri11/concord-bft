@@ -11,12 +11,13 @@
         <!-- Console Appender -->
         <Console name="console" target="SYSTEM_OUT">
             <PatternLayout pattern="${LOG_PATTERN}"/>
+            <LevelRangeFilter maxLevel="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
         </Console>
 
         <!-- File Appenders on need basis -->
         <RollingFile name="runLog" fileName="${APP_LOG_ROOT}/detailrun.log"
                      filePattern="${APP_LOG_ROOT}/detailrun-%d{yyyy-MM-dd HH:mm}-%i.log">
-            <LevelRangeFilter minLevel="INFO" maxLevel="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <LevelRangeFilter maxLevel="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="${LOG_PATTERN}"/>
             <Policies>
                 <SizeBasedTriggeringPolicy size="19500KB"/>
@@ -25,7 +26,7 @@
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="info" additivity="false">
+        <Root level="debug" additivity="false">
             <AppenderRef ref="console"/>
             <AppenderRef ref="runLog"/>
         </Root>

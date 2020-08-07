@@ -28,6 +28,7 @@ simpleConfig:
     - dapp: TEE
       rateControl: 0 # Throttled RPS
       logging: false
+      logUpdateFreq: 10 # Number of request after which logs are updated
       params:
         - WriteBlock # TEE operation name (either RunTest or SkvbcWrite or WriteBlock)
         - 1000 # Total no. of requests

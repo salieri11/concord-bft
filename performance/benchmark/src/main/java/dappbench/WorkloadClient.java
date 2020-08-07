@@ -48,6 +48,7 @@ public abstract class WorkloadClient {
                 logger.warn(e.getMessage());
                 logError = false;
             }
+            throw e;
         }
     }
 
