@@ -9,6 +9,11 @@
         "test_suites": [],
         "build_targets": []
     },
+    "castor": {
+        "changed": true,
+        "test_suites": [],
+        "build_targets": []
+    },
     "communication": {
         "changed": true,
         "test_suites": [],
