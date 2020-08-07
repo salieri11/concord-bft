@@ -34,6 +34,7 @@ public class PeeManager extends WorkloadManager {
         return numOfRequests;
     }
 
+
     @Override
     protected WorkloadClient createClient(String host, int port) {
         return new PeeClient(host, port, params);

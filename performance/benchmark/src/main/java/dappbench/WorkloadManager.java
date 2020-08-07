@@ -44,8 +44,11 @@ public abstract class WorkloadManager {
 
     private final String testName;
     private int numOfRequests;
+    private final int logUpdateFreq;
     private final int rateControl;
     private final int concurrency;
+
+    private int requestProgress;
 
     private final Optional<WavefrontSender> optionalWavefrontSender;
     private final Wavefront wavefront;
@@ -60,6 +63,7 @@ public abstract class WorkloadManager {
         this.testName = workload.getDapp();
         this.concurrency = simpleconfig.getNumberThreads();
         this.rateControl = workload.getRateControl();
+        this.logUpdateFreq = workload.getLogUpdateFreq();
 
         logger.info("Concurrency: {}", concurrency);
         logger.info("Rate control: {} rps", rateControl);
@@ -128,13 +132,12 @@ public abstract class WorkloadManager {
         long startTimeNanos = nanoTime();
 
         logger.info("Executing {} workload ..", testName);
-
         ExecutorService executorService = newFixedThreadPool(concurrency);
         CountDownLatch countDownLatch = new CountDownLatch(numOfRequests);
         ProgressBar progressBar = new ProgressBar("Workload Progress", numOfRequests);
 
         LongAdder totalResponseTimeMillis = new LongAdder();
-
+        requestProgress = 0;
         for (int i = 0; i < requestClients.size(); i++) {
             WorkloadClient client = requestClients.get(i);
 
@@ -143,12 +146,17 @@ public abstract class WorkloadManager {
                         Instant start = now();
                         try {
                             client.execute();
-                        } finally {
+                            requestProgress = requestProgress + 1;
+                        }
+                        finally {
                             Duration responseTime = Duration.between(start, now());
                             totalResponseTimeMillis.add(responseTime.toMillis());
                             optionalWavefrontSender.ifPresent(wavefrontSender -> sendMetric(wavefrontSender, responseTime, client.getHost()));
                             countDownLatch.countDown();
                             progressBar.step();
+                            if (requestProgress % logUpdateFreq == 0){
+                                logger.debug("Request progress - {}", requestProgress);
+                            }
                         }
                     });
 

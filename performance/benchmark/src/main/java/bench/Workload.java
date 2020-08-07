@@ -8,6 +8,7 @@ public class Workload {
   private int numOfRuns;
   private boolean logging = false;
   private int rateControl = 0;
+  private int logUpdateFreq = 0;
   private List<String> params;
 
   public String getDapp() {
@@ -32,6 +33,14 @@ public class Workload {
 
   public void setLogging(boolean logging) {
     this.logging = logging;
+  }
+
+  public int getLogUpdateFreq() {
+    return logUpdateFreq;
+  }
+
+  public void setLogUpdateFreq(int logUpdateFreq) {
+    this.logUpdateFreq = logUpdateFreq;
   }
 
   public int getRateControl() {
