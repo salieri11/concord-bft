@@ -220,7 +220,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
             session.localNodeDetailsMap =
                     networkHelper.createPrivateIpMap(session.nodeAssignment, session.orchestrators, session.results);
 
-            log.info("Generating configuration for the deployment");
+            log.info("Generating configuration for the blockchain {}", session.blockchainId);
             ConfigurationSessionIdentifier configGenerated = configHelper.generateConfigurationId(session,
                     genericProperties);
 

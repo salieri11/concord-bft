@@ -14,12 +14,15 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+
 /**
  * ConfigYaml Unit test configuration.
  */
 public class BftClientConfigUtilTest {
 
     private static String filePath = "/tmp/bftConfigUtilTest";
+    private static ConfigurationSessionIdentifier sessionId = ConfigurationSessionIdentifier.newBuilder().build();
 
     @Test
     void testConfigUtilPositive() throws IOException {
@@ -33,7 +36,7 @@ public class BftClientConfigUtilTest {
         participantIps.add("10.0.0.5");
         participantIps.add("10.0.0.6");
 
-        BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml");
+        BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml", sessionId);
 
         var actualDump = util.generateConfigYaml(hostIps, participantIps, filePath);
 

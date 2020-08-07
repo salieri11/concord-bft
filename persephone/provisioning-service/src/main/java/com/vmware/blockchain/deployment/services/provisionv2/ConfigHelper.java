@@ -93,19 +93,20 @@ public class ConfigHelper {
             }
         }
 
-        var requestBuilder = ConfigurationServiceRequestV2.newBuilder()
+        var request = ConfigurationServiceRequestV2.newBuilder()
                 .setHeader(MessageHeader.newBuilder().setId(context.id.toString()).build())
                 .setConsortiumId(context.consortiumId.toString())
                 .setBlockchainId(context.blockchainId.toString())
                 .putAllNodes(nodeInfo.entrySet().stream().collect(Collectors.toMap((e) -> e.getKey().name(),
                     (e) -> e.getValue().build())))
                 .setBlockchainType(context.blockchainType)
-                .setGenericProperties(genericProperties);
+                .setGenericProperties(genericProperties)
+                .build();
 
-        ListenableFuture<ConfigurationSessionIdentifier> completable
-                = configurationServiceClient.withWaitForReady()
-                .withDeadlineAfter(30, TimeUnit.SECONDS).createConfigurationV2(requestBuilder.build());
+        ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
+                .withDeadlineAfter(30, TimeUnit.SECONDS).createConfigurationV2(request);
         try {
+            log.info("Configuration request \n {}", request.toString());
             return completable.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new PersephoneException(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error generating configuration");
