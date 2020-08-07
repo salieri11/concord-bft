@@ -32,10 +32,11 @@ simpleConfig:
       params:
         - PerfWrite # Operation name
         - 100 # Total no. of requests
-        - 250 # No. of KV pairs in each block
-        - 32 # Key size
-        - 32 # Value size
+        - 151 # No. of KV pairs in each block
+        - 76 # Key size
+        - 502 # Value size
         - 0 # Batch of <n> blocks pre-created in Concord memory.
+        - 15100 # Payload size in bytes
   numberThreads: 1 # No of concurrent requests
 advancedConfig:
   wavefront:
