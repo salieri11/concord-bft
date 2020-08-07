@@ -10,8 +10,17 @@ import { Observable, from, timer, of, Subject, zip } from 'rxjs';
 import { map, concatMap, filter, take, delay, catchError } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
-import { NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams,
-        CommittersData, BlockchainNode, NodeCredentials, NodeType } from './nodes.model';
+import {
+  NodeProperties,
+  NodeInfo,
+  ClientNode,
+  ClientNodeDeployParams,
+  CommittersData,
+  BlockchainNode,
+  NodeCredentials,
+  NodeType,
+  NodeTemplates
+} from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -253,6 +262,72 @@ export class NodesService {
       }
     });
   }
+
+  getSizingOptions(): Observable<NodeTemplates> {
+    const icons = {Small: 'hard-disk', Medium: 'host', Large: 'cluster'};
+    return of({
+              'id': '<UUID>',
+              'name': 'nodeSizeTemplate',
+              'templates': [{
+                'name': 'Small',
+                'items': [{
+                  'type': 'committer',
+                  'no_of_cpus': '4',
+                  'storage_in_gigs': '1024',
+                  'memory_in_gigs': '32'
+                }, {
+                  'type': 'client',
+                  'no_of_cpus': '4',
+                  'storage_in_gigs': '1024',
+                  'memory_in_gigs': '32'
+                }
+                 ],
+                }, {
+                  'name': 'Medium',
+                  'items': [{
+                    'type': 'committer',
+                    'no_of_cpus': '8',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '32'
+                  }, {
+                    'type': 'client',
+                    'no_of_cpus': '8',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '32'
+                  }]
+                }, {
+                  'name': 'Large',
+                'items': [{
+                    'type': 'committer',
+                    'no_of_cpus': '16',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '64'
+                  }, {
+                    'type': 'client',
+                    'no_of_cpus': '16',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '64'
+                  }]
+                }],
+                'range': {
+                  'no_of_cpus': {'min': 1, 'max': 18},
+                  'storage_in_gigs': {'min': 1, 'max': 16384},
+                  'memory_in_gigs': {'min': 1, 'max': 3024}
+                }
+            }).pipe(
+            map(templ => {
+              templ.templates.forEach(item => {
+                item['icon'] = icons[item.name];
+                item['description'] = this.translate.instant(`blockchainWizard.sizing.${item.name}`);
+                item.items.forEach(i => i['title'] = this.translate.instant(`blockchainWizard.sizing.${i.type}Title`));
+              });
+              templ.range['icon'] = 'cog';
+              return templ;
+
+            })
+          );
+  }
+
 
   private trimNodeName(prefix: string, node: BlockchainNode, index: number) {
     if (!node || !node.name || node.name.startsWith('null')) {

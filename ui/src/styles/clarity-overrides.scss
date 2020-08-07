@@ -1,3 +1,5 @@
+$clr-card-hover-color: #0094d2;
+
 body .main-container .content-container .content-area {
   padding: 0;
   max-width: 2000px;
@@ -68,4 +70,42 @@ body nav.subnav .theme-select {
   .label {
     height: .675rem;
   }
+}
+
+.card.sideways {
+  height: 6.3rem;
+
+  .card-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    float: left;
+    width: 6rem;
+    height: 6rem;
+    border-right: 1px solid rgba(140, 140, 140, 0.3);
+    margin-top: .1rem;
+    margin-right: .5rem;
+    padding: .1rem;
+    text-align: center;
+  }
+  .card-endorsement {
+    padding-right: .5rem;
+
+    h3 {
+      margin: .5rem 0 0;
+    }
+    p {
+      margin-top: .5rem;
+      font-size: 90%;
+      line-height: 1.4;
+    }
+  }
+}
+
+.card.sideways.active {
+  box-shadow: 0 0.125rem 0 0 $clr-card-hover-color;
+  border: 1px solid $clr-card-hover-color;
+  cursor: pointer;
+  text-decoration: none;
+  transform: translateY(-2px);
 }

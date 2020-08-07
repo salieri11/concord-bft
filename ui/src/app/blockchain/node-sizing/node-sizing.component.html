@@ -1,0 +1,130 @@
+<div class="sizing-detail" *ngIf="form">
+  <section *ngIf="showTemplates">
+    <div *ngFor="let size of sizingOptions?.templates" class="card clickable sideways" (click)="selectSize(size.name)"
+        [ngClass]="{'active': selectedSizing === size.name}">
+        <div class="card-icon">
+          <div>
+            <clr-icon [attr.shape]="size.icon" size="48"></clr-icon>
+            <h3>{{ size.name }}</h3>
+          </div>
+        </div>
+        <div class="card-endorsement">
+          <div *ngFor="let item of size.items">
+            <h5>{{ item.title }}</h5>
+            <ul class="stats">
+              <li><clr-icon shape="cpu"></clr-icon> {{ item.no_of_cpus }} {{'common.cpu' | translate}}</li>
+              <li><clr-icon shape="memory"></clr-icon> {{ item.memory_in_gigs }}GB {{'common.ram' | translate}}</li>
+              <li><clr-icon shape="storage"></clr-icon> {{ item.storage_in_gigs }}GB {{'common.storage' | translate}}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    <div class="custom-wrapper">
+      <button class="btn btn-link" (click)="toggleTemplatesCustom()">{{'common.custom' | translate}}</button>
+    </div>
+  </section>
+  <section *ngIf="!showTemplates" class="custom">
+    <button class="btn btn-link back" (click)="toggleTemplatesCustom()"><clr-icon shape="caret" style="transform: rotate(270deg);"></clr-icon> {{'blockchainWizard.sizing.back' | translate}}</button>
+      <form [formGroup]="form" clrForm>
+        <div class="card-endorsement" formGroupName="committerSizing">
+          <label class="clr-control-label custom">{{ 'blockchainWizard.sizing.committerTitle' | translate }}</label>
+          <div class="stats">
+            <clr-input-container>
+                <label class="clr-col-md-3">{{'common.cpu' | translate}}</label>
+                <input clrInput
+                       type="number"
+                       class="clr-col-md-9 clr-col-12"
+                       formControlName="no_of_cpus"
+                       [min]="range.memory_in_gigs.min"
+                       [max]="range.memory_in_gigs.max"
+                       class="form-control"
+                       placeholder="2">
+                <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.no_of_cpus.min, max: range.no_of_cpus.max }) }}</clr-control-helper>
+                <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.no_of_cpus.min, max: range.no_of_cpus.max }) }}</clr-control-error>
+            </clr-input-container>
+            <clr-input-container>
+              <label class="clr-col-md-3">{{'common.ram' | translate}} GB</label>
+              <input clrInput
+                     type="number"
+                     class="clr-col-md-9 clr-col-12"
+                     formControlName="memory_in_gigs"
+                     class="form-control"
+                     [min]="range.memory_in_gigs.min"
+                     [max]="range.memory_in_gigs.max"
+                     placeholder="8">
+              <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.memory_in_gigs.min, max: range.memory_in_gigs.max }) }}</clr-control-helper>
+              <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.memory_in_gigs.min, max: range.memory_in_gigs.max }) }}</clr-control-error>
+            </clr-input-container>
+
+            <clr-input-container>
+              <label class="clr-col-md-3">{{'common.storage' | translate}} GB</label>
+              <input clrInput
+                     type="number"
+                     class="clr-col-md-9 clr-col-12"
+                     formControlName="storage_in_gigs"
+                     class="form-control"
+                     [min]="range.storage_in_gigs.min"
+                     [max]="range.storage_in_gigs.max"
+                     placeholder="8">
+              <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.storage_in_gigs.min, max: range.storage_in_gigs.max }) }}</clr-control-helper>
+              <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.storage_in_gigs.min, max: range.storage_in_gigs.max }) }}</clr-control-error>
+            </clr-input-container>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div *ngIf="hasClients" class="card-endorsement" formGroupName="clientSizing">
+          <label class="clr-control-label custom">{{ 'blockchainWizard.sizing.clientTitle' | translate }}</label>
+          <div class="custom stats">
+            <clr-input-container>
+                <label class="clr-col-md-3">{{'common.cpu' | translate}}</label>
+                <input clrInput
+                       type="number"
+                       class="clr-col-md-9 clr-col-12"
+                       formControlName="no_of_cpus"
+                       [min]="range.memory_in_gigs.min"
+                       [max]="range.memory_in_gigs.max"
+                       class="form-control"
+                       placeholder="2">
+                  <span></span>
+                <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.no_of_cpus.min, max: range.no_of_cpus.max }) }}</clr-control-helper>
+                <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.no_of_cpus.min, max: range.no_of_cpus.max }) }}</clr-control-error>
+            </clr-input-container>
+            <clr-input-container>
+              <label class="clr-col-md-3">{{'common.ram' | translate}} GB</label>
+              <input clrInput
+                     type="number"
+                     class="clr-col-md-9 clr-col-12"
+                     formControlName="memory_in_gigs"
+                     class="form-control"
+                     [min]="range.memory_in_gigs.min"
+                     [max]="range.memory_in_gigs.max"
+                     placeholder="8">
+              <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.memory_in_gigs.min, max: range.memory_in_gigs.max }) }}</clr-control-helper>
+              <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.memory_in_gigs.min, max: range.memory_in_gigs.max }) }}</clr-control-error>
+            </clr-input-container>
+
+            <clr-input-container>
+              <label class="clr-col-md-3">{{'common.storage' | translate}} GB</label>
+              <input clrInput
+                     type="number"
+                     class="clr-col-md-9 clr-col-12"
+                     formControlName="storage_in_gigs"
+                     class="form-control"
+                     [min]="range.storage_in_gigs.min"
+                     [max]="range.storage_in_gigs.max"
+                     placeholder="8">
+              <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.storage_in_gigs.min, max: range.storage_in_gigs.max }) }}</clr-control-helper>
+              <clr-control-error>{{ 'blockchainWizard.sizing.error' | translate }} {{ 'common.minMax' | translate:({ min: range.storage_in_gigs.min, max: range.storage_in_gigs.max }) }}</clr-control-error>
+            </clr-input-container>
+
+          </div>
+        </div>
+        <clr-control-error *ngIf="form.errors"
+          class="committer-dist-error">
+          Errors
+        </clr-control-error>
+
+      </form>
+  </section>
+</div>
+

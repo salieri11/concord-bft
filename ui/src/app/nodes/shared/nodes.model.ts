@@ -68,6 +68,32 @@ export interface NodeProperties {
   type?: string;
 }
 
+export interface TemplateItem {
+  title?: string;
+  type?: string;
+  no_of_cpus: any;
+  storage_in_gigs: any;
+  memory_in_gigs:  any;
+  icon?: string;
+  description?: string;
+}
+
+export interface NodeTemplate {
+  name?: string;
+  items: TemplateItem[];
+}
+
+export interface NodeTemplates {
+  id: string;
+  name: string;
+  templates: NodeTemplate[];
+  range: TemplateItem;
+}
+export interface NodeTemplateFormResponse {
+  committerSizing: TemplateItem;
+  clientSizing?: TemplateItem;
+}
+
 export interface NodesResponse {
   nodes: NodeInfo[];
   nodesByLocation: NodeProperties[];
