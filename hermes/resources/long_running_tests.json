@@ -4,13 +4,13 @@
       {
         "testname": "Daml Test",
         "test": "./main.py DamlTests"
-      },
-      {
-        "testname": "CHESS+",
-        "test": "./main.py ChessPlusTests --marketFlavor nfr --noOfRequests 500000 --concurrency 3 --dockerHubUser blockchainrepositoryreader --dockerHubPassword <DOCKERHUB_PASSWORD> --deploymentOrg <DEPLOYMENT_ORG> --deploymentService staging"
       }
     ],
     "additional_tests": [
+      {
+        "testname": "CHESS+",
+        "test": "./main.py ChessPlusTests --marketFlavor nfr --noOfRequests 100000 --concurrency 3 --dockerHubUser blockchainrepositoryreader --dockerHubPassword <DOCKERHUB_PASSWORD> --deploymentOrg <DEPLOYMENT_ORG> --deploymentService staging"
+      }
     ]
   }
 }

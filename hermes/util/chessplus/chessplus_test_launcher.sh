@@ -209,6 +209,11 @@ export MARKET_FLAVOUR="$MARKET_FLAVOUR"
 export CONCURRENCY="$CONCURRENCY"
 export MIN_LEDGER_TIME_REL=0
 
+# Increasing memory for spider container
+export LR_JAVA_TOOL_OPTIONS='-Xmx4g'
+export SPIDER_XMS=8g
+export SPIDER_XMX=12g
+
 if [ "${MARKET_FLAVOUR}" == "${MARKET_FLAVOR_NFR}" ]
 then
     export DAY_T1=2019-12-06
