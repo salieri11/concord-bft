@@ -157,6 +157,8 @@ services:
 
   db-server:
     image: postgres:10.6
+    expose:
+      - 26257
     ports:
       - 26257:26257
     environment:
