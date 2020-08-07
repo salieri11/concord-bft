@@ -3,41 +3,20 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 
-import { AuthenticationService } from '../../shared/authentication.service';
-import { PersonaService } from '../../shared/persona.service';
-import { MockSharedModule } from '../../shared/shared.module';
 import { WelcomeContentComponent } from './welcome-content.component';
-import { CanViewDirective } from '../../shared/directives/can-view.directive';
-import { BlockchainService, MockBlockchainsService } from '../../blockchain/shared/blockchain.service';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 
-describe('WelcomeContentomponent', () => {
+describe('WelcomeContentComponent', () => {
   let component: WelcomeContentComponent;
   let fixture: ComponentFixture<WelcomeContentComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        MockSharedModule,
-        HttpClientTestingModule,
-        ReactiveFormsModule
-      ],
-      declarations: [ WelcomeContentComponent, CanViewDirective ],
-      providers: [
-        AuthenticationService,
-        PersonaService,
-        {
-          provide: BlockchainService,
-          useClass: MockBlockchainsService
-        },
-      ],
-    })
-    .compileComponents();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {
