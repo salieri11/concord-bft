@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -102,7 +103,8 @@ public class ConfigHelper {
                 .setGenericProperties(genericProperties);
 
         ListenableFuture<ConfigurationSessionIdentifier> completable
-                = configurationServiceClient.withWaitForReady().createConfigurationV2(requestBuilder.build());
+                = configurationServiceClient.withWaitForReady()
+                .withDeadlineAfter(30, TimeUnit.SECONDS).createConfigurationV2(requestBuilder.build());
         try {
             return completable.get();
         } catch (InterruptedException | ExecutionException e) {
