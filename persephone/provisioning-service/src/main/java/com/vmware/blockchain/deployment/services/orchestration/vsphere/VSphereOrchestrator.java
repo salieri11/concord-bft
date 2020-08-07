@@ -7,12 +7,17 @@ package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
@@ -65,23 +70,36 @@ public class VSphereOrchestrator implements Orchestrator {
         val storage = datacenterInfo.getDatastore();
         val network = datacenterInfo.getNetwork();
 
-        val getFolder = CompletableFuture
-                .supplyAsync(() -> vSphereHttpClient.getFolder(datacenterInfo.getFolder()));
+        val getFolder = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getFolder(datacenterInfo.getFolder()));
         val getDatastore = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getDatastore(storage));
         val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
-        val getControlNetwork =
-                CompletableFuture
-                        .supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
+        val getControlNetwork = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
 
+
+        orchestratorSiteInformation = new OrchestratorSiteInformation();
         try {
-            orchestratorSiteInformation = new OrchestratorSiteInformation();
             orchestratorSiteInformation.setNetwork(getControlNetwork.get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(MessageFormat.format(ErrorCode.SITE_NETWORK_INCORRECT, network.getName()));
+            throw new BadRequestPersephoneException(e, ErrorCode.SITE_NETWORK_INCORRECT, network.getName());
+        }
+        try {
             orchestratorSiteInformation.setDataStore(getDatastore.get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(MessageFormat.format(ErrorCode.SITE_DATASTORE_INCORRECT, storage));
+            throw new BadRequestPersephoneException(e, ErrorCode.SITE_DATASTORE_INCORRECT, storage);
+        }
+        try {
             orchestratorSiteInformation.setResourcePool(getResourcePool.get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(MessageFormat.format(ErrorCode.SITE_RESOURCE_POOL_INCORRECT, compute));
+            throw new BadRequestPersephoneException(e, ErrorCode.SITE_RESOURCE_POOL_INCORRECT, compute);
+        }
+        try {
             orchestratorSiteInformation.setFolder(getFolder.get());
-        } catch (Exception e) {
-            log.warn("Incorrect site information ", datacenterInfo);
-            throw new BadRequestPersephoneException("Incorrect site information: ", e);
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(MessageFormat.format(ErrorCode.SITE_FOLDER_INCORRECT, datacenterInfo.getFolder()));
+            throw new BadRequestPersephoneException(e, ErrorCode.SITE_FOLDER_INCORRECT, datacenterInfo.getFolder());
         }
     }
 
@@ -133,10 +151,15 @@ public class VSphereOrchestrator implements Orchestrator {
                     .resource(vSphereHttpClient.vmIdAsUri(instance))
                     .password(vmPassword)
                     .nodeId(request.getNodeId()).build();
-        } catch (PersephoneException e) {
-            throw e;
+
+        } catch (UnknownHostException e) {
+            throw new NotFoundPersephoneException(e, ErrorCode.UNKNOWN_GATEWAY,
+                    datacenterInfo.getNetwork().getGateway());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new NotFoundPersephoneException(e, ErrorCode.NOT_FOUND_LIBRARY_ITEM,
+                    request.getCloudInitData().getModel().getTemplate());
         } catch (Exception e) {
-            throw new PersephoneException(e, "Error creating/starting the VM");
+            throw new PersephoneException(e, ErrorCode.VM_START_ERROR);
         }
     }
 
@@ -154,7 +177,7 @@ public class VSphereOrchestrator implements Orchestrator {
 
             return new OrchestratorData.ComputeResourceEvent(request.getResource());
         }
-        throw new PersephoneException("Unable to power off VM: " + request.getResource());
+        throw new PersephoneException(ErrorCode.VM_POWER_OFF_ERROR, request.getResource());
     }
 
     @Override
@@ -186,8 +209,8 @@ public class VSphereOrchestrator implements Orchestrator {
                 publisher.onNext(event);
                 publisher.onComplete();
             } else {
-                publisher
-                        .onError(new PersephoneException("Unable to delete network address {}", request.getResource()));
+                publisher.onError(new PersephoneException(ErrorCode.RESOURCE_NETWORK_DELETION_FAILURE,
+                        request.getResource()));
             }
         };
     }
