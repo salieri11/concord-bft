@@ -15,6 +15,7 @@ import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.Properties;
 
@@ -45,7 +46,10 @@ public class NetworkHelper {
                 .map(entry -> {
                     var orchestrator = sessionOrchestrators.get(entry.getSite());
 
-                    var addressRequest = new OrchestratorData.CreateNetworkResourceRequest(entry.getNodeId(), false);
+                    var addressRequest = new OrchestratorData.CreateNetworkResourceRequest(
+                            entry.getNodeId(),
+                            entry.getProperties().getValuesOrDefault(NodeProperty.Name.VM_IP.toString(), ""),
+                            false);
                     return CompletableFuture
                             .runAsync(() -> {
                                 var eventInfo = orchestrator.createPrivateNetworkAddress(addressRequest);
@@ -102,8 +106,10 @@ public class NetworkHelper {
                 .map(entry -> {
                     var orchestrator = sessionOrchestrators.get(entry.getSite());
                     final UUID nodeId = UUID.fromString(entry.getNodeId());
-                    var addressRequest = new OrchestratorData.CreateNetworkResourceRequest(nodeId.toString(),
-                                                                                           true);
+                    var addressRequest = new OrchestratorData.CreateNetworkResourceRequest(
+                            nodeId.toString(),
+                            entry.getProperties().getValuesOrDefault(NodeProperty.Name.VM_IP.toString(), ""),
+                            true);
 
                     return CompletableFuture
                             .supplyAsync(() -> orchestrator.createPublicNetworkAddress(addressRequest))

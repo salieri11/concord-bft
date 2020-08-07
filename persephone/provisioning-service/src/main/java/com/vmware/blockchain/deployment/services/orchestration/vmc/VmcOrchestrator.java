@@ -5,12 +5,13 @@
 package com.vmware.blockchain.deployment.services.orchestration.vmc;
 
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.concurrent.Flow;
 
-import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.model.nsx.NsxData;
 import com.vmware.blockchain.deployment.services.orchestration.model.vmc.VmcOnAwsData;
@@ -19,6 +20,7 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
+
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -69,10 +71,15 @@ public class VmcOrchestrator implements Orchestrator {
                     .build();
             nsx = new VmcHttpClient(nsxContext);
 
-            val vsphereEndpoint = Endpoint.newBuilder().setAddress(sddc.getResourceConfig().getVcUrl()).setCredential(
-                    Credential.newBuilder().setPasswordCredential(
-                            PasswordCredential.newBuilder().setUsername(sddc.getResourceConfig().getCloudUsername())
-                                    .setPassword(sddc.getResourceConfig().getCloudPassword()).build()).build()).build();
+            Endpoint vsphereEndpoint = Endpoint.newBuilder()
+                    .setAddress(sddc.getResourceConfig().getVcUrl())
+                    .setCredential(Credential.newBuilder()
+                            .setPasswordCredential(PasswordCredential.newBuilder()
+                                    .setUsername(sddc.getResourceConfig().getCloudUsername())
+                                    .setPassword(sddc.getResourceConfig().getCloudPassword())
+                                    .build())
+                            .build())
+                    .build();
             internalOrchestrator = new VSphereOrchestrator(info.getVsphere(), vsphereEndpoint, ipamClient);
         } catch (Exception e) {
             throw new PersephoneException(e, "Error creating VMC orchestrator.");
@@ -100,15 +107,16 @@ public class VmcOrchestrator implements Orchestrator {
     public OrchestratorData.NetworkResourceEvent createPrivateNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request) {
 
-        val privateIpAddress = ipamClient.allocatedPrivateIp(info.getDatacenter() + "-"
-                                                             + info.getVsphere().getNetwork().getName());
+        AbstractMap.SimpleEntry<String, String> privateIpAddress = OrchestratorUtils.getAddress(ipamClient,
+                info.getDatacenter() + "-" + info.getVsphere().getNetwork().getName(),
+                request.getIp(), request.getName());
         log.info("Assigned private IP {}", privateIpAddress);
 
         return OrchestratorData.NetworkResourceEventCreated.builder()
                 .name(request.getName())
-                .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
+                .address(privateIpAddress.getValue())
                 .publicResource(false)
-                .resource(URI.create("/" + privateIpAddress.getName()))
+                .resource(URI.create("/" + privateIpAddress.getKey()))
                 .build();
     }
 
