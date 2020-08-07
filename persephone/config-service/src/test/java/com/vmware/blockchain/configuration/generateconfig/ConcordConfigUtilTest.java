@@ -14,12 +14,15 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+
 /**
  * ConfigYaml Unit test configuration.
  */
 public class ConcordConfigUtilTest {
 
     private static String filePath = "/tmp/concordConfigUtilTest";
+    private static ConfigurationSessionIdentifier sessionId = ConfigurationSessionIdentifier.newBuilder().build();
 
     @Test
     void testConfigUtilPositive() throws IOException {
@@ -28,13 +31,13 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.2");
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 
     @Test
     void testConfigUtilNegative() {
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(new ArrayList<>(), filePath, null, 0)).isFalse();
     }
 
@@ -44,7 +47,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.1");
         hostIps.add("10.0.0.2");
         hostIps.add("10.0.0.3");
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isFalse();
     }
 
@@ -55,7 +58,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.2");
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, 1, 2, filePath, null, 0)).isFalse();
     }
 
@@ -66,7 +69,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("concord2");
         hostIps.add("concord3");
         hostIps.add("concord4");
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 
@@ -80,7 +83,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.5");
         hostIps.add("10.0.0.6");
         hostIps.add("10.0.0.7");
-        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml");
+        ConcordConfigUtil util = new ConcordConfigUtil("ConcordConfigTemplate.yaml", sessionId);
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath, null, 0)).isTrue();
     }
 

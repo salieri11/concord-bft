@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.server;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,10 +33,6 @@ public class ConfigurationServiceUtil {
      * @return
      *   a new {@link ConfigurationSessionIdentifier} instance.
      */
-    @Deprecated
-    static ConfigurationSessionIdentifier newSessionId() {
-        return ConfigurationSessionIdentifier.newBuilder().setIdentifier(new SecureRandom().nextLong()).build();
-    }
 
     static ConfigurationSessionIdentifier newSessionUId() {
         return ConfigurationSessionIdentifier.newBuilder().setId(UUID.randomUUID().toString()).build();

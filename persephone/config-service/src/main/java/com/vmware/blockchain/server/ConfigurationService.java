@@ -134,7 +134,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     @Override
     public void createConfigurationV2(@NotNull ConfigurationServiceRequestV2 request,
                                       @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
-        log.info(request.toString());
+
+        var sessionId = ConfigurationServiceUtil.newSessionUId();
+        log.info("Request receieved. Session Id : {}\n Request : {}", sessionId, request.toString());
         var committerIps = new ArrayList<String>();
         var participantIps = new ArrayList<String>();
         var committerIds = new ArrayList<String>();
@@ -157,8 +159,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var nodeIdList = new ArrayList<>(committerIds);
 
         // Generate Configuration
-        var configUtil = new ConcordConfigUtil(concordConfigPath);
-        var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath);
+        var configUtil = new ConcordConfigUtil(concordConfigPath, sessionId);
+        var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath, sessionId);
 
         boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
@@ -176,11 +178,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     .getbftClientConfig(participantNodeIds, committerIps, participantIps));
             nodeIdList.addAll(participantNodeIds);
 
+            log.info("Generated bft client configurations for session Id : {}", sessionId);
+
             numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
         }
 
         var concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
                 convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig);
+
+        log.info("Generated concord configurations for session Id : {}", sessionId);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         request.getNodesMap().values().forEach(nodesByType -> nodesByType
@@ -196,6 +202,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var certGen = new ConcordEcCertificatesGenerator();
         Map<String, List<IdentityComponent>> concordIdentityComponents = new HashMap<>();
 
+        log.info("Creating secrets for session Id {}", sessionId);
         concordIdentityComponents.putAll(ConfigurationServiceUtil
                 .getTlsNodeIdentities(configUtil.maxPrincipalId,
                         configUtil.nodePrincipal,
@@ -209,7 +216,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     .convertToBftTlsNodeIdentities(concordIdentityComponents));
         }
 
-        var sessionId = ConfigurationServiceUtil.newSessionUId();
         log.info("Generated tls identity elements for session id: {}", sessionId);
 
         Map<String, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
