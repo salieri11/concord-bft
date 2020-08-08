@@ -275,10 +275,6 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       time.sleep(60)
       log.info("{}".format(vm_handle["entity"].runtime.powerState))
 
-      if mode == NODE_RECOVER:
-         log.info("  Workaround to rejoin node...")
-         workaround_to_rejoin_node(node)
-
    return True
 
 def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,

@@ -84,6 +84,10 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --damlParticipantIP "${concord_ips}"'
   ],
+  "NodeInterruptionTests": [
+    "enabled": true,
+    "runWithGenericTests": false
+  ],
   "SampleSuite": [
     "enabled": true
   ],
@@ -269,7 +273,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
 @Field String chess_plus_on_predeployed_bc_job_name = "ChessPlusOnPre-deployedBlockchain"
 @Field String daml_test_on_predeployed_bc_job_name = "Daml Tests on pre-deployed Blockchain"
 @Field String deployment_support_bundle_job_name = "Get Deployment support bundle"
-@Field String rel_long_tests_job_name = "BlockchainLongTests-Release"
+@Field String node_interruption_tests_job_name = "BlockchainNodeInterruptionTests"
 @Field String helen_role_test_job_name = "Helen Role Tests on GitLab"
 @Field String log_insight_test_job_name = "Log Insight Integration Test"
 @Field String long_tests_job_name = "BlockchainLongTests"
@@ -277,10 +281,11 @@ import org.apache.commons.lang.exception.ExceptionUtils
 @Field String manual_with_params_job_name = "Blockchain Manual Run"
 @Field String memory_leak_job_name = "BlockchainMemoryLeakTesting"
 @Field String monitor_replicas_job_name = "MonitorBlockchainReplicaHealthAndStatus"
-@Field String performance_test_job_name = "Blockchain Performance Test"
-@Field String persephone_test_job_name = "Blockchain Persephone Tests"
 @Field String on_demand_concord_deployment_job_name = "ON DEMAND Concord Deployment"
 @Field String on_demand_persephone_test_job_name = "ON DEMAND Persephone Testrun on GitLab"
+@Field String performance_test_job_name = "Blockchain Performance Test"
+@Field String persephone_test_job_name = "Blockchain Persephone Tests"
+@Field String rel_long_tests_job_name = "BlockchainLongTests-Release"
 @Field String ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
 
 // These runs will never run Persehpone tests. Persephone tests have special criteria,
@@ -289,7 +294,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
-  rel_long_tests_job_name,
+  node_interruption_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
   long_tests_job_name,
@@ -297,6 +302,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   monitor_replicas_job_name,
   on_demand_concord_deployment_job_name,
   performance_test_job_name,
+  rel_long_tests_job_name,
   ui_e2e_daml_on_prem_job_name,
 ]
 
@@ -305,6 +311,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   chess_plus_on_predeployed_bc_job_name,
   daml_test_on_predeployed_bc_job_name,
   deployment_support_bundle_job_name,
+  node_interruption_tests_job_name,
   rel_long_tests_job_name,
   helen_role_test_job_name,
   log_insight_test_job_name,
@@ -346,6 +353,8 @@ def call(){
 
   if (env.JOB_NAME.contains(rel_long_tests_job_name)) {
     agentLabel = "RelLongRunTest"
+  } else if (env.JOB_NAME.contains(node_interruption_tests_job_name)) {
+    agentLabel = "NodeInterruptionTest"
   } else if (env.JOB_NAME.contains(long_tests_job_name)) {
     agentLabel = "LongRunTest"
   } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
@@ -662,6 +671,7 @@ def call(){
               } else if(
                   env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
+                  env.JOB_NAME.contains(node_interruption_tests_job_name) ||
                   env.JOB_NAME.contains(rel_long_tests_job_name) ||
                   env.JOB_NAME.contains(long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
@@ -733,6 +743,7 @@ def call(){
                 } else if (
                   env.JOB_NAME.contains(chess_plus_on_predeployed_bc_job_name) ||
                   env.JOB_NAME.contains(daml_test_on_predeployed_bc_job_name) ||
+                  env.JOB_NAME.contains(node_interruption_tests_job_name) ||
                   env.JOB_NAME.contains(rel_long_tests_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name) ||
                   env.JOB_NAME.contains(monitor_replicas_job_name) ||
@@ -887,7 +898,11 @@ def call(){
                     } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
                       selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
-                    } else if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name)) {
+                    } else if (
+                      env.JOB_NAME.contains(node_interruption_tests_job_name) || 
+                      env.JOB_NAME.contains(long_tests_job_name) || 
+                      env.JOB_NAME.contains(rel_long_tests_job_name)
+                    ) {
                       // TODO: Move to a Hermes file.  The pipeline file should not have test implementation details.
                       if (env.monitoring_notify_target == "") { env.monitoring_notify_target = "blockchain-long-tests-status" }
                       deploymentOrg = ""
@@ -911,11 +926,19 @@ def call(){
                       } finally {
                         deregisterLRTBlockchain(deploymentOrg)
                       }
-                      sh '''
-                        "${python}" invoke.py lrtPrintDashboardLink
-                        echo "Running script to monitor health and status of replicas..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --resultsDir "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Long-running test"
-                      '''
+                      if ( env.JOB_NAME.contains(node_interruption_tests_job_name)) {
+                        sh ''' echo "Running Node Interruption Tests..." '''
+                        testSuites["NodeInterruptionTests"]["otherParameters"] =
+                            " --replicasConfig /tmp/replicas.json"
+                        selectOnlySuites(["NodeInterruptionTests"])
+                        runTests()
+                      } else {
+                        sh '''
+                          "${python}" invoke.py lrtPrintDashboardLink
+                          echo "Running script to monitor health and status of replicas..."
+                          echo "${PASSWORD}" | sudo -SE "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --resultsDir "${monitor_replicas_logs}" --testset basic_tests --notifyTarget "${monitoring_notify_target}" --notifyJobName "Long-running test"
+                        '''
+                      }
                     }
 
                     // Special runs; maybe should go into their own Jenkinsfile someday.
@@ -2238,7 +2261,7 @@ EOF
       sed -i -e 's/'"<DOCKERHUB_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/long_running_tests.json
     '''
 
-    if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name)) {
+    if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name) || env.JOB_NAME.contains(node_interruption_tests_job_name)) {
       sh '''
           sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/zone_config.json
       '''
