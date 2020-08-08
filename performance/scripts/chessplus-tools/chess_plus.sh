@@ -46,10 +46,16 @@ sleep 10
 ## Open the market
 load-runner --simulation bmw.open-market
 
+# Data set file
+data_file="fix_ae.tsv"
+if [ "${MARKET_FLAVOUR}" = "nfr" ]; then
+  data_file="20191205_Trades.zip"
+fi
+
 ## Run fix-trade
 load-runner \
   --simulation fix-trade.standard \
-  --trade-file "/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv" \
+  --trade-file "/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/${data_file}" \
   --loop-file \
   --trade-timeout 60s \
   --requests ${TRADE_COUNT} \
