@@ -1,11 +1,10 @@
 // Copyright 2020 VMware, all rights reserved
 
+#include "daml/daml_validator_client.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <opentracing/tracer.h>
 #include "Logger.hpp"
-
-#include "daml/daml_validator_client.hpp"
 #include "daml_validator_mock.grpc.pb.h"
 
 using ::std::placeholders::_1;
@@ -161,6 +160,42 @@ TEST_F(DamlValidatorClientTest, ValidateSendsSubmissionFirst) {
             actual_validate_request.record_time().seconds());
   EXPECT_EQ(test_record_time.nanos(),
             actual_validate_request.record_time().nanos());
+}
+
+TEST_F(DamlValidatorClientTest, DeathOnNonGrpcOK) {
+  auto mock_stream =
+      new MockClientReaderWriter<EventToValidator, EventFromValidator>();
+  EventToValidator first_message;
+  // => submission
+  EXPECT_CALL(*mock_stream, Write(_, _))
+      .Times(1)
+      .WillOnce(DoAll(SaveArg<0>(&first_message), Return(true)));
+  // <== finished
+  EventFromValidator done;
+  done.mutable_done();
+  EXPECT_CALL(*mock_stream, Read(_))
+      .WillOnce(DoAll(WithArg<0>(copy(&done)), Return(true)));
+  // End of stream.
+  EXPECT_CALL(*mock_stream, WritesDone()).WillOnce(Return(true));
+  EXPECT_CALL(*mock_stream, Finish()).WillOnce(Return(grpc::Status::CANCELLED));
+
+  MockValidationServiceStub* validation_service_stub =
+      new MockValidationServiceStub();
+  DamlValidatorClient client(test_replica_id, validation_service_stub);
+  std::vector<std::string> ignored_read_set;
+  std::vector<KeyValuePairWithThinReplicaIds> ignored_write_set;
+  std::string expected_submission = "a submission";
+  std::string expected_participant_id = "participant ID";
+  std::string expected_correlation_id = "correlation ID";
+  int expected_replica_id = test_replica_id;
+  testing::Mock::AllowLeak(mock_stream);
+  testing::Mock::AllowLeak(validation_service_stub);
+  ASSERT_DEATH(client.Validate(
+                   expected_submission, test_record_time,
+                   expected_participant_id, expected_correlation_id, *test_span,
+                   std::bind(&MockReadingFromStorage::Read, mock_reader_, _1),
+                   &ignored_read_set, &ignored_write_set),
+               ".*");
 }
 
 TEST_F(DamlValidatorClientTest, ValidateCopiesReadAndWriteSetFromDone) {
