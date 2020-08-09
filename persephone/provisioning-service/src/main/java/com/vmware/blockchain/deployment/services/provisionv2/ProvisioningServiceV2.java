@@ -27,6 +27,7 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
 import com.vmware.blockchain.deployment.services.configuration.NodeConfiguration;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
@@ -304,10 +305,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                     deleteResourceEvents(orchestrators,
                                          new ArrayList<>(deploymentLogCache.asMap().get(sessionId).get().results));
                 } catch (Exception e) {
-                    log.error("Error looking up session.");
+                    log.error("Error looking up session");
                 }
             } else {
-                throw new BadRequestPersephoneException("invalid input");
+                throw new BadRequestPersephoneException(ErrorCode.INVALID_SESSION_ID, sessionId);
             }
         } else {
             deleteResourceEvents(orchestrators, requestSession.getResourceList());

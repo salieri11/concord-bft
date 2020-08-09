@@ -10,6 +10,7 @@ package com.vmware.blockchain.deployment.services.exception;
 public final class ErrorCode {
 
     public static final String FOLDER_NOT_FOUND = "Error retrieving folder: {0}";
+    public static final String INVALID_SESSION_ID = "Invalid session id: {0}";
     public static final String NO_RESPONSE_RETRY = "No response after {0} retries";
     public static final String NOT_FOUND_DATASTORE = "Error retrieving datastore: {0}";
     public static final String NOT_FOUND_LIBRARY_ITEM = "Content Library not found with id {0}";
