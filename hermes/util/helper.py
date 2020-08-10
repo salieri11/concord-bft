@@ -53,6 +53,9 @@ CMDLINE_ARGS = {}
 CONFIG_USER_FILE = "resources/user_config.json"
 CONFIG_ZONE_FILE = "resources/zone_config.json"
 
+# list of all agent-pulled components (in-node containers)
+AGENT_PULLED_COMPONENTS_FILE = '../vars/agent_pulled_components.json'
+
 # CONFIG_CACHED["data"] is populated by `loadConfigFile`
 # (containing data from user_config.json OR command line argument overrides)
 CONFIG_CACHED = {}
@@ -1977,6 +1980,18 @@ def fetch_default_zone_ids(properties_file=PROPERTIES_TEST_FILE):
    """
    zone_ids = read_key(key=PROPERTIES_VMBC_ENABLED_VMC_ZONES, properties_file=properties_file)
    return zone_ids.split(',')
+
+
+def agentPulledTagsAreUniform():
+  agent_pulled_tags_are_uniform = True
+  with open(AGENT_PULLED_COMPONENTS_FILE) as file:
+    components = json.load(file)
+    all_tags = {}
+    for component in components:
+      component_tag  = get_docker_env(component['name'] + "_tag")
+      all_tags[component_tag] = True
+    if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
+  return agent_pulled_tags_are_uniform
 
 
 def getDefaultDeploymentComponents():

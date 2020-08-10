@@ -1,0 +1,4 @@
+{
+  "build_targets": ["nothing"],
+  "test_suites": ["PersephoneTestsNew"]
+}

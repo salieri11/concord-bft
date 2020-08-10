@@ -1,0 +1,11 @@
+[
+  { "name": "concord" },
+  { "name": "persephone_agent" },
+  { "name": "ethrpc" },
+  { "name": "daml_ledger_api" },
+  { "name": "daml_execution_engine" },
+  { "name": "daml_index_db" },
+  { "name": "fluentd" },
+  { "name": "client_pool_lib" },
+  { "name": "participant_lib" }
+]

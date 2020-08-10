@@ -2382,68 +2382,38 @@ void startOfficialPerformanceRun(){
 // "vmwblockchain" is a required namespace by the provisioning service.
 // This is needed for deployment testing, as SDDCs are located outside the firewall.
 void pushConcordComponentsToRegistry(repo){
-  env_file_tag = getTagFromEnv(env.internal_persephone_agent_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.temp_persephone_agent_repo, env_file_tag)
+
+  agent_pulled_components_json = readFile(env.WORKSPACE + "/blockchain/vars/agent_pulled_components.json")
+  agent_pulled_components = new JsonSlurperClassic().parseText(agent_pulled_components_json)
+
+  unique_tags_map = [:]
+  for(component in agent_pulled_components) {
+    component.internal_repo = env['internal_' + component.name + '_repo'];
+    component.release_repo = env['release_' + component.name + '_repo']; // DockerHub
+    component.temp_repo = env['temp_' + component.name + '_repo']; // for MR; artifactory
+    component.tag = getTagFromEnv(component.internal_repo)
+    unique_tags_map[component.tag] = true
   }
 
-  env_file_tag = getTagFromEnv(env.internal_concord_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.temp_concord_repo, env_file_tag)
+  component_tags_are_uniform = (unique_tags_map.size() == 1) // all components with the same tag?
+  if (!component_tags_are_uniform) {
+    echo("Looks like some concord components are built in this branch, and some are pulled from master.")
+    echo("Will retag agent-pulled components to make tags uniform... (into " + env.product_version + ")")
   }
 
-  env_file_tag = getTagFromEnv(env.internal_ethrpc_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_ethrpc_repo, env.temp_ethrpc_repo, env_file_tag)
+  for(component in agent_pulled_components) {
+    if (repo == "dockerhub") {
+      dockerutillib.tagAndPushDockerImage(component.internal_repo, component.release_repo, component.tag)
+    } else if (repo == "artifactory") {
+      if (component_tags_are_uniform) { // No need to retag, agent will be able to pull uniformly
+        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag)
+      } else { // Applies to MRs and on-demand build with params
+        echo("Retagging " + component.name + ': ' + component.tag + ' ==> ' + env.product_version + ' on Artifactory')
+        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version)
+      }
+    }
   }
 
-  env_file_tag = getTagFromEnv(env.internal_daml_ledger_api_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_ledger_api_repo, env.temp_daml_ledger_api_repo, env_file_tag)
-  }
-
-  env_file_tag = getTagFromEnv(env.internal_daml_execution_engine_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_execution_engine_repo, env.temp_daml_execution_engine_repo, env_file_tag)
-  }
-
-  env_file_tag = getTagFromEnv(env.internal_daml_index_db_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_daml_index_db_repo, env.temp_daml_index_db_repo, env_file_tag)
-  }
-
-  env_file_tag = getTagFromEnv(env.internal_fluentd_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_fluentd_repo, env.temp_fluentd_repo, env_file_tag)
-  }
-
-  env_file_tag = getTagFromEnv(env.internal_client_pool_lib_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.release_client_pool_lib_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_client_pool_lib_repo, env.temp_client_pool_lib_repo, env_file_tag)
-  }
-
-  env_file_tag = getTagFromEnv(env.internal_participant_lib_repo)
-  if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.release_participant_lib_repo, env_file_tag)
-    } else if (repo == "artifactory" ) {
-      dockerutillib.tagAndPushDockerImage(env.internal_participant_lib_repo, env.temp_participant_lib_repo, env_file_tag)
-  }
 }
 
 

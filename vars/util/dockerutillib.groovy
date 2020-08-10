@@ -36,9 +36,14 @@ void pushDockerImage(repo, tag, tagAsLatest){
 }
 
 // Tag orig_repo:docker_tag as new_repo:docker_tag and push new_repo:docker_tag to dockerhub.
-void tagAndPushDockerImage(orig_repo, new_repo, docker_tag) {
-  jenkinsbuilderlib.retryCommand("docker tag ${orig_repo}:${docker_tag} ${new_repo}:${docker_tag}", true)
-  pushDockerImage(new_repo, docker_tag, false)
+void tagAndPushDockerImage(orig_repo, new_repo, docker_tag, new_docker_tag='') {
+  if (!new_docker_tag) { new_docker_tag = docker_tag } // if not supplied, only change repo; keep the same tag
+  if (orig_repo == new_repo && docker_tag == new_docker_tag) {
+    echo("Source and destination are exactly the same; no need to tag or push.")
+    return
+  }
+  jenkinsbuilderlib.retryCommand("docker tag ${orig_repo}:${docker_tag} ${new_repo}:${new_docker_tag}", true)
+  pushDockerImage(new_repo, new_docker_tag, false)
 }
 
 // Remove all containers.
