@@ -55,6 +55,7 @@ RUN apt-get update \
     libbz2-1.0 \
     libgmp10 \
     liblz4-1 \
+    libs3-dev \
     libsnappy1v5 \
     libzstd1-dev \
     libyaml-cpp0.5v5 \
@@ -167,6 +168,8 @@ WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord
 COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
+COPY --from=0 /concord/build/submodules/concord-bft/kvbc/tools/sparse_merkle_db/sparse_merkle_db_editor /concord/
+
 COPY ./concord/test/concord.supp /concord/concord.supp
 
 # Copy default Concord logger configuration so logging will be sanely configured
