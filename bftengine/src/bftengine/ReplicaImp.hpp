@@ -12,6 +12,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include "Replica.hpp"
 #include "ReplicaForStateTransfer.hpp"
 #include "CollectorOfThresholdSignatures.hpp"
@@ -53,6 +54,14 @@ class PersistentStorage;
 
 using bftEngine::ReplicaConfig;
 using std::shared_ptr;
+
+struct ExecutionContext {
+  concordUtils::SpanWrapper span;
+  bool requestMissingData;
+
+  ExecutionContext(concordUtils::SpanWrapper &span_, bool requestMissingData_) :
+   span{std::move(span_)}, requestMissingData{requestMissingData_} {}
+};
 
 class ReplicaImp : public InternalReplicaApi, public ReplicaForStateTransfer {
  protected:
@@ -155,6 +164,15 @@ class ReplicaImp : public InternalReplicaApi, public ReplicaForStateTransfer {
 
   bool recoveringFromExecutionOfRequests = false;
   Bitmap mapOfRequestsThatAreBeingRecovered;
+
+  bool enableConcurrentExecution = true;
+  std::atomic<bool> executing = false;
+  std::unique_ptr<std::thread> executingThread = nullptr;
+  std::condition_variable executingCV;
+  std::mutex executingMutex;
+  std::queue<std::shared_ptr<ExecutionContext>> executingQueue;
+  std::atomic<bool> executionThreadRunning = false;
+  std::queue<MessageBase*> executionDeferredQueue;
 
   //******** METRICS ************************************
   GaugeHandle metric_view_;
@@ -397,12 +415,14 @@ class ReplicaImp : public InternalReplicaApi, public ReplicaForStateTransfer {
   void onRetransmissionsProcessingResults(SeqNum relatedLastStableSeqNum,
                                           const ViewNum relatedViewNumber,
                                           const std::forward_list<RetSuggestion>& suggestedRetransmissions);
-
  private:
   void addTimers();
   void startConsensusProcess(PrePrepareMsg* pp);
   void sendInternalNoopPrePrepareMsg(CommitPath firstPath = CommitPath::SLOW);
   void bringTheSystemToCheckpointBySendingNoopCommands(SeqNum seqNumToStopAt, CommitPath firstPath = CommitPath::SLOW);
+
+  void concurrentExecutionLoop();
+  void PushToExecute(std::shared_ptr<ExecutionContext> ec);
 };
 
 }  // namespace bftEngine::impl

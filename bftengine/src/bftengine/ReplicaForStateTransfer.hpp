@@ -13,6 +13,7 @@
 
 #include "ReplicaBase.hpp"
 #include "IStateTransfer.hpp"
+#include "messages/StateTransferMsg.hpp"
 
 namespace bftEngine::impl {
 
@@ -61,6 +62,7 @@ class ReplicaForStateTransfer : public IReplicaForStateTransfer, public ReplicaB
   CounterHandle metric_received_state_transfers_;
   GaugeHandle metric_state_transfer_timer_;
   bool firstTime_;
+  virtual void onStMessage(StateTransferMsg *msg) {onMessage<StateTransferMsg>(msg);}
 };
 
 }  // namespace bftEngine::impl

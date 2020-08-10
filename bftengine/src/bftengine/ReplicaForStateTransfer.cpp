@@ -60,7 +60,7 @@ void ReplicaForStateTransfer::stop() {
   timers_.cancel(stateTranTimer_);
 }
 
-template <>
+template <typename StateTransferMsg>
 void ReplicaForStateTransfer::onMessage(StateTransferMsg *m) {
   metric_received_state_transfers_.Get().Inc();
   size_t h = sizeof(MessageBase::Header);

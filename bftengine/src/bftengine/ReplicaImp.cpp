@@ -118,8 +118,27 @@ void ReplicaImp::registerMsgHandlers() {
 
 template <typename T>
 void ReplicaImp::messageHandler(MessageBase *msg) {
-  if (validateMessage(msg) && !isCollectingState())
-    onMessage<T>(static_cast<T *>(msg));
+  if (validateMessage(msg) && !isCollectingState()) {
+    if (!enableConcurrentExecution || !executing) {
+      onMessage<T>(static_cast<T *>(msg));
+    } else if (executing) {
+      auto type = msg->type();
+      switch(type) {
+        case MsgCode::SimpleAck:
+        case MsgCode::ViewChange:
+        case MsgCode::NewView:
+        case MsgCode::Checkpoint:
+        case MsgCode::AskForCheckpoint:
+        case MsgCode::ReplicaStatus:
+        case MsgCode::ReqMissingData:
+        case MsgCode::StateTransfer:
+        {
+          lock_guard<std::mutex> l(executingMutex);
+          executionDeferredQueue.push(msg);
+        }
+      }
+    }
+  }
   else
     delete msg;
 }
@@ -899,7 +918,9 @@ void ReplicaImp::onMessage<FullCommitProofMsg>(FullCommitProofMsg *msg) {
           (msgSeqNum > lastExecutedSeqNum + config_.concurrencyLevel);  // TODO(GG): check/improve this logic
 
       auto execution_span = concordUtils::startChildSpan("bft_execute_committed_reqs", span);
-      executeNextCommittedRequests(execution_span, askForMissingInfoAboutCommittedItems);
+      auto ec = std::make_shared<ExecutionContext>(execution_span, askForMissingInfoAboutCommittedItems);
+      PushToExecute(ec);
+      // executeNextCommittedRequests(execution_span, askForMissingInfoAboutCommittedItems);
       return;
     } else if (pps.hasFullProof()) {
       const auto fullProofCollectorId = pps.getFullProof()->senderId();
@@ -1346,7 +1367,9 @@ void ReplicaImp::onCommitCombinedSigSucceeded(
 
   auto span = concordUtils::startChildSpanFromContext(
       commitFull->spanContext<std::remove_pointer<decltype(commitFull)>::type>(), "bft_execute_committed_reqs");
-  executeNextCommittedRequests(span, askForMissingInfoAboutCommittedItems);
+  auto ec = std::make_shared<ExecutionContext>(span, askForMissingInfoAboutCommittedItems);
+  PushToExecute(ec);
+  // executeNextCommittedRequests(span, askForMissingInfoAboutCommittedItems);
 }
 
 void ReplicaImp::onCommitVerifyCombinedSigResult(SeqNum seqNumber, ViewNum view, bool isValid) {
@@ -1382,7 +1405,9 @@ void ReplicaImp::onCommitVerifyCombinedSigResult(SeqNum seqNumber, ViewNum view,
   auto span = concordUtils::startChildSpanFromContext(
       commitFull->spanContext<std::remove_pointer<decltype(commitFull)>::type>(), "bft_execute_committed_reqs");
   bool askForMissingInfoAboutCommittedItems = (seqNumber > lastExecutedSeqNum + config_.concurrencyLevel);
-  executeNextCommittedRequests(span, askForMissingInfoAboutCommittedItems);
+  auto ec = std::make_shared<ExecutionContext>(span, askForMissingInfoAboutCommittedItems);
+  PushToExecute(ec);
+  // executeNextCommittedRequests(span, askForMissingInfoAboutCommittedItems);
 }
 
 template <>
@@ -3150,7 +3175,8 @@ ReplicaImp::ReplicaImp(bool firstTime,
 ReplicaImp::~ReplicaImp() {
   // TODO(GG): rewrite this method !!!!!!!! (notice that the order may be important here ).
   // TODO(GG): don't delete objects that are passed as params (TBD)
-
+  executionThreadRunning = false;
+  executingCV.notify_all();
   internalThreadPool.stop();
 
   delete viewsManager;
@@ -3216,6 +3242,87 @@ void ReplicaImp::start() {
   if (!firstTime_ || config_.debugPersistentStorageEnabled) clientsManager->loadInfoFromReservedPages();
   addTimers();
   processMessages();
+  if(enableConcurrentExecution)
+    executingThread = std::make_unique<std::thread>(std::bind(&ReplicaImp::concurrentExecutionLoop, this));
+}
+
+void ReplicaImp::concurrentExecutionLoop() {
+  executionThreadRunning = true;
+  while (executionThreadRunning) {
+    std::queue<std::shared_ptr<ExecutionContext>> t;
+    {
+      std::unique_lock<std::mutex> l(executingMutex);
+      executingCV.wait(l, [this] { return executionThreadRunning && !executingQueue.empty(); });
+      executingQueue.swap(t);
+    }
+
+    while(executionThreadRunning && !t.empty()) {
+      auto sn = lastExecutedSeqNum;
+      do {
+        executing = true;
+        auto ec = t.front();
+        LOG_DEBUG(GL, "executing SN " << lastExecutedSeqNum);
+        executeNextCommittedRequests(ec->span, ec->requestMissingData);
+        t.pop();
+        LOG_DEBUG(GL, "executed SN " << lastExecutedSeqNum);
+        executing = false;
+
+        std::queue<MessageBase*> tt;
+        {
+          std::unique_lock<std::mutex> l(executingMutex);
+          executionDeferredQueue.swap(tt);
+        }
+        while(!tt.empty()) {
+          auto msg = tt.front();
+          auto type = msg->type();
+          LOG_DEBUG(GL, "processing " << type << " message type");
+          switch(type) {
+            case MsgCode::SimpleAck:
+              onMessage<SimpleAckMsg>(static_cast<SimpleAckMsg *>(msg));
+              break;
+            case MsgCode::ViewChange:
+              onMessage<ViewChangeMsg>(static_cast<ViewChangeMsg *>(msg));
+              break;
+            case MsgCode::NewView:
+              onMessage<NewViewMsg>(static_cast<NewViewMsg *>(msg));
+              break;
+            case MsgCode::Checkpoint:
+              onMessage<CheckpointMsg>(static_cast<CheckpointMsg *>(msg));
+              break;
+            case MsgCode::AskForCheckpoint:
+              onMessage<AskForCheckpointMsg>(static_cast<AskForCheckpointMsg *>(msg));
+              break;
+            case MsgCode::ReplicaStatus:
+              onMessage<ReplicaStatusMsg>(static_cast<ReplicaStatusMsg *>(msg));
+              break;
+            case MsgCode::ReqMissingData:
+              onMessage<ReqMissingDataMsg>(static_cast<ReqMissingDataMsg *>(msg));
+              break;
+            case MsgCode::StateTransfer:
+              onStMessage(static_cast<StateTransferMsg *>(msg));
+              break;
+            default:
+              LOG_ERROR(GL, "unsupported type" << type);
+              ConcordAssert(false);
+          }
+          tt.pop();
+        }
+      } while(lastExecutedSeqNum < sn + 1);
+    }
+  }
+}
+
+void ReplicaImp::PushToExecute(std::shared_ptr<ExecutionContext> ec) {
+  if(!enableConcurrentExecution) {
+    executeNextCommittedRequests(ec->span, ec->requestMissingData);
+    return;
+  }
+
+  {
+    std::unique_lock<std::mutex> l(executingMutex);
+    executingQueue.push(ec);
+  }
+  executingCV.notify_all();
 }
 
 void ReplicaImp::processMessages() {

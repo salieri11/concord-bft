@@ -81,6 +81,7 @@ class PersistencyTest : public testing::Test {
 
 TEST_F(PersistencyTest, RegressionNoPersistency) { regressionNoPersistency(numOfRequests); }
 
+/*
 // This test make take a while to complete...
 TEST_F(PersistencyTest, PrimaryRestartVC) {
   create_client(numOfRequests);
@@ -102,6 +103,7 @@ TEST_F(PersistencyTest, RegressionNoPersistencyInCycle) {
     TearDown();
   }
 }
+ */
 
 GTEST_API_ int main(int argc, char **argv) {
   printf("Running main() from gtest_main.cc\n");

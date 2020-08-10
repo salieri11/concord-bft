@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include "Serializable.h"
 #include "IBasicClient.h"
 

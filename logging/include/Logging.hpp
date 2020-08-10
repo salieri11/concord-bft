@@ -82,7 +82,7 @@ class LoggerImpl {
   }
 
   std::string name_;
-  LogLevel level_ = LogLevel::info;
+  LogLevel level_ = LogLevel::debug;
   static std::array<std::string, 6> LEVELS_STRINGS;
 };
 
