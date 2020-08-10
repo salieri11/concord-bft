@@ -49,6 +49,7 @@ uint32_t keySize = 76;
 uint32_t valSize = 502;
 uint32_t payloadSize = 15100;
 uint32_t concurrencyLevel = 16;
+uint32_t executionTime = 0;
 
 const float kWarmUpPerc = 0.02;
 const string kPerfServiceHost = "127.0.0.1:50051";
@@ -271,7 +272,7 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     fromExternal->set_kv_count(numOfKvs);
     fromExternal->set_key_size(keySize);
     fromExternal->set_value_size(valSize);
-    fromExternal->set_max_exec_time_milli(0);
+    fromExternal->set_max_exec_time_milli(executionTime);
 
     string pl = string{payload, payloadSize};
     pWriteReq->set_payload(pl.c_str(), payloadSize);
@@ -318,6 +319,7 @@ void show_help(char** argv) {
           << " -d NBR - payload size (default: 15100) \n"
           << " -c NBR - concurrency level: capacity of the clients pool "
              "(default: 16) \n"
+          << " -e NBR - execution time (default: 0) \n"
           << " -i 1/0 - to print or not requests durations (default: true)");
 }
 
@@ -331,11 +333,12 @@ bool parse_args(int argc, char** argv) {
         {"key_value_size", required_argument, nullptr, 'v'},
         {"payload_size", required_argument, nullptr, 'd'},
         {"concurrency_level", required_argument, nullptr, 'c'},
+        {"execution_time", required_argument, nullptr, 'e'},
         {"print_req_durations", required_argument, nullptr, 'i'},
         {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:i:", longOptions,
+    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:", longOptions,
                                  &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
@@ -373,6 +376,11 @@ bool parse_args(int argc, char** argv) {
         case 'c': {
           auto concurrency_level = stoi(string(optarg));
           if (concurrency_level > 0) concurrencyLevel = concurrency_level;
+          break;
+        }
+        case 'e': {
+          auto execution_time = stoi(string(optarg));
+          if (execution_time >= 0) executionTime = execution_time;
           break;
         }
         case 'i': {
