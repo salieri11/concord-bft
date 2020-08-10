@@ -303,8 +303,16 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 shutil.move(persephone_config_file_orig, persephone_config_file)
                 log.info("Updated config file for this run: {}".format(modified_config_file))
 
-            helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
-                                        helper.get_docker_env("concord_tag"))
+            if helper.agentPulledTagsAreUniform():
+                helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
+                                            helper.get_docker_env("concord_tag"))
+            elif helper.thisHermesIsFromJenkins(): 
+                # MR run where some are built and some are pulled from master
+                mrBuildNumber = helper.getJenkinsJobNameAndBuildNumber()["buildNumber"]
+                productVersion = "0.0.0." + str(mrBuildNumber) 
+                # make PRODUCT_VERSION tag uniform into MR number
+                helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
+                                            productVersion)
 
     except Exception as e:
         log.error(traceback.format_exc())
