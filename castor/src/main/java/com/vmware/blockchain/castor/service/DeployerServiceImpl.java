@@ -4,6 +4,14 @@
 
 package com.vmware.blockchain.castor.service;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +51,12 @@ public class DeployerServiceImpl implements DeployerService {
     public void start() {
         log.info("Starting Castor deployer service");
 
+        String outputDirectoryLocation = environment.getProperty(OUTPUT_DIR_LOC_KEY);
+        if (!StringUtils.hasText(outputDirectoryLocation)) {
+            log.error("Required output directory property {} is not set", OUTPUT_DIR_LOC_KEY);
+            throw new CastorException(ErrorCode.OUTPUT_DIR_PROPERTY_NOT_SET, OUTPUT_DIR_LOC_KEY);
+        }
+
         String infrastructureDescriptorLocation = environment.getProperty(INFRA_DESC_LOC_KEY);
         if (!StringUtils.hasText(infrastructureDescriptorLocation)) {
             log.error("Required infrastructure descriptor property {} is not set", INFRA_DESC_LOC_KEY);
@@ -73,15 +87,35 @@ public class DeployerServiceImpl implements DeployerService {
 
         long deploymentTimeoutMinutes = environment.getProperty(DEPLOYMENT_TIMEOUT_MINUTES_KEY, Long.class, 30L);
 
+        String consortiumName = deploymentDescriptor.getBlockchain().getConsortiumName();
+        String now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String outputFileName = consortiumName + "_" + now;
+        Path outputFilePath = Paths.get(outputDirectoryLocation, outputFileName);
+        String fullOutputFileName = outputFilePath.toString();
+
+        FileOutputStream fos;
+        try {
+            fos = new FileOutputStream(fullOutputFileName, true);
+        } catch (IOException e) {
+            log.error("Could not open file for writing: {}", outputDirectoryLocation);
+            return;
+        }
+        PrintWriter printWriter = new PrintWriter(fos, true);
+
         // Process deployment
         try {
+            now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            printWriter.printf("Starting deployment at %s\n", now);
+
             provisionerService.provisioningHandoff(
-                    infrastructureDescriptor, deploymentDescriptor, deploymentCompletionFuture);
+                    printWriter, infrastructureDescriptor, deploymentDescriptor, deploymentCompletionFuture);
         } finally {
             try {
                 CastorDeploymentStatus result =
                         deploymentCompletionFuture.get(deploymentTimeoutMinutes, TimeUnit.MINUTES);
                 log.info("Deployment completed with status: {}", result);
+                now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                printWriter.printf("Deployment finished at %s with status %s\n", now, result);
             } catch (InterruptedException e) {
                 log.error("Deployment failure. Provisioning was interrupted", e);
             } catch (ExecutionException e) {
@@ -89,6 +123,7 @@ public class DeployerServiceImpl implements DeployerService {
             } catch (TimeoutException e) {
                 log.error("Deployment failure: timed out in {} minutes", deploymentTimeoutMinutes, e);
             }
+            printWriter.close();
         }
     }
 }

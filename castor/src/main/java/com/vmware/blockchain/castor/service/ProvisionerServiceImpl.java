@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.castor.service;
 
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -93,7 +94,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
 
     @Override
     public void provisioningHandoff(
-            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            PrintWriter printWriter, InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
             CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture) {
 
@@ -103,9 +104,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         // Request a deployment from the provisioning service
         log.debug("Requesting a deployment with request info: {}", deploymentRequest);
         String deploymentRequestId = submitDeploymentRequest(deploymentRequest, deploymentCompletionFuture);
+        printWriter.printf("Deployment Request Id: %s\n", deploymentRequestId);
 
         // Process callbacks from the provisioning service
-        CastorDeploymentStatus status = provisionAndComplete(deploymentRequestId);
+        CastorDeploymentStatus status = provisionAndComplete(printWriter, deploymentRequestId);
         if (CastorDeploymentStatus.FAILURE == status) {
             deprovisionDeployment(infrastructureDescriptorModel, deploymentDescriptorModel, deploymentRequestId);
             deploymentCompletionFuture.complete(CastorDeploymentStatus.FAILURE);
@@ -129,13 +131,13 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         }
     }
 
-    private CastorDeploymentStatus provisionAndComplete(String deploymentRequestId) {
+    private CastorDeploymentStatus provisionAndComplete(PrintWriter printWriter, String deploymentRequestId) {
 
         // This future is for completion of provisioning itself, since those callbacks are asynchronous
         CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture = new CompletableFuture<>();
 
         // Request callbacks from Persephone to the previously issued deployment request.
-        streamDeploymentSessionEvents(deploymentRequestId, provisioningCompletionFuture);
+        streamDeploymentSessionEvents(printWriter, deploymentRequestId, provisioningCompletionFuture);
 
         // Wait until the deployment session is completed.
         long provisioningTimeoutMinutes = environment.getProperty(PROVISIONING_TIMEOUT_MINUTES_KEY, Long.class, 30L);
@@ -149,10 +151,11 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         }
     }
 
-    private void streamDeploymentSessionEvents(String deploymentRequestId,
+    private void streamDeploymentSessionEvents(PrintWriter printWriter, String deploymentRequestId,
                                                CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture) {
         DeploymentExecutionEventResponseObserver deero =
-                new DeploymentExecutionEventResponseObserver(deploymentRequestId, provisioningCompletionFuture);
+                new DeploymentExecutionEventResponseObserver(
+                        printWriter, deploymentRequestId, provisioningCompletionFuture);
 
         StreamDeploymentSessionEventRequest request =
                 StreamDeploymentSessionEventRequest.newBuilder()

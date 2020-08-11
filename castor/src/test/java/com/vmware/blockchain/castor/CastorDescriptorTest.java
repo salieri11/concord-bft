@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -26,9 +28,6 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
@@ -63,27 +62,26 @@ public class CastorDescriptorTest {
     private DeploymentDescriptorModel validDeployment;
 
     @Autowired
-    MockEnvironment environment;
+    private MockEnvironment environment;
 
     @Autowired
-    ResourceLoader resourceLoader;
+    private ResourceLoader resourceLoader;
 
     @Autowired
-    DescriptorService descriptorService;
+    private DescriptorService descriptorService;
 
     @Autowired
-    ValidatorService validatorService;
+    private ValidatorService validatorService;
 
     @Autowired
-    DeployerService deployerService;
+    private DeployerService deployerService;
 
-    private static Gson gson = new GsonBuilder()
-            .setPrettyPrinting()
-            .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY).create();
+    @TempDir
+    File outputDir;
 
     /**
      * Set up valid descriptors before each test method.
-      */
+     */
     @BeforeEach
     public void init() {
         // Build the model afresh for each test
@@ -195,8 +193,7 @@ public class CastorDescriptorTest {
 
         // The URL format is invalid, should throw exception during deserialization itself
         assertThrows(CastorException.class, () -> {
-            InfrastructureDescriptorModel readInvalidInfra =
-                    descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+            descriptorService.readInfrastructureDescriptorSpec(infraLocation);
         });
     }
 
@@ -226,6 +223,9 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         environment.setProperty(DeployerService.DEPL_DESC_LOC_KEY, deploymentLocation);
+
+        File outputFile = new File(outputDir, "invalid.out");
+        environment.setProperty(DeployerService.OUTPUT_DIR_LOC_KEY, outputFile.getAbsolutePath());
         // Should fail with errors because infra descriptor has invalid configuration
         assertThrows(CastorException.class, () -> {
             deployerService.start();

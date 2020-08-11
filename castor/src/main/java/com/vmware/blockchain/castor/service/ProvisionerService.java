@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.castor.service;
 
+import java.io.PrintWriter;
 import java.util.concurrent.CompletableFuture;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
@@ -14,7 +15,7 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
  */
 public interface ProvisionerService {
     void provisioningHandoff(
-            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            PrintWriter printWriter, InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
             CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
 }

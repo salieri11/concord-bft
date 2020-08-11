@@ -5,13 +5,19 @@
 package com.vmware.blockchain.castor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +27,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.powermock.reflect.Whitebox;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +60,7 @@ import io.grpc.testing.GrpcCleanupRule;
 @ContextConfiguration(classes = CastorTestConfiguration.class)
 public class CastorDeploymentTest {
     @Rule public final GrpcCleanupRule grpcCleanupRule = new GrpcCleanupRule();
+    @Rule public final TemporaryFolder folder = new TemporaryFolder();
 
     public static final String CASTOR_GRPC_TEST = "castor-grpc-test";
 
@@ -105,7 +113,8 @@ public class CastorDeploymentTest {
     }
 
     @Test
-    public void testProvisioningCallSuccess() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testProvisioningCallSuccess()
+            throws InterruptedException, ExecutionException, TimeoutException, IOException {
         DeploymentRequest deploymentRequest = DeploymentRequest.newBuilder().build();
 
         // Sanity test without going through Castor services
@@ -114,9 +123,12 @@ public class CastorDeploymentTest {
         deploymentResponse = spy(deploymentResponse);
         assertEquals(ProvisioningServiceTestImpl.REQUEST_ID, UUID.fromString(deploymentResponse.getId()));
 
+        File outputFile = folder.newFile("provision-success.out");
+        PrintWriter printWriter = new PrintWriter(outputFile);
+
         // Test path through Castor services
         provisionerService.provisioningHandoff(
-                infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
+                printWriter, infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
         // The future should be set, TimeoutException is unexpected for successful test.
         CastorDeploymentStatus result = completableFuture.get(5, TimeUnit.SECONDS);
         assertEquals(CastorDeploymentStatus.SUCCESS, result);
@@ -134,5 +146,46 @@ public class CastorDeploymentTest {
         // Verify that deprovisionDeployment was NOT called - this is a successful deployment
         verify(provisioningServiceTest, never())
                 .deprovisionDeployment(any(DeprovisionDeploymentRequest.class), any(StreamObserver.class));
+
+        printWriter.close();
+        List<String> lines = Files.readAllLines(outputFile.toPath());
+        // Match Blockchain ID
+        Optional<String> bid = lines.stream()
+                .filter(l -> l.contains("Blockchain Id"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.BLOCKCHAIN_ID))
+                .findFirst();
+        assertTrue(bid.isPresent());
+        // Match Deployment Request ID
+        Optional<String> drid = lines.stream()
+                .filter(l -> l.contains("Deployment Request Id"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.REQUEST_ID.toString()))
+                .findFirst();
+        assertTrue(drid.isPresent());
+        // Match (node id + ip) #1
+        Optional<String> nodeIdIp1 = lines.stream()
+                .filter(l -> l.contains("Node Id"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.NODE_ID_1.toString()))
+                .filter(l -> l.contains("key: PUBLIC_IP"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.PUBLIC_IP_1))
+                .findFirst();
+        assertTrue(nodeIdIp1.isPresent());
+
+        // Match (node id + ip) #2
+        Optional<String> nodeIdIp2 = lines.stream()
+                .filter(l -> l.contains("Node Id"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.NODE_ID_2.toString()))
+                .filter(l -> l.contains("key: PUBLIC_IP"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.PUBLIC_IP_2))
+                .findFirst();
+        assertTrue(nodeIdIp2.isPresent());
+
+        // Mismatch node id #1 + ip address #2
+        Optional<String> nodeIdIpWrong = lines.stream()
+                .filter(l -> l.contains("Node Id"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.NODE_ID_1.toString()))
+                .filter(l -> l.contains("key: PUBLIC_IP"))
+                .filter(l -> l.contains(ProvisioningServiceTestImpl.PUBLIC_IP_2))
+                .findFirst();
+        assertTrue(nodeIdIpWrong.isEmpty());
     }
 }
