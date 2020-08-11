@@ -263,6 +263,13 @@ bool DamlKvbCommandsHandler::PostExecute(
     SetOfKeyValuePairs raw_write_set;
     GenerateWriteSetForPreExecution(pre_execution_output, record_time,
                                     raw_write_set);
+    if (enable_histograms_or_summaries) {
+      pre_execution_write_kv_set_size_summary_.Observe(raw_write_set.size());
+      for (auto& kv : raw_write_set) {
+        pre_execution_write_keys_size_summary_.Observe(kv.first.length());
+        pre_execution_write_values_size_summary_.Observe(kv.second.length());
+      }
+    }
     auto start = std::chrono::steady_clock::now();
     RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
                       parent_span, concord_response);
