@@ -112,6 +112,7 @@ services:
     expose:
       - 6865
       - 55001
+      - 9873
     ports:
       - "6861:6865"
       - "55002:55001" # http server for prometheus metrics
