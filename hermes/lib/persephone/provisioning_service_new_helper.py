@@ -23,7 +23,6 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
     ZONE_TYPE_ON_PREM = helper.LOCATION_ONPREM
 
     def __init__(self, args):
-        args.fileRoot = args.resultsDir
         super().__init__(args)
         self.persephone_config_file = self.get_provisioning_config_file(self.service_name)
         self.channel = self.create_channel(self.service_name)

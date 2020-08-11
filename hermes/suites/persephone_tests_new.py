@@ -109,6 +109,9 @@ def file_root(request, hermes_settings):
     """
     test_log_dir = os.path.join(hermes_settings["cmdline_args"].resultsDir, "test_logs")
     file_root = os.path.join(test_log_dir, request.node.name)
+    os.makedirs(file_root, exist_ok=True)
+    # Set fileRoot in cmdline args to file_root, so that it can be used downstream in Persephone rpc calls
+    hermes_settings["cmdline_args"].fileRoot = file_root
     log.debug("File root for test: {}".format(file_root))
     return file_root
 
@@ -308,15 +311,15 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                                             helper.get_docker_env("concord_tag"))
             elif helper.thisHermesIsFromJenkins(): 
                 # MR run where some are built and some are pulled from master
-                mrBuildNumber = helper.getJenkinsJobNameAndBuildNumber()["buildNumber"]
-                productVersion = "0.0.0." + str(mrBuildNumber) 
+                mr_build_number = helper.getJenkinsJobNameAndBuildNumber()["buildNumber"]
+                product_version = "0.0.0." + str(mr_build_number)
                 # make PRODUCT_VERSION tag uniform into MR number
                 helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
-                                            productVersion)
+                                            product_version)
 
     except Exception as e:
         log.error(traceback.format_exc())
-        raise
+        raise Exception("Exception while updating provisioning service application properties file: {}".format(e))
 
 
 def validate_blockchain_location(location):
