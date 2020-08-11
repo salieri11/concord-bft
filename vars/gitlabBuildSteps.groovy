@@ -769,7 +769,8 @@ def call(){
             // to GitHub.
             env.JOB_NAME.contains(env.tot_job_name) ||
             env.JOB_NAME.contains(main_mr_run_job_name) ||
-            env.JOB_NAME.contains(manual_with_params_job_name)
+            env.JOB_NAME.contains(manual_with_params_job_name) ||
+            env.JOB_NAME.contains(on_demand_concord_deployment_job_name)
           }
         }
         steps{
