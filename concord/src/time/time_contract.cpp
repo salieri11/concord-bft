@@ -26,10 +26,21 @@ using google::protobuf::util::TimeUtil;
 namespace concord {
 namespace time {
 
+void TimeContract::ResetUnSafe() noexcept {
+  samples_.reset();
+  changed_ = false;
+}
+
+void TimeContract::Reset() noexcept {
+  const std::lock_guard<std::mutex> lock(samplesMutex_);
+  ResetUnSafe();
+}
+
 // Add a sample to the time contract.
 Timestamp TimeContract::Update(const string &source, uint16_t client_id,
                                const Timestamp &time,
                                const vector<uint8_t> *signature) {
+  const std::lock_guard<std::mutex> lock(samplesMutex_);
   LoadSamplesFromStorage();
   ConcordAssert(samples_.has_value());
 
@@ -67,8 +78,8 @@ Timestamp TimeContract::Update(const string &source, uint16_t client_id,
 // Get the current time at the latest block (including any updates that have
 // been applied since this TimeContract was instantiated).
 Timestamp TimeContract::GetTime() {
+  const std::lock_guard<std::mutex> lock(samplesMutex_);
   LoadSamplesFromStorage();
-
   return SummarizeTime();
 }
 
@@ -128,6 +139,7 @@ Timestamp TimeContract::SummarizeTime() const {
 
 // Get the list of samples.
 const std::map<string, TimeContract::SampleBody> &TimeContract::GetSamples() {
+  const std::lock_guard<std::mutex> lock(samplesMutex_);
   LoadSamplesFromStorage();
   ConcordAssert(samples_.has_value());
   return *samples_;
@@ -253,13 +265,15 @@ void TimeContract::LoadSamplesFromStorageImpl() {
 // sample for a recognized source is rejected, that source's sample for this
 // TimeContract will be initialized to the default of time 0. Any sample for an
 // unrecognized source will always be completely ignored.
+
+// The function is expected to be called under a write lock
 void TimeContract::LoadSamplesFromStorage() {
   try {
     LoadSamplesFromStorageImpl();
   } catch (...) {
     // Make sure that if sample loading has failed, the contract is left in a
     // consistent (empty) state.
-    Reset();
+    ResetUnSafe();
     throw;
   }
 }
@@ -269,6 +283,7 @@ std::pair<Sliver, Sliver> TimeContract::Serialize() {
   com::vmware::concord::kvb::Time proto;
   proto.set_version(kTimeStorageVersion);
 
+  const std::lock_guard<std::mutex> lock(samplesMutex_);
   for (const auto &s : *samples_) {
     auto sample = proto.add_sample();
 

@@ -42,7 +42,9 @@
 #define TIME_TIME_CONTRACT_HPP
 
 #include <google/protobuf/timestamp.pb.h>
+#include <atomic>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -162,10 +164,7 @@ class TimeContract {
   SerializeSummarizedTime();
 
   // Clear all cached data.
-  void Reset() noexcept {
-    samples_.reset();
-    changed_ = false;
-  }
+  void Reset() noexcept;
 
   // Struct containing the data stored for the latest time sample known from
   // each source. SampleBody specifically excludes the name of the source the
@@ -198,18 +197,21 @@ class TimeContract {
   const std::map<std::string, SampleBody>& GetSamples();
 
  private:
+  void LoadSamplesFromStorageImpl();
+  void LoadSamplesFromStorage();
+  void ResetUnSafe() noexcept;
+  google::protobuf::Timestamp SummarizeTime() const;
+
+ private:
   logging::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
   std::optional<std::map<std::string, SampleBody>> samples_;
-  bool changed_;
+  std::mutex samplesMutex_;
+  std::atomic<bool> changed_;
   const concordUtils::Sliver time_samples_key_;
   const concordUtils::Sliver summarized_time_key_;
-
-  void LoadSamplesFromStorageImpl();
-  void LoadSamplesFromStorage();
-  google::protobuf::Timestamp SummarizeTime() const;
 };
 
 }  // namespace time
