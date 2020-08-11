@@ -2,18 +2,19 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services.configservice;
+package com.vmware.blockchain.agent.services.configservice;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.assertj.core.util.Strings;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -29,10 +30,12 @@ import lombok.extern.slf4j.Slf4j;
  * Wrapper class which hides the gRPC vs REST invocation of the API.
  */
 @Slf4j
+@Component
 public class ConfigServiceInvoker {
 
     private final Endpoint endpoint;
 
+    @Autowired
     public ConfigServiceInvoker(Endpoint configServiceEndpoint) {
         this.endpoint = configServiceEndpoint;
     }
@@ -41,22 +44,14 @@ public class ConfigServiceInvoker {
      * Retrieves the configuration for the node represented by this agent from Configuration service.
      *
      * @param session configuration session identifier.
-     * @param node    node identifier.
+     * @param nodeId    node identifier.
      * @return list of {@link ConfigurationComponent}s.
      */
-    public List<ConfigurationComponent> retrieveConfiguration(
-            ConfigurationSessionIdentifier session,
-            int node,
-            String nodeId
-    ) {
+    public List<ConfigurationComponent> retrieveConfiguration(ConfigurationSessionIdentifier session, String nodeId) {
         var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
                 .setIdentifier(session);
 
-        if (Strings.isNullOrEmpty(nodeId)) {
-            request.setNode(node);
-        } else {
-            request.setNodeId(nodeId);
-        }
+        request.setNodeId(nodeId);
         try {
             final RestTemplate restTemplate = new RestTemplate(Arrays.asList(new ProtobufHttpMessageConverter()));
 
@@ -67,8 +62,8 @@ public class ConfigServiceInvoker {
 
             ResponseEntity<NodeConfigurationResponse> result =
                     restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
-                            entity,
-                            NodeConfigurationResponse.class);
+                                          entity,
+                                          NodeConfigurationResponse.class);
 
             return result.getBody().getConfigurationComponentList();
         } catch (Exception e) {

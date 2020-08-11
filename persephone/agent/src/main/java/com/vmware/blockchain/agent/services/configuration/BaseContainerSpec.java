@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services.configuration;
+package com.vmware.blockchain.agent.services.configuration;
 
 
 import java.util.List;

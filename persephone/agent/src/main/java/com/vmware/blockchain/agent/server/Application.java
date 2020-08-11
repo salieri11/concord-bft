@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.server;
+package com.vmware.blockchain.agent.server;
 
 import java.net.URI;
 import java.nio.file.Files;
@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @SpringBootApplication
 @Slf4j
-@ComponentScan({"com.vmware.concord.agent.*"})
+@ComponentScan({"com.vmware.blockchain.agent.*"})
 public class Application {
 
     static ConcordAgentConfiguration configuration;
@@ -76,6 +76,16 @@ public class Application {
     @Bean
     public ConcordAgentConfiguration concordAgentConfiguration() {
         return configuration;
+    }
+
+    @Bean
+    public Endpoint configServiceEndpoint() {
+        return configuration.getConfigService();
+    }
+
+    @Bean
+    public String nodeIdentifier() {
+        return configuration.getNodeId();
     }
 
     @Bean
