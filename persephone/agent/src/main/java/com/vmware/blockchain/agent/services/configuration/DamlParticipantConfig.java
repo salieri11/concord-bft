@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services.configuration;
+package com.vmware.blockchain.agent.services.configuration;
 
 import java.util.List;
 
@@ -20,16 +20,17 @@ import lombok.Setter;
  * This should be ultimately moved to manifest.
  */
 @Getter
-public enum EthereumConfig implements BaseContainerSpec {
+public enum DamlParticipantConfig implements BaseContainerSpec {
 
-    CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
-            ConcordHelper.getDefaultVolBinds(),
-            null, null),
-    ETHEREUM_API("ethrpc",
-            List.of(new PortBinding(Ports.Binding.bindPort(8545), ExposedPort.tcp(8545))),
-            null,
-            List.of(new Link("concord", "concord")),
-            List.of("CONCORD_AUTHORITIES=concord:5458"));
+    DAML_INDEX_DB("daml_index_db", List.of(
+            new PortBinding(Ports.Binding.bindPort(5432), ExposedPort.tcp(5432))),
+                  List.of(Bind.parse("/config/daml-index-db/db:/var/lib/postgresql/data")),
+                  null),
+
+    DAML_LEDGER_API("daml_ledger_api", List.of(
+            new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
+                    List.of(new Link("daml_index_db", "daml_index_db")));
+
 
     @Setter
     private String imageId;
@@ -40,21 +41,13 @@ public enum EthereumConfig implements BaseContainerSpec {
     private List<Link> links;
     private int ordinal;
 
-    // TODO Move this to Config Service
-    private List<String> environment;
-
-    EthereumConfig(String containerName,
-                   List<PortBinding> portBindings, List<Bind> volumeBindings,
-                   List<Link> links, List<String> environment) {
+    DamlParticipantConfig(String containerName,
+                          List<PortBinding> portBindings, List<Bind> volumeBindings, List<Link> links) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;
         this.links = links;
-        this.environment = environment;
         this.ordinal = 1;
     }
 
-    public List<String> getEnvironment() {
-        return environment;
-    }
 }

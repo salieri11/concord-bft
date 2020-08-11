@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services;
+package com.vmware.blockchain.agent.services;
 
 import java.io.FileOutputStream;
 import java.net.URI;
@@ -28,17 +28,17 @@ import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.vmware.blockchain.agent.services.configservice.ConfigServiceInvoker;
+import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
+import com.vmware.blockchain.agent.services.configuration.DamlCommitterConfig;
+import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
+import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
+import com.vmware.blockchain.agent.services.configuration.HlfConfig;
+import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
-import com.vmware.concord.agent.services.configservice.ConfigServiceInvoker;
-import com.vmware.concord.agent.services.configuration.BaseContainerSpec;
-import com.vmware.concord.agent.services.configuration.DamlCommitterConfig;
-import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
-import com.vmware.concord.agent.services.configuration.EthereumConfig;
-import com.vmware.concord.agent.services.configuration.HlfConfig;
-import com.vmware.concord.agent.services.configuration.MetricsAndTracingConfig;
 
 
 /**
@@ -66,15 +66,17 @@ public final class NodeStartupOrchestrator {
      * Default constructor.
      */
     @Autowired
-    public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient) {
+    public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient,
+                                   ConfigServiceInvoker configServiceInvoker) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
-        this.configServiceInvoker = new ConfigServiceInvoker(configuration.getConfigService());
+        this.configServiceInvoker = configServiceInvoker;
     }
 
     /**
      * Start the local setup as a Concord node.
      */
+    // TODO move this to startup config.
     @PostConstruct
     public void bootstrapConcord() {
         try {
@@ -214,7 +216,6 @@ public final class NodeStartupOrchestrator {
 
         if (Files.notExists(Path.of(configDownloadMarker))) {
             var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                        configuration.getNode(),
                                                                         configuration.getNodeId());
             writeConfiguration(configList);
             log.info("Populated the configurations");

@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services.configuration;
+package com.vmware.blockchain.agent.services.configuration;
 
 import java.util.List;
 
@@ -20,17 +20,14 @@ import lombok.Setter;
  * This should be ultimately moved to manifest.
  */
 @Getter
-public enum DamlParticipantConfig implements BaseContainerSpec {
+public enum DamlCommitterConfig implements BaseContainerSpec {
 
-    DAML_INDEX_DB("daml_index_db", List.of(
-            new PortBinding(Ports.Binding.bindPort(5432), ExposedPort.tcp(5432))),
-                  List.of(Bind.parse("/config/daml-index-db/db:/var/lib/postgresql/data")),
-                  null),
-
-    DAML_LEDGER_API("daml_ledger_api", List.of(
-            new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
-                    List.of(new Link("daml_index_db", "daml_index_db")));
-
+    DAML_EXECUTION_ENGINE("daml_execution_engine", List.of(
+            new PortBinding(Ports.Binding.bindPort(55000), ExposedPort.tcp(55000))), null,
+                          null),
+    DAML_CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
+                 ConcordHelper.getDefaultVolBinds(),
+            List.of(new Link("daml_execution_engine", "daml_execution_engine")));
 
     @Setter
     private String imageId;
@@ -41,8 +38,9 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
     private List<Link> links;
     private int ordinal;
 
-    DamlParticipantConfig(String containerName,
-                          List<PortBinding> portBindings, List<Bind> volumeBindings, List<Link> links) {
+    DamlCommitterConfig(String containerName,
+                        List<PortBinding> portBindings, List<Bind> volumeBindings,
+                        List<Link> links) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;

@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent.services;
+package com.vmware.blockchain.agent.services;
 
 import java.io.IOException;
 import java.net.URI;
@@ -21,9 +21,8 @@ import com.github.dockerjava.api.model.Network;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
+import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
 import com.vmware.blockchain.deployment.v1.Endpoint;
-import com.vmware.concord.agent.services.configuration.BaseContainerSpec;
-
 
 
 /**
