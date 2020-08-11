@@ -3772,6 +3772,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "preexec_requests_status_check_period_millisec", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
 
+  config.declareParameter("preexec_concurrency_level",
+                          "A number of threads to be used to "
+                          "parallelize pre-execution requests (0 by default).",
+                          "0");
+  config.tagParameter("preexec_concurrency_level", publicDefaultableTags);
+  config.tagParameter("preexec_concurrency_level", applicationTag);
+  config.addValidator(
+      "preexec_concurrency_level", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "
                         "external API service can be reached.");
