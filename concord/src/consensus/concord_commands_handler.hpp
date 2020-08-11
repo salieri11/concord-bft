@@ -69,6 +69,18 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   prometheus::Family<prometheus::Summary> &command_handler_summaries_;
   prometheus::Counter &written_blocks_;
   prometheus::Summary &internal_kv_size_summary_;
+  prometheus::Summary &pre_execution_duration_ms_summary_;
+  prometheus::Summary &pre_execution_read_keys_size_summary_;
+  prometheus::Summary &pre_execution_read_values_size_summary_;
+  prometheus::Summary &pre_execution_write_keys_size_summary_;
+  prometheus::Summary &pre_execution_write_values_size_summary_;
+  prometheus::Summary &pre_execution_read_kv_set_size_summary_;
+  prometheus::Summary &pre_execution_write_kv_set_size_summary_;
+
+  // Collecting metrics may impact performance. We want to give the ability
+  // configure whether to collect them or not.
+  bool enable_histograms_or_summaries;
+
   const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
           storage::kKvbKeyCorrelationId},

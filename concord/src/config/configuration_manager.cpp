@@ -3737,6 +3737,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("prometheus_port", privateOptionalTags);
   node.tagParameter("prometheus_port", deploymentTag);
 
+  node.declareParameter(
+      "enable_histograms_or_summaries",
+      "Indicates whether to enable concord to collect statistics in histograms "
+      "or summaries as this may impose performance costs on the system",
+      "true");
+  node.tagParameter("enable_histograms_or_summaries", publicDefaultableTags);
+  node.tagParameter("enable_histograms_or_summaries", deploymentTag);
+
   node.declareParameter("dump_metrics_interval_sec",
                         "Time interval for dumping concord metrics to log "
                         "(600 seconds by default).");

@@ -86,6 +86,45 @@ ConcordCommandsHandler::ConcordCommandsHandler(
           command_handler_summaries_,
           {{"item", "internal_kv_size"}, {"layer", "ConcordCommandsHandler"}},
           {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_duration_ms_summary_{prometheus_registry->createSummary(
+          command_handler_summaries_,
+          {{"item", "pre_processing_execution_duration"},
+           {"layer", "ConcordCommandsHandler"}},
+          {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_read_keys_size_summary_{prometheus_registry->createSummary(
+          command_handler_summaries_,
+          {{"item", "pre_processing_read_keys_size_summary"},
+           {"layer", "ConcordCommandsHandler"}},
+          {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_read_values_size_summary_{
+          prometheus_registry->createSummary(
+              command_handler_summaries_,
+              {{"item", "pre_processing_read_values_size_summary"},
+               {"layer", "ConcordCommandsHandler"}},
+              {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_write_keys_size_summary_{prometheus_registry->createSummary(
+          command_handler_summaries_,
+          {{"item", "pre_processing_write_keys_size_summary"},
+           {"layer", "ConcordCommandsHandler"}},
+          {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_write_values_size_summary_{
+          prometheus_registry->createSummary(
+              command_handler_summaries_,
+              {{"item", "pre_processing_write_values_size_summary"},
+               {"layer", "ConcordCommandsHandler"}},
+              {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_read_kv_set_size_summary_{
+          prometheus_registry->createSummary(
+              command_handler_summaries_,
+              {{"item", "pre_processing_read_kv_set_size_summary"},
+               {"layer", "ConcordCommandsHandler"}},
+              {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      pre_execution_write_kv_set_size_summary_{
+          prometheus_registry->createSummary(
+              command_handler_summaries_,
+              {{"item", "pre_processing_write_kv_set_size_summary"},
+               {"layer", "ConcordCommandsHandler"}},
+              {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     if (time_contract) {
@@ -97,6 +136,10 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 
   auto &replicaConfig = node_config.subscope("replica", 0);
   replica_id_ = replicaConfig.getValue<uint16_t>("principal_id");
+  enable_histograms_or_summaries =
+      node_config.hasValue<bool>("enable_histograms_or_summaries")
+          ? node_config.getValue<bool>("enable_histograms_or_summaries")
+          : true;
 
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
       storage, appender, deleter, state_transfer, config, node_config,
@@ -333,9 +376,17 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
 
     UpdateTime(*execute_span, request, read_only, client_id);
-
+    std::chrono::steady_clock::time_point execute_transaction_start_time;
+    if (enable_histograms_or_summaries && pre_execute && !has_pre_executed) {
+      execute_transaction_start_time = std::chrono::steady_clock::now();
+    }
     result = Execute(request, request_context, flags, time_.get(),
                      *execute_span, response);
+    if (enable_histograms_or_summaries && pre_execute && !has_pre_executed) {
+      auto pre_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - execute_transaction_start_time);
+      pre_execution_duration_ms_summary_.Observe(pre_time.count());
+    }
 
     if (time_ && request.has_time_request()) {
       AddTimeUpdateBlock(*execute_span, response, result, read_only);
@@ -377,7 +428,6 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::PreExecutionResult &pre_execution_result)
     const {
   const auto &read_set = pre_execution_result.read_set();
-
   for (const auto &kf : read_set.keys_with_fingerprints()) {
     const Sliver key{std::string{kf.key()}};
     const BlockId read_block_height = DeserializeFingerprint(kf.fingerprint());
@@ -389,12 +439,18 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
       msg << "Key " << key << " is not available in storage.";
       throw std::runtime_error(msg.str());
     }
-
+    if (enable_histograms_or_summaries) {
+      pre_execution_read_keys_size_summary_.Observe(kf.key().length());
+      pre_execution_read_values_size_summary_.Observe(out.length());
+    }
     if (current_block_height != read_block_height) {
       return true;
     }
   }
-
+  if (enable_histograms_or_summaries) {
+    pre_execution_read_kv_set_size_summary_.Observe(
+        read_set.keys_with_fingerprints_size());
+  }
   return false;
 }
 
