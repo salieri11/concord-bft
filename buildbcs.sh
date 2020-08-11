@@ -92,7 +92,7 @@ npm_install() {
   pushd .
   cd "$COMPONENT_DIR"
   local LOG_FILE="node_install_${COMPONENT_DIR}.log"
-  npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm
+  npm config set registry https://build-artifactory.eng.vmware.com/artifactory/api/npm/npm
   npm install > "${LOG_FILE}" 2>&1 &
   NODE_BUILD_PID=$!
   addToProcList "${NAME}" $! "${LOG_FILE}"
