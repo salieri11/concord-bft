@@ -7,23 +7,23 @@ deploy_images () {
     DOCKER_NAME=${i}:latest
     docker tag $DOCKER_NAME $GCR_NAME
     docker push $GCR_NAME
-    ssh $GCP_TARGET "docker pull $GCR_NAME && docker tag $GCR_NAME $DOCKER_NAME"
+    gcloud compute ssh "${GCP_TARGET}" -- "docker pull $GCR_NAME && docker tag $GCR_NAME $DOCKER_NAME"
   done
 }
 
 deploy_scripts () {
-  ssh $GCP_TARGET "
+  gcloud compute ssh "${GCP_TARGET}" -- "
     mkdir -p ~/vmwathena_blockchain/daml/gcp &&
     mkdir -p ~/vmwathena_blockchain/docker/config-public &&
     mkdir -p ~/vmwathena_blockchain/docker/tls_certs"
-  rsync -va -e ssh daml/gcp/* ${GCP_TARGET}:~/vmwathena_blockchain/daml/gcp
-  rsync -va -e ssh docker/*.sh ${GCP_TARGET}:~/vmwathena_blockchain/docker
-  rsync -va -e ssh docker/*.yml ${GCP_TARGET}:~/vmwathena_blockchain/docker
-  rsync -va -e ssh docker/.env ${GCP_TARGET}:~/vmwathena_blockchain/docker
-  rsync -va -e ssh docker/config-public/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/config-public
-  rsync -va -e ssh docker/tls_certs/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/tls_certs
-  rsync -va -e ssh docker/config-concord* ${GCP_TARGET}:~/vmwathena_blockchain/docker
-  ssh $GCP_TARGET "
+  gcloud compute scp --recurse daml/gcp/* ${GCP_TARGET}:~/vmwathena_blockchain/daml/gcp
+  gcloud compute scp --recurse docker/*.sh ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute scp --recurse docker/*.yml ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute scp --recurse docker/.env ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute scp --recurse docker/config-public/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/config-public
+  gcloud compute scp --recurse docker/tls_certs/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/tls_certs
+  gcloud compute scp --recurse docker/config-concord* ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute ssh "${GCP_TARGET}" -- "
     cd ~/vmwathena_blockchain/docker &&
     ./make-prebuilt-env.sh > new.env &&
     mv new.env .env"
@@ -32,7 +32,7 @@ deploy_scripts () {
 run_test () {
   # Must run ssh in tty mode to allow concord setup procedure to launch 
   # interactive docker using "docker run -it"
-  ssh -t $GCP_TARGET "
+  gcloud compute ssh "$GCP_TARGET" -- -t "
     cd ~/vmwathena_blockchain &&
     export SPIDER_IMAGE_TAG=${SPIDER_IMAGE_TAG} &&
     export DAML_SDK_VERSION=${DAML_SDK_VERSION} &&

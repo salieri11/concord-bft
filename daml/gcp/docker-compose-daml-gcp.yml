@@ -21,6 +21,7 @@ services:
       - "50051:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -44,6 +45,7 @@ services:
       - "50052:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -67,6 +69,7 @@ services:
       - "50053:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -90,6 +93,7 @@ services:
       - "50054:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -112,8 +116,14 @@ services:
       - INDEXDB_USER=indexdb
       - INDEX_DB_SCHEMA=daml_ledger_api1
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
+      - ENABLE_BATCHING=true
       - PARTICIPANT_ID=daml_ledger_api1
+      - MAX_BATCH_QUEUE_SIZE=4
+      - MAX_BATCH_SIZE_BYTES=18874368
+      - MAX_BATCH_WAIT_MILLIS=100
+      - MAX_CONCURRENT_COMMITS=2
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
+      - BFT_CLIENT_SETTINGS=--use-bft-client --bft-client-config-path=/concord/config-public/bftclient.config
     depends_on:
       - concord1
       - index_db
@@ -122,7 +132,10 @@ services:
       - 55001
     ports:
       - "6861:6865"
-      - "55005:55001" # http server for prometheus metrics
+      - "55010:55001" # http server for prometheus metrics
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   daml_execution_engine1:
     networks:
@@ -134,7 +147,7 @@ services:
       - 55000
       - 55001
     ports:
-      - "55001:55001" # http server for graph and prometheus metrics
+      - "55020:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine2:
     networks:
@@ -146,7 +159,7 @@ services:
       - 55000
       - 55001
     ports:
-      - "55002:55001" # http server for graph and prometheus metrics
+      - "55021:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine3:
     networks:
@@ -158,7 +171,7 @@ services:
       - 55000
       - 55001
     ports:
-      - "55003:55001" # http server for graph and prometheus metrics
+      - "55022:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine4:
     networks:
@@ -170,7 +183,7 @@ services:
       - 55000
       - 55001
     ports:
-      - "55004:55001" # http server for graph and prometheus metrics
+      - "55023:55001" # http server for graph and prometheus metrics
 
   index_db:
     networks:
@@ -188,3 +201,4 @@ services:
       - 5432
     ports:
       - "5432:5432"
+    shm_size: 1024M
