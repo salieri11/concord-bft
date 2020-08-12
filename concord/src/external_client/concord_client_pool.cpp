@@ -319,8 +319,15 @@ void ConcordClientPool::InsertClientToQueue(
 
 PoolStatus ConcordClientPool::HealthStatus() {
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
-  for (auto &client : clients_)
-    if (client->isServing()) return PoolStatus::Serving;
+  for (auto &client : clients_) {
+    if (client->isServing()) {
+      LOG_DEBUG(logger_, "client=" << client->getClientId()
+                                   << " is serving - pool is ready to serve");
+      return PoolStatus::Serving;
+    }
+  }
+  LOG_DEBUG(logger_,
+            "All clients are not serving - pool is not ready to serve");
   return PoolStatus::NotServing;
 }
 
