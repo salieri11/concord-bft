@@ -6,11 +6,28 @@ import subprocess
 import trio
 
 from functools import wraps
+from bft import BftTestNetwork, TestConfig
+from bft_config import Replica
+from hermes_util.skvbc.concord_external_client import ExternalBftClient
 
 import hermes_util.hermes_logging as hermes_logging_util
 
 log = hermes_logging_util.getMainLogger()
 
+async def create_bft_network():
+    config = TestConfig(n=4,
+                        f=1,
+                        c=0,
+                        num_clients=4,
+                        key_file_prefix=None,
+                        start_replica_cmd=start_replica_cmd,
+                        stop_replica_cmd=stop_replica_cmd,
+                        num_ro_replicas=0)
+    replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
+                for i in range(config.num_clients)]
+    clients = [ExternalBftClient(i) for i in range(config.num_clients)]
+    bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
+    return bft_network
 
 def start_replica_cmd(builddir, replica_id):
     log.info(f"Starting replica #{replica_id}")

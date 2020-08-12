@@ -71,6 +71,12 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "dockerComposeFiles": "../docker/docker-compose-tee.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
   ],
+  "SkvbcStateTransferTests": [
+    "runAlone": true,
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-tee.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
+  ],
   "ChessPlusTestsOnPredeployedBlockchain": [
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ChessPlusTests --damlParticipantIP "${concord_ips}" --spiderImageTag "${spider_image_tag}" --dockerHubUser blockchainrepositoryreader --dockerHubPassword \'DOCKERHUB_REPO_READER_PASSWORD\''
   ],

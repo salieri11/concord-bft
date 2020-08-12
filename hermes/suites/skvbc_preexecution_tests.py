@@ -30,17 +30,16 @@ sys.path.append(os.path.abspath("../concord/submodules/concord-bft/util/pyclient
 import pytest
 
 import trio
-from bft import BftTestNetwork, TestConfig, with_trio
-from bft_config import Replica
+from bft import with_trio
 from test_skvbc_preexecution import SkvbcPreExecutionTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 from suites.case import describe
 import hermes_util.helper as helper
-from hermes_util.skvbc.concord_external_client import ExternalBftClient
 from hermes_util.apollo_helper import with_timeout
 from hermes_util.apollo_helper import start_replica_cmd
 from hermes_util.apollo_helper import stop_replica_cmd
+from hermes_util.apollo_helper import create_bft_network
 import hermes_util.hermes_logging as logging
 
 log = logging.getMainLogger()
@@ -53,22 +52,7 @@ productType = helper.TYPE_TEE
 @describe("fixture; bft_network")
 @with_trio
 async def bft_network():
-    config = TestConfig(n=4,
-                        f=1,
-                        c=0,
-                        num_clients=4,
-                        key_file_prefix=None,
-                        start_replica_cmd=start_replica_cmd,
-                        stop_replica_cmd=stop_replica_cmd,
-                        num_ro_replicas=0)
-
-    replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
-                for i in range(config.num_clients)]
-    clients = [ExternalBftClient(i) for i in range(config.num_clients)]
-
-    bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
-
-    return bft_network
+    return await create_bft_network()
 
 @describe()
 def test_skvbc_preexecution_concurrent(fxProduct, bft_network):

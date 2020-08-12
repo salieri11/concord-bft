@@ -75,6 +75,7 @@ suiteList = [
    "MetadataPersistencyTests"
    "PrivacyTeeTests",
    "ApolloBftTests",
+   "SkvbcStateTransferTests",
    "SkvbcPreexecutionTests",
    "DamlPreexecutionTests"
 ]
@@ -516,6 +517,8 @@ def createTestSuite(args, suiteName, product):
       return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)
    elif (suiteName == "ApolloBftTests"):
        return pytest_suite.PytestSuite(args, "suites/apollo_bft_tests.py", product)
+   elif (suiteName == "SkvbcStateTransferTests"):
+       return pytest_suite.PytestSuite(args, "suites/skvbc_state_transfer_tests.py", product)
    elif (suiteName == "SkvbcPreexecutionTests"):
        return pytest_suite.PytestSuite(args, "suites/skvbc_preexecution_tests.py", product)
    elif (suiteName == "DamlPreexecutionTests"):
