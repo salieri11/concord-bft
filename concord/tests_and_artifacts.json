@@ -18,6 +18,7 @@
     "MetadataPersistencyTests",
     "PrivacyTeeTests",
     "ApolloBftTests",
+    "SkvbcStateTransferTests",
     "SkvbcPreexecutionTests",
     "DamlPreexecutionTests"
   ]
