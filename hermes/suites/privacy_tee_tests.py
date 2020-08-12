@@ -237,8 +237,18 @@ def test_privacy_e2e(fxProduct,setup_test_suite):
     
     cid1 = "client_id_6"
     cid2 = "client_id_7"
-    port1 = 50063
-    port2 = 50061
+
+
+    ports_range = {str(port) for port in range(50061, 50081, 2)}
+
+    # Shell command to extract all the open ports used in the OS
+    shell_command = "netstat -lnt | awk 'NR>2{print $4}' | sed 's/.*://' | sort -n | uniq"
+    p1 = subprocess.check_output(shell_command, shell=True, text=True)
+    used_ports = set(p1.split('\n'))
+    valid_ports = ports_range - used_ports
+
+    port1 = int(valid_ports.pop())
+    port2 = int(valid_ports.pop())
 
     cmd1 = docker_str.format(cid1,port1,test_app_repo,test_app_tag)
     cmd2 = docker_str.format(cid2,port2,test_app_repo,test_app_tag)
