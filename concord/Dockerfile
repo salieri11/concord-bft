@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v20
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v21
 
 ## Install gtest - patch for backward compatibility until conan is supported
 RUN make -C /googletest/_build install
