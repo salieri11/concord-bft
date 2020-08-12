@@ -1478,9 +1478,9 @@ void fetchSourceRepos() {
       cd vmware-blockchain-samples
       git checkout 9711dda
       cd asset-transfer
-      sed -i '27iRUN npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm' Dockerfile
+      sed -i '27iRUN npm config set registry https://build-artifactory.eng.vmware.com/artifactory/api/npm/npm' Dockerfile
       cd ../supply-chain
-      sed -i '12iRUN npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm' Dockerfile
+      sed -i '12iRUN npm config set registry https://build-artifactory.eng.vmware.com/artifactory/api/npm/npm' Dockerfile
       cd ../..
     '''
   }

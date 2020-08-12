@@ -29,7 +29,7 @@
         <repository>
             <!-- Explicitly disable Maven's central repository. -->
             <id>central</id>
-            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <url>https://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -67,12 +67,12 @@
         <pluginRepository>
             <!-- Use VMware Nexus repository for plugin artifacts. -->
             <id>vmware-nexus</id>
-            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <url>https://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
         </pluginRepository>
         <pluginRepository>
             <!-- Explicitly disable Maven's central repository. -->
             <id>central</id>
-            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <url>https://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>

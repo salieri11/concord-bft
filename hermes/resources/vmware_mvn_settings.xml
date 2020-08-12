@@ -13,7 +13,7 @@
       <id>VMware</id>
       <mirrorOf>external:*</mirrorOf>
       <name>VMware Artifactory repository as mirror for all external repositories</name>
-      <url>http://build-artifactory.eng.vmware.com/maven/</url>
+      <url>https://build-artifactory.eng.vmware.com/maven/</url>
     </mirror>
   </mirrors>
   
