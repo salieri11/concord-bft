@@ -35,12 +35,6 @@ struct ConcordRequestContext {
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
-  logging::Logger logger_;
-  uint64_t executing_bft_sequence_num_;
-  concord::thin_replica::SubBufferList &subscriber_list_;
-  std::shared_ptr<reconfiguration::ConcordControlHandler>
-      concord_control_handlers_;
-
   void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
                                          kvbc::SetOfKeyValuePairs &updates);
 
@@ -59,6 +53,12 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                           com::vmware::concord::ConcordResponse &response,
                           int execute_result, bool read_only);
 
+ private:
+  logging::Logger logger_;
+  uint64_t executing_bft_sequence_num_;
+  concord::thin_replica::SubBufferList &subscriber_list_;
+  std::shared_ptr<reconfiguration::ConcordControlHandler>
+      concord_control_handlers_;
   uint16_t replica_id_;
 
  protected:
@@ -86,8 +86,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
           storage::kKvbKeyCorrelationId},
       1);
   std::shared_ptr<bftEngine::ControlStateManager> controlStateManager_;
-
- public:
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
