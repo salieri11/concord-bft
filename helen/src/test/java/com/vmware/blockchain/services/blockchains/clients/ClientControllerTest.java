@@ -13,9 +13,11 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,7 +46,9 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
@@ -80,6 +84,9 @@ import com.vmware.blockchain.services.tasks.TaskService;
 public class ClientControllerTest extends RuntimeException {
 
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
+    static final UUID BC_MISSING = UUID.fromString("225aed74-f4d8-429e-9fde-8add6cff99bf");
+    static final UUID BC_CLIENT_MISSING = UUID.fromString("c00719e0-8c11-42a8-8d48-ae4efde1f04c");
+    static final UUID BC_NOT_FOUND = UUID.fromString("7e1e5dd0-2f96-4838-835a-8c1302c3d1ff");
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
@@ -191,6 +198,9 @@ public class ClientControllerTest extends RuntimeException {
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         bcdaml.setId(BC_DAML);
         when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
+        when(blockchainService.get(BC_MISSING)).thenReturn(null);
+        when(blockchainService.get(BC_NOT_FOUND)).thenThrow(new NotFoundException("Not Found"));
+        when(blockchainService.get(BC_CLIENT_MISSING)).thenReturn(new Blockchain());
 
 
         ReflectionTestUtils.setField(BlockchainUtils.class,
@@ -298,6 +308,32 @@ public class ClientControllerTest extends RuntimeException {
     }
 
     @Test
+    void getParticipantNodeListMissingBlockchain() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_MISSING.toString() + "/clients")
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+    }
+
+    @Test
+    void getParticipantNodeListNotFoundBlockchain() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_NOT_FOUND.toString() + "/clients")
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_NOT_FOUND.toString()), message);
+    }
+
+    @Test
     void testGetClientCredentials() throws Exception {
         String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
 
@@ -313,6 +349,55 @@ public class ClientControllerTest extends RuntimeException {
                 objectMapper.readValue(body, new TypeReference<NodeGetCredentialsResponse>() {});
         Assertions.assertEquals("root", clientCredentials.username);
         Assertions.assertEquals("testPassword", clientCredentials.password);
+    }
+
+    @Test
+    void testGetClientCredentialsMissingBlockchain() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/credentials",
+                BC_MISSING.toString(), C2_ID.toString());
+
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+    }
+
+    @Test
+    void testGetClientCredentialsNotFoundBlockchain() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/credentials",
+                BC_NOT_FOUND.toString(), C2_ID.toString());
+
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_NOT_FOUND.toString()), message);
+    }
+
+    @Test
+    void testGetClientCredentialsMissingClient() throws Exception {
+        when(clientService.getClientsByParentId(BC_CLIENT_MISSING)).thenReturn(Collections.emptyList());
+        String url = String.format(
+                "/api/blockchains/%s/clients/%s/credentials",
+                BC_CLIENT_MISSING.toString(),
+                C2_ID.toString()
+        );
+
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(
+                MessageFormat.format(ErrorCode.CLIENT_NOT_FOUND, C2_ID.toString(), BC_CLIENT_MISSING.toString()),
+                message
+        );
     }
 
     @Test

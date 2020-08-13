@@ -140,14 +140,12 @@ public class ReplicaController {
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas"})
     @PreAuthorize("@authHelper.canAccessChain(#bid)")
     public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws NotFoundException {
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
+        Blockchain b = safeGetBlockchain(bid);
+
         List<Replica> replicas = replicaService.getReplicas(bid);
         if (replicas.isEmpty()) {
             // empty replica map is either old Blockchain instance, or blockchain not found.
-            throw new NotFoundException(ErrorCode.NOT_FOUND);
+            throw new NotFoundException(ErrorCode.NO_REPLICAS_FOUND, bid.toString());
         } else {
             // Temporary work around.
             replicas = replicas.stream()
@@ -155,13 +153,11 @@ public class ReplicaController {
                     .collect(Collectors.toList());
         }
 
-        Blockchain bc = blockchainService.get(bid);
-
         // Store the results in a tree map, so the order is always the same.
         // Sort (arbitrarily) by hostname
         SortedMap<String, ReplicaGetResponse> response = new TreeMap<>();
 
-        if (bc.getType() == Blockchain.BlockchainType.DAML) {
+        if (b.getType() == Blockchain.BlockchainType.DAML) {
             Integer i = 0;
             for (Replica each : replicas) {
                 String replicaName = (Strings.isNullOrEmpty(each.getHostName()) ? "Committer" : each.getHostName())
@@ -178,7 +174,7 @@ public class ReplicaController {
                         .status("live")
                         .build());
             }
-        } else if (bc.getType() == Blockchain.BlockchainType.ETHEREUM) {
+        } else if (b.getType() == Blockchain.BlockchainType.ETHEREUM) {
             // TODO do this check based on Site Type.
             List<Peer> peers = new ArrayList<>();
             try {
@@ -226,12 +222,10 @@ public class ReplicaController {
                                                              @RequestParam NodeAction action) throws Exception {
         // TODO: Replica Start/Stop POST is not currently in use and does not function.
 
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
+        Blockchain blockchain = safeGetBlockchain(bid);
+
         // make sure we can access this node.
-        if (b.getNodeList().stream().noneMatch(n -> n.getNodeId().equals(nodeId))) {
+        if (blockchain.getNodeList().stream().noneMatch(n -> n.getNodeId().equals(nodeId))) {
             throw new BadRequestException(ErrorCode.INVALID_NODE, nodeId);
         }
         Task task = startStopNode(bid, nodeId, action);
@@ -253,17 +247,14 @@ public class ReplicaController {
                                                    @RequestParam NodeAction action) throws Exception {
         // TODO: Replica Start/Stop POST is not currently in use and does not function.
 
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
+        Blockchain blockchain = safeGetBlockchain(bid);
 
         // check that all the nodes are part of this blockchain
         List<UUID> uuidList = nodeList.getReplicaIds() != null ? nodeList.getReplicaIds() : nodeList.getNodeIds();
         if (uuidList == null) {
             throw new BadRequestException((ErrorCode.BAD_REQUEST));
         }
-        List<UUID> bcNodeList = b.getNodeList().stream().map(n -> n.getNodeId()).collect(Collectors.toList());
+        List<UUID> bcNodeList = blockchain.getNodeList().stream().map(n -> n.getNodeId()).collect(Collectors.toList());
         if (!bcNodeList.containsAll(uuidList)) {
             throw new BadRequestException(ErrorCode.INVALID_NODE, nodeList.nodeIds);
         }
@@ -283,23 +274,20 @@ public class ReplicaController {
     @PreAuthorize("@authHelper.isConsortiumAdminForBlockchain(#bid)")
     public ResponseEntity<NodeGetCredentialsResponse> getReplicaCredentials(@PathVariable UUID bid,
                                                                             @PathVariable UUID replicaId) {
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
-
-
+        safeGetBlockchain(bid); // Make sure the blockchain exists
 
 
         Optional<Replica> replicaOpt = replicaService.getReplicas(bid).stream()
                                                         .filter(r -> r.getId().equals(replicaId)).findFirst();
         if (replicaOpt.isEmpty()) {
-            throw new NotFoundException(ErrorCode.NOT_FOUND);
+            throw new NotFoundException(ErrorCode.REPLICA_NOT_FOUND,
+                    replicaId, bid);
         }
         Replica replica = replicaOpt.get();
+        NodeGetCredentialsResponse nodeGetCredentialsResponse =
+                new NodeGetCredentialsResponse("root", replica.password);
 
-        return new ResponseEntity<>(NodeGetCredentialsResponse.builder()
-                                        .username("root").password(replica.password).build(), HttpStatus.OK);
+        return new ResponseEntity<>(nodeGetCredentialsResponse, HttpStatus.OK);
     }
 
 
@@ -313,5 +301,20 @@ public class ReplicaController {
         task.setResourceLink(String.format("/api/blockchains/%s", bid));
         task = taskService.put(task);
         return task;
+    }
+
+    // This could be done better, but maybe later. We need to handle errors first.
+    private Blockchain safeGetBlockchain(UUID bid) {
+        Blockchain blockchain;
+        try {
+            blockchain = blockchainService.get(bid);
+            if (blockchain == null) {
+                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+            }
+        } catch (NotFoundException e) {
+            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+        }
+
+        return blockchain;
     }
 }
