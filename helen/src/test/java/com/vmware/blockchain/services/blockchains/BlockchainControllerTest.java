@@ -281,6 +281,7 @@ public class BlockchainControllerTest {
     private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
     private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
     private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+    private static final String CLIENT_GROUP_NAME = "Test Group";
 
 
     @Autowired
@@ -754,7 +755,7 @@ public class BlockchainControllerTest {
         });
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID);
+                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
 

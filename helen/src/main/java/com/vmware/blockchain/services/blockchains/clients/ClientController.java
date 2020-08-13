@@ -58,6 +58,7 @@ public class ClientController {
         private UUID zoneId;
         private String authUrlJwt;
         private UUID groupId;
+        private String groupName;
 
         /**
          * Constructor for ClientGetResponse Class.
@@ -86,6 +87,7 @@ public class ClientController {
             this.zoneId = client.getZoneId();
             this.authUrlJwt = client.getAuthJwtUrl();
             this.groupId = client.getGroupId();
+            this.groupName = client.getGroupName();
         }
     }
 

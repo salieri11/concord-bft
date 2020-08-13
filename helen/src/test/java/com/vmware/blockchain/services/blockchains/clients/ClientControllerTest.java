@@ -99,6 +99,7 @@ public class ClientControllerTest extends RuntimeException {
     private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
     private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
     static final UUID BC_DAML1 = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+    private static final String CLIENT_GROUP_NAME = "Test Group";
 
     @Autowired
     private WebApplicationContext context;
@@ -276,7 +277,7 @@ public class ClientControllerTest extends RuntimeException {
     void getParticipantNodeListViaClient() throws Exception {
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                "cert", BC_DAML, REPLICA_1_ZONE, CLIENT_GROUP_ID);
+                "cert", BC_DAML, REPLICA_1_ZONE, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         client1.setId(REPLICA_1);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
@@ -302,7 +303,7 @@ public class ClientControllerTest extends RuntimeException {
         String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
 
         final Client client = new Client("publicIp", "privateIp", "testPassword",
-                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID());
+                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME);
         client.setId(C2_ID);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
@@ -319,7 +320,7 @@ public class ClientControllerTest extends RuntimeException {
     protected void testClientGrouping() throws Exception {
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID);
+                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
 
@@ -339,5 +340,6 @@ public class ClientControllerTest extends RuntimeException {
                 .collect(Collectors.toList()));
         Assertions.assertEquals(1, res.size());
         Assertions.assertEquals(res.get(0).getGroupId(), CLIENT_GROUP_ID);
+        Assertions.assertEquals(res.get(0).getGroupName(), CLIENT_GROUP_NAME);
     }
 }
