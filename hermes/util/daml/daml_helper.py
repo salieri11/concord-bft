@@ -245,7 +245,8 @@ def upload_test_tool_dars(host='localhost', port='6861', results_dir=None, verbo
 
    for test_dar in dars:
       dar_uploaded = False
-      max_retry_attempts = 3
+      max_retry_attempts = 10
+      sleep_time = 30
 
       for i in range(0, max_retry_attempts):
          if verbose: log.info("  {} (attempt {}/{})...".format(test_dar, i+1, max_retry_attempts))
@@ -261,7 +262,7 @@ def upload_test_tool_dars(host='localhost', port='6861', results_dir=None, verbo
          except Exception as e:
             if i != max_retry_attempts-1:
                if verbose: log.info("Retrying in 30 seconds...")
-               time.sleep(30)
+               time.sleep(sleep_time)
             else:
                log.error("Failed to upload test DAR " + test_dar)
                raise
