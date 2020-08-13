@@ -19,6 +19,7 @@
         <io.zonky.test.version>1.4.1</io.zonky.test.version>
         <io.zonky.test.postgres.version>10.6.0</io.zonky.test.postgres.version>
         <apache.httpcomponents.httpclient.version>4.5.12</apache.httpcomponents.httpclient.version>
+        <apache.commons.lang3.version>3.11</apache.commons.lang3.version>
         <springframework.boot.version>2.1.15.RELEASE</springframework.boot.version>
         <springframework.security.oauth.version>2.5.0.RELEASE</springframework.security.oauth.version>
         <vmbc.base.version>1.0.1-SNAPSHOT</vmbc.base.version>
@@ -57,6 +58,11 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${apache.commons.lang3.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -270,6 +276,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 
     <!-- Dependencies need for running GenericDaoTests on windows.
          I'm probably the only person that cares about this section

@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.NotFoundException;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -72,8 +75,8 @@ public class OrganizationContoller {
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.canAccessOrg(#organizationId)")
-    public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID organizationId) {
-        Organization org = orgService.get(organizationId);
+    public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID organizationId) throws Exception {
+        Organization org = safeGetOrganization(organizationId);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
                 org.getOrganizationProperties()), HttpStatus.OK);
     }
@@ -86,8 +89,8 @@ public class OrganizationContoller {
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateOrg(#organizationId)")
     public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID organizationId,
-                                                    @RequestBody OrgPatchBody body) {
-        Organization org = orgService.get(organizationId);
+                                                    @RequestBody OrgPatchBody body) throws Exception {
+        Organization org = safeGetOrganization(organizationId);
 
         Map<String, String> addMap = body.getAddProperties();
         Map<String, String> delMap = body.getDeleteProperties();
@@ -106,5 +109,20 @@ public class OrganizationContoller {
         org = orgService.put(org);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
                 org.getOrganizationProperties()), HttpStatus.OK);
+    }
+
+    private Organization safeGetOrganization(UUID organizationId) {
+        Organization org;
+
+        try {
+            org = orgService.get(organizationId);
+            if (org == null) {
+                throw new NotFoundException(ErrorCode.ORG_NOT_FOUND, organizationId.toString());
+            }
+        } catch (NotFoundException e) {
+            throw new NotFoundException(ErrorCode.ORG_NOT_FOUND, organizationId.toString());
+        }
+
+        return org;
     }
 }
