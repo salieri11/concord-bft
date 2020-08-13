@@ -28,7 +28,7 @@
 /helen/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo
 /castor/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank @hbhavsar @sanchitar
-/hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner @sanchitar @hbhavsar @kkeunwoo
+/hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner @sanchitar @hbhavsar @kkeunwoo @bsubramanian @imarinkov
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg @rahulg
 /persephone/ @khank @sanchitar @rsg @panamika @mandeab @hbhavsar
@@ -36,6 +36,6 @@
 /src/ @rvollmar @rsg
 /thin-replica-client/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov @ybuchnik @ddanilov @tdimitrov @lgal @elerer @hstaykov
 /ui/ @mharrison @hbhavsar @kkeunwoo @mandeab @sanchitar @khank
-/vars/ @rvollmar @rsg @khank @tparvanov @ysherman @hstaykov @petari @igolikov @tdimitrov
+/vars/ @rvollmar @rsg @khank @tparvanov @ysherman @hstaykov @petari @igolikov @tdimitrov @bsubramanian @kkeunwoo @imarinkov
 /kubernetes/ @bsubramanian @khank @rvollmar
 /support/ @bsubramanian @khank
