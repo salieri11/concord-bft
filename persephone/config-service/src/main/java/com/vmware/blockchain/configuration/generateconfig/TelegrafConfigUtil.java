@@ -81,7 +81,7 @@ public class TelegrafConfigUtil {
                 .replace("$URL", "[" + prometheusUrls + "]");
 
         String postgressPluginStr = "#[[inputs.postgresql]]";
-        String indexDbInput = "address = \"postgres://indexdb@daml_index_db/$DBNAME\"";
+        String indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";
 
         // TODO : remove after concord name unification
         List<ConcordComponent.ServiceType> committerList = List.of(
@@ -92,15 +92,13 @@ public class TelegrafConfigUtil {
         String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
 
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
-            var nodeName = DamlLedgerApiUtil.convertToParticipantId(nodeInfo.getId());
-            String indexDbAddr = indexDbInput.replace("$DBNAME", nodeName);
             String postgressPlugin = postgressPluginStr.replace("#", "");
             hostConfigCopy = hostConfigCopy
-                    .replace("#$DBINPUT", indexDbAddr)
+                    .replace("#$DBINPUT", indexDbInput)
                     .replace(postgressPluginStr, postgressPlugin);
         }
 
-        if (servicesList.stream().anyMatch(element -> committerList.contains(element))) {
+        if (servicesList.stream().anyMatch(committerList::contains)) {
             hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
         } else {
             hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
