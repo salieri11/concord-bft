@@ -477,10 +477,13 @@ def call(){
 
               // Make summary folder
               env.summaryFolder = env.WORKSPACE + "/summary"
-              sh '''
-                rm -rf "${summaryFolder}"
-                mkdir "${summaryFolder}"
-              '''
+              sh '''rm -rf "${summaryFolder}"; mkdir "${summaryFolder}";'''
+
+              // Enable worker node jobs audit trail
+              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) { script {
+                if (!fileExists('/var/log/jobs_trail.log')) { // create /var/log/jobs_trail.log with 777
+                  sh '''echo "${PASSWORD}" | sudo -S install -m 777 /dev/null /var/log/jobs_trail.log''' }}}
+              sh '''printf "\\n${JOB_NAME}::${BUILD_NUMBER}::" >> /var/log/jobs_trail.log'''
 
               // Try dealing with https://issues.jenkins-ci.org/browse/JENKINS-48300. Run failed with this error:
               // "JENKINS-48300: if on an extremely laggy filesystem, consider -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
@@ -1369,11 +1372,13 @@ void startRun(){
 // Called when it is successful.
 void passRun(){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "success")
+  sh '''printf "PASSED" >> /var/log/jobs_trail.log'''
 }
 
 // Called when it fails.
 void failRun(Exception ex = null){
   updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
+  sh '''printf "FAILED" >> /var/log/jobs_trail.log'''
   if (ex != null){
     echo "The run has failed with an exception: " + ex.toString()
     // If summary file doesn't exist, capture pipeline error itself as failure point.
