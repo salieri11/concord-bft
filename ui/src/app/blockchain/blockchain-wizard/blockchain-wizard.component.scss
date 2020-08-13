@@ -4,6 +4,7 @@ $formTopMargin: 1.5rem;
 $inputWidth: 2.5rem;
 $clr-card-hover-color: #0094d2;
 $client-node-remove-width: 40px;
+$client-node-label-width: 4.25rem;
 
 :host .blockchain-wizard.extra-wide ::ng-deep .modal-dialog.modal-lg {
   width: 41rem;
@@ -171,34 +172,63 @@ label {
   position: relative;
 }
 
-.client-form {
-  margin-top: 0.7rem;
-}
-
 :host ::ng-deep .compact-input-container {
   margin: 0;
-  margin-top: 0.25rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
   padding: 0;
   .short-label {
+    opacity: 0.9;
+    font-size: .541667rem;
     max-width: 120px !important;
+    width:0; height:0;
+    float:left;
+    white-space: nowrap;
+    margin-top:0.2rem;
     .optional-field-span {
       opacity: 0.75;
       font-size: 85%;
       font-weight: 300;
     }
-  }  
-  .auth-input {
-    min-width: 350px;
-    margin-top: -0.15rem;
   }
-  .grouping-input {
-    min-width: 350px;
-    margin-top: -0.15rem;
+  .group-name-input {
+    max-width: 8rem;
+    min-width: 8rem !important;
+    transform: translate(0, -0.1rem);
+  }
+  .error-helper {
+    transform: translate(0, -0.2rem);
+  }
+  .auth-input {
+    max-width: 9rem;
+    min-width: 9rem;
+    display: inline-block;
+    transform: translate(0, -0.1rem);
   }
   .zone-selector {
-    min-width: 200px;
     margin-top: -0.2rem;
+    max-width: 6.5rem; 
+    min-width: 6.5rem !important;
+    display: inline-block;
+    transform: translate(0, -0.085rem);
+  }
+  .columned {
+    margin-left: $client-node-label-width;
+    margin-bottom: 0.25rem;
+    .clr-form-control {
+      margin: 0;
+      margin-right: 0.5rem;
+      min-width:0;
+      display: inline-block;
+    }
+    .member-count {
+      width:1.7rem;
+      text-align: center;
+    }
+    .delete-client-group {
+      display: inline-block;
+      transform: translate(0.5rem,-0.3rem);
+    }
   }
 }
 
@@ -227,7 +257,12 @@ label {
   outline: none;
   border: none;
   font-size: 0.45rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  text-align: center;
   color: $clr-red;
+  margin-top:0.05rem;
+  float: right;
   cursor: pointer;
 }
 
@@ -243,4 +278,88 @@ label {
   width: 60px;
   max-width: 60px;
   min-width: 60px;
+}
+
+.btn-red {
+  color: $clr-red;
+}
+
+.column-label-container {
+  height:0;
+  transform: translate(0,-0.85rem);
+  .column-label {
+    margin-left: 0.2rem;
+    opacity: 0.8;
+    font-size: 0.5rem;
+    .optional-field-span {
+      opacity: 0.6;
+      font-size: 80%;
+      margin-left: 0.1rem;
+    }
+  }
+}
+
+.client-form {
+  min-width: 26rem;
+  border-bottom: 1px solid rgba(140,140,140,0.3);
+  margin-top: 0.7rem;
+}
+
+.as-single-client {
+  margin-bottom: 0.4rem;
+  padding: 0rem 0.8rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.7rem;
+}
+
+.as-client-group {
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  padding-top: 0.7rem;
+  padding-bottom: 1.25rem;
+}
+
+.group-name-container {
+  margin-bottom: 1.75rem;
+}
+
+.client-node-index-cont {
+  transform: translate(-0.4rem,-0.1rem);
+  text-align: center;
+  .client-node-index {
+    opacity: 0.9;
+    font-size: 0.541667rem;
+  }
+}
+
+.client-group-bottom {
+  transform: translate(0.65rem,-0.4rem);
+  .add-client-node-button {
+    margin: 0;
+    padding: 0rem 0.2rem;
+    margin-top: 0rem;
+  }
+  .client-grouping-info {
+    opacity: 0.5;
+  }
+  .client-grouping-message {
+    margin-left: 0rem;
+    display: inline-block;
+  }
+}
+
+.max-client-reached-message {
+  margin-left: 0rem;
+  display: inline-block;
+}
+
+.form-error-info-cont {
+  margin-top: 0.5rem;
+  .form-error-info {
+    color: $clr-red;
+    font-size: 0.525rem;
+    font-weight: 400;
+    line-height: 1.42;
+    margin-top: 0.125rem;
+  }
 }

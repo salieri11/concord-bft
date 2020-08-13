@@ -114,7 +114,7 @@
           <!-- <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6> -->
           <clr-tabs>
             <clr-tab *ngIf="hasOnPrem">
-              <button clrTabLink (click)="tabSelect()">{{'blockchainWizard.nodes.onPremTitle' | translate}}</button>
+              <button clrTabLink (click)="zoneTabSelect(zoneType.ON_PREM)">{{'blockchainWizard.nodes.onPremTitle' | translate}}</button>
               <ng-template  [(clrIfActive)]="onPremActive">
                 <clr-tab-content id="onPremZones">
                 <clr-alert [clrAlertClosable]="false">
@@ -134,7 +134,7 @@
               </ng-template>
             </clr-tab>
             <clr-tab>
-              <button clrTabLink (click)="tabSelect()">{{'blockchainWizard.nodes.cloudTitle' | translate}}</button>
+              <button clrTabLink (click)="zoneTabSelect(zoneType.VMC_AWS)">{{'blockchainWizard.nodes.cloudTitle' | translate}}</button>
               <ng-template [(clrIfActive)]="cloudActive">
                 <clr-tab-content id="cloudZones">
                   <clr-alert [clrAlertClosable]="false">
@@ -172,8 +172,8 @@
       </div>
     </clr-wizard-page>
 
-    <clr-wizard-page #clientsPage formGroupName="clients" *ngIf="pastContractEngineStep && selectedEngine === 'DAML'"
-      [clrWizardPageNextDisabled]="!form.controls.clients.errors?.countIsCorrect">
+    <clr-wizard-page #clientsPage [formGroup]="clientGroups" *ngIf="pastContractEngineStep && selectedEngine === 'DAML'"
+      [clrWizardPageNextDisabled]="clientGroups.errors?.messages?.length > 0">
 
       <ng-template clrPageTitle>
         {{'blockchainWizard.clients.pageTitle' | translate}}
@@ -183,70 +183,149 @@
       </ng-template>
 
       <ng-template clrPageNavTitle>{{ 'blockchainWizard.clients.navTitle' | translate }}</ng-template>
-      <div [formGroup]="clientForm" class="client-form">
-        <clr-select-container class="compact-input-container">
-          <label class="short-label">{{ 'zones.detail.title' | translate }}</label>
-          <select clrSelect class="zone-selector" formControlName="zone_id" id="clientZoneSelect">
-            <option *ngFor="let zone of blockchainService.zones" [value]="zone.id">
-              {{ zone.name }}
-            </option>
-          </select>
-        </clr-select-container>
-        <clr-input-container class="compact-input-container">
-          <label class="short-label">
-            {{ 'nodes.deployClientModal.authUrl' | translate }}
-            <br><span class="optional-field-span">({{ 'common.optional' | translate }})</span>
-          </label>
-          <input clrInput id="clientAuthUrlInput" type="text" class="auth-input"
-                formControlName="auth_url" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
-          <clr-control-helper>{{ 'blockchainWizard.clients.authUrlHelper' | translate }}</clr-control-helper>
-          <clr-control-error>{{ 'blockchainWizard.clients.authUrlError' | translate }}</clr-control-error>
-        </clr-input-container>
-        <clr-input-container class="compact-input-container">
-          <label class="short-label">
-            {{ 'blockchainWizard.clients.logicalGrouping' | translate }}
-            <br><span class="optional-field-span">({{ 'common.optional' | translate }})</span>
-          </label>
-          <input clrInput class="grouping-input" type="number" [placeholder]="'blockchainWizard.clients.logicalGroupingPH' | translate"
-                  formControlName="group_index" id="clientGroupingInput"/>
-          <clr-control-helper>{{ 'blockchainWizard.clients.logicalGroupingHelper' | translate }}</clr-control-helper>
-          <clr-control-error>{{ 'blockchainWizard.clients.logicalGroupingError' | translate }}</clr-control-error>
-        </clr-input-container>
-        <div class="add-button-margins">
-          <button class="btn btn-sm margins" (click)="addClientNode()" [disabled]="!clientForm.valid" id="addClientNode">
-            {{ 'blockchainWizard.clients.add' | translate }}
+      <div #clientsForm>
+        <div *ngFor="let clientGroup of clientGroups.controls; let g = index;"
+              [ngClass]="{'client-form':1, 'as-single-client':getClientGroupMembers(g).length==1, 'as-client-group':getClientGroupMembers(g).length>1}"
+              [formGroupName]="g" [attr.id]="'deploy-page-clients-group-'+g">
+          <div class="compact-input-container group-name-container" *ngIf="alwaysGroup || getClientGroupMembers(g).length > 1">
+            <label class="short-label">{{ 'blockchainWizard.clients.clientGrouping' | translate }}</label>
+            <div class="clr-row columned no-height">
+              <div class="clr-col-md-6">
+                <div class="column-label-container"><label class="column-label">{{ 'common.name' | translate }}</label></div>  
+              </div>
+              <div class="clr-col-md-2">
+                <div class="column-label-container"><label class="column-label">{{ 'common.countNoun' | translate }}</label></div>  
+              </div>
+              <div class="clr-col-md-3"></div>
+            </div>
+            <div class="clr-row columned">
+              <div class="clr-col-md-6">
+                <clr-input-container>
+                  <input clrInput [id]="'deploy-page-clients-group-'+g+'-name-input'" formControlName="group_name"
+                        type="text" class="group-name-input" [placeholder]="'blockchainWizard.clients.groupNamePH' | translate "/>
+                  <clr-control-helper class="error-helper red-text" *ngIf="clientGroup.controls.group_name.value === ''">
+                    {{ 'blockchainWizard.clients.groupNameErrorHelper' | translate }}
+                  </clr-control-helper>
+                  <clr-control-error class="error-helper" *ngIf="clientGroup.controls.group_name.errors?.message">
+                    {{ clientGroup.controls.group_name.errors.message }}
+                  </clr-control-error>
+                </clr-input-container>
+              </div>
+              <div class="clr-col-md-2">
+                <div class="member-count">{{ getClientGroupMembers(g).length }}</div>
+              </div>
+              <div class="clr-col-md-3">
+                <button class="btn btn-sm btn-link btn-red delete-client-group" (click)="removeClientGroup(g)"
+                        *ngIf="false && totalClientsCount() - getClientGroupMembers(g).length >= 1">
+                        {{ 'blockchainWizard.clients.deleteClientGroup' | translate }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div formGroupName="member_clients" class="compact-input-container">
+            <label class="short-label">{{ 'blockchainWizard.clients.clientNode' | translate }}</label>
+            <div class="clr-row columned no-height">
+              <div class="col-min-1"></div>
+              <div class="clr-col-md-4">
+                <div class="column-label-container"><label class="column-label">{{ 'blockchainWizard.clients.zone' | translate }}</label></div>  
+              </div>
+              <div class="col-min-2"></div>
+              <div class="clr-col-md-6">
+                <div class="column-label-container">
+                  <label class="column-label">
+                    {{ 'blockchainWizard.clients.authUrl' | translate }}
+                    <span class="optional-field-span">({{ 'common.optional' | translate }})</span>
+                  </label>
+                </div>  
+              </div>
+            </div>
+            <div *ngFor="let client of getClientGroupMembers(g).controls; let c = index;" [formGroupName]="c" class="clr-row columned">
+              <div class="col-min-1">
+                <div class="no-width client-node-index-cont"><label class="client-node-index">{{ clientNodeIndex(g,c)+1 }}</label></div>
+              </div>
+              <div class="clr-col-md-4">
+                <clr-select-container>
+                  <select clrSelect [id]="'deploy-page-clients-group-'+g+'-client-'+c+'-zone-select'"
+                          required formControlName="zone_id" class="zone-selector">
+                    <option value="" disabled hidden [selected]="getActiveZones().length > 1 || getActiveZones().length === 0">
+                      {{ 'blockchainWizard.clients.chooseZone' | translate }}
+                    </option>
+                    <option *ngFor="let zone of getActiveZones(); let z = index;" [value]="zone.id"
+                            [selected]="getActiveZones().length === 1 && z === 0">
+                      {{ zone.name }}
+                    </option>
+                  </select>
+                </clr-select-container>
+              </div>
+              <div class="col-min-2"></div>
+              <div class="clr-col-md-6">
+                <clr-input-container>
+                  <input clrInput [id]="'deploy-page-clients-group-'+g+'-client-'+c+'-auth-url-input'" type="text" class="auth-input"
+                    formControlName="auth_url_jwt" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
+                    <clr-control-error class="no-height">
+                      <div class="error-helper abspos no-height">
+                        {{ 'blockchainWizard.clients.authUrlInputError' | translate }}  
+                      </div>
+                    </clr-control-error>
+                </clr-input-container>
+              </div>
+              <button class="btn btn-sm remove-col-button" (click)="removeClientNodeToGroup(g,c)" *ngIf="totalClientsCount() > 1">
+                <clr-icon size="20" shape="minus-circle"></clr-icon>
+              </button>
+            </div>
+          </div>
+          <div class="compact-input-container">
+            <div class="clr-row columned no-height">
+              <div class="client-group-bottom">
+                <button class="btn btn-sm btn-link add-client-node-button" (click)="addClientNodeToGroup(g)" 
+                  *ngIf="maxClients > totalClientsCount() && maxClientsPerGroup > getClientGroupMembers(g).length"
+                  [disabled]="totalClientsCount() >= maxClients || getClientGroupMembers(g).length >= maxClientsPerGroup">
+                  {{
+                    (!alwaysGroup && getClientGroupMembers(g).length === 1) ?
+                        ( 'blockchainWizard.clients.enableGrouping' | translate )
+                      : ( 'blockchainWizard.clients.addNodeToGroup' | translate )
+                  }}
+                </button>
+                <clr-tooltip *ngIf="!alwaysGroup && getClientGroupMembers(g).length === 1">
+                  <clr-icon clrTooltipTrigger class="client-grouping-info" size="20" shape="info-circle"></clr-icon>
+                  <clr-tooltip-content clrPosition="right" clrSize="lg" *clrIfOpen>
+                    <span>{{ 'blockchainWizard.clients.clientGroupingInfo'  | translate }}</span>
+                  </clr-tooltip-content>
+                </clr-tooltip>
+                <clr-control-helper class="client-grouping-message"
+                  *ngIf="totalClientsCount() >= maxClients || getClientGroupMembers(g).length >= maxClientsPerGroup">
+                  {{
+                    getClientGroupMembers(g).length >= maxClientsPerGroup ?
+                        ( 'blockchainWizard.clients.clientGroupMaxMembersReached' | translate )
+                      : ( 'blockchainWizard.clients.clientsMaxReached' | translate )
+                  }}{{
+                    getClientGroupMembers(g).length >= maxClientsPerGroup ?
+                        ' (' + maxClientsPerGroup + ')' : ' (' + maxClients + ')'
+                  }}
+                </clr-control-helper>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <button id="deploy-page-clients-group-add-client" class="btn btn-sm margins"
+                  (click)="addClientGroup()" [disabled]="totalClientsCount() >= maxClients">
+            {{ alwaysGroup ? 
+                  ('blockchainWizard.clients.addClientGroup' | translate) 
+                : ('blockchainWizard.clients.addClient' | translate) 
+            }}
           </button>
-          <button class="btn btn-danger-outline btn-sm margins" (click)="clearClientNodes()" [disabled]="form.get('clients').value.length === 0">
-            {{ 'blockchainWizard.clients.clear' | translate }}
-          </button>
+          <clr-control-helper class="max-client-reached-message" *ngIf="totalClientsCount() >= maxClients">
+            {{ 'blockchainWizard.clients.clientsMaxReached' | translate }}{{ ' (' + maxClients + ')' }}
+          </clr-control-helper>
+        </div>
+        <div *ngIf="false && clientGroups.errors?.messages?.length > 0" class="form-error-info-cont">
+          <div>{{ 'blockchainWizard.clients.formErrors' | translate }}</div>
+          <div class="form-error-info">
+            <div *ngFor="let message of clientGroups.errors.messages">{{ message }}</div>
+          </div>
         </div>
       </div>
-
-      <clr-datagrid #grid class="datagrid-compact grid-min-height">
-        <clr-dg-column class="remove-col">&nbsp;</clr-dg-column>
-        <clr-dg-column class="group-column">{{ 'blockchainWizard.clients.group' | translate }}</clr-dg-column>
-        <clr-dg-column>{{ 'blockchainWizard.clients.zone' | translate }}</clr-dg-column>
-        <clr-dg-column>{{ 'blockchainWizard.clients.authUrl' | translate }}</clr-dg-column>
-        <clr-dg-row *clrDgItems="let client of form.get('clients').value; let i = index">
-          <clr-dg-cell class="remove-col">
-            <button class="remove-col-button" (click)="removeClientNode(i)">
-              <clr-icon size="16" shape="minus-circle"></clr-icon>
-            </button>
-          </clr-dg-cell>
-          <clr-dg-cell class="group-column">{{ client.group_index.value }}</clr-dg-cell>
-          <clr-dg-cell>{{ client.zone_name }}</clr-dg-cell>
-          <clr-dg-cell>{{ client.auth_url_jwt.value }}</clr-dg-cell>
-        </clr-dg-row>
-        <clr-dg-footer>
-          <clr-dg-pagination #pagination [clrDgPageSize]="5"><span class="pagination-message">
-            {{ 'blockchainWizard.clients.paginationTotal' | translate: {
-                  start: pagination.firstItem + 1,
-                  finish: pagination.lastItem + 1,
-                  total: pagination.totalItems }
-            }}</span>
-          </clr-dg-pagination>
-        </clr-dg-footer>
-      </clr-datagrid>
     </clr-wizard-page>
 
     <clr-wizard-page>
@@ -271,6 +350,7 @@
         <div class="clr-col-8 summary-value">
           {{ form.value.details.consortium_desc || '--' }}
         </div>
+
         <h6 class="sub-title">{{'blockchainWizard.nodes.navTitle' | translate}}</h6>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}
@@ -278,23 +358,19 @@
         <div class="clr-col-8 summary-value number-of-replicas">
           {{ form.value.nodes.numberOfNodes }}
         </div>
-        <h6 *ngIf="form.value.clients.length" class="sub-title">
-          {{'blockchainWizard.clients.navTitle' | translate}}
-        </h6>
-        <div *ngIf="form.value.clients.length" class="clr-col-4 summary-label">
+
+        <h6 *ngIf="selectedEngine === engines.DAML" class="sub-title">{{'blockchainWizard.clients.navTitle' | translate}}</h6>
+        <div *ngIf="selectedEngine === engines.DAML" class="clr-col-4 summary-label">
           {{'blockchainWizard.clients.number' | translate}}
         </div>
-        <div *ngIf="form.value.clients.length" class="clr-col-8 summary-value number-of-replicas">
-          {{ form.value.clients.length }}
+        <div *ngIf="selectedEngine === engines.DAML" class="clr-col-8 summary-value number-of-replicas">
+          {{ totalClientsCount() }}
         </div>
+
         <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
-        <ng-container *ngFor="let zone of zones">
-          <div class="clr-col-4 summary-label">
-            {{ zone.name }}
-          </div>
-          <div class="clr-col-8 summary-value">
-            {{ form.controls.nodes['controls'].zones.value[zone.id] || '--' }}
-          </div>
+        <ng-container *ngFor="let zoneInfo of getUsedZones()">
+          <div class="clr-col-4 summary-label">{{ zoneInfo.name }}</div>
+          <div class="clr-col-8 summary-value">{{ zoneInfo.summary }}</div>
         </ng-container>
       </div>
     </clr-wizard-page>

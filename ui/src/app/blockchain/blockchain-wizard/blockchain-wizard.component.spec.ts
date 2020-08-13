@@ -77,7 +77,7 @@ describe('BlockchainWizardComponent', () => {
         type: ZoneType.VMC_AWS
       }];
       component.onPremActive = false;
-      component.tabSelect();
+      component.zoneTabSelect(ZoneType.VMC_AWS);
       const zones = component.form.controls.nodes['controls'].zones;
       const regionKeys = Object.keys(zones.value);
 

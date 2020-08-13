@@ -204,3 +204,12 @@ form {
 .padding-zero {
   padding: 0;
 }
+
+:host ::ng-deep .file-icon {
+  margin-left: -1rem !important;
+}
+
+.eth-source {
+  width: 100%;
+  padding: 1em;
+}

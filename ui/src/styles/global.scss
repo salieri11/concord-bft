@@ -206,11 +206,6 @@ body.dark {
     fill: $clr-dark-midtone-gray;
   }
 
-  .heat-map {
-    rect.cell {
-      rx: 0;
-    }
-  }
 }
 
 // Copy to clipboard button
@@ -299,4 +294,49 @@ concord-code-highlighter[ng-reflect-plugins~="autolinker"] {
 // Wavefront graph component hover tooltip background
 ngx-tooltip-content.ngx-charts-tooltip-content.type-tooltip {
   background-color: #222222;
+}
+
+.red-text {
+  color: $clr-red !important;
+}
+
+.col-min-0 { -webkit-box-flex: 0; flex: 0 0 0%; max-width: 0%; }
+.col-min-1 { -webkit-box-flex: 0; flex: 0 0 1%; max-width: 1%; }
+.col-min-2 { -webkit-box-flex: 0; flex: 0 0 2%; max-width: 2%; }
+.col-min-3 { -webkit-box-flex: 0; flex: 0 0 3%; max-width: 3%; }
+.col-min-4 { -webkit-box-flex: 0; flex: 0 0 4%; max-width: 4%; }
+.col-min-5 { -webkit-box-flex: 0; flex: 0 0 5%; max-width: 5%; }
+
+.no-width {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  width: 0;
+  min-width:0;
+  max-width:0;
+}
+
+.no-height {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 0;
+  min-height:0;
+  max-height:0;
+}
+
+.relpos {
+  position: relative;
+}
+
+.abspos {
+  position: absolute;
+}
+
+// used for default placeholder for select elements
+select:invalid,
+select option[value=""] {
+  opacity: 0.5;
 }

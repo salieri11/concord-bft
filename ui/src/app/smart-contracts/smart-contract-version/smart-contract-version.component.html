@@ -213,7 +213,7 @@
                               [clrLoading]="file.loading"
                               (click)="damlOnFileHandleClick($event, file)">
                             <span *ngIf="file">
-                              <clr-icon *ngIf="!file.isFolder" [attr.shape]="'file'" style="margin-left:-1rem;"></clr-icon>
+                              <clr-icon *ngIf="!file.isFolder" [attr.shape]="'file'" class="file-icon"></clr-icon>
                               {{ file.name }}
                             </span>
                           </clr-tree-node>
@@ -237,7 +237,7 @@
                       </div>
                     </div>
                     <!-- Source View ETH -->
-                    <div *ngIf="isETH" style="width:100%; padding:1em;">
+                    <div *ngIf="isETH" class="eth-source">
                       <concord-code-highlighter 
                         [textToHighlight]="version.sourcecode"
                         [language]="'solidity'"
