@@ -10,7 +10,9 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.powermock.reflect.Whitebox;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +57,7 @@ import io.grpc.testing.GrpcCleanupRule;
 @ContextConfiguration(classes = CastorTestConfiguration.class)
 public class CastorDeploymentFailTest {
     @Rule public final GrpcCleanupRule grpcCleanupRule = new GrpcCleanupRule();
+    @Rule public final TemporaryFolder folder = new TemporaryFolder();
 
     public static final String CASTOR_GRPC_TEST = "castor-grpc-test";
 
@@ -106,7 +110,8 @@ public class CastorDeploymentFailTest {
     }
 
     @Test
-    public void testDeprovisioningCallFailure() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testDeprovisioningCallFailure()
+            throws InterruptedException, ExecutionException, TimeoutException, IOException {
         DeploymentRequest deploymentRequest = DeploymentRequest.newBuilder().build();
 
         // Sanity test without going through Castor services
@@ -115,9 +120,12 @@ public class CastorDeploymentFailTest {
         deploymentResponse = spy(deploymentResponse);
         assertEquals(ProvisioningServiceFailureTestImpl.REQUEST_ID, UUID.fromString(deploymentResponse.getId()));
 
+        File outputFile = folder.newFile("provision-fail.out");
+        PrintWriter printWriter = new PrintWriter(outputFile);
+
         // Test path through Castor services
         provisionerService.provisioningHandoff(
-                infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
+                printWriter, infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
         // The future should be set, TimeoutException is unexpected for successful test.
         CastorDeploymentStatus result = completableFuture.get(5, TimeUnit.SECONDS);
         assertEquals(CastorDeploymentStatus.FAILURE, result);

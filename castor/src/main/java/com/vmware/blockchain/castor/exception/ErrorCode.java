@@ -10,6 +10,7 @@ package com.vmware.blockchain.castor.exception;
 @SuppressWarnings("LineLength")
 public final class ErrorCode {
     public static final String BAD_GRPCS_CONFIGURATION = "Required property {0} for grpc over TLS is not set";
+    public static final String OUTPUT_DIR_PROPERTY_NOT_SET = "Required output directory property {0} is not set";
     public static final String INFRA_DESC_PROPERTY_NOT_SET = "Required infrastructure descriptor property {0} is not set";
     public static final String INFRA_DESC_FILE_MISSING = "Infrastructure descriptor file {0} is not available";
     public static final String INFRA_DESC_FILE_READ_ERROR = "Infrastructure descriptor file {0} could not be processed";
