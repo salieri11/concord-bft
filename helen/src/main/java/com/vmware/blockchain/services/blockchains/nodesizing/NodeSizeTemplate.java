@@ -58,6 +58,8 @@ public class NodeSizeTemplate extends AbstractEntity {
 
     /**
      * Template class.
+     * A template is identified by a name, and contains a list of 2 Items, one each of Committer and Client types.
+     * An Item is a key value pair of Parameter and String.
      */
     @Data
     @NoArgsConstructor
@@ -69,17 +71,35 @@ public class NodeSizeTemplate extends AbstractEntity {
     }
 
     /**
-     * Item in a template.
+     * An Item is a key value pair of Parameter and String.
+     * For example:
+     * 'type' is a key, and the value for it is 'committer'.
+     * This item represents a Committer node.
+     * {
+     *   'type': 'committer'
+     *   'no_of_cpus': '4',
+     *   'storage_in_gigs': '1024',
+     *   'memory_in_gigs': '32'
+     *  }
      */
     public static class Item extends LinkedHashMap<Parameter, String> {}
 
     /**
-     * Range map.
+     * Range is a key value pair of Parameter and RangeVal.
+     * For example:
+     * 'range':
+     *   {
+     *     'no_of_cpus': {'min': 1, 'max': 18},
+     *     'storage_in_gigs': {'min': 1, 'max': 16384},
+     *     'memory_in_gigs': {'min': 1, 'max': 3024}
+     *   }
      */
     public static class Range extends LinkedHashMap<Parameter, RangeVal> {}
 
     /**
-     * RangeVal map.
+     * RangeVal is a key value pair of RangeProperty and Integer.
+     * For exammple:
+     * {'min': 1, 'max': 16384}
      */
     public static class RangeVal extends LinkedHashMap<RangeProperty, Integer> {}
 
@@ -98,7 +118,7 @@ public class NodeSizeTemplate extends AbstractEntity {
     }
 
     /**
-     * Class RangeValuetypes.
+     * Enum that represents Range properties.
      */
     public enum RangeProperty {
         @JsonProperty("min")
