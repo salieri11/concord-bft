@@ -9,11 +9,14 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -34,13 +37,19 @@ import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
 import com.vmware.blockchain.agent.services.configuration.HlfConfig;
 import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
+import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
+import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 
-import lombok.Getter;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
+import lombok.Getter;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -66,6 +75,8 @@ public class NodeStartupOrchestrator {
     @Getter
     private List<BaseContainerSpec> components;
 
+    private final MetricsAgent metricsAgent;
+
     /**
      * Default constructor.
      */
@@ -75,42 +86,56 @@ public class NodeStartupOrchestrator {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
         this.configServiceInvoker = configServiceInvoker;
+
+        List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
+                NodeStartupOrchestrator.class.getName()));
+        this.metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
     }
 
     /**
      * Start the local setup as a Concord node.
      */
     public void bootstrapConcord() {
-        try {
-            // Download configuration and certs.
-            setupConfig();
-
-            // Pull and order images
-            List<BaseContainerSpec> containerConfigList = pullImages();
-            containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
-            components = containerConfigList;
-
-            agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
-
-            // Start all containers
-            // Get Docker client instance
-            var dockerClient = DockerClientBuilder.getInstance().build();
+        Counter counter = this.metricsAgent.getCounter("Number of containers launched",
+                MetricsConstants.MetricsNames.CONTAINERS_LAUNCH_COUNT,
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "bootstrapConcord")));
+        Timer timer = this.metricsAgent.getTimer("Bootstrap blockchain",
+                MetricsConstants.MetricsNames.CONTAINERS_LAUNCH,
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "bootstrapConcord")));
+        timer.record(() -> {
             try {
-                containerConfigList.forEach(container ->  {
-                    var containerResponse = createContainer(dockerClient, container);
-                    if (configuration.getNoLaunch()) {
-                        log.info("Not Launching {}: Id {} ", container.getContainerName(), containerResponse.getId());
-                    } else {
-                        agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
-                    }
-                });
-            } catch (ConflictException e) {
-                log.warn("Did not launch the container again. Container already present", e);
+                // Download configuration and certs.
+                setupConfig();
+
+                // Pull and order images
+                List<BaseContainerSpec> containerConfigList = pullImages();
+                containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
+                components = containerConfigList;
+
+                agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
+
+                // Start all containers
+                // Get Docker client instance
+                var dockerClient = DockerClientBuilder.getInstance().build();
+                try {
+                    containerConfigList.forEach(container ->  {
+                        var containerResponse = createContainer(dockerClient, container);
+                        if (configuration.getNoLaunch()) {
+                            log.info("Not Launching {}: Id {} ",
+                                    container.getContainerName(), containerResponse.getId());
+                        } else {
+                            agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
+                            counter.increment();
+                        }
+                    });
+                } catch (ConflictException e) {
+                    log.warn("Did not launch the container again. Container already present", e);
+                }
+            } catch (Exception e) {
+                log.error("Unexpected exception encountered during launch sequence", e);
+                log.warn("******Node not Functional********");
             }
-        } catch (Exception e) {
-            log.error("Unexpected exception encountered during launch sequence", e);
-            log.warn("******Node not Functional********");
-        }
+        });
     }
 
     /**
@@ -146,6 +171,8 @@ public class NodeStartupOrchestrator {
     }
 
     private List<BaseContainerSpec> pullImages() {
+
+        var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         final var registryUsername = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
@@ -164,18 +191,23 @@ public class NodeStartupOrchestrator {
                     containerSpec = getCoreContainerSpec(
                             configuration.getModel().getBlockchainType(), component);
                 }
-                futures.add(CompletableFuture
-                                    .supplyAsync(
-                                        () -> agentDockerClient.getImageIdAfterDl(containerSpec, registryUsername,
-                                                                                  registryPassword,
-                                                                                  component.getName())));
+                futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
+                        registryUsername, registryPassword, component.getName())));
             }
         }
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+        var result =  CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply((res) -> futures.stream()
-                .map(CompletableFuture::join)
-                .collect(Collectors.toList())).join();
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList())).join();
+
+        var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
+        Timer timer = this.metricsAgent.getTimer("Pull component docker images",
+                MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES,
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "pullImages")));
+        timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
+
+        return result;
     }
 
     private BaseContainerSpec getCoreContainerSpec(ConcordModelSpecification.BlockchainType blockchainType,
@@ -267,7 +299,7 @@ public class NodeStartupOrchestrator {
         }
 
         if (containerParam == DamlCommitterConfig.DAML_CONCORD
-            || containerParam == EthereumConfig.CONCORD) {
+                || containerParam == EthereumConfig.CONCORD) {
             // TODO Evaluate this with security.
             log.warn("Setting privilege mode");
             hostConfig.withPrivileged(true);
@@ -287,6 +319,7 @@ public class NodeStartupOrchestrator {
         if (container == null) {
             log.error("Couldn't create {} container...!", containerParam.getContainerName());
         }
+
         return container;
     }
 }
