@@ -250,6 +250,9 @@ inline bool InitializeSbftConfiguration(
     repConf->preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
         "preexec_requests_status_check_period_millisec");
 
+    repConf->preExecConcurrencyLevel =
+        config.getValue<uint16_t>("preexec_concurrency_level");
+
     // TODO(IG): add to config file
     repConf->viewChangeProtocolEnabled = true;
 
