@@ -45,7 +45,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.HelenException;
@@ -175,18 +174,19 @@ public class BlockchainController {
     /**
      * Get the blockchain details.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.GET)
-    @PreAuthorize("@authHelper.canAccessChain(#bid)")
-    ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID bid) throws NotFoundException {
-        Blockchain blockchain = safeGetBlockchain(bid);
-
+    @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
+    ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
+        Blockchain b = blockchainService.get(id);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", id.toString()));
+        }
         // If we are to populate nodes.
         //List<NodeInterface> nodes = new ArrayList<>();
         //nodes.addAll(replicaService.getReplicas(id));
         //nodes.addAll(clientService.getClientsByParentId(id));
-
-        BlockchainGetResponse blockchainGetResponse = new BlockchainGetResponse(blockchain);
-        return new ResponseEntity<>(blockchainGetResponse, HttpStatus.OK);
+        BlockchainGetResponse br = new BlockchainGetResponse(b);
+        return new ResponseEntity<>(br, HttpStatus.OK);
     }
 
     /**
@@ -235,14 +235,17 @@ public class BlockchainController {
      * Update the given blockchain.
      * @throws NotFoundException NotFoundException
      */
-    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.PATCH)
-    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
-    public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID bid,
+    @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.canUpdateChain(#id)")
+    public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
             @RequestBody BlockchainPatch body) throws NotFoundException {
         // TODO: Actual PATCH
 
         // Temporary: create a completed task that points to the default blockchain
-        Blockchain blockchain = safeGetBlockchain(bid);
+        Blockchain b = blockchainService.get(id);
+        if (b == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", id.toString()));
+        }
 
         Task task = new Task();
         task.setState(State.SUCCEEDED);
@@ -262,8 +265,10 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/deregister/{bid}", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid) throws Exception {
-        Blockchain blockchain = safeGetBlockchain(bid);
-
+        Blockchain blockchain = blockchainService.get(bid);
+        if (blockchain == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
         if (blockchain.getState() != Blockchain.BlockchainState.INACTIVE) {
             blockchain.setState(Blockchain.BlockchainState.INACTIVE);
             blockchain = blockchainService.put(blockchain);
@@ -281,7 +286,10 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.DELETE)
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainGetResponse> deprovision(@PathVariable("bid") UUID bid) {
-        Blockchain blockchain = safeGetBlockchain(bid);
+        Blockchain blockchain = blockchainService.get(bid);
+        if (blockchain == null) {
+            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
+        }
         if (blockchain.getState() != Blockchain.BlockchainState.ACTIVE) {
             Set<UUID> zoneIds = new HashSet<>();
             zoneIds.addAll(replicaService.getReplicas(blockchain.getId()).stream().map(k -> k.getZoneId())
@@ -477,19 +485,7 @@ public class BlockchainController {
         return m <= clientNumber;
     }
 
-    private Blockchain safeGetBlockchain(UUID bid) {
-        Blockchain blockchain;
-        try {
-            blockchain = blockchainService.get(bid);
-            if (blockchain == null) {
-                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
-            }
-        } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
-        }
 
-        return blockchain;
-    }
 
     private int getMaxChains(Organization organization) {
         // admins can create any number

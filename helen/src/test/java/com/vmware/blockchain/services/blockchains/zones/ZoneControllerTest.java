@@ -22,7 +22,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +53,7 @@ import com.google.common.collect.Lists;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
@@ -93,9 +90,6 @@ class ZoneControllerTest {
     private static final UUID OP_SITE2 = UUID.fromString("2aa01247-dd51-4460-bba0-0a0934f0419f");
     private static final UUID ORG_ID = UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902");
     private static final UUID OPER_ORG = UUID.fromString("0b93680b-e99d-4f83-bcfd-e2d52c6ea697");
-
-    private static final UUID MISSING_ZONE = UUID.fromString("fc0d250d-3d0c-42a3-b8a5-92ce07e058aa");
-    private static final UUID NOT_FOUND_ZONE = UUID.fromString("6c03886b-fa5f-4b66-812b-ede8fb7a4e1c");
 
     private static final UUID DELETE_EMPTY_ZONE = UUID.fromString("184b9ead-4880-405b-be71-c801ff2e5a4f");
     private static final UUID DELETE_ZONE_WITH_REPLICA = UUID.fromString("00d3a7bc-47ea-4b78-aa57-9d6951265e9e");
@@ -819,17 +813,6 @@ class ZoneControllerTest {
         when(replicaService.getReplicasByParentId(DELETE_ZONE_WITH_REPLICA_AND_CLIENT))
                 .thenReturn(ImmutableList.of(r2));
 
-        // Mock DELETE test Zones.
-        when(zoneService.getAuthorized(DELETE_ZONE_WITH_CLIENT)).thenReturn(new Zone());
-        when(zoneService.getAuthorized(DELETE_ZONE_WITH_REPLICA)).thenReturn(new Zone());
-        when(zoneService.getAuthorized(DELETE_ZONE_WITH_REPLICA_AND_CLIENT)).thenReturn(new Zone());
-        when(zoneService.getAuthorized(DELETE_EMPTY_ZONE)).thenReturn(new Zone());
-
-
-        // Mock unavailable Zone.
-        when(zoneService.getAuthorized(MISSING_ZONE)).thenReturn(null);
-        when(zoneService.getAuthorized(NOT_FOUND_ZONE)).thenThrow(new NotFoundException("Not Found"));
-
         ReflectionTestUtils.setField(BlockchainUtils.class,
                                      "wavefrontEndpoint",
                                      "https://vmware.wavefront.com");
@@ -878,32 +861,6 @@ class ZoneControllerTest {
         Assertions.assertEquals(1, r.logManagements.size());
         Assertions.assertEquals(Zone.LogDestination.LOG_INSIGHT, r.logManagements.get(0).destination);
         Assertions.assertEquals(new Integer(9000), r.getLogManagements().get(0).port);
-    }
-
-    @Test
-    void testUnavailableZoneGet() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/blockchains/zones/" + MISSING_ZONE)
-                .with(authentication(adminAuth)))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
-    }
-
-    @Test
-    void testNotFoundZoneGet() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/blockchains/zones/" + NOT_FOUND_ZONE)
-                .with(authentication(adminAuth)))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
     }
 
     @Test
@@ -1201,39 +1158,11 @@ class ZoneControllerTest {
     }
 
     @Test
-    void testUnavailableZonePatch() throws Exception {
-        MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + MISSING_ZONE)
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_ONPREM_BODY))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
-    }
-
-    @Test
-    void testNotFoundZonePatch() throws Exception {
-        MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + NOT_FOUND_ZONE)
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_ONPREM_BODY))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
-    }
-
-    @Test
     void testDelete() throws Exception {
         MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_EMPTY_ZONE)
-                .with(authentication(adminAuth)))
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(PATCH_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -1241,39 +1170,6 @@ class ZoneControllerTest {
         String id = objectMapper.readValue(body, Map.class).get("id").toString();
 
         Assertions.assertEquals(DELETE_EMPTY_ZONE.toString(), id);
-    }
-
-    @Test
-    void testDeleteBadAuth() throws Exception {
-        mockMvc.perform(delete("/api/blockchains/zones/" + DELETE_EMPTY_ZONE)
-                .with(authentication(userAuth)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void testUnavailableZoneDelete() throws Exception {
-        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + MISSING_ZONE)
-                .with(authentication(adminAuth)))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
-    }
-
-    @Test
-    void testNotFoundZoneDelete() throws Exception {
-        MvcResult result = mockMvc.perform(delete("/api/blockchains/zones/" + NOT_FOUND_ZONE)
-                .with(authentication(adminAuth)))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
     }
 
     @Test
@@ -1286,10 +1182,8 @@ class ZoneControllerTest {
 
         String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(
-                String.format("Zone %s has following dependencies. Clients: %s Replicas %s Cannot be deleted.",
-                        DELETE_ZONE_WITH_CLIENT.toString(), ImmutableList.of(CLIENT_ID_1), Collections.emptyList()),
-                errorMessage);
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_CLIENT.toString()), errorMessage);
     }
 
     @Test
@@ -1302,10 +1196,8 @@ class ZoneControllerTest {
 
         String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(
-                String.format("Zone %s has following dependencies. Clients: %s Replicas %s Cannot be deleted.",
-                        DELETE_ZONE_WITH_REPLICA.toString(), Collections.emptyList(), ImmutableList.of(REPLICA_ID_1)),
-                errorMessage);
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_REPLICA.toString()), errorMessage);
     }
 
     @Test
@@ -1318,17 +1210,9 @@ class ZoneControllerTest {
 
         String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(
-                String.format(
-                        "Zone %s has following dependencies. Clients: %s Replicas %s Cannot be deleted.",
-                        DELETE_ZONE_WITH_REPLICA_AND_CLIENT.toString(),
-                        ImmutableList.of(CLIENT_ID_2),
-                        ImmutableList.of(REPLICA_ID_2)
-                ),
-                errorMessage);
+        Assertions.assertEquals(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT.toString()), errorMessage);
     }
-
-
 
     @Test
     void testPatchVmcAws() throws Exception {

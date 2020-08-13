@@ -16,10 +16,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -47,9 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.ConsortiumController.ConGetResponse;
@@ -67,8 +63,6 @@ import com.vmware.blockchain.services.profiles.OrganizationContoller.OrgGetRespo
 public class ConsortiumControllerTest {
 
     static final UUID C_1 = UUID.fromString("110da5dc-39c1-4148-a911-ec985b9448b0");
-    static final UUID MISSING_CONSORTIUM = UUID.fromString("cca262fa-1a75-4fa0-9261-422083326d8c");
-    static final UUID NOT_FOUND_CONSORTIUM = UUID.fromString("f59b9c48-df04-4372-8d73-a8a39a281ab7");
     static final UUID O_1 = UUID.fromString("fdd53f14-acaa-4c55-a41c-cad76154cd1f");
     static final UUID O_2 = UUID.fromString("878ddd8a-8ed0-4a90-a72d-5b32b7acb03c");
 
@@ -121,8 +115,6 @@ public class ConsortiumControllerTest {
         c.setId(C_1);
         when(consortiumService.list()).thenReturn(Collections.singletonList(c));
         when(consortiumService.get(C_1)).thenReturn(c);
-        when(consortiumService.get(MISSING_CONSORTIUM)).thenReturn(null);
-        when(consortiumService.get(NOT_FOUND_CONSORTIUM)).thenThrow(new NotFoundException("Not Found."));
         when(consortiumService.put(any(Consortium.class))).thenAnswer(i -> {
             Consortium consortium = i.getArgument(0);
             if (consortium.getId() == null) {
@@ -134,17 +126,17 @@ public class ConsortiumControllerTest {
         objectMapper = jacksonBuilder.build();
         adminAuth = createContext("operator", O_1,
                                   ImmutableList.of(vmbcRoles.SYSTEM_ADMIN, vmbcRoles.ORG_USER),
-                                  ImmutableList.of(C_1, MISSING_CONSORTIUM, NOT_FOUND_CONSORTIUM),
+                                  ImmutableList.of(C_1),
                                   Collections.emptyList(), "");
 
         userAuth = createContext("operator", O_1,
                                  ImmutableList.of(vmbcRoles.ORG_USER),
-                                 ImmutableList.of(C_1, MISSING_CONSORTIUM, NOT_FOUND_CONSORTIUM),
+                                 ImmutableList.of(C_1),
                                  Collections.emptyList(), "");
 
         noAuth = createContext("operator", O_1,
                 Collections.emptyList(),
-                ImmutableList.of(C_1, MISSING_CONSORTIUM, NOT_FOUND_CONSORTIUM),
+                ImmutableList.of(C_1),
                 Collections.emptyList(), "");
     }
 
@@ -177,30 +169,6 @@ public class ConsortiumControllerTest {
         ConGetResponse con = objectMapper.readValue(body, ConGetResponse.class);
         Assertions.assertEquals(C_1, con.consortiumId);
         Assertions.assertEquals("Test", con.getConsortiumName());
-    }
-
-    @Test
-    void testGetMissingConsortium() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/consortiums/" + MISSING_CONSORTIUM.toString())
-                .with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
-    }
-
-    @Test
-    void testGetNotFoundConsortium() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/consortiums/" + NOT_FOUND_CONSORTIUM.toString())
-                .with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
     }
 
     @Test
@@ -283,38 +251,6 @@ public class ConsortiumControllerTest {
     }
 
     @Test
-    void testPatchMissingConsortium() throws Exception {
-        String content = "    {"
-                + "        \"consortium_name\": \"My New Name\""
-                + "   }";
-        MvcResult result = mockMvc.perform(patch("/api/consortiums/" + MISSING_CONSORTIUM.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
-    }
-
-    @Test
-    void testPatchNotFoundConsortium() throws Exception {
-        String content = "    {"
-                + "        \"consortium_name\": \"My New Name\""
-                + "   }";
-        MvcResult result = mockMvc.perform(patch("/api/consortiums/" + NOT_FOUND_CONSORTIUM.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
-    }
-
-    @Test
     void testAdd() throws Exception {
         String content = "   {"
                          + "        \"orgs_to_add\": [\"" + O_2.toString() + "\"]"
@@ -388,30 +324,6 @@ public class ConsortiumControllerTest {
         });
         Assertions.assertEquals(1, list.size());
         Assertions.assertEquals(O_1, list.get(0).getOrganizationId());
-    }
-
-    @Test
-    void testGetOrgsMissingConsortium() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/consortiums/" + MISSING_CONSORTIUM.toString() + "/organizations")
-                .with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
-    }
-
-    @Test
-    void testGetOrgsNotFoundConsortium() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/consortiums/" + NOT_FOUND_CONSORTIUM.toString() + "/organizations")
-                .with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
     }
 
     @Test

@@ -38,14 +38,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
-import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.clients.Client;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.OnPremZone.EndPoint;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Action;
@@ -240,10 +241,9 @@ public class ZoneController {
      */
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    ResponseEntity<ZoneResponse> getZone(@PathVariable("zone_id") UUID zoneId) throws Exception {
-        Zone zone = safeGetZone(zoneId);
-
-        ZoneResponse response = getZoneResponse(zone);
+    ResponseEntity<ZoneResponse> getZone(@PathVariable("zone_id") UUID zoneId) {
+        Zone z = zoneService.getAuthorized(zoneId);
+        ZoneResponse response = getZoneResponse(z);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -299,11 +299,11 @@ public class ZoneController {
      */
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") UUID zoneId,
+    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") String zoneId,
                                            @RequestBody(required = false) ZoneRequest request)
             throws Exception {
         // Only for ONPREM for now
-        Zone zone = safeGetZone(zoneId);
+        Zone zone = zoneService.getAuthorized(UUID.fromString(zoneId));
 
         // everything from here on needs a request body.
         if (request == null) {
@@ -380,19 +380,12 @@ public class ZoneController {
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.DELETE)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     ResponseEntity<DeleteResponse> deleteZone(@PathVariable("zone_id") UUID zoneId) {
-        safeGetZone(zoneId); // Make sure the zone is present
+        List<Client> clientList = clientService.getClientsByParentId(zoneId);
+        List<Replica> replicaList = replicaService.getReplicasByParentId(zoneId);
 
-        List<UUID> clientIdList = clientService.getClientsByParentId(zoneId)
-                .stream().map(client -> client.getId()).collect(Collectors.toList());
-        List<UUID> replicaIdList = replicaService.getReplicasByParentId(zoneId)
-                .stream().map(replica -> replica.getId()).collect(Collectors.toList());
-
-        if (clientIdList.size() > 0 || replicaIdList.size() > 0) {
-            throw new BadRequestException(
-                    String.format("Zone %s has following dependencies. Clients: %s Replicas %s Cannot be deleted.",
-                            zoneId.toString(), clientIdList, replicaIdList
-                    )
-            );
+        if (clientList.size() > 0 || replicaList.size() > 0) {
+            throw new BadRequestException(String.format("Zone %s has dependent Clients/Replicas. Cannot be deleted.",
+                    zoneId.toString()));
         } else {
             zoneService.delete(zoneId);
             return new ResponseEntity<>(new DeleteResponse(zoneId), HttpStatus.OK);
@@ -404,21 +397,6 @@ public class ZoneController {
         ObjectMapper objectMapper = new ObjectMapper();
         String s = objectMapper.writeValueAsString(request);
         Zone zone = objectMapper.readValue(s, Zone.class);
-        return zone;
-    }
-
-    private Zone safeGetZone(UUID zid) {
-        Zone zone;
-
-        try {
-            zone = zoneService.getAuthorized(zid);
-            if (zone == null) {
-                throw new NotFoundException(ErrorCode.ZONE_NOT_FOUND, zid.toString());
-            }
-        } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.ZONE_NOT_FOUND, zid.toString());
-        }
-
         return zone;
     }
 
