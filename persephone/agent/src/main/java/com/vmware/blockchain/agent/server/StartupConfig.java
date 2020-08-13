@@ -2,7 +2,7 @@
  * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.agent;
+package com.vmware.blockchain.agent.server;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -33,7 +33,7 @@ public class StartupConfig {
     @EventListener(classes = ApplicationStartedEvent.class)
     public void applicationStarted() {
         log.info("Triggering bootstrap...");
-        //nodeStartupOrchestrator.bootstrapConcord();
+        nodeStartupOrchestrator.bootstrapConcord();
     }
 
 }
