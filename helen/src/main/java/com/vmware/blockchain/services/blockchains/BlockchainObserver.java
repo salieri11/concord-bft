@@ -330,6 +330,12 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                         clientNode.setGroupId(nodeId);
                     }
 
+                    // CLIENT_GROUP_NAME is available regardless of the resource type.
+                    String clientGroupName = attributes.get(NodeProperty.Name.CLIENT_GROUP_NAME.name());
+                    if (clientGroupName != null && !clientGroupName.isEmpty()) {
+                        clientNode.setGroupName(clientGroupName);
+                    }
+
                     switch (each.getType()) {
                         case COMPUTE_RESOURCE:
                             clientNode.setPassword(attributes.get(
