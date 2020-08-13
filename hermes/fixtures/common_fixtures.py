@@ -328,7 +328,9 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
       log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                "manually: {}\n".format(json.dumps(blockchainFullDetails, indent=4)))
       log.info("Annotating VMs with deployment context...")
-      infra.giveDeploymentContext(blockchainFullDetails)
+      fatal_errors = infra.giveDeploymentContext(blockchainFullDetails)
+      if fatal_errors: # e.g. IP conflicts
+            infra.save_fatal_errors_to_summary(fatal_errors)
 
       ethereum_replicas = []
       daml_committer_replicas = []

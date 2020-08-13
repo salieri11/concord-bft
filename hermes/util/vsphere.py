@@ -113,16 +113,22 @@ class ConnectionToSDDC:
     return None
 
 
-  def getByInternalIP(self, ipAddress, getAsHandle=False):
+  def getByInternalIP(self, ipAddress, getAsHandle=False, getFullList=False):
     '''
         Returns a VM (vim.VirtualMachine) matching the supplied IP
     '''
     matchedList = self.content.searchIndex.FindAllByIp(ip=ipAddress, vmSearch=True)
     if len(matchedList) == 0: return None
-    vm = matchedList[0]
-    handle = self.vmRegisterIfNew(vm)
-    if getAsHandle: return handle
-    else: return vm
+    if getFullList:
+      results = []
+      for vm in matchedList:
+        handle = self.vmRegisterIfNew(vm)
+        results.append(handle if getAsHandle else vm)
+      return results
+    else:
+      vm = matchedList[0]
+      handle = self.vmRegisterIfNew(vm)
+      return handle if getAsHandle else vm
     
 
   def getEntityType(self, entity):
