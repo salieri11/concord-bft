@@ -21,6 +21,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
@@ -375,6 +377,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
     }
 
     private List<String> transformDeployedResourceToString(List<DeployedResource> resources) {
-        return resources.stream().map(e -> e.toString()).collect(Collectors.toList());
+        return resources.stream().map(e -> {
+            try {
+                return JsonFormat.printer().print(e);
+            } catch (InvalidProtocolBufferException ex) {
+                logger.warn("Could not parse resource correctly. Saving raw string instead."
+                            + " This will fail cleanup api");
+                return e.toString();
+            }
+        }).collect(Collectors.toList());
     }
 }
