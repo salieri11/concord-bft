@@ -24,9 +24,9 @@ import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
+import { TranslateService } from '@ngx-translate/core';
 
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
-const numberOnlyRegex = /^\d+$/;
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -42,6 +42,7 @@ const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | nu
 
 interface EventData { type: string; data?: any; error?: Error; }
 
+
 @Component({
   selector: 'concord-blockchain-wizard',
   templateUrl: './blockchain-wizard.component.html',
@@ -53,12 +54,18 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('usersPage', { static: false }) usersPage: ClrWizardPage;
   @ViewChild('onPremPage', { static: false }) onPremPage: ClrWizardPage;
   @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
+  @ViewChild('clientsPage', { static: false }) clientsPage: ClrWizardPage;
   @ViewChild('onPremForm', { static: false }) onPremForm: ZoneFormComponent;
   @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
+  @ViewChild('clientsForm', { static: false }) clientsForm: ElementRef;
 
   @Output('events') events: EventEmitter<EventData> = new EventEmitter<EventData>();
 
+  engines = ContractEngines;
+  zoneType = ZoneType;
+
   selectedEngine: string;
+  selectedZoneType: ZoneType;
   isOpen = false;
   form: FormGroup;
 
@@ -68,7 +75,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   zones: Zone[] = [];
   onPremZones: Zone[] = [];
   cloudZones: Zone[] = [];
-  engines = ContractEngines;
 
   showOnPrem: boolean;
   loadingFlag: boolean;
@@ -78,29 +84,24 @@ export class BlockchainWizardComponent implements AfterViewInit {
   hasOnPrem: boolean = true;
   zonesSetUp: boolean = false;
 
+  clientGroups: FormArray;
+  maxClients = 10;
+  maxClientsPerGroup = 5;
+  alwaysGroup = true;
+
   pastContractEngineStep: boolean = false;
-  clientForm: FormGroup;
 
   constructor(
-    public blockchainService: BlockchainService,
+    private blockchainService: BlockchainService,
     private authService: AuthenticationService,
     private routeService: RouteService,
     private router: Router,
-    private helpService: ContextualHelpService
+    private helpService: ContextualHelpService,
+    private translate: TranslateService,
   ) {
-    if (!this.isAuthorized()) {
-      this.router.navigate([mainRoutes.forbidden]);
-    }
-
-    // this.filterZones();
+    if (!this.isAuthorized()) { this.router.navigate([mainRoutes.forbidden]); }
     this.form = this.initForm();
     this.onPremActive = this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    this.clientForm = new FormGroup({
-      zone_id: new FormControl('', Validators.required),
-      auth_url: new FormControl('', [Validators.pattern(urlValidateRegex)]),
-      group_index: new FormControl('', [Validators.pattern(numberOnlyRegex)]),
-    });
-
   }
 
   ngAfterViewInit() {
@@ -139,57 +140,124 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
   }
 
-  tabSelect() {
+  zoneTabSelect(zoneType: ZoneType) {
+    this.selectedZoneType = zoneType;
     this.setupZones(true);
   }
 
-  // Client node adding related
-  addClientNode() {
-    const clientsFormArray = (this.form.controls.clients as FormArray);
-    const zoneId = this.clientForm.get('zone_id').value;
-    const zoneName =  this.blockchainService.zones
-                            .filter(zone => zone.id === zoneId)[0].name;
-    let groupIndex = this.clientForm.get('group_index').value;
-    if (!groupIndex && groupIndex !== 0) { groupIndex = ''; }
-    groupIndex = groupIndex + ''; // group_index field is of type string
-    const clientData = new FormControl({
-      zone_id: new FormControl(zoneId),
-      auth_url_jwt: new FormControl(this.clientForm.get('auth_url').value),
-      zone_name: zoneName,
-      group_index: new FormControl(groupIndex),
-    });
-    clientsFormArray.push(clientData);
+  // Clients & Group functions
+  addClientGroup(groupName: string = '') {
+    const g = this.clientGroups.length;
+    this.clientGroups.push(new FormGroup({
+      group_name: new FormControl(groupName,
+        [Validators.required, this.groupNameUniqueValidator.bind(this)]
+      ),
+      member_clients: new FormArray([]),
+    }));
+    this.addClientNodeToGroup(g);
   }
-  removeClientNode(i: number) {
-    const clientsFormArray = (this.form.controls.clients as FormArray);
-    clientsFormArray.removeAt(i);
+  getClientGroup(g: number) { return this.clientGroups.at(g); }
+  removeClientGroup(g: number) { this.clientGroups.removeAt(g); }
+  getClientGroupMembers(g: number) { return this.getClientGroup(g)['controls'].member_clients; }
+  addClientNodeToGroup(g: number) {
+    const defaultZoneId = this.getActiveZones().length === 1 ? this.getActiveZones()[0].id : '';
+    this.getClientGroupMembers(g).push(
+      new FormGroup({
+        name: new FormControl(''),
+        zone_id: new FormControl(defaultZoneId, Validators.required),
+        auth_url_jwt: new FormControl('', Validators.pattern(urlValidateRegex)),
+        zone_name: new FormControl(''),
+      })
+    );
   }
-  clearClientNodes() {
-    const clientsFormArray = (this.form.controls.clients as FormArray);
-    clientsFormArray.clear();
+  removeClientNodeToGroup(g: number, c: number) {
+    if (this.getClientGroupMembers(g).length > 1) {
+      this.getClientGroupMembers(g).removeAt(c);
+    } else {
+      this.removeClientGroup(g);
+    }
   }
-  clientNodeValidator(fa: FormArray): ValidationErrors | null {
-    if (fa.value.length === 0) { return { 'countIsCorrect': false }; }
-    return { 'countIsCorrect': true };
+  clientNodeIndex(g: number, c: number) {
+    let total = 0;
+    for (let g2 = 0; g2 < this.clientGroups.length; ++g2) {
+      if (g === g2) { break; }
+      total += this.getClientGroupMembers(g2).length;
+    }
+    return total + c;
+  }
+  totalClientsCount() {
+    let total = 0;
+    for (let g = 0; g < this.clientGroups.length; ++g) {
+      total += this.getClientGroupMembers(g).length;
+    }
+    return total;
+  }
+  clientNodesValidator(fa: FormArray): ValidationErrors | null {
+    let currentClientIndex = 0;
+    const errors = [];
+    const clientGroups = fa;
+    const clientNodeI18N = this.translate.instant('blockchainWizard.clients.clientNode');
+    const groupNameErrorI18N = this.translate.instant('blockchainWizard.clients.groupNameError');
+    const zoneSelectErrorI18N = this.translate.instant('blockchainWizard.clients.zoneSelectError');
+    const authUrlErrorI18N = this.translate.instant('blockchainWizard.clients.authUrlError');
+    for (let g = 0; g < clientGroups.length; ++g) {
+      const clientGroup = clientGroups.at(g) as FormGroup;
+      const groupName = clientGroup.controls.group_name as FormControl;
+      const memberClients = clientGroup.controls.member_clients as FormArray;
+      if ((this.alwaysGroup || memberClients.length > 1) && !groupName.valid) {
+        errors.push(`${clientNodeI18N} ${currentClientIndex + 1} :: ${groupNameErrorI18N}`);
+      }
+      for (let c = 0; c < memberClients.length; ++c) {
+        const clientNode = memberClients.at(c) as FormGroup;
+        const zoneId = clientNode.controls.zone_id as FormControl;
+        if (zoneId.value === '') {
+          errors.push(`${clientNodeI18N} ${currentClientIndex + 1} :: ${zoneSelectErrorI18N}`);
+        }
+        const authUrl = clientNode.controls.auth_url_jwt as FormControl;
+        if (!authUrl.valid) {
+          errors.push(`${clientNodeI18N} ${currentClientIndex + 1} :: ${authUrlErrorI18N}`);
+        }
+        ++currentClientIndex;
+      }
+    }
+    return { messages: errors };
+  }
+  groupNameUniqueValidator(fc: FormControl): ValidationErrors | null  {
+    const groupName = fc.value;
+    if (!groupName) { return null; }
+    for (let g = 0; g < this.clientGroups.length; ++g) {
+      const clientGroup = this.clientGroups.at(g) as FormGroup;
+      const groupNameFC = clientGroup.controls.group_name as FormControl;
+      if (groupNameFC === fc) { continue; }
+      if (groupNameFC.value === groupName) {
+        const msg = this.translate.instant('blockchainWizard.clients.groupNameErrorDupe')
+                                        .replace('{{groupName}}', groupName);
+        return { message: msg };
+      }
+    }
+    return null;
   }
 
   private setupZones(tabMoved?: boolean) {
     if (tabMoved || !this.zonesSetUp) {
       this.zonesSetUp = true;
       this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-      const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
-      const cloudZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.VMC_AWS);
+      const onPremZones = this.onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+      const cloudZones = this.cloudZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.VMC_AWS);
+      if (tabMoved) { this.clientGroups.clear(); }
       if (this.form) {
         const zones = this.form['controls'].nodes['controls'].zones;
         const pastZones = this.zones;
         this.zones = [];
         pastZones.forEach(zone => { zones.removeControl(zone.id); });
         if (this.onPremActive) {
+          if (!tabMoved) { this.selectedZoneType = ZoneType.ON_PREM; }
           onPremZones.forEach(zone => {
             zones.addControl(zone.id, new FormControl(''));
           });
           this.zones = onPremZones;
         } else {
+          if (!tabMoved) { this.selectedZoneType = ZoneType.VMC_AWS; }
           this.cloudActive = true;
           cloudZones.forEach(zone => {
             zones.addControl(zone.id, new FormControl(''));
@@ -215,12 +283,21 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
     // Handle client nodes
     const clients: NodeClientParam[] = [];
-    for (const client of (this.form.get('clients') as FormArray).getRawValue()) {
-      clients.push({
-        zone_id: client.zone_id.value,
-        auth_url_jwt: client.auth_url_jwt.value,
-        group_index: client.group_index.value,
-      });
+    for (let g = 0; g < this.clientGroups.length; ++g) {
+      const clientGroup = this.clientGroups.at(g) as FormGroup;
+      const groupName = clientGroup.controls.group_name as FormControl;
+      const memberClients = clientGroup.controls.member_clients as FormArray;
+      for (let c = 0; c < memberClients.length; ++c) {
+        const clientNode = memberClients.at(c) as FormGroup;
+        const zoneId = clientNode.controls.zone_id as FormControl;
+        const authUrl = clientNode.controls.auth_url_jwt as FormControl;
+        clients.push({
+          // should be groupName.value in the future
+          group_index: groupName ? (g + '') : groupName.value,
+          zone_id: zoneId.value,
+          auth_url_jwt: authUrl.value,
+        });
+      }
     }
     params.client_nodes = clients;
 
@@ -280,7 +357,55 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
   }
 
+  getActiveZones() {
+    // Get onprem OR cloud based on committers zone selection
+    switch (this.selectedZoneType) {
+      case ZoneType.ON_PREM: return this.onPremZones;
+      case ZoneType.VMC_AWS: return this.cloudZones;
+    }
+    return [];
+  }
+
+  getUsedZones() {
+    // Get used zones summary for both committers and clients
+    const allClientZones = [];
+    if (this.selectedEngine === this.engines.DAML) {
+      for (let g = 0; g < this.clientGroups.length; ++g) {
+        const memberClients = (this.clientGroups.at(g) as FormGroup).controls.member_clients as FormArray;
+        for (let c = 0; c < memberClients.length; ++c) {
+          const zoneId = (memberClients.at(c) as FormGroup).controls.zone_id as FormControl;
+          allClientZones.push(zoneId.value);
+        }
+      }
+    }
+    const committerI18N = this.translate.instant('blockchainWizard.committers.singular');
+    const committersI18N = this.translate.instant('blockchainWizard.committers.plural');
+    const clientI18N = this.translate.instant('blockchainWizard.clients.singular');
+    const clientsI18N = this.translate.instant('blockchainWizard.clients.plural');
+    const zonesUsageInfo = [];
+    this.zones.filter(zone => {
+      const value = (this.form.controls.nodes as FormGroup).controls.zones.value[zone.id];
+      const committersUsed = (value !== '' && value !== '0') ? parseInt(value, 10) : 0;
+      const clientsUsed = allClientZones.filter(zoneId => zoneId === zone.id).length;
+      const summaryPhrases = [];
+      const commitersPhrase = committersUsed ? `${committersUsed} ${committersUsed > 1 ? committersI18N : committerI18N}` : '';
+      const clientsPhrase = clientsUsed ? `${clientsUsed} ${clientsUsed > 1 ? clientsI18N : clientI18N}` : '';
+      if (commitersPhrase) { summaryPhrases.push(commitersPhrase); }
+      if (clientsPhrase) { summaryPhrases.push(clientsPhrase); }
+      if (committersUsed + clientsUsed > 0) {
+        zonesUsageInfo.push({
+          id: zone.id, name: zone.name,
+          committersUsed: committersUsed,
+          clientsUsed: clientsUsed,
+          summary: summaryPhrases.join(', ')
+        });
+      }
+    });
+    return zonesUsageInfo;
+  }
+
   initForm(): FormGroup {
+    this.clientGroups = new FormArray([], [Validators.required, this.clientNodesValidator.bind(this)]);
     return new FormGroup({
       details: new FormGroup({
         consortium_name: new FormControl('', Validators.required),
@@ -291,7 +416,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
         zones: this.zoneGroup(),
         // onPremZones: this.zoneGroup('onPremZones'),
       }, { validators: RegionCountValidator }),
-      clients: new FormArray([], this.clientNodeValidator),
+      clients: this.clientGroups
     });
   }
 
@@ -319,6 +444,9 @@ export class BlockchainWizardComponent implements AfterViewInit {
         break;
       case this.replicaPage:
         this.setupZones();
+        break;
+      case this.clientsPage:
+        if (this.clientGroups.length === 0) { this.addClientGroup(); }
         break;
     }
   }
