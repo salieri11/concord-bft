@@ -7,8 +7,14 @@ import logging
 import traceback
 import time
 import threading
+import enum
+from suites.case import addExceptionToSummary as add_exception_to_summary
 from . import helper, vsphere
 log = helper.hermes_logging_util.getMainLogger()
+
+class INVENTORY_ERRORS(enum.Enum):
+    IP_CONFLICT = "IP_CONFLICT"
+    NAME_CONFLICT = "NAME_CONFLICT"
 
 # Node type pretty name print for annotation
 PRETTY_TYPE_COMMITTER = "Committer" # eth/daml regular nodes are committers
@@ -21,22 +27,24 @@ PRETTY_TYPE_REPLICA = "Replica"
 INFRA = {}
 
 # list of all deployed replicas by Hermes from this particular build
-#     auto populated by `giveDeploymentContext` with replicaInfo
+# auto populated by `giveDeploymentContext` with replicaInfo
 DEPLOYED_REPLICAS = []
 
 
 def credentialsAreGood(sddcName, sddcInfo):
-   c = sddcInfo
-   if not c["username"] or not c["password"]: 
-      log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
-      return False
-   if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
-      return False
-   if c["password"].startswith("<") and c["password"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
-      return False
-   return True
+    c = sddcInfo
+    if not c["username"] or not c["password"]: 
+        log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
+        return False
+    if c["username"].startswith("<") and c["username"].endswith(">"):
+        log.debug("vSphere/{}: username credential"
+                  "is not injected (user_config.json)".format(sddcName))
+        return False
+    if c["password"].startswith("<") and c["password"].endswith(">"):
+        log.debug("vSphere/{}: password credential "
+                  "is not injected (user_config.json)".format(sddcName))
+        return False
+    return True
 
 
 def getConnection(sddcName, skipMapping=False):
@@ -176,7 +184,7 @@ def findVMByInternalIP(ip, sddcs=None, checkNew=False):
 
 
 def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
-   '''
+    '''
       Add detailed deployment context to the Hermes-deployed VMs
       ```python
       e.g. blockchainFullDetails = {
@@ -196,9 +204,10 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
           "created": 1593749320175, # (optional)
       }
       ```
-   '''
-   # get config from zone_config.json
-   try: 
+    '''
+    # get config from zone_config.json
+    fatalErrors = []
+    try: 
       # if narrow sddcs search not given, search in all SDDCs in zone_config
       sddcs = sddcs if sddcs is not None else getListFromZoneConfig()
       configObject = helper.getUserConfig()
@@ -208,6 +217,7 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
       dockerTag = configObject["metainf"]["env"]["dockerTag"]
       pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
       runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
+      DEPLOYED_REPLICAS.append(blockchainFullDetails)
       
       prepareConnections(sddcs) # connect to applicable SDDCs if not already connected
       for sddcName in sddcs: INFRA[sddcName].checkForNewEntities()
@@ -230,18 +240,38 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
 
           vmHandle = findVMByReplicaId(replicaId = replicaInfo["id"], sddcs = sddcs)
           if not vmHandle: continue # vm with the given replicaId is not found
-          if "realm" in vmHandle["attrMap"]: # already has context given (not possible for fresh deployment)
+          if "realm" in vmHandle["attrMap"]: # already has context given? (not possible for fresh deployment)
             log.error("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
             log.error("This is a sign of a previous VM clean-up failure while IPAM thinks this IP ({}) is released for use."
                         .foramt(replicaInfo["private_ip"]))
+            fatalErrors.push({"type": INVENTORY_ERRORS.NAME_CONFLICT, 
+                              "node": replicaInfo, "occupant": vmHandle})
             continue
           vm = vmHandle["entity"]
           sddc = vmHandle["sddc"]
           ipInfo = ""
           if "private_ip" in replicaInfo and replicaInfo["private_ip"]: # VM should ALWAYS have this
             ipInfo += replicaInfo["private_ip"] + " (Private)"
+            handlesFound = sddc.getByInternalIP(replicaInfo["private_ip"], getAsHandle=True, getFullList=True)
+            conflictHandle = None
+            if handlesFound:
+              for handleFound in handlesFound:
+                if vmHandle["uid"] != handleFound["uid"]: conflictHandle = handleFound
+              if conflictHandle:
+                replicaInfo["ip"] = replicaInfo["private_ip"]
+                fatalErrors.push({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
+                continue
           if "public_ip" in replicaInfo and replicaInfo["public_ip"]: # Cloud deployment with public IP
-            ipInfo += ", " + replicaInfo["public_ip"] + " (Public)"
+            ipInfo += ", " + replicaInfo["public_ip"] + " (Public)"; anyIP = replicaInfo["public_ip"]
+            handlesFound = getVMsByAttribute("public_ip", replicaInfo["public_ip"])
+            conflictHandle = None
+            if handlesFound:
+              for handleFound in handlesFound:
+                if vmHandle["uid"] != handleFound["uid"]: conflictHandle = handleFound
+              if conflictHandle:
+                replicaInfo["ip"] = replicaInfo["public_ip"]
+                fatalErrors.push({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
+                continue
           notes = ("IP: {}\nPassword: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}"
                   +"\nNetwork Type: {}\nNode Type: {}\n{}{}").format(
                   ipInfo,
@@ -286,11 +316,12 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
             sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["public_ip"])
         except Exception as e:
           helper.hermesNonCriticalTrace(e)
-   except Exception as e:
-     helper.hermesNonCriticalTrace(e)
+    except Exception as e:
+        helper.hermesNonCriticalTrace(e)
+    return fatalErrors
 
 
-def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
+def getVMsByAttribute(attrName, matchValue, matchExactly=True, mapBySDDC=False):
   '''
       Returns list of VMs (or map if mapBySDDC set to True)
       That satisfies the supplied attribute value condition
@@ -301,13 +332,31 @@ def getVMsByAttribute(attrName, matchValue, mapBySDDC=False):
   resultMap = {}
   for sddcName in sddcs:
     if getConnection(sddcName):
-      vmHandles = INFRA[sddcName].vmFilterByAttributeValue(attrName, matchValue, getAsHandle=True)
+      vmHandles = INFRA[sddcName].vmFilterByAttributeValue(
+        attrName, matchValue,
+        matchExactly=matchExactly,
+        getAsHandle=True
+      )
       if mapBySDDC:
         resultMap[sddcName] = vmHandles
       else:
         for vmHandle in vmHandles:
           vms.append(vmHandle)
   return resultMap if mapBySDDC else vms
+
+
+def save_fatal_errors_to_summary(fatal_errors):
+  if fatal_errors:
+      top_error = fatal_errors[0]
+      node_data = top_error["node"]; occupant_handle = top_error["occupant"]
+      if infra.INVENTORY_ERRORS.NAME_CONFLICT:
+          add_exception_to_summary(
+              Exception("FATAL !!  Node ID: '{}' already occupied by {} on {}".format( 
+                  node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
+      elif infra.INVENTORY_ERRORS.IP_CONFLICT:
+          add_exception_to_summary(
+              Exception("FATAL !!  Node IP: '{}' already occupied by {} on {}".format(
+                  node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
 
 
 def fetch_vm_handles(ips):

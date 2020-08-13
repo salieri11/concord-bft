@@ -746,13 +746,15 @@ class PersephoneTests(test_suite.TestSuite):
             log.info("Annotating VMs with deployment context...")
             log.info("Engine Type: {}".format(concord_type))
             log.info("Deployed Nodes: {}".format(json.dumps(node_details, indent=4)))
-            infra.giveDeploymentContext({
+            fatal_errors = infra.giveDeploymentContext({
               "id": "None",
               "consortium_id": "None",
               "blockchain_type": concord_type,
               "nodes_list": node_details,
               "deployed_from": "Persephone, V1"
             })
+            if fatal_errors: # e.g. IP conflicts
+                infra.save_fatal_errors_to_summary(fatal_errors)
 
             for deployment_info in self.rpc_test_helper.deployment_info:
                if deployment_info["deployment_session_id"][0] == session_id:
