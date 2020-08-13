@@ -484,7 +484,9 @@ export class BlockchainWizardComponent implements AfterViewInit {
         this.setupZones();
         break;
       case this.clientsPage:
-        if (this.clientGroups.length === 0) { this.addClientGroup(); }
+        if (this.clientGroups.length === 0) {
+          setTimeout(() => this.addClientGroup(), 100);
+        }
         break;
     }
   }
