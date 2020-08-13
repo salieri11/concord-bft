@@ -39,6 +39,8 @@ public class ConfigController {
      */
     @RequestMapping(path = "/api/reconfigure/{sessionid}", method = RequestMethod.POST)
     ResponseEntity<Void> getNewConfiguration(@PathVariable("sessionid") UUID sessionid) {
+        log.info("Received request to download config with identifier {}", sessionid);
+        // TODO Add error handling.
         configServiceInvoker
                 .retrieveConfiguration(ConfigurationSessionIdentifier.newBuilder().setId(sessionid.toString()).build(),
                                        nodeId);

@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,8 +74,6 @@ public final class NodeStartupOrchestrator {
     /**
      * Start the local setup as a Concord node.
      */
-    // TODO move this to startup config.
-    @PostConstruct
     public void bootstrapConcord() {
         try {
             // Download configuration and certs.
@@ -87,7 +83,6 @@ public final class NodeStartupOrchestrator {
             List<BaseContainerSpec> containerConfigList = pullImages();
             containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
 
-            //setup special hlf networking
             agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
 
             // Start all containers
