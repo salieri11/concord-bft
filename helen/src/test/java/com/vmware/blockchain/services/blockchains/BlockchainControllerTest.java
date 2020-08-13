@@ -16,7 +16,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +54,6 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
@@ -103,7 +101,6 @@ public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
-    static final UUID BC_MISSING = UUID.fromString("d3cad1e0-b520-47f5-9dfd-4cb28d59dfe8");
     static final UUID BC_UNAVAILABLE = UUID.fromString("a15cfd74-5f4b-4af4-a286-888a036d7889");
 
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
@@ -124,6 +121,7 @@ public class BlockchainControllerTest {
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
     private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
+    private static final UUID NODE_2 = UUID.fromString("81a70aeb-c13c-4f36-9e98-564c1e6eccdc");
 
     // Fixed placement.  three in site1, one is site 2
     static final String POST_BODY_DAML = "{"
@@ -279,6 +277,8 @@ public class BlockchainControllerTest {
                                                + "      }]"
                                                + "}";
 
+    private static final UUID REPLICA_1 = UUID.fromString("73ba5deb-1046-48e3-a369-3982177cabed");
+    private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
     private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
     private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
 
@@ -463,7 +463,6 @@ public class BlockchainControllerTest {
         when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
         when(blockchainService.get(BC_DEREGISTER)).thenReturn(bcDeregister);
         when(blockchainService.get(BC_DEREGISTER_INACTIVE)).thenReturn(bcDeregisterInactive);
-        when(blockchainService.get(BC_MISSING)).thenReturn(null);
         when(blockchainService.get(C2_ID)).thenThrow(new NotFoundException("Not found"));
         when(blockchainService.listByIds(any(List.class))).thenAnswer(i -> {
             return ((List<UUID>) i.getArgument(0)).stream().map(blockchainService::get).collect(Collectors.toList());
@@ -599,30 +598,9 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainOperatorNotFound() throws Exception {
         // There is no such blockchain.
-        MvcResult result = mockMvc.perform(get("/api/blockchains/" + C2_ID.toString()).with(authentication(adminAuth))
+        mockMvc.perform(get("/api/blockchains/" + C2_ID.toString()).with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, C2_ID.toString()), message);
-    }
-
-    @Test
-    void getMissingBlockchain() throws Exception {
-        // There is no such blockchain.
-        MvcResult result = mockMvc.perform(
-                get("/api/blockchains/" + BC_MISSING.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -655,17 +633,9 @@ public class BlockchainControllerTest {
 
     @Test
     void getBlockchainUnavailable() throws Exception {
-        MvcResult result =
-                mockMvc.perform(
-                        get("/api/blockchains/" + BC_UNAVAILABLE.toString()).with(authentication(adminAuth))
+        mockMvc.perform(get("/api/blockchains/" + BC_UNAVAILABLE.toString()).with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_UNAVAILABLE), message);
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -833,30 +803,10 @@ public class BlockchainControllerTest {
 
     @Test
     void deregisterUnavailableBlockchain() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_UNAVAILABLE.toString())
+        mockMvc.perform(post("/api/blockchains/deregister/" + BC_UNAVAILABLE.toString())
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_UNAVAILABLE), message);
-    }
-
-    @Test
-    void deregisterMissingBlockchain() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_MISSING.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING), message);
     }
 
     @Test

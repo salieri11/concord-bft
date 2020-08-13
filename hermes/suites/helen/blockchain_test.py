@@ -9,7 +9,6 @@ from suites.case import describe
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
 import util.auth
 import util.helen.common
-import util.helen.error_codes
 import util.helen.validators
 import util.helen.zone
 import util.helper
@@ -63,7 +62,7 @@ def test_getABlockhain_invalid_uuid(fxConnection):
     blockchainId = "8fecf880-26e3-4d71-9778-ad1592324684"
     response = fxConnection.request.getBlockchainDetails(blockchainId)
     expectedPath = "/api/blockchains/{}".format(blockchainId)
-    expectedMessage = util.helen.error_codes.BLOCKCHAIN_NOT_FOUND.format(blockchainId)
+    expectedMessage = "Entity is not found for Id {}".format(blockchainId)
     util.helen.validators.validateNotFound(response,
                                            expectedPath = expectedPath,
                                            errorCode = "NotFoundException",

@@ -7,7 +7,6 @@ import pytest
 from suites.case import describe, passed, failed
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
-import util.helen.error_codes
 import util.helen.validators
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -38,7 +37,7 @@ def test_getClientsUnavailableBlockchain(fxConnection, fxBlockchain):
     bid = "00000000-0000-0000-0000-000000000000"
     response = fxConnection.request.get_participant_details(bid)
     expectedPath = "/api/blockchains/{}/clients".format(bid)
-    expectedMessage = util.helen.error_codes.BLOCKCHAIN_NOT_FOUND.format(bid)
+    expectedMessage = "Entity is not found for Id {}".format(bid)
     util.helen.validators.validateNotFound(response,
                                            expectedPath = expectedPath,
                                            errorCode = "NotFoundException",

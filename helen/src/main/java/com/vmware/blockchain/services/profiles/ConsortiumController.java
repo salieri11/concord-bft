@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
-import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.services.profiles.OrganizationContoller.OrgGetResponse;
 
 import lombok.AllArgsConstructor;
@@ -103,8 +102,7 @@ public class ConsortiumController {
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.canAccessConsortium(#consortiumId)")
     public ResponseEntity<ConGetResponse> getCon(@PathVariable("con_id") UUID consortiumId) {
-        Consortium consortium = safeGetConsortium(consortiumId);
-
+        Consortium consortium = consortiumService.get(consortiumId);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
                                                        consortium.getConsortiumName(),
                                                        consortium.getOrganization()), HttpStatus.OK);
@@ -138,8 +136,7 @@ public class ConsortiumController {
     @PreAuthorize("@authHelper.canUpdateConsortium(#consortiumId)")
     public ResponseEntity<ConPatchResponse> updateCon(@PathVariable("con_id") UUID consortiumId,
                                                     @RequestBody ConPatchBody body) {
-        Consortium consortium = safeGetConsortium(consortiumId);
-
+        Consortium consortium = consortiumService.get(consortiumId);
         if (body.consortiumName != null) {
             if (body.consortiumName.isBlank()) {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
@@ -175,7 +172,7 @@ public class ConsortiumController {
     @RequestMapping(path = "/api/consortiums/{con_id}/organizations")
     @PreAuthorize("@authHelper.canAccessConsortium(#consortiumId)")
     public ResponseEntity<List<OrgGetResponse>> getOrgs(@PathVariable("con_id") UUID consortiumId) {
-        Consortium consortium = safeGetConsortium(consortiumId);
+        Consortium consortium = consortiumService.get(consortiumId);
         return new ResponseEntity<>(getMembers(consortium),
                                     HttpStatus.OK);
     }
@@ -184,21 +181,6 @@ public class ConsortiumController {
         return consortiumService.getOrganizations(consortium.getId()).stream()
                 .map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName(), o.getOrganizationProperties()))
                 .collect(Collectors.toList());
-    }
-
-    // This could be done better, but maybe later. We need to handle errors first.
-    private Consortium safeGetConsortium(UUID id) {
-        Consortium consortium;
-        try {
-            consortium = consortiumService.get(id);
-            if (consortium == null) {
-                throw new NotFoundException(ErrorCode.CONSORTIUM_NOT_FOUND, id.toString());
-            }
-        } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.CONSORTIUM_NOT_FOUND, id.toString());
-        }
-
-        return consortium;
     }
 
 }
