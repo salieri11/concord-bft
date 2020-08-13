@@ -1,11 +1,12 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine.caching
 
-import com.codahale.metrics.MetricRegistry
 import com.daml.caching.WeightedCache
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
 import com.daml.ledger.participant.state.kvutils.caching.`Message Weight`
 import com.daml.ledger.validator.caching.CachingDamlLedgerStateReader.StateCache
-import com.daml.metrics.ValidatorCacheMetrics
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ValidatorCacheMetrics
 import org.slf4j.LoggerFactory
 
 private[engine] object StateCaches {
@@ -23,10 +24,12 @@ private[engine] object StateCaches {
     }
   }
 
-  def createDefault(metricRegistry: MetricRegistry): StateCache = {
+  def createDefault(metrics: ValidatorCacheMetrics): StateCache = {
     val cacheSize = determineCacheSize()
-    WeightedCache.from[DamlStateKey, DamlStateValue](
-      WeightedCache.Configuration(maximumWeight = cacheSize),
-      ValidatorCacheMetrics.create(metricRegistry))
+    metrics.stateValueCache.synchronized {
+      WeightedCache.from[DamlStateKey, DamlStateValue](
+        WeightedCache.Configuration(maximumWeight = cacheSize),
+        metrics.stateValueCache)
+    }
   }
 }

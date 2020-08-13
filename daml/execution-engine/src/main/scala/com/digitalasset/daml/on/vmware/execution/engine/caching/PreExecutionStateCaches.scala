@@ -2,7 +2,6 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine.caching
 
-import com.codahale.metrics.MetricRegistry
 import com.daml.caching.WeightedCache
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
 import com.daml.ledger.participant.state.kvutils.Fingerprint
@@ -11,13 +10,15 @@ import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerp
   StateCacheWithFingerprints,
   `Message-Fingerprint Pair Weight`
 }
-import com.daml.metrics.ValidatorCacheMetrics
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.ValidatorCacheMetrics
 
 private[engine] object PreExecutionStateCaches {
-  def createDefault(metricRegistry: MetricRegistry): StateCacheWithFingerprints = {
+  def createDefault(metrics: ValidatorCacheMetrics): StateCacheWithFingerprints = {
     val cacheSize = StateCaches.determineCacheSize()
-    WeightedCache.from[DamlStateKey, (DamlStateValue, Fingerprint)](
-      WeightedCache.Configuration(maximumWeight = cacheSize),
-      ValidatorCacheMetrics.create(metricRegistry))
+    metrics.stateValueCacheForPreExecution.synchronized {
+      WeightedCache.from[DamlStateKey, (DamlStateValue, Fingerprint)](
+        WeightedCache.Configuration(maximumWeight = cacheSize),
+        metrics.stateValueCacheForPreExecution)
+    }
   }
 }
