@@ -22,7 +22,10 @@ import com.digitalasset.daml.on.vmware.execution.engine.caching.{
   PreExecutionStateCaches,
   StateCaches
 }
-import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
+import com.digitalasset.daml.on.vmware.execution.engine.metrics.{
+  ConcordLedgerStateOperationsMetrics,
+  ValidatorCacheMetrics
+}
 import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator
 import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
@@ -37,8 +40,10 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
   implicit val executionContext: ExecutionContext =
     ValidationServiceImpl.createInstrumentedExecutionContext(metrics.registry)
 
+  private val validatorCacheMetrics = new ValidatorCacheMetrics(metrics.registry)
+
   private val readerCommitterFactoryFunction =
-    PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(metrics.registry)) _
+    PipelinedValidator.createReaderCommitter(() => StateCaches.createDefault(validatorCacheMetrics)) _
 
   private val keyValueCommitting = new KeyValueCommitting(engine, metrics)
 
@@ -52,7 +57,7 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
 
   private val preExecutingReaderFactoryFunction =
     PreExecutingValidator.getOrCreateReader(
-      () => PreExecutionStateCaches.createDefault(metrics.registry),
+      () => PreExecutionStateCaches.createDefault(validatorCacheMetrics),
       SharedKeySerializationStrategy) _
 
   private val preExecutingSubmissionValidator =
