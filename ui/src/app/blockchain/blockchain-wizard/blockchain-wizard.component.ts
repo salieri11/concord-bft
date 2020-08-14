@@ -92,7 +92,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   alwaysGroup = true;
 
   pastContractEngineStep: boolean = false;
-  clientForm: FormGroup;
   sizingIsValid: boolean;
 
   nodeSizingTemplate: NodeTemplateFormResponse;
