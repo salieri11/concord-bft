@@ -918,7 +918,8 @@ def call(){
                             " --blockchainLocation onprem" +
                             " --numReplicas 7 --numParticipants 1 " +
                             " --deploymentOrg " + deploymentOrg +
-                            " --deploymentService staging"
+                            " --deploymentService staging" +
+                            " --zoneConfig resources/zone_config_lrt.json"
                         selectOnlySuites(["HelenDeployToSDDCTemplate"])
                         runTests()
                       } catch(Exception ex) {
@@ -2168,6 +2169,7 @@ void setEnvFileAndUserConfig(Map param = [:]) {
     usernamePassword(credentialsId: 'VMC_SDDC2_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC2_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC2_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
+    usernamePassword(credentialsId: 'VMC_SDDC5_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC5_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC5_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'UI_E2E_CSP_LOGIN_CREDENTIALS', usernameVariable: 'UI_E2E_CSP_LOGIN_USERNAME', passwordVariable: 'UI_E2E_CSP_LOGIN_PASSWORD'),
   ]) {
     if (!param.hermesConfigOnly) { sh '''
@@ -2241,9 +2243,12 @@ EOF
       sed -i -e 's/'"<JENKINS_BUILDER_PASSWORD>"'/'"${PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config_lrt.json
       sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config_lrt.json
       sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config_lrt.json
       sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
       sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC1_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC1_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
@@ -2253,6 +2258,8 @@ EOF
       sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC5_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config_lrt.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC5_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config_lrt.json
       sed -i -e 's/'"<METAINF_ENV_NAME>"'/'"JENKINS"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
@@ -2269,6 +2276,7 @@ EOF
     if (env.JOB_NAME.contains(long_tests_job_name) || env.JOB_NAME.contains(rel_long_tests_job_name) || env.JOB_NAME.contains(node_interruption_tests_job_name)) {
       sh '''
           sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/zone_config.json
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/zone_config_lrt.json
       '''
     } else {
       if (env.deployment_retention == "always-1day" ) {
