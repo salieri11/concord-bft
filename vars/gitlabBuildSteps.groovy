@@ -2448,11 +2448,14 @@ void pushConcordComponentsToRegistry(repo){
     if (repo == "dockerhub") {
       dockerutillib.tagAndPushDockerImage(component.internal_repo, component.release_repo, component.tag)
     } else if (repo == "artifactory") {
-      if (component_tags_are_uniform) { // No need to retag, agent will be able to pull uniformly
-        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag)
-      } else { // Applies to MRs and on-demand build with params
-        echo("Retagging " + component.name + ': ' + component.tag + ' ==> ' + env.product_version + ' on Artifactory')
-        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version)
+      if (env.JOB_NAME.contains(env.tot_job_name)) { // ToT MUST push; they always build-all from scratch.
+        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag) // must not fail.
+      } else if (env.product_version != component.tag) {
+        // Not a ToT run, different tags: image must be pulled from master, retag.
+        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, component.tag, true)
+      } else {
+        // Not a ToT run, yet tags are matching this Jenkins BUILD_NUMBER => image locally built; needs pushing with retag.
+        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version, true)
       }
     }
   }

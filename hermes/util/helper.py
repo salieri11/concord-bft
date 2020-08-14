@@ -1996,16 +1996,27 @@ def fetch_default_zone_ids(properties_file=PROPERTIES_TEST_FILE):
    return zone_ids.split(',')
 
 
-def agentPulledTagsAreUniform():
+def get_agent_pulled_tags_info():
+  '''
+    Pull tags from agent-pulled components (e.g. concord, daml_ledger_api, ethrpc)
+    and return boolean of whether all of them share the same tag
+    if any tag is different that is indicative of local building of agent-pulled
+    component, which might require retagging of images on Docker registries so that
+    agents on nodes residing on SDDCs can resolve the images.
+  '''
+  info_obj = { "tags": {} }
   agent_pulled_tags_are_uniform = True
   with open(AGENT_PULLED_COMPONENTS_FILE) as file:
     components = json.load(file)
     all_tags = {}
     for component in components:
       component_tag  = get_docker_env(component['name'] + "_tag")
+      info_obj["tags"][component["name"]] = component_tag
       all_tags[component_tag] = True
     if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
-  return agent_pulled_tags_are_uniform
+  info_obj["uniform"] = agent_pulled_tags_are_uniform
+  return info_obj
+
 
 
 def getDefaultDeploymentComponents():
