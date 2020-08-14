@@ -25,7 +25,11 @@ public enum DamlCommitterConfig implements BaseContainerSpec {
     DAML_EXECUTION_ENGINE("daml_execution_engine", List.of(
             new PortBinding(Ports.Binding.bindPort(55000), ExposedPort.tcp(55000))), null,
                           null),
-    DAML_CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
+    DAML_CONCORD("concord", List.of(
+            new PortBinding(Ports.Binding.bindPort(50051), ExposedPort.tcp(50051)),
+            new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
+            new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
+            new PortBinding(Ports.Binding.bindPort(9891), ExposedPort.tcp(9891))),
                  ConcordHelper.getDefaultVolBinds(),
             List.of(new Link("daml_execution_engine", "daml_execution_engine")));
 
