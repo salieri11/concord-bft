@@ -656,6 +656,17 @@ def call(){
                 }
               }
 
+              withCredentials([usernamePassword(
+                credentialsId: 'VMBC_BINTRAY_WRITER',
+                usernameVariable: 'VMBC_BINTRAY_WRITER_USERNAME',
+                passwordVariable: 'VMBC_BINTRAY_WRITER_PASSWORD'
+              )]){
+                script{
+                  command = "docker login -u " + env.VMBC_BINTRAY_WRITER_USERNAME + " -p \'" + env.VMBC_BINTRAY_WRITER_PASSWORD + "\' vmware-docker-blockchainsaas.bintray.io"
+                  jenkinsbuilderlib.retryCommand(command, true)
+                }
+              }
+
               // To invoke "git tag" and commit that change, git wants to know who we are.
               // This will be set up in template VM version 5, at which point these commands can
               // be removed.
@@ -798,9 +809,9 @@ def call(){
             // Use internal artifactory for MR runs, bintray/dockerhub for post commit builds
             try{
               if (env.JOB_NAME.contains(env.tot_job_name)) {
-                  customathenautil.saveTimeEvent("Push Concord components to DockerHub", "Start")
-                  pushConcordComponentsToRegistry("dockerhub")
-                  customathenautil.saveTimeEvent("Push Concord components to DockerHub", "End")
+                  customathenautil.saveTimeEvent("Push Concord components to Bintray", "Start")
+                  pushConcordComponentsToRegistry("bintray")
+                  customathenautil.saveTimeEvent("Push Concord components to Bintray", "End")
                 } else {
                   customathenautil.saveTimeEvent("Push Concord components to Artifactory", "Start")
                   pushConcordComponentsToRegistry("artifactory")
@@ -1541,6 +1552,7 @@ void pushToArtifactory(){
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
     for (repo in pushList){
+      // Push to Artifactory for INTERNAL consumption
       // Short term, until we are sure the Jenkins job which sets up OneCloud
       // is working with version subdirs, we will push twice.
       // Always push the "old format" second, so it is newest, until all
@@ -1799,6 +1811,7 @@ void setUpRepoVariables(){
   env.release_repo = "vmwblockchain"
   env.internal_repo_name = "athena-docker-local"
   env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
+  env.bintray_repo = "vmware-docker-blockchainsaas.bintray.io/vmwblockchain"
   env.temp_repo = "blockchain-docker-internal.artifactory.eng.vmware.com/vmwblockchain"
 
   // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
@@ -2329,12 +2342,12 @@ EOF
           sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
         '''
-      } else {
+      } else { // For ToT and other runs
         sh '''
-          # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
-          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          # Update provisioning service application-test.properties with bintray registry  (used to be DockerHub)
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
         '''
       }
     }
@@ -2432,7 +2445,8 @@ void pushConcordComponentsToRegistry(repo){
   unique_tags_map = [:]
   for(component in agent_pulled_components) {
     component.internal_repo = env['internal_' + component.name + '_repo'];
-    component.release_repo = env['release_' + component.name + '_repo']; // DockerHub
+    component.release_repo = env['release_' + component.name + '_repo'];
+    component.bintray_repo = component.release_repo.replace(env.release_repo, env.bintray_repo)
     component.temp_repo = env['temp_' + component.name + '_repo']; // for MR; artifactory
     component.tag = getTagFromEnv(component.internal_repo)
     unique_tags_map[component.tag] = true
@@ -2447,6 +2461,8 @@ void pushConcordComponentsToRegistry(repo){
   for(component in agent_pulled_components) {
     if (repo == "dockerhub") {
       dockerutillib.tagAndPushDockerImage(component.internal_repo, component.release_repo, component.tag)
+    } else if (repo == "bintray") {
+      dockerutillib.tagAndPushDockerImage(component.internal_repo, component.bintray_repo, component.tag)
     } else if (repo == "artifactory") {
       if (env.JOB_NAME.contains(env.tot_job_name)) { // ToT MUST push; they always build-all from scratch.
         dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag) // must not fail.
