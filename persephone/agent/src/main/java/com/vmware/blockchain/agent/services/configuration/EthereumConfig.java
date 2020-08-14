@@ -22,7 +22,15 @@ import lombok.Setter;
 @Getter
 public enum EthereumConfig implements BaseContainerSpec {
 
-    CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
+    CONCORD("concord", List.of(
+            new PortBinding(Ports.Binding.bindPort(50051), ExposedPort.tcp(50051)),
+            new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
+            new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
+            new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.tcp(3502)),
+            new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.tcp(3503)),
+            new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.tcp(3504)),
+            new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505)),
+            new PortBinding(Ports.Binding.bindPort(9891), ExposedPort.tcp(9891))),
             ConcordHelper.getDefaultVolBinds(),
             null, null),
     ETHEREUM_API("ethrpc",
