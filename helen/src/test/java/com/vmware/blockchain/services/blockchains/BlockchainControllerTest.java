@@ -135,7 +135,7 @@ public class BlockchainControllerTest {
                                          + "    ,\"client_nodes\": [{"
                                          + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"auth_url_jwt\": \"user@server.com\","
-                                         + "            \"group_index\": \"1\""
+                                         + "            \"group_name\": \"1\""
                                          + "      }]"
                                          + "}";
 
@@ -179,11 +179,11 @@ public class BlockchainControllerTest {
                                              + "{"
                                              + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                              + "            \"auth_url_jwt\": \"user@server.com\","
-                                             + "            \"group_index\": \"1\"},"
+                                             + "            \"group_name\": \"Group 1\"},"
                                              + "{"
                                              + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                              + "            \"auth_url_jwt\": \"user@server.com\","
-                                             + "            \"group_index\": \"1\"}"
+                                             + "            \"group_name\": \"Group 1\"}"
                                              + "]"
                                              + "}";
 
@@ -199,47 +199,47 @@ public class BlockchainControllerTest {
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \" Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\"},"
+                                           + "            \"group_name\": \"Group 1\"},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\":\"1\"}"
+                                           + "            \"group_name\":\"Group 1\"}"
                                            + "]"
                                            + "}";
 
@@ -255,7 +255,7 @@ public class BlockchainControllerTest {
                                            + "    ,\"client_nodes\": [{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_index\": \"1\""
+                                           + "            \"group_name\": \"Group 1\""
                                            + "      }]"
                                            + "}";
 
@@ -273,9 +273,23 @@ public class BlockchainControllerTest {
                                                + "    ,\"client_nodes\": [{"
                                                + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                                + "            \"auth_url_jwt\": \"user@server.com\","
-                                               + "            \"group_index\": \"1\""
+                                               + "            \"group_name\": \"Group 1\""
                                                + "      }]"
                                                + "}";
+
+    static final String BC_DAML_NO_CLIENT_GROUPING = "{"
+                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                           + "    \"blockchain_type\": \"DAML\","
+                                           + "    \"replica_zone_ids\": ["
+                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                           + "    ,\"client_nodes\": [{"
+                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "            \"auth_url_jwt\": \"user@server.com\""
+                                           + "      }]"
+                                           + "}";
 
     private static final UUID REPLICA_1 = UUID.fromString("73ba5deb-1046-48e3-a369-3982177cabed");
     private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
@@ -870,4 +884,50 @@ public class BlockchainControllerTest {
                                 .content(CORRECT_NUM_REPLICAS).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
+
+
+    @Test
+    void testBcWithNoGrouping() throws Exception {
+        setStreamCluster(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(buildEvent(DeployedResource.newBuilder().setNodeId(NODE_1.toString()).build(),
+                                 DeploymentExecutionEvent.Type.ACKNOWLEDGED, Status.ACTIVE));
+            ob.onNext(buildEvent(DeployedResource.newBuilder().setNodeId(NODE_1.toString()).build(),
+                                 DeploymentExecutionEvent.Type.COMPLETED, Status.SUCCESS));
+            ob.onCompleted();
+            return null;
+        });
+
+        // If client grouping feature is not in use, we use client node Id as client group Id.
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", BC_DAML, SITE_1, CLIENT_NODE_ID, null);
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(BC_DAML_NO_CLIENT_GROUPING).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+        BlockchainTaskResponse t = objectMapper.readValue(body, BlockchainTaskResponse.class);
+        Assertions.assertEquals(TASK_ID, t.getTaskId());
+
+        result = mockMvc.perform(get("/api/tasks/" + TASK_ID.toString())
+                                         .with(authentication(consortiumAuth))
+                                         .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+
+        body = result.getResponse().getContentAsString();
+        Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
+        Assertions.assertEquals(TASK_ID.toString(), r.get("task_id"));
+        Assertions.assertEquals("SUCCEEDED", r.get("state"));
+        Assertions.assertEquals("Operation finished", r.get("message"));
+        Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
+        Blockchain blockchain = blockchainResultAnswer.getResult();
+        Assertions.assertEquals(BC_NEW, blockchain.getId());
+        Assertions.assertEquals(BlockchainType.DAML, blockchain.getType());
+    }
+
+
 }

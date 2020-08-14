@@ -342,4 +342,32 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertEquals(res.get(0).getGroupId(), CLIENT_GROUP_ID);
         Assertions.assertEquals(res.get(0).getGroupName(), CLIENT_GROUP_NAME);
     }
+
+
+    @Test
+    protected void testClientNoGrouping() throws Exception {
+        // If client grouping is not in use, BlockchainObserver uses node Id as client group Id.
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", BC_DAML, SITE_1, CLIENT_NODE_ID, null);
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_DAML.toString() + "/clients")
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        List<ClientController.ClientGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<ClientController.ClientGetResponse>>() {
+                });
+
+        ImmutableList<UUID> expected = ImmutableList.of(CLIENT_NODE_ID);
+        Assertions.assertEquals(expected, res.stream().map(clientGetResponse ->
+                                                                   clientGetResponse.getId())
+                .collect(Collectors.toList()));
+        Assertions.assertEquals(1, res.size());
+        Assertions.assertEquals(res.get(0).getGroupId(), CLIENT_NODE_ID);
+        Assertions.assertNull(res.get(0).getGroupName());
+    }
 }
