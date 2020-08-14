@@ -300,15 +300,19 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
 
    client_zone_ids = []
+   client_nodes = []
    num_participants = 0
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
 
    if blockchain_type.lower() == helper.TYPE_DAML:
        num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
        client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
+       for zoneId in client_zone_ids:
+         node = {"zone_id": zoneId, "auth_url_jwt": "", "group_name": "1"}
+         client_nodes.append(node)
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
 
-   response = conAdminRequest.createBlockchain(conId, siteIds, client_zone_ids, blockchain_type.upper())
+   response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
 
    if "task_id" not in response:
        raise Exception("task_id not found in response to create blockchain.")
@@ -779,5 +783,7 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
                 tokenDescriptor=tokenDescriptor)
    else:
        rpc = None
+
+   log.debug("request {}".format(request))
 
    return ConnectionFixture(request=request, rpc=rpc)
