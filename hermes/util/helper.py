@@ -1806,7 +1806,7 @@ def hermesPreexitWrapUp():
       else: deployed_blockchains_list = []
       for newly_deployed in infra.DEPLOYED_REPLICAS:
         deployed_blockchains_list.append(newly_deployed)
-      json.dump(deployed_blockchains_list, file)
+      json.dump(deployed_blockchains_list, file, indent=4)
 
 
 def parseReplicasConfig(replicas):

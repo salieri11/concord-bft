@@ -349,11 +349,11 @@ def save_fatal_errors_to_summary(fatal_errors):
   if fatal_errors:
       top_error = fatal_errors[0]
       node_data = top_error["node"]; occupant_handle = top_error["occupant"]
-      if infra.INVENTORY_ERRORS.NAME_CONFLICT:
+      if top_error["type"] == INVENTORY_ERRORS.NAME_CONFLICT:
           add_exception_to_summary(
               Exception("FATAL !!  Node ID: '{}' already occupied by {} on {}".format( 
                   node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
-      elif infra.INVENTORY_ERRORS.IP_CONFLICT:
+      elif top_error["type"] == INVENTORY_ERRORS.IP_CONFLICT:
           add_exception_to_summary(
               Exception("FATAL !!  Node IP: '{}' already occupied by {} on {}".format(
                   node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
