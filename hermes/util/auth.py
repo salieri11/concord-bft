@@ -592,6 +592,56 @@ staging_tokens = {
             "last_retrieved": 0
          }
       }
+   },
+   "system_test_1": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Never expires.
+            "api_key": "epDrinl6QeMKOk3xMo4swUuhMBuU2LempQB5XNDDFpAtS476FPnCfsRhzmDNr4Nh",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_2": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Never expires.
+            "api_key": "ny8H6egCh922NWAdgCMz1cEA4VjmsfEBgj03UwgP3MYCnd4vY8PpqMmzmczAPVAH",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_3": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Never expires.
+            "api_key": "QAgS4i9FahlVDghvo2ZHou5sGDkRgHbIVi68XsTy9sK0L6clO8laD07MS5ZzdPKT",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_4": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Never expires.
+            "api_key": "NYn0N3YXdut832DHeztdDKOLD2sfYvqGjJRQTft4QO7u5zSLuMjTRNGaPu3r3SXI",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
+   },
+   "system_test_5": {
+      "admin-blockchain-dev": {
+         ROLE_CON_ORG_ADMIN: {
+            # Never expires.
+            "api_key": "1g2DqKGVYGf1xT5z69l3l6gO8Sxn396CXNm60188Jgyp4amPNvIvIa1OTcVT5PaY",
+            "access_token": None,
+            "last_retrieved": 0
+         }
+      }
    }
 }
 
@@ -606,6 +656,13 @@ orgs = {
    "system_test_master": "29717ffe-12dd-43ab-a86a-0003611a319d",
    "system_test_release_1": "8ccd96cc-db11-442b-a9de-2e73d2dbfb9d",
    "system_test_release_2": "5e55804a-07dc-4c07-bc4c-483dab274df9",
+   "rvollmar": "25df2f25-bac1-4af0-aa11-edc7deaef569",
+   "rsg": "440d4001-6467-4dc0-8eaa-b57a1885fa8a",
+   "system_test_1": "bf1316aa-6e44-4947-b8a4-e57421ec5941",
+   "system_test_2": "15d0a7d9-6b5c-49c6-8b92-020adedc96c6",
+   "system_test_3": "0dfbceb7-cfa8-4c6b-a304-18f0c6f91a2a",
+   "system_test_4": "e6fe1ca6-13f5-48e2-8461-18bfbe5029e2",
+   "system_test_5": "f9c8979b-3ba8-4acb-a91a-a4914ffd85d9",
 }
 
 # How long a VMC access token is valid, in seconds, which is 24 minutes as of July 2019.
