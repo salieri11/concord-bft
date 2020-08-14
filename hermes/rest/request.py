@@ -56,8 +56,7 @@ class Request():
          "_baseUrl: {}\n" \
          "_subPath: {}\n" \
          "_params: {}\n" \
-         "_tokenDescriptor: {}\n" \
-         "_service: {}".format(self.testName, self._baseUrl, self._subPath, self._params, self._tokenDescriptor, self._service)
+         "_tokenDescriptor: {}".format(self.testName, self._baseUrl, self._subPath, self._params, self._tokenDescriptor)
 
 
    def newWithToken(self, tokenDescriptor, forceNewToken=False):
