@@ -306,16 +306,24 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 shutil.move(persephone_config_file_orig, persephone_config_file)
                 log.info("Updated config file for this run: {}".format(modified_config_file))
 
-            if helper.agentPulledTagsAreUniform():
-                helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
-                                            helper.get_docker_env("concord_tag"))
-            elif helper.thisHermesIsFromJenkins(): 
-                # MR run where some are built and some are pulled from master
-                mr_build_number = helper.getJenkinsJobNameAndBuildNumber()["buildNumber"]
-                product_version = "0.0.0." + str(mr_build_number)
-                # make PRODUCT_VERSION tag uniform into MR number
-                helper.set_props_file_value(persephone_config_file, 'docker.image.base.version',
-                                            product_version)
+            tags_info = helper.get_agent_pulled_tags_info()
+            helper.set_props_file_value(persephone_config_file, # default should be concord's tag
+                                        'docker.image.base.version',
+                                        tags_info["tags"]["concord"])
+
+            if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
+                # tags are not uniform; each component tag must be individually overridden.
+                for component_name in tags_info["tags"].keys():
+                  component_tag = tags_info["tags"][component_name]
+                  helper.set_props_file_value(persephone_config_file,
+                                              component_name,
+                                              component_tag)
+
+            with open(persephone_config_file, 'r') as config_file:
+              log.info("\nPersephone config file is as follows: \n")
+              log.info(config_file.read())
+              log.info("\n\n")
+
 
     except Exception as e:
         log.error(traceback.format_exc())

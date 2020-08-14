@@ -43,8 +43,8 @@ void reportSystemStats(){
 // for cases we would want to retry.
 Boolean retryCommand(command, failOnError){
   tries = 0
-  maxTries = 10
-  sleepTime = 10
+  maxTries = 5
+  sleepTime = 5
 
   while (tries < maxTries){
     tries += 1
