@@ -509,16 +509,25 @@ def extractAndSavePipelineFailurePoint(pipelineError):
       lookFor = ["ERROR", "Error", "ERR!", "FAILURE", "Failures: ", "Exception: ", "\tat "]
       ignoreFor = ["DEBUG", "WARN", "Downloading", "Downloaded"]
       deepScanErrorLines = filterErrorsInLogs(buildLogPath, lookFor, ignoreFor)
+      deepScanWasEmpty = False
       if deepScanErrorLines:
         buildErrorLog = deepScanErrorLines
         with open(workspace + '/summary/failed_build_error.log', 'w+') as w: w.write(buildErrorLog)
       else:
-        buildErrorLog = "No error lines are detected. Here are the last few lines:\n\n" + buildErrorLogOriginal
+        deepScanWasEmpty = True
+        buildErrorLog = buildErrorLogOriginal
       buildErrorLogSummary = buildErrorLog
       buildErrorLogLines = buildErrorLog.split("\n")
       maxDisplayLines = 25
       if len(buildErrorLogLines) > maxDisplayLines: # error log too long to display, cut it
         buildErrorLogSummary = "\n".join(buildErrorLogLines[-maxDisplayLines:]) # last maxDisplayLines lines
+      lineStartFrom = 1
+      while len(buildErrorLogSummary) > 3000: # Slack max message is 4k chars, give 1k for other content links.
+        buildErrorLogLines = buildErrorLogSummary.split("\n")
+        buildErrorLogSummary = "\n".join(buildErrorLogLines[lineStartFrom:])
+        lineStartFrom += 1 # keep removing from top of line until summary body is < 3,000 char total
+      if deepScanWasEmpty:
+        buildErrorLogSummary = "No error lines are detected. Here are the last few lines:\n\n" + buildErrorLogSummary
       originalErrorMessage = errorMessage
       errorMessage = "Error while building Docker image for '" + imageName + "'"
       buildLogFile = buildLogPath.split('/blockchain/')[1]
