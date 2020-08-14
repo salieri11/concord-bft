@@ -15,8 +15,8 @@ import util.helen.validators
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 @describe()
-@pytest.mark.smoke()
-@pytest.mark.replicas()
+@pytest.mark.smoke
+@pytest.mark.replicas
 def test_replicaGet(fxConnection):
     # 4 node blockchain, 4 replicas expected
     blockchain_id = fxConnection.request.getBlockchains()[0]["id"]
@@ -26,8 +26,8 @@ def test_replicaGet(fxConnection):
     assert len(replicas) == 4
 
 @describe()
-@pytest.mark.smoke()
-@pytest.mark.replicas()
+@pytest.mark.smoke
+@pytest.mark.replicas
 def test_replicaGetUnavailableBlockchain(fxConnection):
     # 4 node blockchain, 4 replicas expected
     bid = "00000000-0000-0000-0000-000000000000"
