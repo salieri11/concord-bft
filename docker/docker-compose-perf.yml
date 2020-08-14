@@ -15,10 +15,6 @@ services:
       - 9891
       - 5458
       - 3501/udp
-      - 3502/udp
-      - 3503/udp
-      - 3504/udp
-      - 3505/udp
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
@@ -37,10 +33,6 @@ services:
       - 5458
       - 9891
       - 3501/udp
-      - 3502/udp
-      - 3503/udp
-      - 3504/udp
-      - 3505/udp
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
@@ -59,10 +51,6 @@ services:
       - 5458
       - 9891
       - 3501/udp
-      - 3502/udp
-      - 3503/udp
-      - 3504/udp
-      - 3505/udp
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
@@ -81,10 +69,6 @@ services:
       - 5458
       - 9891
       - 3501/udp
-      - 3502/udp
-      - 3503/udp
-      - 3504/udp
-      - 3505/udp
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
