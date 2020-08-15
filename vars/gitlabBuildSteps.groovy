@@ -795,13 +795,12 @@ def call(){
       stage("Push Concord components to Registry"){
         when {
           expression {
-            // Skip this step for nightly or other random runs.
-            // Nightly runs use what is in artifactory, which has already been pushed
-            // to GitHub.
+            // Built images in this job which agent consumes should be pushed.
             env.JOB_NAME.contains(env.tot_job_name) ||
             env.JOB_NAME.contains(main_mr_run_job_name) ||
             env.JOB_NAME.contains(manual_with_params_job_name) ||
-            env.JOB_NAME.contains(on_demand_concord_deployment_job_name)
+            env.JOB_NAME.contains(on_demand_concord_deployment_job_name) || 
+            env.JOB_NAME.contains(on_demand_persephone_test_job_name)
           }
         }
         steps{
@@ -978,6 +977,7 @@ def call(){
                       '''
                       customathenautil.saveTimeEvent("Monitor health and status of replicas", "End")
                     }
+                    if (env.JOB_NAME.contains(persephone_test_job_name)) { selectOnlySuites(["PersephoneNightly"]); runTests() }
                     if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                       // TODO: Move to the main test map.
                       customathenautil.saveTimeEvent("Concord deployment test", "Start")
@@ -994,6 +994,7 @@ def call(){
                       jenkinsbuilderlib.ownWorkspace()
                       customathenautil.saveTimeEvent("Concord deployment test", "End")
                     }
+                    if(env.JOB_NAME.contains(on_demand_persephone_test_job_name)) { selectOnlySuites(["PersephoneOnDemandNew"]); runTests() }
                   }
                 }
               }
@@ -1002,62 +1003,6 @@ def call(){
               echo("A failure occurred while running the tests.")
               failRun(ex)
               racetrackUpdate(action: "setEnd", type:"testing", result:"FAILURE")
-              throw ex
-            }
-          }
-        }
-      }
-
-      stage("Push Images required for Deployment Services & run tests") {
-        when {
-          expression {
-            params.run_tests && (env.run_persephone_tests == "true")
-          }
-        }
-        steps {
-          script{
-            try{
-              customathenautil.saveTimeEvent("Persephone tests", "Start")
-
-              dir('blockchain/hermes') {
-                withCredentials([
-                  string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
-                ]) {
-                  script {
-                    // For nightly run, deployment components are recent builds already published to bintray
-                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                      echo "For Persephone nightly run, push recent builds to bintray..."
-
-                      customathenautil.saveTimeEvent("Build", "Push recent builds to bintray using Job Setup-SAAS-Artifacts")
-                      build job: 'Setup-SAAS-Artifacts',
-                                 parameters: [[$class: 'StringParameterValue',
-                                                name: 'INTERNALTAG',
-                                                value: env.recent_published_docker_tag],
-                                              [$class: 'StringParameterValue',
-                                                name: 'EXTERNALTAG',
-                                                value: env.recent_published_docker_tag]
-                                             ]
-                      customathenautil.saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
-                    }
-
-                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                        selectOnlySuites(["PersephoneNightly"])
-                        runTests()
-                    } else if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
-                        // For the Persephone On Demand run, we built the agent locally.  So the agent is env.product_version, and
-                        // the rest, which were pulled from Artifactory, are env.docker_tag.
-                        dockerutillib.tagAndPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.product_version)
-                        // selectOnlySuites(["PersephoneOnDemand"])
-                        selectOnlySuites(["PersephoneOnDemandNew"])
-                        runTests()
-                    }
-                  }
-                }
-              }
-              customathenautil.saveTimeEvent("Persephone tests", "End")
-            }catch(Exception ex){
-              echo("A failure occurred while running the tests.")
-              failRun(ex)
               throw ex
             }
           }
