@@ -19,7 +19,7 @@ public class PersephoneException extends RuntimeException {
     private final HttpStatus httpStatus;
 
     /**
-     * Create a new Helen Exception.
+     * Create a new Persephone Exception.
      */
     public PersephoneException(HttpStatus httpStatus, String message, Object... args) {
         super(MessageFormat.format(message, args));
@@ -35,7 +35,7 @@ public class PersephoneException extends RuntimeException {
      * Create a PersephoneException Exception, and note the original cause.
      */
     public PersephoneException(Throwable cause, String message, Object... args) {
-        super(message, cause);
+        super(MessageFormat.format(message, args), cause);
         this.args = args;
         this.httpStatus = HttpStatus.valueOf(500);
     }
@@ -44,7 +44,7 @@ public class PersephoneException extends RuntimeException {
      * Create a PersephoneException Exception with a specific status, and note the original cause.
      */
     public PersephoneException(HttpStatus httpStatus, Throwable cause, String message, Object... args) {
-        super(message, cause);
+        super(MessageFormat.format(message, args), cause);
         this.args = args;
         this.httpStatus = httpStatus;
     }

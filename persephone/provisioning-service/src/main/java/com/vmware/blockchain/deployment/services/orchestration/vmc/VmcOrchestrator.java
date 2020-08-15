@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.AbstractMap;
 import java.util.concurrent.Flow;
 
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
@@ -20,7 +21,6 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
-
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -82,7 +82,7 @@ public class VmcOrchestrator implements Orchestrator {
                     .build();
             internalOrchestrator = new VSphereOrchestrator(info.getVsphere(), vsphereEndpoint, ipamClient);
         } catch (Exception e) {
-            throw new PersephoneException(e, "Error creating VMC orchestrator.");
+            throw new PersephoneException(e, ErrorCode.VMC_ORCHESTRATION_CREATION_FAILURE);
         }
     }
 
@@ -147,9 +147,8 @@ public class VmcOrchestrator implements Orchestrator {
                     publisher.onNext(event);
                     publisher.onComplete();
                 } else {
-                    publisher
-                            .onError(new PersephoneException("Unable to delete network address {}",
-                                                             request.getResource()));
+                    publisher.onError(new PersephoneException(ErrorCode.RESOURCE_NETWORK_DELETION_FAILURE,
+                            request.getResource()));
                 }
             } else {
                 if (nsx.deleteResource(request.getResource())) {
@@ -159,9 +158,8 @@ public class VmcOrchestrator implements Orchestrator {
                     publisher.onNext(event);
                     publisher.onComplete();
                 } else {
-                    publisher
-                            .onError(new PersephoneException("Unable to delete network address {}",
-                                                             request.getResource()));
+                    publisher.onError(new PersephoneException(ErrorCode.RESOURCE_NETWORK_DELETION_FAILURE,
+                            request.getResource()));
                 }
             }
         };

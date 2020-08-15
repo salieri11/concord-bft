@@ -20,7 +20,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
-import com.vmware.blockchain.deployment.services.restclient.RestClientException;
+import com.vmware.blockchain.deployment.services.exception.InternalFailurePersephoneException;
 
 
 /**
@@ -60,13 +60,13 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
             throws IOException {
         ClientHttpResponse clientHttpResponse = retryTemplate.execute(context -> {
-            logger.debug("intercept for endpoint {} retry {}", request.getURI(), context.getRetryCount());
+            logger.debug("Intercept for endpoint {} retry {}", request.getURI(), context.getRetryCount());
             ClientHttpResponse response;
             try {
                 response = execution.execute(request, body);
             } catch (Exception ex) {
-                logger.info("failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
-                throw new RestClientException(ErrorCode.INTERNAL_ERROR);
+                logger.error("Failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
+                throw new InternalFailurePersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE);
             }
             if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.
@@ -77,11 +77,11 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 return response;
             }
             if (retryPolicy.canRetry(context) && shouldRetry(request)) {
-                logger.info("{} on endpoint {} failing with {} after {} retries", request.getMethod(),
+                logger.error("{} on endpoint {} failing with {} after {} retries", request.getMethod(),
                         cleanQueryParams(request.getURI()), response.getStatusCode(), context.getRetryCount());
                 // closing response releases connection back to pool
                 response.close();
-                throw new RestClientException(ErrorCode.INTERNAL_ERROR);
+                throw new InternalFailurePersephoneException(ErrorCode.NO_RESPONSE_RETRY, context.getRetryCount());
             }
             logger.warn("{} on endpoint {} failed permanently after {} retries with status {}, returning last response",
                     request.getMethod(), cleanQueryParams(request.getURI()), context.getRetryCount(),
@@ -102,7 +102,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
      *
      * @param uri - The URI whose query params need to be replaced.
      */
-    public static String cleanQueryParams(URI uri) {
+    private static String cleanQueryParams(URI uri) {
         Objects.requireNonNull(uri);
         // Clean any request parameters.
         UriComponentsBuilder clean = UriComponentsBuilder.fromUri(uri);

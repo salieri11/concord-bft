@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.util.Strings;
@@ -22,6 +23,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetDatastoreResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetFolderResponse;
@@ -134,7 +137,7 @@ public class VSphereHttpClient {
             return responseEntity.getBody().getValue().get(0).getFolder();
         }
 
-        throw new PersephoneException("Error retrieving folder: " + name);
+        throw new NotFoundPersephoneException(ErrorCode.FOLDER_NOT_FOUND, name);
     }
 
     /**
@@ -155,7 +158,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getResourcePool())) {
             return responseEntity.getBody().getValue().get(0).getResourcePool();
         }
-        throw new PersephoneException("Error retrieving resource pool: " + name);
+        throw new NotFoundPersephoneException(ErrorCode.NOT_FOUND_RESOURCE_POOL, name);
     }
 
     /**
@@ -176,7 +179,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getDatastore())) {
             return responseEntity.getBody().getValue().get(0).getDatastore();
         }
-        throw new PersephoneException("Error retrieving datastore: " + name);
+        throw new NotFoundPersephoneException(ErrorCode.NOT_FOUND_DATASTORE, name);
     }
 
     /**
@@ -198,7 +201,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getNetwork())) {
             return responseEntity.getBody().getValue().get(0).getNetwork();
         }
-        throw new PersephoneException("Error retrieving network: " + name);
+        throw new NotFoundPersephoneException(ErrorCode.NOT_FOUND_NETWORK, name);
     }
 
     /**
@@ -223,7 +226,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0))) {
             return responseEntity.getBody().getValue().get(0);
         }
-        throw new PersephoneException("Error retrieving library item: " + sourceId);
+        throw new NotFoundPersephoneException(ErrorCode.NOT_FOUND_LIBRARY_ITEM, sourceId);
     }
 
     /**
@@ -295,7 +298,7 @@ public class VSphereHttpClient {
             }
         } while (responseEntity.getStatusCode() == HttpStatus.OK && retryCount-- > 0);
 
-        throw new PersephoneException("Error creating VM", name);
+        throw new PersephoneException(ErrorCode.VM_CREATE_ERROR, name);
     }
 
     private boolean updateVmHardware(String name, Map<String, String> properties) {
@@ -431,9 +434,9 @@ public class VSphereHttpClient {
             ResponseEntity<VirtualMachinePowerResponse> responseEntity
                     = restTemplate.exchange(uri, HttpMethod.GET, requests, VirtualMachinePowerResponse.class);
 
-            return responseEntity.getBody().getValue().getState();
-        } catch (HttpClientErrorException e) {
-            throw new PersephoneException("Unable to get VM info: " + name);
+            return Objects.requireNonNull(responseEntity.getBody()).getValue().getState();
+        } catch (HttpClientErrorException | NullPointerException e) {
+            throw new NotFoundPersephoneException(e, ErrorCode.NOT_FOUND_VM_INFO, name);
         }
     }
 
