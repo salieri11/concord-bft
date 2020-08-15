@@ -1563,6 +1563,13 @@ void pushToArtifactory(){
 
       dockerutillib.pushDockerImage(subdirRepo, env.docker_tag, false)
       dockerutillib.pushDockerImage(repo, env.docker_tag, false)
+
+      // Push to the main internal repo: blockchain-docker-local repo
+      // To make sure local devs., Jenkins jobs, and agent can all access the same image
+      mainInternalRepo = repo.replace(env.internal_repo, env.main_internal_repo)
+      command = "docker tag ${repo}:${env.docker_tag} ${mainInternalRepo}:${env.docker_tag}"
+      jenkinsbuilderlib.retryCommand(command, true)
+      dockerutillib.pushDockerImage(repo, env.docker_tag, false)
     }
   }
 }
@@ -1813,6 +1820,7 @@ void setUpRepoVariables(){
   env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
   env.bintray_repo = "vmware-docker-blockchainsaas.bintray.io/vmwblockchain"
   env.temp_repo = "blockchain-docker-internal.artifactory.eng.vmware.com/vmwblockchain"
+  env.main_internal_repo = "blockchain-docker-internal.artifactory.eng.vmware.com/vmwblockchain"
 
   // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
   env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
@@ -2328,26 +2336,19 @@ EOF
       sh '''
         sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
       '''
-      if (env.JOB_NAME.contains(persephone_test_job_name)) {
-        sh '''
-          # Update provisioning service application-test.properties with bintray registry for nightly runs
-          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        '''
-      } else if (env.JOB_NAME.contains(main_mr_run_job_name)) {
-        sh '''
-          # Update provisioning service application-test.properties with bintray registry for nightly runs
-          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
-        '''
-      } else { // For ToT and other runs
+      if (env.JOB_NAME.contains(env.tot_job_name)) { // ToT tests are done on Bintray
         sh '''
           # Update provisioning service application-test.properties with bintray registry  (used to be DockerHub)
           sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
           sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+        '''
+      } else { // Everything else should use internal Artifactory
+        sh '''
+          # Update provisioning service application-test.properties with default internal Artifactory image repo
+          sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+          sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
         '''
       }
     }
@@ -2466,11 +2467,9 @@ void pushConcordComponentsToRegistry(repo){
     } else if (repo == "artifactory") {
       if (env.JOB_NAME.contains(env.tot_job_name)) { // ToT MUST push; they always build-all from scratch.
         dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag) // must not fail.
-      } else if (env.product_version != component.tag) {
-        // Not a ToT run, different tags: image must be pulled from master, retag.
-        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, component.tag, true)
-      } else {
-        // Not a ToT run, yet tags are matching this Jenkins BUILD_NUMBER => image locally built; needs pushing with retag.
+      } else if (env.product_version == component.tag) {
+        // Not a ToT run, yet image tags are matching this Jenkins BUILD_NUMBER
+        // This implies that this image has been locally built; we need to push this temp image for testing on SDDC
         dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version, true)
       }
     }
