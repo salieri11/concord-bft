@@ -13,7 +13,7 @@ import { Personas, PersonaService } from './persona.service';
 import { User, UserAuthResponse } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
 import { OrgService } from '../orgs/shared/org.service';
-import { testController } from '../../test.controller';
+import { testController } from '../../test.controller'; // ! temp: must be overriden by actual mock
 
 @Injectable()
 export class AuthenticationService {
@@ -506,5 +506,33 @@ export class AuthenticationService {
     ];
 
   }
+
+}
+
+
+export class MockAuthenticationService {
+  readonly user: Observable<User>;
+  agreement: boolean = false;
+  redirectUrl: string;
+  accessToken: string;
+  logoutPath: string = '/api/oauth/logout';
+  parsedToken: any;
+  orgProps: any;
+
+  get currentUser() { return {}; }
+
+  isAuthenticated() { return true; }
+  getAccessToken() { return of({}); }
+  saveLastLocationAndReAuth() {}
+  refreshToken() { return of({}); }
+  logIn() { return of({}); }
+  changePassword() { return of({}); }
+  logOut() {}
+  setRedirectPath() {}
+  checkForLegalAgreements() { return of(true); }
+  getLegalAgreement() { return of('agreement_text'); }
+  acceptLegalAgreement() { return of({}); }
+  handleLogin() {}
+  getCountryList() { return []; }
 
 }

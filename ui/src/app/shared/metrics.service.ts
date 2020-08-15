@@ -6,7 +6,7 @@ import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { catchError } from 'rxjs/operators';
 import { Apis } from './urls.model';
-import { testController } from '../../test.controller';
+import { testController } from '../../test.controller'; // ! temp: must be overriden by actual mock
 
 @Injectable({
   providedIn: 'root'

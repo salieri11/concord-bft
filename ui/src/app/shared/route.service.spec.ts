@@ -1,40 +1,34 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
 import { RouteService } from './route.service';
-import { getSpecTestingModule } from './shared-testing.module';
+import { testFor, beforeTesting, prepareEach } from '../../test.helper.spec';
+import { mainRoutes } from './urls.model';
 
 describe('RouteService', () => {
   let router: Router;
-  let service: RouteService;
-  const defaultRoute = [ 'blockchain', 'welcome' ];
+  let routeService: RouteService;
+  const defaultRoute = [ `/${mainRoutes.blockchain}/${mainRoutes.welcome}` ];
   const redirectTo = '/84391b6e-e24d-4c8e-a8ae-09826cc15d7d/nodes/committers';
 
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-
-    tester.provideActivatedRoute();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-
-    router = TestBed.get(Router);
-    service = TestBed.get(RouteService);
-  }));
+  const test = testFor(RouteService).expedite({
+    imports: [], provides: [], declarations: [],
+  }, beforeTesting(() => {
+    routeService = test.component;
+    router = test.getService(Router);
+  }), prepareEach(() => {}));
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(routeService).toBeTruthy();
   });
 
   it('should be redirected to last location', () => {
     localStorage.setItem('lastLocation', `${new Date()}--${redirectTo}`);
     const navigateSpy = spyOn(router, 'navigateByUrl');
 
-    service.loginReturnHandler();
+    routeService.loginReturnHandler();
     expect(navigateSpy).toHaveBeenCalledWith(redirectTo);
   });
 
@@ -43,7 +37,7 @@ describe('RouteService', () => {
     localStorage.setItem('lastLocation', `${threeMinutesAgo}--${redirectTo}`);
     const navigateSpy = spyOn(router, 'navigate');
 
-    service.loginReturnHandler();
+    routeService.loginReturnHandler();
 
     expect(navigateSpy).not.toHaveBeenCalledWith(redirectTo);
     expect(navigateSpy).toHaveBeenCalledWith(defaultRoute);

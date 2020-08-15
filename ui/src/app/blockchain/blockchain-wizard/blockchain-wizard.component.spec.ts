@@ -1,39 +1,28 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
-import { AuthenticationService } from '../../shared/authentication.service';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
 import { ZoneType } from '../../zones/shared/zones.model';
+import { MockBlockchainService, BlockchainService } from '../shared/blockchain.service';
+import { MainModule } from '../../main/main.module';
 
 describe('BlockchainWizardComponent', () => {
-  let component: BlockchainWizardComponent;
-  let fixture: ComponentFixture<BlockchainWizardComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    tester.importLanguagePack();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [AuthenticationService], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(BlockchainWizardComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  let blockchainService: MockBlockchainService;
+  const test = testFor(BlockchainWizardComponent).expedite({
+    imports: [MainModule], provides: [], declarations: [],
+  }, beforeTesting(() => {
+    blockchainService = test.getService(BlockchainService);
+  }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 
   describe('Detail page', () => {
     it('have a consortium name and description', () => {
-      expect(component.form.get('details').value).toEqual({
+      expect(test.component.form.get('details').value).toEqual({
         consortium_name: '',
         consortium_desc: ''
       });
@@ -42,15 +31,15 @@ describe('BlockchainWizardComponent', () => {
         consortium_name: 'Test',
         consortium_desc: 'test'
       };
-      component.form.controls.details.setValue(value);
+      test.component.form.controls.details.setValue(value);
 
-      expect(component.form.get('details').value).toEqual(value);
+      expect(test.component.form.get('details').value).toEqual(value);
     });
   });
 
   describe('Distribute regions', () => {
     it('should be evenly distributed', () => {
-      component.zones = [{
+      test.component.zones = [{
         name: 'US West - Oregon',
         id: 'us-west',
         latitude: 0,
@@ -76,13 +65,13 @@ describe('BlockchainWizardComponent', () => {
         longitude: 0,
         type: ZoneType.VMC_AWS
       }];
-      component.onPremActive = false;
-      component.zoneTabSelect(ZoneType.VMC_AWS);
-      const zones = component.form.controls.nodes['controls'].zones;
+      test.component.onPremActive = false;
+      test.component.zoneTabSelect(ZoneType.VMC_AWS);
+      const zones = test.component.form.controls.nodes['controls'].zones;
       const regionKeys = Object.keys(zones.value);
 
-      component.form.controls.nodes['controls'].numberOfNodes.patchValue(7);
-      component.distributeZones();
+      test.component.form.controls.nodes['controls'].numberOfNodes.patchValue(7);
+      test.component.distributeZones();
 
       expect(zones.controls[regionKeys[0]].value).toEqual(2);
       expect(zones.controls[regionKeys[1]].value).toEqual(2);
@@ -93,43 +82,44 @@ describe('BlockchainWizardComponent', () => {
 
   describe('On open', () => {
     it('resets all forms', () => {
-      spyOn(component.form, 'reset');
+      spyOn(test.component.form, 'reset');
 
-      component.open();
+      test.component.open();
 
-      expect(component.form.reset).toHaveBeenCalled();
+      expect(test.component.form.reset).toHaveBeenCalled();
     });
 
     it('resets the clarity wizard', () => {
-      spyOn(component.wizard, 'reset');
+      spyOn(test.component.wizard, 'reset');
 
-      component.open();
+      test.component.open();
 
-      expect(component.wizard.reset).toHaveBeenCalled();
+      expect(test.component.wizard.reset).toHaveBeenCalled();
     });
 
     it('sets isOpen', () => {
-      expect(component.isOpen).toBe(false);
+      test.component.close();
+      expect(test.component.isOpen).toBe(false);
 
-      component.open();
+      test.component.open();
 
-      expect(component.isOpen).toBe(true);
+      expect(test.component.isOpen).toBe(true);
     });
   });
 
   describe('On submit', () => {
 
     beforeEach(() => {
-      spyOn((component as any).blockchainService, 'deploy')
+      spyOn(blockchainService, 'deploy')
           .and.returnValue(observableOf({}));
     });
 
     it('submits the form value', () => {
-      component.form.controls.nodes['controls'].numberOfNodes.patchValue(4);
+      test.component.form.controls.nodes['controls'].numberOfNodes.patchValue(4);
 
-      component.onSubmit();
+      test.component.onSubmit();
       // TODO: Test the individual attributes of the request
-      expect((component as any).blockchainService.deploy).toHaveBeenCalled();
+      expect(blockchainService.deploy).toHaveBeenCalled();
     });
   });
 });

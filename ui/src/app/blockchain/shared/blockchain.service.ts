@@ -23,7 +23,6 @@ import {
 
 import { Zone, mockZones } from './../../zones/shared/zones.model';
 import { Apis, uuidRegExp } from '../../shared/urls.model';
-import { swaggerMocks } from '../../../test.controller';
 
 @Injectable({
   providedIn: 'root'
@@ -258,9 +257,5 @@ export class MockBlockchainService {
   // Unit Test Only Functions
   provideNoBlockchain() { this.blockchains = []; }
   provideMockBlockchains() { this.blockchains = mockBlockchains; }
-  async provideMockBlockchainsFromSwagger() {
-    return swaggerMocks.sampleResponse('GET /blockchains', 200)
-              .then(blockchains => { this.blockchains = blockchains; });
-  }
 
 }

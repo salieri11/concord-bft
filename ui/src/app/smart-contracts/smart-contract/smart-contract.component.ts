@@ -93,9 +93,7 @@ export class SmartContractComponent implements OnInit {
               + this.smartContract.contract_id
               + '/versions/' + this.versionSelected;
 
-    if (this.router.url === url) {
-      this.ngOnInit();
-    } else {
+    if (this.router.url !== url) {
       this.router.navigate(path, {replaceUrl: true});
     }
   }

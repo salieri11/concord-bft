@@ -8,7 +8,7 @@ import { Observable, of } from 'rxjs/index';
 
 import { User, mockUsers, mockUserDefault } from './user.model';
 import { EthWallet } from '../../shared/eth-api.model';
-import { testController } from '../../../test.controller';
+import { testController } from '../../../test.controller'; // ! temp: must be overriden by actual mock
 
 @Injectable({
   providedIn: 'root'

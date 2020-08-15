@@ -2,26 +2,23 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { TestBed, async } from '@angular/core/testing';
-
 import { BlockchainService } from './blockchain.service';
 import { mockBlockchains } from './blockchain.model';
-import { swaggerMocks, getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
+import { swaggerMocks } from '../../../test.swagger.spec';
 
 
 describe('BlockchainService', () => {
-  let service: BlockchainService;
+  let blockchainService: BlockchainService;
 
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
+  const test = testFor(BlockchainService).expedite({
+    imports: [], provides: [], declarations: [],
+  }, beforeTesting(() => {
+    blockchainService = test.component;
+  }), prepareEach(() => {}));
 
   it('should be created', () => {
-    service = TestBed.get(BlockchainService);
-    expect(service).toBeTruthy();
+    expect(blockchainService).toBeTruthy();
   });
 
   it('check local blockchian mocks against Swagger mocks', async () => {

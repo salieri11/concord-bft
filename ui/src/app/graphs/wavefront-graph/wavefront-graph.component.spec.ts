@@ -1,30 +1,15 @@
 /*
  * Copyright 2020 VMware, all rights reserved.
  */
-/* tslint:disable:no-unused-variable */
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { WavefrontGraphComponent } from './wavefront-graph.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
 
-describe('LineGraphComponent', () => {
-  let component: WavefrontGraphComponent;
-  let fixture: ComponentFixture<WavefrontGraphComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(WavefrontGraphComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+describe('WavefrontGraphComponent', () => {
+  const test = testFor(WavefrontGraphComponent).expedite({
+    imports: [], provides: [], declarations: [WavefrontGraphComponent],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 });

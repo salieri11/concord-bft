@@ -120,6 +120,71 @@ export interface NodeCredentials {
   password: string;
 }
 
+
+export const nodeSizingOptionsBase = {
+  'id': '<UUID>',
+  'name': 'nodeSizeTemplate',
+  'templates': [
+    {
+      'name': 'Small',
+      'items': [
+        {
+          'type': 'committer',
+          'no_of_cpus': '4',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '32'
+        },
+        {
+          'type': 'client',
+          'no_of_cpus': '4',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '32'
+        }
+      ],
+    },
+    {
+      'name': 'Medium',
+      'items': [
+        {
+          'type': 'committer',
+          'no_of_cpus': '8',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '32'
+        },
+        {
+          'type': 'client',
+          'no_of_cpus': '8',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '32'
+        }
+      ]
+    },
+    {
+      'name': 'Large',
+      'items': [
+        {
+          'type': 'committer',
+          'no_of_cpus': '16',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '64'
+        },
+        {
+          'type': 'client',
+          'no_of_cpus': '16',
+          'storage_in_gigs': '1024',
+          'memory_in_gigs': '64'
+        }
+      ]
+    }
+  ],
+  'range': {
+    'no_of_cpus': {'min': 1, 'max': 18 },
+    'storage_in_gigs': {'min': 1, 'max': 16384 },
+    'memory_in_gigs': {'min': 1, 'max': 3024 }
+  }
+};
+
+
 export const mockCommitters: NodeInfo[] = [
   {
     name: 'Committer0',

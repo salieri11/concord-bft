@@ -3,7 +3,7 @@
  */
 
 import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { Router, ActivatedRoute, Params } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
@@ -54,6 +54,8 @@ export class MainComponent implements OnInit, OnDestroy {
   orgProps: OrgProperties;
   routePaths = mainRoutes;
 
+  private currentCheckedPath: string;
+
   // Blockchain Service is resolved in the router before loading
   get selectedBlockchainId(): string {
     return this.blockchainService.blockchainId;
@@ -61,10 +63,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   set selectedBlockchainId(id: string) {
     if (this.blockchainService.blockchainId === id) { return; }
-    let selectObs; selectObs = this.blockchainService.select(id).subscribe(() => {
-      this.routeService.outletEnabled = true;
-      if (selectObs) { selectObs.unsubscribe(); }
-    });
+    this.blockchainService.select(id).subscribe(() => this.handleUrl());
   }
 
   get blockchains(): BlockchainResponse[] {
@@ -88,46 +87,42 @@ export class MainComponent implements OnInit, OnDestroy {
     private personaService: PersonaService,
     private helpService: ContextualHelpService
   ) {
-    this.env = environment;
+    this.env = environment; if (!environment.csp) { this.setInactivityTimeout(); }
+    this.routeService.outletEnabled = false; // Hide while possible redirects
     this.blockchainType = this.blockchainService.type;
-    const validPath = this.handlePaths();
-    if (!validPath) {
-      this.routeService.redirectToDefault();
-    } else {
-      this.routeParamsSub = this.route.params.subscribe(param => this.handleParams(param));
-      this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
-      if (!environment.csp) { this.setInactivityTimeout(); }
-      this.orgProps = this.authenticationService.orgProps;
-      this.checkAuthorization();
-    }
+    this.orgProps = this.authenticationService.orgProps;
+    this.checkDeployAuthorization();
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
     this.selectedBlockchainId = this.route.snapshot.params['blockchainId'];
-
-    this.routerFragmentChange = this.route.fragment
-      .subscribe(fragment => this.handleFragment(fragment));
+    this.routeParamsSub = this.route.url.subscribe(() => this.handleUrl());
+    this.routerFragmentChange = this.route.fragment.subscribe(fragment => this.handleFragment(fragment));
+    this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
+    this.handleUrl();
   }
 
   ngOnDestroy(): void {
     if (this.routerFragmentChange) { this.routerFragmentChange.unsubscribe(); }
+    if (this.routeParamsSub) { this.routeParamsSub.unsubscribe(); }
     if (this.alertSub) { this.alertSub.unsubscribe(); }
     if (!environment.csp) { this.deregisterWindowListeners(); }
   }
 
   blockchainChange(): void {
-    this.routeService.outletEnabled = false;
-    this.navDisabled = false;
     if (this.selectedBlockchainId) {
+      this.navDisabled = false;
+      this.routeService.outletEnabled = false;
       const subpaths = this.router.url.split('/');
       subpaths.shift(); subpaths.shift(); // remove front slash & blockchain id
       subpaths.unshift('/' + this.selectedBlockchainId); // change to selected blockchain id
       const newPath = subpaths.join('/');
-      this.router.navigate([newPath])
+      this.router.navigate([newPath],  {})
         .then(() => {
           // This is to refresh all child components
           this.blockchainType = this.blockchainService.type;
+          this.handleUrl();
         });
     }
   }
@@ -136,53 +131,47 @@ export class MainComponent implements OnInit, OnDestroy {
     this.openDeployDapp = true;
   }
 
-  private handlePaths(): boolean {
-    const paths = this.route.snapshot.url;
-    const categoryPath = paths[0] ? paths[0].path : null;
-    const childPath = paths[1] ? paths[1].path : null;
-    if (!categoryPath) {
-      return false;
-    } else if (categoryPath === mainRoutes.blockchain) { // path is /blockchain*
-      this.blockchainUnresolved = true;
-      if (mainRoutes.blockchainChildren.indexOf(childPath) === -1) { return false; }
-    } else if (uuidRegExp.test(categoryPath)) { // valid :blockchainId
-      if (mainRoutes.blockchainIdChildren.indexOf(childPath) === -1) { return false; }
-    } else { return false; }
-    return true;
-  }
+  private handleUrl(): void {
+    const paths = this.routeService.parseURLData(this.router.url).paths;
+    if (this.currentCheckedPath === this.router.url) { return; } // already checked path
+    this.currentCheckedPath = this.router.url;
 
-  private handleParams(param: Params): void {
-    const validPath = this.handlePaths();
-    if (!validPath) { this.routeService.redirectToDefault(); return; }
-    const blockchainId = param.blockchainId as string;
+    const blockchainId = paths[0] as string;
+    const modulePath = paths[1] as string; // childRoute (e.g. dashboard, nodes, organizations, etc.)
+    const blockchainsList = this.blockchainService.blockchains;
     this.isOnPrem = this.nodesService.allOnPremZones;
     this.blockchainType = this.blockchainService.type;
 
-    // valid uuidv4 resource string
-    if (blockchainId && uuidRegExp.test(blockchainId)) {
-      this.selectedBlockchainId = blockchainId;
+    // Valid path with good blockchain id that exists on blockchains list and has valid child module path
+    let isValidPath = false;
+    this.navDisabled = true;
+    if (blockchainId && uuidRegExp.test(blockchainId) &&
+        blockchainsList.filter(bc => bc.id === blockchainId).length > 0
+        && mainRoutes.blockchainIdChildren.indexOf(modulePath) >= 0) {
+      // =>  /{:blockchainId}/{dashboard|blocks|nodes|smart-contracts|logging|consortiums|organizations
+      //                       |users|transactions|developer|... etc.} // only checking 1st level childRoute
+      isValidPath = true;
       this.navDisabled = false;
-      this.sidemenuVisible = true;
-      this.routeService.outletEnabled = true;
 
-      // starts with /blockchain/: {welcome, deploy, deploying}
-    } else if (this.blockchainUnresolved) {
+    // =>  /blockchain/{welcome|zones|deploy|deploying}/* pages
+    } else if (blockchainId === mainRoutes.blockchain
+                && mainRoutes.blockchainChildren.indexOf(modulePath) >= 0) {
+      isValidPath = true;
       this.navDisabled = true;
-      this.sidemenuVisible = true;
-      this.routeService.outletEnabled = true;
       if (this.blockchainService.noConsortiumJoined) {
         // no consortium joined and was deploying?
         // Resume 'deploying view' since nothing else to show.
         this.routeService.resumeUnfinishedDeployIfExists();
       }
-
-      // catch everything else (including 'undefined', 'login-return')
-    } else {
-      this.navDisabled = false;
-      this.sidemenuVisible = false;
-      this.routeService.outletEnabled = false;
-      this.routeService.redirectToDefault();
     }
+
+    // catch everything else (including 404 blockchain, 'undefined', 'login-return', other crazy paths)
+    if (!isValidPath) {
+      this.navDisabled = true;
+      this.routeService.redirectToDefault();
+      return;
+    }
+    this.routeService.outletEnabled = true; // Everything checked out; show.
   }
 
   private handleFragment(fragment: string): void {
@@ -246,7 +235,7 @@ export class MainComponent implements OnInit, OnDestroy {
     }
   }
 
-  private checkAuthorization(): boolean {
+  private checkDeployAuthorization(): boolean {
     const blockchainCount = this.blockchains.length;
     const maxChain = this.orgProps ? this.orgProps.max_chains : null;
     // Must be a system admin or consortium admin to deploy

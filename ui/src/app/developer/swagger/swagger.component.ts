@@ -6,7 +6,7 @@ import { AfterViewInit, Component, ElementRef } from '@angular/core';
 
 import { environment } from './../../../environments/environment';
 import { Apis } from '../../shared/urls.model';
-import { testController } from '../../../test.controller';
+import { testController } from '../../../test.controller'; // ! temp: must be overriden by actual mock
 
 // Due to issues with SwaggerUI being undefined in certain scenarios
 // https://github.com/swagger-api/swagger-ui/issues/4303
@@ -59,7 +59,6 @@ export class SwaggerComponent implements AfterViewInit {
             const url = new URL(request.url, location);
             // Reconstruct the url because the basePath may change
             if (url.pathname.startsWith(Apis.base)) {
-              console.log(request);
               const queryParameters = request.url.split('?')[1];
               request.url = `${location.protocol}//${url.host}${basePath}${url.pathname}${queryParameters ? '?' + queryParameters : ''}`;
             }

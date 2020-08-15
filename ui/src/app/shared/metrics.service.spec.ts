@@ -1,21 +1,15 @@
 /*
  * Copyright 2018-2020 VMware, all rights reserved.
  */
-/* tslint:disable:no-unused-variable */
-
-import { TestBed, inject, async } from '@angular/core/testing';
 import { MetricsService } from './metrics.service';
-import { getSpecTestingModule } from './shared-testing.module';
+import { testFor, prepareEach, beforeTesting } from '../../test.helper.spec';
 
-describe('Service: Metrics', () => {
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
+describe('MetricsService', () => {
+  const test = testFor(MetricsService).expedite({
+    imports: [], provides: [], declarations: [],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
-  it('should ...', inject([MetricsService], (service: MetricsService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should create', () => {
+    expect(test.component).toBeTruthy();
+  });
 });
