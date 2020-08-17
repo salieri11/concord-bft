@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
@@ -38,13 +39,15 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 
+import lombok.Getter;
+
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
  * concord-node etc.
  */
 @Component
-public final class NodeStartupOrchestrator {
+public class NodeStartupOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(NodeStartupOrchestrator.class);
 
@@ -59,6 +62,9 @@ public final class NodeStartupOrchestrator {
     private final ConfigServiceInvoker configServiceInvoker;
 
     private final AgentDockerClient agentDockerClient;
+
+    @Getter
+    private List<BaseContainerSpec> components;
 
     /**
      * Default constructor.
@@ -82,6 +88,7 @@ public final class NodeStartupOrchestrator {
             // Pull and order images
             List<BaseContainerSpec> containerConfigList = pullImages();
             containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
+            components = containerConfigList;
 
             agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
 
@@ -89,7 +96,14 @@ public final class NodeStartupOrchestrator {
             // Get Docker client instance
             var dockerClient = DockerClientBuilder.getInstance().build();
             try {
-                containerConfigList.forEach(container -> launchContainer(dockerClient, container));
+                containerConfigList.forEach(container ->  {
+                    var containerResponse = createContainer(dockerClient, container);
+                    if (configuration.getNoLaunch()) {
+                        log.info("Not Launching {}: Id {} ", container.getContainerName(), containerResponse.getId());
+                    } else {
+                        agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
+                    }
+                });
             } catch (ConflictException e) {
                 log.warn("Did not launch the container again. Container already present", e);
             }
@@ -202,7 +216,7 @@ public final class NodeStartupOrchestrator {
         return containerSpec;
     }
 
-    private static List<String> getEnumNames(Class<? extends Enum<?>> e) {
+    public static List<String> getEnumNames(Class<? extends Enum<?>> e) {
         return Arrays.stream(e.getEnumConstants()).map(Enum::name).collect(Collectors.toList());
     }
 
@@ -219,7 +233,7 @@ public final class NodeStartupOrchestrator {
         }
     }
 
-    private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
+    private CreateContainerResponse createContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
 
         // Mount Default volume per container.
         String containerName = containerParam.getContainerName().replace("_", "-");
@@ -272,15 +286,7 @@ public final class NodeStartupOrchestrator {
         var container = createContainerCmd.exec();
         if (container == null) {
             log.error("Couldn't create {} container...!", containerParam.getContainerName());
-        } else {
-            if (configuration.getNoLaunch()) {
-                log.info("Not Launching {}: Id {} ", containerParam.getContainerName(), container.getId());
-            } else {
-                log.info("Starting {}: Id {} ", containerParam.getContainerName(), container.getId());
-                dockerClient.startContainerCmd(container.getId()).exec();
-                log.info("Started container {}: Id {} ", containerParam.getContainerName(), container.getId());
-            }
-
         }
+        return container;
     }
 }

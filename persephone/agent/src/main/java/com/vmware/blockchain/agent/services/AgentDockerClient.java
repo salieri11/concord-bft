@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Network;
@@ -30,7 +32,7 @@ import com.vmware.blockchain.deployment.v1.Endpoint;
  * concord-node etc.
  */
 @Component
-public final class AgentDockerClient {
+public class AgentDockerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AgentDockerClient.class);
 
@@ -176,5 +178,39 @@ public final class AgentDockerClient {
         } catch (DockerException de) {
             log.info("Docker Network creation failed with error:\n{}", de.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Helper util to fetch a container id.
+     */
+    public InspectContainerResponse inspectContainer(DockerClient dockerClient, String name) {
+
+        var inspectContainerCmd = dockerClient.inspectContainerCmd(name);
+
+        var container = inspectContainerCmd.exec();
+        if (container == null) {
+            log.error("Couldn't GET {} container...!", name);
+        }
+        return container;
+    }
+
+    /**
+     * Helper util to start a container.
+     */
+    public void startComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
+                                      String containerId) {
+        log.info("Starting {}: Id {} ", containerParam.getContainerName(), containerId);
+        dockerClient.startContainerCmd(containerId).exec();
+        log.info("Started container {}: Id {} ", containerParam.getContainerName(), containerId);
+    }
+
+    /**
+     * Helper util to stop a container.
+     */
+    public void stopComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
+                               String containerId) {
+        log.info("Stopping {}: Id {} ", containerParam.getContainerName(), containerId);
+        dockerClient.stopContainerCmd(containerId).exec();
+        log.info("Stopped container {}: Id {} ", containerParam.getContainerName(), containerId);
     }
 }
