@@ -29,12 +29,11 @@ touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
 /usr/bin/vmware-toolbox-cmd info update network
 
-docker login http://containerRegistry.com -u username -p 'password'
-
 # Retry logic to pull an image.
 retry=0
 until [ $retry -ge 3 ]
 do
+   docker login http://containerRegistry.com -u username -p 'password'
    docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 containerRegistry.com/agent && break
    retry=$[$retry+1]
    sleep 10
