@@ -34,7 +34,8 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
     def __del__(self):
         self.close_channel(self.service_name)
 
-    def create_deployment(self, blockchain_type, zone_type, num_replicas, num_clients, zone_config, stub=None):
+    def create_deployment(self, blockchain_type, zone_type, num_replicas, num_clients, zone_config, num_client_groups = 0,
+                          stub=None):
         """
         Main entry point method to create deployment
         :param blockchain_type: Type of blockchain (DAML, ETHEREUM, HLF)
@@ -42,13 +43,16 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         :param num_replicas: Number of replica nodes
         :param num_clients: Number of client nodes
         :param zone_config: zone_config.json object
+        :param num_client_groups: Number of client groups to create.
         :param stub: Stub for non-default instance (running on other than default provisioning service on port 9002)
         :return: Deployment session ID
         """
         log.info("Creating deployment of blockchain type {} on location {}".format(blockchain_type.upper(),
                                                                                    zone_type.upper()))
         blockchain_type = self.convert_blockchain_type(blockchain_type)
-        spec = self.create_deployment_spec(blockchain_type, zone_type, num_replicas, num_clients, zone_config)
+
+        spec = self.create_deployment_spec(blockchain_type, zone_type, num_replicas, num_clients, zone_config,
+                                           num_client_groups)
         deployment_request = self.create_deployment_request(spec)
         deployment_request_response = None
         try:
@@ -121,7 +125,8 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         header = core_pb2.MessageHeader()
         return ps_apis.DeploymentRequest(header=header, spec=spec)
 
-    def create_deployment_spec(self, blockchain_type, zone_type, num_replicas, num_clients, zone_config):
+    def create_deployment_spec(self, blockchain_type, zone_type, num_replicas, num_clients, zone_config,
+                               num_client_groups=0):
         """
         Helper method to create DeploymentSpec
         :param blockchain_type: Type of the blockchain (DAML, ETHEREUM, HLF)
@@ -129,13 +134,14 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         :param num_replicas: Number of replica nodes
         :param num_clients: Number of client nodes
         :param zone_config: zone_config.json object
+        :param num_client_groups: Number of client groups to create
         :return: DeploymentSpec
         """
         site_ids, site_infos = self.get_orchestration_site_ids_and_infos(zone_type, zone_config)
         sites = self.create_sites(site_ids, site_infos)
         properties_dict = {'IMAGE_TAG': self.args.deploymentComponents, "ENABLE_BFT_CLIENT": "True"}
         properties = core_pb2.Properties(values=properties_dict)
-        node_assignment = self.create_node_assignment(num_replicas, num_clients, site_ids)
+        node_assignment = self.create_node_assignment(num_replicas, num_clients, site_ids, num_client_groups)
         spec = ps_apis.DeploymentSpec(consortium_id=str(uuid.uuid4()), blockchain_id=str(uuid.uuid4()),
                                       blockchain_type=blockchain_type, sites=sites, nodeAssignment=node_assignment,
                                       properties=properties)
@@ -154,12 +160,13 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
             site_info_list.append(orchestration_pb2.OrchestrationSite(id=site_id, info=site_info))
         return ps_apis.Sites(info_list=site_info_list)
 
-    def create_node_assignment(self, num_replicas, num_clients, site_ids):
+    def create_node_assignment(self, num_replicas, num_clients, site_ids, num_client_groups=0):
         """
         Helper method to create node assignments
         :return: NodeAssignment
         """
         entries = []
+        client_groups = [str(uuid.uuid4()) for _ in range(num_client_groups)]
 
         # Replicas
         site_idx = 0
@@ -171,10 +178,22 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
 
         # Clients
         site_idx = 0
+        group_idx = 0
         for _ in range(num_clients):
+            # Reset indices if they overflow
             if site_idx == len(site_ids):
                 site_idx = 0
-            entries.append(ps_apis.NodeAssignment.Entry(site=site_ids[site_idx], type=core_pb2.CLIENT))
+            if group_idx == num_client_groups:
+                group_idx = 0
+
+            if (num_client_groups > 0):
+                properties_dict = {'CLIENT_GROUP_ID': client_groups[group_idx]}
+                properties = core_pb2.Properties(values=properties_dict)
+                entries.append(ps_apis.NodeAssignment.Entry(site=site_ids[site_idx], type=core_pb2.CLIENT,
+                                                            properties=properties))
+                group_idx += 1
+            else:
+                entries.append(ps_apis.NodeAssignment.Entry(site=site_ids[site_idx], type=core_pb2.CLIENT))
             site_idx += 1
 
         return ps_apis.NodeAssignment(entries=entries)
