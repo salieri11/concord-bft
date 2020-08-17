@@ -2050,7 +2050,7 @@ def getDefaultDeploymentComponents():
          # Look for the docker tag in the .env file.
          f.seek(0)
          for line in f:
-            if "/{}".format(component_to_find) in line:
+            if "{}".format(component_to_find) in line:
                repo_key = line.split("=")[0]
                tag_key = repo_key.replace("_repo", "") + "_tag"
                tag = get_docker_env(tag_key)

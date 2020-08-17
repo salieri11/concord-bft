@@ -10,6 +10,8 @@ set(CMAKE_CXX_EXTENSIONS Off)
 string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all -O3")
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Storage options
 option(BUILD_ROCKSDB_STORAGE "concord needs rocksdb" TRUE)
 

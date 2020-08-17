@@ -20,9 +20,9 @@
 #include <mutex>
 #include <queue>
 #include "SimpleThreadPool.hpp"
-#include "bftclient/include/bftclient/base_types.h"
-#include "bftclient/include/bftclient/config.h"
-#include "bftclient/include/bftclient/quorums.h"
+#include "bftclient/base_types.h"
+#include "bftclient/config.h"
+#include "bftclient/quorums.h"
 #include "external_client.hpp"
 
 // the parameters are sequence number and cid
@@ -94,7 +94,7 @@ class ConcordClientPool {
   // response.
   // max_reply_size - holds the size of reply_buffer.
   // seq_num - sequence number for the request
-  SubmitResult SendRequest(std::vector<char>&& request,
+  SubmitResult SendRequest(std::vector<uint8_t>&& request,
                            bftEngine::ClientMsgFlag flags,
                            std::chrono::milliseconds timeout_ms,
                            char* reply_buffer, std::uint32_t max_reply_size,
@@ -158,7 +158,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
   ConcordClientProcessingJob(
       concord_client_pool::ConcordClientPool& clients,
       std::shared_ptr<external_client::ConcordClient> client,
-      std::vector<char>&& request, bftEngine::ClientMsgFlag flags,
+      std::vector<uint8_t>&& request, bftEngine::ClientMsgFlag flags,
       std::chrono::milliseconds timeout_ms, std::uint32_t reply_size,
       const std::string correlation_id, uint64_t seq_num,
       std::string span_context)
@@ -181,7 +181,7 @@ class ConcordClientProcessingJob : public util::SimpleThreadPool::Job {
  private:
   concord_client_pool::ConcordClientPool& clients_pool_;
   std::shared_ptr<external_client::ConcordClient> processing_client_;
-  std::vector<char> request_;
+  std::vector<uint8_t> request_;
   bftEngine::ClientMsgFlag flags_;
   std::chrono::milliseconds timeout_ms_;
   std::uint32_t reply_size_;

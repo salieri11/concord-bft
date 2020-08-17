@@ -72,6 +72,7 @@ Non-pytest:
 - To run the "EthCoreVmTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
   Then adjust the path to it in resources/user_config.json.
+- Install Maven: `sudo apt-get install maven`
 - For the UITests to pass you need to export your LINT_API_KEY and FLUENTD key, which can be (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens]
 
 ```shell
@@ -352,4 +353,3 @@ sudo pip3 install numpy
 ./main.py PerformanceTests
 ```
 - To terminate the test early use command-C. This will stop the test and will only parse results attained up until that point.
-

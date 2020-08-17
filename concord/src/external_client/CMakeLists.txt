@@ -1,3 +1,5 @@
+
+
 file (GLOB util_headers "../../submodules/concord-bft/util/include/*.h"
         "../../submodules/concord-bft/util/include/*.hpp")
 file (GLOB logging_headers "../../submodules/concord-bft/logging/include/*.hpp")
@@ -9,7 +11,7 @@ file (GLOB external_headers "*.hpp"
 file (GLOB bft_engine_headers "../../submodules/concord-bft/bftengine/include/bftengine/*.hpp")
 file (GLOB comm_headers "../../submodules/concord-bft/communication/include/communication/*.h"
         "../../submodules/concord-bft/communication/include/communication/*.hpp")
-file (GLOB bft_headers "../bftclient/include/bftclient/*.h")
+file (GLOB bft_headers "../../submodules/concord-bft/bftclient/include/bftclient/*.h")
 
 install (FILES ${external_headers} ${util_headers} DESTINATION include/external)
 install (FILES ${logging_headers} ../config/configuration_manager.hpp ../config/communication.hpp ../../submodules/concord-bft/threshsign/include/threshsign/ThresholdSignaturesTypes.h DESTINATION include/config)
@@ -72,6 +74,7 @@ target_link_libraries(concord_external_client PUBLIC
         log4cplus
         concord_utils
         bftclient
+        bftclient_new
         kvbc
         util
         threshsign)
@@ -93,16 +96,21 @@ target_link_libraries(concord_external_client_shared PUBLIC
         log4cplus
         concord_utils_shared
         bftclient_shared
+        bftclient_new
         util_shared
         )
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/logging/include)
+target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/logging/include)
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/util/include)
-target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/bftengine/include/)
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/communication/include/communication)
-target_include_directories(concord_external_client_shared PUBLIC ../bftclient/include/bftclient)
+target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/bftclient/include/bftclient)
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/threshsign/src)
-target_include_directories(concord_external_client_shared PUBLIC ../bftclient/include/bftclient)
 target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/storage/include/)
+
+# Hack for including SysConsts.hpp
+target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/bftengine/src/bftengine)
+target_include_directories(concord_external_client_shared PUBLIC ../../submodules/concord-bft/bftengine/include/bftengine)
+
 install (TARGETS concord_external_client_shared DESTINATION lib${LIB_SUFFIX})
 
 configure_file(extclient-wrapper-entrypoint.sh extclient-wrapper-entrypoint.sh COPYONLY)

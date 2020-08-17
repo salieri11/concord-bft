@@ -5324,6 +5324,13 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
   participant_node.tagParameter("operator_id", publicGeneratedTags);
   participant_node.addGenerator("operator_id", computeOperatorPrincipalId,
                                 nullptr);
+  participant_node.declareParameter(
+      "operator_port",
+      "Port number this operator participant_node can be reached at.");
+  participant_node.tagParameter("operator_port", publicInputTags);
+  participant_node.addValidator(
+      "operator_port", config::validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "

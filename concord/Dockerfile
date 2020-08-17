@@ -29,12 +29,12 @@ WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
 RUN cmake \
-      -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
-      -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
-      -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" \
-      -DUSE_CONAN=OFF .. && \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
+    -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" \
+    .. && \
     CTEST_OUTPUT_ON_FAILURE=true make \
-      -j$(nproc) all test
+    -j$(nproc) all test
 
 RUN ./tools/conc_genconfig --configuration-type application --output-name app --configuration-input ../resources/appconf_input.yaml
 ## Base Run image
@@ -74,20 +74,20 @@ RUN ln -s /usr/local/lib/liblog4cplus-2.0.so.3.4.4 /usr/local/lib/liblog4cplus.s
 
 COPY --from=0 /usr/local/lib/libprometheus-cpp-core.so.0.8.0 /usr/local/lib/
 RUN for x in /usr/local/lib/libprometheus-cpp-core.so.0.8.0; do \
-        ln -s $x ${x%%.0} && \
-        ln -s $x ${x%%.0.8.0}; \
+    ln -s $x ${x%%.0} && \
+    ln -s $x ${x%%.0.8.0}; \
     done
 
 COPY --from=0 /usr/local/lib/libprometheus-cpp-pull.so.0.8.0 /usr/local/lib/
 RUN for x in /usr/local/lib/libprometheus-cpp-pull.so.0.8.0; do \
-        ln -s $x ${x%%.0} && \
-        ln -s $x ${x%%.0.8.0}; \
+    ln -s $x ${x%%.0} && \
+    ln -s $x ${x%%.0.8.0}; \
     done
 
 COPY --from=0 /usr/local/lib/libprometheus-cpp-push.so.0.8.0 /usr/local/lib/
 RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
-        ln -s $x ${x%%.0} && \
-        ln -s $x ${x%%.0.8.0}; \
+    ln -s $x ${x%%.0} && \
+    ln -s $x ${x%%.0.8.0}; \
     done
 
 # gRPC
@@ -98,25 +98,25 @@ COPY --from=0 /opt/grpc/bin /opt/grpc/bin
 # Copy libraries and create symlinks (docker copies instead of sym linking)
 COPY --from=0 /opt/protobuf/lib/*.so.3.11.2.0 /opt/protobuf/lib/
 RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
-        ln -s $x ${x%%.3.11.2.0}; \
+    ln -s $x ${x%%.3.11.2.0}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.1.28.2 /opt/grpc/lib/
 RUN for x in /opt/grpc/lib/*.so.1.28.2; do \
-        ln -s $x ${x%%.28.2} && \
-        ln -s $x ${x%%.1.28.2}; \
+    ln -s $x ${x%%.28.2} && \
+    ln -s $x ${x%%.1.28.2}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
 RUN for x in /opt/grpc/lib/*.so.9.0.0; do \
-        ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.9.0.0}; \
+    ln -s $x ${x%%.0.0} && \
+    ln -s $x ${x%%.9.0.0}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.1.2.11 /opt/grpc/lib/
 RUN for x in /opt/grpc/lib/*.so.1.2.11; do \
-        ln -s $x ${x%%.2.11} && \
-        ln -s $x ${x%%.1.2.11}; \
+    ln -s $x ${x%%.2.11} && \
+    ln -s $x ${x%%.1.2.11}; \
     done
 
 COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/

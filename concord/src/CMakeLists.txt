@@ -4,7 +4,6 @@ set(SKVBC_COMMANDS_HANDLER_DIR "${SKVBC_INCLUDE_DIR}/TesterReplica")
 
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"          "api/*.hpp"
-  "config/*.cpp"       "config/*.hpp"
   "daml/*.cpp"         "daml/*.hpp"
   "hlf/*.cpp"          "hlf/*.hpp"
   "thin_replica/*.cpp" "thin_replica/*.hpp"
@@ -26,6 +25,7 @@ get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 include_directories(${thresh_include})
 
 add_subdirectory("common")
+add_subdirectory("config")
 add_subdirectory("consensus")
 add_subdirectory("ethereum")
 add_subdirectory("external_client")
@@ -35,7 +35,6 @@ add_subdirectory("reconfiguration")
 add_subdirectory("storage")
 add_subdirectory("time")
 add_subdirectory("utils")
-add_subdirectory("bftclient")
 
 add_executable(concord
   ${concord_src}
@@ -57,6 +56,7 @@ target_link_libraries(concord
   opentracing
   thrift
   concord_common
+  concord_config
   concord_consensus
   concord_ethereum
   concord_pruning

@@ -34,7 +34,7 @@ static std::unordered_map<uint16_t, std::unique_ptr<ConcordClientPool>>
 // integrate this library into C++ code then the application should do this.
 const static int kLogConfigRefreshIntervalInMs = 60 * 1000;
 
-const static char* GetLog4CplusConfigLocation() {
+const static char *GetLog4CplusConfigLocation() {
   auto log_location = std::getenv("LOG4CPLUS_CONFIGURATION");
   return log_location ? log_location : "LOG4CPLUS_CONFIGURATION_NOT_SET";
 }
@@ -62,9 +62,10 @@ BFTClient_SubmitResult_t BFTClient_send_request(
         client_handles.at(client_handle)
             ->SendRequest(
                 CreateWriteConfig(pre_execute, timeout_millis, correlation_id),
-                std::vector<char>(concord_request_protobuf_bytes,
-                                  concord_request_protobuf_bytes +
-                                      concord_request_protobuf_bytes_length)));
+                std::vector<uint8_t>(
+                    concord_request_protobuf_bytes,
+                    concord_request_protobuf_bytes +
+                        concord_request_protobuf_bytes_length)));
   } catch (const concord::concord_client_pool::InternalError &_internal_error) {
     return SubmitResult::InternalError;
   }
