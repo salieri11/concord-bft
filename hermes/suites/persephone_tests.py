@@ -811,7 +811,7 @@ class PersephoneTests(test_suite.TestSuite):
                              concord_ip))
 
                count = 0
-               max_timeout = 600 # 10 mins
+               max_timeout = 1200  # 20 mins; containers total size 10 GB+ now
                start_time = time.time()
                docker_images_found = False
                command_to_run = "docker ps --format '{{.Names}}'"
