@@ -2,6 +2,7 @@
 
 package com.digitalasset.daml.on.vmware.participant.state
 
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
@@ -16,7 +17,7 @@ import scala.concurrent.Future
 class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSugar {
 
   private sealed trait CommitTransaction {
-    def commit(request: CommitRequest): Future[SubmissionResult]
+    def commit(request: CommitRequest, metadata: CommitMetadata): Future[SubmissionResult]
   }
 
   private val anEnvelope = ByteString.copyFrom(Array[Byte](0, 1, 2))
@@ -27,7 +28,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       val commitFunction = mock[CommitTransaction]
       val requestCaptor =
         ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
-      when(commitFunction.commit(requestCaptor.capture()))
+      when(commitFunction.commit(requestCaptor.capture(), any()))
         .thenReturn(Future.successful(SubmissionResult.Acknowledged))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
@@ -42,7 +43,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
 
     "return Overloaded in case of resource exhaustion" in {
       val commitFunction = mock[CommitTransaction]
-      when(commitFunction.commit(any()))
+      when(commitFunction.commit(any(), any()))
         .thenReturn(Future.successful(SubmissionResult.Overloaded))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
@@ -53,7 +54,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
 
     "return InternalError in case of an ERROR commit response" in {
       val commitFunction = mock[CommitTransaction]
-      when(commitFunction.commit(any()))
+      when(commitFunction.commit(any(), any()))
         .thenReturn(Future.successful(SubmissionResult.InternalError("ERROR")))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
@@ -67,7 +68,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
 
     "throw in case of unsupported submission" in {
       val commitFunction = mock[CommitTransaction]
-      when(commitFunction.commit(any()))
+      when(commitFunction.commit(any(), any()))
         .thenReturn(Future.successful[SubmissionResult](SubmissionResult.NotSupported))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
@@ -84,7 +85,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       val commitFunction = mock[CommitTransaction]
       val expectedException =
         new IllegalArgumentException("Something went wrong")
-      when(commitFunction.commit(any()))
+      when(commitFunction.commit(any(), any()))
         .thenReturn(Future.failed(expectedException))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)

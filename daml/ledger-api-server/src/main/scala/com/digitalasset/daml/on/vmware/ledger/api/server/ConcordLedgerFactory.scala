@@ -44,7 +44,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig] {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
-  override val defaultExtraConfig: ExtraConfig = ExtraConfig.Default
+  override val defaultExtraConfig: ExtraConfig = ExtraConfig.ReasonableDefault
 
   override def extraConfigParser(parser: OptionParser[Config[ExtraConfig]]): Unit =
     ExtraConfig.addCommandLineArguments(parser)
@@ -68,7 +68,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
          |participantId=${config.participants.head.participantId} replicas=${config.extra.replicas}
          |jdbcUrl=${config.participants.head.serverJdbcUrl}
          |darFileList=${config.archiveFiles.mkString("(", ";", ")")}
-         |useBftClient=${config.extra.useBftClient}""".stripMargin
+         |useBftClient=${config.extra.bftClient.enable}""".stripMargin
         .replaceAll("\n", " "))
     val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
@@ -119,7 +119,8 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val concordWriter =
       new ConcordLedgerWriter(
         participantId = participantId,
-        commitTransaction = concordWriteClient.commitTransaction(_)(executionContext),
+        commitTransaction = (commitRequest, commitMedatata) =>
+          concordWriteClient.commitTransaction(commitRequest, commitMedatata)(executionContext),
         fetchCurrentHealth = () => concordWriteClient.currentHealth
       )
     lazy val batchingWriter =
@@ -157,8 +158,9 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
       implicit executionContext: ExecutionContext): ConcordLedgerWriter = {
     new ConcordLedgerWriter(
       participantId = participantId,
-      commitTransaction = ConcordWriteClient.markRequestForPreExecution(
-        concordWriteClient.commitTransaction(_)(executionContext)),
+      commitTransaction =
+        ConcordWriteClient.markRequestForPreExecution((commitRequest, commitMedatata) =>
+          concordWriteClient.commitTransaction(commitRequest, commitMedatata)(executionContext)),
       fetchCurrentHealth = () => concordWriteClient.currentHealth
     )
   }

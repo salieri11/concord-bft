@@ -1,5 +1,6 @@
 package com.digitalasset.daml.on.vmware.write.service.kvbc
 
+import com.daml.ledger.participant.state.kvutils.api.SimpleCommitMetadata
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.kvbc.daml_commit.CommitResponse.CommitStatus
 import com.digitalasset.kvbc.daml_commit.{CommitRequest, CommitResponse, CommitServiceGrpc}
@@ -20,8 +21,9 @@ class KvbcWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar 
       when(commitClientMock.commitTransaction(any()))
         .thenReturn(Future.successful(new CommitResponse(CommitStatus.OK)))
       val kvbcWriteClient = createKvbcClient(commitClientMock)
-      kvbcWriteClient.commitTransaction(aCommitRequest)(executionContext).map { actual =>
-        actual shouldBe SubmissionResult.Acknowledged
+      kvbcWriteClient.commitTransaction(aCommitRequest, aCommitMetadata)(executionContext).map {
+        actual =>
+          actual shouldBe SubmissionResult.Acknowledged
       }
     }
 
@@ -30,8 +32,9 @@ class KvbcWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar 
       when(commitClientMock.commitTransaction(any()))
         .thenReturn(Future.successful(new CommitResponse(CommitStatus.ERROR)))
       val kvbcWriteClient = createKvbcClient(commitClientMock)
-      kvbcWriteClient.commitTransaction(aCommitRequest)(executionContext).map { actual =>
-        actual shouldBe SubmissionResult.InternalError("ERROR")
+      kvbcWriteClient.commitTransaction(aCommitRequest, aCommitMetadata)(executionContext).map {
+        actual =>
+          actual shouldBe SubmissionResult.InternalError("ERROR")
       }
     }
 
@@ -40,8 +43,9 @@ class KvbcWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar 
       when(commitClientMock.commitTransaction(any()))
         .thenReturn(Future.failed(new StatusRuntimeException(Status.RESOURCE_EXHAUSTED)))
       val kvbcWriteClient = createKvbcClient(commitClientMock)
-      kvbcWriteClient.commitTransaction(aCommitRequest)(executionContext).map { actual =>
-        actual shouldBe SubmissionResult.Overloaded
+      kvbcWriteClient.commitTransaction(aCommitRequest, aCommitMetadata)(executionContext).map {
+        actual =>
+          actual shouldBe SubmissionResult.Overloaded
       }
     }
 
@@ -51,8 +55,9 @@ class KvbcWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar 
       when(commitClientMock.commitTransaction(any()))
         .thenReturn(Future.failed(exception))
       val kvbcWriteClient = createKvbcClient(commitClientMock)
-      kvbcWriteClient.commitTransaction(aCommitRequest)(executionContext).map { actual =>
-        actual shouldBe SubmissionResult.InternalError(exception.toString)
+      kvbcWriteClient.commitTransaction(aCommitRequest, aCommitMetadata)(executionContext).map {
+        actual =>
+          actual shouldBe SubmissionResult.InternalError(exception.toString)
       }
     }
   }
@@ -65,7 +70,8 @@ class KvbcWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar 
   private val aParticipantId = ParticipantId.assertFromString("aParticipantId")
   private val aCommitRequest = CommitRequest(
     anEnvelope,
-    aParticipantId.toString,
+    aParticipantId,
     "correlationId"
   )
+  private val aCommitMetadata = SimpleCommitMetadata(None)
 }

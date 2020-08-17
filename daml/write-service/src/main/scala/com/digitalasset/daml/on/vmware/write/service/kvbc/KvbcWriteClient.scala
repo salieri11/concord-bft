@@ -3,6 +3,7 @@
 package com.digitalasset.daml.on.vmware.write.service.kvbc
 
 import com.daml.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.backOff
@@ -29,7 +30,7 @@ class KvbcWriteClient private[kvbc] (
 
   override def currentHealth: HealthStatus = channelHealth
 
-  override def commitTransaction(request: CommitRequest)(
+  override def commitTransaction(request: CommitRequest, metadata: CommitMetadata)(
       ec: ExecutionContext): Future[SubmissionResult] = {
     implicit val executionContext: ExecutionContext = ec
     val correlationId = request.correlationId

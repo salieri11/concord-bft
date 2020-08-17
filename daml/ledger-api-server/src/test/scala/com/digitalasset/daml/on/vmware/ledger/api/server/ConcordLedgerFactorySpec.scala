@@ -26,24 +26,27 @@ class ConcordLedgerFactorySpec
   "createLedgerWriter" should {
     "create a writer chooser in case pre-execution threshold is specified" in {
       val config =
-        Config.createDefault(ExtraConfig.Default.copy(preExecutionCostThreshold = Some(123L)))
+        Config.createDefault(
+          ExtraConfig.ReasonableDefault.copy(preExecutionCostThreshold = Some(123L)))
       createInstance(config) shouldBe a[InterpretationCostBasedLedgerWriterChooser]
     }
 
     "create a batching ledger writer in case batching is enabled" in {
-      val config = Config.createDefault(ExtraConfig.Default.copy(enableBatching = true))
+      val config = Config.createDefault(ExtraConfig.ReasonableDefault.copy(enableBatching = true))
       createInstance(config) shouldBe a[BatchingLedgerWriter]
     }
 
     "create a batching ledger writer in case batching is enabled and pre-execution threshold is specified" in {
       val config = Config.createDefault(
-        ExtraConfig.Default.copy(enableBatching = true, preExecutionCostThreshold = Some(123L)))
+        ExtraConfig.ReasonableDefault
+          .copy(enableBatching = true, preExecutionCostThreshold = Some(123L)))
       createInstance(config) shouldBe a[InterpretationCostBasedLedgerWriterChooser]
     }
 
     "create a ConcordLedgerWriter in case both batching and pre-execution are disabled" in {
       val config = Config.createDefault(
-        ExtraConfig.Default.copy(enableBatching = false, preExecutionCostThreshold = None))
+        ExtraConfig.ReasonableDefault
+          .copy(enableBatching = false, preExecutionCostThreshold = None))
       createInstance(config) shouldBe a[ConcordLedgerWriter]
     }
   }
