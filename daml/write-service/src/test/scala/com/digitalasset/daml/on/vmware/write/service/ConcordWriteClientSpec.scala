@@ -2,12 +2,14 @@
 
 package com.digitalasset.daml.on.vmware.write.service
 
+import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
 import com.daml.ledger.participant.state.v1.SubmissionResult.Acknowledged
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.MessageFlags
 import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.{AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
@@ -21,13 +23,13 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
       val mockDelegate = mock[CommitTransaction]
       val requestArgumentCaptor =
         ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
-      when(mockDelegate.commitTransaction(requestArgumentCaptor.capture()))
+      when(mockDelegate.commitTransaction(requestArgumentCaptor.capture(), any()))
         .thenReturn(Future.successful(Acknowledged))
       val commitRequest = CommitRequest(anEnvelope, aParticipantId, aCorrelationId)
 
       val instance = ConcordWriteClient.markRequestForPreExecution(mockDelegate.commitTransaction) _
 
-      instance(commitRequest).map { actual =>
+      instance(commitRequest, aCommitMetadata).map { actual =>
         actual shouldBe Acknowledged
         requestArgumentCaptor.getAllValues should have size 1
         val expectedCommitRequest = CommitRequest(
@@ -45,7 +47,7 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
       val mockDelegate = mock[CommitTransaction]
       val requestArgumentCaptor =
         ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
-      when(mockDelegate.commitTransaction(requestArgumentCaptor.capture()))
+      when(mockDelegate.commitTransaction(requestArgumentCaptor.capture(), any()))
         .thenReturn(Future.successful(Acknowledged))
       val commitRequest = CommitRequest(
         anEnvelope,
@@ -55,7 +57,7 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       val instance = ConcordWriteClient.markRequestForPreExecution(mockDelegate.commitTransaction) _
 
-      instance(commitRequest).map { _ =>
+      instance(commitRequest, aCommitMetadata).map { _ =>
         requestArgumentCaptor.getAllValues should have size 1
         requestArgumentCaptor.getValue.flags shouldBe MessageFlags.PreExecuteFlag
         succeed
@@ -66,8 +68,11 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val anEnvelope = ByteString.copyFromUtf8("some request")
   private val aParticipantId = ParticipantId.assertFromString("aParticipantId")
   private val aCorrelationId = "correlation ID"
+  private val aCommitMetadata = SimpleCommitMetadata(None)
 
   private trait CommitTransaction {
-    def commitTransaction(request: CommitRequest): Future[SubmissionResult]
+    def commitTransaction(
+        request: CommitRequest,
+        metadata: CommitMetadata): Future[SubmissionResult]
   }
 }

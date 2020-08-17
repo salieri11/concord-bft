@@ -3,7 +3,7 @@
 package com.digitalasset.daml.on.vmware.participant.state
 
 import com.daml.ledger.api.health.{HealthStatus, Healthy}
-import com.daml.ledger.participant.state.kvutils.api.LedgerWriter
+import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, LedgerWriter}
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient
 import com.digitalasset.kvbc.daml_commit.CommitRequest
@@ -15,13 +15,16 @@ import scala.util.control.NonFatal
 
 class ConcordLedgerWriter(
     override val participantId: ParticipantId,
-    commitTransaction: CommitRequest => Future[SubmissionResult],
+    commitTransaction: (CommitRequest, CommitMetadata) => Future[SubmissionResult],
     fetchCurrentHealth: () => HealthStatus = () => Healthy)(
     implicit executionContext: ExecutionContext)
     extends LedgerWriter {
-  private[this] val logger = LoggerFactory.getLogger(this.getClass)
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
-  override def commit(correlationId: String, envelope: ByteString): Future[SubmissionResult] = {
+  override def commit(
+      correlationId: String,
+      envelope: ByteString,
+      metadata: CommitMetadata): Future[SubmissionResult] = {
 
     def resultHandler(submissionResult: SubmissionResult): SubmissionResult = {
       submissionResult match {
@@ -54,10 +57,10 @@ class ConcordLedgerWriter(
       s"Sending commit request, correlationId=$correlationId envelopeSize=${envelope.size}")
     val commitRequest = CommitRequest(
       envelope,
-      participantId.toString,
+      participantId,
       correlationId
     )
-    commitTransaction(commitRequest)
+    commitTransaction(commitRequest, metadata)
       .transform(resultHandler, exceptionHandler)
   }
 
@@ -69,6 +72,7 @@ object ConcordLedgerWriter {
       implicit executionContext: ExecutionContext): ConcordLedgerWriter =
     new ConcordLedgerWriter(
       participantId,
-      client.commitTransaction(_)(executionContext),
+      (commitRequest, commitMetadata) =>
+        client.commitTransaction(commitRequest, commitMetadata)(executionContext),
       () => client.currentHealth)
 }

@@ -6,18 +6,24 @@ import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.security.KeyPairGenerator
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 
-import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.jwt.domain.DecodedJwt
 import com.daml.jwt.{JwtSigner, KeyUtils, domain}
 import com.daml.ledger.api.auth.{AuthService, ClaimPublic}
+import com.daml.ledger.participant.state.kvutils.app.Config
+import com.digitalasset.daml.on.vmware.write.service.bft.{
+  ConstantRequestTimeout,
+  LinearAffineInterpretationCostTransform
+}
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import io.grpc.Metadata
+import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
-import scalaz.syntax.show._
 import scalaz.\/
+import scalaz.syntax.show._
 
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /** Helper to create a HTTP server that serves a constant response on the "/result" URL */
 private object SimpleHttpServer {
@@ -46,8 +52,7 @@ private object SimpleHttpServer {
 }
 
 class ExtraConfigSpec extends AsyncWordSpec with Matchers {
-  "ExtraConfig" should {
-
+  "auth command-line parsers" should {
     "parse and configure the authorisation mechanism correctly when `--auth-jwt-hs256-unsafe someSecret` is passed" in {
       val config =
         parseExtraConfig(Array("--auth-jwt-hs256-unsafe", "someSecret"))
@@ -123,6 +128,98 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
     }
   }
 
+  "BFT client command-line parsers" should {
+    "parse a BFT client config with a linear timeout strategy" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "linear-timeout-slope=2.0," +
+              "linear-timeout-intercept=2.0," +
+              "linear-timeout-default=2.0s"
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
+            .copy(slope = 2.0, intercept = 2.0, defaultTimeout = 2.seconds)
+        ))
+    }
+
+    "parse a BFT client config with a constant timeout strategy" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "constant-timeout=2.0s"
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = ConstantRequestTimeout(defaultTimeout = 2.seconds)
+        ))
+    }
+
+    "not parse a BFT client config with a mixed timeout strategy" in {
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "constant-timeout=2.0s," +
+              "linear-timeout-slope=2.0"
+          ))
+      }
+
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "linear-timeout-slope=2.0," +
+              "constant-timeout=2.0s"
+          ))
+      }
+    }
+
+    "not parse a BFT client config with an unsupported key" in {
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "x=2.0"
+          ))
+      }
+    }
+
+    "parse deprecated BFT client options" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--use-bft-client",
+            "--bft-client-config-path=/conf",
+            "--bft-client-request-timeout=2ms",
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
+            .copy(defaultTimeout = 2.millis)
+        ))
+    }
+  }
+
   private[this] def parseExtraConfig(args: Array[String]): Config[ExtraConfig] = {
     val defaultArgs = Array(
       "--participant",
@@ -132,7 +229,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
       .parse(
         "config-test",
         ExtraConfig.addCommandLineArguments,
-        ExtraConfig.Default,
+        ExtraConfig.ReasonableDefault,
         defaultArgs ++ args)
       .getOrElse(fail())
   }

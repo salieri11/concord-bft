@@ -2,9 +2,15 @@
 
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
+import java.nio.file.Path
+
 import com.daml.metrics.Metrics
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
-import com.digitalasset.daml.on.vmware.write.service.bft.BftWriteClient
+import com.digitalasset.daml.on.vmware.write.service.bft.{
+  BftWriteClient,
+  RequestTimeoutStrategy,
+  RequestTimeoutFunction
+}
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient
 import com.google.common.net.HostAndPort
 import org.slf4j.LoggerFactory
@@ -12,16 +18,24 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.ExecutionContext
 
 private[server] object ConcordWriteClients {
-  private[this] val DefaultReplicaPort = 50051
-  private[this] case class PrimarySecondaryConcordWriteClients(
+
+  private[server] case class PrimarySecondaryConcordWriteClients(
       primaryWriteClient: ConcordWriteClient,
       secondaryKvbcWriteClients: Option[Seq[KvbcWriteClient]])
+
+  private[this] val DefaultReplicaPort = 50051
 
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   def createAndInitializeConcordWriteClient(config: WriteClientsConfig, metrics: Metrics)(
       implicit executionContext: ExecutionContext): ConcordWriteClient = {
-    val concordClients = createConcordWriteClients(config, metrics)
+    val concordClients =
+      createConcordWriteClients(
+        config,
+        createBftWriteClient,
+        config.bftClient.requestTimeoutStrategy,
+        createKvbcWriteClient,
+        metrics)
     waitForConcordWriteClientsToBeReady(
       Seq(concordClients.primaryWriteClient),
       clientsToBeWaitedFor = 1)
@@ -33,22 +47,19 @@ private[server] object ConcordWriteClients {
     concordClients.primaryWriteClient
   }
 
-  private def createConcordWriteClients(config: WriteClientsConfig, metrics: Metrics)(
+  private[server] def createConcordWriteClients(
+      config: WriteClientsConfig,
+      bftWriteClientFactory: (Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient,
+      requestTimeoutStrategy: RequestTimeoutStrategy,
+      kvbcWriteClientFactory: String => KvbcWriteClient,
+      metrics: Metrics)(
       implicit executionContext: ExecutionContext): PrimarySecondaryConcordWriteClients =
-    if (config.useBftClient) {
-      logger.debug("Loading the native 'bft-client-native0' library")
-      System.loadLibrary("bft-client-native0")
-      logger.debug("Creating the BFT Client")
-
+    if (config.bftClient.enable) {
       val result = PrimarySecondaryConcordWriteClients(
-        BftWriteClient(
-          config.bftClientConfigPath.getOrElse {
-            sys.error(
-              "When BFT Client is selected, the BFT Client configuration file path is required but none was specified.")
-          },
-          config.bftClientRequestTimeout,
-          metrics
-        ),
+        bftWriteClientFactory(
+          config.bftClient.configPath,
+          computeTimeoutIfPreExecutingElseDefault(requestTimeoutStrategy),
+          metrics),
         None
       )
       logger.debug("BFT Client created")
@@ -57,9 +68,34 @@ private[server] object ConcordWriteClients {
       assert(config.replicas.nonEmpty)
 
       PrimarySecondaryConcordWriteClients(
-        createKvbcWriteClient(config.replicas.head),
+        kvbcWriteClientFactory(config.replicas.head),
         Some(config.replicas.tail.map(createKvbcWriteClient)))
     }
+
+  private[server] def computeTimeoutIfPreExecutingElseDefault(
+      requestTimeoutStrategy: RequestTimeoutStrategy): RequestTimeoutFunction =
+    (request, metadata) =>
+      if (BftWriteClient.hasPreExecuteFlagSet(request))
+        requestTimeoutStrategy.calculate(metadata)
+      else requestTimeoutStrategy.defaultTimeout
+
+  private def createBftWriteClient(
+      configPath: Option[Path],
+      requestTimeoutFunction: RequestTimeoutFunction,
+      metrics: Metrics) = {
+    logger.debug("Loading the native 'bft-client-native0' library")
+    System.loadLibrary("bft-client-native0")
+    logger.debug("Creating the BFT Client")
+
+    BftWriteClient(
+      configPath.getOrElse {
+        sys.error(
+          "When BFT Client is selected, the BFT Client configuration file path is required but none was specified.")
+      },
+      requestTimeoutFunction,
+      metrics
+    )
+  }
 
   private[this] def createKvbcWriteClient(replicaHostAndPortString: String)(
       implicit executionContext: ExecutionContext): KvbcWriteClient = {
