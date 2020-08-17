@@ -17,7 +17,7 @@
         <!-- Project properties. -->
         <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
 
-        <docker.java.version>3.1.2</docker.java.version>
+        <docker.java.version>3.2.5</docker.java.version>
         <javax.activation.version>1.1.1</javax.activation.version>
     </properties>
 
@@ -133,10 +133,20 @@
             <artifactId>docker-java</artifactId>
             <version>${docker.java.version}</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>javax.activation</groupId>-->
+<!--            <artifactId>activation</artifactId>-->
+<!--            <version>${javax.activation.version}</version>-->
+<!--        </dependency>-->
         <dependency>
-            <groupId>javax.activation</groupId>
-            <artifactId>activation</artifactId>
-            <version>${javax.activation.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Make method-based security testing easier. -->
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
         </dependency>
     </dependencies>
 
