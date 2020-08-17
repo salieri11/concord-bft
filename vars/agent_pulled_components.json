@@ -1,6 +1,13 @@
 [
-  { "name": "concord" },
-  { "name": "persephone_agent" },
+  {
+    "comment1": " `name` is the container name. ",
+    "comment2": " `envname` is config variable name used in .env file for the component. ",
+    "comment3": " `namespace` is the registry subdir used by the component. ",
+    "comment4": " If `envname` not given, `name` with underscores will be used. ",
+    "comment5": " If `namespace` not given, `name` with hyphens will be used. ",
+
+    "name": "concord", "namespace": "concord-repo" },
+  { "name": "agent", "envname": "persephone_agent" },
   { "name": "ethrpc" },
   { "name": "daml_ledger_api" },
   { "name": "daml_execution_engine" },

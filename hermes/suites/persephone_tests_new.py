@@ -250,10 +250,30 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
     :return: None
     """
     try:
+        persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
+                                                                           Product.PERSEPHONE_SERVICE_PROVISIONING)
+        tags_info = helper.get_agent_pulled_tags_info()
+        concord_current_tag = tags_info["tags"]["concord"]["tag"]
+        helper.set_props_file_value(persephone_config_file, # default should be concord's tag
+                                    'docker.image.base.version',
+                                    concord_current_tag)
+
+        if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
+            # tags are not uniform; each component tag must be individually overridden.
+            for component_name in tags_info["tags"]:
+                component_info = tags_info["tags"][component_name]
+                component_container_name = component_info["name"]
+                component_tag = component_info["tag"]
+                if not component_tag:
+                    raise Exception("component tag cannot be null; while setting tag for '{}'."
+                                    .format(component_container_name))
+                helper.set_props_file_value(persephone_config_file, 
+                                            component_container_name, component_tag)
+        
+        with open(persephone_config_file, 'r') as config_file:
+            log.info("\nPersephone config file is as follows:\n\n{}\n\n".format(config_file.read()))
 
         if cmdline_args.useLocalConfigService:
-            persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
-                                                                               Product.PERSEPHONE_SERVICE_PROVISIONING)
             persephone_config_file_orig = "{}.orig".format(persephone_config_file)
 
             if mode == "UPDATE":
@@ -305,25 +325,6 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 shutil.copy(persephone_config_file, modified_config_file)
                 shutil.move(persephone_config_file_orig, persephone_config_file)
                 log.info("Updated config file for this run: {}".format(modified_config_file))
-
-            tags_info = helper.get_agent_pulled_tags_info()
-            helper.set_props_file_value(persephone_config_file, # default should be concord's tag
-                                        'docker.image.base.version',
-                                        tags_info["tags"]["concord"])
-
-            if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
-                # tags are not uniform; each component tag must be individually overridden.
-                for component_name in tags_info["tags"].keys():
-                  component_tag = tags_info["tags"][component_name]
-                  helper.set_props_file_value(persephone_config_file,
-                                              component_name,
-                                              component_tag)
-
-            with open(persephone_config_file, 'r') as config_file:
-              log.info("\nPersephone config file is as follows: \n")
-              log.info(config_file.read())
-              log.info("\n\n")
-
 
     except Exception as e:
         log.error(traceback.format_exc())
@@ -562,7 +563,7 @@ def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, z
 
         # Verify docker containers
         count = 0
-        max_timeout = 600  # 10 mins
+        max_timeout = 1200  # 20 mins; containers total size 10 GB+ now
         start_time = time.time()
         docker_images_found = False
         command_to_run = "docker ps --format '{{.Names}}'"

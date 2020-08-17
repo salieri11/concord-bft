@@ -2004,15 +2004,22 @@ def get_agent_pulled_tags_info():
     component, which might require retagging of images on Docker registries so that
     agents on nodes residing on SDDCs can resolve the images.
   '''
-  info_obj = { "tags": {} }
+  info_obj = { "tags": {}, "uniform": None }
   agent_pulled_tags_are_uniform = True
   with open(AGENT_PULLED_COMPONENTS_FILE) as file:
     components = json.load(file)
     all_tags = {}
     for component in components:
-      component_tag  = get_docker_env(component['name'] + "_tag")
-      info_obj["tags"][component["name"]] = component_tag
-      all_tags[component_tag] = True
+      envname = component["envname"] if "envname" in component else component["name"].replace("-", "_")
+      namespace = component["namespace"] if "namespace" in component else component["name"].replace("_", "-")
+      tag = get_docker_env(envname + "_tag")
+      info_obj["tags"][component["name"]] = {
+        "tag": tag,
+        "name": component["name"],
+        "namespace": namespace,
+        "envname": envname,
+      }
+      all_tags[tag] = True
     if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
   info_obj["uniform"] = agent_pulled_tags_are_uniform
   return info_obj

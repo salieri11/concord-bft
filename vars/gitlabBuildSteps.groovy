@@ -1511,10 +1511,10 @@ void pushToArtifactory(){
 
       // Push to the main internal repo: blockchain-docker-local repo
       // To make sure local devs., Jenkins jobs, and agent can all access the same image
-      mainInternalRepo = repo.replace(env.internal_repo, env.main_internal_repo)
-      command = "docker tag ${repo}:${env.docker_tag} ${mainInternalRepo}:${env.docker_tag}"
+      main_internal_repo = repo.replace(env.internal_repo, env.main_internal_repo)
+      command = "docker tag ${repo}:${env.docker_tag} ${main_internal_repo}:${env.docker_tag}"
       jenkinsbuilderlib.retryCommand(command, true)
-      dockerutillib.pushDockerImage(repo, env.docker_tag, false)
+      dockerutillib.pushDockerImage(main_internal_repo, env.docker_tag, false)
     }
   }
 }
@@ -2390,18 +2390,22 @@ void pushConcordComponentsToRegistry(repo){
 
   unique_tags_map = [:]
   for(component in agent_pulled_components) {
-    component.internal_repo = env['internal_' + component.name + '_repo'];
-    component.release_repo = env['release_' + component.name + '_repo'];
+    // .env varname for this component
+    component.envname = component.envname ? component.envname : component.name.replaceAll('-', '_');
+    // registry namespace/subsdir for this component
+    component.namespace = component.namespace ? component.namespace : component.name.replaceAll('_', '-');
+    component.internal_repo = env['internal_' + component.envname + '_repo'];
+    component.release_repo = env['release_' + component.envname + '_repo'];
     component.bintray_repo = component.release_repo.replace(env.release_repo, env.bintray_repo)
-    component.temp_repo = env['temp_' + component.name + '_repo']; // for MR; artifactory
+    component.temp_repo = env['temp_' + component.envname + '_repo']; // for MR; artifactory
     component.tag = getTagFromEnv(component.internal_repo)
     unique_tags_map[component.tag] = true
   }
 
-  component_tags_are_uniform = (unique_tags_map.size() == 1) // all components with the same tag?
+  component_tags_are_uniform = (unique_tags_map.size() == 1) // all agent-pulled components with the same tag?
   if (!component_tags_are_uniform) {
     echo("Looks like some concord components are built in this branch, and some are pulled from master.")
-    echo("Will retag agent-pulled components to make tags uniform... (into " + env.product_version + ")")
+    echo("Will retag components built in this run... (into " + env.product_version + ")")
   }
 
   for(component in agent_pulled_components) {
@@ -2416,6 +2420,8 @@ void pushConcordComponentsToRegistry(repo){
         // Not a ToT run, yet image tags are matching this Jenkins BUILD_NUMBER
         // This implies that this image has been locally built; we need to push this temp image for testing on SDDC
         dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version, true)
+      } else {
+        echo("Component " + component.name + " should already exist as prebuilt image on the internal repo. Push skipped.")
       }
     }
   }
