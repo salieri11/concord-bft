@@ -49,6 +49,7 @@ class Request():
       self._userConfig = userConfig
       self._tokenDescriptor = tokenDescriptor
       self._accessToken = getAccessToken(tokenDescriptor, forceNewToken, service=service)
+      self._service = service
 
 
    def __str__(self):
@@ -233,7 +234,7 @@ class Request():
 
       return self._send(verb="GET")
 
-   def createBlockchain(self, consortiumId,  siteIds, client_zone_ids=[],
+   def createBlockchain(self, consortiumId,  siteIds, client_nodes=[],
                         blockchainType=helper.TYPE_ETHEREUM.upper()):
       '''
       Create a blockchain.  Values are simply passed through to persephone.
@@ -246,11 +247,6 @@ class Request():
       '''
       self._subPath = "/api/blockchains"
       self._params = ""
-      client_nodes = []
-      for each in client_zone_ids:
-         client_nodes.append({
-            "zone_id": each
-         })
       self._data = {
          "consortium_id": consortiumId,
          "replica_zone_ids": siteIds,
