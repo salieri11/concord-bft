@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -58,6 +59,7 @@ public class ClientController {
         private UUID zoneId;
         private String authUrlJwt;
         private UUID groupId;
+        private String groupName;
 
         /**
          * Constructor for ClientGetResponse Class.
@@ -86,6 +88,10 @@ public class ClientController {
             this.zoneId = client.getZoneId();
             this.authUrlJwt = client.getAuthJwtUrl();
             this.groupId = client.getGroupId();
+            // Group Name can be null, if user did not pick one during BC creation.
+            if (!Strings.isNullOrEmpty(client.getGroupName())) {
+                this.groupName = client.getGroupName();
+            }
         }
     }
 

@@ -1004,6 +1004,9 @@ paths:
                       type: string
                       format: uuid
                       description: Logical group Id
+                    group_name:
+                      type: string
+                      description: User defined Group Name
 
   /blockchains/{bid}/clients/{client_id}/credentials:
     get:
@@ -1988,10 +1991,9 @@ components:
           description: Username for credentials
           example:
             user@server.com
-        group_index:
+        group_name:
           type: string
-          description: Logical group identifier, preferably a number
-          example: 1
+          description: User supplied group name
 
   responses:
     ErrorResponse:
