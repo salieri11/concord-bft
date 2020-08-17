@@ -110,7 +110,10 @@ cockroachdb_test_local.sh
 hermes/.env
 hermes/pickled*
 hermes/report.json
-hermes/lib/persephone/vmware/blockchain/deployment/v1
+# Persephone APIs in Hermes
+hermes/lib/persephone/google/
+hermes/lib/persephone/grpc/
+hermes/lib/persephone/vmware/
 
 # Log files created by the build process
 log

@@ -38,6 +38,7 @@ class DeploymentParams:
     zone_type: str
     num_replicas: int
     num_clients: int
+    num_client_groups: int = 0 # By default, the number of client groups is 0
 
 
 @pytest.fixture
@@ -145,15 +146,16 @@ def create_deployment(ps_helper, deployment_params, zone_config):
     zone_type = validate_blockchain_location(deployment_params.zone_type)
     num_replicas = deployment_params.num_replicas
     num_clients = deployment_params.num_clients
+    num_client_groups = deployment_params.num_client_groups
     log.info("Create deployment with following parameters: Blockchain type: {}; Zone type: {}; "
-             "Number of Replica nodes: {}; Number of Client nodes: {}"
-             .format(blockchain_type.upper(), zone_type.upper(), num_replicas, num_clients))
+             "Number of Replica nodes: {}; Number of Client nodes: {}; Number of Client groups: {}"
+             .format(blockchain_type.upper(), zone_type.upper(), num_replicas, num_clients, num_client_groups))
 
     # Deploy
     start_time = datetime.now(timezone.utc).astimezone()
     log.info("Deployment start time: {}".format(start_time.strftime(helper.TIME_FMT_TIMEZONE)))
     deployment_response = ps_helper.create_deployment(blockchain_type, zone_type, num_replicas, num_clients,
-                                                      zone_config)
+                                                      zone_config, num_client_groups)
 
     # Validate deployment response
     deployment_session_id = get_deployment_session_id(deployment_response)
@@ -190,12 +192,14 @@ def post_deployment(hermes_settings, ps_helper, deployment_session_id, deploymen
     num_replicas = deployment_params.num_replicas
     num_clients = deployment_params.num_clients
     num_nodes = num_replicas + num_clients
+    num_client_groups = deployment_params.num_client_groups
 
     node_info_list = None
     if deployment_session_id and deployment_stream_events:
         # Validate streaming events
         execution_events_json = helper.protobuf_message_to_json(deployment_stream_events)
-        if validate_stream_deployment_session_events(execution_events_json, num_nodes):
+        if validate_stream_deployment_session_events(execution_events_json, num_replicas, num_clients,
+                                                     num_client_groups):
             log.info("Stream session events validation successful")
             blockchain_id, consortium_id = get_blockchain_and_consortium_ids(execution_events_json)
             # Get Node Info list
@@ -362,23 +366,33 @@ def get_deployment_session_id(deployment_response):
     return deployment_session_id
 
 
-def validate_stream_deployment_session_events(execution_events, num_nodes):
+def validate_stream_deployment_session_events(execution_events, num_replicas, num_clients, num_client_groups=0):
     """
     Validates the stream output of StreamDeploymentSessionEvents
     :param execution_events: Stream of deployment execution events to be validated in json format
     :param num_nodes: Total number of nodes (client + replica)
     :return: True or False
     """
+    num_nodes = num_replicas + num_clients
     events_to_monitor = {"ACKNOWLEDGED": 1,
                          "COMPUTE_RESOURCE": num_nodes,
                          "COMPLETED": 1}
+    client_groups = {}
     for event in execution_events:
         event_type = event["type"]
 
         # RESOURCE events
         if event_type == "RESOURCE":
-            if event["resource"]["type"] == "COMPUTE_RESOURCE":
+            resource = event["resource"]
+            if resource["type"] == "COMPUTE_RESOURCE":
                 events_to_monitor["COMPUTE_RESOURCE"] -= 1
+                if num_client_groups > 0 and "additionalInfo" in resource and "values" in resource["additionalInfo"] \
+                        and "CLIENT_GROUP_ID" in resource["additionalInfo"]["values"]:
+                    group_id = resource["additionalInfo"]["values"]["CLIENT_GROUP_ID"]
+                    if group_id in client_groups:
+                        client_groups[group_id] += 1
+                    else:
+                        client_groups[group_id] = 1
             else:
                 continue
 
@@ -397,6 +411,8 @@ def validate_stream_deployment_session_events(execution_events, num_nodes):
                       .format(event_type, count))
             validation_status = False
 
+    assert len(client_groups) == num_client_groups
+    
     return validation_status
 
 
@@ -897,6 +913,34 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
     log.info("Test {} completed successfully".format(request.node.name))
 
 
+@describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client + 1 group)")
+@pytest.mark.smoke
+def test_daml_7_node_onprem_one_group(request, hermes_settings, ps_helper, file_root, teardown):
+
+    # Set the deployment params for this test case
+    # 7 committers, 2 clients, 1 client group
+    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_SDDC, 7, 2, 1)
+    zone_type = helper.LOCATION_ONPREM
+
+    # Rest of the code below shouldn't change between different combinations of DAML test cases
+    # Update zone_type in hermes_settings fixture, since it is used downstream in deprovision function
+    hermes_settings["cmdline_args"].blockchainLocation = zone_type
+
+    # Call the deploy and post deploy wrapper
+    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
+                                                                           deployment_params, file_root)
+    assert node_info_list is not None
+
+    # Verify DAR upload on all client nodes
+    for node in node_info_list:
+        if node.node_type == 1:
+            ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
+            assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
+                                     deployment_session_id)
+
+    log.info("Test {} completed successfully".format(request.node.name))
+
+
 @describe("Use this test to test Persephone with desired cmdline arguments")
 @pytest.mark.cmdline
 def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown):
@@ -935,7 +979,7 @@ def test_deployment_only(request, hermes_settings, ps_helper):
     num_replicas = int(hermes_settings["cmdline_args"].numReplicas)
     num_clients = int(hermes_settings["cmdline_args"].numParticipants)
     zone_config = hermes_settings["zone_config"]
-    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients)
+    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_client_groups=0)
 
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)
     assert deployment_session_id is not None
