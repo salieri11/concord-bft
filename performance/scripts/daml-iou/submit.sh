@@ -9,7 +9,7 @@ set_values() {
   export command_id=$(uuidgen)
   export party="Alice"
 
-  export package_id="72656b4c7196dc6ecc0d9f1405834ef810022efdc42ef851e57fe6b5971ba303" # corresponds to sdk-version: 1.2.0
+  export package_id="cef433031945004576f3d173fa15ea04ebc689fcdca236e0d036b5d9c0591c7b" # corresponds to sdk-version: 1.4.0
   export module_name="Iou"
   export entity_name="Iou"
 
