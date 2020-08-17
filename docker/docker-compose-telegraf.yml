@@ -6,10 +6,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     ports:
       - 9891:9891
     volumes:
@@ -64,10 +60,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
@@ -120,10 +112,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
@@ -176,10 +164,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log

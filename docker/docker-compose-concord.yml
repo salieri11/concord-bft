@@ -6,10 +6,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     ports:
       - 5458:5458
     volumes:
@@ -25,10 +21,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     ports:
       - 5459:5458
     volumes:
@@ -44,10 +36,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     ports:
       - 5460:5458
     volumes:
@@ -63,10 +51,6 @@ services:
     expose:
       - 5458
       - 3501/tcp
-      - 3502/tcp
-      - 3503/tcp
-      - 3504/tcp
-      - 3505/tcp
     ports:
       - 5461:5458
     volumes:
