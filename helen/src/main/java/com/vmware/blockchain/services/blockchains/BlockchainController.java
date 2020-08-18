@@ -381,6 +381,8 @@ public class BlockchainController {
                 basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(),
                                           organization.getOrganizationProperties()
                                                   .get(Constants.ORG_ENABLE_BFT_CLIENT));
+            } else {
+                basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
             }
         }
 
