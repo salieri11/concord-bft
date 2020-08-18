@@ -39,6 +39,7 @@ sys.path.append("lib/persephone")
 
 log = None
 suiteList = [
+   "CastorDeploymentTests"
    "ChessPlusTests",
    "ContractCompilerTests",
    "EthCoreVmTests",
@@ -445,6 +446,8 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
 def createTestSuite(args, suiteName, product):
    if (suiteName == "SampleDAppTests"):
       return sample_dapp_tests.SampleDAppTests(args, product)
+   elif (suiteName == "CastorDeploymentTests"):
+       return pytest_suite.PytestSuite(args, "suites/castor_deployment_tests.py", product)
    elif (suiteName == "ChessPlusTests"):
       return pytest_suite.PytestSuite(args, "suites/chess_plus_tests.py", product)
    elif (suiteName == "ContractCompilerTests"):
