@@ -25,7 +25,8 @@ public enum VsphereEndpoints {
     VSPHERE_VM_POWER_START("/rest/vcenter/vm/{vm}/power/start"),
     VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop"),
     VSPHERE_VM_CPU_UPDATE("/rest/vcenter/vm/{vm}/hardware/cpu"),
-    VSPHERE_VM_MEMORY_UPDATE("/rest/vcenter/vm/{vm}/hardware/memory");
+    VSPHERE_VM_MEMORY_UPDATE("/rest/vcenter/vm/{vm}/hardware/memory"),
+    VSPHERE_VM_DISK_CREATE("/rest/vcenter/vm/{vm}/hardware/disk");
 
     @Getter
     private String path;

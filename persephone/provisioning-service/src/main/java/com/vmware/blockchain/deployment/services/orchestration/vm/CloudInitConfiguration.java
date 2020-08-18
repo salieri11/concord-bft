@@ -45,6 +45,7 @@ public class CloudInitConfiguration {
     private OutboundProxyInfo outboundProxy;
     private String vmPassword;
     private boolean noLaunch;
+    private boolean newDisk;
 
     /** Container network name alias.
      * TODO: This could be unified across agent and provisioning service and sent via agent request.
@@ -66,7 +67,8 @@ public class CloudInitConfiguration {
                                   Endpoint configServiceRestEndpoint,
                                   OutboundProxyInfo outboundProxy,
                                   String vmPassword,
-                                  boolean noLaunch) {
+                                  boolean noLaunch,
+                                  boolean newDisk) {
         this.containerRegistry = containerRegistry;
         this.model = model;
         this.ipAddress = ipAddress;
@@ -80,6 +82,7 @@ public class CloudInitConfiguration {
         this.outboundProxy = outboundProxy;
         this.vmPassword = vmPassword;
         this.noLaunch = noLaunch;
+        this.newDisk = newDisk;
     }
 
     private String agentImageName() {
@@ -178,6 +181,27 @@ public class CloudInitConfiguration {
     }
 
     /**
+     * Partitions, formats, and mounts second disk.
+     *
+     * @return a [String] containing all the commands to be run to setup second disk if need be.
+     */
+    private String diskSetupCommand() {
+        String diskCmd = "";
+        if (newDisk) {
+            String mountDir = "/mnt/sdb";
+            diskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;"
+                    + "sleep 2;"
+                    + "mkfs.ext4 /dev/sdb1;"
+                    + "sleep 5;"
+                    + "mkdir " + mountDir
+                    + ";mount /dev/sdb1 " + mountDir
+                    + ";echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` " + mountDir
+                    + " ext4 defaults 0 0\" >> /etc/fstab;";
+        }
+        return diskCmd;
+    }
+
+    /**
      * User data initializer.
      * @return info.
      */
@@ -199,7 +223,8 @@ public class CloudInitConfiguration {
                     .replace("{{networkSetupCommand}}", networkSetupCommand())
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy())
-                    .replace("{{blockchainNetwork}}", CONTAINER_NETWORK_NAME);
+                    .replace("{{blockchainNetwork}}", CONTAINER_NETWORK_NAME)
+                    .replace("{{diskSetupCommand}}", diskSetupCommand());
 
             return content;
         } catch (Exception e) {
