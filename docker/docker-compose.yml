@@ -182,3 +182,10 @@ services:
     image: "${persephone_agent_repo}:${persephone_agent_tag}"
     ports:
       - 50453:50453
+
+  persephone-provisioning:
+    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
+    ports:
+      - 9002:9002
+    volumes:
+      - ../config-persephone:/config:ro

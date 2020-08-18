@@ -83,7 +83,7 @@ describe('concord-ui Add Zone', () => {
 
     expect(values[i++]).toEqual('10.78.20.10');
     expect(values[i++]).toEqual('9543');
-    expect(values[i++]).toEqual('fluentd');
+    expect(values[i++]).toEqual(zoneCreds.logInsight.username);
     expect(values[i++]).toEqual(zoneCreds.logInsight.password);
 
     // Wavefront should be wiped out when ELK is submitted

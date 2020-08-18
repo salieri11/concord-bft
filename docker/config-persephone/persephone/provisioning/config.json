@@ -1,0 +1,31 @@
+{
+    "port": 9002,
+    "transportSecurity": {
+        "type":"NONE",
+        "trustedCertificatesUrl":"",
+        "certificateUrl":"file:/config/persephone/provisioning/server.crt",
+        "privateKeyUrl":"file:/config/persephone/provisioning/server.pem"
+    },
+    "configService":{
+        "address":"10.1.246.160:9003",
+        "transportSecurity":{
+            "type":"TLSv1_2"
+        }
+    },
+    "containerRegistry": {
+        "address": "<CONTAINER_REGISTRY_ADDRESS>",
+        "credential": {
+            "type": "PASSWORD",
+            "passwordCredential": {
+                "username": "<CONTAINER_REGISTRY_USERNAME>",
+                "password": "<CONTAINER_REGISTRY_PASSWORD>"
+            }
+        }
+    },
+    "allocationServer":{
+        "address":"ipam-vmbc.cloud.vmware.com",
+        "transportSecurity": {
+            "type":"TLSv1_2"
+        }
+    }
+}
