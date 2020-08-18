@@ -95,7 +95,20 @@ grpc::Status DamlValidatorClient::Validate(
     }
   }
 
-  return stream->Finish();
+  // https://jira.eng.vmware.com/browse/BC-3662
+  // Concord and the execution engine processes are tightly coupled.
+  // In case of an error at the process level we should crash the replica
+  // in order not to deviate its state from other replcias, and let state
+  // transfer kick in.
+  auto status = stream->Finish();
+  if (!status.ok()) {
+    LOG_FATAL(logger_,
+              "Failed to execute command againt execution engine, grpc error ["
+                  << status.error_message() << "]");
+    assert(status.ok());
+  }
+
+  return status;
 }
 
 void DamlValidatorClient::HandleReadEvent(
