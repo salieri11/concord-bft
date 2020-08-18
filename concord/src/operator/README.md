@@ -13,6 +13,9 @@ make
 cd .. # Root vmwathena_blockchain directory
 docker build -f concord/Dockerfile -t concord-core:latest .
 
+# Build the operator image
+docker build -f concord/src/operator/Dockerfile -t operator:latest .
+
 ```
 
 Everything below this line starts from the root docker directory. Replace with the location of your repo.
@@ -36,6 +39,15 @@ concord_tag=latest
 ## Create concord configs
 
 `./gen-docker-concord-config.sh config-public/dockerConfigurationInput-daml-nano.yaml`
+
+## Add 2 more TLS cert files for the operator
+
+```
+../concord/submodules/concord-bft/scripts/linux/create_tls_certs.sh 52
+mv certs/50 tls_certs/
+mv certs/51 tls_certs/
+rm -rf certs
+```
 
 # Start cluster
 
