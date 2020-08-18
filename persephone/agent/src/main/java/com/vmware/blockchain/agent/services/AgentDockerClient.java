@@ -6,7 +6,10 @@ package com.vmware.blockchain.agent.services;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -24,7 +27,13 @@ import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
+import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
+import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.Endpoint;
+
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 
 /**
@@ -43,6 +52,11 @@ public class AgentDockerClient {
      */
     private static final Pattern IMAGE_NAME_PATTERN =
             Pattern.compile("(?:(?<registry>[^:]+:?[0-9]+)/)?(?<repository>[^:]+)(?::(?<tag>.+))?");
+
+    /** metrics from agent. **/
+    List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
+            AgentDockerClient.class.getName()));
+    private final MetricsAgent metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
 
     /**
      * Data class to contain metadata information about a container image.
@@ -92,6 +106,7 @@ public class AgentDockerClient {
                                         String registryUsername, String registryPassword,
                                         String imageName) {
 
+        var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         log.info("Pulling image {}", imageName);
 
         var registryUrl = URI.create(containerRegistry.getAddress());
@@ -154,30 +169,44 @@ public class AgentDockerClient {
                 log.error("Error while closing docker client", error);
             }
         }
+
+        var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
+        Timer timer = this.metricsAgent.getTimer("Pull each component image",
+                MetricsConstants.MetricsNames.CONTAINER_PULL_IMAGE,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "getImageIdAfterDl"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.name(), imageName)));
+        timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
         return containerConfig;
     }
 
     void createNetwork(String networkName) {
-        var dockerClient = DockerClientBuilder.getInstance().build();
-        var deleteNetworkCmd = dockerClient.removeNetworkCmd(networkName);
-        var listNetworkCmd = dockerClient.listNetworksCmd();
-        var createNetworkCmd = dockerClient.createNetworkCmd();
-        createNetworkCmd.withName(networkName);
-        createNetworkCmd.withCheckDuplicate(true);
+        Timer timer = this.metricsAgent.getTimer("Create container network",
+                MetricsConstants.MetricsNames.CREATE_NETWORK,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "createNetwork"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_DOCKER_NETWORK.name(), networkName)));
 
-        try {
-            List<String> networks = listNetworkCmd.exec()
-                    .stream()
-                    .map(Network::getName)
-                    .collect(Collectors.toList());
-            if (networks.contains(networkName)) {
-                deleteNetworkCmd.exec();
+        timer.record(() -> {
+            var dockerClient = DockerClientBuilder.getInstance().build();
+            var deleteNetworkCmd = dockerClient.removeNetworkCmd(networkName);
+            var listNetworkCmd = dockerClient.listNetworksCmd();
+            var createNetworkCmd = dockerClient.createNetworkCmd();
+            createNetworkCmd.withName(networkName);
+            createNetworkCmd.withCheckDuplicate(true);
+
+            try {
+                List<String> networks = listNetworkCmd.exec()
+                        .stream()
+                        .map(Network::getName)
+                        .collect(Collectors.toList());
+                if (networks.contains(networkName)) {
+                    deleteNetworkCmd.exec();
+                }
+                var id = createNetworkCmd.exec().getId();
+                log.info("Created Network: {} Id: {}", networkName, id);
+            } catch (DockerException de) {
+                log.info("Docker Network creation failed with error:\n{}", de.getLocalizedMessage());
             }
-            var id = createNetworkCmd.exec().getId();
-            log.info("Created Network: {} Id: {}", networkName, id);
-        } catch (DockerException de) {
-            log.info("Docker Network creation failed with error:\n{}", de.getLocalizedMessage());
-        }
+        });
     }
 
     /**
@@ -199,9 +228,15 @@ public class AgentDockerClient {
      */
     public void startComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
                                       String containerId) {
-        log.info("Starting {}: Id {} ", containerParam.getContainerName(), containerId);
-        dockerClient.startContainerCmd(containerId).exec();
-        log.info("Started container {}: Id {} ", containerParam.getContainerName(), containerId);
+        Timer timer = this.metricsAgent.getTimer("Start each component container",
+                MetricsConstants.MetricsNames.CONTAINER_LAUNCH,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "startComponent"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(), containerId)));
+        timer.record(() -> {
+            log.info("Starting {}: Id {} ", containerParam.getContainerName(), containerId);
+            dockerClient.startContainerCmd(containerId).exec();
+            log.info("Started container {}: Id {} ", containerParam.getContainerName(), containerId);
+        });
     }
 
     /**
@@ -209,8 +244,14 @@ public class AgentDockerClient {
      */
     public void stopComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
                                String containerId) {
-        log.info("Stopping {}: Id {} ", containerParam.getContainerName(), containerId);
-        dockerClient.stopContainerCmd(containerId).exec();
-        log.info("Stopped container {}: Id {} ", containerParam.getContainerName(), containerId);
+        Timer timer = this.metricsAgent.getTimer("Stop each component container",
+                MetricsConstants.MetricsNames.CONTAINER_STOP,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "stopComponent"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(), containerId)));
+        timer.record(() -> {
+            log.info("Stopping {}: Id {} ", containerParam.getContainerName(), containerId);
+            dockerClient.stopContainerCmd(containerId).exec();
+            log.info("Stopped container {}: Id {} ", containerParam.getContainerName(), containerId);
+        });
     }
 }
