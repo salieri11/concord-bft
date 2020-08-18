@@ -104,7 +104,7 @@ public class ConfigHelper {
                 .build();
 
         ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
-                .withDeadlineAfter(30, TimeUnit.SECONDS).createConfigurationV2(request);
+                .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);
         try {
             log.info("Configuration request \n {}", request.toString());
             return completable.get();
