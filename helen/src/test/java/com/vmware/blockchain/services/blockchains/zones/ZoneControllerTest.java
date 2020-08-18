@@ -102,6 +102,9 @@ class ZoneControllerTest {
     private static final UUID REPLICA_ID_1 = UUID.fromString("fb2fa9cc-517f-4738-a760-9227d77f0a48");
     private static final UUID REPLICA_ID_2 = UUID.fromString("02818461-ce12-4b3b-9af8-b24da240f7df");
 
+    private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+    private static final String CLIENT_GROUP_NAME = "Test Group";
+
 
     private static final String POST_ONPREM_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
@@ -788,7 +791,7 @@ class ZoneControllerTest {
         doNothing().when(zoneService).delete(DELETE_EMPTY_ZONE);
 
         Client c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
-                DELETE_ZONE_WITH_CLIENT, UUID.randomUUID());
+                DELETE_ZONE_WITH_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         c1.setId(CLIENT_ID_1);
 
         Replica r1 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
@@ -796,7 +799,7 @@ class ZoneControllerTest {
         r1.setId(REPLICA_ID_1);
 
         Client c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
-                DELETE_ZONE_WITH_REPLICA_AND_CLIENT, UUID.randomUUID());
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         c2.setId(CLIENT_ID_2);
 
         Replica r2 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",

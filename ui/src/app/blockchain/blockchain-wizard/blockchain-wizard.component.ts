@@ -293,7 +293,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
         const authUrl = clientNode.controls.auth_url_jwt as FormControl;
         clients.push({
           // should be groupName.value in the future
-          group_index: groupName ? (g + '') : groupName.value,
+          group_name: groupName.value,
           zone_id: zoneId.value,
           auth_url_jwt: authUrl.value,
         });
