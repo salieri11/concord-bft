@@ -370,14 +370,9 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
         try {
             deleteEvents.addAll(DeleteResource.deleteDeployments(computeList).get());
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("Compute Resource deletion failed with exception: " + e);
-        }
-
-        try {
             deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList).get());
         } catch (InterruptedException | ExecutionException e) {
-            log.error("Network Address deletion failed with exception: " + e);
+            log.error("Resource deletion failed with exception: " + e);
         }
 
         return deleteEvents;
