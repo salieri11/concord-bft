@@ -22,8 +22,7 @@ import lombok.Setter;
 @Getter
 public enum DamlParticipantConfig implements BaseContainerSpec {
 
-    DAML_INDEX_DB("daml_index_db", List.of(
-            new PortBinding(Ports.Binding.bindPort(5432), ExposedPort.tcp(5432))),
+    DAML_INDEX_DB("daml_index_db", null,
                   List.of(Bind.parse("/config/daml-index-db/db:/var/lib/postgresql/data")),
                   null),
 
