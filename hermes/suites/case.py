@@ -216,12 +216,16 @@ def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicR
 def addExceptionToSummary(e):
   '''Add any generic exception to failure summary'''
   try:
+    if not e.__traceback__:
+      try: raise e # raise it for unraised exceptions
+      except Exception as e_raised: e = e_raised
     tb = traceback.extract_tb(e.__traceback__)
     failurePoint = tb[1] if len(tb) > 1 else tb[0]
     stackInfo = stack()[1:]
     stackInfo.insert(0, failurePoint)
     errorMessage = e.__class__.__name__ + ': ' + str(e)
     extractAndSaveFailurePoint(e.__traceback__, errorMessage, stackInfo, e, [], {})
+    return e
   except Exception as e: helper.hermesNonCriticalTrace(e)
 
 

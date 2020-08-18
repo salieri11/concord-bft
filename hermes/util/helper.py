@@ -27,6 +27,7 @@ import uuid
 import socket
 import struct
 import statistics
+import datetime
 from . import numbers_strings
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
@@ -1761,7 +1762,7 @@ def hermesNonCriticalTraceFinalize():
       for item in NON_CRITICAL_HERMES_EXCEPTIONS:
         e = item["error"]
         divider = "=" * 128
-        exceptionString = divider + "\n"
+        exceptionString = str(datetime.datetime.now()).split(".")[0] + "\n" + divider + "\n"
         if item["suite"]: exceptionString += "Test Suite: " + item["suite"] + "\n\n"
         if item["message"]: exceptionString += item["message"] + "\n"
         exceptionString += "\n".join(traceback.format_exception(Exception, e, e.__traceback__))

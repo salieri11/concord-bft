@@ -8,7 +8,6 @@ import traceback
 import time
 import threading
 import enum
-from suites.case import addExceptionToSummary as add_exception_to_summary
 from . import helper, vsphere
 log = helper.hermes_logging_util.getMainLogger()
 
@@ -241,14 +240,14 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
           vmHandle = findVMByReplicaId(replicaId = replicaInfo["id"], sddcs = sddcs)
           if not vmHandle: continue # vm with the given replicaId is not found
           if "realm" in vmHandle["attrMap"]: # already has context given? (not possible for fresh deployment)
-            log.error("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
-            log.error("This is a sign of a previous VM clean-up failure while IPAM thinks this IP ({}) is released for use."
-                        .foramt(replicaInfo["private_ip"]))
-            fatalErrors.push({"type": INVENTORY_ERRORS.NAME_CONFLICT, 
+            log.error("VM ({}) has deployment context annotations already. This should not be possible with fresh deployment."
+                        .format(replicaInfo["id"]))
+            fatalErrors.append({"type": INVENTORY_ERRORS.NAME_CONFLICT, 
                               "node": replicaInfo, "occupant": vmHandle})
             continue
           vm = vmHandle["entity"]
           sddc = vmHandle["sddc"]
+          sddcName = vmHandle["sddcName"]
           ipInfo = ""
           if "private_ip" in replicaInfo and replicaInfo["private_ip"]: # VM should ALWAYS have this
             ipInfo += replicaInfo["private_ip"] + " (Private)"
@@ -259,8 +258,7 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
                 if vmHandle["uid"] != handleFound["uid"]: conflictHandle = handleFound
               if conflictHandle:
                 replicaInfo["ip"] = replicaInfo["private_ip"]
-                fatalErrors.push({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
-                continue
+                fatalErrors.append({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
           if "public_ip" in replicaInfo and replicaInfo["public_ip"]: # Cloud deployment with public IP
             ipInfo += ", " + replicaInfo["public_ip"] + " (Public)"; anyIP = replicaInfo["public_ip"]
             handlesFound = getVMsByAttribute("public_ip", replicaInfo["public_ip"])
@@ -270,10 +268,10 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
                 if vmHandle["uid"] != handleFound["uid"]: conflictHandle = handleFound
               if conflictHandle:
                 replicaInfo["ip"] = replicaInfo["public_ip"]
-                fatalErrors.push({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
-                continue
-          notes = ("IP: {}\nPassword: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}"
-                  +"\nNetwork Type: {}\nNode Type: {}\n{}{}").format(
+                fatalErrors.append({"type": INVENTORY_ERRORS.IP_CONFLICT, "node": replicaInfo, "occupant": conflictHandle})
+          notes = ("Location: {}\nIP: {}\nPassword: {}\nReplica ID: {}\nBlockchain: {}"
+                    + "\nConsortium: {}\nNetwork Type: {}\nNode Type: {}\n{}{}").format(
+                  sddcName,
                   ipInfo,
                   replicaInfo["password"] if "password" in replicaInfo else "(Unknown)",
                   replicaInfo["id"],
@@ -294,7 +292,8 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
                   runCommand,
                   otherMetadata
                 )
-          log.info("Annotating VM ({}) for better tracking & life-cycle management...".format(replicaInfo["private_ip"]))
+          log.info("Annotating VM ({}) for better tracking & life-cycle management... (location: {})"
+                    .format(replicaInfo["private_ip"], sddcName))
           # edit VM Notes with detailed deployment context
           sddc.vmAnnotate(vm, notes)
           # Add custom attributes
@@ -346,17 +345,19 @@ def getVMsByAttribute(attrName, matchValue, matchExactly=True, mapBySDDC=False):
 
 
 def save_fatal_errors_to_summary(fatal_errors):
-  if fatal_errors:
-      top_error = fatal_errors[0]
-      node_data = top_error["node"]; occupant_handle = top_error["occupant"]
-      if top_error["type"] == INVENTORY_ERRORS.NAME_CONFLICT:
-          add_exception_to_summary(
-              Exception("FATAL !!  Node ID: '{}' already occupied by {} on {}".format( 
-                  node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
-      elif top_error["type"] == INVENTORY_ERRORS.IP_CONFLICT:
-          add_exception_to_summary(
-              Exception("FATAL !!  Node IP: '{}' already occupied by {} on {}".format(
-                  node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"])))
+    if fatal_errors:
+        for current_error in fatal_errors:
+            node_data = current_error["node"]; occupant_handle = current_error["occupant"]
+            please_contact_msg = "Please contract concierge about this as soon as possible; this is a serious issue."
+            if current_error["type"] == INVENTORY_ERRORS.NAME_CONFLICT:
+                msg = "FATAL !!  Node ID: '{}' already occupied by {} on {}. {}.".format( 
+                        node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
+                raise Exception(msg) # Raise Name Conflict
+            elif current_error["type"] == INVENTORY_ERRORS.IP_CONFLICT:
+                msg = "FATAL !!  Node IP: '{}' already occupied by {} on {}. {}.".format(
+                        node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
+                log.error(msg)
+                raise Exception(msg) # Raise IP Conflict
 
 
 def fetch_vm_handles(ips):

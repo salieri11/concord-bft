@@ -48,13 +48,13 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "runWithGenericTests": true
   ],
   "PersephoneNightly": [
-    "enabled": true,
+    "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "all_tests" --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false
   ],
   "PersephoneOnDemand": [
-    "enabled": true,
+    "enabled": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py PersephoneTests --tests "smoke" --useLocalConfigService --keepBlockchains ${deployment_retention}',
     "dockerComposeFiles": "../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false
@@ -977,7 +977,7 @@ def call(){
                       '''
                       customathenautil.saveTimeEvent("Monitor health and status of replicas", "End")
                     }
-                    if (env.JOB_NAME.contains(persephone_test_job_name)) { selectOnlySuites(["PersephoneNightly"]); runTests() }
+                    if (env.JOB_NAME.contains(persephone_test_job_name)) { selectOnlySuites(["PersephoneSmokeNew"]); runTests() }
                     if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                       // TODO: Move to the main test map.
                       customathenautil.saveTimeEvent("Concord deployment test", "Start")
