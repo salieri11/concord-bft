@@ -2,7 +2,7 @@ other:cryptopp:8.2.0:
  name: cryptopp
  version: 8.2.0
  repository: Other
- license: CRYPTOGAMS
+ license: CRYPTOGAMS license
  url: https://github.com/weidai11/cryptopp/tree/CRYPTOPP_8_2_0
 
 other:log4cplus:2.0.4:
@@ -96,12 +96,12 @@ other:openssl:1.1.1a:
  license: Apache 2.0
  url: https://github.com/openssl/openssl
 
-other:grpc:1.17.0:
+other:grpc:1.28.2:
  name: grpc
- version: 1.17.0
+ version: 1.28.2
  repository: Other
  license: Apache 2.0
- url: https://github.com/grpc/grpc/tree/v1.17.0
+ url: https://github.com/grpc/grpc/tree/v1.28.2
 
 other:thrift:0.11.0:
  name: thrift
@@ -235,3 +235,10 @@ other:xvfbwrapper:0.2.9:
  repository: Other
  license: MIT License
  url: https://github.com/cgoldberg/xvfbwrapper/tree/0.2.9
+
+other:cpp-httplib:0.7.5:
+ name: cpp-httplib
+ version: 0.7.5
+ repository: Other
+ license: MIT License
+ url: https://github.com/yhirose/cpp-httplib

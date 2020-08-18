@@ -19,13 +19,13 @@ baseos:deb:g++-7:7.5.0-3ubuntu1~18.04:ubuntu:
     baseos-style: deb
     baseos-osname: 'ubuntu'
     baseos-source: 'gcc-7'
-baseos:deb:libclang1-7:1:7-3~ubuntu0.18.04.1:ubuntu:
+baseos:deb:libclang1-10:1:10.0.0-4ubuntu1~18.04.2:ubuntu:
     repository: BaseOS
-    name: 'libclang1-7'
-    version: '1:7-3~ubuntu0.18.04.1'
+    name: 'libclang1-10'
+    version: '1:10.0.0-4ubuntu1~18.04.2'
     baseos-style: deb
     baseos-osname: 'ubuntu'
-    baseos-source: 'llvm-toolchain-7'
+    baseos-source: 'llvm-toolchain-10'
 baseos:deb:libcurl4-openssl-dev:7.58.0-2ubuntu3.8:ubuntu:
     repository: BaseOS
     name: 'libcurl4-openssl-dev'
@@ -49,6 +49,13 @@ baseos:deb:libtool:2.4.6-2:ubuntu:
 baseos:deb:libsnappy-dev:1.1.7-1:ubuntu:
     repository: BaseOS
     name: 'libsnappy-dev'
+    version: '1.1.7-1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'snappy'
+baseos:deb:libsnappy1v5:1.1.7-1:ubuntu:
+    repository: BaseOS
+    name: 'libsnappy1v5'
     version: '1.1.7-1'
     baseos-style: deb
     baseos-osname: 'ubuntu'
@@ -282,3 +289,31 @@ baseos:deb:gdbserver:8.1-0ubuntu3.2:ubuntu:
     baseos-style: deb
     baseos-osname: 'ubuntu'
     baseos-source: 'gdb'
+baseos:deb:bind9-host:1:9.11.3+dfsg-1ubuntu1.12:ubuntu:
+    repository: BaseOS
+    name: 'bind9-host'
+    version: '1:9.11.3+dfsg-1ubuntu1.12'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'bind9'
+baseos:deb:dnsutils:1:9.11.3+dfsg-1ubuntu1.12:ubuntu:
+    repository: BaseOS
+    name: 'dnsutils'
+    version: '1:9.11.3+dfsg-1ubuntu1.12'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'bind9'
+baseos:deb:libgmp10:2:6.1.2+dfsg-2:ubuntu:
+    repository: BaseOS
+    name: 'libgmp10'
+    version: '2:6.1.2+dfsg-2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'gmp'
+baseos:deb:libldb1:2:1.2.3-1ubuntu0.1:ubuntu:
+    repository: BaseOS
+    name: 'libldb1'
+    version: '2:1.2.3-1ubuntu0.1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
+    baseos-source: 'ldb'
