@@ -49,7 +49,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    last_interrupted_node_index = None
    for iteration, ips in enumerate(nodes_available_for_interruption):
       nodes_to_interrupt, last_interrupted_node_index = \
-         intr_helper.get_list_of_replicas_to_interrupt(
+         intr_helper.get_list_of_nodes_to_interrupt(
             nodes_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
@@ -95,7 +95,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    last_interrupted_node_index = None
    for iteration, ips in enumerate(nodes_available_for_interruption):
       nodes_to_interrupt, last_interrupted_node_index = \
-         intr_helper.get_list_of_replicas_to_interrupt(
+         intr_helper.get_list_of_nodes_to_interrupt(
             nodes_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
@@ -119,7 +119,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    log.info("**** Test completed successfully ****")
 
 
-@describe("Node Interruption - VM Stop/start - 1 node")
+@describe("1 Participant node crash/recovery - VM Stop/start")
 @pytest.mark.skip()
 def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
@@ -140,7 +140,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
    last_interrupted_node_index = None
    for iteration, ips in enumerate(nodes_available_for_interruption):
       nodes_to_interrupt, last_interrupted_node_index = \
-         intr_helper.get_list_of_replicas_to_interrupt(
+         intr_helper.get_list_of_nodes_to_interrupt(
             nodes_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
