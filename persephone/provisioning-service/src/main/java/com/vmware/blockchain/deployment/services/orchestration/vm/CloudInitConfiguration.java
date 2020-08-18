@@ -46,6 +46,11 @@ public class CloudInitConfiguration {
     private String vmPassword;
     private boolean noLaunch;
 
+    /** Container network name alias.
+     * TODO: This could be unified across agent and provisioning service and sent via agent request.
+     **/
+    private static final String CONTAINER_NETWORK_NAME = "blockchain-fabric";
+
     /**
      * Constructor.
      */
@@ -193,7 +198,8 @@ public class CloudInitConfiguration {
                              com.google.protobuf.util.JsonFormat.printer().print(getConfiguration()))
                     .replace("{{networkSetupCommand}}", networkSetupCommand())
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
-                    .replace("{{setupOutboundProxy}}", setupOutboundProxy());
+                    .replace("{{setupOutboundProxy}}", setupOutboundProxy())
+                    .replace("{{blockchainNetwork}}", CONTAINER_NETWORK_NAME);
 
             return content;
         } catch (Exception e) {

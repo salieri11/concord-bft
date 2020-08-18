@@ -33,7 +33,8 @@ retry=0
 until [ $retry -ge 3 ]
 do
    {{dockerLoginCommand}}
-   docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}} && break
+   docker network create -d bridge {{blockchainNetwork}}
+   docker run -d --name=agent --restart=always --network={{blockchainNetwork}} -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock {{agentImage}} && break
    retry=$[$retry+1]
    sleep 10
 done

@@ -34,7 +34,8 @@ retry=0
 until [ $retry -ge 3 ]
 do
    docker login https://containerRegistry.com -u username -p 'password'
-   docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 containerRegistry.com/agent && break
+   docker network create -d bridge blockchain-fabric
+   docker run -d --name=agent --restart=always --network=blockchain-fabric -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock containerRegistry.com/agent && break
    retry=$[$retry+1]
    sleep 10
 done
