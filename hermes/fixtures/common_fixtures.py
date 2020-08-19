@@ -29,6 +29,9 @@ BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, c
 # the way standard orgs do.
 BUILTIN_ORGS = ["0460bc7f-41a4-4570-acdb-adbade2acb86", "4c722759-fc17-408d-bc41-e6775fc1e111"]
 
+# client nodes array
+client_nodes = []
+
 def isBuiltInOrg(orgId):
    return orgId in BUILTIN_ORGS
 
@@ -300,19 +303,21 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
 
    client_zone_ids = []
-   client_nodes = []
    num_participants = 0
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
 
    if blockchain_type.lower() == helper.TYPE_DAML:
        num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
        client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
-       for zoneId in client_zone_ids:
-         node = {"zone_id": zoneId, "auth_url_jwt": "", "group_name": "1"}
-         client_nodes.append(node)
+       # How many groups do we have to create?
+       num_groups = int(hermesData["hermesCmdlineArgs"].numGroups)
+       # We know how many groups, how many clients/participants.
+       client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
+       log.debug(client_nodes) 
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
 
    response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
+   log.debug("client nodes in common fixtures {}".format(client_nodes))
 
    if "task_id" not in response:
        raise Exception("task_id not found in response to create blockchain.")
@@ -785,5 +790,4 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
        rpc = None
 
    log.debug("request {}".format(request))
-
    return ConnectionFixture(request=request, rpc=rpc)
