@@ -981,10 +981,6 @@ def call(){
                     if (env.JOB_NAME.contains(on_demand_concord_deployment_job_name)) {
                       // TODO: Move to the main test map.
                       customathenautil.saveTimeEvent("Concord deployment test", "Start")
-                      if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
-                        env.dep_comp_concord_tag = env.product_version
-                        dockerutillib.tagAndPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.dep_comp_concord_tag)
-                      }
                       sh '''
                         echo "Running Persephone deployment for concord..."
                         mkdir -p "${concord_deployment_test_logs}"
@@ -2328,21 +2324,36 @@ void updateEnvFileForConcordOnDemand(){
         sh '''
           echo "Using concord tag (last successful ToT): " + ${dep_comp_concord_tag}
         '''
+        return
       }
-      else if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
+      if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
         env.dep_comp_concord_tag = env.product_version
-        sh '''
-          echo "Using concord tag (from this branch): " + ${dep_comp_concord_tag}
-          sed -i -e 's/'"concord_tag=${docker_tag}"'/'"concord_tag=${dep_comp_concord_tag}"'/g' blockchain/docker/.env
-        '''
       } else {
         env.dep_comp_concord_tag = env.concord_deployment_tag
-        sh '''
-          echo "Using concord tag (custom tag):" + ${dep_comp_concord_tag}
-          sed -i -e 's/'"concord_tag=${docker_tag}"'/'"concord_tag=${dep_comp_concord_tag}"'/g' blockchain/docker/.env
-        '''
       }
+      setPropVals([
+        "persephone_agent_tag",
+        "concord_tag",
+        "ethrpc_tag",
+        "daml_index_db_tag",
+        "daml_execution_engine_tag",
+        "daml_ledger_api_tag",
+        "fluentd_tag",
+      ], env.dep_comp_concord_tag, "blockchain/docker/.env")
     }
+  }
+}
+
+// For the Persephone On Demand, we only build and want to use
+// Persephone components.
+void updateEnvFileForPersephoneOnDemand(){
+  if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
+    setPropVals([
+      "persephone_agent_tag",
+      "persephone_configuration_tag",
+      "persephone_ipam_tag",
+      "persephone_provisioning_tag"
+    ], env.product_version, "blockchain/docker/.env")
   }
 }
 
@@ -2459,18 +2470,6 @@ String getTagFromEnv(component){
   return null
 }
 
-// For the Persephone On Demand, we only build and want to use
-// Persephone components.
-void updateEnvFileForPersephoneOnDemand(){
-  if (env.JOB_NAME.contains(on_demand_persephone_test_job_name)){
-    setPropVals([
-      "persephone_agent_tag",
-      "persephone_configuration_tag",
-      "persephone_ipam_tag",
-      "persephone_provisioning_tag"
-    ], env.product_version, "blockchain/docker/.env")
-  }
-}
 
 // Sets a list of keys equal to val in file.
 void setPropVals(keys, val, file){
