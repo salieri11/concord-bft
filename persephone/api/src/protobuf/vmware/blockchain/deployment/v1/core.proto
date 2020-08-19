@@ -190,6 +190,7 @@ message NodeProperty {
         VM_CORES_PER_SOCKET = 20;
         VM_MEMORY = 21;
         VM_IP = 22;
+        CLIENT_GROUP_NAME = 23;
     }
 
     Name name = 1;
