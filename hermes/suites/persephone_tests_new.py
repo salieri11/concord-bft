@@ -537,7 +537,12 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
         })
         if fatal_errors: # e.g. IP conflicts
             infra.save_fatal_errors_to_summary(fatal_errors)
+    except Exception as e:
+        log.error("Received IP conflict exception from infra: {}".format(e))
 
+    try:
+        log.debug("Searching for deployment session ID {} in deployment_info in-memory list {}"
+                  .format(deployment_session_id, ps_helper.deployment_info))
         for deployment_info in ps_helper.deployment_info:
             if get_deployment_session_id(deployment_info["deployment_session_id"]) == deployment_session_id:
                 log.debug("Updating more info for deployment session ID: {}".format(deployment_session_id))
