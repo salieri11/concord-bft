@@ -358,8 +358,8 @@ def fetch_master_replica(fxBlockchain):
 def print_replica_info(fxBlockchain, interrupted_nodes=[]):
   username, password = helper.getNodeCredentials()
   cmd = 'grep -2 -w private_key /config/concord/config-local/concord.config | ' \
-        'grep principal_id ; docker exec -t telegraf /bin/bash -c "curl concord:9891/metrics" ; ' \
-        'cat /tmp/metrics.log | grep concord_concordbft_current | grep source='
+        'grep principal_id ; docker exec -t telegraf /bin/bash -c "curl concord:9891/metrics" | ' \
+        'grep concord_concordbft_current | grep source='
 
   filtered_ips = [ip for ip in committers_of(fxBlockchain) if ip not in interrupted_nodes]
   log.info("")
