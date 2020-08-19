@@ -179,8 +179,14 @@ void ThinReplicaClient::ReadUpdateHashFromStream(
   });
   auto status = reader.wait_for(timeout_read_hash_stream_);
   if (status == future_status::timeout || status == future_status::deferred) {
+    // If a stream Read launched with std::async times out, it is necessary to
+    // cancel it and close the stream before the asynchronous thread goes out of
+    // scope, as std::async's destructor will try to join the reader thread and
+    // could get stuck waiting on the already-timed-out Read call to return if
+    // we didn't cancel it.
     CloseStream(subscription_hash_streams_[server_index],
                 sub_hash_contexts_[server_index]);
+
     LOG4CPLUS_DEBUG(logger_, "Hash stream " << server_index << " timed out.");
     read_timeouts_per_update_++;
     return;
@@ -244,6 +250,13 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
   });
   auto status = reader.wait_for(timeout_read_data_stream_);
   if (status == future_status::timeout || status == future_status::deferred) {
+    // If a stream Read launched with std::async times out, it is necessary to
+    // cancel it and close the stream before the asynchronous thread goes out of
+    // scope, as std::async's destructor will try to join the reader thread and
+    // could get stuck waiting on the already-timed-out Read call to return if
+    // we didn't cancel it.
+    CloseStream(subscription_data_stream_, sub_data_context_);
+
     LOG4CPLUS_DEBUG(logger_,
                     "Data stream " << current_data_source_ << " timed out");
     read_timeouts_per_update_++;
@@ -391,6 +404,13 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
     });
     auto status = reader.wait_for(timeout_read_hash_stream_);
     if (status == future_status::timeout || status == future_status::deferred) {
+      // If a stream Read launched with std::async times out, it is necessary to
+      // cancel it and close the stream before the asynchronous thread goes out
+      // of scope, as std::async's destructor will try to join the reader thread
+      // and could get stuck waiting on the already-timed-out Read call to
+      // return if we didn't cancel it.
+      CloseStream(subscription_data_stream_, sub_data_context_);
+
       LOG4CPLUS_DEBUG(
           logger_,
           "Read timed out on a data subscription stream (to server index "
