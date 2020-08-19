@@ -732,7 +732,7 @@ def call(){
                   if (env.concord_deployment_tag.toLowerCase() == "thisbranch") {
                     sh '''
                       echo "Building concord..."
-                      ./buildall.sh --buildOnDemand concord
+                      ./buildall.sh --buildOnDemand concord,daml,fluentd,agent
                     '''
                   }
                   sh '''
