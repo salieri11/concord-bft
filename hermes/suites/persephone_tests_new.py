@@ -29,7 +29,7 @@ class NodeInfo:
     public_ip: str = ""
     username: str = "root"
     password: str = "c0nc0rd"
-    node_type: int = 0  # 0 for replica, 1 for client
+    node_type: helper.NodeType = helper.NodeType.REPLICA
 
 
 @dataclass
@@ -38,7 +38,7 @@ class DeploymentParams:
     zone_type: str
     num_replicas: int
     num_clients: int
-    num_client_groups: int = 0 # By default, the number of client groups is 0
+    num_client_groups: int = 0  # By default, the number of client groups is 0
 
 
 @pytest.fixture
@@ -256,15 +256,15 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
     try:
         persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
                                                                            Product.PERSEPHONE_SERVICE_PROVISIONING)
-        
+
         # Below environment settings below should ideally be handled in pipeline;
         # it has nothing to do with the testing itself; shouldn't be in Hermes
         tags_info = helper.get_agent_pulled_tags_info()
         concord_current_tag = tags_info["tags"]["concord"]["tag"]
         helper.set_props_file_value(persephone_config_file, 'docker.image.base.version', concord_current_tag)
         if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
-            jobName = helper.getJenkinsJobNameAndBuildNumber()["jobName"]
-            if "ON DEMAND Persephone" in jobName: # use agent locally built on the run
+            job_name = helper.getJenkinsJobNameAndBuildNumber()["jobName"]
+            if "ON DEMAND Persephone" in job_name:  # Use agent locally built on the run
                 helper.DEPLOYMENT_PROPERTIES["GENERIC"] = tags_info["tags"]["agent"]["tag"]
 
         with open(persephone_config_file, 'r') as config_file:
@@ -311,7 +311,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                 helper.set_props_file_value(persephone_config_file,
                                             'provisioning.config.service.transportSecurity.type', "NONE")
                 helper.set_props_file_value(persephone_config_file, 'provisioning.config.service.rest.address',
-                                                            provisioning_config_service_rest_address)
+                                            provisioning_config_service_rest_address)
                 log.info("Update completed!")
 
             if mode == "RESET":
@@ -363,7 +363,9 @@ def validate_stream_deployment_session_events(execution_events, num_replicas, nu
     """
     Validates the stream output of StreamDeploymentSessionEvents
     :param execution_events: Stream of deployment execution events to be validated in json format
-    :param num_nodes: Total number of nodes (client + replica)
+    :param num_replicas: Number of replica nodes
+    :param num_clients: Number of client nodes
+    :param num_client_groups: Number of client groups
     :return: True or False
     """
     num_nodes = num_replicas + num_clients
@@ -460,7 +462,7 @@ def get_node_info_list(execution_events, blockchain_type):
             if "additionalInfo" in resource and "values" in resource["additionalInfo"] \
                     and "CLIENT_ENDPOINT" in resource["additionalInfo"]["values"]:
                 if blockchain_type == helper.TYPE_DAML:
-                    node.node_type = 1
+                    node.node_type = helper.NodeType.CLIENT
             if "additionalInfo" in resource and "values" in resource["additionalInfo"] \
                     and "NODE_LOGIN" in resource["additionalInfo"]["values"]:
                 node.password = resource["additionalInfo"]["values"]["NODE_LOGIN"]
@@ -489,11 +491,11 @@ def get_docker_containers_by_node_type(user_config, blockchain_type, node_type):
     Get list of docker containers by node type
     :param user_config: user_config.json JSON object
     :param blockchain_type: DAML, Ethereum, HLF
-    :param node_type: Replica/Client (0 or 1)
+    :param node_type: NodeType enum
     :return: List of docker containers for the node type
     """
     if blockchain_type == helper.TYPE_DAML:
-        if node_type == 0:  # Replica node
+        if node_type == helper.NodeType.REPLICA:  # Replica node
             container_type = helper.TYPE_DAML_COMMITTER
         else:  # Client node
             container_type = helper.TYPE_DAML_PARTICIPANT
@@ -906,7 +908,7 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
 
     # Verify DAR upload on all client nodes
     for node in node_info_list:
-        if node.node_type == 1:
+        if node.node_type == helper.NodeType.CLIENT:
             ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
             assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
                                      deployment_session_id)
@@ -920,7 +922,7 @@ def test_daml_7_node_onprem_one_group(request, hermes_settings, ps_helper, file_
 
     # Set the deployment params for this test case
     # 7 committers, 2 clients, 1 client group
-    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_SDDC, 7, 2, 1)
+    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 2, 1)
     zone_type = helper.LOCATION_ONPREM
 
     # Rest of the code below shouldn't change between different combinations of DAML test cases
@@ -934,7 +936,7 @@ def test_daml_7_node_onprem_one_group(request, hermes_settings, ps_helper, file_
 
     # Verify DAR upload on all client nodes
     for node in node_info_list:
-        if node.node_type == 1:
+        if node.node_type == helper.NodeType.CLIENT:
             ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
             assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
                                      deployment_session_id)
@@ -961,7 +963,7 @@ def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown
     for node in node_info_list:
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
         if blockchain_type.lower() == helper.TYPE_DAML:
-            if node.node_type == 1:
+            if node.node_type == helper.NodeType.CLIENT:
                 assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
                                          deployment_session_id)
         else:
