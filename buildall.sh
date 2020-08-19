@@ -203,6 +203,11 @@ castor() {
     docker_build . castor/Dockerfile ${castor_repo} ${castor_tag}
 }
 
+agent() {
+    info "Build persephone agent..."
+    docker_build persephone persephone/agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
+}
+
 persephone() {
     # As a precondition to building Persephone with this function, the Concord
     # image ${concord_repo}:${concord_tag} should be complete and available, and
