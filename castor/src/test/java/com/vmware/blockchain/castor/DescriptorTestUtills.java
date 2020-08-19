@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
@@ -143,10 +144,17 @@ public class DescriptorTestUtills {
                 .zoneName(ZONE_1_NAME)
                 .build();
 
+        List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
+
+        List<DeploymentDescriptorModel.Committer> committers =
+                zones.stream()
+                        .map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
+                        .collect(Collectors.toList());
+
         return DeploymentDescriptorModel.builder()
                 .blockchain(blockchain)
                 .clients(List.of(client1, client2))
-                .committers(List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME))
+                .committers(committers)
                 .build();
     }
 }

@@ -1,9 +1,17 @@
 {
   "committers": [
-    "test-zone-1 - A",
-    "test-zone-1 - B",
-    "test-zone-1 - A",
-    "test-zone-1 - C"
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - B"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - C"
+    }
   ],
   "clients": [
     {

@@ -38,6 +38,21 @@ public class DeploymentDescriptorModel {
         @NotBlank(message = "deployment.client.zone.invalid")
         private String zoneName;
         private String authUrlJwt;
+        private String providedIp;
+    }
+
+    /**
+     * Required committer.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @EqualsAndHashCode
+    public static class Committer {
+        // This MUST match the zone name in the Infrastructure descriptor.
+        @NotBlank(message = "deployment.committer.zone.invalid")
+        private String zoneName;
+        private String providedIp;
     }
 
     /**
@@ -66,7 +81,8 @@ public class DeploymentDescriptorModel {
     // List of zone ids on which the committers should be deployed
     // These MUST match the zone name in the Infrastructure descriptor.
     @NotEmpty(message = "deployment.commiters.not.specified")
-    private List<String> committers;
+    @Valid
+    private List<Committer> committers;
 
     @Valid
     private List<Client> clients;
