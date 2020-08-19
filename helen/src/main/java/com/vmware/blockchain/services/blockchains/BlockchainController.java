@@ -404,18 +404,20 @@ public class BlockchainController {
                             propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
                                                   k.getAuthUrlJwt());
                         }
-                        if (!Strings.isNullOrEmpty(k.getGroupIndex())) {
-                            // Did we see this groupIndex earlier?
+                        if (!Strings.isNullOrEmpty(k.getGroupName())) {
+                            // Did we see this groupName earlier?
                             // If yes, then get the Id from the map.
                             // Or else, generate a new one and put it in the map.
+                            String groupName = k.getGroupName();
                             UUID groupId = null;
-                            if (groupMap.containsKey(k.getGroupIndex())) {
-                                groupId = groupMap.get(k.getGroupIndex());
+                            if (groupMap.containsKey(groupName)) {
+                                groupId = groupMap.get(groupName);
                             } else {
                                 groupId = UUID.randomUUID();
-                                groupMap.put(k.getGroupIndex(), groupId);
+                                groupMap.put(groupName, groupId);
                             }
                             propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId.toString());
+                            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
                         }
 
                         nodeAssignment.addEntries(NodeAssignment.Entry

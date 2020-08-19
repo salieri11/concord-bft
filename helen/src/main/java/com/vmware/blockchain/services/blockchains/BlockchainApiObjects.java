@@ -51,7 +51,7 @@ public class BlockchainApiObjects {
     static class ClientNodeRequest {
         private UUID zoneId;
         private String authUrlJwt;
-        private String groupIndex;
+        private String groupName;
         // TLS fields.
     }
 

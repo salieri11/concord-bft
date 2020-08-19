@@ -37,4 +37,6 @@ public class Client extends AbstractEntity implements NodeInterface {
     UUID zoneId;
     // Id for the logical group that this client belongs to.
     UUID groupId;
+    // User supplied name for the group.
+    String groupName;
 }
