@@ -450,6 +450,11 @@ def test_getClientsDamlBlockchain(fxConnection, fxBlockchain, fxHermesRunSetting
 
     util.helen.validators.validateClientListResponse(clients)
     log.debug("client nodes in api_test {}".format(fxBlockchain.client_nodes))
-    # Check Client group name.
-    if fxBlockchain.client_nodes and client["group_name"]:
-        assert client["group_name"] == fxBlockchain.client_nodes["group_name"], "Client group name does not match."
+    if clients:
+      for client in clients:
+        # Check Client group name.
+        if client["group_name"] and fxBlockchain.client_nodes:
+            for client_node in fxBlockchain.client_nodes:
+              log.debug("client group name {}".format(client_node["group_name"]))
+              if client["zone_id"] == client_node["zone_id"]:
+                assert client["group_name"] == client_node["group_name"], "Client group name does not match."

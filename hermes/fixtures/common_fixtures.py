@@ -29,9 +29,6 @@ BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, c
 # the way standard orgs do.
 BUILTIN_ORGS = ["0460bc7f-41a4-4570-acdb-adbade2acb86", "4c722759-fc17-408d-bc41-e6775fc1e111"]
 
-# client nodes array
-client_nodes = []
-
 def isBuiltInOrg(orgId):
    return orgId in BUILTIN_ORGS
 
@@ -303,6 +300,8 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
 
    client_zone_ids = []
+   # client nodes array
+   client_nodes = []
    num_participants = 0
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
 
@@ -313,7 +312,7 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
        num_groups = int(hermesData["hermesCmdlineArgs"].numGroups)
        # We know how many groups, how many clients/participants.
        client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
-       log.debug(client_nodes) 
+       log.debug("client_nodes after getClientNodes {}".format(client_nodes))
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
 
    response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
@@ -371,7 +370,7 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
       create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
-   return blockchainId, conId, replica_dict
+   return blockchainId, conId, replica_dict, client_nodes
 
 
 def verify_ethereum_deployment(replica_details, credentials, blockchain_type, logDir):
@@ -656,6 +655,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    blockchainId = None
    conId = None
    replicas = None
+   client_nodes = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
@@ -674,7 +674,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    elif hermesData["hermesCmdlineArgs"].blockchainLocation in \
         [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
       log.warning("Some test suites do not work with remote deployments yet.")
-      blockchainId, conId, replicas = deployToSddc(logDir, hermesData,
+      blockchainId, conId, replicas, client_nodes = deployToSddc(logDir, hermesData,
                                                    hermesData["hermesCmdlineArgs"].blockchainLocation)
    elif not hermesData["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
@@ -694,7 +694,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = None
       conId = None
 
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas)
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, client_nodes=client_nodes)
 
 
 @pytest.fixture(scope="module")
