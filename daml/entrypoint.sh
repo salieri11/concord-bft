@@ -61,7 +61,10 @@ MAX_FAULTY_REPLICAS=${MAX_FAULTY_REPLICAS:=$((($N - 1) / 3))}
 MAX_TRC_READ_DATA_TIMEOUT=${MAX_TRC_READ_DATA_TIMEOUT:=3}
 MAX_TRC_READ_HASH_TIMEOUT=${MAX_TRC_READ_HASH_TIMEOUT:=3}
 
+LOGBACK_CONFIG_FILE="/doc/daml/ledger-api-server/resources/logback.xml"
+
 $API_SERVER \
+  -Dlogback.configurationFile=$LOGBACK_CONFIG_FILE \
   --replicas $REPLICAS \
   --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
   --batching "enable=$ENABLE_BATCHING,max-queue-size=$MAX_BATCH_QUEUE_SIZE,max-batch-size-bytes=$MAX_BATCH_SIZE_BYTES,max-wait-millis=$MAX_BATCH_WAIT_MILLIS,max-concurrent-commits=$MAX_CONCURRENT_COMMITS" \

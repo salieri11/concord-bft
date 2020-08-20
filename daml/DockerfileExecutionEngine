@@ -23,13 +23,14 @@ COPY concord/proto /doc/concord/proto
 COPY communication/src/main/proto /doc/communication/src/main/proto
 COPY daml/execution-engine /doc/daml/execution-engine
 COPY daml/common /doc/daml/common
-COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/daml-execution-engine-entrypoint.sh
+COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/entrypoint.sh
+COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-engine/resources/logback.xml
 RUN sbt execution_engine/stage
 EXPOSE 55000
 
-RUN chmod 755 /doc/daml/daml-execution-engine-entrypoint.sh
+RUN chmod 755 /doc/daml/entrypoint.sh
 
-ENTRYPOINT ["/doc/daml/daml-execution-engine-entrypoint.sh"]
+ENTRYPOINT ["/doc/daml/entrypoint.sh"]
 
 CMD ["-J-Xmx4G"]
 
