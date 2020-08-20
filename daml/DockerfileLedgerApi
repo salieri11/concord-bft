@@ -35,6 +35,7 @@ COPY daml/thin-replica-client-native /doc/daml/thin-replica-client-native
 COPY daml/thin-replica-client-core /doc/daml/thin-replica-client-core
 COPY daml/bft-client-native /doc/daml/bft-client-native
 COPY daml/bft-client-core /doc/daml/bft-client-core
+COPY daml/ledger-api-server/src/main/resources/logback.xml /doc/daml/ledger-api-server/resources/logback.xml
 
 RUN sbt nativeCompile
 RUN sbt scalafmtCheck ledger_api_server/stage
