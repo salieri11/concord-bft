@@ -887,6 +887,7 @@ def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, tea
 
 @describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client)")
 @pytest.mark.smoke
+@pytest.mark.on_demand_concord_default
 def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, teardown):
 
     # Set the deployment params for this test case
