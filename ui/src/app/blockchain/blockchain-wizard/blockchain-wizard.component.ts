@@ -20,11 +20,13 @@ import { BlockchainService } from '../shared/blockchain.service';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { BlockchainRequestParams, ContractEngines, NodeClientParam } from '../shared/blockchain.model';
 import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
+import { NodeTemplateFormResponse } from '../../nodes/shared/nodes.model';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
 import { TranslateService } from '@ngx-translate/core';
+
 
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
 
@@ -90,6 +92,9 @@ export class BlockchainWizardComponent implements AfterViewInit {
   alwaysGroup = true;
 
   pastContractEngineStep: boolean = false;
+  sizingIsValid: boolean;
+
+  nodeSizingTemplate: NodeTemplateFormResponse;
 
   constructor(
     private blockchainService: BlockchainService,
@@ -131,7 +136,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.isOpen = true;
     this.showOnPrem = false;
     this.selectedEngine = undefined;
-
     // this.filterZones();
 
     if (this.form && this.wizard) {
@@ -420,6 +424,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
     });
   }
 
+  addReplicaSize(template: NodeTemplateFormResponse) {
+    this.nodeSizingTemplate = template;
+  }
+
   addOnPrem() {
     this.showOnPrem = true;
 
@@ -431,24 +439,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   cancelOnPremAdd() {
     this.wizard.goTo(this.replicaPage.id);
     this.showOnPrem = false;
-  }
-
-  private handlePageChange() {
-    const currentPage = this.wizard.currentPage;
-
-    switch (currentPage) {
-      case this.detailPage:
-        setTimeout(() => {
-          this.consortiumInput.nativeElement.focus();
-        }, 10);
-        break;
-      case this.replicaPage:
-        this.setupZones();
-        break;
-      case this.clientsPage:
-        if (this.clientGroups.length === 0) { this.addClientGroup(); }
-        break;
-    }
   }
 
   submitOnPrem(): void {
@@ -478,6 +468,26 @@ export class BlockchainWizardComponent implements AfterViewInit {
       this.loadingFlag = false;
     });
 
+  }
+
+  private handlePageChange() {
+    const currentPage = this.wizard.currentPage;
+
+    switch (currentPage) {
+      case this.detailPage:
+        setTimeout(() => {
+          this.consortiumInput.nativeElement.focus();
+        }, 10);
+        break;
+      case this.replicaPage:
+        this.setupZones();
+        break;
+      case this.clientsPage:
+        if (this.clientGroups.length === 0) {
+          setTimeout(() => this.addClientGroup(), 100);
+        }
+        break;
+    }
   }
 
   private isAuthorized(): boolean {

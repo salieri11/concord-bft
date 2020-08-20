@@ -1,0 +1,57 @@
+:host .sizing-detail {
+
+  .card.sideways:first-child {
+    margin-top: 0;
+  }
+  .card-icon h3 {
+    margin-top: .2rem;
+  }
+  .card-endorsement {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    height: 6rem;
+    place-content: center;
+
+    .clr-control-label.custom {
+      margin-top: 1rem;
+      min-width: 100%;
+    }
+
+    h5 {
+      text-transform: uppercase;
+      font-weight: 600;
+      font-size: .6rem;
+      margin-top: 0;
+    }
+  }
+  .stats {
+    list-style: none;
+  }
+  .back {
+    margin: 0;
+    padding: 0;
+  }
+  .custom-wrapper {
+    width: 100%;
+    text-align: right;
+  }
+  .custom {
+    .card-endorsement {
+      margin-top: 1rem;
+    }
+
+    .card-endorsement {
+      display: grid;
+      grid-template-columns: 8rem 1fr;
+      height: 7rem;
+      place-content: end;
+    }
+  }
+  ::ng-deep .clr-control-container.clr-col-md-10 {
+      -webkit-box-flex: 0;
+      -ms-flex: 0 0 75%;
+      flex: 0 0 75%;
+      max-width: 75%;
+  }
+
+}

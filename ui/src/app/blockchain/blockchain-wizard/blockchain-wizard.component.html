@@ -191,10 +191,10 @@
             <label class="short-label">{{ 'blockchainWizard.clients.clientGrouping' | translate }}</label>
             <div class="clr-row columned no-height">
               <div class="clr-col-md-6">
-                <div class="column-label-container"><label class="column-label">{{ 'common.name' | translate }}</label></div>  
+                <div class="column-label-container"><label class="column-label">{{ 'common.name' | translate }}</label></div>
               </div>
               <div class="clr-col-md-2">
-                <div class="column-label-container"><label class="column-label">{{ 'common.countNoun' | translate }}</label></div>  
+                <div class="column-label-container"><label class="column-label">{{ 'common.countNoun' | translate }}</label></div>
               </div>
               <div class="clr-col-md-3"></div>
             </div>
@@ -227,7 +227,7 @@
             <div class="clr-row columned no-height">
               <div class="col-min-1"></div>
               <div class="clr-col-md-4">
-                <div class="column-label-container"><label class="column-label">{{ 'blockchainWizard.clients.zone' | translate }}</label></div>  
+                <div class="column-label-container"><label class="column-label">{{ 'blockchainWizard.clients.zone' | translate }}</label></div>
               </div>
               <div class="col-min-2"></div>
               <div class="clr-col-md-6">
@@ -236,7 +236,7 @@
                     {{ 'blockchainWizard.clients.authUrl' | translate }}
                     <span class="optional-field-span">({{ 'common.optional' | translate }})</span>
                   </label>
-                </div>  
+                </div>
               </div>
             </div>
             <div *ngFor="let client of getClientGroupMembers(g).controls; let c = index;" [formGroupName]="c" class="clr-row columned">
@@ -264,7 +264,7 @@
                     formControlName="auth_url_jwt" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
                     <clr-control-error class="no-height">
                       <div class="error-helper abspos no-height">
-                        {{ 'blockchainWizard.clients.authUrlInputError' | translate }}  
+                        {{ 'blockchainWizard.clients.authUrlInputError' | translate }}
                       </div>
                     </clr-control-error>
                 </clr-input-container>
@@ -277,7 +277,7 @@
           <div class="compact-input-container">
             <div class="clr-row columned no-height">
               <div class="client-group-bottom">
-                <button class="btn btn-sm btn-link add-client-node-button" (click)="addClientNodeToGroup(g)" 
+                <button class="btn btn-sm btn-link add-client-node-button" (click)="addClientNodeToGroup(g)"
                   *ngIf="maxClients > totalClientsCount() && maxClientsPerGroup > getClientGroupMembers(g).length"
                   [disabled]="totalClientsCount() >= maxClients || getClientGroupMembers(g).length >= maxClientsPerGroup">
                   {{
@@ -310,9 +310,9 @@
         <div>
           <button id="deploy-page-clients-group-add-client" class="btn btn-sm margins"
                   (click)="addClientGroup()" [disabled]="totalClientsCount() >= maxClients">
-            {{ alwaysGroup ? 
-                  ('blockchainWizard.clients.addClientGroup' | translate) 
-                : ('blockchainWizard.clients.addClient' | translate) 
+            {{ alwaysGroup ?
+                  ('blockchainWizard.clients.addClientGroup' | translate)
+                : ('blockchainWizard.clients.addClient' | translate)
             }}
           </button>
           <clr-control-helper class="max-client-reached-message" *ngIf="totalClientsCount() >= maxClients">
@@ -326,6 +326,16 @@
           </div>
         </div>
       </div>
+    </clr-wizard-page>
+
+    <clr-wizard-page *concordFeatureFlag="'node_sizing'" #replicaSizing [clrWizardPageNextDisabled]="!sizingIsValid">
+
+      <ng-template clrPageTitle>
+        {{'blockchainWizard.sizing.title' | translate}}
+      </ng-template>
+
+      <ng-template clrPageNavTitle>{{'blockchainWizard.sizing.title' | translate}}</ng-template>
+      <concord-node-sizing (sizeChange)="addReplicaSize($event)" (isValid)="sizingIsValid = $event"></concord-node-sizing>
     </clr-wizard-page>
 
     <clr-wizard-page>
@@ -358,14 +368,57 @@
         <div class="clr-col-8 summary-value number-of-replicas">
           {{ form.value.nodes.numberOfNodes }}
         </div>
-
-        <h6 *ngIf="selectedEngine === engines.DAML" class="sub-title">{{'blockchainWizard.clients.navTitle' | translate}}</h6>
-        <div *ngIf="selectedEngine === engines.DAML" class="clr-col-4 summary-label">
-          {{'blockchainWizard.clients.number' | translate}}
-        </div>
-        <div *ngIf="selectedEngine === engines.DAML" class="clr-col-8 summary-value number-of-replicas">
-          {{ totalClientsCount() }}
-        </div>
+        <ng-container *concordFeatureFlag="'node_sizing'">
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.noOfCPU' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.committerSizing.no_of_cpus }}
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.memory' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.committerSizing.memory_in_gigs }} GB
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.storage' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.committerSizing.storage_in_gigs }} GB
+          </div>
+        </ng-container>
+        <ng-container *ngIf="selectedEngine === engines.DAML">
+          <h6  class="sub-title">
+            {{'blockchainWizard.clients.navTitle' | translate}}
+          </h6>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.clients.number' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ totalClientsCount() }}
+          </div>
+          <ng-container *concordFeatureFlag="'node_sizing'">
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.noOfCPU' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.no_of_cpus }}
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.memory' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.memory_in_gigs }} GB
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.storage' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.storage_in_gigs }} GB
+            </div>
+          </ng-container>
+        </ng-container>
 
         <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
         <ng-container *ngFor="let zoneInfo of getUsedZones()">
