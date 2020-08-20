@@ -28,8 +28,8 @@ export class DeployWizard {
     return element(by.css('#clientZoneSelect option:nth-child(3)')).click();
   }
 
-  addClientNode() {
-    return element(by.css('#addClientNode')).click();
+  getClientGroupName() {
+    return element(by.css('#deploy-page-clients-group-0-name-input'));
   }
 
   getTitle() {
