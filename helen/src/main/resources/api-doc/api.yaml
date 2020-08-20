@@ -1661,6 +1661,22 @@ paths:
                   last_login:
                     type: integer
                     description: Last login time
+
+
+  /blockchains/nodesizetemplate:
+    summary: API to get and set node sizing templates.
+    get:
+      tags:
+        - blockchains
+      operationId: getTemplate
+      responses:
+        200:
+          $ref: '#/components/responses/NodeSizeTemplateGetResponse'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
 components:
   schemas:
     Error:
@@ -2057,6 +2073,77 @@ components:
               created:
                 type: string
                 description: Timestamp when created.
+
+    NodeSizeTemplateGetResponse:
+      description: Return either a default template, or an organization specific template if available.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: Template Id
+              name:
+                type: string
+                description: Template Name
+              templates:
+                description: List of sizing templates for each type
+                content:
+                  application/json:
+                    schema:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/SizingTemplate'
+              range:
+                description: A range of values for each node sizing template parameter.
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      additionalProperties:
+                        $ref: '#/components/responses/ThresholdMap'
+
+    SizingTemplate:
+      description: A template with node sizing params for each type.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name for this template item.
+              items:
+                description: A template item.
+                type: array
+                items:
+                  $ref: '#/components/schemas/SizingTemplateItem'
+
+    SizingTemplateItem:
+      description: Details of sizing template.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+              example:
+                type: committer
+                no_of_cpus: 1
+                storage_in_gigs: 1024
+                memory_in_gigs: 64
+
+    ThresholdMap:
+      description: Map of threshold values for parameters.
+      content:
+        application/json:
+          schema:
+            type: string
+            example:
+              min: 1
+              max: 64
 
   requestBodies:
     CreateZoneRequest:
