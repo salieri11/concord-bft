@@ -913,7 +913,7 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
 
 
 @describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client + 1 group)")
-@pytest.mark.smoke
+@pytest.mark.group
 def test_daml_7_node_onprem_one_group(request, hermes_settings, ps_helper, file_root, teardown):
 
     # Set the deployment params for this test case
