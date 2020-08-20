@@ -249,7 +249,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "baseCommand": '"${python}" main.py DeployDamlTests'
   ],
   "HelenDeployEthereumToSDDC": [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
       --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
