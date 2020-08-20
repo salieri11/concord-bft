@@ -42,7 +42,7 @@ def perform_precheck(cmdlineArgs):
 
 def get_build_info_file_path():
    if os.getenv("WORKSPACE"):
-      build_info_file_path = os.path.join(os.getenv("WORKSPACE"), '/blockchain/', BUILD_INFO_FILE)
+      build_info_file_path = os.getenv("WORKSPACE") + '/blockchain/' + BUILD_INFO_FILE
    elif os.path.exists(BUILD_INFO_FILE):
       build_info_file_path = BUILD_INFO_FILE
    else:
