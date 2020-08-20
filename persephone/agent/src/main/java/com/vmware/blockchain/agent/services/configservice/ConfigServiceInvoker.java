@@ -16,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
+import com.vmware.blockchain.agent.services.interceptor.retry.DefaultHttpRequestRetryInterceptor;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Endpoint;
@@ -34,10 +36,14 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfigServiceInvoker {
 
     private final Endpoint endpoint;
+    private final RestTemplate restTemplate;
 
     @Autowired
     public ConfigServiceInvoker(Endpoint configServiceEndpoint) {
         this.endpoint = configServiceEndpoint;
+        restTemplate = new RestTemplate(Arrays.asList(new ProtobufHttpMessageConverter()));
+        restTemplate.getInterceptors().add(DefaultHttpRequestRetryInterceptor.getDefaultInstance());
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(endpoint.getAddress()));
     }
 
     /**
@@ -53,7 +59,6 @@ public class ConfigServiceInvoker {
 
         request.setNodeId(nodeId);
         try {
-            final RestTemplate restTemplate = new RestTemplate(Arrays.asList(new ProtobufHttpMessageConverter()));
 
             final HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -61,7 +66,7 @@ public class ConfigServiceInvoker {
             HttpEntity<NodeConfigurationRequest> entity = new HttpEntity<>(request.build(), headers);
 
             ResponseEntity<NodeConfigurationResponse> result =
-                    restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
+                    restTemplate.exchange("/v1/configuration/node", HttpMethod.POST,
                                           entity,
                                           NodeConfigurationResponse.class);
 
