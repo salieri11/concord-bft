@@ -355,6 +355,9 @@ def validateClientResponse(client):
         assert type(client["group_id"]) == str, "Expecting str value for zone_id"
         assert len(client["id"]) == 36, "Expecting UUID of length 36"
 
+    if client["group_name"]:
+        assert type(client["group_name"]) == str, "Expecting str value for group_name"
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # REPLICA VALIDATORS
