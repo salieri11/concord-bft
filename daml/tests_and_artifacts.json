@@ -1,4 +1,19 @@
 {
-  "test_suites": ["ClientPoolDamlTests", "DamlTests", "ThinReplicaServerTests","PersephoneSmokeNew"],
-  "build_targets": []
+  "build_targets": [
+    "agent",
+    "concord-core",
+    "ethrpc",
+    "fluentd",
+    "daml-ledger-api",
+    "daml-execution-engine",
+    "daml-index-db",
+    "client-pool-lib",
+    "participant-lib"
+  ],
+  "test_suites": [
+    "ClientPoolDamlTests",
+    "DamlTests",
+    "ThinReplicaServerTests",
+    "PersephoneSmokeNew"
+  ]
 }

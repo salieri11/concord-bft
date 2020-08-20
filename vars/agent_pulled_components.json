@@ -5,14 +5,16 @@
     "comment3": " `namespace` is the registry subdir used by the component. ",
     "comment4": " If `envname` not given, `name` with underscores will be used. ",
     "comment5": " If `namespace` not given, `name` with hyphens will be used. ",
+    "comment6": " (Please don't forget to update tests_and_artifacts.json in [concord, daml, ethrpc] folder)",
+    "comment7": " `libonly` images are only used while building; they won't be pushed for agent's consumption.",
 
-    "name": "concord", "namespace": "concord-repo" },
+    "name": "concord", "namespace": "concord-core" },
   { "name": "agent", "envname": "persephone_agent" },
-  { "name": "ethrpc" },
-  { "name": "daml_ledger_api" },
-  { "name": "daml_execution_engine" },
-  { "name": "daml_index_db" },
+  { "name": "ethrpc", "engine": "ETH" },
+  { "name": "daml_ledger_api", "engine": "DAML" },
+  { "name": "daml_execution_engine", "engine": "DAML" },
+  { "name": "daml_index_db", "engine": "DAML" },
   { "name": "fluentd" },
-  { "name": "client_pool_lib" },
-  { "name": "participant_lib" }
+  { "name": "client_pool_lib", "libonly": true },
+  { "name": "participant_lib", "libonly": true }
 ]

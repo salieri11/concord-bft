@@ -2406,6 +2406,7 @@ void pushConcordComponentsToRegistry(repo){
 
   unique_tags_map = [:]
   for(component in agent_pulled_components) {
+    if (component.libonly) { continue } // libs don't get pulled by agent
     // .env varname for this component
     component.envname = component.envname ? component.envname : component.name.replaceAll('-', '_');
     // registry namespace/subsdir for this component
@@ -2425,6 +2426,7 @@ void pushConcordComponentsToRegistry(repo){
   }
 
   for(component in agent_pulled_components) {
+    if (component.libonly) { continue } // libs don't get pulled by agent
     if (repo == "dockerhub") {
       dockerutillib.tagAndPushDockerImage(component.internal_repo, component.release_repo, component.tag)
     } else if (repo == "bintray") {

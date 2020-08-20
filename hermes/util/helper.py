@@ -185,6 +185,9 @@ WITH_JENKINS_INJECTED_CREDENTIALS = False
 TIME_FMT = "%Y-%m-%d %H:%M:%S"
 TIME_FMT_TIMEZONE = "%Y-%m-%d %H:%M:%S %Z%z"
 
+# Individual tag information to override deployment spec (model)
+DEPLOYMENT_PROPERTIES = {} # dict of { [container_name_key: string]: tag_value }
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -2020,7 +2023,8 @@ def get_agent_pulled_tags_info():
         "namespace": namespace,
         "envname": envname,
       }
-      all_tags[tag] = True
+      if not hasattr(component, "libonly"): # ignore libs' tags
+        all_tags[tag] = True 
     if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
   info_obj["uniform"] = agent_pulled_tags_are_uniform
   return info_obj

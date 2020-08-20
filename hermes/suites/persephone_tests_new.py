@@ -256,24 +256,17 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
     try:
         persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
                                                                            Product.PERSEPHONE_SERVICE_PROVISIONING)
+        
+        # Below environment settings below should ideally be handled in pipeline;
+        # it has nothing to do with the testing itself; shouldn't be in Hermes
         tags_info = helper.get_agent_pulled_tags_info()
         concord_current_tag = tags_info["tags"]["concord"]["tag"]
-        helper.set_props_file_value(persephone_config_file, # default should be concord's tag
-                                    'docker.image.base.version',
-                                    concord_current_tag)
-
+        helper.set_props_file_value(persephone_config_file, 'docker.image.base.version', concord_current_tag)
         if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
-            # tags are not uniform; each component tag must be individually overridden.
-            for component_name in tags_info["tags"]:
-                component_info = tags_info["tags"][component_name]
-                component_container_name = component_info["name"]
-                component_tag = component_info["tag"]
-                if not component_tag:
-                    raise Exception("component tag cannot be null; while setting tag for '{}'."
-                                    .format(component_container_name))
-                helper.set_props_file_value(persephone_config_file, 
-                                            component_container_name, component_tag)
-        
+            jobName = helper.getJenkinsJobNameAndBuildNumber()["jobName"]
+            if "ON DEMAND Persephone" in jobName: # use agent locally built on the run
+                helper.DEPLOYMENT_PROPERTIES["GENERIC"] = tags_info["tags"]["agent"]["tag"]
+
         with open(persephone_config_file, 'r') as config_file:
             log.info("\nPersephone config file is as follows:\n\n{}\n\n".format(config_file.read()))
 
