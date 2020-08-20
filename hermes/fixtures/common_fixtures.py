@@ -694,7 +694,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = None
       conId = None
 
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=client_nodes)
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=clientNodes)
 
 
 @pytest.fixture(scope="module")
