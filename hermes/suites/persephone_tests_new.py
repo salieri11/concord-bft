@@ -855,6 +855,7 @@ def deprovision(hermes_settings, ps_helper):
 
 @describe("Test to run 4 node Ethereum deployment on VMC")
 @pytest.mark.smoke
+@pytest.mark.skip(reason="Reduce segment congestion")
 def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, teardown):
 
     # Set the deployment params for this test case
