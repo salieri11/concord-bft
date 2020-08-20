@@ -13,7 +13,6 @@ import sys
 import threading
 import time
 import util.hermes_logging
-from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
 from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_new_pb2_grpc
 from util.product import Product as Product
 from util import helper
@@ -81,23 +80,6 @@ class RPCHelper():
             break
       self.channel_connect_status = True
       return self.channel
-
-   def create_stub(self, channel):
-      '''
-      Helper method to create a gRPC stup to the created channel
-      :param channel: gRPC channel
-      :return: gRPC stub to the created channel
-      '''
-      log.info("Creating stub...")
-      stub = None
-      log.info("  Creating stub for {}".format(self.service_name))
-      if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
-         stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
-
-      if stub is None:
-         raise Exception(
-            "Stub creation failed for service {}".format(self.service_name))
-      return stub
 
    def create_stub_new(self, channel):
       """
