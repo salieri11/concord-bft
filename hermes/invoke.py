@@ -103,7 +103,7 @@ def ownAllJenkinsNodesWorkspace(args, options, secret):
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
   replicas = helper.parseReplicasConfig(replicas=a[0])
-  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas)
+  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
   ops.reset_blockchain(fxBlockchain)
 
 def capturePipelineError(args, options, secret):

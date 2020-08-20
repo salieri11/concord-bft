@@ -23,7 +23,7 @@ import util.generate_zones_migration as migration
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
-BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas")
+BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas, clientNodes")
 
 # These orgs are artifically inserted into Helen and do not respond to all API calls
 # the way standard orgs do.
@@ -655,7 +655,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    blockchainId = None
    conId = None
    replicas = None
-   client_nodes = None
+   clientNodes = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
@@ -674,7 +674,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    elif hermesData["hermesCmdlineArgs"].blockchainLocation in \
         [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
       log.warning("Some test suites do not work with remote deployments yet.")
-      blockchainId, conId, replicas, client_nodes = deployToSddc(logDir, hermesData,
+      blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermesData,
                                                    hermesData["hermesCmdlineArgs"].blockchainLocation)
    elif not hermesData["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
@@ -694,7 +694,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = None
       conId = None
 
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, client_nodes=client_nodes)
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=client_nodes)
 
 
 @pytest.fixture(scope="module")
