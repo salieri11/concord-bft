@@ -294,6 +294,9 @@ def main():
                                      "A url or the word 'staging'. Defaults to https://localhost/blockchains/local (same as reverseProxyApiBaseUrl)". \
                                      format(auth.SERVICE_STAGING),
                                      default="https://localhost/blockchains/local")
+   nonLocalDeployConfig.add_argument("--numGroups",
+                                     help="The number of groups for the client node grouping.",
+                                     default=1)
 
    args = parser.parse_args()
 

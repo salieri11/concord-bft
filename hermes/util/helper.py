@@ -2206,3 +2206,43 @@ def get_zones(org_name, service):
       log.info("  {}:".format(resp["name"]))
       for k in resp:
          log.info("    {}: {}".format(k, resp[k]))
+
+def getClientNodes(num_groups, client_zone_ids):
+   client_nodes = []
+   # Are there any zone ids?, if not return empty client list.
+   if len(client_zone_ids) <= 0:
+      return client_nodes
+
+   for client_zone_id in client_zone_ids:
+      node = {"zone_id": client_zone_id, "auth_url_jwt": "", "group_name": None}
+      client_nodes.append(node)
+
+   if num_groups <= 0:
+      return client_nodes
+
+   group_map = {}
+   for group_id in range(0, num_groups):
+      group_map[str(group_id)] = "Group " + str(group_id)
+
+   log.debug("group_map is {}".format(group_map))
+
+   client_group_map = {}
+   # Create clients
+   client_zone_index = 0
+
+   for client in client_nodes:
+      zone_id = client["zone_id"]
+      if client_group_map.get(zone_id):
+         group_name = client_group_map[zone_id]
+         client["group_name"] = group_name
+      else:
+         if client_zone_index >= num_groups:
+            client_zone_index = 0
+         group_name = group_map[str(client_zone_index)]
+         client_group_map[zone_id] = group_name
+         log.debug("group name {}".format(group_name))
+         client["group_name"] = group_name
+         client_zone_index += 1
+
+   log.debug("client nodes {}".format(client_nodes))
+   return client_nodes
