@@ -146,6 +146,7 @@ public class TelegrafConfigUtil {
 
     private List<String> getPrometheusUrls(List<ConcordComponent.ServiceType> servicesList) {
         List<String> prometheusUrls = new ArrayList<>();
+        prometheusUrls.add("\"http://agent:9081/actuator/prometheus\"");
 
         // TODO change to switch case once concord name is unified.
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_CONCORD)

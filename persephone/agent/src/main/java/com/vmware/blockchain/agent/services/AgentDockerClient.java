@@ -187,7 +187,6 @@ public class AgentDockerClient {
 
         timer.record(() -> {
             var dockerClient = DockerClientBuilder.getInstance().build();
-            var deleteNetworkCmd = dockerClient.removeNetworkCmd(networkName);
             var listNetworkCmd = dockerClient.listNetworksCmd();
             var createNetworkCmd = dockerClient.createNetworkCmd();
             createNetworkCmd.withName(networkName);
@@ -199,10 +198,11 @@ public class AgentDockerClient {
                         .map(Network::getName)
                         .collect(Collectors.toList());
                 if (networks.contains(networkName)) {
-                    deleteNetworkCmd.exec();
+                    log.info("Network: {} already exists.", networkName);
+                } else {
+                    var id = createNetworkCmd.exec().getId();
+                    log.info("Created Network: {} Id: {}", networkName, id);
                 }
-                var id = createNetworkCmd.exec().getId();
-                log.info("Created Network: {} Id: {}", networkName, id);
             } catch (DockerException de) {
                 log.info("Docker Network creation failed with error:\n{}", de.getLocalizedMessage());
             }
