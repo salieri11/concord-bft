@@ -120,12 +120,16 @@ public class CastorDescriptorTest {
     }
 
     @Test
-    public void testInValidDescriptorModel() throws IOException {
+    public void testInValidDescriptorModel() {
         Set<String> expectedErrorCodes = new HashSet<>();
-        final List<String> originalCommitters = validDeployment.getCommitters();
+        final List<DeploymentDescriptorModel.Committer> originalCommitters = validDeployment.getCommitters();
         // Deployment spec committers zone missing from Infra spec
         List<String> unknownZones = List.of("unz-1", "unz-2", "unz-3");
-        validDeployment.setCommitters(unknownZones);
+        List<DeploymentDescriptorModel.Committer> unknownZoneCommitters =
+                unknownZones.stream().map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
+                        .collect(
+                                Collectors.toList());
+        validDeployment.setCommitters(unknownZoneCommitters);
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
         List<ValidationError> errors = validatorService.validate(validInfra, validDeployment);
         assertEquals(1, errors.size());
@@ -192,9 +196,7 @@ public class CastorDescriptorTest {
         String infraLocation = infraResource.getFile().getAbsolutePath();
 
         // The URL format is invalid, should throw exception during deserialization itself
-        assertThrows(CastorException.class, () -> {
-            descriptorService.readInfrastructureDescriptorSpec(infraLocation);
-        });
+        assertThrows(CastorException.class, () -> descriptorService.readInfrastructureDescriptorSpec(infraLocation));
     }
 
     @Test
@@ -227,8 +229,76 @@ public class CastorDescriptorTest {
         File outputFile = new File(outputDir, "invalid.out");
         environment.setProperty(DeployerService.OUTPUT_DIR_LOC_KEY, outputFile.getAbsolutePath());
         // Should fail with errors because infra descriptor has invalid configuration
-        assertThrows(CastorException.class, () -> {
-            deployerService.start();
-        });
+        assertThrows(CastorException.class, () -> deployerService.start());
     }
+
+    @Test
+    public void testValidProvidedIpAssignment() {
+        InfrastructureDescriptorModel validIpsInfra = DescriptorTestUtills.buildInfraDescriptorModel();
+        DeploymentDescriptorModel validIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
+        // Add valid (unique, for all) IP addresses to clients and committers
+        List<DeploymentDescriptorModel.Client> clients = validIpsDeployment.getClients();
+        for (int i = 0; i < clients.size(); ++i) {
+            DeploymentDescriptorModel.Client client = clients.get(i);
+            client.setProvidedIp("10.11.12." + (i * 10));
+        }
+        List<DeploymentDescriptorModel.Committer> committers = validIpsDeployment.getCommitters();
+        for (int i = 0; i < committers.size(); ++i) {
+            DeploymentDescriptorModel.Committer committer = committers.get(i);
+            committer.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
+        }
+
+        List<ValidationError> constraints = validatorService.validate(validIpsInfra, validIpsDeployment);
+        assertEquals(0, constraints.size());
+    }
+
+    @Test
+    public void testInvalidProvidedIpAssignment() {
+        final InfrastructureDescriptorModel validIpsInfra = DescriptorTestUtills.buildInfraDescriptorModel();
+        DeploymentDescriptorModel invalidIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
+
+        // Check uniqueness for IPs: non-unique IPs for clients should error out
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("provided.ips.not.unique");
+        List<DeploymentDescriptorModel.Client> clients = invalidIpsDeployment.getClients();
+        clients.forEach(c -> c.setProvidedIp("1.1.1.1"));
+        List<DeploymentDescriptorModel.Committer> committers = invalidIpsDeployment.getCommitters();
+        committers.forEach(c -> c.setProvidedIp("2.2.2.2"));
+
+        List<ValidationError> errors = validatorService.validate(validIpsInfra, invalidIpsDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+
+        // Add IPs only for certain clients
+        for (int i = 0; i < clients.size(); i++) {
+            DeploymentDescriptorModel.Client client = clients.get(i);
+            if (i % 2 == 0) {
+                client.setProvidedIp(null);
+            } else {
+                client.setProvidedIp("10.11.12." + (i * 10));
+            }
+        }
+        // Add IPs only for certain clients
+        committers = invalidIpsDeployment.getCommitters();
+        for (int i = 0; i < committers.size(); i++) {
+            DeploymentDescriptorModel.Committer committer = committers.get(i);
+            if (i % 2 == 0) {
+                committer.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
+            } else {
+                committer.setProvidedIp("         ");
+            }
+        }
+
+        expectedErrorCodes.clear();
+        expectedErrorCodes.add("not.all.ips.specified.for.deployment");
+
+        errors = validatorService.validate(validIpsInfra, invalidIpsDeployment);
+        validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+
+
+    }
+
 }

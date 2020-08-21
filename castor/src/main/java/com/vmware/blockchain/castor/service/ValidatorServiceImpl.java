@@ -5,9 +5,11 @@
 package com.vmware.blockchain.castor.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,6 +19,7 @@ import javax.validation.Validator;
 
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
@@ -65,9 +68,12 @@ public class ValidatorServiceImpl implements ValidatorService {
 
         // Ensure that zones used in deployment are present in infrastructure
         Set<String> allDeploymentZones = new HashSet<>();
-        List<String> committers = deploymentDescriptor.getCommitters();
+        List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptor.getCommitters();
         if (committers != null) {
-            allDeploymentZones.addAll(committers);
+            Set<String> committerZones =
+                    committers.stream().map(DeploymentDescriptorModel.Committer::getZoneName).collect(
+                            Collectors.toSet());
+            allDeploymentZones.addAll(committerZones);
         }
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptor.getClients();
         if (clients != null) {
@@ -81,7 +87,7 @@ public class ValidatorServiceImpl implements ValidatorService {
 
         allDeploymentZones.removeAll(allInfraZones);
         if (!allDeploymentZones.isEmpty()) {
-            List<String> missingDeploymentZones = allDeploymentZones.stream().collect(Collectors.toList());
+            List<String> missingDeploymentZones = new ArrayList<>(allDeploymentZones);
             String error = "deployment.zones.not.present.in.infrastructure";
             ValidationError e = ValidationError.builder()
                     .errorCode(error)
@@ -91,6 +97,8 @@ public class ValidatorServiceImpl implements ValidatorService {
             errors.add(e);
         }
 
+        validateIPs(deploymentDescriptor, errors);
+
         for (ValidationError ve : errors) {
             Object[] msgArgs = new Object[] {ve.getPropertyPath(), ve.getArguments()};
             String msg = messageSource.getMessage(
@@ -98,5 +106,56 @@ public class ValidatorServiceImpl implements ValidatorService {
             log.error(msg);
         }
         return errors;
+    }
+
+    // If VM IPs are specified:
+    // (1) they must be specified for ALL nodes (both client and committer,
+    // (2) they must all be unique.
+    private void validateIPs(
+            DeploymentDescriptorModel deploymentDescriptor, List<ValidationError> errors) {
+
+        List<DeploymentDescriptorModel.Client> clients = deploymentDescriptor.getClients();
+        clients = Objects.requireNonNullElse(clients, Collections.emptyList());
+        List<String> clientProvidedIps =
+                clients.stream()
+                        .map(DeploymentDescriptorModel.Client::getProvidedIp)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toList());
+
+        List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptor.getCommitters();
+        committers = Objects.requireNonNullElse(committers, Collections.emptyList());
+        List<String> committerProvidedIps = committers.stream()
+                .map(DeploymentDescriptorModel.Committer::getProvidedIp)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+
+        // Verify that all committers have IPs, or none do
+        int numProvidedIps = clientProvidedIps.size() + committerProvidedIps.size();
+        int numNodes = clients.size() + committers.size();
+        if (numProvidedIps > 0 && numProvidedIps != numNodes) {
+            String error = "not.all.ips.specified.for.deployment";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("providedIp")
+                    .build();
+            errors.add(e);
+        }
+
+        // Verify that if IPs are unique
+        Set<String> uniqueIps = new HashSet<>();
+        List<String> allProvidedIps = new ArrayList<>();
+        uniqueIps.addAll(clientProvidedIps);
+        uniqueIps.addAll(committerProvidedIps);
+        if (numProvidedIps != uniqueIps.size()) {
+            String error = "provided.ips.not.unique";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("providedIp")
+                    .build();
+            errors.add(e);
+        }
+
+        // DINKARTODO: Do we need to validate that ips provided fall within the subnet for the zone in which
+        // the client/committer is placed ?
     }
 }

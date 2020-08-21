@@ -146,7 +146,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
                     provisioningCompletionFuture.get(provisioningTimeoutMinutes, TimeUnit.MINUTES);
             return provisioningStatus;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Encountered error during provisioning call: {0}", e);
+            log.error("Encountered error during provisioning call", e);
             return CastorDeploymentStatus.FAILURE;
         }
     }
@@ -190,7 +190,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         BlockchainType blockchainType = blockchainTypeMap.get(blockchainDescriptor.getBockchainType());
         Sites sites = Sites.newBuilder().addAllInfoList(orchestrationSites).build();
         // Build properties
-        Properties properties = buildProperties(infrastructureDescriptorModel, deploymentDescriptorModel);
+        Properties properties = buildProperties(infrastructureDescriptorModel);
         DeploymentSpec deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(consortiumIdString)
                 .setBlockchainType(blockchainType)
@@ -213,11 +213,12 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             DeploymentDescriptorModel deploymentDescriptorModel) {
 
         Set<String> allUniqueZoneNames = new HashSet<>();
-        allUniqueZoneNames.addAll(deploymentDescriptorModel.getCommitters());
-        allUniqueZoneNames.addAll(
-                deploymentDescriptorModel.getClients().stream()
-                        .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet())
-        );
+        Set<String> committerZoneNames = deploymentDescriptorModel.getCommitters().stream().map(
+                DeploymentDescriptorModel.Committer::getZoneName).collect(Collectors.toSet());
+        allUniqueZoneNames.addAll(committerZoneNames);
+        Set<String> clientZoneNames = deploymentDescriptorModel.getClients().stream()
+                .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet());
+        allUniqueZoneNames.addAll(clientZoneNames);
 
         List<OrchestrationSite> sites = allUniqueZoneNames.stream()
                 .map(zoneName -> toOrchestrationSite(zoneName, infrastructureDescriptorModel))
@@ -234,6 +235,9 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             if (StringUtils.hasText(client.getAuthUrlJwt())) {
                 propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(), client.getAuthUrlJwt());
             }
+            if (StringUtils.hasText(client.getProvidedIp())) {
+                propBuilder.putValues(NodeProperty.Name.VM_IP.name(), client.getProvidedIp());
+            }
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder().setType(NodeType.CLIENT)
                             .setNodeId(UUID.randomUUID().toString())
@@ -247,20 +251,24 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     private void buildCommitters(
             DeploymentDescriptorModel deploymentDescriptorModel,
             NodeAssignment.Builder nodeAssignmentBuilder) {
-        List<String> committerZoneNames = deploymentDescriptorModel.getCommitters();
-        committerZoneNames.forEach(committerZoneName -> nodeAssignmentBuilder.addEntries(
-                NodeAssignment.Entry.newBuilder()
-                        .setType(NodeType.REPLICA)
-                        .setNodeId(UUID.randomUUID().toString())
-                        .setSite(
-                                OrchestrationSiteIdentifier.newBuilder()
-                                        .setId(committerZoneName.toString()).build())
-        ));
+        List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptorModel.getCommitters();
+        committers.forEach(committer -> {
+            Properties.Builder propBuilder = Properties.newBuilder();
+            if (StringUtils.hasText(committer.getProvidedIp())) {
+                propBuilder.putValues(NodeProperty.Name.VM_IP.name(), committer.getProvidedIp());
+            }
+            nodeAssignmentBuilder.addEntries(
+                    NodeAssignment.Entry.newBuilder()
+                            .setType(NodeType.REPLICA)
+                            .setNodeId(UUID.randomUUID().toString())
+                            .setSite(OrchestrationSiteIdentifier.newBuilder().setId(committer.getZoneName()).build())
+                            .setProperties(propBuilder)
+            );
+        });
     }
 
     private Properties buildProperties(
-            InfrastructureDescriptorModel infrastructureDescriptorModel,
-            DeploymentDescriptorModel deploymentDescriptorModel) {
+            InfrastructureDescriptorModel infrastructureDescriptorModel) {
         Properties.Builder propertiesBuilder = Properties.newBuilder();
         // Build properties
         String dockerImage = infrastructureDescriptorModel.getOrganization().getDockerImage();
@@ -321,7 +329,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
 
         // Validation should have caught this, but better to be safe
         if (zoneDescriptorOpt.isEmpty()) {
-            log.error("Could not find zone info in the infrastructure descriptor for zone: {0}", zoneName);
+            log.error("Could not find zone info in the infrastructure descriptor for zone: {}", zoneName);
             throw new CastorException(ErrorCode.INVALID_DESCRIPTOR_CONFIGURATION, zoneName);
         }
 
