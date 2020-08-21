@@ -49,9 +49,8 @@ describe('concord-ui Deployment Flow', () => {
     deployWiz.selectFourReplicas();
     browser.sleep(100);
     deployWiz.next();
-    deployWiz.selectThirdZone();
     browser.sleep(100);
-    deployWiz.addClientNode();
+    deployWiz.getClientGroupName().sendKeys('test');
     browser.sleep(100);
     deployWiz.next();
     browser.sleep(100);
@@ -73,11 +72,11 @@ describe('concord-ui Deployment Flow', () => {
     waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord committers...`)));
     waitForText(element(by.cssContainingText(progPerceEl, `100%`)));
     expect(deployWiz.getPercentage()).toBe('100%');
-    browser.sleep(5000);
+    browser.sleep(10000);
   });
 
   it('should be a healthy network', () => {
-    browser.sleep(5000);
+    browser.sleep(1000);
     expect(deployWiz.getHealthNumber()).toEqual('4/4');
   });
 
