@@ -28,14 +28,20 @@ public class NodeComponentController {
     private final AgentDockerClient agentDockerClient;
     private final ConcordAgentConfiguration configuration;
     private final NodeStartupOrchestrator nodeStartupOrchestrator;
+    private final NodeComponentHealthUtil nodeComponentHealthUtil;
+
+    private final String healthy = "HEALTHY";
+    private final String unhealthy = "UNHEALTHY";
 
     @Autowired
     public NodeComponentController(AgentDockerClient agentDockerClient,
                                    ConcordAgentConfiguration configuration,
-                                   NodeStartupOrchestrator nodeStartupOrchestrator) {
+                                   NodeStartupOrchestrator nodeStartupOrchestrator,
+                                   NodeComponentHealthUtil nodeComponentHealthUtil) {
         this.agentDockerClient = agentDockerClient;
         this.configuration = configuration;
         this.nodeStartupOrchestrator = nodeStartupOrchestrator;
+        this.nodeComponentHealthUtil = nodeComponentHealthUtil;
     }
 
     /**
@@ -70,5 +76,27 @@ public class NodeComponentController {
                     agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
                 });
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(path = "/api/health/concord", method = RequestMethod.GET)
+    ResponseEntity<NodeStatusResponse> getConcordHealth() {
+        NodeStatusResponse response;
+        if (this.nodeComponentHealthUtil.getConcordHealth()) {
+            response = NodeStatusResponse.builder().status(healthy).build();
+        } else {
+            response = NodeStatusResponse.builder().status(unhealthy).build();
+        }
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @RequestMapping(path = "/api/health/daml", method = RequestMethod.GET)
+    ResponseEntity<NodeStatusResponse> getDamlHealth() {
+        NodeStatusResponse response;
+        if (this.nodeComponentHealthUtil.getDamlHealth(configuration.getModel().getNodeType())) {
+            response = NodeStatusResponse.builder().status(healthy).build();
+        } else {
+            response = NodeStatusResponse.builder().status(unhealthy).build();
+        }
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

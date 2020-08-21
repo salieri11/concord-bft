@@ -12,7 +12,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
@@ -31,6 +33,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
@@ -52,6 +57,7 @@ public class NodeComponentControllerTests {
     private WebApplicationContext context;
 
     private MockMvc mockMvc;
+    private String jsonResponse;
 
     @MockBean
     private AgentDockerClient agentDockerClient;
@@ -59,14 +65,24 @@ public class NodeComponentControllerTests {
     @MockBean
     private NodeStartupOrchestrator nodeStartupOrchestrator;
 
+    @MockBean
+    private NodeComponentHealthUtil nodeComponentHealthUtil;
+
     @BeforeEach
-    void init() {
+    void init() throws JsonProcessingException {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
         var containerObj = mock(BaseContainerSpec.class);
         when(nodeStartupOrchestrator.getComponents()).thenReturn(Arrays.asList(containerObj));
+        when(nodeComponentHealthUtil.getConcordHealth()).thenReturn(Boolean.TRUE);
+        when(nodeComponentHealthUtil.getDamlHealth(any())).thenReturn(Boolean.TRUE);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        var response = NodeStatusResponse.builder().status("HEALTHY").build();
+        jsonResponse = objectMapper.writeValueAsString(response);
+
     }
 
     @Test
@@ -93,5 +109,25 @@ public class NodeComponentControllerTests {
 
         verify(agentDockerClient, times(1)).inspectContainer(any(), any());
         verify(agentDockerClient, times(1)).stopComponent(any(), any(), any());
+    }
+
+    @Test
+    void getConcordHealth() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/health/concord")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(jsonResponse))
+                .andReturn();
+        verify(nodeComponentHealthUtil, times(1)).getConcordHealth();
+    }
+
+    @Test
+    void getDamlHealth() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/health/daml")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(jsonResponse))
+                .andReturn();
+        verify(nodeComponentHealthUtil, times(1)).getDamlHealth(any());
     }
 }
