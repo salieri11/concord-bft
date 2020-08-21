@@ -423,7 +423,9 @@ def autoSetRunDescription():
     if mrData:
       if "author" in mrData:
         authorEmail = mrData["author"]["username"] + "@vmware.com"
-        authorSlackUserId = slack.getUserIdByEmail(authorEmail)
+        authorSlackUserId = None
+        try: authorSlackUserId = slack.getUserIdByEmail(authorEmail)
+        except: pass
         triggerSourceInfo["author_email"] = authorEmail
         triggerSourceInfo["author_slack_user_id"] = authorSlackUserId
       triggerSourceInfo["mr_data"] = mrData

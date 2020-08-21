@@ -24,6 +24,11 @@ from suites import case
 
 log = util.hermes_logging.getMainLogger()
 
+def localTestFunction(args, options, secret):
+  '''A placeholder function for local testing of new code, pre-commit'''
+  # ! temp
+  return
+
 def slackDM(args, options, secret):
   a = prepareArgs(args)
   slack.sendMessageToPerson(email=a[0], message=a[1], ts=a[2], token=secret)
@@ -112,10 +117,19 @@ def capturePipelineError(args, options, secret):
   case.extractAndSavePipelineFailurePoint(pipelineError=pipelineError)
   jenkins.setFailureSummaryInDescription()
 
-def localTestFunction(args, options, secret):
-  '''A placeholder function for local testing of new code, pre-commit'''
-  # ! temp
-  return
+def resetIPAM(args, options, secret):
+  a = prepareArgs(args)
+  dryRun = (a[0] != "COMMENCE")
+  if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
+  infra.resetIPAM(dryRun=dryRun)
+
+
+def removeOrphans(args, options, secret):
+  a = prepareArgs(args)
+  dryRun = (a[0] != "COMMENCE")
+  if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
+  infra.deregisterOrphanResources(dryRun=dryRun)
+
 
 def patchOrg(args, options, secret):
   '''
@@ -216,6 +230,10 @@ DISPATCH = {
   # Jenkins-related functions
   "ownAllWorkspaces": ownAllJenkinsNodesWorkspace,
   "capturePipelineError": capturePipelineError,
+
+  # Infra-related
+  "resetIPAM": resetIPAM,
+  "removeOrphans": removeOrphans,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,

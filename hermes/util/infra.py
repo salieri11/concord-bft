@@ -21,13 +21,16 @@ PRETTY_TYPE_PARTICIPANT = "Participant" # applicable to daml only, for now
 PRETTY_TYPE_REPLICA = "Replica"
 
 # all open infra sessions for accessing VMs & Folders on the datacenter connection
-# e.g. vm = INFRA["SDDC3"].getByIP("10.69.100.46")
+# e.g. vm = VSPHERE["SDDC3"].getByIP("10.69.100.46")
 #     populated by `getConnection` (ConnectionToSDDC objects defined in vsphere.py)
-INFRA = {}
+VSPHERE = {}
 
 # list of all deployed replicas by Hermes from this particular build
 # auto populated by `giveDeploymentContext` with replicaInfo
 DEPLOYED_REPLICAS = []
+
+# Infra Controller Entries
+NETWORK_SEGMENTS_FILE = '../vars/network_segments.json' # All network segs
 
 
 def credentialsAreGood(sddcName, sddcInfo):
@@ -72,7 +75,7 @@ def getConnection(sddcName, skipMapping=False):
    # get SDDCs list and config from zone_config.json
    zoneConfigObject = helper.getZoneConfig()
    try:
-      if sddcName not in INFRA:
+      if sddcName not in VSPHERE:
          if sddcName not in zoneConfigObject["infra"]:
            log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
            return None
@@ -87,9 +90,9 @@ def getConnection(sddcName, skipMapping=False):
          if not conn.ready:
            log.debug("Cannot open session to {}, connection is not ready".format(sddcName))
            return None
-         INFRA[sddcName] = conn
+         VSPHERE[sddcName] = conn
          return conn
-      return INFRA[sddcName]
+      return VSPHERE[sddcName]
 
    except Exception as e:
      log.debug(str(e))
@@ -98,18 +101,16 @@ def getConnection(sddcName, skipMapping=False):
 
 def prepareConnections(sddcs):
   if not sddcs: return
-  threads = []
   def connect(sddcName):
     getConnection(sddcName, skipMapping=True)
+  threads = []
   for sddcName in sddcs:
-    if sddcName in INFRA: continue
+    if sddcName in VSPHERE: continue
     thr = threading.Thread(
         target = lambda sddcName: connect(sddcName),
-        args = (sddcName, )
-    )
+        args = (sddcName, ))
     threads.append(thr); thr.start()
   for thd in threads: thd.join(timeout=15) # wait for all to return
-  initializerThreads = []
   for sddcName in sddcs:
     if not getConnection(sddcName).entitiesMapped:
       getConnection(sddcName).updateAllEntityHandles(initialFetch=True)
@@ -142,8 +143,8 @@ def findVMByReplicaId(replicaId, sddcs=None, checkNew=False):
   threads = []; results = []
   def findInSDDC(sddcName):
     if getConnection(sddcName):
-      if checkNew: INFRA[sddcName].checkForNewEntities()
-      vmHandle = INFRA[sddcName].getByNameContaining(replicaId, getAsHandle=True)
+      if checkNew: VSPHERE[sddcName].checkForNewEntities()
+      vmHandle = VSPHERE[sddcName].getByNameContaining(replicaId, getAsHandle=True)
       if vmHandle: results.append(vmHandle)
       else: results.append(None)
   for sddcName in sddcs:
@@ -168,8 +169,8 @@ def findVMByInternalIP(ip, sddcs=None, checkNew=False):
   threads = []; results = []
   def findInSDDC(sddcName):
     if getConnection(sddcName):
-      if checkNew: INFRA[sddcName].checkForNewEntities()
-      vmHandle = INFRA[sddcName].getByInternalIP(ip, getAsHandle=True)
+      if checkNew: VSPHERE[sddcName].checkForNewEntities()
+      vmHandle = VSPHERE[sddcName].getByInternalIP(ip, getAsHandle=True)
       if vmHandle: results.append(vmHandle)
       else: results.append(None)
   for sddcName in sddcs:
@@ -219,7 +220,7 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
       DEPLOYED_REPLICAS.append(blockchainFullDetails)
       
       prepareConnections(sddcs) # connect to applicable SDDCs if not already connected
-      for sddcName in sddcs: INFRA[sddcName].checkForNewEntities()
+      for sddcName in sddcs: VSPHERE[sddcName].checkForNewEntities()
       
       for replicaInfo in blockchainFullDetails["nodes_list"]:
         try:   
@@ -331,7 +332,7 @@ def getVMsByAttribute(attrName, matchValue, matchExactly=True, mapBySDDC=False):
   resultMap = {}
   for sddcName in sddcs:
     if getConnection(sddcName):
-      vmHandles = INFRA[sddcName].vmFilterByAttributeValue(
+      vmHandles = VSPHERE[sddcName].vmFilterByAttributeValue(
         attrName, matchValue,
         matchExactly=matchExactly,
         getAsHandle=True
@@ -355,7 +356,7 @@ def save_fatal_errors_to_summary(fatal_errors):
                 raise Exception(msg) # Raise Name Conflict
             elif current_error["type"] == INVENTORY_ERRORS.IP_CONFLICT:
                 msg = "FATAL !!  Node IP: '{}' already occupied by {} on {}. {}.".format(
-                        node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
+                        node_data["ip"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
                 log.error(msg)
                 raise Exception(msg) # Raise IP Conflict
 
@@ -377,4 +378,62 @@ def fetch_vm_handles(ips):
          vm_handles[ip] = None
 
    return vm_handles
+
+
+def resetIPAM(dryRun=True):
+  try:
+    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
+      resetConfig = json.load(f)
+      log.info("Generating persephone bindings...")
+      os.system("util/generate_grpc_bindings.py "
+                "--source-path=../persephone/api/src/protobuf "
+                "--target-path=lib/persephone > /dev/null")
+      sddcs = []
+      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
+      prepareConnections(sddcs)
+      for targetConfig in resetConfig:
+        sddc = getConnection(targetConfig["sddcName"])
+        log.info("On {}, there are total {} replica VMs.".format(
+                targetConfig["sddcName"], sddc.getReplicaVMsCount()))
+        for segmentConfig in targetConfig["segments"]:
+          if not segmentConfig["active"]: continue
+          sddc.destroyAllVMsInNetworkSegment(segmentConfig["name"], dryRun=dryRun)
+          sddc.resetNetworkSegmentOnIPAM(segmentConfig["name"],
+                                        segmentConfig["block"],
+                                        segmentConfig["prefix"],
+                                        segmentConfig["subnet"],
+                                        segmentConfig["reserved"],
+                                        dryRun=dryRun)
+        sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
+      if not dryRun:
+        # Continue deleting new VMs are 5 minutes to prevent race condition with ongoing jobs
+        counter = 0; startTime = time.time()
+        while time.time() - startTime < 300:
+          for targetConfig in resetConfig:
+            sddc = getConnection(targetConfig["sddcName"])
+            newlyAdded = sddc.checkForNewEntities()
+            if newlyAdded:
+              for segmentConfig in targetConfig["segments"]:
+                if not segmentConfig["active"]: continue
+                sddc.destroyAllVMsInNetworkSegment(segmentConfig["name"], dryRun=dryRun)
+          counter += 1
+          log.info("Deleting any new VMs on the segment for 5 minutes to prevent "
+                  "race condition with ongoing deployments... ({})".format(counter))
+          time.sleep(30)
+  except Exception as e:
+    traceback.print_exc()
+
+
+def deregisterOrphanResources(dryRun=True):
+  try:
+    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
+      resetConfig = json.load(f)
+      sddcs = []
+      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
+      prepareConnections(sddcs)
+      for targetConfig in resetConfig:
+        sddc = getConnection(targetConfig["sddcName"])
+        sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
+  except Exception as e:
+    traceback.print_exc()
 
