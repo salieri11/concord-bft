@@ -661,14 +661,16 @@ def call(){
                 }
               }
 
-              withCredentials([usernamePassword(
-                credentialsId: 'VMBC_BINTRAY_WRITER',
-                usernameVariable: 'VMBC_BINTRAY_WRITER_USERNAME',
-                passwordVariable: 'VMBC_BINTRAY_WRITER_PASSWORD'
-              )]){
-                script{
-                  command = "docker login -u " + env.VMBC_BINTRAY_WRITER_USERNAME + " -p \'" + env.VMBC_BINTRAY_WRITER_PASSWORD + "\' vmware-docker-blockchainsaas.bintray.io"
-                  jenkinsbuilderlib.retryCommand(command, true)
+              if (env.JOB_NAME.contains(env.tot_job_name)) { // Bintray only used for ToT push
+                withCredentials([usernamePassword(
+                  credentialsId: 'VMBC_BINTRAY_WRITER',
+                  usernameVariable: 'VMBC_BINTRAY_WRITER_USERNAME',
+                  passwordVariable: 'VMBC_BINTRAY_WRITER_PASSWORD'
+                )]){
+                  script{
+                    command = "docker login -u " + env.VMBC_BINTRAY_WRITER_USERNAME + " -p \'" + env.VMBC_BINTRAY_WRITER_PASSWORD + "\' vmware-docker-blockchainsaas.bintray.io"
+                    jenkinsbuilderlib.retryCommand(command, true)
+                  }
                 }
               }
 
@@ -813,14 +815,14 @@ def call(){
             // Use internal artifactory for MR runs, bintray/dockerhub for post commit builds
             try{
               if (env.JOB_NAME.contains(env.tot_job_name)) {
-                  customathenautil.saveTimeEvent("Push Concord components to Bintray", "Start")
-                  pushConcordComponentsToRegistry("bintray")
-                  customathenautil.saveTimeEvent("Push Concord components to Bintray", "End")
-                } else {
-                  customathenautil.saveTimeEvent("Push Concord components to Artifactory", "Start")
-                  pushConcordComponentsToRegistry("artifactory")
-                  customathenautil.saveTimeEvent("Push Concord components to Artifactory", "End")
-                }
+                customathenautil.saveTimeEvent("Push Concord components to Bintray", "Start")
+                pushConcordComponentsToRegistry("bintray")
+                customathenautil.saveTimeEvent("Push Concord components to Bintray", "End")
+              } else {
+                customathenautil.saveTimeEvent("Push Concord components to Artifactory", "Start")
+                pushConcordComponentsToRegistry("artifactory")
+                customathenautil.saveTimeEvent("Push Concord components to Artifactory", "End")
+              }
             }catch(Exception ex){
               failRun(ex)
               throw ex
