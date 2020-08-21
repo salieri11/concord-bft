@@ -35,6 +35,8 @@ NO_OF_NODES_TO_INTERRUPT = "NO_OF_NODES_TO_INTERRUPT"
 SKIP_MASTER_REPLICA = "SKIP_MASTER_REPLICA"
 CUSTOM_INTERRUPTION_PARAMS = "CUSTOM_INTERRUPTION_PARAMS"
 NODE_INTERRUPTION_TIME = "NODE_INTERRUPTION_TIME"
+NODE_OFFLINE_TIME = "NODE_OFFLINE_TIME"
+TIME_BETWEEN_INTERRUPTIONS = "TIME_BETWEEN_INTERRUPTIONS"
 
 
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
@@ -116,13 +118,14 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
 
 def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                                            interrupted_node_type,
-                                           interrupted_nodes=[], time_period=0):
+                                           interrupted_nodes=[],duration_to_run_transaction=1):
    '''
    Check health of non-interrupted nodes and run sanity check
    :param fxBlockchain: blockchain fixture
    :param results_dir: results dir
    :param interrupted_nodes: list of interrupted nodes
-   :param time_period: time gap between node recovery / node interruptions ( in minutes )
+   :param interrupted_node_type : Type of node interruption
+   :param duration_to_run_transaction: duration to run transactions (in minutes)
    :return: True if blockchain is healthy and ran tests, else False, & crashed node count
    '''
    log.info("")
@@ -142,18 +145,14 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
       log.info("")
       if uninterrupted_participants:
          start_time = datetime.datetime.now()
-
          log.info("** Run DAML tests...")
-
-         if time_period is None or time_period == 0:
-            time_period = 0
-         else:
-            log.info("Running DAML tests for " + str(time_period) + " minutes")
-
          daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                 "daml_tests")
          while True:
-
+            if duration_to_run_transaction > 0:
+               log.info("Elapsed Time: " + str(
+                  ((datetime.datetime.now() - start_time).seconds // 60) % 60) + " minutes / Total Time: "
+                                                                                 "" + str(duration_to_run_transaction) + " minutes")
             status = helper.run_daml_sanity(
                uninterrupted_participants,
                daml_tests_results_dir,
@@ -172,8 +171,10 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                   verbose=False)
                break
 
-            if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=time_period):
+            if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
                break
+            else:
+               log.info("Repeating daml transactions")
    else:
       log.info("** Skipping DAML test as all participant nodes are interrupted")
       status = True
@@ -357,14 +358,13 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
    :param node_interruption_details: interruptions/recovery details
    :return: success status
    '''
-
-   # Extracting node interruption time and node recovery time
    node_interruption_times = node_interruption_details[NODE_INTERRUPTION_TIME]
-   node_recovery_time = node_interruption_times.get("time_before_node_recovers")
-   node_interruption_time = node_interruption_times.get("time_between_node_interruptions")
+   node_offline_time = node_interruption_times.get(NODE_OFFLINE_TIME)
+   time_between_interruptions = node_interruption_times.get(TIME_BETWEEN_INTERRUPTIONS)
 
    # node interruption time must be greater than node recovery time, else delta becomes 0
-   node_interruption_time_delta = node_interruption_time - node_recovery_time if node_interruption_time > node_recovery_time else 0
+   time_remaining_before_next_interruption = time_between_interruptions - node_offline_time \
+      if time_between_interruptions > node_offline_time else 0
 
    results_dir_name = ''.join(
       e for e in node_interruption_details[NODE_INTERRUPTION_TYPE] if e.isalnum())
@@ -378,8 +378,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       if not interrupted_nodes:
          result, crashed_committer_count = check_node_health_and_run_sanity_check(
             fxBlockchain, results_dir,
-            node_interruption_details[NODE_TYPE_TO_INTERRUPT],
-            interrupted_nodes, None)
+            node_interruption_details[NODE_TYPE_TO_INTERRUPT],interrupted_nodes=interrupted_nodes)
 
       log.info("")
       if crashed_committer_count < f_count:
@@ -391,18 +390,18 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          result, crashed_committer_count = check_node_health_and_run_sanity_check(
             fxBlockchain, results_dir,
             node_interruption_details[NODE_TYPE_TO_INTERRUPT],
-            interrupted_nodes, None)
+            interrupted_nodes=interrupted_nodes)
       else:
          log.error("")
          log.error("** There are already >= {} crashed committers".format(f_count))
          log.error("** Not proceeding with node interruption")
          return False
 
-      # Run DAML test for the period of node_recovery_time
+      # Run DAML test for the period of node_offline_time
       check_node_health_and_run_sanity_check(
          fxBlockchain, results_dir,
          node_interruption_details[NODE_TYPE_TO_INTERRUPT],
-         interrupted_nodes, node_recovery_time)
+         interrupted_nodes=interrupted_nodes,duration_to_run_transaction=node_offline_time)
 
    # restore nodes
    for node in nodes_to_interrupt:
@@ -412,10 +411,10 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                                            node_interruption_details,
                                            mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
-      # Run Daml test for the period of node interruption time
+      # Run Daml test for the period of time_remaining_before_next_interruption
    result, crashed_committer_count = check_node_health_and_run_sanity_check(
       fxBlockchain, results_dir,
       node_interruption_details[NODE_TYPE_TO_INTERRUPT],
-      interrupted_nodes, node_interruption_time_delta)
+      interrupted_nodes=interrupted_nodes, duration_to_run_transaction=time_remaining_before_next_interruption)
 
    return result

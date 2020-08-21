@@ -41,8 +41,8 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
          "place_holder_for_other_interruption_params": "value"
       },
       intr_helper.NODE_INTERRUPTION_TIME: {
-         "time_before_node_recovers": 5,
-         "time_between_node_interruptions": 10
+         intr_helper.NODE_OFFLINE_TIME: 5,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10
       }
    }
 
@@ -78,7 +78,6 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-
 @describe("Node Interruption - VM Stop/start - 1 node")
 @pytest.mark.committer_node_interruption
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
@@ -91,8 +90,8 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
          "place_holder_for_other_interruption_params": "value"
       },
       intr_helper.NODE_INTERRUPTION_TIME: {
-         "time_before_node_recovers": 5,
-         "time_between_node_interruptions": 10
+         intr_helper.NODE_OFFLINE_TIME: 5,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10
       }
    }
 
@@ -141,8 +140,8 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
          "place_holder_for_other_interruption_params": "value"
       },
       intr_helper.NODE_INTERRUPTION_TIME: {
-         "time_before_node_recovers": 5,
-         "time_between_node_interruptions": 10
+         intr_helper.NODE_OFFLINE_TIME : 5,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS : 10
       }
    }
 
