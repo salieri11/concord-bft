@@ -20,7 +20,9 @@ public class MetricsConstants {
         CONTAINERS_LAUNCH("containers.launch_sec"),
         CONTAINER_LAUNCH("container.launch_sec"),
         CONTAINERS_LAUNCH_COUNT("containers.launch_counter"),
-        CONTAINER_STOP("containers.stop_sec");
+        CONTAINER_STOP("containers.stop_sec"),
+        DAML_HEALTH_STATUS("daml.health"),
+        CONCORD_HEALTH_STATUS("concord.health");
 
         String name;
 
@@ -37,6 +39,8 @@ public class MetricsConstants {
         TAG_SERVICE("service"),
         TAG_DOCKER_NETWORK("docker_network"),
         TAG_CONTAINER_ID("container_id"),
+        TAG_NODE_TYPE("node_type"),
+        TAG_COMPONENT("component"),
         TAG_IMAGE("image");
 
         String name;
