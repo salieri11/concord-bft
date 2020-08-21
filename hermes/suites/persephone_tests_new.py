@@ -518,24 +518,10 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
     :param file_root: Root directory to save test log files
     :return: None
     """
-    log.info("Annotating VMs with deployment context")
+    log.info("Saving deployment information")
+    log.debug("Searching for deployment session ID {} in deployment_info in-memory list {}"
+              .format(deployment_session_id, ps_helper.deployment_info))
     try:
-        nodes_list = [vars(node_info) for node_info in node_info_list] # convert NodeInfo to dict
-        fatal_errors = infra.giveDeploymentContext({
-            "id": blockchain_id,
-            "consortium_id": consortium_id,
-            "blockchain_type": blockchain_type,
-            "nodes_list": nodes_list,
-            "deployed_from": "Persephone, V2"
-        })
-        if fatal_errors: # e.g. IP conflicts
-            infra.save_fatal_errors_to_summary(fatal_errors)
-    except Exception as e:
-        log.error("Received IP conflict exception from infra: {}".format(e))
-
-    try:
-        log.debug("Searching for deployment session ID {} in deployment_info in-memory list {}"
-                  .format(deployment_session_id, ps_helper.deployment_info))
         for deployment_info in ps_helper.deployment_info:
             if get_deployment_session_id(deployment_info["deployment_session_id"]) == deployment_session_id:
                 log.debug("Updating more info for deployment session ID: {}".format(deployment_session_id))
@@ -551,7 +537,22 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
                 deployment_info["log_dir"] = file_root
                 break
     except Exception as e:
-        log.error("Exception in saving details to infra: {}".format(e))
+        log.error("Exception in saving deployment information: {}".format(e))
+
+    log.info("Annotating VMs with deployment context")
+    try:
+        nodes_list = [vars(node_info) for node_info in node_info_list] # convert NodeInfo to dict
+        fatal_errors = infra.giveDeploymentContext({
+            "id": blockchain_id,
+            "consortium_id": consortium_id,
+            "blockchain_type": blockchain_type,
+            "nodes_list": nodes_list,
+            "deployed_from": "Persephone, V2"
+        })
+        if fatal_errors:  # e.g. IP conflicts
+            infra.save_fatal_errors_to_summary(fatal_errors)
+    except Exception as e:
+        raise Exception("Received IP conflict exception from infra: {}".format(e))
 
 
 def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type):
