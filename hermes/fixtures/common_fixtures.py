@@ -23,7 +23,7 @@ import util.generate_zones_migration as migration
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
-BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas")
+BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas, clientNodes")
 
 # These orgs are artifically inserted into Helen and do not respond to all API calls
 # the way standard orgs do.
@@ -300,6 +300,7 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
 
    client_zone_ids = []
+   # client nodes array
    client_nodes = []
    num_participants = 0
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
@@ -307,12 +308,15 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    if blockchain_type.lower() == helper.TYPE_DAML:
        num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
        client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
-       for zoneId in client_zone_ids:
-         node = {"zone_id": zoneId, "auth_url_jwt": "", "group_name": "1"}
-         client_nodes.append(node)
+       # How many groups do we have to create?
+       num_groups = int(hermesData["hermesCmdlineArgs"].numGroups)
+       # We know how many groups, how many clients/participants.
+       client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
+       log.debug("client_nodes after getClientNodes {}".format(client_nodes))
    siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
 
    response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
+   log.debug("client nodes in common fixtures {}".format(client_nodes))
 
    if "task_id" not in response:
        raise Exception("task_id not found in response to create blockchain.")
@@ -366,7 +370,7 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
       create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
-   return blockchainId, conId, replica_dict
+   return blockchainId, conId, replica_dict, client_nodes
 
 
 def verify_ethereum_deployment(replica_details, credentials, blockchain_type, logDir):
@@ -651,6 +655,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    blockchainId = None
    conId = None
    replicas = None
+   clientNodes = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
@@ -669,7 +674,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    elif hermesData["hermesCmdlineArgs"].blockchainLocation in \
         [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
       log.warning("Some test suites do not work with remote deployments yet.")
-      blockchainId, conId, replicas = deployToSddc(logDir, hermesData,
+      blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermesData,
                                                    hermesData["hermesCmdlineArgs"].blockchainLocation)
    elif not hermesData["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
@@ -689,7 +694,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = None
       conId = None
 
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas)
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=clientNodes)
 
 
 @pytest.fixture(scope="module")
@@ -785,5 +790,4 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
        rpc = None
 
    log.debug("request {}".format(request))
-
    return ConnectionFixture(request=request, rpc=rpc)
