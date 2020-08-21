@@ -76,9 +76,9 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc1-vmware-vpn-cloud-3",
+            "name":"vmware-vpn",
             "addressAllocation":"STATIC",
-            "gateway":172545281,
+            "gateway":172514817,
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -134,9 +134,9 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc4-vmware-vpn-cloud-3",
+            "name":"vmware-vpn",
             "addressAllocation":"STATIC",
-            "gateway":172551937,
+            "gateway":172552961,
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -190,9 +190,9 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc1-vmware-vpn-onprem-3",
+            "name":"vmware-vpn-1b",
             "addressAllocation":"STATIC",
-            "gateway":172545025,
+            "gateway":172615681,
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -244,9 +244,9 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc4-vmware-vpn-onprem-3",
+            "name":"vmware-vpn-4c",
             "addressAllocation":"STATIC",
-            "gateway":172551681,
+            "gateway":173969921,
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
