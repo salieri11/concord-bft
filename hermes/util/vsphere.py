@@ -11,6 +11,7 @@ import threading
 import time
 import requests
 import traceback
+import sys
 
 import logging
 
@@ -33,6 +34,7 @@ class ConnectionToSDDC:
         of vSphere running on the SDDC (about 80% feature coverage; e.g. attaching
         tags and categories are missing in the lib, and must be done with vapi.cis)
     '''
+    self.sddcInfo = sddcInfo
     self.sddcName = sddcInfo["name"]
     self.publicIP = sddcInfo["publicIP"]; publicIPHyphen = self.publicIP.replace('.', '-')
     self.hostnameVCenter = "vcenter.sddc-{}.vmwarevmc.com".format(publicIPHyphen)
@@ -73,6 +75,8 @@ class ConnectionToSDDC:
           self.attrByKey = {}
           if not skipMapping:
             self.allEntityHandlesByName = {} # by VM name
+            self.allEntityHandlesByReplicaId = {} # by replicaId
+            self.allEntityHandlesByBlockchainId = {} # by blockchainId
             self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
             self.allEntityHandlesByAttribute = {} # by custom attritube and its value
             self.updateAllEntityHandles() # populate `allEntityHandlesByName` with all VMs & Folders in this SDDC
@@ -98,19 +102,23 @@ class ConnectionToSDDC:
       return None
 
 
-  def getByNameContaining(self, substring, getAsHandle=False):
+  def getByNameContaining(self, substring, getAsHandle=False, asList=False):
     '''
         Returns first VM or Folder that has substring in the name
         (mainly used for matching `replicaId`, which is the second
         part of the deployed VMs on the SDDC)
     '''
+    results = []
     for name in self.allEntityHandlesByName:
       if substring in name:
-        if getAsHandle:
-          return self.allEntityHandlesByName[name]
+        if not asList:
+          if getAsHandle: return self.allEntityHandlesByName[name]
+          else: return self.allEntityHandlesByName[name]["entity"]
         else:
-          return self.allEntityHandlesByName[name]["entity"]
-    return None
+          if getAsHandle: results.append(self.allEntityHandlesByName[name])
+          else: results.append(self.allEntityHandlesByName[name]["entity"])
+    if not asList: return False # not found
+    return results
 
 
   def getByInternalIP(self, ipAddress, getAsHandle=False, getFullList=False):
@@ -256,14 +264,12 @@ class ConnectionToSDDC:
       attr = self.findRegisteredAttributeByName(name)
       if not attr:
         try:
-          attr = manager.AddCustomFieldDef(name = name, moType = vim.VirtualMachine)
+          attr = manager.AddCustomFieldDef(name=name, moType=vim.VirtualMachine)
           self.attrByName[name] = attr
         except Exception as e:
           log.debug(e)
           attr = self.findRegisteredAttributeByName(name)
-      
       manager.SetField( entity = vm, key = attr.key, value = value)
-
     except Exception as e:
       log.debug("Cannot attach tag {}={} to VM ".format(name, value, vm))
       log.debug(e)
@@ -290,33 +296,98 @@ class ConnectionToSDDC:
     return None
 
 
-  def getAllNATRules(self):
+  def vmMoveToFolderByName(self, folderName, entityNames, matchExactly=True, suspendVMs=False, appendAnnotation="", attrSet=[]):
     '''
-      Get all NAT rules in this SDDC
-    '''
-    if not cspGetConnection(self.vmcToken, self.headersNSXT): return False
-    response = REQ_SESSION.post(
-      f"{self.baseNSXT}/policy/api/v1/search/querypipeline?page_size=1000&cursor=0&sort_by=sequence_number&sort_ascending=true",
-      json = {
-        "query_pipeline":[
-          {"query": "resource_type:PolicyNATRule AND path:\/infra\/tier-1s\/cgw\/nat\/USER\/nat-rules* "}
-        ],
-      },
-      headers = self.headersNSXT
-    )
-    return response.json()["results"]
+        Moves VMs with matching names to another folder.
+        Used for:
+          1) redirecting VMs to HermesTesting folder for quicker garbage collection
+          2) keeping target VMs alive for further investigation
+        ```
+        # e.g.: To move select `replicaIds` to another folder
+          sddcConn.moveVMsToFolder("HermesTesting", [
+            "11111111-bbbb-cccc-dddd-eeeeeeeeeeee",
+            "22222222-bbbb-cccc-dddd-eeeeeeeeeeee",
+              ...
+            "nnnnnnnn-bbbb-cccc-dddd-eeeeeeeeeeee"
+          ], matchExactly=False)
 
-
-  def getAllPublicIPs(self):
+        # e.g.: To move all VMs belonging to `blockchainId` to another folder
+          sddcConn.moveVMsToFolder("HermesTesting", [
+            # notice the caret ("starts with")
+            "^aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", # blockchainId
+                OR
+            # notice the asterisk ("ends with")
+            "*aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", # blockchainId
+          ], matchExactly=False)
+        ```
     '''
-      Get all public IPs allocated in this SDDC
-    '''
-    if not cspGetConnection(self.vmcToken, self.headersNSXT): return False
-    response = REQ_SESSION.get(
-      f"{self.baseNSXT}/cloud-service/api/v1/infra/public-ips",
-      headers = self.headersNSXT
-    )
-    return response.json()["results"]
+    if len(entityNames) == 0:
+      log.debug("{}, Supplied entity name list is empty".format(self.sddcName))
+      return False
+    folder = self.getByName(folderName)
+    if folder is None:
+      log.debug("{}, Folder not found (name='{}')".format(self.sddcName, folderName))
+      return False
+    vmNames = []
+    vmList = []
+    for entityName in entityNames:
+      vm = None
+      if entityName.startswith("^") or entityName.startswith("*"):
+        filterNameStartingWith = entityName.startswith("^")
+        filterNameEndingWith = entityName.startswith("*")
+        entityName = entityName.replace("^", "").replace("*", "")
+        vm = self.getByNameContaining(entityName, asList=True)
+        filtered = []
+        for vmEntity in vm:
+          try:
+            if filterNameStartingWith:
+              if vmEntity.name.startswith(entityName): filtered.append(vmEntity)
+            elif filterNameEndingWith:
+              if vmEntity.name.endswith(entityName): filtered.append(vmEntity)
+          except: pass
+        vm = filtered
+      elif not matchExactly:
+        vm = self.getByNameContaining(entityName)
+      else:
+        vm = self.getByName(entityName)
+      if vm:
+        if type(vm) is list:
+          for vmEntity in vm:
+            vmList.append(vmEntity)
+            vmNames.append(vmEntity.name)
+        else:
+          vmList.append(vm)
+          vmNames.append(vm.name)
+    if len(vmList) == 0:
+      log.info("{}, Cannot find any VMs matching the name descriptions (matchExactly={}): [{}]".format(
+                 self.sddcName, matchExactly, ", ".join(entityNames)))
+      return False
+    log.info("{}, Moving total {} VMs to '{}': VMs: [{}]".format(
+             self.sddcName, len(vmList), folderName, ', '.join(vmNames)))
+    try:
+      folder.MoveIntoFolder_Task(list=vmList)
+    except Exception as e:
+      traceback.print_exc()
+      return False
+    for vmName in vmNames:
+      log.info("{}, Moved VM '{}' to '{}'".format(self.sddcName, vmName, folderName))
+    # While moving, optionally append annotation why it was moved
+    if len(appendAnnotation) > 0:
+      for vm in vmList:
+        currentAnnotation = vm.config.annotation
+        self.vmAnnotate(vm, currentAnnotation + "\n\nMoved, Reason: " + appendAnnotation)
+    # While moving, optionally set/modify VM attributes (e.g. "moved" : yes)
+    if len(attrSet) > 0:
+      for vm in vmList:
+        for attr in attrSet:
+          self.vmSetCustomAttribute(vm, attr["name"], attr["value"])
+    # While moving optionally suspend the VM
+    #    note: `suspending` actually takes the VM down (even IP assignment)
+    if suspendVMs:
+      for vm in vmList:
+        try: vm.SuspendVM_Task()
+        except: pass
+    return True
 
 
   def findRegisteredAttributeByName(self, name):
@@ -350,7 +421,14 @@ class ConnectionToSDDC:
       entityName = handle["name"]
       self.allEntityHandlesByName[entityName] = handle
       if entityName.count('-') == 9: # get replicaId by dropping first uuid (blockchainId)
+        handle["blockchainId"] = '-'.join(entityName.split('-')[:5])
+        if handle["blockchainId"] not in self.allEntityHandlesByBlockchainId:
+          self.allEntityHandlesByBlockchainId[handle["blockchainId"]] = []
+        self.allEntityHandlesByBlockchainId[handle["blockchainId"]].append(handle)
         handle["replicaId"] = '-'.join(entityName.split('-')[5:])
+        self.allEntityHandlesByReplicaId[handle["replicaId"]] = handle
+      else:
+        handle["blockchainId"] = ''; handle["replicaId"] = ''
     # VM with custom attributes
     if self.getEntityType(entity) == "VM" and "customValue" in handle:
       attrs = handle["customValue"]
@@ -368,6 +446,29 @@ class ConnectionToSDDC:
         self.allEntityHandlesByAttribute[attrName][attr.value].append(handle)
 
 
+  def filterHandleList(self, handleList):
+    if len(handleList) == 0: return handleList
+    if handleList[0].__class__ is vim.VirtualMachine:
+      return handleList
+    newList = []
+    for handle in handleList:
+      newList.append(handle["entity"])
+    return newList
+
+
+  def deregisterHandle(self, vmHandle):
+    if vmHandle["name"] in self.allEntityHandlesByName:
+      del self.allEntityHandlesByName[vmHandle["name"]]
+    if vmHandle["uid"] in self.allEntityHandlesByUID:
+      del self.allEntityHandlesByUID[vmHandle["uid"]]
+    if vmHandle["replicaId"] and vmHandle["replicaId"] in self.allEntityHandlesByReplicaId:
+      del self.allEntityHandlesByReplicaId[vmHandle["replicaId"]]
+    for attrName in self.allEntityHandlesByAttribute:
+      for attrValue in self.allEntityHandlesByAttribute[attrName]:
+        vmHandles = self.allEntityHandlesByAttribute[attrName][attrValue]
+        if vmHandle in vmHandles: vmHandles.remove(vmHandle)
+
+
   def updateAllEntityHandles(self, initialFetch=False):
     '''
         Fetches and maps all VMs and Folders in the SDDC by name for easy look-up.
@@ -377,6 +478,8 @@ class ConnectionToSDDC:
       # clear and get latest
       log.debug("Fetching all VMs and Folders on {}...".format(self.sddcName))
       self.allEntityHandlesByName = {} # by VM name
+      self.allEntityHandlesByReplicaId = {} # by replicaId
+      self.allEntityHandlesByBlockchainId = {} # by blockchainId
       self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
       self.allEntityHandlesByAttribute = {} # by custom attritube and its value
       containerView = self.getDefaultContainerView()
@@ -394,14 +497,266 @@ class ConnectionToSDDC:
       print(e)
 
 
-  def filterHandleList(self, handleList):
-    if len(handleList) == 0: return handleList
-    if handleList[0].__class__ is vim.VirtualMachine:
-      return handleList
-    newList = []
-    for handle in handleList:
-      newList.append(handle["entity"])
-    return newList
+  def getReplicaVMsCount(self):
+    return len(self.allEntityHandlesByReplicaId)
+
+
+  def getAllNATRules(self):
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    response = REQ_SESSION.get(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules",
+      headers = self.headersNSXT
+    )
+    try: return response.json()["results"] if response.status_code == 200 else False
+    except: return None
+
+
+  def getNATRule(self, ruleId):
+    if not ruleId: return None
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    response = REQ_SESSION.get(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules/{ruleId}",
+      headers = self.headersNSXT)
+    try: return response.json() if response.status_code == 200 else False
+    except: return None
+
+
+  def deleteNATRule(self, ruleId):
+    if not ruleId: return None
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    log.debug("Deleting NAT rule: {}".format(ruleId))
+    response = REQ_SESSION.delete(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules/{ruleId}",
+      headers = self.headersNSXT)
+    try: return True if response.status_code == 200 or response.status_code == 404 else False
+    except: traceback.print_exc(); return None
+
+
+  def getAllPublicIPs(self):
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    response = REQ_SESSION.get(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/cloud-service/api/v1/infra/public-ips",
+      headers = self.headersNSXT)
+    try: return response.json()["results"] if response.status_code == 200 else False
+    except: return None
+
+
+  def getPublicIP(self, ipId):
+    if not ipId: return None
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    response = REQ_SESSION.get(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/cloud-service/api/v1/infra/public-ips/{ipId}",
+      headers = self.headersNSXT)
+    try: return response.json() if response.status_code == 200 else False
+    except: return None
+
+
+  def deletePublicIP(self, ipId):
+    if not ipId: return None
+    cspGetConnection(self.vmcToken, self.headersNSXT)
+    log.debug("Deleting Public IP: {}".format(ipId))
+    response = REQ_SESSION.delete(
+      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                      f"/cloud-service/api/v1/infra/public-ips/{ipId}",
+      headers = self.headersNSXT)
+    try: return True if response.status_code == 200 or response.status_code == 404 else False
+    except: traceback.print_exc(); return None
+
+
+  def getNatRuleAndPublicIPOfReplica(self, replicaId):
+    natData = self.getNATRule(replicaId)
+    publicIPData = self.getPublicIP(replicaId)
+    return { "NAT": natData, "publicIP": publicIPData }
+
+
+  def deleteNatRuleAndPublicIPOfReplica(self, replicaId, retryUntilSuccess=False):
+    if retryUntilSuccess:
+      natResult = None; publicIPResult = None
+      tryCount = 0; maxTries = 3
+      while tryCount < maxTries:
+        try: natResult = self.deleteNATRule(natId); break
+        except:
+          time.sleep(3); tryCount += 1
+          log.debug("{} Retrying deleting NAT {} ({}/{})".format(self.sddcName, replicaId, tryCount, maxTries))
+      tryCount = 0; maxTries = 3
+      while tryCount < maxTries:
+        try: publicIPResult = self.deletePublicIP(ipId); break
+        except:
+          time.sleep(3); tryCount += 1
+          log.debug("{} Retrying deleting IP {} ({}/{})".format(self.sddcName, replicaId, tryCount, maxTries))
+    else:
+      natResult = self.deleteNATRule(replicaId)
+      publicIPResult = self.deletePublicIP(replicaId)
+    return { "NAT": natResult, "publicIP": publicIPResult }
+
+
+  def getOrphanNATs(self, quiet=False):
+    if not quiet: log.debug("{}, fetching all NAT rules...".format(self.sddcName))
+    natRules = self.getAllNATRules()
+    if not quiet: log.debug("{}, total NAT rules count: {}".format(self.sddcName, len(natRules)))
+    orphans = []
+    for rule in natRules:
+      target_id = rule["display_name"]
+      if len(target_id) == 36 and target_id not in self.allEntityHandlesByReplicaId:
+        orphans.append(rule)
+    if not quiet: log.debug("{}, total orphan NAT rules count: {}".format(self.sddcName, len(orphans)))
+    return orphans
+
+
+  def getOrphanPublicIPs(self, quiet=False):
+    if not quiet: log.debug("{}, fetching all public IPs...".format(self.sddcName))
+    publicIPs = self.getAllPublicIPs()
+    if not quiet: log.debug("{}, total public IPs count: {}".format(self.sddcName, len(publicIPs)))
+    orphans = []
+    for ipData in publicIPs:
+      target_id = ipData["display_name"]
+      if len(target_id) == 36 and target_id not in self.allEntityHandlesByReplicaId:
+        orphans.append(ipData)
+    if not quiet: log.debug("{}, total orphan public IPs count: {}".format(self.sddcName, len(orphans)))
+    return orphans
+
+
+  def deleteOrphanNATsAndIPs(self, dryRun=False):
+    
+    def deleteOrphanNAT(natId):
+      if not dryRun:
+        tryCount = 0; maxTries = 3
+        while tryCount < maxTries:
+          try: self.deleteNATRule(natId); break
+          except:
+            time.sleep(3); tryCount += 1
+            log.debug("{} Retrying deleting NAT {} ({}/{})".format(self.sddcName, natId, tryCount, maxTries))
+      else: log.info("{} Orphaned NAT rule id '{}' would have been deleted.".format(
+                      self.sddcName, natId))
+    def deleteOrphanIP(ipId):
+      if not dryRun:
+        tryCount = 0; maxTries = 3
+        while tryCount < maxTries:
+          try: self.deletePublicIP(ipId); break
+          except:
+            time.sleep(3); tryCount += 1
+            log.debug("{} Retrying deleting IP {} ({}/{})".format(self.sddcName, ipId, tryCount, maxTries))
+      else: log.info("{} Orphaned public IP id '{}' would have been deleted.".format(
+                      self.sddcName, ipId))
+    
+    orphanNATs = self.getOrphanNATs(); cleanUpTryCount = 0; maxCleanUpTryCount = 5
+    while orphanNATs and cleanUpTryCount < maxCleanUpTryCount:
+      threads = []; cleanUpTryCount += 1
+      for orphanNAT in orphanNATs:
+        thd = threading.Thread(
+          target = lambda natId: deleteOrphanNAT(natId),  args = (orphanNAT["id"], ))
+        threads.append(thd); thd.start()
+      for thd in threads: thd.join(timeout=60) # wait for all API calls to return
+      orphanNATs = self.getOrphanNATs(quiet=True)
+      if not dryRun and orphanNATs:
+        log.info("{} There are still orphan NATs ({}); retrying... ({}/{})".format(
+                  self.sddcName, len(orphanNATs), cleanUpTryCount, maxCleanUpTryCount))
+      else: break
+    
+    orphanIPs = self.getOrphanPublicIPs(); cleanUpTryCount = 0; maxCleanUpTryCount = 5
+    while orphanIPs and cleanUpTryCount < maxCleanUpTryCount:
+      threads = []; cleanUpTryCount += 1
+      for orphanIP in orphanIPs:
+        thd = threading.Thread(
+          target = lambda ipId: deleteOrphanIP(ipId),  args = (orphanIP["id"], ))
+        threads.append(thd); thd.start()
+      for thd in threads: thd.join(timeout=60) # wait for all API calls to return
+      orphanIPs = self.getOrphanPublicIPs(quiet=True)
+      if not dryRun and orphanIPs:
+        log.info("{} There are still orphan IPs ({}); retrying... ({}/{})".format(
+                  self.sddcName, len(orphanIPs), cleanUpTryCount, maxCleanUpTryCount))
+      else: break
+
+
+  def destroySingleVMInNetworkByHandle(self, vmHandle, networkName, info={}, dryRun=False):
+    if "warnings" not in info: info["warnings"] = []
+    if "totalHandled" not in info: info["totalHandled"] = 0
+    tryCount = 0; maxTries = 3
+    while tryCount < maxTries:
+      tryCount += 1
+      try:
+        vm = vmHandle["entity"]
+        vmName = vmHandle["name"]
+        networkSegments = vm.network
+        if networkSegments and networkSegments[0].name == networkName:
+          if len(vmName) != 73 or len(vmName.split("-")) != 10:
+            info["warnings"].append("{}, VM name '{}' is not a replica VM yet is on '{}' "
+                                    "({}), excluded from clean-up.".format(self.sddcName,
+                                    vmName, networkName, vm.runtime.powerState))
+            return info
+          info["totalHandled"] += 1
+          deployedFrom = "(unknown)"
+          if "jenkins_build_id" in vmHandle["attrMap"]:
+            deployedFrom = vmHandle["attrMap"]["jenkins_build_id"]
+          if dryRun:
+            log.debug("{}, would have deleted VM '{}' deployed from {}".format(
+                      self.sddcName, vmHandle["replicaId"], deployedFrom))
+            return info
+          log.debug("{}, Terminating VM '{}' deployed from {} ...".format(
+                    self.sddcName, vmHandle["replicaId"], deployedFrom))
+          if vm.runtime.powerState != "poweredOff":
+            vm.TerminateVM()
+          checkCounter = 0
+          while checkCounter < 10:
+            checkCounter += 1
+            if vm.runtime.powerState == "poweredOff": break
+            time.sleep(3)
+          vm.Destroy_Task()
+          log.debug("{}, Destroyed VM '{}'".format(self.sddcName, vmName))
+          self.deleteNatRuleAndPublicIPOfReplica(vmHandle["replicaId"], retryUntilSuccess=True)
+          log.debug("{}, Deleted NAT rule & Public IP for VM '{}'".format(self.sddcName, vmName))
+          self.deregisterHandle(vmHandle)
+          time.sleep(2)
+          return info
+      except Exception as e:
+        log.debug(e)
+        return info
+    return info
+
+
+  def resetNetworkSegmentOnIPAM(self, networkName, blockName, prefix, subnet, reserved, dryRun=False):
+    log.info("{}, Recreating network segment '{}'...".format(
+              self.sddcName, networkName))
+    try:
+      sys.path.append("lib/persephone")
+      import lib.persephone.ipam_helper
+      tryCount = 0
+      while tryCount < 5:
+        try: lib.persephone.ipam_helper.remove_block(networkName, blockName, dryRun=dryRun); break
+        except: traceback.print_exc(); tryCount += 1; time.sleep(3)
+      tryCount = 0
+      while tryCount < 5:
+        try: lib.persephone.ipam_helper.create_block(networkName, blockName, prefix, subnet, reserved, dryRun=dryRun); break
+        except: traceback.print_exc(); tryCount += 1; time.sleep(3)
+    except Exception as e:
+      traceback.print_exc()
+      log.error("{}, Unable to import ipam_helper.py while resetting '{}'".format(
+                self.sddcName, networkName))
+
+
+  def destroyAllVMsInNetworkSegment(self, networkName, dryRun=False):
+    info = { "totalHandled": 0, "warnings": [] }
+    log.info("{} Trying to delete VMs in network segment '{}'".format(
+              self.sddcName, networkName))
+    def destroySingleVMInTheNetwork(vmHandle):
+      self.destroySingleVMInNetworkByHandle(vmHandle, networkName, info, dryRun)
+    threads = []
+    for vmName in self.allEntityHandlesByName:
+      vmHandle = self.allEntityHandlesByName[vmName]
+      if self.getEntityType(vmHandle["entity"]) == "VM":
+        thd = threading.Thread(
+          target = lambda vmHandle: destroySingleVMInTheNetwork(vmHandle), 
+          args = (vmHandle, ))
+        threads.append(thd); thd.start()
+    for thd in threads: thd.join(timeout=60) # wait for all API calls to return
+    for warningMessage in info["warnings"]: log.info(warningMessage)
+    log.info("{}, Total {} VMs {}have been deleted.".format(
+            self.sddcName, info["totalHandled"], "would " if dryRun else ""))
 
 
   def checkForNewEntities(self):
@@ -424,6 +779,7 @@ class ConnectionToSDDC:
       log.debug("Added {} new entities to local inventory cache of entities.".format(len(handles)))
     else:
       log.debug("There are no new entities on SDDC ({}) inventory.".format(self.sddcName))
+    return unregistered
 
 
   def parallelIteratePropsFetchedByAPI(self, iterable):
@@ -518,5 +874,5 @@ def cspGetConnection(vmcToken, headers={}):
       headers["csp-open-id-token"] = CSP_SESSION["id_token"]
       return True
   except Exception as e:
-    log.debug(e)
-    return False
+    log.error(e)
+    raise e

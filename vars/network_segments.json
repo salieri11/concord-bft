@@ -1,0 +1,32 @@
+[
+  {
+    "sddcName": "SDDC1",
+    "segments": [
+      {
+        "name": "vmware-vpn",  "block": "a890ac97-941d-4479-a90c-98061c1e3639-vmware-vpn",
+        "prefix": "0a485e00",  "subnet": 24,  "reserved": [ "0a485e00-0a485e07", "0a485efa-0a485eff" ],
+        "active": true
+      },
+      {
+        "name": "vmware-vpn-1b",  "block": "vmware-vpn-1b", 
+        "prefix": "0a49e800",  "subnet": 24,  "reserved": [ "0a49e800-0a49e807", "0a49e8fa-0a49e8ff" ],
+        "active": true
+      }
+    ]
+  },
+  {
+    "sddcName": "SDDC4",
+    "segments": [
+      {
+        "name": "vmware-vpn",  "block": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea-vmware-vpn",
+        "prefix": "0a456900",  "subnet": 24,  "reserved": [ "0a456900-0a456907", "0a4569fa-0a4569ff" ],
+        "active": true
+      },
+      {
+        "name": "vmware-vpn-4b", "block": "vmware-vpn-4b",
+        "prefix": "0a461e00",  "subnet": 24,  "reserved": [ "0a461e00-0a461e07", "0a461efa-0a461eff" ],
+        "active": true
+      }
+    ]
+  }
+]

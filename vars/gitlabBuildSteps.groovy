@@ -474,6 +474,10 @@ def call(){
               env.monitoring_notify_target = params.monitoring_notify_target
               env.spider_image_tag = params.spider_image_tag
 
+              // Who triggered the build..?
+              env.TRIGGERER_LDAP = "unknown"
+              try { env.TRIGGERER_LDAP = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause).properties.userId } catch(e) {}
+
               // Check parameters
               errString = "Parameter check error: "
 
@@ -1896,8 +1900,7 @@ void sendNotifications(){
     } else {
       echo("Notifying build failure to triggerer of the build via slack DM...")
       try {
-        triggererLDAP = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause).properties.userId
-        triggererEmail = triggererLDAP + "@vmware.com"
+        triggererEmail = env.TRIGGERER_LDAP + "@vmware.com"
         slackNotifyFailure( jobName: env.JOB_NAME,  target: "blockchain-build-fail-other" )
         slackNotifyFailure( jobName: env.JOB_NAME,  target: triggererEmail )
       } catch (Exception ex) {
@@ -2140,6 +2143,7 @@ void setEnvFileAndUserConfig(Map param = [:]) {
     usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC5_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC5_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC5_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'UI_E2E_CSP_LOGIN_CREDENTIALS', usernameVariable: 'UI_E2E_CSP_LOGIN_USERNAME', passwordVariable: 'UI_E2E_CSP_LOGIN_PASSWORD'),
+    file(credentialsId: 'VMBC_IPAM_CERT_FILE', variable: 'VMBC_IPAM_CERT_FILE'),
   ]) {
     if (!param.hermesConfigOnly) { sh '''
       echo "${PASSWORD}" | sudo -S ls
@@ -2300,6 +2304,10 @@ EOF
         '''
       }
     }
+
+    // VMBC IPAM certificate file for ipam-vmbc.cloud.vmware.com
+    cert_file_path = env.WORKSPACE + "/blockchain/docker/config-persephone/persephone/provisioning/ipam.crt"
+    writeFile file: cert_file_path, text: readFile(VMBC_IPAM_CERT_FILE)
 
   }
 }
