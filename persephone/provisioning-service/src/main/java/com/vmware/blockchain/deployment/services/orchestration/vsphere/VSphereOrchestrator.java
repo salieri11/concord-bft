@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
+import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
@@ -117,12 +118,20 @@ public class VSphereOrchestrator implements Orchestrator {
             var vmPassword = request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())
                              ? PasswordGeneratorUtil.generateCommonTextPassword() : "c0nc0rd";
 
+            // TODO : deprecate gateway in favor of gateway ip.
+            String gatewayIp = datacenterInfo.getNetwork().getGatewayIp().isEmpty()
+                    ? InetAddress.getByName(String.valueOf(datacenterInfo.getNetwork().getGateway())).getHostAddress()
+                    : datacenterInfo.getNetwork().getGatewayIp();
+
+            if (!InetAddresses.isInetAddress(gatewayIp)) {
+                throw new IllegalArgumentException("Provided gateway is not a valid Inet address. ip: " + gatewayIp);
+            }
+
             val cloudInit = new CloudInitConfiguration(
                     request.getCloudInitData().getContainerRegistry(),
                     request.getCloudInitData().getModel(),
                     request.getCloudInitData().getPrivateIp(),
-                    InetAddress.getByName(String.valueOf(datacenterInfo.getNetwork().getGateway()))
-                            .getHostAddress(),
+                    gatewayIp,
                     datacenterInfo.getNetwork().getNameServersList(),
                     datacenterInfo.getNetwork().getSubnet(),
                     ConcordClusterIdentifier.newBuilder()
