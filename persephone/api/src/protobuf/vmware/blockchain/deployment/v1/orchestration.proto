@@ -92,6 +92,7 @@ message OrchestrationSiteView {
 message IPv4Network {
     /**
      * Enumeration of address allocation schemes.
+     * TODO: deprecate gateway in favor of gateway_ip
      */
     enum AddressAllocationScheme {
         DHCP = 0; // Dynamic host configuration protocol.
@@ -104,6 +105,7 @@ message IPv4Network {
     int32 subnet = 4;
     Endpoint allocation_server = 5;
     repeated string name_servers = 6 [packed=false];
+    string gateway_ip = 7;
 }
 
 /**
