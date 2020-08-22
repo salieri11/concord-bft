@@ -44,12 +44,12 @@ VERSION_DIR=${MAJOR}.${MINOR}.${PATCH}
 #   1. curl output is JSON containing https://.../athena-docker-local/<some image>/<TAG>/<maybe more stuff>
 #   2. First grep extracts https://.../<TAG> (dropping /<maybe more stuff>)
 #   3. Second grep extracts <TAG> (droping https://.../)
-LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/ethrpc/${VERSION_DIR}?lastModified |
+LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/agent/${VERSION_DIR}?lastModified |
                    perl -ne 'print $1 if /\/([a-f0-9\.]+\.[a-f0-9]+\.[a-f0-9]+\.[a-f0-9]+)\//')
 
 if [ -z "${LATEST_TAG}" ]
 then
-    echo `date`: INFO: "API call '${ARTIFACTORY_BASE_URL}/ethrpc/${VERSION_DIR}?lastModified' returned nothing."
+    echo `date`: INFO: "API call '${ARTIFACTORY_BASE_URL}/agent/${VERSION_DIR}?lastModified' returned nothing."
     echo `date`: INFO: "It is possible your ARTIFACTORY_KEY is not correct."
     exit 1
 fi
