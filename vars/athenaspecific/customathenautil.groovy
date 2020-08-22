@@ -27,11 +27,11 @@ void collectArtifacts(){
 
   def logMap = [
           "tests": [
-                  "base": "**/testLogs/**/*.",
+                  "base": "testLogs/**/*.",
                   "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
           ],
           "builds": [
-                  "base": "**/blockchain/**/*.",
+                  "base": "blockchain/**/*.",
                   "types": ["log", "json", "properties", "sql"]
           ]
   ]
@@ -40,7 +40,7 @@ void collectArtifacts(){
   // node_modules; avoid bundling 3000+ package.json files
   def excludeMap = [
           "node_modules": [
-                  "pattern": "**/node_modules/**",
+                  "pattern": "blockchain/ui/node_modules/**",
           ]
   ]
 
@@ -60,7 +60,7 @@ void collectArtifacts(){
     archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
   }
 
-  archiveArtifacts artifacts: "**/summary/**", allowEmptyArchive: true
+  archiveArtifacts artifacts: "summary/**", allowEmptyArchive: true
 
   saveTimeEvent("Gather artifacts", "End")
 

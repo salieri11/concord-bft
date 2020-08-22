@@ -1487,7 +1487,6 @@ void pushToArtifactory(){
     env.internal_helen_repo,
     env.internal_castor_repo,
     env.internal_memleak_concord_repo,
-    env.internal_persephone_agent_repo,
     env.internal_persephone_configuration_repo,
     env.internal_persephone_ipam_repo,
     env.internal_persephone_provisioning_repo,
@@ -1499,7 +1498,9 @@ void pushToArtifactory(){
     env.internal_trc_lib_repo,
     env.internal_trc_test_app_repo,
     env.internal_client_pool_lib_repo,
-    env.internal_participant_lib_repo
+    env.internal_participant_lib_repo,
+    // agent should be latest to guarantee latest pullable after all images are pushed.
+    env.internal_persephone_agent_repo,
   ]
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
