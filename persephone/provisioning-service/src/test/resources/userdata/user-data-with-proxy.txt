@@ -19,6 +19,9 @@ systemctl enable docker
 # Enable time sync
 vmware-toolbox-cmd timesync enable
 
+# Partition, format, and mount additional disk, if any
+
+
 # Output the node's model specification.
 mkdir -p /config/agent
 echo '{

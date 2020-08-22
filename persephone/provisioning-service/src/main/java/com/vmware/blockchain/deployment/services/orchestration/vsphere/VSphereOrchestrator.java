@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
-
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -142,7 +141,8 @@ public class VSphereOrchestrator implements Orchestrator {
                     request.getCloudInitData().getConfigServiceRestEndpoint(),
                     datacenterInfo.getOutboundProxy(),
                     vmPassword,
-                    request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name())
+                    request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name()),
+                    request.getProperties().containsKey(DeploymentAttributes.VM_STORAGE.name())
             );
 
             var libraryItem = getLibraryItem.get();

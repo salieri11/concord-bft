@@ -149,6 +149,7 @@ enum DeploymentAttributes {
     ENABLE_BFT_CLIENT = 9;
     NO_LAUNCH = 10;
     SPLIT_CONFIG = 11;
+    VM_STORAGE = 12;
 }
 
 /* [END messages] */

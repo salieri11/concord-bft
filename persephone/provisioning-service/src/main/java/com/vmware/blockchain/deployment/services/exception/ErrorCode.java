@@ -28,6 +28,7 @@ public final class ErrorCode {
     public static final String SITE_RESOURCE_POOL_INCORRECT = "Incorrect resource pool information: {0}";
     public static final String UNKNOWN_GATEWAY = "Unknown host exception while getting gateway for {0}";
     public static final String VM_CREATE_ERROR = "Error creating VM";
+    public static final String VM_DISK_CREATE_ERROR = "Error creating VM disk: {0}";
     public static final String VM_POWER_OFF_ERROR = "Unable to power off VM: {0}";
     public static final String VM_START_ERROR = "Error creating/starting the VM";
     public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator";

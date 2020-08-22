@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
+import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
@@ -37,6 +39,7 @@ import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.Lib
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.NetworkMapping;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.OvfParameter;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.OvfProperty;
+import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachineDiskCreate;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerState;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachineUpdate;
@@ -45,7 +48,7 @@ import com.vmware.blockchain.deployment.services.restclient.RestClientBuilder;
 import com.vmware.blockchain.deployment.services.restclient.RestClientUtils;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.LoggingInterceptor;
 import com.vmware.blockchain.deployment.services.restclient.interceptor.retry.DefaultHttpRequestRetryInterceptor;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -276,7 +279,7 @@ public class VSphereHttpClient {
         // TODO Remove after stability.
         try {
             ObjectMapper mapper = new ObjectMapper();
-            log.info("******************* CreateVirtualMachine request********************");
+            log.info("******************** CreateVirtualMachine request ********************");
             log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
         } catch (Exception e) {
             log.warn(e.toString());
@@ -305,20 +308,28 @@ public class VSphereHttpClient {
 
         boolean mem = true;
         boolean cpu = true;
-        if (properties.containsKey(NodeProperty.Name.VM_MEMORY.toString())) {
+        boolean disk = true;
+        if (properties.containsKey(DeploymentAttributes.VM_MEMORY.toString())) {
             long memoryMb = Long.parseLong(properties
-                    .getOrDefault(NodeProperty.Name.VM_MEMORY.toString(), "16"))  * 1024;
+                    .getOrDefault(DeploymentAttributes.VM_MEMORY.toString(), Constants.DEFAULT_VM_MEMORY_GB))  * 1024;
             mem = updateVirtualMachineMemory(name, memoryMb);
         }
 
-        if (properties.containsKey(NodeProperty.Name.VM_CPU_COUNT.toString())) {
+        if (properties.containsKey(DeploymentAttributes.VM_CPU_COUNT.toString())) {
             int cpuCount = Integer.parseInt(properties
-                    .getOrDefault(NodeProperty.Name.VM_CPU_COUNT.toString(), "2"));
+                    .getOrDefault(DeploymentAttributes.VM_CPU_COUNT.toString(), Constants.DEFAULT_VM_CPU_COUNT));
             int coresPerSocket = Integer.parseInt(properties
-                    .getOrDefault(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "1"));
+                    .getOrDefault(DeploymentAttributes.VM_CORES_PER_SOCKET.toString(),
+                            Constants.DEFAULT_VM_CORES_PER_SOCKET));
             cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
         }
-        return mem && cpu;
+
+        if (properties.containsKey(DeploymentAttributes.VM_STORAGE.toString())) {
+            long storageGb = Long.parseLong(properties
+                    .getOrDefault(DeploymentAttributes.VM_STORAGE.toString(), Constants.DEFAULT_VM_STORAGE_GB));
+            disk = createVirtualMachineDisk(name, storageGb);
+        }
+        return mem && cpu && disk;
     }
 
     /**
@@ -335,7 +346,7 @@ public class VSphereHttpClient {
                 new HttpEntity<>(updateRequest, httpHeaders);
         String uri = VsphereEndpoints.VSPHERE_VM_MEMORY_UPDATE.getPath().replace("{vm}", name);
         try {
-            log.info("******************* updateVirtualMachineMemory request********************");
+            log.info("******************** updateVirtualMachineMemory request ********************");
             ObjectMapper mapper = new ObjectMapper();
             log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
         } catch (Exception e) {
@@ -364,7 +375,7 @@ public class VSphereHttpClient {
         String uri = VsphereEndpoints.VSPHERE_VM_CPU_UPDATE.getPath().replace("{vm}", name);
         try {
             ObjectMapper mapper = new ObjectMapper();
-            log.info("******************* updateVirtualMachineCpu request********************");
+            log.info("******************** updateVirtualMachineCpu request ********************");
             log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
         } catch (Exception e) {
             log.warn(e.toString());
@@ -372,6 +383,44 @@ public class VSphereHttpClient {
 
         var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
         return responseEntity.getStatusCode() == HttpStatus.OK;
+    }
+
+    /**
+     * Create a new virtual machine disk.
+     */
+    private boolean createVirtualMachineDisk(String name, long storageGb) {
+        long storageBytes = storageGb * 1024 * 1024 * 1024;
+        val updateRequest = VirtualMachineDiskCreate.VirtualMachineDiskCreateRequest.builder()
+                .spec(VirtualMachineDiskCreate.DiskCreateSpec.builder()
+                        .newVmdk(VirtualMachineDiskCreate.DiskVmdkCreateSpec.builder()
+                                .capacity(storageBytes)
+                                .name("second-disk")
+                                .storagePolicy(VirtualMachineDiskCreate.DiskStoragePolicySpec.builder()
+                                        .policy("")
+                                        .build())
+                                .build())
+                        .type(VirtualMachineDiskCreate.DiskHostBusAdapterType.SCSI.name())
+                        .build())
+                .build();
+
+        HttpEntity<VirtualMachineDiskCreate.VirtualMachineDiskCreateRequest> requests =
+                new HttpEntity<>(updateRequest, httpHeaders);
+        String uri = VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name);
+        try {
+            log.info("******************** createVirtualMachineDisk request ********************");
+            ObjectMapper mapper = new ObjectMapper();
+            log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requests));
+        } catch (Exception e) {
+            log.warn(e.toString());
+        }
+
+        ResponseEntity<Void> responseEntity = null;
+        try {
+            responseEntity = restTemplate.exchange(uri, HttpMethod.POST, requests, Void.class);
+        } catch (Exception e) {
+            log.error(MessageFormat.format(ErrorCode.VM_DISK_CREATE_ERROR, e));
+        }
+        return responseEntity != null && responseEntity.getStatusCode() == HttpStatus.OK;
     }
 
     /**

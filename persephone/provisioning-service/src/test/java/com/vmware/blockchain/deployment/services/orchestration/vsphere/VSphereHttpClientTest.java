@@ -36,7 +36,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerState;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 
 @ExtendWith(SpringExtension.class)
 @RunWith(PowerMockRunner.class)
@@ -557,9 +557,9 @@ class VSphereHttpClientTest {
 
         Map<String, String> properties = new HashMap<String, String>();
 
-        properties.put(NodeProperty.Name.VM_MEMORY.toString(), "16");
-        properties.put(NodeProperty.Name.VM_CPU_COUNT.toString(), "32");
-        properties.put(NodeProperty.Name.VM_CORES_PER_SOCKET.toString(), "64");
+        properties.put(DeploymentAttributes.VM_MEMORY.toString(), "16");
+        properties.put(DeploymentAttributes.VM_CPU_COUNT.toString(), "32");
+        properties.put(DeploymentAttributes.VM_CORES_PER_SOCKET.toString(), "64");
 
         long retryInterval = 10;
         Assertions.assertTrue(vSphereHttpClient.ensureVirtualMachinePowerStart(name, retryInterval,
