@@ -29,6 +29,7 @@ import struct
 import statistics
 import datetime
 from . import numbers_strings
+from enum import Enum
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.auth as auth
@@ -188,6 +189,10 @@ TIME_FMT_TIMEZONE = "%Y-%m-%d %H:%M:%S %Z%z"
 # Individual tag information to override deployment spec (model)
 DEPLOYMENT_PROPERTIES = {} # dict of { [container_name_key: string]: tag_value }
 
+# Enum class for differentiating the node type
+class NodeType(Enum):
+   REPLICA = 0
+   CLIENT = 1
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -1810,7 +1815,7 @@ def hermesPreexitWrapUp():
       else: deployed_blockchains_list = []
       for newly_deployed in infra.DEPLOYED_REPLICAS:
         deployed_blockchains_list.append(newly_deployed)
-      json.dump(deployed_blockchains_list, file, indent=4)
+      json.dump(deployed_blockchains_list, file, indent=4, default=str)
 
 
 def parseReplicasConfig(replicas):
@@ -2024,7 +2029,7 @@ def get_agent_pulled_tags_info():
         "envname": envname,
       }
       if not hasattr(component, "libonly"): # ignore libs' tags
-        all_tags[tag] = True 
+        all_tags[tag] = True
     if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
   info_obj["uniform"] = agent_pulled_tags_are_uniform
   return info_obj

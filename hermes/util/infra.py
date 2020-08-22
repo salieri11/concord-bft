@@ -229,9 +229,8 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
             isParticipant = replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT
           else: # from new persephone test, v1 or v2
             if "node_type" in replicaInfo:
-              if isinstance(replicaInfo["node_type"], int):
-                # 0 committer, 1 participant, from NodeInfo class in persephone_tests_new.py (BC-3529)
-                isParticipant = True if replicaInfo["node_type"] == 1 else False
+              if replicaInfo["node_type"] == helper.NodeType.REPLICA:
+                isParticipant = True if replicaInfo["node_type"] == helper.TYPE_DAML_PARTICIPANT else False
           replicaTypeDisplayName = PRETTY_TYPE_COMMITTER if not isParticipant else PRETTY_TYPE_PARTICIPANT
           if "id" not in replicaInfo: # from new persephone test
             if "node_id" in replicaInfo: replicaInfo["id"] = replicaInfo["node_id"]
