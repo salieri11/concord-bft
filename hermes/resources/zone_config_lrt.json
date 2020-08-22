@@ -41,9 +41,9 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"vmware-vpn-lrt-5a",
+            "name":"vmware-vpn-lrt-5a-1",
             "addressAllocation":"STATIC",
-            "gateway":172324353,
+            "gateway": 172553217,
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
