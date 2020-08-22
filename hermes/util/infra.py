@@ -348,7 +348,7 @@ def save_fatal_errors_to_summary(fatal_errors):
     if fatal_errors:
         for current_error in fatal_errors:
             node_data = current_error["node"]; occupant_handle = current_error["occupant"]
-            please_contact_msg = "Please contract concierge about this as soon as possible; this is a serious issue."
+            please_contact_msg = "Please contact concierge about this as soon as possible; this is a serious issue."
             if current_error["type"] == INVENTORY_ERRORS.NAME_CONFLICT:
                 msg = "FATAL !!  Node ID: '{}' already occupied by {} on {}. {}.".format( 
                         node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
@@ -383,7 +383,7 @@ def resetIPAM(dryRun=True):
   try:
     with open(NETWORK_SEGMENTS_FILE, 'r') as f:
       resetConfig = json.load(f)
-      log.info("Generating persephone bindings...")
+      log.info("Generating persephone bindings for IPAM gRPC connection...")
       os.system("util/generate_grpc_bindings.py "
                 "--source-path=../persephone/api/src/protobuf "
                 "--target-path=lib/persephone > /dev/null")
@@ -403,6 +403,8 @@ def resetIPAM(dryRun=True):
                                         segmentConfig["subnet"],
                                         segmentConfig["reserved"],
                                         dryRun=dryRun)
+      for targetConfig in resetConfig:
+        sddc = getConnection(targetConfig["sddcName"])
         sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
       if not dryRun:
         # Continue deleting new VMs are 5 minutes to prevent race condition with ongoing jobs
@@ -436,3 +438,16 @@ def deregisterOrphanResources(dryRun=True):
   except Exception as e:
     traceback.print_exc()
 
+
+def resolveConflictVMs(dryRun=True):
+  try:
+    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
+      resetConfig = json.load(f)
+      sddcs = []
+      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
+      prepareConnections(sddcs)
+      for targetConfig in resetConfig:
+        sddc = getConnection(targetConfig["sddcName"])
+        sddc.resolveVMsWithIPConflict(dryRun=dryRun)
+  except Exception as e:
+    traceback.print_exc()

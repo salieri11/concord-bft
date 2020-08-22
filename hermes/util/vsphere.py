@@ -502,15 +502,24 @@ class ConnectionToSDDC:
 
 
   def getAllNATRules(self):
-    cspGetConnection(self.vmcToken, self.headersNSXT)
-    response = REQ_SESSION.get(
-      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
-                      f"/policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules",
-      headers = self.headersNSXT
-    )
-    try: return response.json()["results"] if response.status_code == 200 else False
-    except: return None
-
+    tryCount = 0; maxTries = 3
+    while tryCount < maxTries:
+      tryCount += 1
+      cspGetConnection(self.vmcToken, self.headersNSXT)
+      response = REQ_SESSION.get(
+        f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                        f"/policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules",
+        headers = self.headersNSXT
+      )
+      if response.status_code == 200:
+        try: return response.json()["results"]
+        except: pass
+      if tryCount < maxTries-1: 
+        log.debug("{}, retrying getAllNATRules (return code: {})... ({}/{})".format(
+                  self.sddcName, response.status_code, tryCount, maxTries))
+    log.error("{}, no result from getAllNATRules after many retries.".format(self.sddcName))
+    return []
+    
 
   def getNATRule(self, ruleId):
     if not ruleId: return None
@@ -536,13 +545,22 @@ class ConnectionToSDDC:
 
 
   def getAllPublicIPs(self):
-    cspGetConnection(self.vmcToken, self.headersNSXT)
-    response = REQ_SESSION.get(
-      f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
-                      f"/cloud-service/api/v1/infra/public-ips",
-      headers = self.headersNSXT)
-    try: return response.json()["results"] if response.status_code == 200 else False
-    except: return None
+    tryCount = 0; maxTries = 3
+    while tryCount < maxTries:
+      tryCount += 1
+      cspGetConnection(self.vmcToken, self.headersNSXT)
+      response = REQ_SESSION.get(
+        f"{self.baseNSXT}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}"
+                        f"/cloud-service/api/v1/infra/public-ips",
+        headers = self.headersNSXT)
+      if response.status_code == 200:
+        try: return response.json()["results"]
+        except: pass
+      if tryCount < maxTries-1: 
+        log.debug("{}, retrying getAllPublicIPs (return code: {})... ({}/{})".format(
+                  self.sddcName, response.status_code, tryCount, maxTries))
+    log.error("{}, no result from getAllPublicIPs after many retries.".format(self.sddcName))
+    return []
 
 
   def getPublicIP(self, ipId):
@@ -579,15 +597,15 @@ class ConnectionToSDDC:
       natResult = None; publicIPResult = None
       tryCount = 0; maxTries = 3
       while tryCount < maxTries:
-        try: natResult = self.deleteNATRule(natId); break
+        try: natResult = self.deleteNATRule(replicaId); break
         except:
-          time.sleep(3); tryCount += 1
+          time.sleep(3); tryCount += 1; traceback.print_exc()
           log.debug("{} Retrying deleting NAT {} ({}/{})".format(self.sddcName, replicaId, tryCount, maxTries))
       tryCount = 0; maxTries = 3
       while tryCount < maxTries:
-        try: publicIPResult = self.deletePublicIP(ipId); break
+        try: publicIPResult = self.deletePublicIP(replicaId); break
         except:
-          time.sleep(3); tryCount += 1
+          time.sleep(3); tryCount += 1; traceback.print_exc()
           log.debug("{} Retrying deleting IP {} ({}/{})".format(self.sddcName, replicaId, tryCount, maxTries))
     else:
       natResult = self.deleteNATRule(replicaId)
@@ -622,7 +640,6 @@ class ConnectionToSDDC:
 
 
   def deleteOrphanNATsAndIPs(self, dryRun=False):
-    
     def deleteOrphanNAT(natId):
       if not dryRun:
         tryCount = 0; maxTries = 3
@@ -630,7 +647,8 @@ class ConnectionToSDDC:
           try: self.deleteNATRule(natId); break
           except:
             time.sleep(3); tryCount += 1
-            log.debug("{} Retrying deleting NAT {} ({}/{})".format(self.sddcName, natId, tryCount, maxTries))
+            if tryCount < maxTries-1:
+              log.debug("{} Retrying deleting NAT {} ({}/{})".format(self.sddcName, natId, tryCount, maxTries))
       else: log.info("{} Orphaned NAT rule id '{}' would have been deleted.".format(
                       self.sddcName, natId))
     def deleteOrphanIP(ipId):
@@ -640,10 +658,10 @@ class ConnectionToSDDC:
           try: self.deletePublicIP(ipId); break
           except:
             time.sleep(3); tryCount += 1
-            log.debug("{} Retrying deleting IP {} ({}/{})".format(self.sddcName, ipId, tryCount, maxTries))
+            if tryCount < maxTries-1:
+              log.debug("{} Retrying deleting IP {} ({}/{})".format(self.sddcName, ipId, tryCount, maxTries))
       else: log.info("{} Orphaned public IP id '{}' would have been deleted.".format(
                       self.sddcName, ipId))
-    
     orphanNATs = self.getOrphanNATs(); cleanUpTryCount = 0; maxCleanUpTryCount = 5
     while orphanNATs and cleanUpTryCount < maxCleanUpTryCount:
       threads = []; cleanUpTryCount += 1
@@ -657,7 +675,6 @@ class ConnectionToSDDC:
         log.info("{} There are still orphan NATs ({}); retrying... ({}/{})".format(
                   self.sddcName, len(orphanNATs), cleanUpTryCount, maxCleanUpTryCount))
       else: break
-    
     orphanIPs = self.getOrphanPublicIPs(); cleanUpTryCount = 0; maxCleanUpTryCount = 5
     while orphanIPs and cleanUpTryCount < maxCleanUpTryCount:
       threads = []; cleanUpTryCount += 1
@@ -673,7 +690,7 @@ class ConnectionToSDDC:
       else: break
 
 
-  def destroySingleVMInNetworkByHandle(self, vmHandle, networkName, info={}, dryRun=False):
+  def destroySingleVMByHandle(self, vmHandle, cond=None, info={}, dryRun=False):
     if "warnings" not in info: info["warnings"] = []
     if "totalHandled" not in info: info["totalHandled"] = 0
     tryCount = 0; maxTries = 3
@@ -683,11 +700,9 @@ class ConnectionToSDDC:
         vm = vmHandle["entity"]
         vmName = vmHandle["name"]
         networkSegments = vm.network
-        if networkSegments and networkSegments[0].name == networkName:
+        if not cond or cond(vmHandle):
           if len(vmName) != 73 or len(vmName.split("-")) != 10:
-            info["warnings"].append("{}, VM name '{}' is not a replica VM yet is on '{}' "
-                                    "({}), excluded from clean-up.".format(self.sddcName,
-                                    vmName, networkName, vm.runtime.powerState))
+            info["warnings"].append({ "handle": vmHandle, "message": "NOT A REPLICA VM" })
             return info
           info["totalHandled"] += 1
           deployedFrom = "(unknown)"
@@ -720,8 +735,9 @@ class ConnectionToSDDC:
 
 
   def resetNetworkSegmentOnIPAM(self, networkName, blockName, prefix, subnet, reserved, dryRun=False):
-    log.info("{}, Recreating network segment '{}'...".format(
-              self.sddcName, networkName))
+    verb = "Recreating" if not dryRun else "Would have recreated"
+    log.info("{}, {} IPAM block entry for network segment '{}'...".format(
+              self.sddcName, verb, networkName))
     try:
       sys.path.append("lib/persephone")
       import lib.persephone.ipam_helper
@@ -739,12 +755,35 @@ class ConnectionToSDDC:
                 self.sddcName, networkName))
 
 
+  def resolveVMsWithIPConflict(self, dryRun=False):
+    conflictIPMaps = {}
+    for replicaId in self.allEntityHandlesByReplicaId:
+      vmHandle = self.allEntityHandlesByReplicaId[replicaId]
+      if hasattr(vmHandle["attrMap"], "private_ip"):
+        ip = vmHandle["attrMap"]["private_ip"]
+        if ip not in conflictIPMaps: conflictIPMaps[ip] = []
+        conflictIPMaps[ip].append(vmHandle)
+    conflictsCount = 0
+    for ip in conflictIPMaps:
+      if len(conflictIPMaps[ip]) > 1:
+        conflictsCount += len(conflictIPMaps[ip])
+    log.info("{}, There are {} IP conflicts on the SDDC.".format(self.sddcName, conflictsCount))
+    if conflictsCount:
+      for ip in conflictIPMaps:
+        if len(conflictIPMaps[ip]) > 1:
+          log.info("{}, Addressing IP conflict for IP: {}...".format(self.sddcName, ip))
+          for vmHandle in conflictIPMaps[ip]:
+            self.destroySingleVMByHandle(vmHandle, dryRun=dryRun)
+
+
   def destroyAllVMsInNetworkSegment(self, networkName, dryRun=False):
     info = { "totalHandled": 0, "warnings": [] }
     log.info("{} Trying to delete VMs in network segment '{}'".format(
               self.sddcName, networkName))
     def destroySingleVMInTheNetwork(vmHandle):
-      self.destroySingleVMInNetworkByHandle(vmHandle, networkName, info, dryRun)
+      cond = lambda vmHandle: vmHandle["entity"].network and \
+                              vmHandle["entity"].network[0].name == networkName
+      self.destroySingleVMByHandle(vmHandle, cond, info, dryRun)
     threads = []
     for vmName in self.allEntityHandlesByName:
       vmHandle = self.allEntityHandlesByName[vmName]
@@ -754,7 +793,13 @@ class ConnectionToSDDC:
           args = (vmHandle, ))
         threads.append(thd); thd.start()
     for thd in threads: thd.join(timeout=60) # wait for all API calls to return
-    for warningMessage in info["warnings"]: log.info(warningMessage)
+    for warningData in info["warnings"]:
+      if warningData["message"] == "NOT A REPLICA VM":
+        vm = warningData["handle"]["entity"]
+        vmName = warningData["handle"]["name"]
+        log.info("{}, VM name '{}' is not a replica VM yet is on '{}' "
+                 "({}), excluded from clean-up.".format(self.sddcName,
+                 vmName, networkName, vm.runtime.powerState))
     log.info("{}, Total {} VMs {}have been deleted.".format(
             self.sddcName, info["totalHandled"], "would " if dryRun else ""))
 
