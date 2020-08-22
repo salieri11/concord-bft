@@ -123,13 +123,17 @@ def resetIPAM(args, options, secret):
   if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
   infra.resetIPAM(dryRun=dryRun)
 
-
 def removeOrphans(args, options, secret):
   a = prepareArgs(args)
   dryRun = (a[0] != "COMMENCE")
   if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
   infra.deregisterOrphanResources(dryRun=dryRun)
 
+def resolveIPConflict(args, options, secret):
+  a = prepareArgs(args)
+  dryRun = (a[0] != "COMMENCE")
+  if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
+  infra.resolveConflictVMs(dryRun=dryRun)
 
 def patchOrg(args, options, secret):
   '''
@@ -234,6 +238,7 @@ DISPATCH = {
   # Infra-related
   "resetIPAM": resetIPAM,
   "removeOrphans": removeOrphans,
+  "resolveIPConflict": resolveIPConflict,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
