@@ -810,7 +810,7 @@ def call(){
             env.JOB_NAME.contains(env.tot_job_name) ||
             env.JOB_NAME.contains(main_mr_run_job_name) ||
             env.JOB_NAME.contains(manual_with_params_job_name) ||
-            env.JOB_NAME.contains(on_demand_concord_deployment_job_name) || 
+            env.JOB_NAME.contains(on_demand_concord_deployment_job_name) ||
             env.JOB_NAME.contains(on_demand_persephone_test_job_name)
           }
         }
@@ -871,6 +871,9 @@ def call(){
                               (testSuites[suite].runWithGenericTests || testSuites[suite].runWithGenericTests == null)){
                             testSuites[suite].runSuite = true
                           }
+                          // Add parameter for tot zone config
+                          testSuites[suite]["otherParameters"] =
+                            " --zoneConfig resources/zone_config_tot.json"
                         }
                       } else {
                         // This was something like manual build with parameters.  Gather tests from the
@@ -923,8 +926,8 @@ def call(){
                       selectOnlySuites(["UiDAMLDeploy"])
                       runTests()
                     } else if (
-                      env.JOB_NAME.contains(node_interruption_tests_job_name) || 
-                      env.JOB_NAME.contains(long_tests_job_name) || 
+                      env.JOB_NAME.contains(node_interruption_tests_job_name) ||
+                      env.JOB_NAME.contains(long_tests_job_name) ||
                       env.JOB_NAME.contains(rel_long_tests_job_name)
                     ) {
                       // TODO: Move to a Hermes file.  The pipeline file should not have test implementation details.
@@ -2216,24 +2219,21 @@ EOF
       sed -i -e 's/'"<GITLAB_API_ONLY_TOKEN>"'/'"${GITLAB_API_ONLY_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<JENKINS_BUILDER_PASSWORD>"'/'"${PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-      sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config_lrt.json
-      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config_lrt.json
+      sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/zone_config*.json
       sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config_lrt.json
+      sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/zone_config*.json
       sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/config-helen/app/db/migration/R__zone_entities.sql
-      sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC1_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC1_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC2_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC2_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC2_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC2_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config.json
-      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC5_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config_lrt.json
-      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC5_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config_lrt.json
+      sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC1_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC1_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC2_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC2_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC2_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC2_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC5_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC5_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
       sed -i -e 's/'"<METAINF_ENV_NAME>"'/'"JENKINS"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
@@ -2259,7 +2259,7 @@ EOF
         '''
       } else {
         sh '''
-          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/zone_config.json
+          sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/zone_config*.json
         '''
       }
     }
@@ -2550,6 +2550,9 @@ void selectApplicableGenericTestsForMR(){
     }else{
       testSuites[suite].runSuite = false
     }
+    //Add zone_config_mr for test suites
+    testSuites[suite]["otherParameters"] =
+      " --zoneConfig resources/zone_config_mr.json"
   }
 }
 
