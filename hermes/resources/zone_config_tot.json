@@ -104,64 +104,6 @@
             }
           }
         ]
-      },
-      {
-        "id":"4bb0fe0e-1f2f-470c-a427-774aa08ce2ea",
-        "info":{
-          "type":"VMC",
-          "labels":{
-            "name":"VMC SDDC 4",
-            "geo-latitude":"33.8688 S",
-            "geo-longitude":"151.2093 E"
-          }
-        },
-        "authentication":{
-          "address":"https://console.cloud.vmware.com",
-          "credential":{
-            "type":"BEARER",
-            "tokenCredential":{
-              "token":"<VMC_API_TOKEN>"
-            }
-          }
-        },
-        "api":{
-          "address":"https://vmc.vmware.com"
-        },
-        "organization":"c56e116e-c36f-4f7d-b504-f9a33955b853",
-        "datacenter":"abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
-        "vsphere":{
-          "resourcePool":"Compute-ResourcePool",
-          "datastore":"WorkloadDatastore",
-          "folder":"<DEPLOYMENT_FOLDER>",
-          "network":{
-            "name":"vmware-vpn",
-            "addressAllocation":"STATIC",
-            "gateway":172552961,
-            "nameServers":[
-              "10.78.1.132",
-              "10.78.1.133"
-            ],
-            "subnet":24
-          }
-        },
-        "wavefront":{
-          "url":"https://vmware.wavefront.com/api/",
-          "token":"<WAVEFRONT_API_TOKEN>"
-        },
-        "logManagements":[
-          {
-            "destination":"LOG_INTELLIGENCE",
-            "endpoint":{
-              "address":"https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
-              "credential":{
-                "type":"BEARER",
-                "tokenCredential":{
-                  "token":"<FLUENTD_AUTHORIZATION_BEARER>"
-                }
-              }
-            }
-          }
-        ]
       }
     ],
     "onprem":[
@@ -202,60 +144,6 @@
         },
         "wavefront":{
           "url":"https://vmware.wavefront.com",
-          "token":"<WAVEFRONT_API_TOKEN>"
-        },
-        "logManagements":[
-          {
-            "destination":"LOG_INTELLIGENCE",
-            "endpoint":{
-              "address":"https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
-              "credential":{
-                "type":"BEARER",
-                "tokenCredential":{
-                  "token":"<FLUENTD_AUTHORIZATION_BEARER>"
-                }
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id":"4bb0fe0e-1f2f-470c-a427-774aa08ce2ea",
-        "info":{
-          "type":"VSPHERE",
-          "labels":{
-            "name":"ONPREM SDDC 4",
-            "geo-latitude":"33.8688 S",
-            "geo-longitude":"151.2093 E"
-          }
-        },
-        "api":{
-          "address":"https://vcenter.sddc-52-62-59-206.vmwarevmc.com",
-          "credential":{
-            "type":"NONE",
-            "passwordCredential":{
-              "username":"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
-              "password":"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
-            }
-          }
-        },
-        "vsphere":{
-          "resourcePool":"Compute-ResourcePool",
-          "datastore":"WorkloadDatastore",
-          "folder":"<DEPLOYMENT_FOLDER>",
-          "network":{
-            "name":"vmware-vpn-4c",
-            "addressAllocation":"STATIC",
-            "gateway":173969921,
-            "nameServers":[
-              "10.78.1.132",
-              "10.78.1.133"
-            ],
-            "subnet":24
-          }
-        },
-        "wavefront":{
-          "url":"https://vmware.wavefront.com/api/",
           "token":"<WAVEFRONT_API_TOKEN>"
         },
         "logManagements":[
