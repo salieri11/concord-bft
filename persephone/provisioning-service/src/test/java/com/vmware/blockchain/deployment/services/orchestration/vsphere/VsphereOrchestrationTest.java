@@ -101,7 +101,7 @@ class VsphereOrchestrationTest {
         server.start();
         URI vsphereUri = UriComponentsBuilder.newInstance().host("localhost")
                 .port(server.port()).scheme("http").build().toUri();
-        VSphereHttpClient.Context context = new VSphereHttpClient.Context(vsphereUri, "user", "pass");
+        VSphereHttpClient.Context context = new VSphereHttpClient.Context(vsphereUri, "user", "pass", "");
         vSphereHttpClient = new VSphereHttpClient(context);
         vSphereHttpClient = spy(vSphereHttpClient);
 

@@ -79,7 +79,7 @@ class VSphereHttpClientTest {
 
         vsphereUri =
                 UriComponentsBuilder.newInstance().host("localhost").port(server.port()).scheme("http").build().toUri();
-        context = new VSphereHttpClient.Context(vsphereUri, "user", "pass");
+        context = new VSphereHttpClient.Context(vsphereUri, "user", "pass", "");
         vSphereHttpClient = new VSphereHttpClient(context);
 
     }
@@ -87,7 +87,39 @@ class VSphereHttpClientTest {
     @Test
     void badAuth() throws Exception {
         VSphereHttpClient client =
-                new VSphereHttpClient(new VSphereHttpClient.Context(vsphereUri, "no", "body"));
+                new VSphereHttpClient(new VSphereHttpClient.Context(vsphereUri, "no", "body", ""));
+    }
+
+    @Test
+    void testKeyStoreCreationForSelfSignedCert() {
+        // Test Certificate for checking the code path of successfully creating keystore
+
+        // Following is a sample certificate data, just for the test case
+        String testCertificateData = "-----BEGIN CERTIFICATE-----\n"
+                                     + "MIIDhDCCAmwCCQCqJ2ReGXJGSTANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMC\n"
+                                     + "VVMxCzAJBgNVBAgMAkNBMRIwEAYDVQQHDAlTdW5ueXZhbGUxDzANBgNVBAoMBlZN\n"
+                                     + "d2FyZTENMAsGA1UECwwET0NUTzETMBEGA1UEAwwKdm13YXJlLmNvbTEeMBwGCSqG\n"
+                                     + "SIb3DQEJARYPdGVzdEB2bXdhcmUuY29tMB4XDTIwMDgyNDIyMDI0M1oXDTIxMDgy\n"
+                                     + "NDIyMDI0M1owgYMxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTESMBAGA1UEBwwJ\n"
+                                     + "U3Vubnl2YWxlMQ8wDQYDVQQKDAZWTXdhcmUxDTALBgNVBAsMBE9DVE8xEzARBgNV\n"
+                                     + "BAMMCnZtd2FyZS5jb20xHjAcBgkqhkiG9w0BCQEWD3Rlc3RAdm13YXJlLmNvbTCC\n"
+                                     + "ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKQ53M+a9Rl2n6uR6+Gl2ErT\n"
+                                     + "MMwXRixfcdQkBaSfnENf4rSLCo/9nbUFzSDI2N7USY1FlmzHeyvopRNmuyCda6Jv\n"
+                                     + "oleleiaHhyrR0FMAUZ8Vz0sI4fMRaRqKBsMJ+QgX4USdmghAkmys7ig5MUJjcU8D\n"
+                                     + "UoQ4LoUDiGARkw0oD6cNWa3pdWVfJ3mvaHuq1OlZfQ3kC1luyklhihPIMGrisuua\n"
+                                     + "49tGBZs3F6n3Ky3hU09I3okKkBtioXTkYz3Bdszt/XMS5HeyrX/nG2NO60RT3OVX\n"
+                                     + "nvdb0bmPSJNmnvSGEzTD8WnA+9Vg13e8xLLA1W6+oFhG6rUD5g5IKnfl6zE8sL0C\n"
+                                     + "AwEAATANBgkqhkiG9w0BAQsFAAOCAQEANb0u4elmBugWqAR9reQRlk66Nx3Velab\n"
+                                     + "NSI8f78WGHMCS4ryG8fwFKwcJ9XlDJZA81FcRDrycvk0qaLgnSWnBrrauDDkGRL4\n"
+                                     + "mJsFnjBIfJkJXDvfp6LYhgubleVj5kiNHCp/Pp9wFnuP7/Q8fgygZrXSiT/tzAQy\n"
+                                     + "Au90vbEzxvpCvbf0lQYcL5M9jFt9D2RxMLWQCbf+PrluXe+leWOiPlrvXY/sYqxW\n"
+                                     + "hlkQfaYjauR4qTbqo9VX4q142tbAsGnq8tmXbAlL+NK12HHZvGjOlsyOUjAbD0Vt\n"
+                                     + "398Vtqg3kiL/IAe1weda08BdTkA/Dj4DKHZQHs2ndKoDVV5icoIXHw==\n"
+                                     + "-----END CERTIFICATE-----";
+        String testCertificateUrl = "vmware.com";
+
+        context = new VSphereHttpClient.Context(vsphereUri, "user", "pass", testCertificateData);
+        VSphereHttpClient client = new VSphereHttpClient(context);
     }
 
     @Test

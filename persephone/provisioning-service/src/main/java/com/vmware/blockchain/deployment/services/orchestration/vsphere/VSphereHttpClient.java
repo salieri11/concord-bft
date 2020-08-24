@@ -4,7 +4,11 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
@@ -12,6 +16,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.assertj.core.util.Strings;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +29,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -69,6 +80,9 @@ public class VSphereHttpClient {
     private VsphereSessionAuthenticationInterceptor vsphereSessionAuthenticationInterceptor;
     private LoggingInterceptor loggingInterceptor;
 
+    private Boolean useSelfSignedCertForVSphere;
+    private KeyStore selfSignedCertKeyStore;
+
     /**
      * Constructor.
      */
@@ -85,6 +99,27 @@ public class VSphereHttpClient {
                 = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
                 context.getPassword());
 
+        // If self-signed certificate is populated enable useSelfSignedCertForVSphere
+        if (this.context.certificateData.isEmpty()) {
+            useSelfSignedCertForVSphere = false;
+        } else {
+            useSelfSignedCertForVSphere = true;
+        }
+
+        // Creating new Key store and populate the self-signed certificate for VSphere
+        if (useSelfSignedCertForVSphere) {
+            try {
+                selfSignedCertKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                // Currently have set the password to the key store as null, can be secured with password
+                selfSignedCertKeyStore.load(null, null);
+                Certificate selfSignedCertForVSphere = CertificateFactory.getInstance("X.509").generateCertificate(
+                        new ByteArrayInputStream(this.context.certificateData.getBytes()));
+                selfSignedCertKeyStore.setCertificateEntry("SelfSignedCertForVSphere", selfSignedCertForVSphere);
+            } catch (Exception e) {
+                throw new PersephoneException(e, "Error Creating Keystore");
+            }
+        }
+
         this.restTemplate = restTemplate();
 
         httpHeaders = vsphereSessionAuthenticationInterceptor.getAuthHeaders();
@@ -97,12 +132,39 @@ public class VSphereHttpClient {
      * @return Built RestTemplate.
      */
     public RestTemplate restTemplate() {
-        return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
-                .withInterceptor(vsphereSessionAuthenticationInterceptor)
-                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
-                .withInterceptor(loggingInterceptor)
-                .withObjectMapper(RestClientUtils.getDefaultMapper())
-                .build();
+        if (useSelfSignedCertForVSphere) {
+            try {
+                SSLContext sslContext = new SSLContextBuilder()
+                        .loadTrustMaterial(selfSignedCertKeyStore, null)
+                        .build();
+
+                SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
+
+                HttpClient httpClient = HttpClients.custom()
+                        .setSSLSocketFactory(socketFactory)
+                        .build();
+
+                HttpComponentsClientHttpRequestFactory factory =
+                        new HttpComponentsClientHttpRequestFactory(httpClient);
+
+                // Utilizes above created factory using the selfSignedCertKeyStore
+                return new RestClientBuilder().withRequestFactory(factory).withBaseUrl(context.getEndpoint().toString())
+                        .withInterceptor(vsphereSessionAuthenticationInterceptor)
+                        .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
+                        .withInterceptor(loggingInterceptor)
+                        .withObjectMapper(RestClientUtils.getDefaultMapper())
+                        .build();
+            } catch (Exception e) {
+                throw new PersephoneException(e, "Error Creating Keystore");
+            }
+        } else {
+            return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
+                    .withInterceptor(vsphereSessionAuthenticationInterceptor)
+                    .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
+                    .withInterceptor(loggingInterceptor)
+                    .withObjectMapper(RestClientUtils.getDefaultMapper())
+                    .build();
+        }
     }
 
     /**
@@ -116,7 +178,7 @@ public class VSphereHttpClient {
         URI endpoint;
         String username;
         String password;
-
+        String certificateData;
     }
 
 
