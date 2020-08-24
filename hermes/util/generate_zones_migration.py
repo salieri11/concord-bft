@@ -283,7 +283,7 @@ def get_network(zone):
     network = OrderedDict()
     if "vsphere" in zone and "network" in zone["vsphere"]:
         network["name"] = zone["vsphere"]["network"]["name"]
-        network["gateway"] = helper.long2ip(zone["vsphere"]["network"]["gateway"])
+        network["gateway"] = (zone["vsphere"]["network"]["gateway"])
         network["subnet"] = str(zone["vsphere"]["network"]["subnet"])
         network["name_servers"] = zone["vsphere"]["network"]["nameServers"]
         return network

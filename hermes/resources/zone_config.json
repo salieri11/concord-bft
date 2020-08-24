@@ -80,7 +80,7 @@
           "network":{
             "name":"sddc1-vmware-vpn-cloud-3",
             "addressAllocation":"STATIC",
-            "gateway":172545281,
+            "gateway":"10.72.213.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -136,7 +136,7 @@
           "network":{
             "name":"sddc1-vmware-vpn-onprem-3",
             "addressAllocation":"STATIC",
-            "gateway":172545025,
+            "gateway":"10.72.212.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
