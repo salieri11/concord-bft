@@ -9,7 +9,6 @@ import sys
 import tempfile
 import time
 import datetime
-
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.hermes_logging as hermes_logging_util
@@ -37,7 +36,6 @@ CUSTOM_INTERRUPTION_PARAMS = "CUSTOM_INTERRUPTION_PARAMS"
 NODE_INTERRUPTION_TIME = "NODE_INTERRUPTION_TIME"
 NODE_OFFLINE_TIME = "NODE_OFFLINE_TIME"
 TIME_BETWEEN_INTERRUPTIONS = "TIME_BETWEEN_INTERRUPTIONS"
-
 
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    '''

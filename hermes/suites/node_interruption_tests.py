@@ -22,13 +22,11 @@ import util.node_interruption_helper as intr_helper
 from suites.case import describe
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxNodeInterruption
 import util.hermes_logging
-
 log = util.hermes_logging.getMainLogger()
 helper.disable_duplicate_logs()
 
 # Read by the fxProduct fixture
 productType = helper.TYPE_NO_VERIFY
-
 
 @describe("Node Interruption - VM Stop/start - 1 node")
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
