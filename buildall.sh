@@ -221,7 +221,7 @@ persephone() {
     info "Build persephone..."
     docker_build persephone persephone/agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
 
-    docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
+    # docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
     waitForProcesses
 
     docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
