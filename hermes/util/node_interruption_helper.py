@@ -118,7 +118,7 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
 
 def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                                            interrupted_node_type,
-                                           interrupted_nodes=[],duration_to_run_transaction=1):
+                                           interrupted_nodes=[],duration_to_run_transaction=0):
    '''
    Check health of non-interrupted nodes and run sanity check
    :param fxBlockchain: blockchain fixture
@@ -174,7 +174,7 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
                break
             else:
-               log.info("Repeating daml transactions")
+               log.info("Repeating Daml transactions")
    else:
       log.info("** Skipping DAML test as all participant nodes are interrupted")
       status = True
