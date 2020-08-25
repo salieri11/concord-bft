@@ -16,12 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLContext;
-
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.assertj.core.util.Strings;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,6 +33,7 @@ import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetDatastoreResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetFolderResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetNetworkResponse;
@@ -133,37 +128,22 @@ public class VSphereHttpClient {
      */
     public RestTemplate restTemplate() {
         if (useSelfSignedCertForVSphere) {
-            try {
-                SSLContext sslContext = new SSLContextBuilder()
-                        .loadTrustMaterial(selfSignedCertKeyStore, null)
-                        .build();
+            HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils.getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
 
-                SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
-
-                HttpClient httpClient = HttpClients.custom()
-                        .setSSLSocketFactory(socketFactory)
-                        .build();
-
-                HttpComponentsClientHttpRequestFactory factory =
-                        new HttpComponentsClientHttpRequestFactory(httpClient);
-
-                // Utilizes above created factory using the selfSignedCertKeyStore
-                return new RestClientBuilder().withRequestFactory(factory).withBaseUrl(context.getEndpoint().toString())
-                        .withInterceptor(vsphereSessionAuthenticationInterceptor)
-                        .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
-                        .withInterceptor(loggingInterceptor)
-                        .withObjectMapper(RestClientUtils.getDefaultMapper())
-                        .build();
-            } catch (Exception e) {
-                throw new PersephoneException(e, "Error Creating Keystore");
-            }
+            // Utilizes above created factory using the selfSignedCertKeyStore
+            return new RestClientBuilder().withRequestFactory(factory).withBaseUrl(context.getEndpoint().toString())
+                .withInterceptor(vsphereSessionAuthenticationInterceptor)
+                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
+                .withInterceptor(loggingInterceptor)
+                .withObjectMapper(RestClientUtils.getDefaultMapper())
+                .build();
         } else {
             return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
-                    .withInterceptor(vsphereSessionAuthenticationInterceptor)
-                    .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
-                    .withInterceptor(loggingInterceptor)
-                    .withObjectMapper(RestClientUtils.getDefaultMapper())
-                    .build();
+                .withInterceptor(vsphereSessionAuthenticationInterceptor)
+                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
+                .withInterceptor(loggingInterceptor)
+                .withObjectMapper(RestClientUtils.getDefaultMapper())
+                .build();
         }
     }
 
