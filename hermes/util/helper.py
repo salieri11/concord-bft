@@ -2165,8 +2165,21 @@ def run_daml_sanity(ledger_api_hosts, results_dir, run_all_tests=True, verbose=T
       forwarding_src_port = FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
       upload_port = test_port = str(forwarding_src_port)
 
+      configObject = getUserConfig()
+      credentials = configObject["persephoneTests"]["provisioningService"][
+         "concordNode"]
+      username = credentials["username"]
+      password = credentials["password"]
+
+      # Setup port forwarding
+      dest_port = 6865
+      add_ethrpc_port_forwarding(ledger_api_host, username, password,
+                                 src_port=forwarding_src_port,
+                                 dest_port=dest_port, verbose=verbose)
+
       try:
-         daml_helper.upload_test_tool_dars(host=ledger_api_host, port=upload_port, verbose=verbose)
+         daml_helper.upload_test_tool_dars(host=ledger_api_host,
+                                           port=upload_port, verbose=verbose)
          daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
                                                  port=test_port,
                                                  run_all_tests=run_all_tests,
