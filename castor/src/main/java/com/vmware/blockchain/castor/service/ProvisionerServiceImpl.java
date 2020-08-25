@@ -388,7 +388,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         IPv4Network network = IPv4Network.newBuilder()
                 .setName(networkDescriptor.getName())
                 .setAddressAllocation(IPv4Network.AddressAllocationScheme.STATIC)
-                .setGateway(fromIpAddr(networkDescriptor.getGateway()))
+                .setGatewayIp(networkDescriptor.getGateway())
                 .setSubnet(networkDescriptor.getSubnet())
                 .setAllocationServer(Endpoint.newBuilder().build())
                 .addAllNameServers(nameServers)
