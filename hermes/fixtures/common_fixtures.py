@@ -24,6 +24,7 @@ import util.generate_zones_migration as migration
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
 BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas, clientNodes")
+ProductFixture = collections.namedtuple("ProductFixture", "product")
 
 # These orgs are artifically inserted into Helen and do not respond to all API calls
 # the way standard orgs do.
@@ -632,6 +633,8 @@ def fxProduct(request, fxHermesRunSettings):
                            waitForStartupParams=waitForStartupParams,
                            checkProductStatusParams=checkProductStatusParams)
          product.launchProduct()
+         # Instance of product, in case someone wants to access it
+         return ProductFixture(product=product)
 
       except Exception as e:
          log.error("The product did not start.")
