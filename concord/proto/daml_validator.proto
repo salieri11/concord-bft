@@ -21,6 +21,8 @@ service ValidationService {
   // Repeated (and possibly interleaved): Engine -> Preprocessor -> Engine: ReadRequest / ReadResult
   // Final: Engine -> Preprocessor: PreexecutionResult
   rpc Preexecute (stream PreprocessorToEngine) returns (stream PreprocessorFromEngine) {}
+
+  rpc PreExecuteMultiStep (PreExecuteRequest) returns (PreExecuteResponse) {}
 }
 
 message ValidateRequest {
@@ -190,6 +192,75 @@ message PreprocessorFromEngine {
 
     // The keys to be read
     repeated bytes keys = 2;
+  }
+}
+
+message PreExecuteRequest {
+  // Defines the pre-execution request.
+  PreExecutionRequest preexecution_request = 1;
+  // Contains read values to be used when processing the request.
+  ReadResult read_result = 2;
+
+  message PreExecutionRequest {
+    // The DAML submission to pre-execute
+    bytes submission = 1;
+
+    // The ID of the participant (= thin replica ID) that has submitted the DAML submission.
+    string submitting_participant_id = 2;
+
+    // The Concord replica that sent this message. Used to maintain separate
+    // state caches on the DAML Execution Engine for setups that use a single validator for multiple
+    // replicas (e.g. during development)
+    int64 replica_id = 100;
+
+    // Correlation-id to use in log messages emitted when processing this request.
+    string correlation_id = 101;
+
+    // OpenTracing span context
+    bytes span_context = 102;
+  }
+
+  message ReadResult {
+    // The read key-value pairs.
+    // There exists a block height at which the requested keys have the returned values (atomic reads).
+    // This block height is at least the block height at which pre-execution started on the particular replica.
+    //
+    // Every replica chooses for each ReadRequest a block height of its own.
+    // (Rocks DB provides atomic reads for individual requests out of the box
+    // because all operations execute sequentially.)
+    repeated KeyValueFingerprintTriple key_value_pairs = 1;
+  }
+}
+
+message PreExecuteResponse {
+  oneof from_engine {
+    // Request data from the KV store
+    // Every request is answered at some block height.
+    // Different requests may be answered from block heights.
+    ReadRequest read_request = 1;
+
+    // The result of the pre-execution.
+    //
+    // The read_set contains all keys that this pre-execution request depends on,
+    // along with the fingerprints of the values that were used.
+    // Post-execution checks for conflicts on these keys using the fingerprints.
+    // Keys are sorted in ascending order.
+    //
+    // The prexecution_result.output field is a PreExecutionOutput message for DAML pre-execution results.
+    //
+    // The serialization may only depend on the following inputs:
+    // - The key-value-fingerprint triples read during this pre-execution
+    // - Key-value-fingerprint triples cached during earlier (pre-)executions
+    // - The serialized DAML submission
+    // - The submitting participant id
+    // In particular, it must not depend on the following:
+    // - The replica ID
+    com.vmware.concord.PreExecutionResult preexecution_result = 2;
+  }
+
+  message ReadRequest {
+    // The keys to be read
+    repeated bytes keys = 1;
   }
 }
 

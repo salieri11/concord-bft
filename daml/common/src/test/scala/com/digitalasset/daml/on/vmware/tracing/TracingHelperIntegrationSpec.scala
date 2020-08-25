@@ -13,6 +13,8 @@ import io.opentracing.propagation.TextMapInject
 import org.scalatest.{AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
+import scala.concurrent.Future
+
 class TracingHelperIntegrationSpec
     extends AsyncWordSpec
     with AkkaBeforeAndAfterAll
@@ -102,5 +104,7 @@ class TracingHelperIntegrationSpec
 
       override def preexecute(responseObserver: StreamObserver[PreprocessorFromEngine])
         : StreamObserver[PreprocessorToEngine] = ???
+
+      override def preExecuteMultiStep(request: PreExecuteRequest): Future[PreExecuteResponse] = ???
     }
 }

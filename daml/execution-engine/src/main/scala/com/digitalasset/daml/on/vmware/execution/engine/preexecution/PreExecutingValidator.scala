@@ -50,7 +50,7 @@ class PreExecutingValidator(
         LedgerStateReaderWithFingerprints) => DamlLedgerStateReaderWithFingerprints,
     metricsForLedgerStateOperations: ConcordLedgerStateOperationsMetrics)(
     implicit val executionContext: ExecutionContext) {
-  import PreExecutingValidator.toWriteSet
+  import PreExecutingValidator._
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -127,14 +127,8 @@ class PreExecutingValidator(
       request: PreExecutionRequest,
       preExecutionResult: preexecution.PreExecutionOutput[KeyValuePairsWithAccessControlList],
       responseObserver: StreamObserver[PreprocessorFromEngine]): Unit = {
-    val preExecutionOutput = PreExecutionOutput.of(
-      preExecutionResult.minRecordTime.map(TimestampConversion.fromInstant),
-      preExecutionResult.maxRecordTime.map(TimestampConversion.fromInstant),
-      Some(toWriteSet(preExecutionResult.successWriteSet)),
-      Some(toWriteSet(preExecutionResult.outOfTimeBoundsWriteSet)),
-      preExecutionResult.involvedParticipants.map(toReplicaId).toSeq,
-      request.submittingParticipantId
-    )
+    val preExecutionOutput =
+      preExecutionResultToOutput(preExecutionResult, request.submittingParticipantId)
     val doneEvent =
       PreExecutionResult.of(
         Some(ReadSet.of(preExecutionResult.readSet.map {
@@ -199,12 +193,30 @@ object PreExecutingValidator {
 
   private[preexecution] def toWriteSet(
       preExecutionCommitResultWriteSet: LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList)
-    : WriteSet =
-    WriteSet.of(preExecutionCommitResultWriteSet.map {
+    : WriteSet = {
+    // Pre-execution result write set must be sorted to avoid non-determinism caused
+    // by multiple execution engines producing write sets in different order.
+    val writeSetSortedByKeys = preExecutionCommitResultWriteSet.sortBy(_._1.asReadOnlyByteBuffer())
+    WriteSet.of(writeSetSortedByKeys.map {
       case (key, value, accessControlList) =>
         val adaptedAccessControlList = accessControlListToThinReplicaIds(accessControlList)
           .map(ByteString.copyFromUtf8)
         val outputValue = ValueWithTrids.of(adaptedAccessControlList, Some(value)).toByteString
         KeyValuePair.of(key, outputValue)
     })
+  }
+
+  private[preexecution] def preExecutionResultToOutput(
+      preExecutionResult: preexecution.PreExecutionOutput[KeyValuePairsWithAccessControlList],
+      submittingParticipantId: String
+  ): PreExecutionOutput =
+    PreExecutionOutput.of(
+      preExecutionResult.minRecordTime.map(TimestampConversion.fromInstant),
+      preExecutionResult.maxRecordTime.map(TimestampConversion.fromInstant),
+      Some(toWriteSet(preExecutionResult.successWriteSet)),
+      Some(toWriteSet(preExecutionResult.outOfTimeBoundsWriteSet)),
+      preExecutionResult.involvedParticipants.map(toReplicaId).toSeq,
+      submittingParticipantId
+    )
+
 }
