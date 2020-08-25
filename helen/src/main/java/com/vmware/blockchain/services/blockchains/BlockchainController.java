@@ -384,6 +384,12 @@ public class BlockchainController {
             } else {
                 basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
             }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_ENABLED)) {
+                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_ENABLED.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_PREEXECUTION_ENABLED));
+            }
         }
 
         body.getReplicaZoneIds()

@@ -150,6 +150,7 @@ enum DeploymentAttributes {
     NO_LAUNCH = 10;
     SPLIT_CONFIG = 11;
     VM_STORAGE = 12;
+    PREEXECUTION_ENABLED = 13;
 }
 
 /* [END messages] */
