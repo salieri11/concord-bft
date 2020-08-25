@@ -1491,7 +1491,6 @@ void pushToArtifactory(){
     env.internal_castor_repo,
     env.internal_memleak_concord_repo,
     env.internal_persephone_configuration_repo,
-    env.internal_persephone_ipam_repo,
     env.internal_persephone_provisioning_repo,
     env.internal_ui_repo,
     env.internal_contract_compiler_repo,
