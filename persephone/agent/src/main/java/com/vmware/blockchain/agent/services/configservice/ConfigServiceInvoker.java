@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
+import com.vmware.blockchain.agent.services.exceptions.AgentException;
+import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.interceptor.retry.DefaultHttpRequestRetryInterceptor;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
@@ -53,7 +55,8 @@ public class ConfigServiceInvoker {
      * @param nodeId    node identifier.
      * @return list of {@link ConfigurationComponent}s.
      */
-    public List<ConfigurationComponent> retrieveConfiguration(ConfigurationSessionIdentifier session, String nodeId) {
+    public List<ConfigurationComponent> retrieveConfiguration(ConfigurationSessionIdentifier session, String nodeId)
+            throws AgentException {
         var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
                 .setIdentifier(session);
 
@@ -73,7 +76,7 @@ public class ConfigServiceInvoker {
             return result.getBody().getConfigurationComponentList();
         } catch (Exception e) {
             log.error("Configuration retrieval failed", e);
-            throw e;
+            throw new AgentException(ErrorCode.CONFIGURATION_RETRIEVAL_FAILURE, e.getMessage(), e);
         }
     }
 }
