@@ -22,12 +22,13 @@ from suites import (
   hlf_tests,
   performance_tests,
   persistency_tests,
+  persephone_tests,
   pytest_suite,
   sample_dapp_tests,
-  simple_st_test,
   ui_e2e_deploy_daml,
   ui_tests,
   websocket_rpc_tests,
+  persephone_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
 from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings
@@ -37,47 +38,63 @@ import util.chessplus.chessplus_helper as chessplus_helper
 sys.path.append("lib/persephone")
 
 log = None
-suiteList = [
-   "CastorDeploymentTests",
-   "ChessPlusTests",
-   "ContractCompilerTests",
-   "EthCoreVmTests",
-   "DamlTests",
-   "ClientPoolDamlTests",
-   "EvilTimeTests",
-   "EthJsonRpcTests",
-   "EthRegressionTests",
-   "HelenAPITests",
-   "HelenBlockTests",
-   "HelenBlockchainTests",
-   "HelenClientTests",
-   "HelenConsortiumTests",
-   "HelenContractTests",
-   "HelenMemberTests",
-   "HelenOrganizationTests",
-   "HelenReplicaTests",
-   "HelenZoneTests",
-   "HelenRoleTests",
-   "HlfTests",
-   "LintTests",
-   "LoggingTests",
-   "PerformanceTests",
-   "PersephoneTestsNew",
-   "SampleDAppTests",
-   "SampleSuite",
-   "SimpleStateTransferTest",
-   "ThinReplicaServerTests",
-   "TimeTests",
-   "TruffleTests",
-   "UiTests",
-   "WebSocketRPCTests",
-   "MetadataPersistencyTests"
-   "PrivacyTeeTests",
-   "ApolloBftTests",
-   "SkvbcStateTransferTests",
-   "SkvbcPreexecutionTests",
-   "DamlPreexecutionTests"
-]
+
+# Add new test suite in suiteList. 
+# If new test suite is a pytest suite, add it in pyTestSuiteList also
+
+pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests", 
+              "HelenAPITests", "HelenBlockTests", "HelenBlockchainTests", "HelenClientTests",
+              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests", 
+              "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
+              "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
+              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
+              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
+              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
+              "ContractCompilerTests", "CastorDeploymentTests"
+             ]
+
+suiteList = {
+   "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
+   "ChessPlusTests": "suites/chess_plus_tests.py",
+   "EthCoreVmTests": "suites/eth_core_vm_tests.py",
+   "DamlTests": "suites/daml_tests.py",
+   "ClientPoolDamlTests": "suites/daml_tests.py",
+   "HelenAPITests": "suites/helen/api_test.py",
+   "HelenBlockTests": "suites/helen/block_test.py",
+   "HelenBlockchainTests": "suites/helen/blockchain_test.py",
+   "HelenClientTests": "suites/helen/client_test.py",
+   "HelenConsortiumTests": "suites/helen/consortium_test.py",
+   "HelenContractTests": "suites/helen/contract_test.py",
+   "HelenMemberTests": "suites/helen/members_test.py",
+   "HelenOrganizationTests": "suites/helen/organization_test.py",
+   "HelenReplicaTests": "suites/helen/replica_test.py",
+   "HelenZoneTests": "suites/helen/zone_test.py",
+   "HelenRoleTests": "suites/helen/roles.py",
+   "NodeInterruptionTests": "suites/node_interruption_tests.py",
+   "LoggingTests": "suites/logging_tests.py",
+   "PersephoneTestsNew": "suites/persephone_tests_new.py",
+   "SampleSuite": "suites/sample_suite.py",
+   "ThinReplicaServerTests": "suites/thin_replica_server_tests.py",
+   "TimeTests": "suites/time_service/basic_test.py",
+   "EvilTimeTests": "suites/time_service/evil_test.py",
+   "PrivacyTeeTests": "suites/privacy_tee_tests.py",
+   "ApolloBftTests": "suites/apollo_bft_tests.py",
+   "SkvbcStateTransferTests": "suites/skvbc_state_transfer_tests.py",
+   "SkvbcPreexecutionTests": "suites/skvbc_preexecution_tests.py",
+   "DamlPreexecutionTests": "suites/daml_preexecution_tests.py",
+   "SimpleStateTransferTest": "suites/simple_st_test.py",
+   "ContractCompilerTests": "suites/contract_compiler_tests.py",
+   "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
+   "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
+   "EthRegressionTests": eth_regression_tests.EthRegressionTests,
+   "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
+   "PerformanceTests": performance_tests.PerformanceTests,
+   "UiTests": ui_tests.UiTests,
+   "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
+   "HlfTests": hlf_tests.HlfTests,
+   "MetadataPersistencyTests": persistency_tests.MetadataPersistencyTests,
+}
+
 local_modules = [os.path.join(".", "lib", "persephone")]
 
 
@@ -101,7 +118,7 @@ def main():
 
    parser = argparse.ArgumentParser()
    parser.add_argument("suites", help="Comma delimited list of test suites. " \
-                       "Available suites: {}".format(suiteList))
+                       "Available suites: {}".format([*suiteList]))
    parser.add_argument("--ethereumMode",
                        help="Run tests against Ethereum",
                        default=False,
@@ -340,6 +357,21 @@ def main():
       import util.infra
       folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
       util.infra.overrideDefaultZones(args.zoneOverride, folder)
+   
+   #Valid Test Suite List? 
+   allSuitesValid = True
+   unKnownSuites = []
+   for i, suiteName in enumerate(args.suites.split(",")):
+      if suiteName not in suiteList:
+         allSuitesValid = (allSuitesValid and False)
+         unKnownSuites.append(suiteName)
+      else:
+         allSuitesValid = (allSuitesValid and True)
+   
+   if not allSuitesValid :
+      log.error("Unknown Suites found: {}".format(unKnownSuites))
+      log.info("Available Test Suites {}".format([*suiteList]))
+      exit(3)
 
    for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:
@@ -350,7 +382,7 @@ def main():
          args.resultsDir = createResultsDir(suiteName,
                                             parent_results_dir=parent_results_dir)
          log.info("Results directory: {}".format(args.resultsDir))
-         suite = createTestSuite(args, suiteName, product)
+         suite = createTestSuite(args, pyTestSuiteList, suiteList,  suiteName, product)
          if suite is None:
             log.error("Unknown test suite")
             exit(3)
@@ -456,91 +488,12 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
       open(result_file, 'a').close()
 
 
-def createTestSuite(args, suiteName, product):
-   if (suiteName == "SampleDAppTests"):
-      return sample_dapp_tests.SampleDAppTests(args, product)
-   elif (suiteName == "CastorDeploymentTests"):
-       return pytest_suite.PytestSuite(args, "suites/castor_deployment_tests.py", product)
-   elif (suiteName == "ChessPlusTests"):
-      return pytest_suite.PytestSuite(args, "suites/chess_plus_tests.py", product)
-   elif (suiteName == "ContractCompilerTests"):
-       # Noopur : BC-4047 : Conversion from nonpytest to pytest
-       return pytest_suite.PytestSuite(args, "suites/contract_compiler_tests.py", product)
-   elif (suiteName == "EthCoreVmTests"):
-      return pytest_suite.PytestSuite(args, "suites/eth_core_vm_tests.py", product)
-   elif (suiteName == "HelenAPITests"):
-      return pytest_suite.PytestSuite(args, "suites/helen/api_test.py", product)
-   elif (suiteName == "HelenBlockTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/block_test.py", product)
-   elif (suiteName == "HelenBlockchainTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/blockchain_test.py", product)
-   elif (suiteName == "HelenClientTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/client_test.py", product)
-   elif (suiteName == "HelenConsortiumTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/consortium_test.py", product)
-   elif (suiteName == "HelenContractTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/contract_test.py", product)
-   elif (suiteName == "HelenOrganizationTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/organization_test.py", product)
-   elif (suiteName == "HelenMemberTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/members_test.py", product)
-   elif (suiteName == "HelenReplicaTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/replica_test.py", product)
-   elif (suiteName == "HelenZoneTests"):
-       return pytest_suite.PytestSuite(args, "suites/helen/zone_test.py", product)
-   elif (suiteName == "HelenRoleTests"):
-      return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
-   elif (suiteName == "NodeInterruptionTests"):
-      return pytest_suite.PytestSuite(args, "suites/node_interruption_tests.py", product)
-   elif (suiteName == "EthJsonRpcTests"):
-      return eth_json_rpc_tests.EthJsonRpcTests(args, product)
-   elif (suiteName == "EthRegressionTests"):
-      return eth_regression_tests.EthRegressionTests(args, product)
-   elif (suiteName == "WebSocketRPCTests"):
-      return websocket_rpc_tests.WebSocketRPCTests(args, product)
-   elif (suiteName == "PerformanceTests"):
-      return performance_tests.PerformanceTests(args, product)
-   elif (suiteName == "PersephoneTestsNew"):
-       return pytest_suite.PytestSuite(args, "suites/persephone_tests_new.py", product)
-   elif (suiteName == "SampleSuite"):
-      return pytest_suite.PytestSuite(args, "suites/sample_suite.py", product)
-   elif (suiteName == "SimpleStateTransferTest"):
-      return simple_st_test.SimpleStateTransferTest(args, product)
-   elif (suiteName == "TimeTests"):
-      return pytest_suite.PytestSuite(args, "suites/time_service/basic_test.py", product)
-   elif (suiteName == "EvilTimeTests"):
-      return pytest_suite.PytestSuite(args, "suites/time_service/evil_test.py", product)
-   elif (suiteName == "TruffleTests"):
-      return truffle_tests.TruffleTests(args, product)
-   elif (suiteName == "UiTests"):
-      return ui_tests.UiTests(args, product)
-   elif (suiteName == "DeployDamlTests"):
-      return ui_e2e_deploy_daml.DeployDamlTests(args, product)
-   elif (suiteName == "DamlTests"):
-      return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
-   elif (suiteName == "ClientPoolDamlTests"):
-      return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
-   elif (suiteName == "HlfTests"):
-      return hlf_tests.HlfTests(args, product)
-   elif (suiteName == "ThinReplicaServerTests"):
-      return pytest_suite.PytestSuite(args, "suites/thin_replica_server_tests.py", product)
-   elif (suiteName == "LoggingTests"):
-      return pytest_suite.PytestSuite(args, "suites/logging_tests.py", product)
-   elif (suiteName == "MetadataPersistencyTests"):
-      return persistency_tests.MetadataPersistencyTests(args, product)
-   elif (suiteName == "PrivacyTeeTests"):
-      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)
-   elif (suiteName == "ApolloBftTests"):
-       return pytest_suite.PytestSuite(args, "suites/apollo_bft_tests.py", product)
-   elif (suiteName == "SkvbcStateTransferTests"):
-       return pytest_suite.PytestSuite(args, "suites/skvbc_state_transfer_tests.py", product)
-   elif (suiteName == "SkvbcPreexecutionTests"):
-       return pytest_suite.PytestSuite(args, "suites/skvbc_preexecution_tests.py", product)
-   elif (suiteName == "DamlPreexecutionTests"):
-       return pytest_suite.PytestSuite(args, "suites/daml_preexecution_tests.py", product)
-   else:
-      return None
-
+def createTestSuite(args, pyTestSuiteList, suiteList, suiteName, product):
+     # Reaching this far implies we have known test suite at hand
+     if suiteName in pyTestSuiteList:
+        return pytest_suite.PytestSuite(args, suiteList[suiteName], product)
+     else:
+        return suiteList.get(suiteName)(args, product)
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    '''

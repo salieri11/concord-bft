@@ -16,78 +16,107 @@
 # check ALL 1400 blocks from all 4 replicas - both size and content must be
 # equal.
 #########################################################################
-import argparse
+
+import pytest
+from suites.case import describe, passed, failed
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
+from util.blockchain import eth as eth_helper
+from util import auth, csp, helper, infra, hermes_logging, numbers_strings, blockchain_ops, node_interruption_helper
+import math
+
 import collections
 import json
-import logging
+
 import os
-import pprint
-import tempfile
 import time
 import traceback
 import re
 import random
-from shutil import rmtree
+
 import subprocess
 from threading import Thread
 
-from . import test_suite
 from rpc.rpc_call import RPC
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
-from util.product import Product
 import util.json_helper
 import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
-from suites.case import describe, passed, failed
-
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
-def wait():
-    input('Press enter to continue...')
+SstSetupFixture = collections.namedtuple("SstSetupFixture", "to, funcPref, gas, existing_transactions")
+RequestConnection = collections.namedtuple("RequestConnection", "request, rpc")
 
-class SimpleStateTransferTest(test_suite.TestSuite):
-   _to = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019" #from genesis file
-   _funcPref = "0xe4b421f2000000000000000000000000000000000000000000000000000000000000"
-   _gas = "100000000"
+# def wait():
+#     input('Press enter to continue...')
 
-   def __init__(self, passedArgs, product):
-      super(SimpleStateTransferTest, self).__init__(passedArgs, product)
-      self.existing_transactions = 2
+@pytest.fixture
+@describe("fixture; Initial Setup")
+def fxSstSetup(request, hermes_settings):
+     return SstSetupFixture(to="0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019", 
+                            funcPref="0xe4b421f2000000000000000000000000000000000000000000000000000000000000",
+                            gas="100000000",
+                            existing_transactions=2)
 
-   def getName(self):
-      return "SimpleStateTransferTest"
+# set LogDir appropriately for each Test as required
+def createRequest(hermesData, blockchainId, testName="" ):
+   try:
+      if testName:
+         testLogDir = os.path.join(hermesData["hermesTestLogDir"], testName)
+      else:
+         testLogDir = hermesData["hermesTestLogDir"]
 
-   def send_data(self, count, contractAddress, maxRetries):
-      rpc = RPC(self._testLogDir,
-               self.getName(),
-               self.ethrpcApiUrl,
-               self._userConfig)
-      retries = 0
-      i = 0
-      while i < count:
-         try:
-            rand = "{:04x}".format(random.randint(100, 250))
-            txres = rpc.sendTransaction(self._to, self._funcPref + rand, self._gas, contractAddress)
-            if retries == 0:
-               i += 1
-            retries = 0
-         except:
-            log.debug("send_data fail, retries:{0}, maxRetries:{1}".format(retries, maxRetries))
-            retries += 1
-            if retries == maxRetries:
-               raise
+      req = Request(testLogDir,
+                     getName(),
+                     hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                     hermesData["hermesUserConfig"],
+                     service=hermesData["hermesCmdlineArgs"].deploymentService)
 
-   def check_data(self, path, blockToStart, blocksCount):
+      ethrpcUrl = eth_helper.getEthrpcApiUrl(req, blockchainId)
+   
+      # create rpc connection
+      rpc = RPC(testLogDir,
+               getName(),
+               ethrpcUrl,
+            hermesData["hermesUserConfig"])
+      return RequestConnection(request=req, rpc=rpc)
+   except:
+      log.error("Failed in getting the Obj")
+      raise
+
+
+def getName():
+   return "SimpleStateTransferTest"
+
+def send_data(hermesData, sstParams, blockchainId, count, contractAddress, maxRetries ):
+   request = createRequest(hermesData, blockchainId)
+
+   retries = 0
+   i = 0
+   while i < count:
+      try:
+         rand = "{:04x}".format(random.randint(100, 250))
+         
+         txres = request.rpc.sendTransaction(sstParams.to, sstParams.funcPref + rand, sstParams.gas, contractAddress)
+         if retries == 0:
+            i += 1
+         retries = 0
+      except:
+         log.debug("send_data fail, retries:{0}, maxRetries:{1}".format(retries, maxRetries))
+         retries += 1
+         if retries == maxRetries:
+            raise
+
+def check_data(path, blockToStart, blocksCount):
       try:
          originalCwd = os.getcwd()
          os.chdir(path)
          blocksData = []
          blocksDataLength = []
-
+       
          log.info("Checking data from {} to {}".format(blockToStart, blockToStart+blocksCount))
 
          toolPath = "/concord/conc_rocksdb_adp"
@@ -124,11 +153,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
          log.error(f"{message}\n{stack}")
          return False
 
-   def deploy_test_contract(self):
-      request = Request(self._testLogDir,
-               self.getName(),
-               self.reverseProxyApiBaseUrl,
-               self._userConfig)
+def deploy_test_contract(request, frmAddr):
+
       cdir = os.getcwd()
       log.debug(f'current dir: {cdir}')
       files = [f for f in os.listdir(cdir)]
@@ -145,18 +171,18 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                                                 contractId = cId,
                                                 contractVersion = cVersion,
                                                 compilerVersion = "v0.5.2+commit.1df8f40c",
-                                                fromAddr = self._to)
+                                                fromAddr = frmAddr)
 
       result = request.callContractAPI('/api/concord/contracts/' + cId
                                       + '/versions/' + cVersion, "")
       return result
 
-   def _send_async(self, transactions, contractAddress, maxRetries, threadCount = 10):
+def send_async(hermesSettings, sstParams, blockchainId, transactions, contractAddress, maxRetries, threadCount = 10):
       log.info("Start sending {} transactions".format(transactions))
       threads = []
-      txPerThread = int(transactions / threadCount)
+      txPerThread = math.ceil(transactions / threadCount)
       for i in range(0,threadCount):
-         t = Thread(target=self.send_data, args=(txPerThread, contractAddress, maxRetries))
+         t = Thread(target=send_data, args=(hermesSettings, sstParams, blockchainId, txPerThread, contractAddress, maxRetries))
          t.start()
          threads.append(t)
 
@@ -166,7 +192,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       log.info("Done sending {} transactions".format(transactions))
 
 
-   def sleep_and_check(self, initSleepTime, step, maxSleepTime, transactions):
+def sleep_and_check(initSleepTime, step, maxSleepTime, transactions):
       res = False
       totalSleepTime = 0
       while not res and totalSleepTime < maxSleepTime:
@@ -174,156 +200,108 @@ class SimpleStateTransferTest(test_suite.TestSuite):
             "Waiting for State Transfer to finish, estimated time {0} seconds".format(initSleepTime))
          time.sleep(initSleepTime)
          log.info("Checking data after State Transfer")
-         res = self.check_data(path, 0, transactions + self.existing_transactions)
+         res = check_data(path, 0, transactions)
          totalSleepTime += initSleepTime
          initSleepTime = step
       return res
 
 
-   @describe()
-   def _test_kill_replica(self):
+@describe()
+@pytest.mark.smoke
+def test_kill_replica(request, fxSstSetup, fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection):
       try:
+         
+         log.info("Starting Test ---> {0}".format(request.node.name))
          global path
+         
          transactions = 1000
-
-         contractInfo = self.deploy_test_contract()
-         if "address" not in contractInfo:
-            return failed("Failed to deploy contract")
+         hermesSettings = fxHermesRunSettings
+         req = createRequest(hermesSettings, fxBlockchain.blockchainId, request.node.name )    
+         
+         contractInfo = deploy_test_contract(req.request, fxSstSetup.to)
+     
+         assert "address" in contractInfo, "Failed to deploy contract"
          contractAddress = contractInfo["address"]
+         
+         send_async(hermesSettings, fxSstSetup,fxBlockchain.blockchainId, transactions, contractAddress, 1)
+   
+         # Is this a alternate way of getting instance of aleady running product
+         # product = Product(hermesData["hermesCmdlineArgs"],
+         #                    hermesData["hermesUserConfig"])
 
-         self._send_async(transactions, contractAddress, 1)
+         assert fxProduct.product.kill_concord_replica(2), "Failed to kill replica 2"
 
-         res = self.product.kill_concord_replica(2)
-         if not res:
-            return failed("Failed to kill replica 2")
+         path = fxProduct.product.cleanConcordDb(2)
+         assert path, "Failed to clean RocksDb"
+         assert fxProduct.product.start_concord_replica(2), "Failed to start replica 2"
+         assert sleep_and_check(120, 30, 360, transactions + fxSstSetup.existing_transactions), "Data check failed"
+         
+         log.info("Finishing Test Sucessfully---> {0}".format(request.node.name))
 
-         path = self.product.cleanConcordDb(2)
-         res = self.product.start_concord_replica(2)
-         if not res:
-            return failed("Failed to start replica 2")
-
-         res = self.sleep_and_check(120, 30, 360, transactions)
-         if not res:
-            return failed("Data check failed")
-
-         return passed("Data checked")
+         # return passed("Data checked")
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
          stack = traceback.format_exc()
          log.error(f"{message}\n{stack}")
-         return failed(message)
+         log.info("Finishing Test with Errors ---> {0}".format(request.node.name))
+         assert 1 == 2, message
        
-
-   @describe()
-   def _test_pause_replica(self):
+       
+@describe()
+@pytest.mark.smoke
+def test_pause_replica(request, fxSstSetup, fxHermesRunSettings, fxBlockchain, fxProduct, fxConnection):
       try:
+         log.info("Starting Test ---> {0}".format(request.node.name))
          global path
+         hermesSettings = fxHermesRunSettings       
 
-         res = self.product.kill_concord_replica(1)
-         if not res:
-            return failed("Failed to kill replica 1")
-         res = self.product.kill_concord_replica(2)
-         if not res:
-            return failed("Failed to kill replica 2")
-         res = self.product.kill_concord_replica(3)
-         if not res:
-            return failed("Failed to kill replica 3")
-         res = self.product.kill_concord_replica(4)
-         if not res:
-            return failed("Failed to kill replica 4")
-
-         p1 = self.product.cleanConcordDb(1)
-         p2 = self.product.cleanConcordDb(2)
-         p3 = self.product.cleanConcordDb(3)
-         p4 = self.product.cleanConcordDb(4)
-         if not p1 or not p2 or not p3 or not p4:
-            return failed("Failed to clean RocksDb")
+         assert fxProduct.product.kill_concord_replica(1), "Failed to kill replica 1"
+         assert fxProduct.product.kill_concord_replica(2), "Failed to kill replica 2"
+         assert fxProduct.product.kill_concord_replica(3), "Failed to kill replica 3"
+         assert fxProduct.product.kill_concord_replica(4), "Failed to kill replica 4"
+        
+         p1 = fxProduct.product.cleanConcordDb(1)
+         p2 = fxProduct.product.cleanConcordDb(2)
+         p3 = fxProduct.product.cleanConcordDb(3)
+         p4 = fxProduct.product.cleanConcordDb(4)
+         
+         assert p1 and p2 and p3 and p4, "Failed to clean RocksDb"
          path = p1
 
-         res = self.product.start_concord_replica(1)
-         if not res:
-            return failed("Failed to start replica 1")
-         res = self.product.start_concord_replica(2)
-         if not res:
-            return failed("Failed to start replica 2")
-         res = self.product.start_concord_replica(3)
-         if not res:
-            return failed("Failed to start replica 3")
-         res = self.product.start_concord_replica(4)
-         if not res:
-            return failed("Failed to start replica 4")
+         assert fxProduct.product.start_concord_replica(1), "Failed to start replica 1"
+         assert fxProduct.product.start_concord_replica(2), "Failed to start replica 2"
+         assert fxProduct.product.start_concord_replica(3), "Failed to start replica 3"
+         assert fxProduct.product.start_concord_replica(4), "Failed to start replica 4"
 
          time.sleep(40)
 
-         contractInfo = self.deploy_test_contract()
-         if "address" not in contractInfo:
-            return failed("Failed to deploy contract")
+         req = createRequest(hermesSettings, fxBlockchain.blockchainId, request.node.name )
+         contractInfo = deploy_test_contract(req.request, fxSstSetup.to)
+ 
+         assert "address" in contractInfo, "Failed to deploy contract"
          contractAddress = contractInfo["address"]
 
          transactions_1 = 1000
-         self._send_async(transactions_1, contractAddress, 1)
+         send_async(hermesSettings, fxSstSetup, fxBlockchain.blockchainId, transactions_1, contractAddress, 1)
 
-         res = self.product.pause_concord_replica(3)
-         if not res:
-            return failed("Failed to suspend replica")
+         assert fxProduct.product.pause_concord_replica(3), "Failed to suspend replica"
 
          transactions_2 = 400
          #this batch will go slower since only 3 replicas are up
-         self._send_async(transactions_2, contractAddress, 3)
+         send_async(hermesSettings, fxSstSetup, fxBlockchain.blockchainId, transactions_2, contractAddress, 3)
 
-         res = self.product.resume_concord_replica(3)
-         if not res:
-            return failed("Failed to resume replica")
-
-         res = self.sleep_and_check(90, 10, 150, transactions_1 + transactions_2)
-         if not res:
-            return failed("Data check failed")
+         assert fxProduct.product.resume_concord_replica(3), "Failed to resume replica"
+         assert sleep_and_check(90, 10, 150, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
 
          # check all blocks
-         res = self.check_data(path, 0, transactions_1 + transactions_2 + self.existing_transactions)
-
-         if not res:
-            return failed("Data check failed")
-
-         return passed("Data checked")
+         assert check_data(path, 0, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
+         log.info("Finishing Test Sucessfully --> {0}".format(request.node.name))
+         # return passed("Data checked")
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
          stack = traceback.format_exc()
          log.error(f"{message}\n{stack}")
-         return failed(message)
-
-
-   def _get_tests(self):
-      return [("kill_replica", self._test_kill_replica), \
-              ("pause_replica", self._test_pause_replica)
-              ]
-
-
-   def run(self):
-      self.launchProduct()
-      log.info("Starting tests")
-
-      tests = self._get_tests()
-      originalCwd = os.getcwd() # save original `hermes` dir
-      for (testName, testFunc) in tests:
-         log.info("Starting test " + testName)
-         os.chdir(originalCwd)
-         log.debug(f'cwd set to {originalCwd}')
-         testLogDir = os.path.join(self._testLogDir, testName)
-         # When this suite is switched over to pytest, the request object
-         # and the blockchain ID will be available from fixtures.  For now,
-         # create a request object and derive the blockchain ID here.
-         request = Request(testLogDir,
-                           testName,
-                           self._args.reverseProxyApiBaseUrl,
-                           self._userConfig,
-                           util.auth.internal_admin)
-         blockchainId = request.getBlockchains()[0]["id"]
-         self.setEthrpcNode(request, blockchainId)
-         res, info, stackInfo = testFunc()
-         self.writeResult(testName, res, info, stackInfo)
-
-      log.info("Tests are done")
-      return super().run()
+         log.info("Finishing Test with Errors ---> {0}".format(request.node.name))
+         assert 1 == 2, message
