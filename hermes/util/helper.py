@@ -1347,6 +1347,7 @@ def loadConfigFile(args=None, filepath=None):
 
    if configFilePath:
       configObject = json_helper_util.readJsonFile(configFilePath)
+      with open(configFilePath, "r") as f: CONFIG_CACHED['data-text'] = f.read()
    else:
       log.error("Cannot find user config source in any of the locations.")
       return None
@@ -1371,8 +1372,8 @@ def loadConfigFile(args=None, filepath=None):
           CONFIG_CACHED["zoneConfigOverrideFromSU"] = configs["zoneConfig"]
           configObject = jenkins.overrideOnlyDefaultConfig(configObject, configs["userConfig"])
           configObject["metainf"]["env"]["name"] = "LOCAL"
-          configObject["metainf"]["env"]["jobName"] = "None"
-          configObject["metainf"]["env"]["buildNumber"] = "None"
+          configObject["metainf"]["env"]["jobName"] = "None" if not jenkins.JENKINS_USER_OVERRIDE else jenkins.JENKINS_USER_OVERRIDE
+          configObject["metainf"]["env"]["buildNumber"] = "Local"
           configObject["metainf"]["env"]["dockerTag"] = ""
           configObject["metainf"]["env"]["workspace"] = ""
           configObject["jenkins"]["username"] = jenkins.JENKINS_USER_OVERRIDE
@@ -1406,12 +1407,13 @@ def loadZoneConfig(args=None, filepath=None):
    """
    zone_config_object = None
 
-   if args and args.zoneConfig:
-      zone_config_object = json_helper_util.readJsonFile(args.zoneConfig)
-   elif filepath:
-      zone_config_object = json_helper_util.readJsonFile(filepath)
-   elif os.path.exists(CONFIG_ZONE_FILE):
-      zone_config_object = json_helper_util.readJsonFile(CONFIG_ZONE_FILE)
+   configFilePath = args.zoneConfig if args and args.zoneConfig else filepath
+   if not configFilePath and os.path.exists(CONFIG_ZONE_FILE):
+     configFilePath = CONFIG_ZONE_FILE
+
+   if configFilePath:
+     zone_config_object = json_helper_util.readJsonFile(configFilePath)
+     with open(configFilePath, "r") as f: CONFIG_CACHED['zones-data-text'] = f.read()
    else:
       log.warning("Cannot find zone config source in either cmdline args, filepath, or default file {}"
                   .format(CONFIG_ZONE_FILE))

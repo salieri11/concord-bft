@@ -8,6 +8,9 @@ import traceback
 import time
 import threading
 import enum
+import socket
+import struct
+import uuid
 from . import helper, vsphere
 log = helper.hermes_logging_util.getMainLogger()
 
@@ -28,9 +31,6 @@ VSPHERE = {}
 # list of all deployed replicas by Hermes from this particular build
 # auto populated by `giveDeploymentContext` with replicaInfo
 DEPLOYED_REPLICAS = []
-
-# Infra Controller Entries
-NETWORK_SEGMENTS_FILE = '../vars/network_segments.json' # All network segs
 
 
 def credentialsAreGood(sddcName, sddcInfo):
@@ -128,7 +128,8 @@ def getListFromZoneConfig(configObject = None):
   # Can be vSphere SDDC or other on-prem locations
   #  e.g. Other on-prem location name with any string val
   for sddcName in configObject["infra"]:
-    sddcs.append(sddcName)
+    if configObject["infra"][sddcName]["active"]:
+      sddcs.append(sddcName)
   return sddcs
 
 
@@ -379,75 +380,238 @@ def fetch_vm_handles(ips):
    return vm_handles
 
 
-def resetIPAM(dryRun=True):
+def resetIPAM(targetSegsStr, dryRun=True):
   try:
-    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
-      resetConfig = json.load(f)
-      log.info("Generating persephone bindings for IPAM gRPC connection...")
-      os.system("util/generate_grpc_bindings.py "
-                "--source-path=../persephone/api/src/protobuf "
-                "--target-path=lib/persephone > /dev/null")
-      sddcs = []
-      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
-      prepareConnections(sddcs)
-      for targetConfig in resetConfig:
-        sddc = getConnection(targetConfig["sddcName"])
-        log.info("On {}, there are total {} replica VMs.".format(
-                targetConfig["sddcName"], sddc.getReplicaVMsCount()))
-        for segmentConfig in targetConfig["segments"]:
-          if not segmentConfig["active"]: continue
-          sddc.destroyAllVMsInNetworkSegment(segmentConfig["name"], dryRun=dryRun)
-          sddc.resetNetworkSegmentOnIPAM(segmentConfig["name"],
-                                        segmentConfig["block"],
-                                        segmentConfig["prefix"],
-                                        segmentConfig["subnet"],
-                                        segmentConfig["reserved"],
-                                        dryRun=dryRun)
-      for targetConfig in resetConfig:
-        sddc = getConnection(targetConfig["sddcName"])
-        sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
-      if not dryRun:
-        # Continue deleting new VMs are 5 minutes to prevent race condition with ongoing jobs
-        counter = 0; startTime = time.time()
-        while time.time() - startTime < 300:
-          for targetConfig in resetConfig:
-            sddc = getConnection(targetConfig["sddcName"])
-            newlyAdded = sddc.checkForNewEntities()
-            if newlyAdded:
-              for segmentConfig in targetConfig["segments"]:
-                if not segmentConfig["active"]: continue
-                sddc.destroyAllVMsInNetworkSegment(segmentConfig["name"], dryRun=dryRun)
-          counter += 1
-          log.info("Deleting any new VMs on the segment for 5 minutes to prevent "
-                  "race condition with ongoing deployments... ({})".format(counter))
-          time.sleep(30)
+    targetsInfo = getTargetsFromString(targetSegsStr)
+    if not targetsInfo["sddcs"]:
+      log.error("Cannot find any valid segment target from '{}'".format(targetSegsStr))
+      return
+    sddcs = targetsInfo["sddcs"]
+    segments = targetsInfo["segments"]
+    log.info("Generating persephone bindings for IPAM gRPC connection...")
+    os.system("util/generate_grpc_bindings.py "
+              "--source-path=../persephone/api/src/protobuf "
+              "--target-path=lib/persephone > /dev/null")
+    prepareConnections(sddcs)
+    for sddcName in sddcs:
+      sddc = getConnection(sddcName)
+      log.info("On {}, there are total {} replica VMs.".format(
+                sddcName, sddc.getReplicaVMsCount()))
+    targetNetworkNames = {}
+    for segInfo in segments:
+      sddc = getConnection(segInfo["sddcName"])
+      targetNetworkNames[segInfo["networkName"]] = segInfo
+      sddc.destroyAllVMsInNetworkSegment(segInfo["networkName"], dryRun=dryRun)
+      sddc.resetNetworkSegmentOnIPAM(segInfo["networkName"],
+                                     segInfo["ipamSegmentName"],
+                                     segInfo["prefix"],
+                                     segInfo["subnet"],
+                                     segInfo["reserved"],
+                                    dryRun=dryRun)
+    for sddcName in sddcs:
+      sddc = getConnection(sddcName)
+      sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
+    if not dryRun:
+      # Continue deleting new VMs on target segments for 5 minutes
+      # to prevent race condition with ongoing deployment jobs
+      counter = 0; startTime = time.time()
+      while time.time() - startTime < 300:
+        for sddcName in sddcs:
+          sddc = getConnection(sddcName)
+          newlyAddedVMHandles = sddc.checkForNewEntities()
+          for handle in newlyAddedVMHandles:
+            if handle["type"] != "VM": continue
+            vm = handle["entity"]
+            if vm.network and vm.network[0].name and vm.network[0].name in targetNetworkNames:
+              sddc.destroySingleVMByHandle(handle, dryRun=dryRun)
+        counter += 1
+        log.info("Deleting any new VMs on the segment for 5 minutes to prevent "
+                "race condition with ongoing deployments... ({})".format(counter))
+        time.sleep(30)
   except Exception as e:
     traceback.print_exc()
 
 
 def deregisterOrphanResources(dryRun=True):
   try:
-    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
-      resetConfig = json.load(f)
-      sddcs = []
-      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
-      prepareConnections(sddcs)
-      for targetConfig in resetConfig:
-        sddc = getConnection(targetConfig["sddcName"])
-        sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
+    sddcs = getListFromZoneConfig()
+    prepareConnections(sddcs)
+    for sddcName in sddcs:
+      sddc = getConnection(sddcName)
+      sddc.deleteOrphanNATsAndIPs(dryRun=dryRun)
   except Exception as e:
     traceback.print_exc()
 
 
 def resolveConflictVMs(dryRun=True):
   try:
-    with open(NETWORK_SEGMENTS_FILE, 'r') as f:
-      resetConfig = json.load(f)
-      sddcs = []
-      for targetConfig in resetConfig: sddcs.append(targetConfig["sddcName"])
-      prepareConnections(sddcs)
-      for targetConfig in resetConfig:
-        sddc = getConnection(targetConfig["sddcName"])
-        sddc.resolveVMsWithIPConflict(dryRun=dryRun)
+    sddcs = getListFromZoneConfig()
+    prepareConnections(sddcs)
+    for sddcName in sddcs:
+      sddc = getConnection(sddcName)
+      sddc.resolveVMsWithIPConflict(dryRun=dryRun)
   except Exception as e:
     traceback.print_exc()
+
+
+def overrideDefaultZones(targetSegments, targetFolder=None):
+  if not targetSegments:
+    log.error("Target segment not supplied.")
+    return
+  # keep original copy
+  zoneConfigCopy = json.loads(json.dumps(helper.getZoneConfig()))
+  if not os.path.exists("resources/zone_config.original.json"):
+    with open("resources/zone_config.original.json", "w+") as w:
+      w.write(json.dumps(helper.getZoneConfig(), indent=4))
+  sddcsMap = helper.getZoneConfig()["infra"]
+  defaults = helper.getZoneConfig()["defaults"]
+  if "folder:" in targetSegments:  targetFolder = targetSegments.split("folder:")[1].strip()
+  targetFolder = targetFolder if targetFolder else defaults["folder"]
+  cloudZones = []; onpremZones = []
+  with open("resources/zone_template.json", "r") as f:
+    mainTemplate = json.load(f)
+    segments = getTargetsFromString(targetSegments)["segments"]
+    finalReplacements = []
+    for seg in segments:
+      sddcName = seg["sddcName"]
+      templateContent = json.dumps(mainTemplate[seg["zoneType"]], indent=4) # copy template matching zone type into str
+      templateReplaced = templateContent.replace(
+                      "<ZONE_ID>", str(uuid.uuid4())).replace(
+                      "<ZONE_NAME>", "{} {} - {} Segment ({})".format(sddcName, seg["zoneType"],
+                                                                      seg["category"], seg["networkName"])).replace(
+                      "<SDDC_ORG_ID>", sddcsMap[sddcName]["orgId"]).replace(
+                      "<SDDC_ID>", sddcsMap[sddcName]["sddcId"]).replace(
+                      "<SDDC_IP_HYPHENATED>", sddcsMap[sddcName]["publicIP"].replace(".","-")).replace(
+                      "<VMC_API_TOKEN>", defaults["vmcToken"]).replace(
+                      "<ZONE_SDDC_USERNAME>", sddcsMap[sddcName]["username"]).replace(
+                      "<ZONE_SDDC_PASSWORD>", sddcsMap[sddcName]["password"]).replace(
+                      "<RESOURCE_POOL_NAME>", defaults["resourcePool"]).replace(
+                      "<DATASTORE_NAME>", defaults["datastore"]).replace(
+                      "<DEPLOYMENT_FOLDER>", targetFolder).replace(
+                      "<DATASTORE_NAME>", defaults["datastore"]).replace(
+                      "<NETWORK_SEGMENT_NAME>", seg["networkName"]).replace(
+                      "<NETWORK_SEGMENT_GATEWAY_IP>", seg["gateway"]).replace(
+                      "<WAVEFRONT_API_TOKEN>", defaults["wavefront"]).replace(
+                      "<FLUENTD_AUTHORIZATION_BEARER>", defaults["fluentd"]).replace(
+                      '">', "").replace('<"', "")
+      if seg["zoneType"] == "CLOUD":
+        cloudZones.append(json.loads(templateReplaced))
+      elif seg["zoneType"] == "ONPREM":
+        onpremZones.append(json.loads(templateReplaced))
+  if len(cloudZones + onpremZones) > 0:
+    zoneConfigCopy["zones"]["sddc"] = cloudZones
+    zoneConfigCopy["zones"]["onprem"] = onpremZones
+    with open("resources/zone_config.json", "w") as f:
+      f.write(json.dumps(zoneConfigCopy, indent=4))
+    log.info("Overridden with {} cloud zones and {} onprem zones. (Segments spec: '{}', folder: '{}')".format(
+             len(cloudZones), len(onpremZones), targetSegments, targetFolder))
+    if len(cloudZones) == 0:
+      log.warning("(Default cloud zones has NO members in the new config; cloud deployments will not work.)")
+    if len(onpremZones) == 0:
+      log.warning("(Default onprem zone has NO members in the new config; onprem deployments will not work.)")
+    helper.CONFIG_CACHED["zones"] = zoneConfigCopy
+
+def restoreDefaultZones():
+  if os.path.exists("resources/zone_config.original.json"):
+    with open("resources/zone_config.original.json", "r") as fileRead:
+      with open("resources/zone_config.json", "w+") as fileWrite:
+        fileWrite.write(fileRead.read())
+    os.remove("resources/zone_config.original.json")
+
+def outputEffectiveZones():
+  zoneConfig = helper.getZoneConfig()["zones"]
+  for zone in zoneConfig["sddc"]:
+    log.info("Using cloud zone: {} ({})".format(
+        zone["info"]["labels"]["name"], zone["vsphere"]["network"]["name"]))
+  for zone in zoneConfig["onprem"]:
+    log.info("Using onprem zone: {} ({})".format(
+        zone["info"]["labels"]["name"], zone["vsphere"]["network"]["name"]))
+
+def getTargetsFromString(targetSegsStr):
+  '''```python
+  # if targetSegs is "sddc1.mr.cloud, sddc4.od.onprem"
+  returns {
+    "sddcs": [ "SDDC1", "SDDC4" ],
+    "segments": [
+        { "sddcName": "SDDC1", "category": "MR", "zoneType": "CLOUD",
+          "networkName": "sddc1-vmware-vpn-cloud-2", "ipamSegmentName": "a890ac97-941d-4479-a90c-98061c1e3639-sddc1-vmware-vpn-cloud-2",
+          "prefix": "0A48D700", "subnet": 24, "gateway": "0.0.0.1", "reserved": [ "0A48D700-0A48D707", "0A48D7FA-0A48D7FF" ] },
+        { "sddcName": "SDDC4", "category": "OD", "zoneType": "ONPREM",
+          "networkName": "sddc4-vmware-vpn-onprem-3", "ipamSegmentName": "sddc4-vmware-vpn-onprem-3",
+          "prefix": "0A48EE00", "subnet": 24, "gateway": "0.0.0.1", "reserved": [ "0A48EE00-0A48EE07", "0A48EEFA-0A48EEFF" ] },
+    ]
+  }'''
+  targetStrs = parseTargetsString(targetSegsStr)
+  sddcs = []; targetSegments = []; 
+  sddcsMap = helper.getZoneConfig()["infra"]
+  for targetStr in targetStrs:
+    if not targetStr or "folder:" in targetStr: continue
+    targetStrSplit = targetStr.split(".")
+    sddcName = targetStrSplit[0].upper()
+    if sddcName not in sddcsMap or len(targetStrSplit) != 3: continue
+    segCategoryName = targetStrSplit[1].upper()
+    if segCategoryName not in sddcsMap[sddcName]["segments"]: continue
+    zoneType = targetStrSplit[2].upper()
+    if zoneType not in sddcsMap[sddcName]["segments"][segCategoryName]: continue
+    if not sddcsMap[sddcName]["segments"][segCategoryName][zoneType]["active"]: continue # not active
+    if sddcName not in sddcs: sddcs.append(sddcName)
+    sddcId = sddcsMap[sddcName]["sddcId"]; sddcNum = sddcsMap[sddcName]["num"]
+    segInfo = sddcsMap[sddcName]["segments"][segCategoryName][zoneType]
+    cidr = segInfo["cidr"]
+    ipBase = cidr.split("/")[0]
+    ipHex = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, ipBase.split('.')))
+    gateway_ip = ipBase[:-1] + "1" # assuming ipBase ends with ".0"
+    reservedFront = "{}-{}".format(ipHex, ipHex[:-2] + "07") # front 7 reserved; DHCP
+    reservedBack = "{}-{}".format(ipHex[:-2] + "FA", ipHex[:-2] + "FF") # back 5 reserved; jump boxes
+    networkName = segInfo["network"].replace("<ID>", sddcId).replace("<NUM>", sddcNum)
+    ipamSegName = segInfo["ipam_block"].replace("<ID>", sddcId).replace("<NUM>", sddcNum)
+    targetSegments.append({
+      "sddcName": sddcName,
+      "category": segCategoryName,
+      "zoneType": zoneType,
+      "networkName": networkName,
+      "ipamSegmentName": ipamSegName,
+      "prefix": ipHex,
+      "subnet": 24,
+      "gateway": gateway_ip,
+      "reserved": [reservedFront, reservedBack]
+    })
+  targetObj = {
+    "sddcs": sddcs,
+    "segments": targetSegments
+  }
+  return targetObj
+
+
+def parseTargetsString(targetSegsStr):
+  targetStrs = targetSegsStr.replace(" ", ",").split(",")
+  targetStrs = list(set(targetStrs)) # unique once
+  sddcs = []; targetSegments = []; 
+  sddcsMap = helper.getZoneConfig()["infra"]
+  allTargets = []
+  for targetStr in targetStrs:
+    if not targetStr: continue
+    targetStrSplit = targetStr.split(".")
+    if len(targetStrSplit) < 2: continue
+    sddcName = targetStrSplit[0].upper()
+    if sddcName not in sddcsMap or not sddcsMap[sddcName]["active"]: continue
+    if "segments" not in sddcsMap[sddcName]:
+      log.info("{} has no segments definitions".format(sddcName))
+      continue
+    segCategoryName = targetStrSplit[1].upper()
+    if segCategoryName == "*":
+      zoneType = "*" if len(targetStrSplit) == 2 else targetStrSplit[2].upper()
+      categoryKeys = list(sddcsMap[sddcName]["segments"].keys())
+      categoryKeys.remove("_key")
+    else:
+      zoneType = targetStrSplit[2].upper()
+      categoryKeys = [segCategoryName]
+    for segCategory in categoryKeys:
+      if zoneType == "*":
+        for zoneTypeName in sddcsMap[sddcName]["segments"][segCategory]:
+          if sddcsMap[sddcName]["segments"][segCategory][zoneTypeName]["active"]: # only get active segments
+            allTargets.append("{}.{}.{}".format(sddcName.lower(), segCategory.lower(), zoneTypeName.lower()))
+      elif sddcsMap[sddcName]["segments"][segCategory][zoneType]["active"]:
+        allTargets.append("{}.{}.{}".format(sddcName.lower(), segCategory.lower(), zoneType.lower()))
+  return allTargets
+

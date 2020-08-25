@@ -24,6 +24,10 @@ def prepare_stub():
   if CONNECTION["stub"]: return CONNECTION["stub"]
   with io.open(CONNECTION["certFile"], "rb") as f:
       trusted_certs = f.read()
+      if trusted_certs[0] == ord("<"):
+          error_msg = "CERTIFICATE_ERROR: IPAM certificate is not valid. Please set ipam.crt content to a right value."
+          log.error(error_msg)
+          raise Exception(error_msg)
   credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
   channel = grpc.secure_channel(CONNECTION["server"], credentials)
   stub = ip_allocation_service_rpc.IPAllocationServiceStub(channel)

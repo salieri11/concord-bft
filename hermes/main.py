@@ -38,7 +38,7 @@ sys.path.append("lib/persephone")
 
 log = None
 suiteList = [
-   "CastorDeploymentTests"
+   "CastorDeploymentTests",
    "ChessPlusTests",
    "ContractCompilerTests",
    "EthCoreVmTests",
@@ -126,6 +126,14 @@ def main():
    parser.add_argument("--zoneConfig",
                        help="Zone config file to load zones from",
                        default=helper.CONFIG_ZONE_FILE)
+   parser.add_argument("--zoneOverride",
+                       help="override specific cloud/onprems zone segments. " \
+                            "e.g. 'sddc1.mr.*, sddc4.mr.*' " \
+                            "(to use sddc1 & sddc4 MR segs for both cloud/onprem)",
+                       default="")
+   parser.add_argument("--zoneOverrideFolder",
+                       help="override deployments to a specific folder",
+                       default=None)
    parser.add_argument("--dockerComposeFile",
                        help="REQUIRES SUDO. Accepts a docker compose file " \
                        "which starts concord and helen.  The product will " \
@@ -328,6 +336,10 @@ def main():
       helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
       userConfig = helper.getUserConfig()
       zoneConfig = helper.getZoneConfig()
+   if args.zoneOverride:
+      import util.infra
+      folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
+      util.infra.overrideDefaultZones(args.zoneOverride, folder)
 
    for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:
