@@ -1569,7 +1569,6 @@ void tagImagesForRelease(){
     docker tag ${internal_castor_repo}:${docker_tag} ${release_castor_repo}:${docker_tag}
     docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
     docker tag ${internal_persephone_configuration_repo}:${docker_tag} ${release_persephone_configuration_repo}:${docker_tag}
-    docker tag ${internal_persephone_ipam_repo}:${docker_tag} ${release_persephone_ipam_repo}:${docker_tag}
     docker tag ${internal_persephone_provisioning_repo}:${docker_tag} ${release_persephone_provisioning_repo}:${docker_tag}
     docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
     docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
