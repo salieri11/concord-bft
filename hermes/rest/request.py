@@ -721,3 +721,13 @@ class Request():
       self._endpointName = "organizations"
       self._data = {"organization_name": orgName}
       return self._send()
+
+
+   def getNodeSizeTemplate(self):
+      '''
+      Get the node sizing template for the system.
+      '''
+      self._subPath = "/api/blockchains/nodesizetemplate"
+      self._endpointName = "nodesizetemplate"
+
+      return self._send()
