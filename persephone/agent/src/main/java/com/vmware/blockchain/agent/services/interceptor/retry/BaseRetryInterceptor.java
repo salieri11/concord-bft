@@ -64,7 +64,6 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
             ClientHttpResponse response;
             try {
                 response = execution.execute(request, body);
-                response.getBody();
             } catch (Exception ex) {
                 logger.error("Failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
                 throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE, new InternalError("Error logged : ",
