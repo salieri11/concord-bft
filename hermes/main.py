@@ -452,7 +452,8 @@ def createTestSuite(args, suiteName, product):
    elif (suiteName == "ChessPlusTests"):
       return pytest_suite.PytestSuite(args, "suites/chess_plus_tests.py", product)
    elif (suiteName == "ContractCompilerTests"):
-       return contract_compiler_tests.ContractCompilerTests(args, product)
+       # Noopur : BC-4047 : Conversion from nonpytest to pytest
+       return pytest_suite.PytestSuite(args, "suites/contract_compiler_tests.py", product)
    elif (suiteName == "EthCoreVmTests"):
       return pytest_suite.PytestSuite(args, "suites/eth_core_vm_tests.py", product)
    elif (suiteName == "HelenAPITests"):

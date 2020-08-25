@@ -7,13 +7,17 @@
 import logging
 import os
 import traceback
+import pytest
+import util.hermes_logging
+import collections
 
-from . import test_suite
-from suites.case import describe, passed, failed, getStackInfo
+from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from suites.case import describe
 from rest.request import Request
 
-import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
+LocalSetupFixture = collections.namedtuple(
+    "LocalSetupFixture", "testName, args, testLogDir")
 
 contractBytecode_0_5_2 = ('608060405234801561001057600080fd5b5061013980610020600039'
                           '6000f3fe608060405234801561001057600080fd5b50600436106100'
@@ -52,314 +56,237 @@ contractBytecode_0_4_0 = ('606060405260a18060106000396000f360606040526000357c010
                           '5180910390f35b806000600050819055505b50565b60006000600050'
                           '549050609e565b9056')
 
-class ContractCompilerTests(test_suite.TestSuite):
-    _args = None
-    _userConfig = None
-    _ethereumMode = False
-    _productMode = True
-    _resultFile = None
 
-    def __init__(self, passedArgs, product):
-        super(ContractCompilerTests, self).__init__(passedArgs, product)
-
-    def getName(self):
-        return "ContractCompilerTests"
-
-    def run(self):
-        ''' Runs all of the tests. '''
-        p = self.launchProduct()
-
-        if self._ethereumMode:
-            info = "ContractCompilerTests are not applicable to ethereumMode."
-            log.warn(info)
-            self.writeResult("All tests", None, info, getStackInfo())
-            return self._resultFile
-
-        tests = self._getTests()
-
-        for (testName, testFun) in tests:
-            testLogDir = os.path.join(self._testLogDir, testName)
-
-            try:
-                result, info, stackInfo = self._runRestTest(testName,
-                                                 testFun,
-                                                 testLogDir)
-            except Exception as e:
-                result = False
-                info = str(e)
-                stackInfo = getStackInfo(e)
-                traceback.print_tb(e.__traceback__)
-                log.error("Exception running test: '{}'".format(info))
-
-            if info:
-                info += "  "
-            else:
-                info = ""
-
-            relativeLogDir = self.makeRelativeTestPath(testLogDir)
-            info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
-                                                        testLogDir)
-            self.writeResult(testName, result, info, stackInfo)
-
-        log.info("Tests are done.")
-        return super().run()
-
-    def _runRestTest(self, testName, testFun, testLogDir):
-        log.info("Starting test '{}'".format(testName))
-        request = Request(testLogDir,
-                          testName,
-                          self.contractCompilerApiBaseUrl,
-                          self._userConfig)
-        return testFun(request)
-
-    def _getTests(self):
-        return [("contractCompilation", self._test_contractCompilation), \
-                ("contractCompilation040", self._test_contractCompilation040), \
-                ("contractCompilationFailed", self._test_contractCompilationFailed), \
-                ("contractVerification", self._test_contractVerification), \
-                ("contractVerification040", self._test_contractVerification040), \
-                ("contractVerification0419", self._test_contractVerification0419), \
-                ("contractVerificationFailedMismatchedContract", self._test_contractVerificationFailedMismatchedContract), \
-                ("contractVerificationFailedMismatchedCompiler", self._test_contractVerificationFailedMismatchedCompiler), \
-                ("contractVerificationFailedToCompile", self._test_contractVerificationFailedToCompile), \
-                ("contractCompilationFailedInvalidFile", self._test_contractCompilationFailedInvalidFile), \
-                ("contractCompilationFailedInvalidCompilerVersion", self._test_contractCompilationFailedInvalidCompilerVersion), \
-                ("contractVerificationFailedInvalidFile", self._test_contractVerificationFailedInvalidFile), \
-                ("contractVerificationFailedInvalidBytecode", self._test_contractVerificationFailedInvalidBytecode), \
-                ("contractVerificationFailedInvalidCompilerVersion", self._test_contractVerificationFailedInvalidCompilerVersion)
-        ]
-
-    def contract_compile_util_generic(self, request, sourceCode, compilerVersion):
-
-        data = {}
-        data["sourcecode"] = sourceCode
-        data["compilerVersion"] = compilerVersion
-        data["isOptimize"] = True
-        data["runs"] = 200
-        return request.compileContract(data)
-
-    def contract_compile_util(self, request, compilerVersion, sourceCode):
-        '''
-        A helper method to upload simple hello world contract.
-        '''
-        return self.contract_compile_util_generic(request,sourceCode,compilerVersion)
-
-    def compile_mock_contract(self, request, compilerVersion=None, sourceCode=None):
-        if compilerVersion is None:
-            compilerVersion = "v0.5.2+commit.1df8f40c"
-        if sourceCode is None:
-            contractFile = open("resources/contracts/HelloWorld.sol", 'r')
-            sourceCode = contractFile.read()
-        result = self.contract_compile_util(request, compilerVersion,
-                                           sourceCode)
-        if "data" in result:
-            return result["data"]
-        else:
-            raise Exception("Contract compilation failed with error '{}'".format(result["error"]))
-
-    def contract_verify_util_generic(self, request, sourceCode, compilerVersion, existingBytecode, selectedContract):
-
-        data = {}
-        data["sourcecode"] = sourceCode
-        data["compilerVersion"] = compilerVersion
-        data["existingBytecode"] = existingBytecode
-        data["selectedContract"] = selectedContract
-        return request.verifyContract(data)
-
-    def contract_verify_util(self, request, compilerVersion, sourceCode, existingBytecode, selectedContract):
-        '''
-        A helper method to verify a simple contract.
-        '''
-        return self.contract_verify_util_generic(request,sourceCode,compilerVersion, existingBytecode, selectedContract)
-
-    def verify_mock_contract(self, request, compilerVersion=None, selectedContract=None, sourceCode=None, existingBytecode=None):
-        if compilerVersion is None:
-            compilerVersion = "v0.5.2+commit.1df8f40c"
-        if selectedContract is None:
-            selectedContract = "HelloWorld"
-        if sourceCode is None:
-            contractFile = open("resources/contracts/HelloWorldMultiple.sol", 'r')
-            sourceCode = contractFile.read()
-        if existingBytecode is None:
-            existingBytecode = contractBytecode_0_5_2
-        result = self.contract_verify_util(request, compilerVersion,
-                                            sourceCode, existingBytecode, selectedContract)
-        if "data" in result:
-            return result["data"]
-        else:
-            raise Exception("Contract verification failed with error '{}'".format(result["error"]))
+@pytest.fixture(scope="function")
+@describe("fixture; local setup for given test suite")
+def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+    testName = fxConnection.request.testName
+    args = fxHermesRunSettings["hermesCmdlineArgs"]
+    testLogDir = os.path.join(
+        fxHermesRunSettings["hermesTestLogDir"], testName)
+    return LocalSetupFixture(testName=testName, args=args, testLogDir=testLogDir)
 
 
+# This function will return a request object
+def getRequest(localSetup):
+    return Request(localSetup.testLogDir, localSetup.testName,
+                   localSetup.args.contractCompilerApiBaseUrl, localSetup.args.config)
 
-    # Tests: expect one argument, a Request, and produce a 2-tuple
-    # (bool success, string info)
-    @describe()
-    def _test_contractCompilation(self, request):
-        result = self.compile_mock_contract(request)
 
-        if "metadata" in result[0]:
-            return passed()
-        else:
-            return failed("Contract failed to compile")
+def contract_compile_util_generic(localSetup, sourceCode, compilerVersion):
+    data = {}
+    data["sourcecode"] = sourceCode
+    data["compilerVersion"] = compilerVersion
+    data["isOptimize"] = True
+    data["runs"] = 200
+    return getRequest(localSetup).compileContract(data)
 
-    @describe()
-    def _test_contractCompilation040(self, request):
-        # solc outputs are different for compiler versions <= 4.4 as well as <= 4.7.
-        # Need to test compilation and response structure
-        compilerVersion = "v0.4.0+commit.acd334c9"
-        contractFile = open("resources/contracts/SimpleStorage-0.4.0.sol", 'r')
+
+def contract_compile_util(localSetup, compilerVersion, sourceCode):
+    '''
+    A helper method to upload simple hello world contract.
+    '''
+    return contract_compile_util_generic(localSetup, sourceCode, compilerVersion)
+
+
+def compile_mock_contract(localSetup, compilerVersion=None, sourceCode=None):
+    if compilerVersion is None:
+        compilerVersion = "v0.5.2+commit.1df8f40c"
+    if sourceCode is None:
+        contractFile = open("resources/contracts/HelloWorld.sol", 'r')
         sourceCode = contractFile.read()
+    result = contract_compile_util(
+        localSetup, compilerVersion, sourceCode)
+    if "data" in result:
+        return result["data"]
+    else:
+        raise Exception(
+            "Contract compilation failed with error '{}'".format(result["error"]))
 
-        result = self.compile_mock_contract(request, compilerVersion, sourceCode)
 
-        if result[0].get("metadata", {}).get("output", {}).get("abi", False):
-            return passed()
-        else:
-            return failed("Contract failed to compile")
+def contract_verify_util_generic(localSetup, sourceCode, compilerVersion, existingBytecode, selectedContract):
+    data = {}
+    data["sourcecode"] = sourceCode
+    data["compilerVersion"] = compilerVersion
+    data["existingBytecode"] = existingBytecode
+    data["selectedContract"] = selectedContract
 
-    @describe()
-    def _test_contractCompilationFailed(self, request):
-        compilerVersion = "v0.4.17+commit.bdeb9e52"
+    return getRequest(localSetup).verifyContract(data)
 
-        try:
-            self.compile_mock_contract(request, compilerVersion)
-        except Exception as e:
-            if "Source file requires different compiler version" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when compiling contract")
-        else:
-            return failed("Failure when compiling contract with invalid compiler version")
 
-    @describe()
-    def _test_contractVerification(self, request):
-        result = self.verify_mock_contract(request)
+def contract_verify_util(localSetup, compilerVersion, sourceCode, existingBytecode, selectedContract):
+    '''
+    A helper method to verify a simple contract.
+    '''
+    return contract_verify_util_generic(localSetup, sourceCode, compilerVersion, existingBytecode, selectedContract)
 
-        if result["verified"] == True:
-            return passed()
-        else:
-            return failed("Bytecode failed to verify")
 
-    @describe()
-    def _test_contractVerification0419(self, request):
-        # bytecode verification is different in compiler versions from 0.4.8 and 0.4.21.
-        # Need to test a compiled file in this range
-        compilerVersion = "v0.4.19+commit.c4cbbb05"
-        result = self.verify_mock_contract(request, compilerVersion, None, None, contractBytecode_0_4_19)
-
-        if result["verified"] == True:
-            return passed()
-        else:
-            return failed("Bytecode failed to verify")
-
-    @describe()
-    def _test_contractVerification040(self, request):
-        # bytecode verification is different in compiler versions < 0.4.7.
-        # Need to test a compiled file in this range
-        compilerVersion = "v0.4.0+commit.acd334c9"
-        contractFile = open("resources/contracts/SimpleStorage-0.4.0.sol", 'r')
+def verify_mock_contract(localSetup, compilerVersion=None, selectedContract=None, sourceCode=None, existingBytecode=None):
+    if compilerVersion is None:
+        compilerVersion = "v0.5.2+commit.1df8f40c"
+    if selectedContract is None:
+        selectedContract = "HelloWorld"
+    if sourceCode is None:
+        contractFile = open("resources/contracts/HelloWorldMultiple.sol", 'r')
         sourceCode = contractFile.read()
-        selectedContract = "SimpleStorage"
-        result = self.verify_mock_contract(request, compilerVersion, selectedContract, sourceCode, contractBytecode_0_4_0)
+    if existingBytecode is None:
+        existingBytecode = contractBytecode_0_5_2
+    result = contract_verify_util(localSetup, compilerVersion,
+                                  sourceCode, existingBytecode, selectedContract)
+    if "data" in result:
+        return result["data"]
+    else:
+        raise Exception(
+            "Contract verification failed with error '{}'".format(result["error"]))
 
-        if result["verified"] == True:
-            return passed()
-        else:
-            return failed("Bytecode failed to verify")
 
-    @describe()
-    def _test_contractVerificationFailedMismatchedContract(self, request):
-        selectedContract = "DummyContract"
-        result = self.verify_mock_contract(request, None, selectedContract)
+# =============================================================================================
+# Actual Test Functions
+# =============================================================================================
 
-        if result["verified"] == False:
-            return passed()
-        else:
-            return failed("Bytecode verified with mismatched contract")
 
-    @describe()
-    def _test_contractVerificationFailedMismatchedCompiler(self, request):
-        compilerVersion = "v0.4.19+commit.c4cbbb05"
-        result = self.verify_mock_contract(request, compilerVersion)
+@describe()
+def test_contractCompilation(fxLocalSetup):
+    result = compile_mock_contract(fxLocalSetup)
 
-        if result["verified"] == False:
-            return passed()
-        else:
-            return failed("Bytecode verified with mismatched compiler version")
+    assert "metadata" in result[0], "Contract failed to compile"
 
-    @describe()
-    def _test_contractVerificationFailedToCompile(self, request):
-        compilerVersion = "v0.4.17+commit.bdeb9e52"
 
-        try:
-            self.verify_mock_contract(request, compilerVersion)
-        except Exception as e:
-            if "Source file requires different compiler version" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when verifying contract")
-        else:
-            return failed("Failure when validating contract with invalid compiler version")
+@describe()
+def test_contractCompilation040(fxLocalSetup):
+    # solc outputs are different for compiler versions <= 4.4 as well as <= 4.7.
+    # Need to test compilation and response structure
+    compilerVersion = "v0.4.0+commit.acd334c9"
+    contractFile = open("resources/contracts/SimpleStorage-0.4.0.sol", 'r')
+    sourceCode = contractFile.read()
 
-    @describe()
-    def _test_contractCompilationFailedInvalidFile(self, request):
-        try:
-            self.compile_mock_contract(request, None, "")
-        except Exception as e:
-            if "Source file does not specify required compiler version" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when compiling contract")
-        else:
-            return failed("Failure when compiling invalid source code")
+    result = compile_mock_contract(
+        fxLocalSetup, compilerVersion, sourceCode)
 
-    @describe()
-    def _test_contractCompilationFailedInvalidCompilerVersion(self, request):
-        try:
-            self.compile_mock_contract(request, "test")
-        except Exception as e:
-            if "Error retrieving binary" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when compiling contract")
-        else:
-            return failed("Failure when compiling with invalid compiler version")
+    assert result[0].get("metadata", {}).get("output", {}).get(
+        "abi", False), "Contract failed to compile"
 
-    @describe()
-    def _test_contractVerificationFailedInvalidFile(self, request):
-        try:
-            self.verify_mock_contract(request, None, None, "")
-        except Exception as e:
-            if "Source file does not specify required compiler version" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when verifying contract")
-        else:
-            return failed("Failure when validating invalid source code")
 
-    @describe()
-    def _test_contractVerificationFailedInvalidBytecode(self, request):
-        result = self.verify_mock_contract(request, None, None, None, "")
+@describe()
+def test_contractCompilationFailed(fxLocalSetup):
+    compilerVersion = "v0.4.17+commit.bdeb9e52"
 
-        if result["verified"] == False:
-            return passed()
-        else:
-            return failed("Bytecode verified with invalid existing bytecode")
+    try:
+        compile_mock_contract(fxLocalSetup, compilerVersion)
+    except Exception as e:
+        assert "Source file requires different compiler version" in str(
+            e), "Unexpected error when compiling contract"
+    else:
+        assert 1 == 2, "Failure when compiling contract with invalid compiler version"
 
-    @describe()
-    def _test_contractVerificationFailedInvalidCompilerVersion(self, request):
-        try:
-            self.verify_mock_contract(request, "test")
-        except Exception as e:
-            if "Error retrieving binary" in str(e):
-                return passed()
-            else:
-                print(e)
-                return failed("Unexpected error when verifying contract")
-        else:
-            return failed("Failure when validating with invalid compiler version")
+
+@describe()
+def test_contractVerification(fxLocalSetup):
+    result = verify_mock_contract(fxLocalSetup)
+
+    assert result["verified"] == True, "Bytecode failed to verify"
+
+
+@describe()
+def test_contractVerification0419(fxLocalSetup):
+    # bytecode verification is different in compiler versions from 0.4.8 and 0.4.21.
+    # Need to test a compiled file in this range
+    compilerVersion = "v0.4.19+commit.c4cbbb05"
+    result = verify_mock_contract(
+        fxLocalSetup, compilerVersion, None, None, contractBytecode_0_4_19)
+
+    assert result["verified"] == True, "Bytecode failed to verify"
+
+
+@describe()
+def test_contractVerification040(fxLocalSetup):
+    # bytecode verification is different in compiler versions < 0.4.7.
+    # Need to test a compiled file in this range
+    compilerVersion = "v0.4.0+commit.acd334c9"
+    contractFile = open("resources/contracts/SimpleStorage-0.4.0.sol", 'r')
+    sourceCode = contractFile.read()
+    selectedContract = "SimpleStorage"
+    result = verify_mock_contract(
+        fxLocalSetup, compilerVersion, selectedContract, sourceCode, contractBytecode_0_4_0)
+
+    assert result["verified"] == True, "Bytecode failed to verify"
+
+
+@describe()
+def test_contractVerificationFailedMismatchedContract(fxLocalSetup):
+    selectedContract = "DummyContract"
+    result = verify_mock_contract(fxLocalSetup, None, selectedContract)
+
+    assert result["verified"] == False, "Bytecode verified with mismatched contract"
+
+
+@describe()
+def test_contractVerificationFailedMismatchedCompiler(fxLocalSetup):
+    compilerVersion = "v0.4.19+commit.c4cbbb05"
+    result = verify_mock_contract(fxLocalSetup, compilerVersion)
+
+    assert result["verified"] == False, "Bytecode verified with mismatched compiler version"
+
+
+@describe()
+def test_contractVerificationFailedToCompile(fxLocalSetup):
+    compilerVersion = "v0.4.17+commit.bdeb9e52"
+
+    try:
+        verify_mock_contract(fxLocalSetup, compilerVersion)
+    except Exception as e:
+        assert "Source file requires different compiler version" in str(
+            e), "Unexpected error when verifying contract"
+    else:
+        assert 1 == 2, "Failure when validating contract with invalid compiler version"
+
+
+@describe()
+def test_contractCompilationFailedInvalidFile(fxLocalSetup):
+    try:
+        compile_mock_contract(fxLocalSetup, None, "")
+    except Exception as e:
+        assert "Source file does not specify required compiler version" in str(
+            e), "Unexpected error when compiling contract"
+    else:
+        assert 1 == 2, "Failure when validating with invalid source code"
+
+
+@describe()
+def test_contractCompilationFailedInvalidCompilerVersion(fxLocalSetup):
+    try:
+        compile_mock_contract(fxLocalSetup, "test")
+    except Exception as e:
+        assert "Error retrieving binary" in str(
+            e), "Unexpected error when compiling contract"
+    else:
+        assert 1 == 2, "Failure when validating with invalid compiler version"
+
+
+@describe()
+def test_contractVerificationFailedInvalidFile(fxLocalSetup):
+    try:
+        verify_mock_contract(fxLocalSetup, None, None, "")
+    except Exception as e:
+        assert "Source file does not specify required compiler version" in str(
+            e), "Unexpected error when verifying contract"
+    else:
+        assert 1 == 2, "Failure when validating with invalid source code"
+
+
+@describe()
+def test_contractVerificationFailedInvalidBytecode(fxLocalSetup):
+    result = verify_mock_contract(fxLocalSetup, None, None, None, "")
+
+    assert result["verified"] == False, "Bytecode verified with invalid existing bytecode"
+
+
+@describe()
+def test_contractVerificationFailedInvalidCompilerVersion(fxLocalSetup):
+    try:
+        verify_mock_contract(fxLocalSetup, "test")
+    except Exception as e:
+        assert "Error retrieving binary" in str(
+            e), "Unexpected error when verifying contract"
+    else:
+        assert 1 == 2, "Failure when validating with invalid compiler version"
