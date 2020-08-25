@@ -384,7 +384,8 @@ def main():
          log.info("Results directory: {}".format(args.resultsDir))
          suite = createTestSuite(args, pyTestSuiteList, suiteList,  suiteName, product)
          if suite is None:
-            log.error("Unknown test suite")
+            try: raise Exception("Unknown test suite")
+            except Exception as e: log.error(e); addExceptionToSummary(e)
             exit(3)
 
          helper.CURRENT_SUITE_NAME = suiteName
@@ -448,6 +449,8 @@ def main():
    helper.hermesPreexitWrapUp()
 
    if not totalSuccess:
+      try: raise Exception("Not a total success for suite '{}'".format(helper.CURRENT_SUITE_NAME))
+      except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(2)
 
 
