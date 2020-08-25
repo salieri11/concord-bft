@@ -78,8 +78,14 @@ LOCATION_TO_ZONE_TYPES = {
    LOCATION_SDDC: ZONE_TYPE_SDDC
 }
 
-# These are command line options for --blockchainType.
+# These are command line options for --blockchainType
 # These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
+#   ethereum
+#   daml
+#   hlf
+#   tee
+# These options are not supported:
+#   chessplus, daml_committer, daml_participant and "no verification required for this blockchain".
 TYPE_CHESSPLUS = "chessplus"
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
