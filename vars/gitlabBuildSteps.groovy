@@ -147,8 +147,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   ],
   "CastorDeploymentTests": [
     "enabled": true,
-    "dockerComposeFile": "../docker/docker-compose-castor.yml",
-    "runWithGenericTests": false
+    "dockerComposeFiles": "../docker/docker-compose-castor.yml",
   ],
   "EthJsonRpcTests": [
     "enabled": true,
