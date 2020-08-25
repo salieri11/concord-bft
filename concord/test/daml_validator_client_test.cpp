@@ -15,11 +15,14 @@ using ::testing::Eq;
 using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SaveArg;
+using ::testing::SetArgPointee;
 using ::testing::WithArg;
 
 using com::digitalasset::kvbc::EventFromValidator;
 using com::digitalasset::kvbc::EventToValidator;
 using com::digitalasset::kvbc::MockValidationServiceStub;
+using com::digitalasset::kvbc::PreExecuteRequest;
+using com::digitalasset::kvbc::PreExecuteResponse;
 using com::digitalasset::kvbc::PreprocessorFromEngine;
 using com::digitalasset::kvbc::PreprocessorToEngine;
 using com::digitalasset::kvbc::ValidationService;
@@ -78,15 +81,24 @@ class DamlValidatorClientTest : public ::testing::Test {
     mock_reader_.reset(new MockReadingFromStorage());
     mock_stream_ = new MockClientReaderWriter<PreprocessorToEngine,
                                               PreprocessorFromEngine>();
+    mock_validation_service_stub_.reset(new MockValidationServiceStub());
   }
 
-  std::unique_ptr<DamlValidatorClient> CreateClient() {
-    auto mock_validation_service_stub = new MockValidationServiceStub();
-    EXPECT_CALL(*mock_validation_service_stub, PreexecuteRaw(_))
-        .Times(AtLeast(1))
-        .WillOnce(Return(mock_stream_));
-    return std::make_unique<DamlValidatorClient>(test_replica_id,
-                                                 mock_validation_service_stub);
+  void TearDown() override {
+    // Make sure expectations are verified on any mock.
+    mock_validation_service_stub_.reset();
+  }
+
+  std::unique_ptr<DamlValidatorClient> CreateClient(
+      bool pre_execute_uses_streaming_protocol) {
+    if (pre_execute_uses_streaming_protocol) {
+      EXPECT_CALL(*mock_validation_service_stub_, PreexecuteRaw(_))
+          .Times(AtLeast(1))
+          .WillOnce(Return(mock_stream_));
+    }
+    return std::make_unique<DamlValidatorClient>(
+        test_replica_id, pre_execute_uses_streaming_protocol,
+        mock_validation_service_stub_.release());
   }
 
   std::unique_ptr<PreExecutionResult> CreateExpectedPreExecutionResult() {
@@ -113,7 +125,12 @@ class DamlValidatorClientTest : public ::testing::Test {
   MockClientReaderWriter<PreprocessorToEngine, PreprocessorFromEngine>*
       mock_stream_;
   std::shared_ptr<MockReadingFromStorage> mock_reader_;
+  std::unique_ptr<MockValidationServiceStub> mock_validation_service_stub_;
 };
+
+std::string expected_submission = "a submission";
+std::string expected_participant_id = "participant ID";
+std::string expected_correlation_id = "correlation ID";
 
 TEST_F(DamlValidatorClientTest, ValidateSendsSubmissionFirst) {
   auto mock_stream =
@@ -140,9 +157,6 @@ TEST_F(DamlValidatorClientTest, ValidateSendsSubmissionFirst) {
   DamlValidatorClient client(test_replica_id, validation_service_stub);
   std::vector<std::string> ignored_read_set;
   std::vector<KeyValuePairWithThinReplicaIds> ignored_write_set;
-  std::string expected_submission = "a submission";
-  std::string expected_participant_id = "participant ID";
-  std::string expected_correlation_id = "correlation ID";
   int expected_replica_id = test_replica_id;
   client.Validate(expected_submission, test_record_time,
                   expected_participant_id, expected_correlation_id, *test_span,
@@ -184,9 +198,6 @@ TEST_F(DamlValidatorClientTest, DeathOnNonGrpcOK) {
   DamlValidatorClient client(test_replica_id, validation_service_stub);
   std::vector<std::string> ignored_read_set;
   std::vector<KeyValuePairWithThinReplicaIds> ignored_write_set;
-  std::string expected_submission = "a submission";
-  std::string expected_participant_id = "participant ID";
-  std::string expected_correlation_id = "correlation ID";
   int expected_replica_id = test_replica_id;
   testing::Mock::AllowLeak(mock_stream);
   testing::Mock::AllowLeak(validation_service_stub);
@@ -321,7 +332,117 @@ TEST_F(DamlValidatorClientTest, ValidateRespondsToReadEventWithMultipleKeys) {
   }
 }
 
-TEST_F(DamlValidatorClientTest, PreExecuteSendsSubmissionFirst) {
+TEST_F(DamlValidatorClientTest, PreExecuteHappyPath) {
+  PreExecuteResponse read_request_response;
+  read_request_response.mutable_read_request()->add_keys("a key");
+  PreExecuteResponse final_response;
+  std::string expected_output = "some output";
+  final_response.mutable_preexecution_result()->set_output(expected_output);
+  InSequence expected_sequence;
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(DoAll(SetArgPointee<2>(read_request_response),
+                      Return(grpc::Status::OK)));
+  EXPECT_CALL(*mock_reader_, ReadWithFingerprints(_)).Times(1);
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(
+          DoAll(SetArgPointee<2>(final_response), Return(grpc::Status::OK)));
+  auto client = CreateClient(false);
+  com::vmware::concord::PreExecutionResult actual_result;
+
+  auto actual_status_code = client->PreExecute(
+      expected_submission, expected_participant_id, expected_correlation_id,
+      *test_span,
+      std::bind(&MockReadingFromStorage::ReadWithFingerprints, mock_reader_,
+                _1),
+      &actual_result);
+
+  EXPECT_TRUE(actual_status_code.ok());
+  EXPECT_EQ(expected_output, actual_result.output());
+}
+
+TEST_F(DamlValidatorClientTest, PreExecuteAccumulatesReadResults) {
+  PreExecuteResponse read_request_response;
+  std::string expected_key = "a key";
+  read_request_response.mutable_read_request()->add_keys(expected_key);
+  PreExecuteResponse final_response;
+  final_response.mutable_preexecution_result();
+  std::map<std::string, ValueFingerprintPair> read_result;
+  read_result[expected_key] = std::make_pair("some value", expected_key);
+  PreExecuteRequest actual_request;
+
+  InSequence expected_sequence;
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(DoAll(SetArgPointee<2>(read_request_response),
+                      Return(grpc::Status::OK)));
+  EXPECT_CALL(*mock_reader_, ReadWithFingerprints(_))
+      .WillOnce(Return(read_result));
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(DoAll(SetArgPointee<2>(read_request_response),
+                      Return(grpc::Status::OK)));
+  EXPECT_CALL(*mock_reader_, ReadWithFingerprints(_))
+      .WillOnce(Return(read_result));
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(DoAll(SaveArg<1>(&actual_request),
+                      SetArgPointee<2>(final_response),
+                      Return(grpc::Status::OK)));
+  auto client = CreateClient(false);
+  com::vmware::concord::PreExecutionResult ignored_result;
+
+  auto actual_status_code = client->PreExecute(
+      expected_submission, expected_participant_id, expected_correlation_id,
+      *test_span,
+      std::bind(&MockReadingFromStorage::ReadWithFingerprints, mock_reader_,
+                _1),
+      &ignored_result);
+
+  ASSERT_TRUE(actual_request.has_read_result());
+  EXPECT_EQ(2, actual_request.read_result().key_value_pairs_size());
+  EXPECT_TRUE(actual_status_code.ok());
+}
+
+TEST_F(DamlValidatorClientTest,
+       PreExecuteReturnsInternalErrorAfterTooManyIterations) {
+  PreExecuteResponse read_request_response;
+  read_request_response.mutable_read_request()->add_keys("a key");
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillRepeatedly(DoAll(SetArgPointee<2>(read_request_response),
+                            Return(grpc::Status::OK)));
+  EXPECT_CALL(*mock_reader_, ReadWithFingerprints(_))
+      .Times(DamlValidatorClient::kMaxRequestsDuringPreExecution);
+  auto client = CreateClient(false);
+  com::vmware::concord::PreExecutionResult ignored_result;
+
+  auto actual = client->PreExecute(
+      expected_submission, expected_participant_id, expected_correlation_id,
+      *test_span,
+      std::bind(&MockReadingFromStorage::ReadWithFingerprints, mock_reader_,
+                _1),
+      &ignored_result);
+
+  EXPECT_EQ(grpc::StatusCode::INTERNAL, actual.error_code());
+}
+
+TEST_F(DamlValidatorClientTest,
+       PreExecuteReturnsInternalErrorIfResponseIsEmpty) {
+  PreExecuteResponse empty_response;
+  EXPECT_CALL(*mock_validation_service_stub_, PreExecuteMultiStep(_, _, _))
+      .WillOnce(
+          DoAll(SetArgPointee<2>(empty_response), Return(grpc::Status::OK)));
+  auto client = CreateClient(false);
+  com::vmware::concord::PreExecutionResult ignored_result;
+
+  auto actual = client->PreExecute(
+      expected_submission, expected_participant_id, expected_correlation_id,
+      *test_span,
+      std::bind(&MockReadingFromStorage::ReadWithFingerprints, mock_reader_,
+                _1),
+      &ignored_result);
+
+  EXPECT_EQ(grpc::StatusCode::INTERNAL, actual.error_code());
+}
+
+TEST_F(DamlValidatorClientTest,
+       PreExecuteViaStreamingProtocolSendsSubmissionFirst) {
   PreprocessorToEngine first_message;
   // => submission
   EXPECT_CALL(*mock_stream_, Write(_, _))
@@ -336,11 +457,8 @@ TEST_F(DamlValidatorClientTest, PreExecuteSendsSubmissionFirst) {
   EXPECT_CALL(*mock_stream_, WritesDone()).WillOnce(Return(true));
   EXPECT_CALL(*mock_stream_, Finish()).WillOnce(Return(grpc::Status()));
 
-  std::string expected_submission = "a submission";
-  std::string expected_participant_id = "participant ID";
-  std::string expected_correlation_id = "correlation ID";
   int expected_replica_id = test_replica_id;
-  auto client = CreateClient();
+  auto client = CreateClient(true);
   com::vmware::concord::PreExecutionResult ignored_result;
 
   client->PreExecute(expected_submission, expected_participant_id,
@@ -360,8 +478,8 @@ TEST_F(DamlValidatorClientTest, PreExecuteSendsSubmissionFirst) {
 }
 
 TEST_F(DamlValidatorClientTest,
-       PreExecuteRespondsToReadRequestWithMultipleKeys) {
-  auto client = CreateClient();
+       PreExecuteViaStreamingProtocolRespondsToReadRequestWithMultipleKeys) {
+  auto client = CreateClient(true);
   InSequence expected_events_sequence;
   // => submission
   EXPECT_CALL(*mock_stream_, Write(_, _)).Times(1).WillOnce(Return(true));
@@ -420,7 +538,8 @@ TEST_F(DamlValidatorClientTest,
   }
 }
 
-TEST_F(DamlValidatorClientTest, PreExecuteCopiesResultAsIs) {
+TEST_F(DamlValidatorClientTest,
+       PreExecuteViaStreamingProtocolCopiesResultAsIs) {
   // => submission
   EXPECT_CALL(*mock_stream_, Write(_, _)).Times(1).WillOnce(Return(true));
   // <== finished
@@ -433,7 +552,7 @@ TEST_F(DamlValidatorClientTest, PreExecuteCopiesResultAsIs) {
   // End of stream.
   EXPECT_CALL(*mock_stream_, WritesDone()).WillOnce(Return(true));
   EXPECT_CALL(*mock_stream_, Finish()).WillOnce(Return(grpc::Status()));
-  auto client = CreateClient();
+  auto client = CreateClient(true);
   com::vmware::concord::PreExecutionResult actual_result;
 
   client->PreExecute("ignored", "ignored", "ignored", *test_span,

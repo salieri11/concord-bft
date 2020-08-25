@@ -30,7 +30,8 @@ class ConcordKeyValueLedgerReader(
       .flatMapConcat { block =>
         if (block.kvPairs.nonEmpty) {
           logger.info(
-            s"Processing blockId=${block.blockId} correlationId=${block.correlationId} size=${block.kvPairs.length}")
+            s"Processing blockId=${block.blockId} correlationId=${block.correlationId} size=${block.kvPairs.length} " +
+              s"keys=[${block.kvPairs.map(_._1).map(ByteString.copyFrom).map(_.toStringUtf8).mkString(",")}]")
           Source.single(
             LedgerBlockContent(
               OffsetBuilder.fromLong(block.blockId),

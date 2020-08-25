@@ -6,8 +6,8 @@ c_val: 0
 f_val: 1
 concord-bft_communication_buffer_length: 16777216
 concord-bft_max_external_message_size: 16777216
-concord-bft_max_reply_message_size: 4096
-concord-bft_max_num_of_reserved_pages: 50
+concord-bft_max_reply_message_size: 16777216
+concord-bft_max_num_of_reserved_pages: 163841
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls

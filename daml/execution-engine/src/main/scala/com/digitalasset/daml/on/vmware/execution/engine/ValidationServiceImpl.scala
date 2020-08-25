@@ -26,12 +26,15 @@ import com.digitalasset.daml.on.vmware.execution.engine.metrics.{
   ConcordLedgerStateOperationsMetrics,
   ValidatorCacheMetrics
 }
-import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator
+import com.digitalasset.daml.on.vmware.execution.engine.preexecution.{
+  PreExecutingMultiStepValidator,
+  PreExecutingValidator
+}
 import com.digitalasset.kvbc.daml_validator._
 import io.grpc.stub.StreamObserver
 import io.grpc.{BindableService, ServerServiceDefinition}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
@@ -83,6 +86,11 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
     concordLedgerStateOperationsMetrics
   )
 
+  private val preExecutingMultiStepValidator = new PreExecutingMultiStepValidator(
+    preExecutingSubmissionValidator,
+    () => PreExecutionStateCaches.createDefault(validatorCacheMetrics),
+    SharedKeySerializationStrategy)
+
   override def validate(
       responseObserver: StreamObserver[EventFromValidator]): StreamObserver[EventToValidator] =
     pipelinedValidator.validateSubmissions(responseObserver)
@@ -90,6 +98,9 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
   override def preexecute(responseObserver: StreamObserver[PreprocessorFromEngine])
     : StreamObserver[PreprocessorToEngine] =
     preExecutingValidator.preExecuteSubmission(responseObserver)
+
+  override def preExecuteMultiStep(request: PreExecuteRequest): Future[PreExecuteResponse] =
+    preExecutingMultiStepValidator.preExecute(request)
 
   override def currentHealth(): HealthStatus = Healthy
 

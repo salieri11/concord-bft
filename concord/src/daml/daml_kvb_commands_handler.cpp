@@ -154,9 +154,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   google::protobuf::Timestamp record_time = RecordTimeForTimeContract(time);
 
   LOG_INFO(logger_,
-           "Handle DAML commit command, cid: "
-               << correlation_id
-               << ", time: " << TimeUtil::ToString(record_time) << ", clock: "
+           "Handle DAML commit command, time: "
+               << TimeUtil::ToString(record_time) << ", clock: "
                << std::chrono::steady_clock::now().time_since_epoch().count());
 
   // The set of keys used during validation. Includes reads of keys
@@ -188,9 +187,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     daml_hdlr_exec_dur_.Observe(total_duration.count());
     return true;
   } else {
-    LOG_INFO(logger_, "Failed handling DAML commit command, cid: "
-                          << correlation_id
-                          << ", time: " << TimeUtil::ToString(record_time));
+    LOG_INFO(logger_, "Failed handling DAML commit command, time: "
+                          << TimeUtil::ToString(record_time));
     return false;
   }
 }
@@ -222,6 +220,15 @@ bool DamlKvbCommandsHandler::PreExecute(
         commit_request.correlation_id());
     return false;
   } else {
+    if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
+      std::string output_bytes =
+          concord_response.pre_execution_result().output();
+      LOG_DEBUG(logger_, "Hash of pre-execution output ["
+                             << Hash(SHA3_256().digest(output_bytes.c_str(),
+                                                       output_bytes.size()))
+                                    .toString()
+                             << "]");
+    }
     return true;
   }
 }
@@ -249,15 +256,13 @@ bool DamlKvbCommandsHandler::PostExecute(
   const string correlation_id = pre_execution_result.request_correlation_id();
 
   LOG_INFO(logger_,
-           "Handle DAML post execution, cid: "
-               << correlation_id
-               << ", time: " << TimeUtil::ToString(record_time) << ", clock: "
+           "Handle DAML post execution, time: "
+               << TimeUtil::ToString(record_time) << ", clock: "
                << std::chrono::steady_clock::now().time_since_epoch().count());
 
   da_kvbc::PreExecutionOutput pre_execution_output;
   if (!pre_execution_output.ParseFromString(pre_execution_result.output())) {
-    LOG_ERROR(logger_,
-              "Failed parsing pre-execution output, cid: " << correlation_id);
+    LOG_ERROR(logger_, "Failed parsing pre-execution output");
     return false;
   } else {
     SetOfKeyValuePairs raw_write_set;
@@ -326,6 +331,10 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
   bool within_time_bounds =
       CheckIfWithinTimeBounds(pre_execution_output, record_time);
   if (within_time_bounds) {
+    LOG_DEBUG(
+        logger_,
+        "Committing pre-execution success write set of size "
+            << pre_execution_output.success_write_set().kv_writes().size());
     WriteSetToRawUpdates(pre_execution_output.success_write_set(), write_set);
     auto thin_replica_ids = std::vector<std::string>(
         pre_execution_output.informee_success_thin_replica_ids().begin(),
@@ -333,6 +342,11 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     AddTimeUpdate(record_time, thin_replica_ids, write_set);
     post_execution_success_.Increment();
   } else {
+    LOG_DEBUG(logger_,
+              "Committing pre-execution out-of-time-bounds write set of size "
+                  << pre_execution_output.out_of_time_bounds_write_set()
+                         .kv_writes()
+                         .size());
     WriteSetToRawUpdates(pre_execution_output.out_of_time_bounds_write_set(),
                          write_set);
     AddTimeUpdate(record_time,

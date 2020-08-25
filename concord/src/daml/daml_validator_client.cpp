@@ -134,13 +134,13 @@ void DamlValidatorClient::HandleReadEvent(
     currKV = entry.first;
     currKV += entry.second;
     toHash += currKV;
-    LOG_DEBUG(dtrmnsm_logger_, "Read KV to stream ["
-                                   << (concordUtils::HexPrintBuffer{
-                                          currKV.c_str(), currKV.size()})
-                                   << " order [" << i++ << "]");
+    LOG_DEBUG(determinism_logger_, "Read KV to stream ["
+                                       << (concordUtils::HexPrintBuffer{
+                                              currKV.c_str(), currKV.size()})
+                                       << " order [" << i++ << "]");
   }
   LOG_DEBUG(
-      dtrmnsm_logger_,
+      determinism_logger_,
       "Hash of read stream ["
           << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
           << "]");
@@ -168,19 +168,132 @@ void DamlValidatorClient::SwapWriteSet(
     toHash += currKV;
     result->push_back(
         {std::move(*kv.release_key()), value_with_thin_replica_ids});
-    LOG_DEBUG(dtrmnsm_logger_, "Write KV from stream ["
-                                   << (concordUtils::HexPrintBuffer{
-                                          currKV.c_str(), currKV.size()})
-                                   << " order [" << i++ << "]");
+    LOG_DEBUG(determinism_logger_, "Write KV from stream ["
+                                       << (concordUtils::HexPrintBuffer{
+                                              currKV.c_str(), currKV.size()})
+                                       << " order [" << i++ << "]");
   }
   LOG_DEBUG(
-      dtrmnsm_logger_,
+      determinism_logger_,
       "Hash of write stream ["
           << Hash(SHA3_256().digest(toHash.c_str(), toHash.size())).toString()
           << "]");
 }
 
+void HandleReadRequestForPreExecution(
+    const com::digitalasset::kvbc::PreExecuteResponse::ReadRequest&
+        read_request,
+    KeyValueWithFingerprintReaderFunc read_from_storage,
+    com::digitalasset::kvbc::PreExecuteRequest* reply) {
+  auto& keys = read_request.keys();
+  const auto values = read_from_storage(keys);
+  da_kvbc::PreExecuteRequest_ReadResult* read_result =
+      reply->mutable_read_result();
+  for (auto const& entry : values) {
+    da_kvbc::KeyValueFingerprintTriple* key_value_fingerprint =
+        read_result->add_key_value_pairs();
+    key_value_fingerprint->set_key(entry.first);
+    key_value_fingerprint->set_value(entry.second.first);
+    key_value_fingerprint->set_fingerprint(entry.second.second);
+  }
+}
+
+// This is just a safeguard to avoid an infinite loop in
+// DamlValidatorClient::PreExecute. We expect all immutable key-value pairs to
+// be in the cache of the DAML Execution Engine eventually and all mutable ones
+// to be requested. In the normal case we expect 2 requests to generate
+// pre-execution results (first receive read request for the submission, then
+// send read result and receive pre-execution results). Specifically, the only
+// case when we should have to make another roundtrip between the DAML Commands
+// Handler and Execution Engine (i.e., after the first request) is when an item
+// expires in the cache between sending a response with a read request and
+// receiving the read results in the next iteration. In case we have to make
+// more than 2 requests constantly the cache expiry policy needs to be adjusted
+// in the DAML Execution Engine.
+int DamlValidatorClient::kMaxRequestsDuringPreExecution = 4;
+
 grpc::Status DamlValidatorClient::PreExecute(
+    const std::string& submission, const std::string& participant_id,
+    const std::string& correlation_id, const opentracing::Span& parent_span,
+    KeyValueWithFingerprintReaderFunc read_from_storage,
+    com::vmware::concord::PreExecutionResult* pre_execution_result) {
+  if (pre_execute_uses_streaming_protocol_) {
+    return PreExecuteViaStreamingProtocol(
+        submission, participant_id, correlation_id, parent_span,
+        read_from_storage, pre_execution_result);
+  }
+
+  auto child_span = parent_span.tracer().StartSpan(
+      "daml_pre_execute", {opentracing::ChildOf(&parent_span.context())});
+
+  da_kvbc::PreExecuteRequest pre_execute_request;
+  da_kvbc::PreExecuteRequest_PreExecutionRequest* request =
+      pre_execute_request.mutable_preexecution_request();
+  request->set_submission(submission);
+  request->set_submitting_participant_id(participant_id);
+  request->set_replica_id(replica_id_);
+  request->set_correlation_id(correlation_id);
+
+  grpc::Status last_status = grpc::Status::OK;
+  int request_count = 1;
+  bool success = false;
+  while (request_count <= kMaxRequestsDuringPreExecution) {
+    LOG_DEBUG(logger_,
+              "Sent " << request_count << " pre-execution request(s) so far");
+    da_kvbc::PreExecuteResponse response;
+    grpc::ClientContext context;
+    InjectSpanAsMetadata(*child_span, &context);
+    last_status =
+        stub_->PreExecuteMultiStep(&context, pre_execute_request, &response);
+    ++request_count;
+    if (response.has_read_request()) {
+      LOG_DEBUG(logger_, "Handling pre-execution read request: "
+                             << response.read_request().ShortDebugString());
+      HandleReadRequestForPreExecution(response.read_request(),
+                                       read_from_storage, &pre_execute_request);
+    } else if (response.has_preexecution_result()) {
+      auto result = response.mutable_preexecution_result();
+      result->Swap(pre_execution_result);
+      success = true;
+      if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
+        da_kvbc::PreExecutionOutput pre_execution_output;
+        if (pre_execution_output.ParseFromString(
+                pre_execution_result->output())) {
+          LOG_DEBUG(logger_, "Received pre-execution output: "
+                                 << pre_execution_output.ShortDebugString());
+          std::string to_hash(pre_execution_result->output());
+          LOG_DEBUG(logger_, "Hash of pre-execution output ["
+                                 << Hash(SHA3_256().digest(to_hash.c_str(),
+                                                           to_hash.size()))
+                                        .toString()
+                                 << "]");
+        } else {
+          LOG_DEBUG(logger_, "Could not parse pre-execution output");
+        }
+      }
+      break;
+    } else {
+      LOG_ERROR(
+          logger_,
+          "Failed pre-execution - invalid response from DAML Execution Engine: "
+              << response.ShortDebugString());
+      return grpc::Status(grpc::StatusCode::INTERNAL,
+                          "No read request or result in response");
+    }
+  }
+  if (success) {
+    LOG_DEBUG(logger_, "Returning pre-execution status: "
+                           << last_status.error_code() << " "
+                           << last_status.error_message());
+    return last_status;
+  } else {
+    LOG_DEBUG(logger_, "Did not receive a pre-execution result after "
+                           << kMaxRequestsDuringPreExecution << " requests");
+    return grpc::Status(grpc::StatusCode::INTERNAL, "Too many read iterations");
+  }
+}
+
+grpc::Status DamlValidatorClient::PreExecuteViaStreamingProtocol(
     const std::string& submission, const std::string& participant_id,
     const std::string& correlation_id, const opentracing::Span& parent_span,
     KeyValueWithFingerprintReaderFunc read_from_storage,

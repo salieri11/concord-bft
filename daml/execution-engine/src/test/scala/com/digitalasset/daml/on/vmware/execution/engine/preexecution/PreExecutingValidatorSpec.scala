@@ -167,6 +167,17 @@ class PreExecutingValidatorSpec
           KeyValuePair.of(aKey, expectedValue)
         ))
     }
+
+    "sort output by keys" in {
+      val keyA = ByteString.copyFromUtf8("a")
+      val keyB = ByteString.copyFromUtf8("b")
+      val keyC = ByteString.copyFromUtf8("c")
+      val input: KeyValuePairsWithAccessControlList = Seq(keyA, keyC, keyB).map { aKey =>
+        (aKey, aValue, PublicAccess)
+      }
+
+      PreExecutingValidator.toWriteSet(input).kvWrites.map(_.key) shouldBe Seq(keyA, keyB, keyC)
+    }
   }
 
   private def createMetrics(): ConcordLedgerStateOperationsMetrics =
