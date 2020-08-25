@@ -415,6 +415,7 @@ class ConnectionToSDDC:
     handle["sddcName"] = self.sddcName
     handle["sddc"] = self
     handle["uid"] = entityUID
+    handle["type"] = self.getEntityType(entity)
     self.allEntityHandlesByUID[entityUID] = handle
     # Folder or VM
     if "name" in handle:
@@ -444,7 +445,7 @@ class ConnectionToSDDC:
         if attr.value not in self.allEntityHandlesByAttribute[attrName]:
           self.allEntityHandlesByAttribute[attrName][attr.value] = []
         self.allEntityHandlesByAttribute[attrName][attr.value].append(handle)
-
+    return handle
 
   def filterHandleList(self, handleList):
     if len(handleList) == 0: return handleList
@@ -699,7 +700,6 @@ class ConnectionToSDDC:
       try:
         vm = vmHandle["entity"]
         vmName = vmHandle["name"]
-        networkSegments = vm.network
         if not cond or cond(vmHandle):
           if len(vmName) != 73 or len(vmName.split("-")) != 10:
             info["warnings"].append({ "handle": vmHandle, "message": "NOT A REPLICA VM" })
@@ -812,7 +812,7 @@ class ConnectionToSDDC:
     '''
     log.debug("Checking for new entities on SDDC ({}) inventory...".format(self.sddcName))
     containerView = self.getDefaultContainerView()
-    unregistered = []
+    unregistered = []; newHandles = []
     for entity in containerView.view:
       if self.getEntityType(entity) in ["VM", "Folder"]:
         entityUID = self.entityGetUID(entity)
@@ -820,11 +820,12 @@ class ConnectionToSDDC:
           unregistered.append(entity)
     if len(unregistered) > 0:
       handles = self.parallelIteratePropsFetchedByAPI(iterable=unregistered)
-      for handle in handles: self.initializeHandle(handle)
+      for handle in handles:
+        newHandles.append(self.initializeHandle(handle))
       log.debug("Added {} new entities to local inventory cache of entities.".format(len(handles)))
     else:
       log.debug("There are no new entities on SDDC ({}) inventory.".format(self.sddcName))
-    return unregistered
+    return newHandles
 
 
   def parallelIteratePropsFetchedByAPI(self, iterable):

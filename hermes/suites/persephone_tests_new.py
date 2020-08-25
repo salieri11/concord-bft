@@ -269,6 +269,8 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
 
         with open(persephone_config_file, 'r') as config_file:
             log.info("\nPersephone config file is as follows:\n\n{}\n\n".format(config_file.read()))
+        
+        infra.outputEffectiveZones() # which zones? which segments?
 
         if cmdline_args.useLocalConfigService:
             persephone_config_file_orig = "{}.orig".format(persephone_config_file)

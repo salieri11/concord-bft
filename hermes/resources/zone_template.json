@@ -1,0 +1,27 @@
+{
+  "CLOUD": {
+    "id":"<ZONE_ID>", "info":{ "type":"VMC", "labels":{ "name":"<ZONE_NAME>", "geo-latitude":"37.4001 N", "geo-longitude":"122.1414 W" } },
+    "authentication":{ "address":"https://console.cloud.vmware.com", "credential":{ "type":"BEARER", "tokenCredential":{ "token":"<VMC_API_TOKEN>" } } },
+    "api":{ "address":"https://vmc.vmware.com" },
+    "organization":"<SDDC_ORG_ID>", "datacenter":"<SDDC_ID>",
+    "vsphere":{ "resourcePool":"<RESOURCE_POOL_NAME>", "datastore":"<DATASTORE_NAME>", "folder":"<DEPLOYMENT_FOLDER>",
+                "network":{ "name":"<NETWORK_SEGMENT_NAME>", "addressAllocation":"STATIC", "gateway":"<NETWORK_SEGMENT_GATEWAY_IP>",
+                            "nameServers":[ "10.78.1.132", "10.78.1.133" ], "subnet":24 } },
+    "wavefront":{ "url":"https://vmware.wavefront.com/api/", "token":"<WAVEFRONT_API_TOKEN>" },
+    "logManagements":[ {  "destination":"LOG_INTELLIGENCE", "endpoint":{
+                          "address":"https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                          "credential":{ "type":"BEARER", "tokenCredential": { "token":"<FLUENTD_AUTHORIZATION_BEARER>" } } } } ]
+  },
+  "ONPREM": {
+    "id":"<ZONE_ID>", "info":{ "type":"VSPHERE", "labels":{ "name":"<ZONE_NAME>", "geo-latitude":"37.4001 N", "geo-longitude":"122.1414 W" } },
+    "api":{ "address":"https://vcenter.sddc-<SDDC_IP_HYPHENATED>.vmwarevmc.com",
+            "credential":{ "type":"NONE", "passwordCredential":{ "username":"<ZONE_SDDC_USERNAME>", "password":"<ZONE_SDDC_PASSWORD>" } } },
+    "vsphere":{ "resourcePool":"<RESOURCE_POOL_NAME>", "datastore":"<DATASTORE_NAME>", "folder":"<DEPLOYMENT_FOLDER>",
+                "network":{ "name":"<NETWORK_SEGMENT_NAME>", "addressAllocation":"STATIC", "gateway":"<NETWORK_SEGMENT_GATEWAY_IP>",
+                            "nameServers":[ "10.78.1.132", "10.78.1.133" ], "subnet":24 } },
+    "wavefront":{ "url":"https://vmware.wavefront.com", "token":"<WAVEFRONT_API_TOKEN>" },
+    "logManagements":[ { "destination":"LOG_INTELLIGENCE", "endpoint":{
+                         "address":"https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                         "credential":{ "type":"BEARER", "tokenCredential":{ "token":"<FLUENTD_AUTHORIZATION_BEARER>" } } } } ]
+  }
+}

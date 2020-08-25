@@ -18,7 +18,7 @@ import base64
 import time
 from fixtures.common_fixtures import BlockchainFixture
 from util import (auth, csp, hermes_logging, helper, slack, mailer, wavefront,
-                 racetrack, jenkins, infra, blockchain_ops as ops)
+                 racetrack, jenkins, infra, blockchain_ops as ops, vault)
 import util.hermes_logging
 from suites import case
 
@@ -118,22 +118,55 @@ def capturePipelineError(args, options, secret):
   jenkins.setFailureSummaryInDescription()
 
 def resetIPAM(args, options, secret):
+  ''' Usage, DRY RUN, provide target segments:
+      a[0]: targetSegments, e.g. "sddc1.mr.*, sddc4.mr.cloud" or "sddc1.*, sddc2.*, sddc3.*"
+    
+      Usage, actual reset, provide COMMENCE flag first and then target segments:
+      a[0]: "COMMENCE"
+      a[1]: targetSegments e.g. "sddc1.mr.*, sddc4.mr.cloud" or "sddc1.*, sddc2.*, sddc3.*"
+  '''
   a = prepareArgs(args)
   dryRun = (a[0] != "COMMENCE")
   if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
-  infra.resetIPAM(dryRun=dryRun)
+  targetSegments = a[0] if dryRun else a[1]
+  infra.resetIPAM(targetSegments, dryRun=dryRun)
 
 def removeOrphans(args, options, secret):
+  '''Removes all orphan NAT/EIP on all active SDDCs'''
   a = prepareArgs(args)
   dryRun = (a[0] != "COMMENCE")
   if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
   infra.deregisterOrphanResources(dryRun=dryRun)
 
 def resolveIPConflict(args, options, secret):
+  '''Resolves IP conflict by destroying conflict VMs (temp tool; IPAM not released)'''
   a = prepareArgs(args)
   dryRun = (a[0] != "COMMENCE")
   if dryRun: log.info("COMMENCE parameter is not specified; doing a DRY RUN...")
   infra.resolveConflictVMs(dryRun=dryRun)
+
+def zonesOverride(args, options, secret):
+  '''
+    Overrides zone_config.json, re-target segments and folder
+    a[0] : targetSegments e.g. "sddc1.mr.*, sddc4.mr.*"
+    a[1] : targetFolder e.g. "HermesTesting"
+  '''
+  a = prepareArgs(args)
+  infra.overrideDefaultZones(targetSegments=a[0], targetFolder=a[1])
+  
+def zonesRestore(args, options, secret):
+  '''Restores the overridden zone_config.json'''
+  a = prepareArgs(args)
+  infra.restoreDefaultZones()
+
+def vaultResolveFile(args, options, secret):
+  '''
+    Updates the file by given path, a[0],
+    replacing all Vault identifier references to Vault-pulled values.
+    a[0]: filename is the file path e.g. "resources/zone_config.json"
+  '''
+  a = prepareArgs(args)
+  vault.resolveFile(filename=a[0])
 
 def patchOrg(args, options, secret):
   '''
@@ -239,6 +272,11 @@ DISPATCH = {
   "resetIPAM": resetIPAM,
   "removeOrphans": removeOrphans,
   "resolveIPConflict": resolveIPConflict,
+  "zonesOverride": zonesOverride,
+  "zonesRestore": zonesRestore,
+
+  # Secret & Config Management
+  "vaultResolveFile": vaultResolveFile,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,

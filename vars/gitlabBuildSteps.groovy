@@ -716,10 +716,9 @@ def call(){
                 env.docker_tag = env.product_version
               }
 
+              dir('blockchain') { pythonlib.initializePython() }
               setUpRepoVariables()
               setEnvFileAndUserConfig()
-
-              dir('blockchain') { pythonlib.initializePython() }
 
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
@@ -2126,6 +2125,7 @@ void setEnvFileAndUserConfig(Map param = [:]) {
 
   withCredentials([
     string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+    string(credentialsId: 'VAULT_API_TOKEN', variable: 'VAULT_API_TOKEN'),
     string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
     string(credentialsId: 'GITLAB_API_ONLY_TOKEN', variable: 'GITLAB_API_ONLY_TOKEN'),
     string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
@@ -2144,6 +2144,7 @@ void setEnvFileAndUserConfig(Map param = [:]) {
     usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'VMC_SDDC5_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC5_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC5_VC_CREDENTIALS_PASSWORD'),
+    usernamePassword(credentialsId: 'VMC_SDDC6_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC6_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC6_VC_CREDENTIALS_PASSWORD'),
     usernamePassword(credentialsId: 'UI_E2E_CSP_LOGIN_CREDENTIALS', usernameVariable: 'UI_E2E_CSP_LOGIN_USERNAME', passwordVariable: 'UI_E2E_CSP_LOGIN_PASSWORD'),
     file(credentialsId: 'VMBC_IPAM_CERT_FILE', variable: 'VMBC_IPAM_CERT_FILE'),
   ]) {
@@ -2232,6 +2233,10 @@ EOF
       sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
       sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC5_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
       sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC5_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC6_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC6_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC6_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config*.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC5_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/zone_config_lrt.json
+      sed -i -e 's/'"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC5_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/zone_config_lrt.json
       sed -i -e 's/'"<METAINF_ENV_NAME>"'/'"JENKINS"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
       sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
@@ -2307,6 +2312,10 @@ EOF
     // VMBC IPAM certificate file for ipam-vmbc.cloud.vmware.com
     cert_file_path = env.WORKSPACE + "/blockchain/docker/config-persephone/persephone/provisioning/ipam.crt"
     writeFile file: cert_file_path, text: readFile(VMBC_IPAM_CERT_FILE)
+
+    dir("blockchain/hermes"){ // Set additional Vault params/config
+      sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py vaultResolveFile --param resources/zone_config.json'
+    }
 
   }
 }
