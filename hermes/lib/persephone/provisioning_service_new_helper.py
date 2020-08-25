@@ -242,7 +242,7 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
                 network=orchestration_pb2.IPv4Network(
                     name=zone["vsphere"]["network"]["name"],
                     address_allocation=orchestration_pb2.IPv4Network.STATIC,
-                    gateway=zone["vsphere"]["network"]["gateway"],
+                    gateway_ip=zone["vsphere"]["network"]["gateway"],
                     name_servers=zone["vsphere"]["network"]["nameServers"],
                     subnet=zone["vsphere"]["network"]["subnet"]
                 )

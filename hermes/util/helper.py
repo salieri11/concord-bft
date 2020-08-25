@@ -1978,26 +1978,6 @@ def installHealthDaemon(replicasInfoObject):
     return False
 
 
-def ip2long(ip):
-   """
-   Covert string form of an IP address to long
-   :param ip: String form of an IP address
-   :return: Long form of an IP address
-   """
-   packed_ip = socket.inet_aton(ip)
-   return struct.unpack("!L", packed_ip)[0]
-
-
-def long2ip(iplong):
-   """
-   Convert long form of an IP address to string
-   :param iplong: Long form of an IP address
-   :return: String form of an IP address
-   """
-   packed_ip = struct.pack('!L', iplong)
-   return socket.inet_ntoa(packed_ip)
-
-
 def fetch_default_zone_ids(properties_file=PROPERTIES_TEST_FILE):
    """
    Fetches 'vmbc.enabled.vmc.zones` from properties file

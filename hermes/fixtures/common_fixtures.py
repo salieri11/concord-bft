@@ -243,7 +243,7 @@ def newZoneEqualsExistingZone(existingZone, newZone):
          (not existingZone["storage"] == newZone["vsphere"]["datastore"]) or \
          (not existingZone["folder"] == newZone["vsphere"]["folder"]) or \
          (not existingZone["network"]["name"] == newZone["vsphere"]["network"]["name"]) or \
-         (not helper.ip2long(existingZone["network"]["gateway"]) == newZone["vsphere"]["network"]["gateway"]) or \
+         (not existingZone["network"]["gateway"]) == newZone["vsphere"]["network"]["gateway"] or \
          (not int(existingZone["network"]["subnet"]) == newZone["vsphere"]["network"]["subnet"]):
          return False
    elif existingZone["type"] == "VMC_AWS":

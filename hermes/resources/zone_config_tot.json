@@ -78,7 +78,7 @@
           "network":{
             "name":"vmware-vpn",
             "addressAllocation":"STATIC",
-            "gateway":172514817,
+            "gateway":"10.72.94.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -134,7 +134,7 @@
           "network":{
             "name":"vmware-vpn-1b",
             "addressAllocation":"STATIC",
-            "gateway":172615681,
+            "gateway":"10.73.232.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"

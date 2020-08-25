@@ -161,7 +161,7 @@ public class BlockchainUtils {
             IPv4Network network = IPv4Network.newBuilder()
                     .setName(n.getName())
                     .setAddressAllocation(IPv4Network.AddressAllocationScheme.STATIC)
-                    .setGateway(fromIpAddr(n.getGateway()))
+                    .setGatewayIp(n.getGateway())
                     .setSubnet(Integer.parseInt(n.getSubnet()))
                     .setAllocationServer(Endpoint.newBuilder().build())
                     .addAllNameServers(n.getNameServers() == null ? Arrays.asList() : n.getNameServers())
@@ -221,7 +221,7 @@ public class BlockchainUtils {
             IPv4Network network = IPv4Network.newBuilder()
                     .setName(n.getName())
                     .setAddressAllocation(IPv4Network.AddressAllocationScheme.STATIC)
-                    .setGateway(fromIpAddr(n.getGateway()))
+                    .setGatewayIp(n.getGateway())
                     .setSubnet(Integer.parseInt(n.getSubnet()))
                     .setAllocationServer(Endpoint.newBuilder().build())
                     .addAllNameServers(n.getNameServers() == null ? Arrays.asList() : n.getNameServers())
@@ -260,17 +260,6 @@ public class BlockchainUtils {
                     .build();
         }
         throw new BadRequestException("Invalid zone type {}", zone.getType());
-    }
-
-    private static int fromIpAddr(String ipAddr) {
-        String[] ips = ipAddr.split("\\.");
-        int result = 0;
-        for (int i = 0; i < 4; i++) {
-            int ip = Integer.parseInt(ips[i]);
-            result <<= 8;
-            result |= ip;
-        }
-        return result;
     }
 
     private static Map<String, String> toMap(Zone z) {

@@ -43,7 +43,7 @@
           "network":{
             "name":"vmware-vpn-lrt-5a-1",
             "addressAllocation":"STATIC",
-            "gateway": 172553217,
+            "gateway": "10.72.244.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
