@@ -111,7 +111,7 @@ public class VSphereHttpClient {
                         new ByteArrayInputStream(this.context.certificateData.getBytes()));
                 selfSignedCertKeyStore.setCertificateEntry("SelfSignedCertForVSphere", selfSignedCertForVSphere);
             } catch (Exception e) {
-                throw new PersephoneException(e, "Error Creating Keystore");
+                throw new PersephoneException(e, ErrorCode.KEYSTORE_CREATION_ERROR);
             }
         }
 
@@ -128,7 +128,8 @@ public class VSphereHttpClient {
      */
     public RestTemplate restTemplate() {
         if (useSelfSignedCertForVSphere) {
-            HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils.getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
+            HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
+                    .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
 
             // Utilizes above created factory using the selfSignedCertKeyStore
             return new RestClientBuilder().withRequestFactory(factory).withBaseUrl(context.getEndpoint().toString())

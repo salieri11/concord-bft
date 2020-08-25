@@ -11,6 +11,7 @@ public final class ErrorCode {
 
     public static final String FOLDER_NOT_FOUND = "Error retrieving folder: {0}";
     public static final String INVALID_SESSION_ID = "Invalid session id: {0}";
+    public static final String KEYSTORE_CREATION_ERROR = "Error creating KeyStore";
     public static final String NO_RESPONSE_RETRY = "No response after {0} retries";
     public static final String NOT_FOUND_DATASTORE = "Error retrieving datastore: {0}";
     public static final String NOT_FOUND_LIBRARY_ITEM = "Content Library not found with id {0}";
@@ -26,6 +27,7 @@ public final class ErrorCode {
     public static final String SITE_FOLDER_INCORRECT = "Incorrect folder information: {0}";
     public static final String SITE_NETWORK_INCORRECT = "Incorrect network information: {0}";
     public static final String SITE_RESOURCE_POOL_INCORRECT = "Incorrect resource pool information: {0}";
+    public static final String SSL_CONTEXT_CREATION_ERROR = "Error creating SSLContext";
     public static final String UNKNOWN_GATEWAY = "Unknown host exception while getting gateway for {0}";
     public static final String VM_CREATE_ERROR = "Error creating VM";
     public static final String VM_DISK_CREATE_ERROR = "Error creating VM disk: {0}";
