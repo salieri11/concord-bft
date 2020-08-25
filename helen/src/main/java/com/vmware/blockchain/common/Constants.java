@@ -19,6 +19,7 @@ public class Constants {
     public static final String ORG_GENERATE_PASSWORD = "secure-password";
     public static final String ORG_VM_CPU_OVERRIDE = "org_vm_cpu_override";
     public static final String ORG_VM_MEMORY_OVERRIDE = "org_vm_memory_override";
+    public static final String ORG_PREEXECUTION_ENABLED = "preexecution_enabled";
 
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
