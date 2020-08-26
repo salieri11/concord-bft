@@ -52,6 +52,9 @@ class PytestSuite(test_suite.TestSuite):
                 "--log-cli-level", logging.getLevelName(log.level),
                 self._testFile]
 
+      if util.helper.thisHermesIsFromJenkins(): # on Jenkins pipeline,
+         params.insert(0, "-x") # fail fast; exit on first failure.
+
       if self._args.tests:
          params += self._args.tests.split(" ")
 
