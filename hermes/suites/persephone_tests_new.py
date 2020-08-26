@@ -890,41 +890,13 @@ def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, tea
     log.info("Test {} completed successfully".format(request.node.name))
 
 
-@describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client)")
+@describe("Test to run a DAML ONPREM deployment (7 replicas + 3 client + 2 group)")
 @pytest.mark.smoke
-@pytest.mark.on_demand_concord_default
+@pytest.mark.on_demand_concord_default # IMPORTANT. DO NOT DELETE.
 def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, teardown):
-
     # Set the deployment params for this test case
-    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 2)
-    zone_type = helper.LOCATION_ONPREM
-
-    # Rest of the code below shouldn't change between different combinations of DAML test cases
-    # Update zone_type in hermes_settings fixture, since it is used downstream in deprovision function
-    hermes_settings["cmdline_args"].blockchainLocation = zone_type
-
-    # Call the deploy and post deploy wrapper
-    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
-                                                                           deployment_params, file_root)
-    assert node_info_list is not None
-
-    # Verify DAR upload on all client nodes
-    for node in node_info_list:
-        if node.node_type == helper.NodeType.CLIENT:
-            ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-            assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
-                                     deployment_session_id)
-
-    log.info("Test {} completed successfully".format(request.node.name))
-
-
-@describe("Test to run a DAML ONPREM deployment (7 replicas + 2 client + 1 group)")
-@pytest.mark.group
-def test_daml_7_node_onprem_one_group(request, hermes_settings, ps_helper, file_root, teardown):
-
-    # Set the deployment params for this test case
-    # 7 committers, 2 clients, 1 client group
-    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 2, 1)
+    # 7 committers, 3 clients, 2 client groups
+    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 3, 2)
     zone_type = helper.LOCATION_ONPREM
 
     # Rest of the code below shouldn't change between different combinations of DAML test cases
