@@ -193,8 +193,8 @@ void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
 
   using namespace ::com::vmware::concord::performance;
 
-  char payload[payloadSize];
-  for (int i = 0; i < payloadSize; i++) payload[i] = (char)i;
+  std::string payload(payloadSize, 0);
+  std::iota(payload.begin(), payload.end(), 0);
 
   for (int i = 0; i < numOfBlocks; i++) {
     if (done) break;
@@ -209,8 +209,7 @@ void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     fromInit->set_init_id(initResp.id());
     fromInit->set_block_id(i);
 
-    string pl = string{payload, payloadSize};
-    pWriteReq->set_payload(pl.c_str(), payloadSize);
+    pWriteReq->set_payload(payload.c_str(), payloadSize);
 
     string cid = "block_" + to_string(i);
     auto* cr = new ConcordRequest();
@@ -247,8 +246,8 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
 
   using namespace ::com::vmware::concord::performance;
 
-  char payload[payloadSize];
-  for (int i = 0; i < payloadSize; i++) payload[i] = (char)i;
+  std::string payload(payloadSize, 0);
+  std::iota(payload.begin(), payload.end(), 0);
 
   std::random_device rd;
   std::mt19937_64 eng(rd());
@@ -274,8 +273,7 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     fromExternal->set_value_size(valSize);
     fromExternal->set_max_exec_time_milli(executionTime);
 
-    string pl = string{payload, payloadSize};
-    pWriteReq->set_payload(pl.c_str(), payloadSize);
+    pWriteReq->set_payload(payload.c_str(), payloadSize);
 
     string cid = "block_" + to_string(i);
     auto* cr = new ConcordRequest();
