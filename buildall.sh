@@ -122,8 +122,10 @@ docker_build() {
     else
       # When a component in .env has a different tag than PRODUCT_VERSION,
       # that means we pull it from artifactory instead of building it.
+      local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_pull.log`
       echo Pulling ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG} instead of building it.
-      docker pull ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}
+      docker pull ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG} > "${LOG_FILE}" 2>&1 &
+      addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
     fi
 }
 

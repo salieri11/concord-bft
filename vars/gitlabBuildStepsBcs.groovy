@@ -230,8 +230,8 @@ void pushToArtifactory(){
       command = "docker tag ${repo}:${env.BUILD_NUMBER} ${subdirRepo}:${env.docker_tag}"
       jenkinsbuilderlib.retryCommand(command, true)
 
-      pushDockerImage(subdirRepo, env.docker_tag, false)
-      pushDockerImage(repo, env.docker_tag, false)
+      pushDockerImage('Master-Artifact-Subdir', subdirRepo, env.docker_tag, false)
+      pushDockerImage('Master-Artifact', repo, env.docker_tag, false)
     }
   }
 }

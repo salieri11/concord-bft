@@ -642,40 +642,6 @@ def call(){
                 '''
               }
 
-              withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
-                script{
-                  command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
-                  jenkinsbuilderlib.retryCommand(command, true)
-                }
-              }
-
-              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                script{
-                  command = "docker login -u blockchainrepositorywriter -p " + env.DOCKERHUB_PASSWORD
-                  jenkinsbuilderlib.retryCommand(command, true)
-                }
-              }
-
-              withCredentials([usernamePassword(credentialsId: 'BLOCKCHAIN_ARTIFACTORY_DEPLOYER_PASSWORD', usernameVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME', passwordVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD')]) {
-                script{
-                  command = "docker login -u " + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME + " -p \'" + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD + "\' blockchain-docker-internal.artifactory.eng.vmware.com"
-                  jenkinsbuilderlib.retryCommand(command, true)
-                }
-              }
-
-              if (env.JOB_NAME.contains(env.tot_job_name)) { // Bintray only used for ToT push
-                withCredentials([usernamePassword(
-                  credentialsId: 'VMBC_BINTRAY_WRITER',
-                  usernameVariable: 'VMBC_BINTRAY_WRITER_USERNAME',
-                  passwordVariable: 'VMBC_BINTRAY_WRITER_PASSWORD'
-                )]){
-                  script{
-                    command = "docker login -u " + env.VMBC_BINTRAY_WRITER_USERNAME + " -p \'" + env.VMBC_BINTRAY_WRITER_PASSWORD + "\' vmware-docker-blockchainsaas.bintray.io"
-                    jenkinsbuilderlib.retryCommand(command, true)
-                  }
-                }
-              }
-
               // To invoke "git tag" and commit that change, git wants to know who we are.
               // This will be set up in template VM version 5, at which point these commands can
               // be removed.
@@ -717,6 +683,52 @@ def call(){
               dir('blockchain') { pythonlib.initializePython() }
               setUpRepoVariables()
               setEnvFileAndUserConfig()
+              
+              // Set additional Vault runtime params into config files
+              withCredentials([
+                string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+                string(credentialsId: 'VAULT_API_TOKEN', variable: 'VAULT_API_TOKEN'),
+              ]) {
+                dir("blockchain/hermes") {
+                  sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py vaultResolveFile --param resources/zone_config.json'
+                }
+              }
+
+              // Login to docker accounts
+              
+              withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
+                script{
+                  command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
+                  jenkinsbuilderlib.retryCommand(command, true)
+                }
+              }
+
+              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                script{
+                  command = "docker login -u blockchainrepositorywriter -p " + env.DOCKERHUB_PASSWORD
+                  jenkinsbuilderlib.retryCommand(command, true)
+                }
+              }
+
+              withCredentials([usernamePassword(credentialsId: 'BLOCKCHAIN_ARTIFACTORY_DEPLOYER_PASSWORD', usernameVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME', passwordVariable: 'BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD')]) {
+                script{
+                  command = "docker login -u " + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_USERNAME + " -p \'" + env.BLOCKCHAIN_INTERNAL_ARTIFACTORY_PASSWORD + "\' blockchain-docker-internal.artifactory.eng.vmware.com"
+                  jenkinsbuilderlib.retryCommand(command, true)
+                }
+              }
+
+              if (env.JOB_NAME.contains(env.tot_job_name)) { // Bintray only used for ToT push
+                withCredentials([usernamePassword(
+                  credentialsId: 'VMBC_BINTRAY_WRITER',
+                  usernameVariable: 'VMBC_BINTRAY_WRITER_USERNAME',
+                  passwordVariable: 'VMBC_BINTRAY_WRITER_PASSWORD'
+                )]){
+                  script{
+                    command = "docker login -u " + env.VMBC_BINTRAY_WRITER_USERNAME + " -p \'" + env.VMBC_BINTRAY_WRITER_PASSWORD + "\' vmware-docker-blockchainsaas.bintray.io"
+                    jenkinsbuilderlib.retryCommand(command, true)
+                  }
+                }
+              }
 
             }catch(Exception ex){
               println("Unable to set up environment: ${ex}")
@@ -1517,15 +1529,15 @@ void pushToArtifactory(){
       command = "docker tag ${repo}:${env.docker_tag} ${subdirRepo}:${env.docker_tag}"
       jenkinsbuilderlib.retryCommand(command, true)
 
-      dockerutillib.pushDockerImage(subdirRepo, env.docker_tag, false)
-      dockerutillib.pushDockerImage(repo, env.docker_tag, false)
+      dockerutillib.pushDockerImage('Master-Artifact-Back-Up-Subdir', subdirRepo, env.docker_tag, false)
+      dockerutillib.pushDockerImage('Master-Artifact-Back-Up', repo, env.docker_tag, false)
 
       // Push to the main internal repo: blockchain-docker-local repo
       // To make sure local devs., Jenkins jobs, and agent can all access the same image
       main_internal_repo = repo.replace(env.internal_repo, env.main_internal_repo)
       command = "docker tag ${repo}:${env.docker_tag} ${main_internal_repo}:${env.docker_tag}"
       jenkinsbuilderlib.retryCommand(command, true)
-      dockerutillib.pushDockerImage(main_internal_repo, env.docker_tag, false)
+      dockerutillib.pushDockerImage('Master-Artifact', main_internal_repo, env.docker_tag, false)
     }
   }
 }
@@ -1552,7 +1564,7 @@ void pushToDockerHub(){
 
   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
     for (repo in pushList){
-      dockerutillib.pushDockerImage(repo, env.docker_tag, true)
+      dockerutillib.pushDockerImage('Release', repo, env.docker_tag, true)
     }
   }
 }
@@ -2127,7 +2139,6 @@ void setEnvFileAndUserConfig(Map param = [:]) {
 
   withCredentials([
     string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
-    string(credentialsId: 'VAULT_API_TOKEN', variable: 'VAULT_API_TOKEN'),
     string(credentialsId: 'JENKINS_JSON_API_KEY', variable: 'JENKINS_JSON_API_KEY'),
     string(credentialsId: 'GITLAB_API_ONLY_TOKEN', variable: 'GITLAB_API_ONLY_TOKEN'),
     string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
@@ -2315,10 +2326,6 @@ EOF
     cert_file_path = env.WORKSPACE + "/blockchain/docker/config-persephone/persephone/provisioning/ipam.crt"
     writeFile file: cert_file_path, text: readFile(VMBC_IPAM_CERT_FILE)
 
-    dir("blockchain/hermes"){ // Set additional Vault params/config
-      sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py vaultResolveFile --param resources/zone_config.json'
-    }
-
   }
 }
 
@@ -2448,16 +2455,16 @@ void pushConcordComponentsToRegistry(repo){
   for(component in agent_pulled_components) {
     if (component.libonly) { continue } // libs don't get pulled by agent
     if (repo == "dockerhub") {
-      dockerutillib.tagAndPushDockerImage(component.internal_repo, component.release_repo, component.tag)
+      dockerutillib.tagAndPushDockerImage('Agent-Pullable', component.internal_repo, component.release_repo, component.tag)
     } else if (repo == "bintray") {
-      dockerutillib.tagAndPushDockerImage(component.internal_repo, component.bintray_repo, component.tag)
+      dockerutillib.tagAndPushDockerImage('Agent-Pullable', component.internal_repo, component.bintray_repo, component.tag)
     } else if (repo == "artifactory") {
       if (env.JOB_NAME.contains(env.tot_job_name)) { // ToT MUST push; they always build-all from scratch.
-        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag) // must not fail.
+        dockerutillib.tagAndPushDockerImage('Agent-Pullable', component.internal_repo, component.temp_repo, component.tag) // must not fail.
       } else if (env.product_version == component.tag) {
         // Not a ToT run, yet image tags are matching this Jenkins BUILD_NUMBER
         // This implies that this image has been locally built; we need to push this temp image for testing on SDDC
-        dockerutillib.tagAndPushDockerImage(component.internal_repo, component.temp_repo, component.tag, env.product_version, true)
+        dockerutillib.tagAndPushDockerImage('Agent-Pullable', component.internal_repo, component.temp_repo, component.tag, env.product_version, true)
       } else {
         echo("Component " + component.name + " should already exist as prebuilt image on the internal repo. Push skipped.")
       }
