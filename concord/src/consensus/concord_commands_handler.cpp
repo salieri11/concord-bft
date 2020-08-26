@@ -442,9 +442,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 }  // namespace consensus
 
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
-    const com::vmware::concord::PreExecutionResult &pre_execution_result)
-    const {
-  const auto &read_set = pre_execution_result.read_set();
+    const com::vmware::concord::ReadSet &read_set) const {
   for (const auto &kf : read_set.keys_with_fingerprints()) {
     const Sliver key{std::string{kf.key()}};
     const BlockId read_block_height = DeserializeFingerprint(kf.fingerprint());

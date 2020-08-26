@@ -374,7 +374,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
   const ConcordResponse concord_response =
       BuildPreExecutionResponse(outdated_block_height);
 
-  const Sliver expected_key{std::string{"read_key"}};
+  const Sliver expected_key = CreateDamlKvbKey(std::string{"read_key"});
   EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
       .Times(1)
       .WillOnce(
@@ -404,7 +404,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetUnknownKey) {
   const ConcordResponse concord_response =
       BuildPreExecutionResponse(kLastBlockId);
 
-  const Sliver expected_key{std::string{"read_key"}};
+  const Sliver expected_key = CreateDamlKvbKey(std::string{"read_key"});
   EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
       .Times(1)
       .WillOnce(Return(Status::NotFound("read_key")));

@@ -22,6 +22,19 @@ service ValidationService {
   // Final: Engine -> Preprocessor: PreexecutionResult
   rpc Preexecute (stream PreprocessorToEngine) returns (stream PreprocessorFromEngine) {}
 
+  // PreExecuteMultiStep is a simplified rendition of the pre-execution validator protocol.
+  // The streaming version has been plagued by random stream closures and had to be abandoned.
+  //
+  // Typical message flow (i.e. if no relevant cache expiry happens in 2-3):
+  // 
+  // 1. Initially preprocessor sends just a request:
+  //   Preprocessor -> Engine: PreExecuteRequest{PreexecutionRequest}
+  // 2. Engine responds by asking for a read from the storage:
+  //   Engine -> Preprocessor: PreExecuteResponse{ReadRequest}
+  // 3. Preprocessor re-sends same request augmented with read results:
+  //   Preprocessor -> Engine: PreExecuteRequest{PreexecutionRequest, ReadResult}
+  // 4. Finally, the engine responds with a pre-execution result:
+  //   Engine -> Preprocessor: PreExecuteResponse{PreExecutionResult}
   rpc PreExecuteMultiStep (PreExecuteRequest) returns (PreExecuteResponse) {}
 }
 
