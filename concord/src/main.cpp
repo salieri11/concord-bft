@@ -243,6 +243,20 @@ void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
       std::static_pointer_cast<opentracing::Tracer>(tracer));
 }
 
+static concord::storage::s3::StoreConfig getS3ConfigParams(
+    const ConcordConfiguration &nodeConfig, Logger &logger) {
+  concord::storage::s3::StoreConfig config;
+
+  // TODO: hasValue() error handling
+  config.bucketName = nodeConfig.getValue<std::string>("s3-bucket-name");
+  config.url = nodeConfig.getValue<std::string>("s3-url");
+  config.protocol = nodeConfig.getValue<std::string>("s3-protocol");
+  config.secretKey = nodeConfig.getValue<std::string>("s3-secret-key");
+  config.accessKey = nodeConfig.getValue<std::string>("s3-access-key");
+
+  return config;
+}
+
 std::unique_ptr<IStorageFactory> create_storage_factory(
     const ConcordConfiguration &nodeConfig, Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
@@ -971,7 +985,7 @@ int main(int argc, char **argv) {
     // Get a reference to the node instance-specific configuration for the
     // current running Concord node because that is needed frequently and we do
     // not want to have to determine the current node every time.
-    size_t nodeIndex = detectLocalNode(config);
+    auto [nodeIndex, isReadOnly] = detectLocalNode(config);
     ConcordConfiguration &nodeConfig = config.subscope("node", nodeIndex);
 
     // Initialize logger

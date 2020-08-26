@@ -132,6 +132,7 @@ Config Config::parse(const char* path) {
   conc_config.subscope("participant_nodes")
       .instantiateScope("participant_node");
   conc_config.instantiateScope("participant_nodes");
+  conc_config.instantiateScope("ro_node");
 
   // Once all the necessary subscopes are instantiated we can load all
   // parameters.

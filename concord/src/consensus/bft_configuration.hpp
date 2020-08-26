@@ -99,6 +99,7 @@ inline bool InitializeSbftConfiguration(
   uint16_t maxSlow = config.getValue<uint16_t>("c_val");
   uint16_t numOfPrincipals = config.getValue<uint16_t>("num_principals");
   uint16_t numOfReplicas = config.getValue<uint16_t>("num_replicas");
+  uint16_t numRoReplicas = config.getValue<uint16_t>("num_ro_replicas");
   std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas;
   if (commConfig) {
     bool res = initializeSBFTPrincipals(config, selfNumber, numOfPrincipals,
@@ -119,6 +120,7 @@ inline bool InitializeSbftConfiguration(
     repConf->concurrencyLevel = config.getValue<uint16_t>("concurrency_level");
 
     repConf->numReplicas = numOfReplicas;
+    repConf->numRoReplicas = numRoReplicas;
     repConf->replicaId = selfNumber;
     repConf->fVal = maxFaulty;
     repConf->cVal = maxSlow;

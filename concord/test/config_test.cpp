@@ -2562,6 +2562,7 @@ TEST(config_test, test_principal_locations_mapping) {
   uint16_t fs_to_test[num_test_subcases] =                  {1, 2, 1, 1, 1, 1};
   uint16_t cs_to_test[num_test_subcases] =                  {0, 0, 0, 0, 1, 2};
   uint16_t client_proxy_ratios_to_test[num_test_subcases] = {4, 4, 7, 1, 4, 4};
+  uint16_t num_ro_replicas_to_test[num_test_subcases] =     {1, 0, 2, 0, 1, 1};
   // clang-format on
 
   for (size_t i = 0; i < num_test_subcases; ++i) {
@@ -2570,6 +2571,7 @@ TEST(config_test, test_principal_locations_mapping) {
     config.loadValue("c_val", to_string(cs_to_test[i]));
     config.loadValue("client_proxies_per_replica",
                      to_string(client_proxy_ratios_to_test[i]));
+    config.loadValue("num_ro_replicas", to_string(num_ro_replicas_to_test[i]));
     config.instantiateScope("node");
     size_t num_nodes = config.scopeSize("node");
     for (size_t i = 0; i < num_nodes; ++i) {

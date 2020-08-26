@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
       input.parseInput();
       concord::config::loadNodeConfiguration(config, input);
 
-      size_t nodeIndex = concord::config::detectLocalNode(config);
+      auto [nodeIndex, isReadOnly] = concord::config::detectLocalNode(config);
       nodeConfig = config.subscope("node", nodeIndex);
     } else if (opts.count(OPT_APPLICATION) > 0 &&
                opts.count(OPT_DEPLOYMENT) > 0 && opts.count(OPT_SECRETS) > 0) {
@@ -199,7 +199,8 @@ int main(int argc, char **argv) {
       concord::config::YAMLConfigurationInput input(YAML::Clone(yamlMerged));
       concord::config::loadNodeConfiguration(config, input);
 
-      size_t nodeIndex = concord::config::detectLocalNode(config);
+      auto [nodeIndex, isReadOnly] = concord::config::detectLocalNode(config);
+
       nodeConfig = config.subscope("node", nodeIndex);
     }
 
