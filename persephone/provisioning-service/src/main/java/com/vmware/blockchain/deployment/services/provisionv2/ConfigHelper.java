@@ -103,9 +103,9 @@ public class ConfigHelper {
                 .setGenericProperties(genericProperties)
                 .build();
 
-        ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
-                .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);
         try {
+            ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
+                    .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);
             log.info("Configuration request \n {}", request.toString());
             return completable.get();
         } catch (InterruptedException | ExecutionException e) {
