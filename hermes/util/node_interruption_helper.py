@@ -147,10 +147,6 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
          daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                 "daml_tests")
          while True:
-            if duration_to_run_transaction > 0:
-               log.info("Elapsed Time: " + str(
-                  ((datetime.datetime.now() - start_time).seconds // 60) % 60) + " minutes / Total Time: "
-                                                                                 "" + str(duration_to_run_transaction) + " minutes")
             status = helper.run_daml_sanity(
                uninterrupted_participants,
                daml_tests_results_dir,
@@ -172,7 +168,8 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
                break
             else:
-               log.info("Repeating Daml transactions")
+               elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60),1)
+               log.info("Repeating Daml transactions ({} / {} mins)...".format(elapsed_time,duration_to_run_transaction))
    else:
       log.info("** Skipping DAML test as all participant nodes are interrupted")
       status = True
