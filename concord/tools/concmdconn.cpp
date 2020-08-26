@@ -73,14 +73,15 @@ bool call_concord(boost::program_options::variables_map &opts,
   } else {
     // little-endian!
     msglen = ((size_t)prefix[1] << 8) | prefix[0];
-    char reply[msglen];
-    reply_length = boost::asio::read(s, boost::asio::buffer(reply, msglen));
+    std::string reply(msglen, '\0');
+    reply_length =
+        boost::asio::read(s, boost::asio::buffer(reply.data(), msglen));
     if (reply_length != msglen) {
       std::cerr << "Did not read full reply, expected " << msglen
                 << " bytes, but got " << reply_length << std::endl;
     } else {
       // deserialize into response
-      if (!response.ParseFromString(std::string(reply, msglen))) {
+      if (!response.ParseFromString(reply)) {
         std::cerr << "Failed to parse respons" << std::endl;
         result = false;
       } else {

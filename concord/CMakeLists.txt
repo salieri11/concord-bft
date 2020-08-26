@@ -3,11 +3,13 @@ project(concord)
 
 # Require C++17.
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_EXTENSIONS Off)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ELF security flags
 string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all -O3")
+
+string(APPEND CMAKE_CXX_FLAGS " -pedantic") #Mostly for -Werror=vla
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
