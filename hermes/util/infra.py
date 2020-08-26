@@ -474,7 +474,10 @@ def overrideDefaultZones(targetSegments, targetFolder=None):
     finalReplacements = []
     for seg in segments:
       sddcName = seg["sddcName"]
-      templateContent = json.dumps(mainTemplate[seg["zoneType"]], indent=4) # copy template matching zone type into str
+      zoneType = None
+      if "CLOUD" in seg["zoneType"]: zoneType = "CLOUD"
+      elif "ONPREM" in seg["zoneType"]: zoneType = "ONPREM"
+      templateContent = json.dumps(mainTemplate[zoneType], indent=4) # copy template matching zone type into str
       templateReplaced = templateContent.replace(
                       "<ZONE_ID>", str(uuid.uuid4())).replace(
                       "<ZONE_NAME>", "{} {} - {} Segment ({})".format(sddcName, seg["zoneType"],
@@ -494,9 +497,9 @@ def overrideDefaultZones(targetSegments, targetFolder=None):
                       "<WAVEFRONT_API_TOKEN>", defaults["wavefront"]).replace(
                       "<FLUENTD_AUTHORIZATION_BEARER>", defaults["fluentd"]).replace(
                       '">', "").replace('<"', "")
-      if seg["zoneType"] == "CLOUD":
+      if "CLOUD" in seg["zoneType"]:
         cloudZones.append(json.loads(templateReplaced))
-      elif seg["zoneType"] == "ONPREM":
+      elif "ONPREM" in seg["zoneType"]:
         onpremZones.append(json.loads(templateReplaced))
   if len(cloudZones + onpremZones) > 0:
     zoneConfigCopy["zones"]["sddc"] = cloudZones
