@@ -1,7 +1,7 @@
-node('name of your node here'){
-  checkout scm
+node ('name of your node here') {
+    checkout scm
 
-  def rootDir = pwd()
-  def builder = load "${rootDir}/vars/builder.groovy"
-  builder.runBuild()
+    def rootDir = pwd()
+    def builder = load "${rootDir}/vars/builder.groovy"
+    builder.runBuild()
 }

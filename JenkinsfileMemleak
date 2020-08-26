@@ -1,7 +1,7 @@
-node('blockchain-MemleakTest'){
-  checkout scm
+node ('blockchain-MemleakTest') {
+    checkout scm
 
-  def rootDir = pwd()
-  def builder = load "${rootDir}/vars/builder.groovy"
-  builder.runBuild()
+    def rootDir = pwd()
+    def builder = load "${rootDir}/vars/builder.groovy"
+    builder.runBuild()
 }
