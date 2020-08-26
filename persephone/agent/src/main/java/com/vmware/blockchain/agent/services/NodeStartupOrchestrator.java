@@ -131,7 +131,7 @@ public class NodeStartupOrchestrator {
                 } catch (ConflictException e) {
                     log.warn("Did not launch the container again. Container already present", e);
                 }
-            } catch (Exception e) {
+            } catch (Exception | InternalError e) {
                 log.error("Unexpected exception encountered during launch sequence", e);
                 log.warn("******Node not Functional********");
             }
