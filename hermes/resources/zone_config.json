@@ -30,13 +30,15 @@
       "name": "SDDC5", "num": "5", "type": "vSphere", "active": true,
       "publicIP": "3.105.129.8", "az": "ap-southeast-2b", "location": "Asia Pacific (Sydney)",
       "sddcId": "bca771a9-741b-4f2b-8dcd-cabff005e3ff", "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-      "username": "<VMC_SDDC5_VC_CREDENTIALS_USERNAME>", "password": "<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>", "vmcToken": "<VMC_API_TOKEN>"
+      "username": "<VMC_SDDC5_VC_CREDENTIALS_USERNAME>", "password": "<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>", "vmcToken": "<VMC_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-5-Segments>"
     },
     "SDDC6":{
       "name": "SDDC6", "num": "6", "type": "vSphere", "active": true,
       "publicIP": "34.236.221.173", "az": "us-east-1b", "location": "US East (N. Virginia)",
       "sddcId": "8128e6b3-8a87-430a-85a1-386cefae66e3", "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-      "username": "<VMC_SDDC6_VC_CREDENTIALS_USERNAME>", "password": "<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>", "vmcToken": "<VMC_API_TOKEN>"
+      "username": "<VMC_SDDC6_VC_CREDENTIALS_USERNAME>", "password": "<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>", "vmcToken": "<VMC_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-6-Segments>"
     }
   },
   "defaults": {
