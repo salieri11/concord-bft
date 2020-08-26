@@ -24,13 +24,27 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 
-object KVBCValidatorMain extends App {
-  val server = new KVBCValidatorServer(GlobalTracer.get())
+case object KVBCValidatorMain extends App {
+  val server = new KVBCValidatorServer(parseCommandLine, GlobalTracer.get())
   server.start()
   server.blockUntilShutdown()
+
+  private def parseCommandLine: Config = {
+    val programName = KVBCValidatorMain.productPrefix
+    new scopt.OptionParser[Config](programName = programName) {
+      head(s"$programName (DAML Execution Engine)")
+      opt[Int]("validation-thread-pool-size")
+        .optional()
+        .text("Controls the number of threads available for validation. Default: the number of CPU cores.")
+        .action((validationThreadPoolSize, config) => {
+          config.copy(preExecutionThreadPoolSize = Some(validationThreadPoolSize))
+        })
+
+    }.parse(args, Config()).getOrElse(sys.exit(-1))
+  }
 }
 
-class KVBCValidatorServer(tracer: Tracer) {
+class KVBCValidatorServer(config: Config, tracer: Tracer) {
   private[this] var server: Server = _
 
   private val GrpcPort = 55000
@@ -52,7 +66,10 @@ class KVBCValidatorServer(tracer: Tracer) {
     new SingleThreadExecutionSequencerPool("validator-health", 1)
 
   private val engine = new Engine(EngineConfig.Stable)
-  private val validator = new ValidationServiceImpl(engine, new Metrics(metricsRegistry.registry))
+  private val validator = new ValidationServiceImpl(
+    engine,
+    new Metrics(metricsRegistry.registry),
+    config.preExecutionThreadPoolSize)
   private val healthChecks = new HealthChecks("validator" -> validator)
   private val apiHealthService = new GrpcHealthService(healthChecks)
   private val apiReflectionService = ProtoReflectionService.newInstance()
@@ -88,3 +105,5 @@ class KVBCValidatorServer(tracer: Tracer) {
     }
   }
 }
+
+final case class Config(preExecutionThreadPoolSize: Option[Int] = None)
