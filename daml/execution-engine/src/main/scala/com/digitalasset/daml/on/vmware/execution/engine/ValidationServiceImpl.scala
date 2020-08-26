@@ -36,12 +36,13 @@ import io.grpc.{BindableService, ServerServiceDefinition}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materializer: Materializer)
+class ValidationServiceImpl(engine: Engine, metrics: Metrics, threadPoolSize: Option[Int] = None)(
+    implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
   implicit val executionContext: ExecutionContext =
-    ValidationServiceImpl.createInstrumentedExecutionContext(metrics.registry)
+    ValidationServiceImpl.createInstrumentedExecutionContext(metrics.registry, threadPoolSize)
 
   private val validatorCacheMetrics = new ValidatorCacheMetrics(metrics.registry)
 
@@ -109,10 +110,13 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics)(implicit materiali
 }
 
 private[engine] object ValidationServiceImpl {
-  def createInstrumentedExecutionContext(metricRegistry: MetricRegistry): ExecutionContext =
+  def createInstrumentedExecutionContext(
+      metricRegistry: MetricRegistry,
+      threadPoolSize: Option[Int] = None): ExecutionContext =
     ExecutionContext.fromExecutorService(
       new InstrumentedExecutorService(
-        Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors()),
+        Executors.newFixedThreadPool(
+          threadPoolSize.getOrElse(Runtime.getRuntime.availableProcessors())),
         metricRegistry,
         MetricName.DAML :+ "validator" :+ "parallel_validation" :+ "threadpool"
       ))

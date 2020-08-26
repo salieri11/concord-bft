@@ -90,6 +90,9 @@ lazy val execution_engine = (project in file("execution-engine"))
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
 
+      // Scopt
+      "com.github.scopt" %% "scopt" % "3.7.1",
+
       // Scaffaine, for state cache
       "com.github.blemale" %% "scaffeine" % "3.1.0",
 
