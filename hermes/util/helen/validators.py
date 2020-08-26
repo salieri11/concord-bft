@@ -687,13 +687,13 @@ def validateNodeSizeTemplateResponse(template):
     assert len(template["name"]) > 0, "Expected a valid name"
 
     templates = template["templates"]
-    assert len(templates) > 0, "Expecting templates for node sizing"
+    assert templates, "Expecting templates for node sizing"
 
     for templateItem in templates:
         validateTemplateItem(templateItem)
 
     range = template["range"]
-    assert len(range) > 0, "Expecting range to be non-empty"
+    assert range, "Expecting range to be non-empty"
 
     for key in range.keys():
         valMap = range[key]
