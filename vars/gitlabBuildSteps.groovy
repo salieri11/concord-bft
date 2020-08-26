@@ -457,7 +457,6 @@ def call(){
               env.eventsRecorder = env.WORKSPACE + "/blockchain/hermes/event_recorder.py"
               checkSkipTestsPassword()
               dockerutillib.removeContainers()
-              dockerutillib.removeImages()
               jenkinsbuilderlib.reportSystemStats()
               printSelectableSuites()
 
@@ -1267,8 +1266,10 @@ def call(){
           jenkinsbuilderlib.retryCommand(command, false)
 
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "Start")
-          dockerutillib.removeContainers()
-          dockerutillib.removeImages()
+          dir('blockchain') {
+            dockerutillib.removeContainers()
+            pruneImages()
+          }
           customathenautil.saveTimeEvent("Remove unnecessary docker artifacts", "End")
 
           if (!env.user_config_set) { setEnvFileAndUserConfig( hermesConfigOnly: true ) }
@@ -1500,7 +1501,9 @@ void pushToArtifactory(){
     env.internal_trc_test_app_repo,
     env.internal_client_pool_lib_repo,
     env.internal_participant_lib_repo,
-    // agent should be latest to guarantee latest pullable after all images are pushed.
+    
+    // agent should be the last one in order to guarantee latest prebuilt images are all pullable.
+    // (depended on by make-prebuilt-env.sh and get-build-info.py)
     env.internal_persephone_agent_repo,
   ]
 
@@ -2695,4 +2698,13 @@ void deregisterLRTBlockchain(org){
   env.deregisterLRTBlockchain_org = org
   env.deregisterLRTBlockchain_bcid = bc_id
   sh '''echo "${PASSWORD}" | sudo -SE "${python}" invoke.py deregisterBlockchain --param "${deregisterLRTBlockchain_org}" "${deregisterLRTBlockchain_bcid}"'''
+}
+
+// While keeping base images and only  the latest master images,
+// Remove all other images containing 0.0.0.* or <none> (unnamed)
+// Must be called under dir('blockchain') {}, after branch check out
+void pruneImages(){
+  echo 'Removing all docker images built on this run (0.0.0.*), except very top latest master images.'
+  env.latest_master_tag = artifactorylib.getLatestTag()
+  sh 'chmod +x vars/prune_images_except.sh; ./vars/prune_images_except.sh "${latest_master_tag}" > z_wrap_up_image_prune.log'
 }

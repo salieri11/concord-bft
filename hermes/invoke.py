@@ -102,8 +102,12 @@ def printLongRunningTestDashboardLink(args, options, secret):
   link = helper.longRunningTestDashboardLink()
   log.info(link)
 
-def ownAllJenkinsNodesWorkspace(args, options, secret):
-  jenkins.ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True)
+def own_all_jenkins_nodes_workspace(args, options, secret):
+  jenkins.own_all_jenkins_nodes_workspace()
+
+def run_on_workers(args, options, secret):
+  a = prepareArgs(args)
+  jenkins.run_cmd_over_all_workers(cmd=a[0], auto_output=True)
 
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
@@ -265,8 +269,9 @@ DISPATCH = {
   "publishRunsMR": publishRunsMR,
 
   # Jenkins-related functions
-  "ownAllWorkspaces": ownAllJenkinsNodesWorkspace,
+  "own_all_workspaces": own_all_jenkins_nodes_workspace,
   "capturePipelineError": capturePipelineError,
+  "run_on_workers": run_on_workers,
 
   # Infra-related
   "resetIPAM": resetIPAM,

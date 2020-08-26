@@ -11,6 +11,7 @@ import traceback
 import os
 import urllib
 import re
+import threading
 from itertools import islice
 from datetime import datetime
 from . import helper, hermes_logging, wavefront, racetrack, gitlab, slack
@@ -335,7 +336,7 @@ def configSubmit(jobName=None, buildNumber=None, displayName='', description='',
   print("Changing Jenkins build displayName and description...")
   print("Before: " + json.dumps(before, indent=4))
   print("After: " + json.dumps(after, indent=4))
-  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
+  baseUrl = get_build_base_url(jobName, buildNumber, authenticated=True)
   res = REQ_SESSION.post(
     baseUrl + '/configSubmit', 
     data={"json": json.dumps(after)}
@@ -348,7 +349,7 @@ def configSubmit(jobName=None, buildNumber=None, displayName='', description='',
     return None
 
 
-def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
+def own_all_jenkins_nodes_workspace():
   '''
     Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
   '''
@@ -357,30 +358,12 @@ def ownAllJenkinsNodesWorkspace(blockchainWorkersOnly=True):
     log.error('Builder password is not set. Cannot sudo chown without builder password.')
     return
   cmd = 'echo "{}" | sudo -S chown -R builder:builder /var/jenkins/workspace/*'.format(builderPW)
-  baseURL = getJenkinRunBaseUrl("ROOT", authenticated=True)
-  response = REQ_SESSION.get(baseURL + "/computer/api/json?tree=computer[displayName]")
-  count = 0
-  if response.status_code == 200:
-    resJSON = json.loads(response.content.decode('utf-8'), strict=False)
-    nodeList = resJSON["computer"]
-    for nodeInfo in nodeList:
-      try:
-        nodeName = nodeInfo["displayName"]
-        if blockchainWorkersOnly and not nodeName.startswith("blockchain-worker."): continue
-        response2 = REQ_SESSION.get(baseURL + "/computer/{}".format(nodeName))
-        if response2.status_code == 200:
-          ip = response2.content.decode('utf-8').split("<h2>IP</h2><p>")[1].split("</p>")[0]
-          if ip:
-            output = helper.ssh_connect(ip, "builder", builderPW, cmd)
-            if output is not None:
-              count += 1
-              log.info("[ {} :: {} ] /var/jenkins/workspace/* has been recursively owned by builder:builder".format(nodeName, ip))
-      except Exception as e:
-        traceback.print_exc()
-        pass
-    log.info("Total of {} nodes are affected.".format(count))
-    return True
-  else: return None
+  tracker = {}
+  run_cmd_over_all_workers(cmd, tracker=tracker)
+  for data in tracker["results"]:
+    log.info("[ {} :: {} ] /var/jenkins/workspace/* has been recursively owned by builder:builder".format(
+             data["nodeName"], data["ip"]))
+  log.info("Total of {} nodes are affected.".format(tracker["counter"]))
 
 
 def autoSetRunDescription():
@@ -531,7 +514,7 @@ def normalizeTimesData(timesData):
     normalized["total"] = getSecondsFromTimeStr(timesData["total"])
   return normalized
 
-def getJenkinRunBaseUrl(jobName, buildNumber='', authenticated=False):
+def get_build_base_url(jobName, buildNumber='', authenticated=False):
   '''
     If jobName is "ROOT" it will default to the very root URL
   '''
@@ -556,7 +539,7 @@ def getJenkinRunBaseUrl(jobName, buildNumber='', authenticated=False):
   return baseUrl
 
 def getArtifact(jobName, buildNumber, path, isJSON=True):
-  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
+  baseUrl = get_build_base_url(jobName, buildNumber, authenticated=True)
   artifactsPath = baseUrl + '/artifact/'
   response = REQ_SESSION.get(artifactsPath + path)
   if response.status_code == 200:
@@ -569,7 +552,7 @@ def getArtifact(jobName, buildNumber, path, isJSON=True):
     return None
 
 def treeQuery(jobName, buildNumber='', query='', params={}):
-  baseUrl = getJenkinRunBaseUrl(jobName, buildNumber, authenticated=True)
+  baseUrl = get_build_base_url(jobName, buildNumber, authenticated=True)
   jsonApiPath = baseUrl + '/api/json?'
   otherParamsStr = urllib.parse.urlencode(params) + "&" if len(params.keys()) > 0 else ""
   fullRequestUrl = jsonApiPath + otherParamsStr + 'tree=' + query if query else jsonApiPath
@@ -637,3 +620,67 @@ def overrideOnlyDefaultConfig(target, src):
       if isinstance(value, dict) or isinstance(value, list):
         if idx < len(src): overrideOnlyDefaultConfig(value, src[idx])
   return target
+
+def is_builder_node():
+  '''Default condition used for filtering out worker nodes by name pattern'''
+  return lambda nodeName: nodeName.startswith("onecloud-build-") and \
+                          "coordinator" not in nodeName
+
+def run_cmd_over_all_workers(cmd, tracker={}, eligible_name=None, builder_password=None, auto_output=False):
+  '''
+    Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
+  '''
+  log.info("Executing command over all worker nodes...")
+  log.info("Command: {}".format(cmd))
+  
+  if not builder_password:
+    builder_password = helper.getUserConfig()["jenkins"]["builderPassword"]
+    if builder_password.startswith("<"):
+      log.error('Builder password is not set. Cannot sudo chown without builder password.')
+      return
+  
+  if not eligible_name:
+    eligible_name = is_builder_node()
+  
+  if "counter" not in tracker: tracker["counter"] = 0
+  if "results" not in tracker: tracker["results"] = []
+  
+  def run_on_node(node_name, ip, cmd):
+    try_count = 0
+    max_tries = 3
+    while try_count < max_tries:
+      try_count += 1
+      try:
+        output = helper.ssh_connect(ip, "builder", builder_password, cmd)
+        tracker["results"].append({ "nodeName": node_name, "ip": ip, "output": output })
+        tracker["counter"] += 1
+        if auto_output:
+          log.info("[ {} :: {} ] exec output: {}".format(node_name, ip, output))
+        break
+      except: traceback.print_exc(); pass
+  
+  threads = []
+  base_url = get_build_base_url("ROOT", authenticated=True)
+  response = REQ_SESSION.get(base_url + "/computer/api/json?tree=computer[displayName]")
+  
+  if response.status_code == 200:
+    response_json = json.loads(response.content.decode('utf-8'), strict=False)
+    nodes = response_json["computer"]
+    for node in nodes:
+      try:
+        node_name = node["displayName"]
+        if not eligible_name(node_name):
+          continue
+        ip = node_name.split("-")[-1] # worker node name always ends in IP (e.g. onecloud-build-NN-10.78.20.34)
+        thd = threading.Thread(
+            target = lambda node_name, ip, cmd: run_on_node(node_name, ip, cmd),
+            args = (node_name, ip, cmd, ))
+        threads.append(thd)
+        thd.start()
+      except Exception as e:
+        traceback.print_exc()
+    for thd in threads: thd.join(timeout=30) # wait for all exec calls to return
+    return True
+  else:
+    log.error("Unable to fetch worker nodes list from Jenkins. (Status Code: {})".format(response.status_code))
+    return None

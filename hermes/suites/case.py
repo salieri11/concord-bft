@@ -305,7 +305,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       run = helper.getJenkinsJobNameAndBuildNumber()
       # link to test log should be changed to Jenkins artifacts path
       workspaceTestFolder = "/".join(helper.CURRENT_SUITE_LOG_FILE.split("/")[:-1])
-      basePath = jenkins.getJenkinRunBaseUrl(run["jobName"], run["buildNumber"])
+      basePath = jenkins.get_build_base_url(run["jobName"], run["buildNumber"])
       testLogPath = '/artifact/testLogs/' + helper.CURRENT_SUITE_LOG_FILE.split('/testLogs/')[1]
       testLogFolder = "/".join(testLogPath.split("/")[:-1]) if "/" in testLogPath else "" # drop filename
       attemptFolder = "/product_logs_attempt_" + str(helper.CURRENT_SUITE_PRODUCT_ATTEMPT_NUMBER)
