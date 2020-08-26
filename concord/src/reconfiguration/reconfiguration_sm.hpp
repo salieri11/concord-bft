@@ -57,10 +57,12 @@ class ReconfigurationSM {
    * blockchain and document it as part of the state. This will be under the
    * responsibility of each plugin to write its own commands to the blockchain.
    */
-  void Handle(const com::vmware::concord::ReconfigurationSmRequest& request,
-              com::vmware::concord::ConcordResponse& response,
-              uint64_t sequence_num, bool readOnly,
-              opentracing::Span& parent_span);
+  void Handle(
+      const com::vmware::concord::ReconfigurationSmRequest& request,
+      com::vmware::concord::ConcordResponse& response, uint64_t sequence_num,
+      bool readOnly,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
+      opentracing::Span& parent_span);
 };
 }  // namespace reconfiguration
 }  // namespace concord

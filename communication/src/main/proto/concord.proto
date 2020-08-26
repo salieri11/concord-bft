@@ -62,6 +62,10 @@ message ConcordResponse {
    repeated ErrorResponse error_response = 2047;
 }
 
+message ConcordReplicaSpecificInfoResponse {
+   optional ReconfigurationSmResponse.WedgeResponse wedge_response = 1;
+}
+
 // ----------------------------------------------------------------------------
 // All message definitions below this comment are sent/received within a
 // ConcordRequest/ConcordResponse message as defined above.
@@ -357,6 +361,9 @@ message ReconfigurationSmRequest {
 message ReconfigurationSmResponse {
    optional bool success = 1;
    optional bytes additionalData = 2;
+   message WedgeResponse {
+      required bool stopped = 1;
+   }
 }
 
 message ReconfigureTimePusherPeriodRequest {

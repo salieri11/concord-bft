@@ -155,7 +155,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 uint32_t ConcordCommandsHandler::SerializeResponse(
     const opentracing::Span &parent_span, uint32_t max_response_size,
     com::vmware::concord::ConcordResponse &response,
-    char *response_buffer) const {
+    com::vmware::concord::ConcordReplicaSpecificInfoResponse &rsi_response,
+    uint32_t &rsi_length, char *response_buffer) const {
   auto tracer = opentracing::Tracer::Global();
   std::unique_ptr<opentracing::Span> serialize_span =
       tracer->StartSpan("serialize_time_response",
@@ -208,7 +209,22 @@ uint32_t ConcordCommandsHandler::SerializeResponse(
       response_size = 0;
     }
   }
-  return response_size;
+  if (rsi_response.SerializeToArray(
+          response_buffer + response_size,
+          (int32_t)(max_response_size - response_size))) {
+    rsi_length = rsi_response.GetCachedSize();
+  } else {
+    LOG_FATAL(logger_,
+              "cannot attach replica specific information to message because "
+              "its size is "
+              "too large"
+                  << KVLOG(max_response_size, response_size,
+                           rsi_response.ByteSizeLong()));
+    rsi_length = 0;
+    // This will cause the replica to halt.
+    response_size = 0;
+  }
+  return response_size + rsi_length;
 }
 
 void ConcordCommandsHandler::UpdateTime(
@@ -349,7 +365,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
   com::vmware::concord::ConcordRequest request;
   com::vmware::concord::ConcordResponse response;
-
+  com::vmware::concord::ConcordReplicaSpecificInfoResponse rsi_response;
   std::shared_ptr<opentracing::Tracer> tracer;
   std::unique_ptr<opentracing::Span> execute_span;
   if (parent_span) {
@@ -403,7 +419,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     if (request.has_reconfiguration_sm_request()) {
       reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
                                   response, sequence_num, read_only,
-                                  *execute_span);
+                                  rsi_response, *execute_span);
     }
   } else {
     ErrorResponse *err = response.add_error_response();
@@ -413,8 +429,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     result = true;
   }
 
-  out_response_size = SerializeResponse(*execute_span, max_response_size,
-                                        response, response_buffer);
+  out_response_size = SerializeResponse(
+      *execute_span, max_response_size, response, rsi_response,
+      out_replica_specific_info_size, response_buffer);
 
   execute_span->SetTag(concord::utils::kExecResultTag, result);
   execute_span->SetTag(concord::utils::kExecRespSizeTag, out_response_size);

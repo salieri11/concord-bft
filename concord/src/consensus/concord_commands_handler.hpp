@@ -38,10 +38,11 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
                                          kvbc::SetOfKeyValuePairs &updates);
 
-  uint32_t SerializeResponse(const opentracing::Span &parent_span,
-                             uint32_t max_response_size,
-                             com::vmware::concord::ConcordResponse &response,
-                             char *response_buffer) const;
+  uint32_t SerializeResponse(
+      const opentracing::Span &parent_span, uint32_t max_response_size,
+      com::vmware::concord::ConcordResponse &response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse &rsi_response,
+      uint32_t &rsi_length, char *response_buffer) const;
   void UpdateTime(const opentracing::Span &parent_span,
                   const com::vmware::concord::ConcordRequest &request,
                   bool read_only, uint16_t client_id);
