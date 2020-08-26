@@ -220,12 +220,21 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         Map<String, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
-        configByNodeId.forEach((nodeId, componentList) -> {
-            nodeComponent.put(nodeId, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
-                    concordConfig, bftClientConfig, concordIdentityComponents, bftIdentityComponents));
-        });
+        try {
+            configByNodeId.forEach((nodeId, componentList) -> {
+                nodeComponent.put(nodeId, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
+                                                                                       concordConfig, bftClientConfig,
+                                                                                       concordIdentityComponents,
+                                                                                       bftIdentityComponents));
+            });
+        } catch (Exception e) {
+            log.error("Error organizing the configurations for sessions {}", sessionId);
+            observer.onError(e);
+        }
+
         log.info("Persisting configurations for session: {} in memory...", sessionId);
         cacheByNodeId.put(sessionId.getId(), nodeComponent);
+
         observer.onNext(sessionId);
         observer.onCompleted();
     }
