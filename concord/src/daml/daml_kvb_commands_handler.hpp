@@ -136,6 +136,9 @@ class DamlKvbCommandsHandler
       const com::vmware::concord::WriteSet& input_write_set,
       kvbc::SetOfKeyValuePairs& updates) const;
 
+  com::vmware::concord::ReadSet ReadSetToRaw(
+      const com::vmware::concord::ReadSet& input_read_set) const;
+
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
                          const std::string& participant_id,

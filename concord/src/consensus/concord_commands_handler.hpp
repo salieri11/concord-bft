@@ -128,8 +128,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                     concordUtils::SpanWrapper{}) override;
 
   // Checks the pre-executed result for read/write conflicts
-  bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult
-                                    &pre_execution_result) const;
+  bool HasPreExecutionConflicts(
+      const com::vmware::concord::ReadSet &read_set) const;
 
   // Functions the subclass must implement are below here.
 

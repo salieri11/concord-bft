@@ -370,6 +370,20 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
   }
 }
 
+com::vmware::concord::ReadSet DamlKvbCommandsHandler::ReadSetToRaw(
+    const com::vmware::concord::ReadSet& input_read_set) const {
+  com::vmware::concord::ReadSet output_read_set;
+  for (const auto& kf : input_read_set.keys_with_fingerprints()) {
+    auto output_kf = output_read_set.add_keys_with_fingerprints();
+    string decorated_key(kf.key());
+    decorated_key.insert(0, &concord::storage::kKvbKeyDaml,
+                         sizeof(concord::storage::kKvbKeyDaml));
+    output_kf->set_key(std::move(decorated_key));
+    output_kf->set_fingerprint(kf.fingerprint());
+  }
+  return output_read_set;
+}
+
 void HashAndLogWriteSet(
     const std::vector<KeyValuePairWithThinReplicaIds>& write_set,
     const SetOfKeyValuePairs& updates, logging::Logger& logger) {
@@ -496,9 +510,12 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
         pre_execution_result.request_correlation_id();
     SCOPED_MDC_CID(correlation_id);
 
-    if (HasPreExecutionConflicts(pre_execution_result)) {
-      LOG_DEBUG(logger_, "Post-execution failed for command "
-                             << correlation_id << " due to conflicts.");
+    if (!pre_execution_result.has_read_set()) {
+      LOG_WARN(logger_, "Post-execution failed due to missing read set.");
+      return false;
+    } else if (HasPreExecutionConflicts(
+                   ReadSetToRaw(pre_execution_result.read_set()))) {
+      LOG_INFO(logger_, "Post-execution failed due to conflicts.");
       return false;
     } else {
       return PostExecute(pre_execution_result, time_contract, parent_span,
