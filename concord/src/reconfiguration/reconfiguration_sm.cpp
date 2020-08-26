@@ -21,9 +21,11 @@ IReconfigurationPlugin* ReconfigurationSM::GetPlugin(
   return nullptr;
 }
 
-void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
-                               ConcordResponse& response, uint64_t sequence_num,
-                               bool readOnly, opentracing::Span& parent_span) {
+void ReconfigurationSM::Handle(
+    const ReconfigurationSmRequest& request, ConcordResponse& response,
+    uint64_t sequence_num, bool readOnly,
+    com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
+    opentracing::Span& parent_span) {
   SCOPED_MDC("r.p.id", std::to_string(request.pluginid()));
   auto reconfiguration_span = opentracing::Tracer::Global()->StartSpan(
       "reconfiguration_request",
@@ -40,12 +42,9 @@ void ReconfigurationSM::Handle(const ReconfigurationSmRequest& request,
     response.mutable_reconfiguration_sm_response()->set_success(false);
     return;
   }
-  auto rep = plugin->Handle(request.command(), sequence_num, readOnly,
-                            *reconfiguration_span, *control_state_manager_,
-                            *control_handlers_);
-  auto res = response.mutable_reconfiguration_sm_response();
-  res->set_success(rep.succ);
-  res->set_additionaldata(rep.data);
+  plugin->Handle(request.command(), sequence_num, readOnly,
+                 *reconfiguration_span, response, rsi_response,
+                 *control_state_manager_, *control_handlers_);
 }
 
 /*

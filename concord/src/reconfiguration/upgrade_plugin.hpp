@@ -9,25 +9,33 @@ namespace concord {
 namespace reconfiguration {
 
 class UpgradePlugin : public IReconfigurationPlugin {
-  PluginReply executeGetVersionCommand(
-      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand&
-          cmd) {
-    return {true, "Upgrading"};
+  void executeGetVersionCommand(
+      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand& cmd,
+      com::vmware::concord::ConcordResponse& concord_response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response) {
+    auto res = concord_response.mutable_reconfiguration_sm_response();
+    res->set_success(true);
+    res->set_additionaldata("Upgrading");
   }
 
-  PluginReply executeValidateVersionCommand(
-      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand&
-          cmd) {
-    return {true, "Valid"};
+  void executeValidateVersionCommand(
+      const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand& cmd,
+      com::vmware::concord::ConcordResponse& concord_response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response) {
+    auto res = concord_response.mutable_reconfiguration_sm_response();
+    res->set_success(true);
+    res->set_additionaldata("Valid");
   }
 
-  PluginReply executeUpgradeCommand(
+  void executeUpgradeCommand(
       const com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand& cmd,
       uint64_t sequence_num,
-      bftEngine::ControlStateManager& control_state_manager) {
-    // write in reserved pages the required checkpoint (probably the next one)
-    // to stop at.s
-    return {true, "Upgraded"};
+      bftEngine::ControlStateManager& control_state_manager,
+      com::vmware::concord::ConcordResponse& concord_response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response) {
+    auto res = concord_response.mutable_reconfiguration_sm_response();
+    res->set_success(true);
+    res->set_additionaldata("Upgraded");
   }
 
  public:
@@ -35,24 +43,34 @@ class UpgradePlugin : public IReconfigurationPlugin {
     pluginId_ = com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE;
   }
 
-  PluginReply Handle(const std::string& command, uint64_t sequence_num,
-                     bool readOnly, opentracing::Span& parent_span,
-                     bftEngine::ControlStateManager& control_state_manager,
-                     ConcordControlHandler& control_handlers) override {
+  void Handle(
+      const std::string& command, uint64_t sequence_num, bool readOnly,
+      opentracing::Span& parent_span,
+      com::vmware::concord::ConcordResponse& concord_response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
+      bftEngine::ControlStateManager& control_state_manager,
+      ConcordControlHandler& control_handlers) override {
     com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand cmd;
     cmd.ParseFromString(command);
     switch (cmd.type()) {
       case com::vmware::concord::
           ReconfigurationSmRequest_UpgradeCommand_UpgradeType_GET_VERSION:
-        return executeGetVersionCommand(cmd);
+        executeGetVersionCommand(cmd, concord_response, rsi_response);
+        break;
       case com::vmware::concord::
           ReconfigurationSmRequest_UpgradeCommand_UpgradeType_VALIDATE_VERSION:
-        return executeValidateVersionCommand(cmd);
+        executeValidateVersionCommand(cmd, concord_response, rsi_response);
+        break;
       case com::vmware::concord::
           ReconfigurationSmRequest_UpgradeCommand_UpgradeType_EXECUTE_UPGRADE:
-        return executeUpgradeCommand(cmd, sequence_num, control_state_manager);
+        executeUpgradeCommand(cmd, sequence_num, control_state_manager,
+                              concord_response, rsi_response);
+        break;
+      default:
+        auto res = concord_response.mutable_reconfiguration_sm_response();
+        res->set_success(false);
+        res->set_additionaldata("Unknown upgrade command");
     }
-    return PluginReply{false, "Unknown_upgrade_command"};
   }
 };
 

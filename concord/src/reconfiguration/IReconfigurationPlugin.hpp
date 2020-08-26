@@ -12,11 +12,6 @@
 namespace concord {
 namespace reconfiguration {
 
-struct PluginReply {
-  bool succ;
-  std::string data;
-};
-
 class IReconfigurationPlugin {
  protected:
   com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId_;
@@ -26,9 +21,12 @@ class IReconfigurationPlugin {
   com::vmware::concord::ReconfigurationSmRequest::PluginId GetPluginId() const {
     return pluginId_;
   }
-  virtual PluginReply Handle(
+
+  virtual void Handle(
       const std::string& command, uint64_t sequence_num, bool readOnly,
       opentracing::Span& parent_span,
+      com::vmware::concord::ConcordResponse& concord_response,
+      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       bftEngine::ControlStateManager& control_state_manager,
       ConcordControlHandler& control_handlers) = 0;
 };
