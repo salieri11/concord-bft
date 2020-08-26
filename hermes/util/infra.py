@@ -349,14 +349,19 @@ def save_fatal_errors_to_summary(fatal_errors):
     if fatal_errors:
         for current_error in fatal_errors:
             node_data = current_error["node"]; occupant_handle = current_error["occupant"]
+            deployed_by = "(unknown)"
+            if "jenkins_build_id" in occupant_handle["attrMap"]:
+              deployed_by = occupant_handle["attrMap"]["jenkins_build_id"]
             please_contact_msg = "Please contact concierge about this as soon as possible; this is a serious issue."
             if current_error["type"] == INVENTORY_ERRORS.NAME_CONFLICT:
-                msg = "FATAL !!  Node ID: '{}' already occupied by {} on {}. {}.".format( 
-                        node_data["id"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
+                msg = "FATAL !!  Node ID: '{}' already occupied by {} on {}, deployed by {}. {}.".format(
+                        node_data["id"], occupant_handle["uid"], 
+                        occupant_handle["sddcName"], deployed_by, please_contact_msg)
                 raise Exception(msg) # Raise Name Conflict
             elif current_error["type"] == INVENTORY_ERRORS.IP_CONFLICT:
-                msg = "FATAL !!  Node IP: '{}' already occupied by {} on {}. {}.".format(
-                        node_data["ip"], occupant_handle["uid"], occupant_handle["sddcName"], please_contact_msg)
+                msg = "FATAL !!  Node IP: '{}' already occupied by {} on {}, deployed by {}. {}.".format(
+                        node_data["ip"], occupant_handle["uid"],
+                        occupant_handle["sddcName"], deployed_by, please_contact_msg)
                 log.error(msg)
                 raise Exception(msg) # Raise IP Conflict
 
