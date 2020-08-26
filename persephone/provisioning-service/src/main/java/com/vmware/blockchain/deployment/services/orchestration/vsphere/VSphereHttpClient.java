@@ -4,7 +4,11 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
@@ -19,6 +23,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,6 +33,7 @@ import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetDatastoreResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetFolderResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.GetNetworkResponse;
@@ -69,6 +75,9 @@ public class VSphereHttpClient {
     private VsphereSessionAuthenticationInterceptor vsphereSessionAuthenticationInterceptor;
     private LoggingInterceptor loggingInterceptor;
 
+    private Boolean useSelfSignedCertForVSphere;
+    private KeyStore selfSignedCertKeyStore;
+
     /**
      * Constructor.
      */
@@ -85,6 +94,27 @@ public class VSphereHttpClient {
                 = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
                 context.getPassword());
 
+        // If self-signed certificate is populated enable useSelfSignedCertForVSphere
+        if (this.context.certificateData.isEmpty()) {
+            useSelfSignedCertForVSphere = false;
+        } else {
+            useSelfSignedCertForVSphere = true;
+        }
+
+        // Creating new Key store and populate the self-signed certificate for VSphere
+        if (useSelfSignedCertForVSphere) {
+            try {
+                selfSignedCertKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                // Currently have set the password to the key store as null, can be secured with password
+                selfSignedCertKeyStore.load(null, null);
+                Certificate selfSignedCertForVSphere = CertificateFactory.getInstance("X.509").generateCertificate(
+                        new ByteArrayInputStream(this.context.certificateData.getBytes()));
+                selfSignedCertKeyStore.setCertificateEntry("SelfSignedCertForVSphere", selfSignedCertForVSphere);
+            } catch (Exception e) {
+                throw new PersephoneException(e, ErrorCode.KEYSTORE_CREATION_ERROR);
+            }
+        }
+
         this.restTemplate = restTemplate();
 
         httpHeaders = vsphereSessionAuthenticationInterceptor.getAuthHeaders();
@@ -97,7 +127,17 @@ public class VSphereHttpClient {
      * @return Built RestTemplate.
      */
     public RestTemplate restTemplate() {
-        return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
+        RestClientBuilder restClientBuilder = new RestClientBuilder();
+
+        if (useSelfSignedCertForVSphere) {
+            HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
+                    .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
+
+            // Utilizes above created factory using the selfSignedCertKeyStore
+            restClientBuilder = restClientBuilder.withRequestFactory(factory);
+        }
+
+        return restClientBuilder.withBaseUrl(context.getEndpoint().toString())
                 .withInterceptor(vsphereSessionAuthenticationInterceptor)
                 .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
                 .withInterceptor(loggingInterceptor)
@@ -116,7 +156,7 @@ public class VSphereHttpClient {
         URI endpoint;
         String username;
         String password;
-
+        String certificateData;
     }
 
 

@@ -4,9 +4,20 @@
 
 package com.vmware.blockchain.deployment.services.orchestration;
 
+import java.security.KeyStore;
 import java.util.AbstractMap;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+
 import com.google.common.net.InetAddresses;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.v1.Address;
 
@@ -38,4 +49,23 @@ public class OrchestratorUtils {
         return new AbstractMap.SimpleEntry<>(name, ip);
     }
 
+    /**
+     * get a HttpComponentsClientHttpRequestFactory given a keyStore to be incorporated in SSLContext
+     * @param keyStore keyStore
+     * @return HttpComponentsClientHttpRequestFactory with the keyStore incorporated in SSLContext.
+     */
+    public static HttpComponentsClientHttpRequestFactory getHttpRequestFactoryGivenKeyStore(KeyStore keyStore) {
+        try {
+            SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(keyStore, null).build();
+
+            SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
+
+            HttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
+
+            HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+            return factory;
+        } catch (Exception e) {
+            throw new PersephoneException(e, ErrorCode.SSL_CONTEXT_CREATION_ERROR);
+        }
+    }
 }

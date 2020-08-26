@@ -59,7 +59,8 @@ public class VSphereOrchestrator implements Orchestrator {
         VSphereHttpClient.Context context = new VSphereHttpClient.Context(
                 URI.create(vCenter.getAddress()),
                 vCenter.getCredential().getPasswordCredential().getUsername(),
-                vCenter.getCredential().getPasswordCredential().getPassword());
+                vCenter.getCredential().getPasswordCredential().getPassword(),
+                vCenter.getTransportSecurity().getCertificateData());
 
         this.vSphereHttpClient = new VSphereHttpClient(context);
     }
