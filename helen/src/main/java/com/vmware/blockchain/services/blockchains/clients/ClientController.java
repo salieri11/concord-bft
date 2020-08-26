@@ -116,29 +116,26 @@ public class ClientController {
     @RequestMapping(path = "", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isUser()")
     ResponseEntity<List<ClientGetResponse>> listParticipants(@PathVariable("bid") UUID bid) throws NotFoundException {
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
+        safeGetBlockchain(bid);
 
         var clients = clientService.getClientsByParentId(bid);
-        List<ClientGetResponse> replicaGetResponseList;
+        List<ClientGetResponse> clientGetResponseList;
         if (clients == null || clients.isEmpty()) {
             logger.warn("Using older flow for blockchain {}", bid);
             // Backward compatible.
-            replicaGetResponseList = replicaService.getReplicas(bid)
+            clientGetResponseList = replicaService.getReplicas(bid)
                     .stream()
                     .filter(replica -> replica.getReplicaType() == Replica.ReplicaType.DAML_PARTICIPANT)
                     .map(ClientGetResponse::new)
                     .collect(Collectors.toList());
         } else {
-            replicaGetResponseList = clients
+            clientGetResponseList = clients
                     .stream()
                     .map(ClientGetResponse::new)
                     .collect(Collectors.toList());
 
         }
-        return new ResponseEntity<>(replicaGetResponseList, HttpStatus.OK);
+        return new ResponseEntity<>(clientGetResponseList, HttpStatus.OK);
     }
 
     /**
@@ -151,20 +148,35 @@ public class ClientController {
     @PreAuthorize("@authHelper.isConsortiumParticipant()")
     public ResponseEntity<NodeGetCredentialsResponse> getClientCredentials(@PathVariable UUID bid,
                                                                             @PathVariable UUID clientId) {
-        Blockchain b = blockchainService.get(bid);
-        if (b == null) {
-            throw new NotFoundException(String.format("Blockchain %s does not exist.", bid.toString()));
-        }
+        safeGetBlockchain(bid);
 
         Optional<Client> clientOpt = clientService.getClientsByParentId(bid).stream()
                 .filter(c -> c.getId().equals(clientId)).findFirst();
         if (clientOpt.isEmpty()) {
-            throw new NotFoundException(ErrorCode.NOT_FOUND);
+            throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND, clientId.toString(),
+                    bid.toString());
         }
+
         Client client = clientOpt.get();
 
-        return new ResponseEntity<>(NodeGetCredentialsResponse.builder()
-                .username("root").password(client.password).build(), HttpStatus.OK);
+        NodeGetCredentialsResponse nodeGetCredentialsResponse = new NodeGetCredentialsResponse("root",
+                client.getPassword());
+
+        return new ResponseEntity<>(nodeGetCredentialsResponse, HttpStatus.OK);
     }
 
+    // This could be done better, but maybe later. We need to handle errors first.
+    private Blockchain safeGetBlockchain(UUID bid) {
+        Blockchain blockchain;
+        try {
+            blockchain = blockchainService.get(bid);
+            if (blockchain == null) {
+                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+            }
+        } catch (NotFoundException e) {
+            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+        }
+
+        return blockchain;
+    }
 }
