@@ -1,7 +1,7 @@
-node('blockchain-LongRunTestRel'){
-  checkout scm
+node ('blockchain-LongRunTestRel') {
+    checkout scm
 
-  def rootDir = pwd()
-  def builder = load "${rootDir}/vars/builder.groovy"
-  builder.runBuild()
+    def rootDir = pwd()
+    def builder = load "${rootDir}/vars/builder.groovy"
+    builder.runBuild()
 }

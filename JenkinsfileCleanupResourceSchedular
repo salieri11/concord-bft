@@ -1,7 +1,7 @@
-node{
-  checkout scm
+node ('build-coordinator') {
+    checkout scm
 
-  def rootDir = pwd()
-  def builder = load "${rootDir}/vars/cleanupSddcResourcesBuilder.groovy"
-  builder.runBuild()
+    def rootDir = pwd()
+    def builder = load "${rootDir}/vars/cleanupSddcResourcesBuilder.groovy"
+    builder.runBuild()
 }
