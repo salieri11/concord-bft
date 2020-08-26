@@ -84,7 +84,7 @@ LOCATION_TO_ZONE_TYPES = {
 #   daml
 #   hlf
 #   tee
-# These options are not supported:
+# These options are not supported on command line, but are supported elsewhere:
 #   chessplus, daml_committer, daml_participant and "no verification required for this blockchain".
 TYPE_CHESSPLUS = "chessplus"
 TYPE_ETHEREUM = "ethereum"

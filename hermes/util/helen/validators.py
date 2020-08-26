@@ -7,6 +7,7 @@ import copy
 import difflib
 import json
 from uuid import UUID, uuid4
+from uuid import UUID
 
 import util.blockchain.eth
 import util.hermes_logging
@@ -678,10 +679,8 @@ def validateNodeSizeTemplateResponse(template):
     log.debug(template)
 
     assert type(template) == collections.OrderedDict, "Expecting collections.OrderedDict value for template"
-
-    assert "id" in template, "No field called id in node size template"
-    assert len(template["id"]) == 36, "Expected UUID of length 36"
-    assert type(template["id"]) == str, "Expecting str value for id"
+    # The following statement throws an exception, if id is not of type UUID.
+    UUID(template["id"])
 
     assert "name" in template, "No field called name in node size template"
     assert type(template["name"]) == str, "Expecting str value for name"

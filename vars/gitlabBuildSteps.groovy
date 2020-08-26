@@ -266,7 +266,10 @@ import org.apache.commons.lang.exception.ExceptionUtils
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-k test_daml_deployment" \
       --suitesRealname=HelenDeployToSDDCTemplate'
-  ]
+  ],
+  "HelenNodeSizeTemplateTests": [
+    "enabled": true,
+  ],
 ]
 
 // Pipline env
