@@ -127,25 +127,22 @@ public class VSphereHttpClient {
      * @return Built RestTemplate.
      */
     public RestTemplate restTemplate() {
+        RestClientBuilder restClientBuilder = new RestClientBuilder();
+
         if (useSelfSignedCertForVSphere) {
             HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
                     .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
 
             // Utilizes above created factory using the selfSignedCertKeyStore
-            return new RestClientBuilder().withRequestFactory(factory).withBaseUrl(context.getEndpoint().toString())
-                .withInterceptor(vsphereSessionAuthenticationInterceptor)
-                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
-                .withInterceptor(loggingInterceptor)
-                .withObjectMapper(RestClientUtils.getDefaultMapper())
-                .build();
-        } else {
-            return new RestClientBuilder().withBaseUrl(context.getEndpoint().toString())
-                .withInterceptor(vsphereSessionAuthenticationInterceptor)
-                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
-                .withInterceptor(loggingInterceptor)
-                .withObjectMapper(RestClientUtils.getDefaultMapper())
-                .build();
+            restClientBuilder = restClientBuilder.withRequestFactory(factory);
         }
+
+        return restClientBuilder.withBaseUrl(context.getEndpoint().toString())
+                .withInterceptor(vsphereSessionAuthenticationInterceptor)
+                .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
+                .withInterceptor(loggingInterceptor)
+                .withObjectMapper(RestClientUtils.getDefaultMapper())
+                .build();
     }
 
     /**
