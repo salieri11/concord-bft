@@ -41,7 +41,6 @@ def call() {
               customathenautil = load "vars/athenaspecific/customathenautil.groovy"
 
               dockerutillib.removeContainers()
-              dockerutillib.removeImages()
 
               jenkinsbuilderlib.reportSystemStats()
 
@@ -186,8 +185,10 @@ def call() {
             jenkinsbuilderlib.retryCommand("docker logout", false)
             jenkinsbuilderlib.retryCommand("docker logout athena-docker-local.artifactory.eng.vmware.com", false)
 
-            dockerutillib.removeContainers()
-            dockerutillib.removeImages()
+            dir('blockchain') {
+              dockerutillib.removeContainers()
+              dockerutillib.removeImages()
+            }
 
             jenkinsbuilderlib.ownWorkspace()
             collectArtifacts()
