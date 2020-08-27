@@ -3,7 +3,6 @@
 #########################################################################
 # Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
-
 import argparse
 import os
 import sys
@@ -31,11 +30,10 @@ import util.chessplus.chessplus_helper as chessplus_helper
 sys.path.append("lib/persephone")
 
 log = None
-
-# Add new test suite in suiteList. 
+# Add new test suite in suiteList.
 # If new test suite is a pytest suite, add it in pyTestSuiteList also
 
-pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests", 
+pyTestSuiteList = ["ChessPlusTests", "ClientGroupTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests",
               "HelenAPITests", "HelenBlockTests", "HelenBlockchainTests", "HelenClientTests",
               "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
               "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
@@ -52,6 +50,7 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
 suiteList = {
    "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
    "ChessPlusTests": "suites/chess_plus_tests.py",
+   "ClientGroupTests": "suites/st_client_group_tests.py",
    "EthCoreVmTests": "suites/eth_core_vm_tests.py",
    "DamlTests": "suites/daml_tests.py",
    "ClientPoolDamlTests": "suites/daml_tests.py",
@@ -355,7 +354,7 @@ def main():
       folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
       util.infra.overrideDefaultZones(args.zoneOverride, folder)
 
-   #Valid Test Suite List? 
+   #Valid Test Suite List?
    allSuitesValid = True
    unKnownSuites = []
    for i, suiteName in enumerate(args.suites.split(",")):
@@ -502,6 +501,7 @@ def createTestSuite(args, pyTestSuiteList, suiteList, suiteName, product):
         return pytest_suite.PytestSuite(args, suiteList[suiteName], product)
      else:
         return suiteList.get(suiteName)(args, product)
+
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    '''
