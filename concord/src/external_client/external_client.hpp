@@ -82,6 +82,10 @@ class ConcordClient {
 
   std::chrono::steady_clock::time_point getStartRequestTime() const;
 
+  void setStartWaitingTime();
+
+  std::chrono::steady_clock::time_point getWaitingTime() const;
+
   bool isServing() const;
 
   static void setStatics(uint16_t required_num_of_replicas,
@@ -114,6 +118,8 @@ class ConcordClient {
   bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
   uint64_t seq_num_ = 0;
   std::chrono::steady_clock::time_point start_job_time_ =
+      std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point waiting_job_time_ =
       std::chrono::steady_clock::now();
   static uint16_t num_of_replicas_;
   static uint16_t required_num_of_replicas_;

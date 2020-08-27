@@ -15,6 +15,7 @@
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/registry.h>
+#include <prometheus/summary.h>
 #include <config/configuration_manager.hpp>
 #include <functional>
 #include <mutex>
@@ -144,12 +145,15 @@ class ConcordClientPool {
   prometheus::Family<prometheus::Counter>& rejected_requests_counters_;
   prometheus::Family<prometheus::Gauge>& total_clients_gauges_;
   prometheus::Family<prometheus::Gauge>& last_request_time_gauges_;
+  prometheus::Family<prometheus::Summary>& waiting_time_summaries_;
   prometheus::Counter& requests_counter_;
   prometheus::Counter& rejected_counter_;
   prometheus::Gauge& clients_gauge_;
   prometheus::Gauge& last_request_time_gauge_;
+  prometheus::Summary& waiting_time_summary_;
   // Logger
   logging::Logger logger_;
+  std::atomic_bool is_overloaded_ = false;
   EXT_DONE_CALLBACK done_callback_ = nullptr;
 };
 
