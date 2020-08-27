@@ -268,6 +268,7 @@ import org.apache.commons.lang.exception.ExceptionUtils
   ],
   "HelenNodeSizeTemplateTests": [
     "enabled": true,
+    "runWithGenericTests": false
   ],
 ]
 
