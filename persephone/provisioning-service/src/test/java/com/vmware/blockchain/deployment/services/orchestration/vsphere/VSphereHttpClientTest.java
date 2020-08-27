@@ -461,6 +461,32 @@ class VSphereHttpClientTest {
     }
 
     @Test
+    void createVirtualMachineDisk() {
+        String name = "vm-007";
+
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name)))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)));
+
+        long diskGb = 64;
+        Assertions.assertTrue(vSphereHttpClient.createVirtualMachineDisk(name, diskGb));
+    }
+
+    @Test
+    void createVirtualMachineDiskBad() {
+        String name = "vm-008";
+
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name)))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(400)));
+
+        long diskGb = -1;
+        Assertions.assertFalse(vSphereHttpClient.createVirtualMachineDisk(name, diskGb));
+    }
+
+    @Test
     void deleteExistingVirtualMachine() {
         String id = "Snowstorm";
         server.stubFor(delete(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM.getPath().replace("{vm}", id)))
@@ -587,11 +613,18 @@ class VSphereHttpClientTest {
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)));
 
+        // Create VM Disk
+        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name)))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)));
+
         Map<String, String> properties = new HashMap<String, String>();
 
         properties.put(DeploymentAttributes.VM_MEMORY.toString(), "16");
         properties.put(DeploymentAttributes.VM_CPU_COUNT.toString(), "32");
         properties.put(DeploymentAttributes.VM_CORES_PER_SOCKET.toString(), "64");
+        properties.put(DeploymentAttributes.VM_STORAGE.toString(), "67");
 
         long retryInterval = 10;
         Assertions.assertTrue(vSphereHttpClient.ensureVirtualMachinePowerStart(name, retryInterval,
