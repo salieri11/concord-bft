@@ -36,10 +36,9 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
       intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
       intr_helper.SKIP_MASTER_REPLICA: True,
-      intr_helper.NODE_OFFLINE_TIME: 5,
-      intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
-         "place_holder_for_other_interruption_params": "value"
+         intr_helper.NODE_OFFLINE_TIME: 5,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10
       }
    }
 
@@ -84,8 +83,6 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
       intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
       intr_helper.SKIP_MASTER_REPLICA: True,
-      intr_helper.NODE_OFFLINE_TIME: 0,
-      intr_helper.TIME_BETWEEN_INTERRUPTIONS: 0,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          "place_holder_for_other_interruption_params": "value"
       }

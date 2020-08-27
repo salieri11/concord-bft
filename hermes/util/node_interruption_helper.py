@@ -351,8 +351,14 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
    :param node_interruption_details: interruptions/recovery details
    :return: success status
    '''
-   node_offline_time = node_interruption_details[NODE_OFFLINE_TIME]
-   time_between_interruptions = node_interruption_details[TIME_BETWEEN_INTERRUPTIONS]
+   custom_interruption_params = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS]
+   node_offline_time = custom_interruption_params.get(NODE_OFFLINE_TIME)
+   time_between_interruptions = custom_interruption_params.get(TIME_BETWEEN_INTERRUPTIONS)
+   # If time gaps are not specified, assign default value
+   if node_offline_time is None:
+      node_offline_time = 0
+   if time_between_interruptions is None:
+      time_between_interruptions = 0
    # node interruption time must be greater than node recovery time, else delta becomes 0
    time_remaining_before_next_interruption = time_between_interruptions - node_offline_time \
       if time_between_interruptions > node_offline_time else 0
