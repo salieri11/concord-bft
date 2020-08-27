@@ -11,16 +11,18 @@ services:
     ports:
       - 9002:9002
     volumes:
-      - ./config-persephone/provisioning:/config:ro
+      - ../hermes/resources/persephone/provisioning:/config:ro
   castor:
     image: "${castor_repo}:${castor_tag}"
     depends_on:
       - persephone-provisioning
     volumes:
-      - ./config-castor:/config:ro
+      - ${CASTOR_DESCRIPTORS_LOC}:/descriptors:ro
+      - ${CASTOR_OUTPUT_DIR}:/output
     environment:
-      - "castor.infrastructure.descriptor.location=/config/descriptors/test01_infrastructure_descriptor.json"
-      - "castor.deployment.descriptor.location=/config/descriptors/test01_deployment_descriptor.json"
+      - "castor.infrastructure.descriptor.location=/descriptors/test01_infrastructure_descriptor.json"
+      - "castor.deployment.descriptor.location=/descriptors/test01_deployment_descriptor.json"
+      - "castor.output.directory.location=/output"
     entrypoint: ['./wait-for-it.sh', 'persephone-provisioning:9002', '-t', '60', '--',
              "java", "-Dspring.config.location=/config/app/profiles/,./",
              "-jar", "castor.jar"]

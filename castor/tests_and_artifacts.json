@@ -1,4 +1,4 @@
 {
-  "test_suites": ["SampleSuite"],
+  "test_suites": ["CastorDeploymentTests"],
   "build_targets": ["castor"]
 }
