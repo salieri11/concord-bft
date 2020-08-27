@@ -29,7 +29,6 @@ def test_getClientsNoClientBlockchain(fxConnection):
 
 
 @describe()
-@pytest.mark.skip(reason = "Disabled till updated Helen image is available.")
 @pytest.mark.smoke
 @pytest.mark.clients
 def test_getClientsUnavailableBlockchain(fxConnection, fxBlockchain):

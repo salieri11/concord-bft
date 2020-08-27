@@ -27,7 +27,6 @@ def test_replicaGet(fxConnection):
     assert len(replicas) == 4
 
 @describe()
-@pytest.mark.skip(reason = "Disabled till updated Helen image is available.")
 @pytest.mark.smoke
 @pytest.mark.replicas
 def test_replicaGetUnavailableBlockchain(fxConnection):

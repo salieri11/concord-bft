@@ -52,7 +52,6 @@ def test_getABlockchain_valid(fxConnection):
 
 
 @describe()
-@pytest.mark.skip(reason = "Disabled till updated Helen image is available.")
 @pytest.mark.smoke
 @pytest.mark.blockchains
 def test_getABlockhain_invalid_uuid(fxConnection):
