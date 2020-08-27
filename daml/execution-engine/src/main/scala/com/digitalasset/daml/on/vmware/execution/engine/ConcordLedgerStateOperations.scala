@@ -113,13 +113,13 @@ final class ConcordLedgerStateOperations(
 }
 
 object ConcordLedgerStateOperations {
-  private[engine] val VisibleToThisReplicaOnly: Seq[String] = Seq("_")
+  private[engine] val HiddenFromAllParticipants: Seq[String] = Seq("_")
 
   private[engine] def accessControlListToThinReplicaIds(
       accessControlList: AccessControlList): Seq[String] =
     accessControlList match {
       case PublicAccess => Seq.empty
-      case RestrictedAccess(participants) if participants.isEmpty => VisibleToThisReplicaOnly
+      case RestrictedAccess(participants) if participants.isEmpty => HiddenFromAllParticipants
       case RestrictedAccess(participants) => participants.map(toReplicaId).toSeq.sorted
     }
 }

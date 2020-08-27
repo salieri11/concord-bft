@@ -174,9 +174,9 @@ message PreprocessorFromEngine {
   oneof from_engine {
     // Request data from the KV store
     // Every request is answered at some block height.
-    // Different requests may be answered from block heights.
+    // Different requests may be answered at different block heights.
+    // A later read request may be answered at a block height that is lower than an earlier read request's.
     // For a consistent set of read values, the DAML Execution Engine should make only a single read request.
-    // Later read requests may use block height that is lower than an earlier read request's block height.
     ReadRequest read_request = 1;
 
     // The result of the pre-execution.
@@ -287,17 +287,11 @@ message PreExecutionOutput {
   google.protobuf.Timestamp min_record_time = 1;
   google.protobuf.Timestamp max_record_time = 2;
 
-  // The key-value-visibility triples to be written if the record time is within bounds (inclusive).
-  // The values in the write set are com.vmware.concord.kvb.ValueWithTrids,
-  // which include the visibility information.
-  // The write set is shipped in Concord's internal format so that it need not be converted
-  // during post-execution. (Post-execution can still extend the write set
-  // by adding additional KV pairs.)
-  com.vmware.concord.WriteSet success_write_set = 3;
+  // The write set to be written if the record time is within bounds (inclusive).
+  WriteSet success_write_set = 3;
 
-  // The key-value-visibility triples to be written if the record time is outside of the bounds.
-  // Same format as for success_write_set.
-  com.vmware.concord.WriteSet out_of_time_bounds_write_set = 4;
+  // The write set to be written if the record time is outside of the bounds.
+  WriteSet out_of_time_bounds_write_set = 4;
 
   // The thin replica clients ids that should learn about the transaction
   // if the success_write_set is written.
@@ -314,6 +308,27 @@ message PreExecutionOutput {
   // of the DAML Execution Engine
   // so that it makes it to post-execution.
   string submitting_participant_id = 6;
+}
+
+message WriteSet {
+  // A write set is a sequence of key-value-access triples.
+  repeated KeyValueAccessTriple writes = 1;
+}
+
+message KeyValueAccessTriple {
+  bytes key = 1;
+  bytes value = 2;
+  AccessControlList access = 3;
+}
+
+message AccessControlList {
+  message Restricted {
+    repeated string participant_id = 1;
+  }
+  // Optional: if absent then the access is unrestricted (public). If present, it can still
+  // contain an empty participant list, which means that no participants will see the associated
+  // write set.
+  Restricted restricted = 2;
 }
 
 // Contents of a time update entry, as expected by participant state reader in Ledger API Server

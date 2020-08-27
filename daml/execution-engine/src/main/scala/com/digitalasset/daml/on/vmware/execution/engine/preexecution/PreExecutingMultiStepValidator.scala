@@ -2,7 +2,6 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine.preexecution
 
-import com.daml.api.util.TimestampConversion
 import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.validator.caching.CachingDamlLedgerStateReaderWithFingerprints.StateCacheWithFingerprints
 import com.daml.ledger.validator.caching.{
@@ -16,14 +15,8 @@ import com.daml.ledger.validator.preexecution.{
 }
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
 import com.daml.lf.data.Ref
-import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
-import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator.toWriteSet
 import com.digitalasset.daml.on.vmware.execution.engine.preexecution.StaticLedgerStateReader.KeysUnavailableException
-import com.digitalasset.kvbc.daml_validator.{
-  PreExecuteRequest,
-  PreExecuteResponse,
-  PreExecutionOutput
-}
+import com.digitalasset.kvbc.daml_validator.{PreExecuteRequest, PreExecuteResponse}
 import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
 import org.slf4j.LoggerFactory
 

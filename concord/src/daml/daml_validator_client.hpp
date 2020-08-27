@@ -13,6 +13,8 @@
 #include "concord_storage.pb.h"
 #include "daml_validator.grpc.pb.h"
 
+namespace da_kvbc = com::digitalasset::kvbc;
+
 namespace concord {
 namespace daml {
 
@@ -104,6 +106,13 @@ class DamlValidatorClient : public IDamlValidatorClient {
       google::protobuf::RepeatedPtrField<
           com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
       std::vector<KeyValuePairWithThinReplicaIds>* result);
+
+  static void MangleDamlPreExecutionOutputForConcord(
+      da_kvbc::PreExecutionOutput& pre_execution_output);
+  static void MangleDamlWriteSetForConcord(
+      da_kvbc::WriteSet* mutable_write_set);
+  static void MangleDamlAclForConcord(
+      da_kvbc::AccessControlList* mutable_access);
 
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::StubInterface>
       stub_;

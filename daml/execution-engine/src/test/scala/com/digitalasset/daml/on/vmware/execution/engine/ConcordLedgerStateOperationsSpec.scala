@@ -7,7 +7,7 @@ import com.daml.ledger.participant.state.v1
 import com.daml.ledger.validator.LedgerStateOperations.Value
 import com.daml.ledger.validator.privacy.{PublicAccess, RestrictedAccess}
 import com.digitalasset.daml.on.vmware.execution.engine.ConcordLedgerStateOperations.{
-  VisibleToThisReplicaOnly,
+  HiddenFromAllParticipants,
   accessControlListToThinReplicaIds
 }
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
@@ -158,7 +158,7 @@ class ConcordLedgerStateOperationsSpec
     }
 
     "return magic list for restricted access with no participants" in {
-      accessControlListToThinReplicaIds(RestrictedAccess(Set.empty)) shouldBe VisibleToThisReplicaOnly
+      accessControlListToThinReplicaIds(RestrictedAccess(Set.empty)) shouldBe HiddenFromAllParticipants
     }
   }
 

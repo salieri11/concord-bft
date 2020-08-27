@@ -267,6 +267,7 @@ grpc::Status DamlValidatorClient::PreExecute(
                                                            to_hash.size()))
                                         .toString()
                                  << "]");
+          MangleDamlPreExecutionOutputForConcord(pre_execution_output);
         } else {
           LOG_DEBUG(logger_, "Could not parse pre-execution output");
         }
@@ -290,6 +291,32 @@ grpc::Status DamlValidatorClient::PreExecute(
     LOG_DEBUG(logger_, "Did not receive a pre-execution result after "
                            << kMaxRequestsDuringPreExecution << " requests");
     return grpc::Status(grpc::StatusCode::INTERNAL, "Too many read iterations");
+  }
+}
+
+void DamlValidatorClient::MangleDamlPreExecutionOutputForConcord(
+    da_kvbc::PreExecutionOutput& pre_execution_output) {
+  MangleDamlWriteSetForConcord(
+      pre_execution_output.mutable_success_write_set());
+  MangleDamlWriteSetForConcord(
+      pre_execution_output.mutable_out_of_time_bounds_write_set());
+}
+
+void DamlValidatorClient::MangleDamlWriteSetForConcord(
+    da_kvbc::WriteSet* mutable_write_set) {
+  for (int i = 0; i < mutable_write_set->writes_size(); i++) {
+    MangleDamlAclForConcord(
+        mutable_write_set->mutable_writes(i)->mutable_access());
+  }
+}
+
+void DamlValidatorClient::MangleDamlAclForConcord(
+    da_kvbc::AccessControlList* mutable_access) {
+  if (mutable_access->has_restricted() &&
+      mutable_access->restricted().participant_id_size() == 0) {
+    mutable_access->mutable_restricted()->add_participant_id(
+        "_");  // Magic invalid thin replica ID, it ensures no participant will
+               // receive this write set
   }
 }
 

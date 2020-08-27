@@ -25,6 +25,10 @@ concordUtils::Sliver CreateSliver(const std::string& content);
 concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
 concordUtils::Sliver CreateDamlKvbValue(const std::string& value,
                                         const std::vector<string>& trid_list);
+void AccessControlListToThinReplicaIds(
+    const com::digitalasset::kvbc::AccessControlList& access_control_list,
+    std::vector<string>& thin_replica_ids);
+
 bool CheckIfWithinTimeBounds(
     const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
     const google::protobuf::Timestamp& record_time);
@@ -133,7 +137,7 @@ class DamlKvbCommandsHandler
       kvbc::SetOfKeyValuePairs& write_set) const;
 
   void WriteSetToRawUpdates(
-      const com::vmware::concord::WriteSet& input_write_set,
+      const com::digitalasset::kvbc::WriteSet& input_write_set,
       kvbc::SetOfKeyValuePairs& updates) const;
 
   com::vmware::concord::ReadSet ReadSetToRaw(
