@@ -55,106 +55,55 @@
           </option>
         </select>
       </div>
-      <ng-container>
-        <div class="nav-overlay-container" [ngClass]="{'sidemanu-disable':navDisabled}">
-          <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active" id="sidenav-dashboard">
-            <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
-            {{'nav.dashboard' | translate}}
+      <div class="nav-overlay-container" [ngClass]="{'sidemanu-disable':navDisabled}">
+        <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active" id="sidenav-dashboard">
+          <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
+          {{'nav.dashboard' | translate}}
+        </a>
+        <a clrVerticalNavLink [routerLink]="['nodes']" links="['nodes']" routerLinkActive="active" id="sidenav-nodes">
+          <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
+          {{'nav.nodeList' | translate}}
+        </a>
+        <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}" id="sidenav-organizations">
+          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
+          {{'nav.organizations' | translate}}
+        </a>
+        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['smart-contracts']"
+          routerLinkActive="active" id="smartContracts" id="sidenav-smart-contracts">
+          <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
+          {{'nav.smartContracts' | translate}}
+        </a>
+        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active" id="sidenav-blocks">
+          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+          {{'nav.blockList' | translate}}
+        </a>
+        <a clrVerticalNavLink [routerLink]="['details']" routerLinkActive="active" id="sidenav-details">
+          <clr-icon clrVerticalNavIcon shape="info-standard"></clr-icon>
+          {{'nav.details' | translate}}
+        </a>
+        <ng-container *ngIf="!isOnPrem">
+          <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="sidenav-logging"
+            *concordFeatureFlag="'developer_logging'">
+            <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
+            {{'nav.developer.logs' | translate}}
           </a>
-          <a clrVerticalNavLink [routerLink]="['nodes']" links="['nodes']" routerLinkActive="active" id="sidenav-nodes">
-            <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
-            {{'nav.nodeList' | translate}}
-          </a>
-          <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}" id="sidenav-organizations">
-            <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
-            {{'nav.organizations' | translate}}
-          </a>
-          <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['smart-contracts']"
-            routerLinkActive="active" id="smartContracts" id="sidenav-smart-contracts">
-            <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
-            {{'nav.smartContracts' | translate}}
-          </a>
-          <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active" id="sidenav-blocks">
-            <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
-            {{'nav.blockList' | translate}}
-          </a>
-          <a clrVerticalNavLink [routerLink]="['details']" routerLinkActive="active" id="sidenav-details">
-            <clr-icon clrVerticalNavIcon shape="info-standard"></clr-icon>
-            {{'nav.details' | translate}}
-          </a>
-          <div class="nav-divider"></div>
-          <label class="nav-header">
-            {{'nav.developer.header' | translate}}
-          </label>
-          <!-- To be used once docs are in production -->
-          <!-- <a clrVerticalNavLink (click)="onClickToHelp()">
-            <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
-            {{'nav.developer.docs' | translate}}
-          </a> -->
-          <!-- Logging NAV -->
-          <ng-container *ngIf="!isOnPrem">
-            <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="sidenav-logging"
-              *concordFeatureFlag="'developer_logging'">
-              <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
-              {{'nav.developer.logs' | translate}}
-            </a>
-          </ng-container>
-          <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="sidenav-apis">
-            <clr-icon clrVerticalNavIcon shape="code" class="clr-icon-size-override"></clr-icon>
-            {{'nav.developer.api' | translate}}
-          </a>
-          <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active" id="sidenav-dev-examples">
-            <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
-            {{'nav.developer.samples' | translate}}
-          </a>
-          <ng-container>
-            <!-- TODO - ADD TO FEATURE FLAG - UNDER DEVELOPMENT -->
-              <!-- <ng-container *ngIf="!env.csp"> -->
-            <!-- <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <div class="nav-divider"></div>
-              <label class="nav-header">
-                {{'nav.sysadmin.header' | translate}}
-              </label>
+        </ng-container>
 
-              consortiums
-              <a clrVerticalNavLink [routerLink]="['system/consortiums']" routerLinkActive="active"
-                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-                <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
-                {{'nav.sysadmin.consortiums' | translate}}
-              </a>
+      </div>
+      <div class="nav-divider"></div>
+      <label class="nav-header">
+        {{'nav.developer.header' | translate}}
+      </label>
 
-              active tasks
-              <a clrVerticalNavLink [routerLink]="['system/tasks']" routerLinkActive="active"
-                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-                <clr-icon clrVerticalNavIcon shape="tasks"></clr-icon>
-                {{'nav.sysadmin.tasks' | translate}}
-              </a>
-
-              features
-              <a clrVerticalNavLink [routerLink]="['system/features']" routerLinkActive="active"
-                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-                <clr-icon clrVerticalNavIcon shape="list"></clr-icon>
-                {{'nav.sysadmin.features' | translate}}
-              </a>
-
-              roles
-              <a clrVerticalNavLink [routerLink]="['system/roles']" routerLinkActive="active"
-                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
-                tourAnchor="onboardingTour.userManagement">
-                <clr-icon clrVerticalNavIcon shape="users"></clr-icon>
-                {{'nav.sysadmin.roles' | translate}}
-              </a>
-
-              environment
-              <a clrVerticalNavLink [routerLink]="['system/environment']" routerLinkActive="active"
-                *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-                <clr-icon clrVerticalNavIcon shape="network-settings"></clr-icon>
-                {{'nav.sysadmin.env' | translate}}
-              </a>
-            </ng-container> -->
-          </ng-container>
-        </div>
-      </ng-container>
+      <!-- Logging NAV -->
+      <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="sidenav-apis">
+        <clr-icon clrVerticalNavIcon shape="code" class="clr-icon-size-override"></clr-icon>
+        {{'nav.developer.api' | translate}}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active" id="sidenav-dev-examples">
+        <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
+        {{'nav.developer.samples' | translate}}
+      </a>
       <div class="sidemenu-bottom-buttons">
         <concord-theme-switch-button class="bottom-button theme-switch-button" simple-button="true">
         </concord-theme-switch-button>
