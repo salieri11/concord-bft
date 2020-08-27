@@ -49,7 +49,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import lombok.Getter;
 
@@ -91,7 +90,7 @@ public class NodeStartupOrchestrator {
 
         List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
                 NodeStartupOrchestrator.class.getName()));
-        this.metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
+        this.metricsAgent = new MetricsAgent(tags);
     }
 
     /**

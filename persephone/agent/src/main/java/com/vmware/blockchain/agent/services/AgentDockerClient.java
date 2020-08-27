@@ -35,7 +35,6 @@ import com.vmware.blockchain.deployment.v1.Endpoint;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 
 /**
@@ -58,7 +57,7 @@ public class AgentDockerClient {
     /** metrics from agent. **/
     List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
             AgentDockerClient.class.getName()));
-    private final MetricsAgent metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
+    private final MetricsAgent metricsAgent = new MetricsAgent(tags);
 
     /**
      * Data class to contain metadata information about a container image.
