@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.agent.services.exceptions;
@@ -25,14 +25,14 @@ import lombok.Setter;
 @Getter
 public enum ErrorCode {
     //Agent specific
-    CONFIGURATION_RETRIEVAL_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot retrieve node configuration.", null),
+    CONFIGURATION_RETRIEVAL_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot retrieve node configuration", null),
     NODE_START_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot start node", null),
     ERROR_POPULATING_NODE_CONFIG(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot start node", null),
     DOCKER_CLIENT_PARSING_IMAGE_NAME_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR,
-                                             "Parsing name failure, using default values", null),
-    DOCKER_CLIENT_PULLING_IMAGE_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Error pulling image", null),
+                                             "Parsing image name failure, using default values", null),
+    DOCKER_CLIENT_PULLING_IMAGE_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Pulling image failure", null),
     RETRY_REST_CALL_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Agent external call failure", InternalError.class),
-    DAML_NODE_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "DAML Node type not provided.", null),
+    DAML_NODE_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "DAML Node type not provided", null),
     INVALID_BLOCKCHAIN_NETWORK_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "Invalid blockchain network type", null),
     //General
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not found", null),
@@ -45,6 +45,7 @@ public enum ErrorCode {
     METHOD_ARG_NOT_VALID(HttpStatus.BAD_REQUEST, "Bad request", MethodArgumentNotValidException.class),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Unsupported operation", UnsupportedOperationException.class),
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, "Bad request", InvalidFormatException.class),
+    //default
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Unknown error", null);
 
     private final HttpStatus httpStatus;

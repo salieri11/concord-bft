@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.agent.services.exceptions;
@@ -11,15 +11,17 @@ package com.vmware.blockchain.agent.services.exceptions;
 public class AgentException extends RuntimeException {
 
     private ErrorCode errorCode;
+    /**
+    *Usually consists of human readable explanation + originalExc.getMessage(), but can contain only
+    * originalExc.getMessage() or just human readable message. The aim is to human readable.
+    */
     private String details;
-    private Throwable originalException;
 
     /**
      * Agent exception created from cause.
      * */
     public AgentException(Throwable e) {
         super(e);
-        this.originalException = e;
         this.errorCode = ErrorCode.findByException(e);
         this.details = e.getMessage();
     }
@@ -39,9 +41,7 @@ public class AgentException extends RuntimeException {
     public AgentException(ErrorCode errorCode, Throwable exception) {
         super(exception);
         this.errorCode = errorCode;
-        //TODO maybe remove this
-        this.errorCode.setExceptionType(exception.getClass());
-        this.originalException = exception;
+        this.details = exception.getMessage();
     }
 
     /**
@@ -53,6 +53,8 @@ public class AgentException extends RuntimeException {
 
     /**
      * Gets the details of Agent Exception.
+     * Usually consists of human readable explanation + originalExc.getMessage(), but can contain only
+     * originalExc.getMessage() or just human readable message. The aim is to human readable.
      */
     public String getDetails() {
         return details;

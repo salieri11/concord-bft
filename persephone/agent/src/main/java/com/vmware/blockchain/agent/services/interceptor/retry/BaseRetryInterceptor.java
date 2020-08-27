@@ -66,29 +66,27 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 response = execution.execute(request, body);
             } catch (Exception ex) {
                 logger.error("Failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
-                throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE, new InternalError("Error logged : ",
-                                                                                              ex));
+                throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE, new InternalError("Error logged : ", ex));
             }
             if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.
                 if (context.getRetryCount() > 0) {
                     logger.info("{} on endpoint {} succeeded after {} retries", request.getMethod(),
-                                cleanQueryParams(request.getURI()), context.getRetryCount());
+                            cleanQueryParams(request.getURI()), context.getRetryCount());
                 }
                 return response;
             }
             if (retryPolicy.canRetry(context) && shouldRetry(request)) {
                 logger.error("{} on endpoint {} failing with {} after {} retries", request.getMethod(),
-                             cleanQueryParams(request.getURI()), response.getStatusCode(), context.getRetryCount());
+                        cleanQueryParams(request.getURI()), response.getStatusCode(), context.getRetryCount());
                 // closing response releases connection back to pool
                 response.close();
                 throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE,
                                          new InternalError("Exhausted retry attempts."));
             }
-            logger.warn("{} on endpoint {} failed permanently after {} retries with status {}, "
-                        + "returning last response",
-                        request.getMethod(), cleanQueryParams(request.getURI()), context.getRetryCount(),
-                        response.getStatusCode());
+            logger.warn("{} on endpoint {} failed permanently after {} retries with status {}, returning last response",
+                    request.getMethod(), cleanQueryParams(request.getURI()), context.getRetryCount(),
+                    response.getStatusCode());
             return response;
         });
         return clientHttpResponse;

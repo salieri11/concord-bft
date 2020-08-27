@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.agent.services.exceptions;
@@ -14,28 +14,28 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Agent Component Exception Handler, implemented using the standard Spring global exception handling mechanism.
  */
 @ControllerAdvice
-//TODO ? extends ResponseEntityExceptionHandler?
 public class AgentExceptionHandler extends ResponseEntityExceptionHandler {
 
     /**
      * Holds the information of interest in case of exception.
      */
     @AllArgsConstructor
+    @NoArgsConstructor
     @Getter
+    @Setter
     private static class ErrorResponse {
 
-        //the HTTP status
         private HttpStatus status;
-        //the exception class name
+        private ErrorCode agentErrorCode;
         private String excCause;
-        //the exception message
         private String details;
-        //URI
         private String path;
     }
 
@@ -50,7 +50,7 @@ public class AgentExceptionHandler extends ResponseEntityExceptionHandler {
         if (error == null) {
             return createAnyOtherErrorResponse(ex, request);
         }
-        return new ErrorResponse(error.getHttpStatus(), ex.getClass().toString(),
+        return new ErrorResponse(error.getHttpStatus(), error, ex.getClass().toString(),
                                  error.getMessage() + ": " + ex.getDetails(), request.getRequestURI());
     }
 
@@ -62,9 +62,8 @@ public class AgentExceptionHandler extends ResponseEntityExceptionHandler {
 
     private ErrorResponse createAnyOtherErrorResponse(Throwable ex, HttpServletRequest request) {
         ErrorCode error = ErrorCode.findByException(ex);
-        return new ErrorResponse(error.getHttpStatus(), ex.getClass().toString(),
-                                 error.getMessage() + ": " + ex.getMessage(),
-                                 request.getRequestURI());
+        return new ErrorResponse(error.getHttpStatus(), error, ex.getClass().toString(), error.getMessage() + ": "
+                                                                     + ex.getMessage(), request.getRequestURI());
     }
 
 }

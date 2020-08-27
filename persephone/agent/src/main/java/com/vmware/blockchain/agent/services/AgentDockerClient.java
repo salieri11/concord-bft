@@ -39,7 +39,8 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 
 /**
- * Utility class for talking to Docker and creating the required volumes, starting concord-node etc.
+ * Utility class for talking to Docker and creating the required volumes, starting
+ * concord-node etc.
  */
 @Component
 public class AgentDockerClient {
@@ -54,18 +55,15 @@ public class AgentDockerClient {
     private static final Pattern IMAGE_NAME_PATTERN =
             Pattern.compile("(?:(?<registry>[^:]+:?[0-9]+)/)?(?<repository>[^:]+)(?::(?<tag>.+))?");
 
-    /**
-     * metrics from agent.
-     **/
+    /** metrics from agent. **/
     List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
-                                          AgentDockerClient.class.getName()));
+            AgentDockerClient.class.getName()));
     private final MetricsAgent metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
 
     /**
      * Data class to contain metadata information about a container image.
      */
     private static class ContainerImage {
-
         private String repository;
         private String tag;
 
@@ -84,8 +82,8 @@ public class AgentDockerClient {
             } catch (Exception error) {
                 log.error("Encountered error while parsing name, using default values", error);
                 throw new AgentException(ErrorCode.DOCKER_CLIENT_PARSING_IMAGE_NAME_FAILURE,
-                                         "Encountered error while parsing name [" + name + "], using default values ",
-                                         error);
+                                         "Encountered error while parsing name [" + name + "], using default values "
+                                          + error.getMessage(), error);
             }
         }
 
@@ -168,8 +166,8 @@ public class AgentDockerClient {
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", imageName, error);
             throw new AgentException(ErrorCode.DOCKER_CLIENT_PULLING_IMAGE_FAILURE,
-                                     "Error while pulling image for component [" + imageName + "]" + error.getMessage(),
-                                     error);
+                                    "Error while pulling image for component [" + imageName + "] " + error.getMessage(),
+                                    error);
         } finally {
             try {
                 docker.close();
@@ -180,22 +178,18 @@ public class AgentDockerClient {
 
         var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         Timer timer = this.metricsAgent.getTimer("Pull each component image",
-                                                 MetricsConstants.MetricsNames.CONTAINER_PULL_IMAGE,
-                                                 List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(),
-                                                                "getImageIdAfterDl"),
-                                                         Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.name(),
-                                                                imageName)));
+                MetricsConstants.MetricsNames.CONTAINER_PULL_IMAGE,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "getImageIdAfterDl"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.name(), imageName)));
         timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
         return containerConfig;
     }
 
     void createNetwork(String networkName) {
         Timer timer = this.metricsAgent.getTimer("Create container network",
-                                                 MetricsConstants.MetricsNames.CREATE_NETWORK,
-                                                 List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(),
-                                                                "createNetwork"),
-                                                         Tag.of(MetricsConstants.MetricsTags.TAG_DOCKER_NETWORK.name(),
-                                                                networkName)));
+                MetricsConstants.MetricsNames.CREATE_NETWORK,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "createNetwork"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_DOCKER_NETWORK.name(), networkName)));
 
         timer.record(() -> {
             var dockerClient = DockerClientBuilder.getInstance().build();
@@ -239,13 +233,11 @@ public class AgentDockerClient {
      * Helper util to start a container.
      */
     public void startComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
-                               String containerId) {
+                                      String containerId) {
         Timer timer = this.metricsAgent.getTimer("Start each component container",
-                                                 MetricsConstants.MetricsNames.CONTAINER_LAUNCH,
-                                                 List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(),
-                                                                "startComponent"),
-                                                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(),
-                                                                containerId)));
+                MetricsConstants.MetricsNames.CONTAINER_LAUNCH,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "startComponent"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(), containerId)));
         timer.record(() -> {
             log.info("Starting {}: Id {} ", containerParam.getContainerName(), containerId);
             dockerClient.startContainerCmd(containerId).exec();
@@ -257,13 +249,11 @@ public class AgentDockerClient {
      * Helper util to stop a container.
      */
     public void stopComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
-                              String containerId) {
+                               String containerId) {
         Timer timer = this.metricsAgent.getTimer("Stop each component container",
-                                                 MetricsConstants.MetricsNames.CONTAINER_STOP,
-                                                 List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(),
-                                                                "stopComponent"),
-                                                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(),
-                                                                containerId)));
+                MetricsConstants.MetricsNames.CONTAINER_STOP,
+                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "stopComponent"),
+                        Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.name(), containerId)));
         timer.record(() -> {
             log.info("Stopping {}: Id {} ", containerParam.getContainerName(), containerId);
             dockerClient.stopContainerCmd(containerId).exec();
