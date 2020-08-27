@@ -641,7 +641,6 @@ def test_getContractById_oneVersion(fxConnection, fxBlockchain):
 
 @describe()
 @pytest.mark.smoke
-@pytest.mark.skip(reason="BC-1817: Intermittent 'Error while calling contract' from ethrpc")
 def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
     '''
     Upload multiple versions of a contract, get all of them in one call with /contracts/{id},
