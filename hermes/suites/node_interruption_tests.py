@@ -29,6 +29,7 @@ helper.disable_duplicate_logs()
 productType = helper.TYPE_NO_VERIFY
 
 @describe("Node Interruption - VM Stop/start - 1 node")
+@pytest.mark.committer_node_interruption
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
