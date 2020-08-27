@@ -8,23 +8,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealth;
-import com.vmware.blockchain.agent.services.node.health.daml.DamlExecutionEngineHealth;
-import com.vmware.blockchain.agent.services.node.health.daml.DamlLedgerApiHealth;
+import com.vmware.blockchain.agent.services.node.health.daml.DamlHealth;
+import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Factory class to monitor health of components.
  */
+@Slf4j
 @Component
 public class NodeComponentHealthFactory {
 
-    private final ConcordAgentConfiguration configuration;
+    private final ConcordAgentConfiguration concordAgentConfiguration;
+    private final DamlHealthServiceInvoker damlHealthServiceInvoker;
 
     @Autowired
-    NodeComponentHealthFactory(ConcordAgentConfiguration configuration) {
-        this.configuration = configuration;
+    NodeComponentHealthFactory(ConcordAgentConfiguration concordAgentConfiguration,
+                               DamlHealthServiceInvoker damlHealthServiceInvoker) {
+        this.concordAgentConfiguration = concordAgentConfiguration;
+        this.damlHealthServiceInvoker = damlHealthServiceInvoker;
     }
 
     /**
@@ -35,39 +41,58 @@ public class NodeComponentHealthFactory {
     public ComponentHealth getHealthComponent(ConcordComponent.ServiceType serviceType)
             throws UnsupportedOperationException, IllegalArgumentException {
 
-        switch (configuration.getModel().getBlockchainType()) {
+        switch (getConcordAgentConfiguration().getModel().getBlockchainType()) {
             case ETHEREUM:
                 if (!serviceType.equals(ConcordComponent.ServiceType.CONCORD)) {
-                    throw new IllegalArgumentException(String.format("Blockchain type {} can not have service type {}",
-                            configuration.getModel().getBlockchainType().name(), serviceType));
+                    throw new IllegalArgumentException("Blockchain type "
+                            +  getConcordAgentConfiguration().getModel().getBlockchainType().name()
+                            + " can not have service type "
+                            + serviceType.name());
                 }
                 return getComponent(serviceType);
             case DAML:
-                if (configuration.getModel().getNodeType().equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
-                        && serviceType.equals(ConcordComponent.ServiceType.CONCORD)) {
-                    throw new IllegalArgumentException(String.format("Node type {} can not have service type {}",
-                            configuration.getModel().getNodeType().name(), serviceType));
+                if (serviceType.equals(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
+                    throw new UnsupportedOperationException(
+                            "Method unimplemented for service type " + serviceType.name());
                 }
-                return getComponent(serviceType);
+                if (getConcordAgentConfiguration().getModel().getNodeType()
+                        .equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
+                        && serviceType.equals(ConcordComponent.ServiceType.DAML_LEDGER_API)) {
+                    return getComponent(serviceType);
+                }
+                if (getConcordAgentConfiguration().getModel().getNodeType()
+                        .equals(ConcordModelSpecification.NodeType.DAML_COMMITTER)
+                        && (serviceType.equals(ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE)
+                        || serviceType.equals(ConcordComponent.ServiceType.CONCORD))) {
+                    return getComponent(serviceType);
+                }
+                throw new IllegalArgumentException("Node type "
+                        + getConcordAgentConfiguration().getModel().getNodeType().name()
+                        + " can not have service type " + serviceType.name());
             default:
                 throw new UnsupportedOperationException(
-                        "Method unimplemented for blockchain type " + configuration.getModel()
+                        "Method unimplemented for blockchain type " + getConcordAgentConfiguration().getModel()
                                 .getBlockchainType().name());
         }
     }
 
-    private ComponentHealth getComponent(ConcordComponent.ServiceType serviceType)
+    ComponentHealth getComponent(ConcordComponent.ServiceType serviceType)
             throws UnsupportedOperationException {
         switch (serviceType) {
             case CONCORD:
+                log.info("Invoking {}", ConcordHealth.class.getName());
                 return new ConcordHealth();
             case DAML_LEDGER_API:
-                return new DamlLedgerApiHealth();
             case DAML_EXECUTION_ENGINE:
-                return new DamlExecutionEngineHealth();
+                log.info("Invoking {}", DamlHealth.class.getName());
+                return new DamlHealth(damlHealthServiceInvoker);
             default:
                 throw new UnsupportedOperationException(
                         "Method not implemented for service type " + serviceType.name());
         }
+    }
+
+    ConcordAgentConfiguration getConcordAgentConfiguration() {
+        return this.concordAgentConfiguration;
     }
 }

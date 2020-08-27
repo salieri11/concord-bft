@@ -41,6 +41,7 @@ import com.vmware.blockchain.agent.services.exceptions.AgentException;
 import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
+import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -73,6 +74,8 @@ public class NodeStartupOrchestrator {
 
     private final AgentDockerClient agentDockerClient;
 
+    private final DamlHealthServiceInvoker damlHealthServiceInvoker;
+
     @Getter
     private List<BaseContainerSpec> components;
 
@@ -83,10 +86,12 @@ public class NodeStartupOrchestrator {
      */
     @Autowired
     public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient,
-                                   ConfigServiceInvoker configServiceInvoker) {
+                                   ConfigServiceInvoker configServiceInvoker,
+                                   DamlHealthServiceInvoker damlHealthServiceInvoker) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
         this.configServiceInvoker = configServiceInvoker;
+        this.damlHealthServiceInvoker = damlHealthServiceInvoker;
 
         List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
                 NodeStartupOrchestrator.class.getName()));
@@ -127,6 +132,16 @@ public class NodeStartupOrchestrator {
                         } else {
                             agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
                             counter.increment();
+
+                            // Since "_" is not a valid literal in hostname, we can not use container name
+                            if (container.getContainerName()
+                                    .equalsIgnoreCase(damlHealthServiceInvoker.getService().getHost())) {
+                                var inspectContainerResponse = agentDockerClient.inspectContainer(dockerClient,
+                                        container.getContainerName());
+                                String host = inspectContainerResponse.getNetworkSettings().getNetworks()
+                                        .get(CONTAINER_NETWORK_NAME).getIpAddress();
+                                damlHealthServiceInvoker.start(host);
+                            }
                         }
                     });
                 } catch (ConflictException e) {

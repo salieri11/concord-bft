@@ -22,6 +22,7 @@ public class ConcordHealth implements ComponentHealth {
 
     @Override
     public HealthStatusResponse getHealth() {
+        /** TODO: UNIMPLEMENTED. */
         List<Tag> tags = Collections.singletonList(
                 Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.name(), "concord"));
         this.metricsAgent.gauge(1, "concord health status",

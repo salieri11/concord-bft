@@ -30,17 +30,17 @@ import lombok.extern.slf4j.Slf4j;
 public class NodeComponentController {
 
     private final AgentDockerClient agentDockerClient;
-    private final ConcordAgentConfiguration configuration;
+    private final ConcordAgentConfiguration concordAgentConfiguration;
     private final NodeStartupOrchestrator nodeStartupOrchestrator;
     private final NodeComponentHealthFactory nodeComponentHealthFactory;
 
     @Autowired
     public NodeComponentController(AgentDockerClient agentDockerClient,
-                                   ConcordAgentConfiguration configuration,
+                                   ConcordAgentConfiguration concordAgentConfiguration,
                                    NodeStartupOrchestrator nodeStartupOrchestrator,
                                    NodeComponentHealthFactory nodeComponentHealthFactory) {
         this.agentDockerClient = agentDockerClient;
-        this.configuration = configuration;
+        this.concordAgentConfiguration = concordAgentConfiguration;
         this.nodeStartupOrchestrator = nodeStartupOrchestrator;
         this.nodeComponentHealthFactory = nodeComponentHealthFactory;
     }
@@ -88,10 +88,11 @@ public class NodeComponentController {
     @RequestMapping(path = "/api/health/daml", method = RequestMethod.GET)
     ResponseEntity<HealthStatusResponse> getDamlHealth() {
         log.info("Receieved request to query daml health...");
-        ConcordComponent.ServiceType serviceType = configuration.getModel().getNodeType()
+        ConcordComponent.ServiceType serviceType = concordAgentConfiguration.getModel().getNodeType()
                 .equals(ConcordModelSpecification.NodeType.DAML_COMMITTER)
                 ? ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE
                 : ConcordComponent.ServiceType.DAML_LEDGER_API;
+        log.info("Daml service type on node: {}", serviceType);
         return getHealthResponse(serviceType);
     }
 
