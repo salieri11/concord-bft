@@ -53,22 +53,16 @@ def match_pattern(lines, pattern):
 
 def _populateDescriptorFiles(hermes_settings):
     # Read hermes configs for infrastructure
-    zones = hermes_settings["zone_config"]["zones"][helper.LOCATION_ONPREM]
-    sddcZones = list(filter(lambda z: z["info"]["labels"]["name"] == "ONPREM SDDC 4", zones))
-    assert len(sddcZones) == 1, "could not find zone %s in hermes_settings" % _ONPREM_SDDC_4
-
-    sddcZone = sddcZones[0]
-    vSphere = sddcZone["vsphere"]
-    url = sddcZone["api"]["address"]
-    userName = sddcZone['api']['credential']['passwordCredential']['username']
-    password = sddcZone['api']['credential']['passwordCredential']['password']
-    resource = sddcZone['vsphere']['resourcePool']
-    storage = sddcZone['vsphere']['datastore']
-    folder = sddcZone['vsphere']['folder']
-    networkName = sddcZone['vsphere']['network']['name']
-    gateway = sddcZone['vsphere']['network']['gateway']
-    subnet = sddcZone['vsphere']['network']['subnet']
-    nameServers = sddcZone['vsphere']['network']['nameServers']
+    url = hermes_settings['zone_config']['zones']['onprem'][0]['api']['address']
+    userName = hermes_settings['zone_config']['infra']['SDDC1']['username']
+    password = hermes_settings['zone_config']['infra']['SDDC1']['password']
+    resource = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['resourcePool']
+    storage = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['datastore']
+    folder = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['folder']
+    networkName = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['name']
+    gateway = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['gateway']
+    subnet = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['subnet']
+    nameServers = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['nameServers']
 
     # Read the infra descriptor file
     infraFilePath = os.path.join(_CASTOR_DESCRIPTORS_LOC_VALUE, _CASTOR_INFRA_DESCRIPTOR_FILE)
@@ -86,7 +80,7 @@ def _populateDescriptorFiles(hermes_settings):
     infraDescriptor['zones'][0]['vCenter']['folder'] = folder
 
     infraDescriptor['zones'][0]['network']['name'] = networkName
-    infraDescriptor['zones'][0]['network']['gateway'] = helper.long2ip(gateway)
+    infraDescriptor['zones'][0]['network']['gateway'] = gateway
     infraDescriptor['zones'][0]['network']['subnet'] = subnet
     infraDescriptor['zones'][0]['network']['nameServers'] = nameServers
 
