@@ -216,6 +216,8 @@ def deregisterBlockchain(args, options, secret):
 
   Sample invocation to dergister blockchain 0123456789:
     python invoke.py deregisterBlockchain --param system_test_master 0123456789
+  Sample invocation to dergister all blockchains for an org:
+    python invoke.py deregisterBlockchain --param system_test_master all
   '''
   a = prepareArgs(args)
   orgName = args[0]

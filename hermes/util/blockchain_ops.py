@@ -399,6 +399,7 @@ def print_replica_info(fxBlockchain, interrupted_nodes=[]):
 def deregister_blockchain(org_name, bc_id, service):
   '''
   Utility method to deregister a blockchain.
+  bc_id of "all" means to deregister all of them for this org.
   '''
   token_descriptor = {
     "org": org_name,
@@ -413,8 +414,16 @@ def deregister_blockchain(org_name, bc_id, service):
                              tokenDescriptor=token_descriptor,
                              service=service)
 
-  log.info("Deregistering blockchain {} from {}".format(bc_id, service))
-  resp = req.deregisterBlockchain(bc_id)
-  log.info("Response: {}".format(resp))
+  if bc_id == "all":
+    resp = req.getBlockchains()
+    
+    for bc in resp:
+      resp = req.deregisterBlockchain(bc["id"])
+      log.info("response: {}".format(resp))
+  else:
+    log.info("Deregistering blockchain {} from {}".format(bc_id, service))
+    resp = req.deregisterBlockchain(bc_id)
+    log.info("Response: {}".format(resp))
+    
   resp = req.getBlockchains()
   log.info("Blockchains remaining: {}".format(resp))
