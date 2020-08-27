@@ -24,15 +24,18 @@ import com.daml.ledger.validator.privacy.{PublicAccess, RestrictedAccess}
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.daml.on.vmware.execution.engine.preexecution.PreExecutingValidator.toWriteSet
+import com.digitalasset.kvbc.daml_validator.AccessControlList.Restricted
 import com.digitalasset.kvbc.daml_validator.PreprocessorToEngine.PreExecutionRequest
 import com.digitalasset.kvbc.daml_validator.{
+  AccessControlList,
+  KeyValueAccessTriple,
   PreprocessorFromEngine,
   PreprocessorToEngine,
+  WriteSet,
   PreExecutionOutput => ProtoPreExecutionOutput
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord._
-import com.vmware.concord.kvb.concord_storage.ValueWithTrids
+import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
 import io.grpc.stub.StreamObserver
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
@@ -145,27 +148,35 @@ class PreExecutingValidatorSpec
   }
 
   "toWriteSet" should {
-    "populate ValueWithTrids message for restricted ACL" in {
+    "populate ACL message for restricted ACL" in {
       val expectedThinReplicaId = "a participant"
-      val expectedValue = ValueWithTrids
-        .of(Seq(ByteString.copyFromUtf8(expectedThinReplicaId)), Some(aValue))
-        .toByteString
       val input: KeyValuePairsWithAccessControlList = Seq(
         (aKey, aValue, RestrictedAccess(Set(ParticipantId.assertFromString(expectedThinReplicaId))))
       )
+      val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(Seq(expectedThinReplicaId)))))
       PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
-        Seq(
-          KeyValuePair.of(aKey, expectedValue)
-        ))
+        Seq(KeyValueAccessTriple.of(aKey, aValue, expectedAcl)))
     }
 
-    "populate ValueWithTrids message for public ACL" in {
-      val expectedValue = ValueWithTrids.of(Seq.empty, Some(aValue)).toByteString
-      val input: KeyValuePairsWithAccessControlList = Seq((aKey, aValue, PublicAccess))
+    "order participant IDs deterministically in ACL message for restricted ACL" in {
+      val inputThinReplicaIds = Seq("participant 2", "participant 1")
+      val expectedThiReplicaIds = inputThinReplicaIds.sorted
+      val input: KeyValuePairsWithAccessControlList = Seq(
+        (
+          aKey,
+          aValue,
+          RestrictedAccess(inputThinReplicaIds.map(ParticipantId.assertFromString).toSet))
+      )
+      val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(expectedThiReplicaIds))))
       PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
-        Seq(
-          KeyValuePair.of(aKey, expectedValue)
-        ))
+        Seq(KeyValueAccessTriple.of(aKey, aValue, expectedAcl)))
+    }
+
+    "populate ACL message for public ACL" in {
+      val input: KeyValuePairsWithAccessControlList = Seq((aKey, aValue, PublicAccess))
+      val expectedAcl = Some(AccessControlList.defaultInstance)
+      PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
+        Seq(KeyValueAccessTriple.of(aKey, aValue, expectedAcl)))
     }
 
     "sort output by keys" in {
@@ -176,7 +187,7 @@ class PreExecutingValidatorSpec
         (aKey, aValue, PublicAccess)
       }
 
-      PreExecutingValidator.toWriteSet(input).kvWrites.map(_.key) shouldBe Seq(keyA, keyB, keyC)
+      PreExecutingValidator.toWriteSet(input).writes.map(_.key) shouldBe Seq(keyA, keyB, keyC)
     }
   }
 
@@ -185,11 +196,11 @@ class PreExecutingValidatorSpec
 
   private def aSubmission: ByteString = ByteString.copyFromUtf8("a submission")
 
-  private val aCorrelationId = "aCorrelationId"
-  private val aParticipantId = "aParticipantId"
-  private val aSpanContext = ByteString.copyFromUtf8("aSpanContext")
-  private val aKey = ByteString.copyFromUtf8("a key")
-  private val aValue = ByteString.copyFromUtf8("a value")
+  private def aCorrelationId = "aCorrelationId"
+  private def aParticipantId = "aParticipantId"
+  private def aSpanContext = ByteString.copyFromUtf8("aSpanContext")
+  private def aKey = ByteString.copyFromUtf8("a key")
+  private def aValue = ByteString.copyFromUtf8("a value")
 
   private def aPreExecutionRequest(): PreprocessorToEngine = {
     PreprocessorToEngine().withPreexecutionRequest(

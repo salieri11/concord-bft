@@ -12,21 +12,28 @@ import com.daml.ledger.validator.caching.{
 }
 import com.daml.ledger.validator.preexecution
 import com.daml.ledger.validator.preexecution._
-import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy
+import com.daml.ledger.validator.privacy.{
+  AccessControlList,
+  LogFragmentsPreExecutingCommitStrategy,
+  PublicAccess,
+  RestrictedAccess
+}
 import com.daml.ledger.validator.privacy.LogFragmentsPreExecutingCommitStrategy.KeyValuePairsWithAccessControlList
 import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
-import com.digitalasset.daml.on.vmware.execution.engine.ConcordLedgerStateOperations.accessControlListToThinReplicaIds
 import com.digitalasset.daml.on.vmware.execution.engine.Digests
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
+import com.digitalasset.kvbc.daml_validator.AccessControlList.Restricted
 import com.digitalasset.kvbc.daml_validator.PreprocessorToEngine.PreExecutionRequest
 import com.digitalasset.kvbc.daml_validator.{
+  KeyValueAccessTriple,
   PreExecutionOutput,
   PreprocessorFromEngine,
-  PreprocessorToEngine
+  PreprocessorToEngine,
+  WriteSet
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord._
-import com.vmware.concord.kvb.concord_storage.ValueWithTrids
+import com.digitalasset.kvbc.daml_validator.{AccessControlList => AccessControlListProtobuf}
+import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
@@ -199,12 +206,24 @@ object PreExecutingValidator {
     val writeSetSortedByKeys = preExecutionCommitResultWriteSet.sortBy(_._1.asReadOnlyByteBuffer())
     WriteSet.of(writeSetSortedByKeys.map {
       case (key, value, accessControlList) =>
-        val adaptedAccessControlList = accessControlListToThinReplicaIds(accessControlList)
-          .map(ByteString.copyFromUtf8)
-        val outputValue = ValueWithTrids.of(adaptedAccessControlList, Some(value)).toByteString
-        KeyValuePair.of(key, outputValue)
+        KeyValueAccessTriple.of(key, value, Some(accessControlListToProtobuf(accessControlList)))
     })
   }
+
+  // TODO Reuse oem-integration-kit's proto and conversion, if possible
+  private def accessControlListToProtobuf(acl: AccessControlList): AccessControlListProtobuf =
+    acl match {
+      case PublicAccess =>
+        AccessControlListProtobuf.defaultInstance
+      case RestrictedAccess(participants) =>
+        AccessControlListProtobuf.of(
+          Some(
+            Restricted.of(
+              participants
+                .map(_.toString)
+                .toSeq
+                .sorted))) // To ensure the ordering is deterministic
+    }
 
   private[preexecution] def preExecutionResultToOutput(
       preExecutionResult: preexecution.PreExecutionOutput[KeyValuePairsWithAccessControlList],
@@ -218,5 +237,4 @@ object PreExecutingValidator {
       preExecutionResult.involvedParticipants.map(toReplicaId).toSeq,
       submittingParticipantId
     )
-
 }

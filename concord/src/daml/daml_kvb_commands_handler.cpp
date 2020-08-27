@@ -84,6 +84,23 @@ Sliver CreateDamlKvbValue(const ValueWithTrids& proto) {
   return Sliver(data, size);
 }
 
+void AccessControlListToThinReplicaIds(
+    const com::digitalasset::kvbc::AccessControlList& access_control_list,
+    std::vector<string>& thin_replica_ids) {
+  assert(thin_replica_ids.empty());
+
+  if (access_control_list.has_restricted() &&
+      access_control_list.restricted().participant_id_size() > 0) {
+    auto restricted_access = access_control_list.restricted();
+    // The assumption here is that that participant IDs have already been
+    // sorted deterministically by the sender, so they are not being sorted
+    // again
+    for (const auto& participant_id : restricted_access.participant_id()) {
+      thin_replica_ids.push_back(participant_id);
+    }
+  }
+}
+
 // These constants must be identical to what is expected by participant state
 // reader in Ledger API Server.
 const std::string kLogFragmentKeyPrefix{"F"};
@@ -331,10 +348,9 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
   bool within_time_bounds =
       CheckIfWithinTimeBounds(pre_execution_output, record_time);
   if (within_time_bounds) {
-    LOG_DEBUG(
-        logger_,
-        "Committing pre-execution success write set of size "
-            << pre_execution_output.success_write_set().kv_writes().size());
+    LOG_DEBUG(logger_,
+              "Committing pre-execution success write set of size "
+                  << pre_execution_output.success_write_set().writes().size());
     WriteSetToRawUpdates(pre_execution_output.success_write_set(), write_set);
     auto thin_replica_ids = std::vector<std::string>(
         pre_execution_output.informee_success_thin_replica_ids().begin(),
@@ -345,7 +361,7 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     LOG_DEBUG(logger_,
               "Committing pre-execution out-of-time-bounds write set of size "
                   << pre_execution_output.out_of_time_bounds_write_set()
-                         .kv_writes()
+                         .writes()
                          .size());
     WriteSetToRawUpdates(pre_execution_output.out_of_time_bounds_write_set(),
                          write_set);
@@ -358,13 +374,13 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
 }
 
 void DamlKvbCommandsHandler::WriteSetToRawUpdates(
-    const com::vmware::concord::WriteSet& input_write_set,
+    const com::digitalasset::kvbc::WriteSet& input_write_set,
     SetOfKeyValuePairs& updates) const {
-  for (const auto& entry : input_write_set.kv_writes()) {
+  for (const auto& entry : input_write_set.writes()) {
     auto key = CreateDamlKvbKey(entry.key());
-    // The values coming back from DAML Execution Engine must be serialized
-    // ValueWithTrid messages hence we just wrap them into a Sliver here.
-    auto value = CreateSliver(entry.value());
+    std::vector<string> thin_replica_ids;
+    AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
+    auto value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
     daml_kv_size_summary_.Observe(value.length());
     updates.insert(std::make_pair(std::move(key), std::move(value)));
   }

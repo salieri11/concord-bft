@@ -12,10 +12,11 @@ import com.digitalasset.daml.on.vmware.common.Conversions.toReplicaId
 import com.digitalasset.kvbc.daml_validator.{
   PreExecuteRequest,
   PreExecuteResponse,
+  WriteSet,
   PreExecutionOutput => ProtoPreExecutionOutput
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord.{PreExecutionResult, ReadSet, WriteSet}
+import com.vmware.concord.concord.{PreExecutionResult, ReadSet}
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.scalatest.{AsyncWordSpec, Matchers}

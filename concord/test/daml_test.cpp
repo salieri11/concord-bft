@@ -38,18 +38,21 @@ using namespace concordUtils;
 
 namespace da_kvbc = com::digitalasset::kvbc;
 
+using com::digitalasset::kvbc::AccessControlList;
+using com::digitalasset::kvbc::WriteSet;
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::PreExecutionResult;
-using com::vmware::concord::WriteSet;
 using com::vmware::concord::kvb::ValueWithTrids;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::consensus::ConcordCommandsHandler;
+using concord::daml::AccessControlListToThinReplicaIds;
 using concord::daml::CreateDamlKvbKey;
 using concord::daml::CreateDamlKvbValue;
 using concord::daml::CreateSliver;
+
 using concord::pruning::KVBPruningSM;
 using concord::time::TimeContract;
 
@@ -303,7 +306,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
   static void PopulateWriteSet(const std::map<std::string, std::string>& writes,
                                WriteSet* output) {
     for (const auto& entry : writes) {
-      auto added_pair = output->add_kv_writes();
+      auto added_pair = output->add_writes();
       added_pair->set_key(entry.first);
       added_pair->set_value(entry.second);
     }
@@ -457,9 +460,11 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
   EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
             actual_raw_write_set.size());
   // Check contents of write-set.
-  for (const auto& entry : expected_key_value_pairs) {
-    auto expected_key = CreateDamlKvbKey(entry.first);
-    auto expected_value = CreateSliver(entry.second);
+  for (const auto& entry : expected_write_set.writes()) {
+    auto expected_key = CreateDamlKvbKey(entry.key());
+    std::vector<string> thin_replica_ids;
+    AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
+    auto expected_value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
     ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
     EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
   }
@@ -503,9 +508,11 @@ TEST_F(DamlKvbCommandsHandlerTest,
   EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
             actual_raw_write_set.size());
   // Check contents of write-set.
-  for (const auto& entry : expected_key_value_pairs) {
-    auto expected_key = CreateDamlKvbKey(entry.first);
-    auto expected_value = CreateSliver(entry.second);
+  for (const auto& entry : expected_write_set.writes()) {
+    auto expected_key = CreateDamlKvbKey(entry.key());
+    std::vector<string> thin_replica_ids;
+    AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
+    auto expected_value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
     ASSERT_THAT(actual_raw_write_set, Contains(::testing::Key(expected_key)));
     EXPECT_EQ(expected_value, actual_raw_write_set[expected_key]);
   }

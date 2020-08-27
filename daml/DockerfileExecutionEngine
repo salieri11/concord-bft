@@ -16,6 +16,7 @@ RUN apt update && apt install -y curl && \
 
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
+COPY daml/.scalafmt.conf /doc/daml/
 WORKDIR /doc/daml
 RUN sbt update
 
@@ -25,7 +26,11 @@ COPY daml/execution-engine /doc/daml/execution-engine
 COPY daml/common /doc/daml/common
 COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/entrypoint.sh
 COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-engine/resources/logback.xml
-RUN sbt execution_engine/stage
+
+RUN sbt execution_engine/scalafmtCheck execution_engine/stage
+
+RUN sbt execution_engine/test
+
 EXPOSE 55000
 
 RUN chmod 755 /doc/daml/entrypoint.sh
