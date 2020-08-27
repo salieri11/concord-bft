@@ -123,7 +123,7 @@ class RPCHelper():
          pass
 
    def call_api(self, rpc, rpc_request=None, stream=False, stream_forever=False,
-                stream_timeout=600):
+                stream_timeout=900):
       '''
       Helper method to call the actual gRPC using python bindings
       :param rpc: gRPC
