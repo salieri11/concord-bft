@@ -428,7 +428,7 @@ public class VSphereHttpClient {
     /**
      * Create a new virtual machine disk.
      */
-    private boolean createVirtualMachineDisk(String name, long storageGb) {
+    public boolean createVirtualMachineDisk(String name, long storageGb) {
         long storageBytes = storageGb * 1024 * 1024 * 1024;
         val updateRequest = VirtualMachineDiskCreate.VirtualMachineDiskCreateRequest.builder()
                 .spec(VirtualMachineDiskCreate.DiskCreateSpec.builder()

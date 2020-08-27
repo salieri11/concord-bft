@@ -182,4 +182,29 @@ public class CloudInitConfigurationTest {
         Assert.assertEquals(expectedPasswdLine, actualPasswdLine);
     }
 
+    @Test
+    void vmAddDisk() {
+        ReflectionTestUtils.setField(cloudInitConfiguration, "newDisk", true);
+        String[] userDataLines = cloudInitConfiguration.userData().split("\\r?\\n");
+        Assert.assertNotNull(userDataLines);
+
+        String commentDiskCmd = "# Partition, format, and mount additional disk, if any";
+        String expectedDiskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;sleep 2;"
+                + "mkfs.ext4 /dev/sdb1;sleep 5;mkdir /mnt/sdb;mount /dev/sdb1 /mnt/sdb;"
+                + "echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` /mnt/sdb ext4 defaults 0 0\" >> /etc/fstab;";
+
+        String actualDiskCmd = null;
+        for (int i = 0; i < userDataLines.length; ++i) {
+            if (userDataLines[i].equals(commentDiskCmd)) {
+                if (i + 1 < userDataLines.length) {
+                    actualDiskCmd = userDataLines[i + 1];
+                }
+                break;
+            }
+        }
+
+        Assert.assertNotNull(actualDiskCmd);
+        Assert.assertEquals(expectedDiskCmd, actualDiskCmd);
+    }
+
 }
