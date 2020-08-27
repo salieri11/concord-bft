@@ -183,6 +183,14 @@ std::chrono::steady_clock::time_point ConcordClient::getStartRequestTime()
   return start_job_time_;
 }
 
+void ConcordClient::setStartWaitingTime() {
+  waiting_job_time_ = std::chrono::steady_clock::now();
+}
+
+std::chrono::steady_clock::time_point ConcordClient::getWaitingTime() const {
+  return waiting_job_time_;
+}
+
 bool ConcordClient::isServing() const {
   int connected = 0;
   for (int i = 0; i < num_of_replicas_; i++) {

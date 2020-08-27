@@ -33,9 +33,19 @@ SubmitResult ConcordClientPool::SendRequest(
     if (!clients_.empty()) {
       // start thread with client
       client = clients_.front();
+      if (is_overloaded_) {
+        std::chrono::steady_clock::time_point end =
+            std::chrono::steady_clock::now();
+        waiting_time_summary_.Observe(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                end - client->getWaitingTime())
+                .count());
+        is_overloaded_ = false;
+      }
       clients_.pop_front();
     } else {
       rejected_counter_.Increment();
+      is_overloaded_ = true;
       LOG_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
       return SubmitResult::Overloaded;
     }
@@ -106,11 +116,24 @@ ConcordClientPool::ConcordClientPool(std::istream &config_stream)
                                     .Name("last_request_time")
                                     .Help("calculates the last request time")
                                     .Register(*registry_)),
+      waiting_time_summaries_(
+          prometheus::BuildSummary()
+              .Name("client_wait_time_after_overload")
+              .Help("Observes the amount of time that client is waiting on "
+                    "waiting to system to get back from overloaded wait time")
+              .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       last_request_time_gauge_(
           last_request_time_gauges_.Add({{"item", "time_updates"}})),
+      waiting_time_summary_(waiting_time_summaries_.Add(
+          {{"item", "wait_time_updates"}},
+          prometheus::Summary::Quantiles({{0.25, 0.1},
+                                          {0.5, 0.1},
+                                          {0.75, 0.1},
+                                          {0.9, 0.1},
+                                          {0.95, 0.1}}))),
       logger_(logging::getLogger("com.vmware.external_client_pool")) {
   ConcordConfiguration config;
   try {
@@ -146,11 +169,24 @@ ConcordClientPool::ConcordClientPool(std::string config_file_path)
                                     .Name("last_request_time")
                                     .Help("calculates the last request time")
                                     .Register(*registry_)),
+      waiting_time_summaries_(
+          prometheus::BuildSummary()
+              .Name("client_wait_time_after_overload")
+              .Help("Observes the amount of time that client is waiting on "
+                    "waiting to system to get back from overloaded wait time")
+              .Register(*registry_)),
       requests_counter_(total_requests_counters_.Add({{"item", "counter"}})),
       rejected_counter_(rejected_requests_counters_.Add({{"item", "counter"}})),
       clients_gauge_(total_clients_gauges_.Add({{"item", "client_updates"}})),
       last_request_time_gauge_(
           last_request_time_gauges_.Add({{"item", "time_updates"}})),
+      waiting_time_summary_(waiting_time_summaries_.Add(
+          {{"item", "wait_time_updates"}},
+          prometheus::Summary::Quantiles({{0.25, 0.1},
+                                          {0.5, 0.1},
+                                          {0.75, 0.1},
+                                          {0.9, 0.1},
+                                          {0.95, 0.1}}))),
       logger_(logging::getLogger("com.vmware.external_client_pool")) {
   std::ifstream config_file;
   config_file.exceptions(std::ifstream::failbit | std::fstream::badbit);
@@ -302,6 +338,9 @@ void ConcordClientPool::InsertClientToQueue(
     uint64_t seq_num, const std::string &correlation_id, uint32_t reply_size) {
   {
     std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
+    if (is_overloaded_) {
+      client->setStartWaitingTime();
+    }
     clients_.push_back(client);
   }
   Done(seq_num, correlation_id, reply_size);
