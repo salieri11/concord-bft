@@ -1,22 +1,15 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { TestBed, inject, async } from '@angular/core/testing';
-
 import { NodesService } from './nodes.service';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
 
 describe('NodesService', () => {
+  const test = testFor(NodesService).expedite({
+    imports: [], provides: [], declarations: [],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  it('should be created', inject([NodesService], (service: NodesService) => {
-    expect(service).toBeTruthy();
-  }));
+  it('should create', () => {
+    expect(test.component).toBeTruthy();
+  });
 });

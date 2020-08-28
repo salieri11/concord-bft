@@ -76,28 +76,28 @@ export enum ZoneType {
   ON_PREM = 'ON_PREM'
 }
 
-export const fakeZones: Zone[] = [{
+export const mockZones: Zone[] = [{
   name: 'US West - Oregon',
-  id: 'us-west',
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   latitude: 0,
   longitude: 0,
   type: ZoneType.VMC_AWS
 }, {
   name: 'US East - N Virginia',
-  id: 'us-east',
+  id: 'baaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   latitude: 0,
   longitude: 0,
   type: ZoneType.VMC_AWS
 }, {
   name: 'EMEA - Frankfurt',
-  id: 'emea',
+  id: 'caaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   latitude: 0,
   longitude: 0,
   type: ZoneType.VMC_AWS
 },
 {
   name: 'Pacific - Sydney',
-  id: 'pacific',
+  id: 'daaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   latitude: 0,
   longitude: 0,
   type: ZoneType.VMC_AWS

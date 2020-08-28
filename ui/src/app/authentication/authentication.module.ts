@@ -24,21 +24,25 @@ const routes: Routes = [
   // ROUTE: /auth/*
   {
     path: authRoutes.base,
-    children: [{
-      // ROUTE: /auth/onboarding (TOS agreement)
-      path: authRoutes.onboarding,
-      canActivate: [AuthenticatedGuard],
-      component: OnboardingComponent,
-    }, { // ? DEPRECATED BY CSP; ROUTE: /auth/login (kept for `npm test`)
-      path: authRoutes.login,
-      canActivate: [AgreementGuard],
-      component: LogInContainerComponent
-    }, { // ? DEPRECATED BY CSP; ROUTE: /auth/signup (kept for `npm test`)
-      path: authRoutes.signup,
-      canActivate: [AgreementGuard],
-      component: SignUpComponent
-    }]
-  },
+    children: [
+      {
+        // ROUTE: /auth/onboarding (TOS agreement)
+        path: authRoutes.onboarding,
+        canActivate: [AuthenticatedGuard],
+        component: OnboardingComponent,
+      },
+      { // ? DEPRECATED BY CSP; ROUTE: /auth/login (kept for `npm test`)
+        path: authRoutes.login,
+        canActivate: [AgreementGuard],
+        component: LogInContainerComponent
+      },
+      { // ? DEPRECATED BY CSP; ROUTE: /auth/signup (kept for `npm test`)
+        path: authRoutes.signup,
+        canActivate: [AgreementGuard],
+        component: SignUpComponent
+      }
+    ]
+  }
 ];
 
 @NgModule({

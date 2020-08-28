@@ -37,6 +37,7 @@ const routes: Routes = [
     canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
     resolve: {blockchain: BlockchainResolver},
+    runGuardsAndResolvers: 'pathParamsChange',
     children: [{
         // ROUTE: /blockchain/welcome
         path: mainRoutes.welcome, component: WelcomeComponent
