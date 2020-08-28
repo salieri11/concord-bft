@@ -235,6 +235,18 @@ paths:
                     format: uuid
                     description: Deleted zone id
 
+  /blockchains/zones/dependencies/{zone_id}:
+    get:
+      tags:
+        - blockchains
+      summary: Get Zone Dependency Details
+      operationId: getZoneDependencies
+      parameters:
+        - $ref: '#/components/parameters/ZoneId'
+      responses:
+        200:
+          $ref: '#/components/responses/DependentNodesGetResponse'
+
   /blockchains/{bid}:
     summary: Blockchain Operations
     get:
@@ -1919,6 +1931,26 @@ components:
           type: string
           description: password of user for elasticsearch endpoint.
           example: mypassword
+
+    DependentNodesGetResponse:
+      description: Object containing the Replica and Client IDs for the given On Prem Zone
+      type: object
+      properties:
+        replica_list:
+          type: array
+          description: List of replica IDs on the zone.
+          example: [9ecb07bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-482c-48f3-80d0-23c4f9514902]
+          items:
+            type: string
+            format: uuid
+        client_list:
+          type: array
+          description: List of client IDs on the zone.
+          example: [9ecaa7bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-abcd-48f3-80d0-23c4f9514902]
+          items:
+            type: string
+            format: uuid
+
 
     OnPremLogManagementsPost:
       description: List of configurations for logging setup
