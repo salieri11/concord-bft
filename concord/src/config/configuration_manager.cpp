@@ -2335,16 +2335,6 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
     const string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, string* failureMessage, void* state) {
   std::pair<string, string> cryptoSelection = parseCryptosystemSelection(value);
-  if (!Cryptosystem::isValidCryptosystemSelection(cryptoSelection.first,
-                                                  cryptoSelection.second)) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid cryptosystem selection for " + path.toString() + ": \"" +
-          value +
-          "\" is not a recognized and supported selection of cryptosystem.";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val")) {
@@ -2375,7 +2365,6 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
 
-  uint16_t numSigners = (uint16_t)unvalidatedNumSigners;
   uint16_t threshold;
 
   // Compute the threshold, which is different for each of the three
@@ -2401,18 +2390,6 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 
-  if (!Cryptosystem::isValidCryptosystemSelection(cryptoSelection.first,
-                                                  cryptoSelection.second,
-                                                  numSigners, threshold)) {
-    if (failureMessage) {
-      *failureMessage = "Invalid cryptosystem selection for " +
-                        path.toString() + ": cryptosytem selection \"" + value +
-                        "\" is not supported with the required threshold(" +
-                        to_string(threshold) + ") and number of signers(" +
-                        to_string(numSigners) + ") for this system.";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -2431,13 +2408,7 @@ static ConcordConfiguration::ParameterStatus validatePublicKey(
     }
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  if (!((*cryptosystemPointer)->isValidPublicKey(value))) {
-    if (failureMessage) {
-      *failureMessage = "Invalid threshold public key for " + path.toString() +
-                        ": \"" + value + "\".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
+
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -2731,13 +2702,6 @@ static ConcordConfiguration::ParameterStatus validatePrivateKey(
     }
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  if (!((*cryptosystemPointer)->isValidPrivateKey(value))) {
-    if (failureMessage) {
-      *failureMessage = "Invalid threshold private key for " + path.toString() +
-                        ": \"" + value + "\".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -2785,13 +2749,6 @@ static ConcordConfiguration::ParameterStatus validateVerificationKey(
           path.toString() + ": corresponding cryptosystem is not initialized.";
     }
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  if (!((*cryptosystemPointer)->isValidVerificationKey(value))) {
-    if (failureMessage) {
-      *failureMessage = "Invalid threshold verification key for " +
-                        path.toString() + ": \"" + value + "\".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
   }
   return ConcordConfiguration::ParameterStatus::VALID;
 }
