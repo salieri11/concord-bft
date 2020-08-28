@@ -1,15 +1,30 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
+
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+
 import { CodeHighlighterComponent } from './code-highlighter.component';
-import { testFor, prepareEach, beforeTesting } from '../../../../test.helper.spec';
+import { getSpecTestingModule } from '../../shared-testing.module';
 
 describe('CodeHighlighterComponent', () => {
-  const test = testFor(CodeHighlighterComponent).expedite({
-    imports: [], provides: [], declarations: [CodeHighlighterComponent],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: CodeHighlighterComponent;
+  let fixture: ComponentFixture<CodeHighlighterComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(CodeHighlighterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 });

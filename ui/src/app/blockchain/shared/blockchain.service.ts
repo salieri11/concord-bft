@@ -18,10 +18,9 @@ import {
   TempDeployTracker,
   TempDeployTrackerRegistry,
   BlockchainStates,
-  mockBlockchains,
 } from './blockchain.model';
 
-import { Zone, mockZones } from './../../zones/shared/zones.model';
+import { Zone, fakeZones } from './../../zones/shared/zones.model';
 import { Apis, uuidRegExp } from '../../shared/urls.model';
 
 @Injectable({
@@ -237,25 +236,34 @@ export class BlockchainService {
 }
 
 
-export class MockBlockchainService {
+export class MockBlockchainsService {
   notify = new BehaviorSubject({ message: '', type: '' });
   canDeploy = new BehaviorSubject(true);
-  selectedBlockchain = mockBlockchains[0];
+  selectedBlockchain = { consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
   blockchains = [];
-  zones = mockZones;
-  blockchaindId = mockBlockchains[0].id;
+  zones = fakeZones;
+  blockchaindId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   type = ContractEngines.ETH;
+  metadata = {consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
 
-  select(id: string): Observable<boolean> { return of(typeof id === 'string'); }
-  getZones(): Observable<Zone[]> { return of(mockZones); }
-  deploy(params: BlockchainRequestParams): Observable<any> { return of(params); }
-  getTasks() { return of([]); }
-  getTask() { return of(null); }
-  saveSelectedBlockchain(consortiumId: string) { return consortiumId; }
-  loadSelectedBlockchain() {}
+  select(id: string): Observable<boolean> {
+    return of(typeof id === 'string');
+  }
 
-  // Unit Test Only Functions
-  provideNoBlockchain() { this.blockchains = []; }
-  provideMockBlockchains() { this.blockchains = mockBlockchains; }
+  getZones(): Observable<Zone[]> {
+    return of(fakeZones);
+  }
+
+  deploy(params: BlockchainRequestParams): Observable<any> {
+    return of(params);
+  }
+
+  saveSelectedConsortium(consortiumId: string) {
+    localStorage.setItem('selectedConsortium', consortiumId);
+  }
+
+  loadSelectedConsortium() {
+    return localStorage.getItem('selectedConsortium');
+  }
 
 }

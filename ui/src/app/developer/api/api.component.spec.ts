@@ -2,15 +2,31 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
+import { async, TestBed, ComponentFixture } from '@angular/core/testing';
+
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { ApiComponent } from './api.component';
 
 describe('ApiComponent', () => {
-  const test = testFor(ApiComponent).expedite({
-    imports: [], provides: [], declarations: [ApiComponent],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: ApiComponent;
+  let fixture: ComponentFixture<ApiComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(ApiComponent);
+    component = fixture.componentInstance;
+    component.ngOnInit();
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
+
 });

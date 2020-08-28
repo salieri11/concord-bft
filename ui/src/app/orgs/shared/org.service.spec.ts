@@ -7,7 +7,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { OrgService } from './org.service';
-import { BlockchainService, MockBlockchainService } from './../../blockchain/shared/blockchain.service';
+import { BlockchainService, MockBlockchainsService } from './../../blockchain/shared/blockchain.service';
 
 describe('OrgService', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('OrgService', () => {
       providers: [
         {
           provide: BlockchainService,
-          useClass: MockBlockchainService
+          useClass: MockBlockchainsService
         },
         OrgService,
       ]

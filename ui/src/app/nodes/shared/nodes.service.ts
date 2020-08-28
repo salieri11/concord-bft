@@ -11,9 +11,15 @@ import { map, concatMap, filter, take, delay, catchError } from 'rxjs/operators'
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
 import {
-  NodeProperties, NodeInfo, ClientNode, ClientNodeDeployParams, NodeTemplates,
-  CommittersData, BlockchainNode, NodeCredentials, NodeType, mockCommitters,
-  mockClients, mockNodeCredentials, nodeSizingOptionsBase
+  NodeProperties,
+  NodeInfo,
+  ClientNode,
+  ClientNodeDeployParams,
+  CommittersData,
+  BlockchainNode,
+  NodeCredentials,
+  NodeType,
+  NodeTemplates
 } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -258,19 +264,68 @@ export class NodesService {
   }
 
   getSizingOptions(): Observable<NodeTemplates> {
-    const icons = { Small: 'hard-disk', Medium: 'host', Large: 'cluster' };
-    return of(nodeSizingOptionsBase)
-      .pipe(
-        map(templ => {
-          templ.templates.forEach(item => {
-            item['icon'] = icons[item.name];
-            item['description'] = this.translate.instant(`blockchainWizard.sizing.${item.name}`);
-            item.items.forEach(i => i['title'] = this.translate.instant(`blockchainWizard.sizing.${i.type}Title`));
-          });
-          templ.range['icon'] = 'cog';
-          return templ;
-        })
-      );
+    const icons = {Small: 'hard-disk', Medium: 'host', Large: 'cluster'};
+    return of({
+              'id': '<UUID>',
+              'name': 'nodeSizeTemplate',
+              'templates': [{
+                'name': 'Small',
+                'items': [{
+                  'type': 'committer',
+                  'no_of_cpus': '4',
+                  'storage_in_gigs': '1024',
+                  'memory_in_gigs': '32'
+                }, {
+                  'type': 'client',
+                  'no_of_cpus': '4',
+                  'storage_in_gigs': '1024',
+                  'memory_in_gigs': '32'
+                }
+                 ],
+                }, {
+                  'name': 'Medium',
+                  'items': [{
+                    'type': 'committer',
+                    'no_of_cpus': '8',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '32'
+                  }, {
+                    'type': 'client',
+                    'no_of_cpus': '8',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '32'
+                  }]
+                }, {
+                  'name': 'Large',
+                'items': [{
+                    'type': 'committer',
+                    'no_of_cpus': '16',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '64'
+                  }, {
+                    'type': 'client',
+                    'no_of_cpus': '16',
+                    'storage_in_gigs': '1024',
+                    'memory_in_gigs': '64'
+                  }]
+                }],
+                'range': {
+                  'no_of_cpus': {'min': 1, 'max': 18},
+                  'storage_in_gigs': {'min': 1, 'max': 16384},
+                  'memory_in_gigs': {'min': 1, 'max': 3024}
+                }
+            }).pipe(
+            map(templ => {
+              templ.templates.forEach(item => {
+                item['icon'] = icons[item.name];
+                item['description'] = this.translate.instant(`blockchainWizard.sizing.${item.name}`);
+                item.items.forEach(i => i['title'] = this.translate.instant(`blockchainWizard.sizing.${i.type}Title`));
+              });
+              templ.range['icon'] = 'cog';
+              return templ;
+
+            })
+          );
   }
 
 
@@ -471,40 +526,4 @@ export class NodesService {
   //     .pipe(take(1));
   // }
 
-}
-
-
-
-export class MockNodesService {
-  clients: ClientNode[] = [];
-  committers: NodeInfo[] = [];
-  committersData: CommittersData = null;
-  allNodesList: BlockchainNode[] = [];
-
-  committersWithOnlyPublicIP: boolean = false;
-  committersWithOnlyPrivateIP: boolean = false;
-  clientsWithOnlyPublicIP: boolean = false;
-  clientsWithOnlyPrivateIP: boolean = false;
-  committersWithoutRPCURL: boolean = false;
-  clientsWithoutRPCURL: boolean = false;
-  committersWithNoZoneInfo: boolean = false;
-
-  allOnPremZones: boolean = false;
-  allCloudZones: boolean = false;
-
-  fetchAndSet() {}
-  getCommitters() { return of(this.committers); }
-  getClients() { return of(this.clients); }
-  prepareCommitters(): CommittersData { return null; }
-  prepareClients() { return this.clients; }
-  getNodeCredentials() { return of(mockNodeCredentials); }
-  getSizingOptions() { return of(nodeSizingOptionsBase); }
-
-  // Unit Test Only Functions
-  provideNoNodes() { this.committers = []; this.clients = []; this.allNodesList = []; }
-  provideNoCommitters() { this.committers = []; this.updateAllNodesList(); }
-  provideNoClients() { this.committers = []; this.updateAllNodesList(); }
-  provideMockCommitters() { this.committers = mockCommitters; this.updateAllNodesList(); }
-  provideMockClients() { this.clients = mockClients; this.updateAllNodesList(); }
-  private updateAllNodesList() { this.allNodesList = [].concat(this.committers, this.clients); }
 }

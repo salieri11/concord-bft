@@ -5,12 +5,10 @@
 import { Injectable } from '@angular/core';
 import { BlockchainService } from '../blockchain/shared/blockchain.service';
 import { BlockchainResolver } from '../blockchain/shared/blockchain.resolver';
-import { Router, NavigationEnd, ActivatedRoute, NavigationStart, DefaultUrlSerializer } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute, NavigationStart } from '@angular/router';
 import { mainRoutes, fleetingRoutesList, ConsortiumStates, uuidRegExp } from './urls.model';
 import { DeployStates } from '../blockchain/shared/blockchain.model';
 import { Subject } from 'rxjs';
-
-const urlSerializer = new DefaultUrlSerializer();
 
 interface RouteHistoryData {
   action?: string;
@@ -32,7 +30,7 @@ export class RouteService {
 
   historyData: RouteHistoryData[] = [];
   currentRouteData: RouteHistoryData;
-  outletEnabled: boolean = true;
+  outletEnabled: Promise<boolean> | boolean = true;
   readonly linkAction: Subject<RouteHistoryData>  = new Subject<RouteHistoryData>();
 
   private initialized: boolean = false;
@@ -96,31 +94,28 @@ export class RouteService {
   }
 
   redirectToDefault(fragment?: string) {
-    let path;
-    fragment = fragment ? fragment : null;
-    if (this.outputAllRouterEvents) {
-      console.log(new Error('Redirect to default called from stack trace:'));
-    }
+    this.outletEnabled = false;
+    if (this.outputAllRouterEvents) { console.log(new Error('Redirect to default called from stack trace:')); }
     if (this.blockchainService.blockchains && this.blockchainService.blockchains.length > 0) {
       let blockchainId = this.blockchainService.loadSelectedBlockchain();
-      if (!blockchainId || this.blockchainService.blockchains.filter(
+      if (!blockchainId || this.blockchainService.blockchains.filter( // not found
                             item => item.id === blockchainId).length === 0
         ) {
           blockchainId = this.blockchainService.blockchains[0].id;
       }
-      if (blockchainId) {
-        // Force route recheck; outletEnabled true|false does not work anymore
-        path = '/' + blockchainId + '/' + mainRoutes.dashboard;
-        const reuseConfigSaved = this.router.routeReuseStrategy.shouldReuseRoute;
-        this.router.routeReuseStrategy.shouldReuseRoute = () => false;
-        this.router.navigate([path], { fragment: fragment })
-          .then(() => { this.router.routeReuseStrategy.shouldReuseRoute = reuseConfigSaved; });
-        return;
-      }
+      this.router.navigate([blockchainId, mainRoutes.dashboard], {
+        fragment: fragment ? fragment : null
+      });
+    } else { // No consortium joined, redirect to welcome to let user deploy
+      this.router.navigate([mainRoutes.blockchain, mainRoutes.welcome]);
     }
-    // No consortium joined, or blockchainId found; redirect to welcome to let users deploy
-    path = '/' + mainRoutes.blockchain + '/' + mainRoutes.welcome;
-    this.router.navigate([path]);
+    this.outletEnabled = true;
+  }
+
+  // Reloads router outlet to fresh fetch data and update view as needed
+  reloadOutlet() {
+    this.outletEnabled = false;
+    setTimeout(() => { this.outletEnabled = true; }, 1);
   }
 
   goToDeploying(taskId: string): boolean {
@@ -228,8 +223,47 @@ export class RouteService {
     return false;
   }
 
-  parseURLData(url: string): RouteHistoryData {
-    return parsePathUrl(url, this.currentQueryParams);
+  private parseURLData(url: string): RouteHistoryData {
+    try {
+      url = decodeURIComponent(url);
+      const original = url;
+      let fragment = null;
+      if (url.indexOf('#') >= 0) {
+        const fragmentSplit = url.split('#'); fragmentSplit.shift();
+        fragment = fragmentSplit.join('#');
+        if (fragment) {
+          const fragmentPosition = url.indexOf('#' + fragment);
+          url = url.substr(0, fragmentPosition); // remove fragment part
+        } else { fragment = null; }
+      }
+      const params = {};
+      if (url.indexOf('?') >= 0) {
+        const paramsPart = url.split('?')[1];
+        const paramsArray = paramsPart.split('&');
+        for (const param of paramsArray) {
+          if (param.indexOf('=') >= 0) {
+            const paramKeyValue = param.split('=');
+            if (paramKeyValue[0]) { params[paramKeyValue[0]] = paramKeyValue[1]; }
+          } else { params[param] = ''; }
+        }
+        if (paramsPart) {
+          const paramsPosition = url.indexOf('?' + paramsPart);
+          url = url.substr(0, paramsPosition);
+        }
+      }
+      const paths = url.split('/'); paths.shift();
+      const base = (paths.length === 0) ? '' : paths[0];
+      return {
+        url: original,
+        base: base, // 1st level path
+        paths: paths, // all dirs paths
+        fragment: fragment, // parsed fragment from given url
+        params: params, // parsed params from given url
+        currentQueryParams: this.currentQueryParams, // Query params from ActivatedRoute
+      };
+    } catch (e) {
+      console.log(e);
+    }
   }
 
 }
@@ -237,60 +271,4 @@ export class RouteService {
 function encodeURIName(text: string) {
   text = encodeURIComponent(text);
   return text.replace(/\(/g, '%28').replace(/\)/g, '%29');
-}
-
-function parsePathUrl(url: string, currentQueryParams?) {
-  const original = url;
-  try {
-    const parsed = urlSerializer.parse(url);
-    const segs = parsed.root.children.primary.segments;
-    const paths = [];
-    for (const seg of segs) { paths.push(seg.path); }
-    return {
-      url: original,
-      base: paths[0], // 1st level path
-      paths: paths, // all dirs paths
-      fragment: parsed.fragment, // parsed fragment from given url
-      params: parsed.queryParamMap as {}, // parsed params from given url
-      currentQueryParams: currentQueryParams, // Query params from ActivatedRoute
-    };
-  } catch (e) {
-    console.error(e);
-    return { url: original, base: '', paths: [], fragment: null, params: {}, currentQueryParams: null };
-  }
-}
-
-
-
-export class MockRouteService {
-
-  public static linkActionIdentifier = '/ng-link-action/';
-
-  historyData: RouteHistoryData[] = [];
-  currentRouteData: RouteHistoryData;
-  outletEnabled: boolean = true;
-  readonly linkAction: Subject<RouteHistoryData>  = new Subject<RouteHistoryData>();
-
-  public static isLinkAction() {}
-  public static createLinkAction() {}
-  public static getLinkActionPath() {}
-
-  async resolveConsortium() {}
-  async resumeUnfinishedDeployIfExists() {}
-
-  initialize() {}
-  isPathAlreadyActive() {}
-  redirectToDefault() {}
-  goToDeploying() {}
-  getPreviousRouteData() {}
-  goToPreviousRoute() {}
-  isFleetingRoute() {}
-  triggerLinkActionEvent() {}
-  loginReturnHandler() {}
-  parseURLData(url: string) { return parsePathUrl(url); }
-
-  resetAll() {
-
-  }
-
 }

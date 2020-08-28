@@ -89,34 +89,3 @@ export interface SmartContractCompileResult {
   contract_name: string;
   metadata: SmartContractMetadata;
 }
-
-export const mockSmartContractVersion: SmartContractVersion = {
-  contract_id: 'id2',
-  version: 'version2',
-  owner: 'owner2',
-  metadata: {
-    compiler: {
-      version: 'version2'
-    },
-    language: 'language2',
-    output: {
-      abi: [{
-        type: 'function',
-        name: 'function',
-        constant: true,
-        payable: true,
-        stateMutability: 'stateMutability',
-        inputs: [{type: 'uint', name: 'input'}],
-        outputs: [{type: 'uint', name: 'output'}],
-      }],
-      devdoc: {},
-      userdoc: {},
-    },
-    settings: {},
-    sources: {},
-    version: 2
-  },
-  address: 'address2',
-  bytecode: 'bytecode2',
-  sourcecode: 'sourcecode2'
-};

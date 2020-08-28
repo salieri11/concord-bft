@@ -58,21 +58,21 @@
             <label>{{ 'onPrem.vcenter.url' | translate }}</label>
             <input clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate"
                   (keyup)="onchange($event,'onPrem.vcenter.url')" (blur)="handleOnPremTesting()"
-                  formControlName="url" id="vcUrl" [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                  formControlName="url" id="vcUrl" [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
             <label>{{ 'onPrem.vcenter.username' | translate }}</label>
             <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate"
                   (keyup)="onchange($event,'onPrem.vcenter.username')" (blur)="handleOnPremTesting()"
-                  formControlName="username" id="vcUsername" [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                  formControlName="username" id="vcUsername" [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
             <label>{{ 'onPrem.vcenter.password' | translate }}</label>
             <input clrInput type="password" formControlName="password" id="vcPassword"
                     (keyup)="onchange($event,'onPrem.vcenter.password')" (blur)="handleOnPremTesting()"
-                    [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                    [disabled]="onPremConnectionInProgress"/>
             <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
           </clr-input-container>
         </div>
@@ -81,7 +81,7 @@
           <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate"
                   formControlName="resource_pool" id="vcRp"
                   (keyup)="onchange($event,'onPrem.resource_pool')" (blur)="handleOnPremTesting()"
-                  [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
@@ -89,14 +89,14 @@
           <input clrInput type="text" [placeholder]="'onPrem.storagePH' | translate"
                   formControlName="storage" id="vcStorage"
                   (keyup)="onchange($event,'onPrem.storage')" (blur)="handleOnPremTesting()"
-                  [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
           <label>{{ 'onPrem.folder' | translate }}</label>
           <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" formControlName="folder" id="vcFolder"
                   (keyup)="onchange($event,'onPrem.folder')" (blur)="handleOnPremTesting()"
-                  [attr.disabled]="onPremConnectionInProgress ? true : null"/>
+                  [disabled]="onPremConnectionInProgress"/>
           <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
         </clr-input-container>
       </div>
@@ -106,7 +106,7 @@
             <label>{{ 'onPrem.network.compNetwork' | translate }}</label>
             <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate" (blur)="handleOnPremTesting()"
                     formControlName="name" id="netName" (keyup)="onchange($event,'onPrem.network.name')"
-                    [attr.disabled]="onPremConnectionInProgress ? true : null"
+                    [disabled]="onPremConnectionInProgress"
                     />
             <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
           </clr-input-container>

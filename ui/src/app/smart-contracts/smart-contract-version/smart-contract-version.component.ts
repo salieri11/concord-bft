@@ -248,7 +248,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit, OnDestr
     this.isHLF = (this.blockchainService.type === ContractEngines.HLF);
     if (this.damlExplorerEnabled) { this.isETH = this.isHLF = false; this.isDAML = true; }
 
-    if (!version.metadata || Object.keys(version.metadata).length === 0) { return; }
+    if (Object.keys(version.metadata).length === 0) { return; }
     const metadata = version.metadata;
 
     if (this.isETH) {

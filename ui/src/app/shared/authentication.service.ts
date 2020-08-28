@@ -5,7 +5,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
 import { environment } from './../../environments/environment';
@@ -13,7 +13,6 @@ import { Personas, PersonaService } from './persona.service';
 import { User, UserAuthResponse } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
 import { OrgService } from '../orgs/shared/org.service';
-import { testController } from '../../test.controller'; // ! temp: must be overriden by actual mock
 
 @Injectable()
 export class AuthenticationService {
@@ -130,8 +129,7 @@ export class AuthenticationService {
       wallet_address: localStorage['helen.wallet_address']
     });
     this.setRedirectPath();
-    // ? Deprecated by CSP
-    // this.router.navigate(['auth/login']);
+    this.router.navigate(['auth/login']);
   }
 
   setRedirectPath() {
@@ -145,8 +143,6 @@ export class AuthenticationService {
 
 
   checkForLegalAgreements(): Observable<boolean> {
-    // TODO: implement mock service instead or returning something different during unit tests.
-    if (testController.forTesting) { return of(true); }
     return this.http.get<Array<any>>('api/organizations/agreements').pipe(
       map((response) => {
         this.agreement = response.length !== 0;
@@ -506,33 +502,5 @@ export class AuthenticationService {
     ];
 
   }
-
-}
-
-
-export class MockAuthenticationService {
-  readonly user: Observable<User>;
-  agreement: boolean = false;
-  redirectUrl: string;
-  accessToken: string;
-  logoutPath: string = '/api/oauth/logout';
-  parsedToken: any;
-  orgProps: any;
-
-  get currentUser() { return {}; }
-
-  isAuthenticated() { return true; }
-  getAccessToken() { return of({}); }
-  saveLastLocationAndReAuth() {}
-  refreshToken() { return of({}); }
-  logIn() { return of({}); }
-  changePassword() { return of({}); }
-  logOut() {}
-  setRedirectPath() {}
-  checkForLegalAgreements() { return of(true); }
-  getLegalAgreement() { return of('agreement_text'); }
-  acceptLegalAgreement() { return of({}); }
-  handleLogin() {}
-  getCountryList() { return []; }
 
 }

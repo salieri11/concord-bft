@@ -8,7 +8,7 @@ import { ZoneFormComponent } from './zone-form.component';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
-import { BlockchainService, MockBlockchainService } from './../../blockchain/shared/blockchain.service';
+import { BlockchainService, MockBlockchainsService } from './../../blockchain/shared/blockchain.service';
 import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 
@@ -29,7 +29,7 @@ describe('ZoneFormComponent', () => {
         PersonaService,
         {
           provide: BlockchainService,
-          useClass: MockBlockchainService
+          useClass: MockBlockchainsService
         },
       ],
 

@@ -79,7 +79,7 @@
         </clr-toggle-wrapper>
         <clr-input-container>
           <label for="smartContractRuns" class="required">{{'smartContracts.version.runs' | translate}}</label>
-          <input clrInput id="smartContractRuns" type="text" formControlName="runs" [attr.disabled]="runsDisabled ? true : null">
+          <input clrInput id="smartContractRuns" type="text" formControlName="runs" [disabled]="runsDisabled">
         </clr-input-container>
         <div class="clr-row clr-form-control">
           <label for="smartContractFile"
