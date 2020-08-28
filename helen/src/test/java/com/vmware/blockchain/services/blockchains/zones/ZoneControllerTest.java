@@ -68,6 +68,7 @@ import com.vmware.blockchain.services.blockchains.clients.ClientService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Wavefront;
+import com.vmware.blockchain.services.blockchains.zones.ZoneController.DependentNodesGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
@@ -96,6 +97,7 @@ class ZoneControllerTest {
 
     private static final UUID MISSING_ZONE = UUID.fromString("fc0d250d-3d0c-42a3-b8a5-92ce07e058aa");
     private static final UUID NOT_FOUND_ZONE = UUID.fromString("6c03886b-fa5f-4b66-812b-ede8fb7a4e1c");
+    private static final UUID ZONE_WITH_DEPENDENCIES = UUID.fromString("b402968d-62aa-483c-9621-5eec89a01cd9");
 
     private static final UUID DELETE_EMPTY_ZONE = UUID.fromString("184b9ead-4880-405b-be71-c801ff2e5a4f");
     private static final UUID DELETE_ZONE_WITH_REPLICA = UUID.fromString("00d3a7bc-47ea-4b78-aa57-9d6951265e9e");
@@ -737,6 +739,11 @@ class ZoneControllerTest {
     @MockBean
     OrchestrationSiteServiceStub orchestrationClient;
 
+    private Client c1;
+    private Client c2;
+    private Replica r1;
+    private Replica r2;
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
@@ -796,19 +803,19 @@ class ZoneControllerTest {
         when(replicaService.getReplicasByParentId(DELETE_EMPTY_ZONE)).thenReturn(ImmutableList.of());
         doNothing().when(zoneService).delete(DELETE_EMPTY_ZONE);
 
-        Client c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+        c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
                 DELETE_ZONE_WITH_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         c1.setId(CLIENT_ID_1);
 
-        Replica r1 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
+        r1 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
                 DELETE_ZONE_WITH_REPLICA, Replica.ReplicaType.DAML_PARTICIPANT, BLOCKCHAIN_ID, "password");
         r1.setId(REPLICA_ID_1);
 
-        Client c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+        c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
                 DELETE_ZONE_WITH_REPLICA_AND_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
         c2.setId(CLIENT_ID_2);
 
-        Replica r2 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
+        r2 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
                 DELETE_ZONE_WITH_REPLICA_AND_CLIENT, Replica.ReplicaType.DAML_PARTICIPANT, BLOCKCHAIN_ID, "password");
         r2.setId(REPLICA_ID_2);
 
@@ -821,6 +828,14 @@ class ZoneControllerTest {
         when(clientService.getClientsByParentId(DELETE_ZONE_WITH_REPLICA_AND_CLIENT)).thenReturn(ImmutableList.of(c2));
         when(replicaService.getReplicasByParentId(DELETE_ZONE_WITH_REPLICA_AND_CLIENT))
                 .thenReturn(ImmutableList.of(r2));
+
+        // Test Zone dependencies
+        OnPremZone zoneWithDependencies = getOnpremZone(ZONE_WITH_DEPENDENCIES, ORG_ID);
+        when(zoneService.getAuthorized(ZONE_WITH_DEPENDENCIES)).thenReturn(zoneWithDependencies);
+        when(clientService.getClientsByParentId(ZONE_WITH_DEPENDENCIES)).thenReturn(ImmutableList.of(c2));
+        when(replicaService.getReplicasByParentId(ZONE_WITH_DEPENDENCIES))
+                .thenReturn(ImmutableList.of(r2));
+
 
         // Mock DELETE test Zones.
         when(zoneService.getAuthorized(DELETE_ZONE_WITH_CLIENT)).thenReturn(new Zone());
@@ -908,6 +923,34 @@ class ZoneControllerTest {
 
         Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
     }
+
+    @Test
+    void testGetDependencies() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/blockchains/zones/dependencies/" + ZONE_WITH_DEPENDENCIES)
+                .with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        DependentNodesGetResponse response = objectMapper.readValue(body, DependentNodesGetResponse.class);
+
+        Assertions.assertEquals(ImmutableList.of(REPLICA_ID_2), response.getReplicaList());
+        Assertions.assertEquals(ImmutableList.of(CLIENT_ID_2), response.getClientList());
+    }
+
+    @Test
+    void testGetDependenciesZoneNotFound() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/blockchains/zones/dependencies/" + NOT_FOUND_ZONE)
+                .with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
+    }
+
 
     @Test
     void testLoadZonesBadAction() throws Exception {

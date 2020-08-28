@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains.zones;
 import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.EXISTING_PROPERTY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Action.RELOAD;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Action.TEST;
+import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -165,6 +166,14 @@ public class ZoneController {
         }
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    static class DependentNodesGetResponse {
+        List<UUID> replicaList;
+        List<UUID> clientList;
+    }
+
     // Create bodies for post,
     @Data
     @NoArgsConstructor
@@ -244,6 +253,25 @@ public class ZoneController {
         Zone zone = safeGetZone(zoneId);
 
         ZoneResponse response = getZoneResponse(zone);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * Get a dependencies for a given on-prem zone.
+     */
+    @RequestMapping(path = "/dependencies/{zone_id}", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    ResponseEntity<DependentNodesGetResponse> getZoneDependencies(@PathVariable("zone_id") UUID zoneId)
+            throws Exception {
+        safeGetZone(zoneId);
+
+        List<UUID> replicaIdList = replicaService.getReplicasByParentId(zoneId)
+                .stream().map(replica -> replica.getId()).collect(Collectors.toList());
+        List<UUID> clientIdList = clientService.getClientsByParentId(zoneId)
+                .stream().map(client -> client.getId()).collect(Collectors.toList());
+
+
+        DependentNodesGetResponse response = new DependentNodesGetResponse(replicaIdList, clientIdList);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
