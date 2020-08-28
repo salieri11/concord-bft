@@ -108,9 +108,6 @@ inline bool InitializeSbftCrypto(
 
   outConfig->publicKeysOfReplicas = publicKeysOfReplicas;
 
-  outConfig->thresholdSignerForExecution = nullptr;
-  outConfig->thresholdVerifierForExecution = nullptr;
-
   outConfig->thresholdSignerForSlowPathCommit =
       thresholdSignerForSlowPathCommit;
   outConfig->thresholdVerifierForSlowPathCommit =

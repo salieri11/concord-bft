@@ -606,6 +606,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   auto prometheus_for_concordbft =
       std::make_shared<concord::utils::ConcordBftPrometheusCollector>();
   prometheus_registry->scrapeRegistry(prometheus_for_concordbft);
+  auto bft_stat_collector =
+      std::make_shared<concord::utils::ConcordBftStatisticsCollector>();
+  prometheus_registry->scrapeRegistry(bft_stat_collector);
 
   try {
     if (eth_enabled) {

@@ -12,6 +12,7 @@
 #include <utility>
 #include "Logger.hpp"
 #include "Metrics.hpp"
+#include "Statistics.hpp"
 
 namespace concord::utils {
 class PrometheusRegistry;
@@ -146,5 +147,50 @@ class ConcordBftPrometheusCollector : public prometheus::Collectable {
   }
 };
 
+class ConcordBftStatisticsCollector;
+class ConcordBftStatisticsFactory : public concordMetrics::IStatisticsFactory {
+ public:
+  class ConcordBftSummaryImp : public concordMetrics::ISummary {
+    prometheus::Summary& summary_;
+
+   public:
+    explicit ConcordBftSummaryImp(prometheus::Summary& summary)
+        : summary_(summary) {}
+    void Observe(double value) override { summary_.Observe(value); };
+    concordMetrics::SummaryDescription Collect() override { return {}; };
+  };
+
+  ConcordBftStatisticsFactory()
+      : concordBFtSummaries_("concordBftSummaries",
+                             "Collection of all concordBftSummaries", {}) {}
+  std::unique_ptr<concordMetrics::ISummary> createSummary(
+      const std::string& name,
+      const concordMetrics::Quantiles& quantiles) override {
+    prometheus::Summary::Quantiles q;
+    for (auto& quantile : quantiles) {
+      q.emplace_back(prometheus::detail::CKMSQuantiles::Quantile(
+          quantile.quantile, quantile.value));
+    }
+    return std::make_unique<ConcordBftSummaryImp>(
+        concordBFtSummaries_.Add({{"internalMetricName", name}}, q));
+  }
+
+ private:
+  prometheus::Family<prometheus::Summary> concordBFtSummaries_;
+  friend ConcordBftStatisticsCollector;
+};
+
+class ConcordBftStatisticsCollector : public prometheus::Collectable {
+  concordMetrics::IStatisticsFactory& bftStatisticsFactory_;
+
+ public:
+  ConcordBftStatisticsCollector()
+      : bftStatisticsFactory_(concordMetrics::StatisticsFactory::get().setImp(
+            std::make_unique<ConcordBftStatisticsFactory>())) {}
+  std::vector<prometheus::MetricFamily> Collect() override {
+    return dynamic_cast<ConcordBftStatisticsFactory&>(bftStatisticsFactory_)
+        .concordBFtSummaries_.Collect();
+  }
+};
 }  // namespace concord::utils
 #endif  // UTILS_CONCORD_PROMETHEUS_METRICS_HPP
