@@ -1,66 +1,32 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf, throwError } from 'rxjs';
-
-import { SmartContractVersionComponent } from './smart-contract-version.component';
-import { SmartContractVersion } from '../shared/smart-contracts.model';
+import { mockSmartContractVersion } from '../shared/smart-contracts.model';
 import * as DownloadHelpers from '../../shared/download-helpers';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
+import { SmartContractVersionComponent } from './smart-contract-version.component';
+import { EthApiService } from '../../shared/eth-api.service';
+import { ClarityModule } from '@clr/angular';
+import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 
 describe('SmartContractVersionComponent', () => {
-  let component: SmartContractVersionComponent;
-  let fixture: ComponentFixture<SmartContractVersionComponent>;
-  const mockVersion: SmartContractVersion = {
-    contract_id: 'id2',
-    version: 'version2',
-    owner: 'owner2',
-    metadata: {
-      compiler: {
-        version: 'version2'
-      },
-      language: 'language2',
-      output: {
-        abi: [{
-          type: 'function',
-          name: 'function',
-          constant: true,
-          payable: true,
-          stateMutability: 'stateMutability',
-          inputs: [{type: 'uint', name: 'input'}],
-          outputs: [{type: 'uint', name: 'output'}],
-        }],
-        devdoc: {},
-        userdoc: {},
-      },
-      settings: {},
-      sources: {},
-      version: 2
-    },
-    address: 'address2',
-    bytecode: 'bytecode2',
-    sourcecode: 'sourcecode2'
-  };
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
+  let ethApiService: EthApiService;
+  const mockVersion = mockSmartContractVersion;
+  const test = testFor(SmartContractVersionComponent).expedite({
+    imports: [ClarityModule],
+    provides: [],
+    declarations: [SmartContractVersionComponent, ContractPayloadPreviewFormComponent],
+  }, beforeTesting(() => {
+    ethApiService = test.getService(EthApiService);
+  }), prepareEach(() => {
+    test.component.version = mockVersion;
+    test.component.onVersionChange(mockVersion);
   }));
 
-  beforeEach(() => {
-    fixture = TestBed.createComponent(SmartContractVersionComponent);
-    component = fixture.componentInstance;
-    component.version = mockVersion;
-    component.onVersionChange(mockVersion);
-    fixture.detectChanges();
-  });
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 
 
@@ -70,7 +36,7 @@ describe('SmartContractVersionComponent', () => {
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
 
-      component.onSourceCodeDownload();
+      test.component.onSourceCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
         .toHaveBeenCalledWith(expectedFileName, mockVersion.sourcecode);
@@ -79,7 +45,7 @@ describe('SmartContractVersionComponent', () => {
       const expectedFileName = `${mockVersion.contract_id}_${mockVersion.version}_bytecode.bin`;
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
-      component.onByteCodeDownload();
+      test.component.onByteCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
         .toHaveBeenCalledWith(expectedFileName, mockVersion.bytecode);
@@ -88,7 +54,7 @@ describe('SmartContractVersionComponent', () => {
       const expectedFileName = `${mockVersion.contract_id}_${mockVersion.version}_metadata.json`;
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
-      component.onMetadataDownload();
+      test.component.onMetadataDownload();
 
       expect(DownloadHelpers.generateDownload)
         .toHaveBeenCalledWith(expectedFileName, JSON.stringify(mockVersion.metadata, null, 4));
@@ -103,7 +69,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.onSourceCodeDownload();
+      test.component.onSourceCodeDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -120,7 +86,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.onByteCodeDownload();
+      test.component.onByteCodeDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -137,7 +103,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.onMetadataDownload();
+      test.component.onMetadataDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -147,10 +113,10 @@ describe('SmartContractVersionComponent', () => {
 
   describe('Preview', () => {
     it('calls open on the preview modal and passes the encoded function', () => {
-      const modalSpy = spyOn(component.payloadPreviewModal, 'open');
-      const encodeSpy = spyOn((component as any), 'encodeFunction');
+      const modalSpy = spyOn(test.component.payloadPreviewModal, 'open');
+      const encodeSpy = spyOn((test.component as any), 'encodeFunction');
 
-      component.onPreview();
+      test.component.onPreview();
 
       expect(modalSpy).toHaveBeenCalled();
       expect(encodeSpy).toHaveBeenCalled();
@@ -161,89 +127,101 @@ describe('SmartContractVersionComponent', () => {
     it('on call passes the encoded function and handles success', () => {
       const successResult = 'smartContracts.form.callSuccessMessage';
       const expectedPayload = {
-        from: null,
+        from: '',
         to: 'address2',
         gas: '0xF4240',
         data: ''
       };
-      const callSpy = spyOn((component as any).ethApiService, 'sendCall')
+      const callSpy = spyOn(ethApiService, 'sendCall')
         .and.returnValue(observableOf({result: '0x0000000000000000000000000000000000000000000000000000000000000000'}));
 
-      fixture.detectChanges();
-      component.onCall();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onCall();
 
       expect(callSpy).toHaveBeenCalledWith(expectedPayload);
-      expect(component.alertMessage).toBe(successResult);
-      expect(component.alertType).toBe('alert-success');
-      expect(component.resultType).toBe('call');
+      expect(test.component.alertMessage).toBe(successResult);
+      expect(test.component.alertType).toBe('alert-success');
+      expect(test.component.resultType).toBe('call');
     });
     it('handles call errors in success responses', () => {
       const errorResult = 'error';
-      spyOn((component as any).ethApiService, 'sendCall')
+      spyOn(ethApiService, 'sendCall')
         .and.returnValue(observableOf({error: errorResult}));
 
-      fixture.detectChanges();
-      component.onCall();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onCall();
 
-      expect(component.alertMessage).toBe(errorResult);
-      expect(component.alertType).toBe('alert-danger');
-      expect(component.resultType).toBe('error');
+      expect(test.component.alertMessage).toBe(errorResult);
+      expect(test.component.alertType).toBe('alert-danger');
+      expect(test.component.resultType).toBe('error');
     });
     it('handles call errors in error responses', () => {
       const errorResult = 'error';
-      spyOn((component as any).ethApiService, 'sendCall')
+      spyOn(ethApiService, 'sendCall')
         .and.returnValue(throwError({error: errorResult}));
 
-      fixture.detectChanges();
-      component.onCall();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onCall();
 
-      expect(component.alertMessage).toBe(errorResult);
-      expect(component.alertType).toBe('alert-danger');
-      expect(component.resultType).toBe('error');
+      expect(test.component.alertMessage).toBe(errorResult);
+      expect(test.component.alertType).toBe('alert-danger');
+      expect(test.component.resultType).toBe('error');
     });
 
     it('sends a transaction with the encoded function', () => {
       const successResult = 'success result';
       const expectedPayload = {
-        from: null,
+        from: '',
         to: 'address2',
         gas: '0xF4240',
         data: ''
       };
-      const callSpy = spyOn((component as any).ethApiService, 'sendTransaction')
+      const callSpy = spyOn(ethApiService, 'sendTransaction')
         .and.returnValue(observableOf({result: successResult}));
 
-      fixture.detectChanges();
-      component.onSend();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onSend();
 
       expect(callSpy).toHaveBeenCalledWith(expectedPayload);
-      expect(component.alertMessage).toBe(successResult);
-      expect(component.alertType).toBe('alert-success');
-      expect(component.resultType).toBe('send');
+      expect(test.component.alertMessage).toBe(successResult);
+      expect(test.component.alertType).toBe('alert-success');
+      expect(test.component.resultType).toBe('send');
     });
     it('handles transaction errors in success responses', () => {
       const errorResult = 'error';
-      spyOn((component as any).ethApiService, 'sendTransaction')
+      spyOn(ethApiService, 'sendTransaction')
         .and.returnValue(observableOf({error: errorResult}));
 
-      fixture.detectChanges();
-      component.onSend();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onSend();
 
-      expect(component.alertMessage).toBe(errorResult);
-      expect(component.alertType).toBe('alert-danger');
-      expect(component.resultType).toBe('error');
+      expect(test.component.alertMessage).toBe(errorResult);
+      expect(test.component.alertType).toBe('alert-danger');
+      expect(test.component.resultType).toBe('error');
     });
     it('handles transaction errors in error responses', () => {
       const errorResult = 'error';
-      spyOn((component as any).ethApiService, 'sendTransaction')
+      spyOn(ethApiService, 'sendTransaction')
         .and.returnValue(throwError({error: errorResult}));
 
-      fixture.detectChanges();
-      component.onSend();
+      test.refreshComponent();
+      test.component.version = mockSmartContractVersion;
+      test.fixture.detectChanges();
+      test.component.onSend();
 
-      expect(component.alertMessage).toBe(errorResult);
-      expect(component.alertType).toBe('alert-danger');
-      expect(component.resultType).toBe('error');
+      expect(test.component.alertMessage).toBe(errorResult);
+      expect(test.component.alertType).toBe('alert-danger');
+      expect(test.component.resultType).toBe('error');
     });
 
   });

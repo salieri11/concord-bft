@@ -4,10 +4,10 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { forkJoin as observableForkJoin } from 'rxjs';
+import { forkJoin as observableForkJoin, of } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 
-import { Transaction, TransactionListing } from './transactions.model';
+import { Transaction, TransactionListing, mockTransactions, mockTransactionDefault } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { Apis } from '../../shared/urls.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -53,4 +53,17 @@ export class TransactionsService {
       }));
     }));
   }
+}
+
+export class MockTransactionService {
+  transactions = mockTransactions;
+  currentTransaction = mockTransactionDefault;
+
+  getTransaction() { return of(this.currentTransaction); }
+  getTransactions() { return of(this.transactions); }
+  getBlockTransactions() { return of(this.transactions); }
+  getRecentTransactions() { return of(this.transactions); }
+
+  // Unit Test Only Functions
+  provideDefault() { this.transactions = mockTransactions; this.currentTransaction = mockTransactionDefault; }
 }

@@ -1,31 +1,15 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { WelcomeComponent } from './welcome.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
 
 describe('WelcomeComponent', () => {
-  let component: WelcomeComponent;
-  let fixture: ComponentFixture<WelcomeComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(WelcomeComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  const test = testFor(WelcomeComponent).expedite({
+    imports: [], provides: [], declarations: [WelcomeComponent],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 });

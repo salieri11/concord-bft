@@ -23,9 +23,8 @@ export class BlockchainResolver implements Resolve<boolean> {
     private blockchainService: BlockchainService,
     private nodesService: NodesService,
   ) { }
-
   resolve(route?: ActivatedRouteSnapshot): Observable<boolean | any> {
-    const blockchainId = route ? route.params['blockchainId'] : undefined;
+    const blockchainId = route ? route.params['blockchainId'] : null;
     const catchErrorHandler = catchError(error => {
       this.router.navigate([`/${mainRoutes.error}`],
       { queryParams: { error: JSON.stringify(error) } });
@@ -45,6 +44,7 @@ export class BlockchainResolver implements Resolve<boolean> {
 
 
 export class MockBlockchainResolver implements Resolve<boolean> {
+  fallbackTo?: string;
   resolve(): Observable<boolean | any> {
     return of(true);
   }

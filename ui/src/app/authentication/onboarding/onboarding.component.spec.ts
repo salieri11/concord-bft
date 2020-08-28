@@ -1,30 +1,15 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { OnboardingComponent } from './onboarding.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
 
 describe('OnboardingComponent', () => {
-  let component: OnboardingComponent;
-  let fixture: ComponentFixture<OnboardingComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(OnboardingComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  const test = testFor(OnboardingComponent).expedite({
+    imports: [], provides: [], declarations: [OnboardingComponent],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 });

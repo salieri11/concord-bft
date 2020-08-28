@@ -1,13 +1,23 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { TestBed, inject } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-
 import { UsersService } from './users.service';
-import { Personas } from '../../shared/persona.service';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
 
+describe('UsersService', () => {
+  const test = testFor(UsersService).expedite({
+    imports: [], provides: [], declarations: [],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
+
+  it('should create', () => {
+    expect(test.component).toBeTruthy();
+  });
+});
+
+
+
+// ? Deprecated by CSP
+/*
 const payload = {
   details: {
     first_name: 'Test',
@@ -19,7 +29,7 @@ const payload = {
   role: Personas.SystemsAdmin
 };
 
-describe('UsersService', () => {
+xdescribe('UsersService', () => {
   let service: UsersService;
 
   beforeEach(() => {
@@ -65,3 +75,4 @@ describe('UsersService', () => {
     expect(httpSpy).toHaveBeenCalledWith(`api/users/${userId}`);
   });
 });
+*/
