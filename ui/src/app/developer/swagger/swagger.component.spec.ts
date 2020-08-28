@@ -1,15 +1,32 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+
+import { async, TestBed, ComponentFixture } from '@angular/core/testing';
+
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { SwaggerComponent } from './swagger.component';
 
+
 describe('SwaggerComponent', () => {
-  const test = testFor(SwaggerComponent).expedite({
-    imports: [], provides: [], declarations: [SwaggerComponent],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: SwaggerComponent;
+  let fixture: ComponentFixture<SwaggerComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(SwaggerComponent);
+    component = fixture.componentInstance;
+    component.ngAfterViewInit(false); // disable
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 });

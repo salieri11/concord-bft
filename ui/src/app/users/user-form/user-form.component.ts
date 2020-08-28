@@ -124,11 +124,13 @@ export class UserFormComponent implements OnInit {
   }
 
   private handleAdd(response): void {
+    console.log('add response', response);
     this.openModalForm = false;
     this.createUser.emit(response);
   }
 
   private handleEdit(response): void {
+    console.log('add response', response);
     this.openModalForm = false;
     this.updateUser.emit(response);
   }

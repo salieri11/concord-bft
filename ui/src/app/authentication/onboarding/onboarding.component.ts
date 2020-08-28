@@ -34,6 +34,7 @@ export class OnboardingComponent implements OnInit {
   }
 
   ngOnInit() {
+
     this.authService.checkForLegalAgreements()
       .subscribe(agreement => this.handleAgreement(agreement));
 

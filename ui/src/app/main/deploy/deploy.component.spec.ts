@@ -1,21 +1,29 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
+
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { DeployComponent } from './deploy.component';
-import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
-import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
-import { ClarityModule } from '@clr/angular';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('DeployComponent', () => {
-  const test = testFor(DeployComponent).expedite({
-    imports: [ClarityModule, BrowserAnimationsModule],
-    provides: [],
-    declarations: [DeployComponent, BlockchainWizardComponent, FeatureFlagDirective],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: DeployComponent;
+  let fixture: ComponentFixture<DeployComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach( async () => {
+    fixture = TestBed.createComponent(DeployComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 });

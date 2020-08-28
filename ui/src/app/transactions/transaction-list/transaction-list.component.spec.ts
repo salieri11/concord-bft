@@ -1,19 +1,31 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
+
 import { TransactionListComponent } from './transaction-list.component';
-import { ClarityModule } from '@clr/angular';
-import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('TransactionListComponent', () => {
-  const test = testFor(TransactionListComponent).expedite({
-    imports: [ClarityModule, BrowserAnimationsModule], provides: [],
-    declarations: [TransactionListComponent, TransactionsStatusFilterComponent],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: TransactionListComponent;
+  let fixture: ComponentFixture<TransactionListComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(TransactionListComponent);
+    component = fixture.componentInstance;
+    component.transactions = [];
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 });

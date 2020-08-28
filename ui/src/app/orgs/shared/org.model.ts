@@ -11,13 +11,3 @@ export interface Org {
   organization_name: string;
   organization_properties: OrgProperties;
 }
-
-export const mockOrgDefault = {
-  organization_id: '00000000-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-  organization_name: 'MOCK_ORG',
-  organization_properties: { max_chains: '0' },
-};
-
-export const mockOrgs = [
-  mockOrgDefault
-];

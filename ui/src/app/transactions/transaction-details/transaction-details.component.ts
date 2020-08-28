@@ -247,7 +247,7 @@ export class TransactionDetailsComponent implements OnInit, OnChanges {
     let funcName;
     let funcArgs: AbiFunctionParameter[];
     for (const methodDef of contractABI) {
-      if (!methodDef.name) { continue; }
+      if (!methodDef.name) { console.log(methodDef); continue; }
       const methodArgTypes = [];
       const methodArgs: AbiFunctionParameter[] = [];
       for (const arg of methodDef.inputs) { methodArgs.push(arg); methodArgTypes.push(arg.type); }

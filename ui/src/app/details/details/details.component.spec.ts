@@ -2,19 +2,29 @@
  * Copyright 2018-2020 VMware, all rights reserved.
  */
 
-import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 import { DetailsComponent } from './details.component';
-import { ClarityModule } from '@clr/angular';
-import { CanViewDirective } from '../../shared/directives/can-view.directive';
-import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 
 describe('DetailsComponent', () => {
-  const test = testFor(DetailsComponent).expedite({
-    imports: [ClarityModule], provides: [], declarations: [DetailsComponent, CanViewDirective, FeatureFlagDirective],
-  }, beforeTesting(() => { }), prepareEach(() => {}));
+  let component: DetailsComponent;
+  let fixture: ComponentFixture<DetailsComponent>;
+
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(DetailsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 });

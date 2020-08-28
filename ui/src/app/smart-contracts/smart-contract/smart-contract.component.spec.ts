@@ -2,44 +2,45 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf } from 'rxjs';
-import { testFor, beforeTesting, prepareEach } from '../../../test.helper.spec';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 import { SmartContractComponent } from './smart-contract.component';
-import { SmartContractsService } from '../shared/smart-contracts.service';
-import { mainRoutes } from '../../shared/urls.model';
 
 describe('SmartContractComponent', () => {
-  let smartContractService: SmartContractsService;
+  let component: SmartContractComponent;
+  let fixture: ComponentFixture<SmartContractComponent>;
 
-  const test = testFor(SmartContractComponent).expedite({
-    imports: [], provides: [],
-    declarations: [SmartContractComponent],
-    router: `/test/${mainRoutes.smartContracts}/2/1`,
-    route: { params: { contractId: '2', version: '1' } }
-  }, beforeTesting(() => {
-    smartContractService = test.getService(SmartContractsService);
-  }), prepareEach(() => {}));
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    tester.provideActivatedRoute({ params: { contractId: '2', version: '1' } });
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
+  }));
 
-  it('should create', () => {
-    expect(test.component).toBeTruthy();
+  beforeEach(() => {
+    fixture = TestBed.createComponent(SmartContractComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('should create', () => {
-    expect(test.component).toBeTruthy();
+    expect(component).toBeTruthy();
   });
 
   it('should load smart contract with given contractId', () => {
-    const spy = spyOn(smartContractService, 'getSmartContract')
+    const spy = spyOn((component as any).smartContractsService, 'getSmartContract')
       .and.returnValue(observableOf({contract_id: 'smart contract', versions: []}));
-    test.component.loadSmartContract('contractId');
+    component.loadSmartContract('contractId');
     expect(spy).toHaveBeenCalled();
   });
 
   it('should load version details for given contractId and version', () => {
-    const spy = spyOn(smartContractService, 'getVersionDetails')
+    const spy = spyOn((component as any).smartContractsService, 'getVersionDetails')
       .and.returnValue(observableOf({ versionDetails: 'version details' }));
-    test.component.loadVersionDetails('contractId', 'version');
+    component.loadVersionDetails('contractId', 'version');
     expect(spy).toHaveBeenCalled();
   });
 
@@ -54,26 +55,26 @@ describe('SmartContractComponent', () => {
       }]
     };
 
-    const spy = spyOn(test.component, 'getVersionInfo');
-    spyOn(test.componentProperty('smartContractsService'), 'getSmartContract').and.returnValue(observableOf(contract));
+    const spy = spyOn(component, 'getVersionInfo');
+    spyOn((component as any).smartContractsService, 'getSmartContract').and.returnValue(observableOf(contract));
 
-    test.component.loadSmartContract('contractId');
+    component.loadSmartContract('contractId');
 
-    expect(test.component.versionSelected).toBe(contract.versions[0].version);
+    expect(component.versionSelected).toBe(contract.versions[0].version);
     expect(spy).toHaveBeenCalled();
   });
 
-  it('should navigate to the version details page', async () => {
-    const spy = spyOn(test.router, 'navigate');
-    test.component.smartContract = {
+  it('should navigate to the version details page', () => {
+    const spy = spyOn((component as any).router, 'navigate');
+    component.smartContract = {
       contract_id: '1',
       owner: 'owner',
       versions: []
     };
 
-    test.component.versionSelected = '1';
-    test.component.getVersionInfo();
-    let blockchainId = test.component.getBlockchainId();
+    component.versionSelected = '1';
+    component.getVersionInfo();
+    let blockchainId = component.getBlockchainId();
     if (!blockchainId) { blockchainId = 'undefined'; }
     expect(spy).toHaveBeenCalledWith([
       blockchainId,
@@ -83,12 +84,19 @@ describe('SmartContractComponent', () => {
       '1'], Object({ replaceUrl: true }));
   });
 
+  describe('should load smart contract with contractId in the params', () => {
 
-  it('should load smartContract with contractId in the params', () => {
-    test.refreshComponent(true);
-    const smartContractSpy = spyOn(test.component, 'loadSmartContract');
-    test.fixture.detectChanges();
-    expect(smartContractSpy).toHaveBeenCalled();
+    it('should load smartContract with contractId in the params', () => {
+      const smartContractSpy = spyOn(component, 'loadSmartContract');
+      component.smartContract = {
+        contract_id: '1',
+        owner: 'owner',
+        versions: undefined
+      };
+
+      component.loadSmartContract('2');
+      expect(smartContractSpy).toHaveBeenCalled();
+    });
   });
 
   describe('on updating smart contract', () => {
@@ -99,14 +107,14 @@ describe('SmartContractComponent', () => {
         version: 'newVersion',
         url: 'url'
       };
-      const getVersionSpy = spyOn(test.component, 'getVersionInfo');
-      const loadContractSpy = spyOn(test.component, 'loadSmartContract');
+      const getVersionSpy = spyOn(component, 'getVersionInfo');
+      const loadContractSpy = spyOn(component, 'loadSmartContract');
 
-      test.component.afterUpdateContract(response);
+      component.afterUpdateContract(response);
 
       expect(getVersionSpy).toHaveBeenCalled();
       expect(loadContractSpy).toHaveBeenCalledWith(response.contract_id, response.version);
-      expect(test.component.versionSelected).toBe(response.version);
+      expect(component.versionSelected).toBe(response.version);
     });
   });
 
