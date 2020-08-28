@@ -96,7 +96,7 @@
         <div class="card graph-card">
           <concord-wavefront-graph
             [graphConfig]="graphConfigCPU" [timeStart]="timeStart" [timeEnd]="timeEnd"
-            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigCPU()">
+            [updateTrigger]="updateTrigger" (update)="onupdateGraphConfigCPU()">
           </concord-wavefront-graph>
         </div>
       </div>
@@ -104,21 +104,21 @@
         <div class="card graph-card">
           <concord-wavefront-graph
             [graphConfig]="graphConfigMEM" [timeStart]="timeStart" [timeEnd]="timeEnd"
-            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigMEM()">
+            [updateTrigger]="updateTrigger" (update)="onupdateGraphConfigMEM()">
           </concord-wavefront-graph>
         </div>
       </div>
       <div class="hidden">
         <concord-wavefront-graph
           [graphConfig]="graphConfigLOG" [timeStart]="timeStart" [timeEnd]="timeEnd"
-          [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigLOG()" [hidden]="true">
+          [updateTrigger]="updateTrigger" (update)="onupdateGraphConfigLOG()" [hidden]="true">
         </concord-wavefront-graph>
       </div>
       <div class="clr-col-sm-6 mt-1">
         <div class="card graph-card">
           <concord-wavefront-graph
             [graphConfig]="graphConfigDISK" [timeStart]="timeStart" [timeEnd]="timeEnd"
-            [updateTrigger]="updateTrigger" [onupdate]="onupdateGraphConfigDISK()">
+            [updateTrigger]="updateTrigger" (update)="onupdateGraphConfigDISK()">
           </concord-wavefront-graph>
         </div>
       </div>

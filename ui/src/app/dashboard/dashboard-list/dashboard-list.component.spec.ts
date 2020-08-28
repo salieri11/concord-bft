@@ -1,31 +1,17 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { DashboardListComponent } from './dashboard-list.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+import { ClarityModule } from '@clr/angular';
 
 
 describe('DashboardListComponent', () => {
-  let component: DashboardListComponent;
-  let fixture: ComponentFixture<DashboardListComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(DashboardListComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  const test = testFor(DashboardListComponent).expedite({
+    imports: [ClarityModule], provides: [], declarations: [DashboardListComponent],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 });

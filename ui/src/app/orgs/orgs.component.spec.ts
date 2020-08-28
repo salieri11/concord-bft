@@ -16,7 +16,7 @@ import { MockSharedModule } from '../shared/shared.module';
 import { OrgsComponent } from './orgs.component';
 import { InivteUserComponent } from './inivte-user/inivte-user.component';
 
-import { BlockchainService, MockBlockchainsService } from './../blockchain/shared/blockchain.service';
+import { BlockchainService, MockBlockchainService } from './../blockchain/shared/blockchain.service';
 
 describe('OrgsComponent', () => {
   let component: OrgsComponent;
@@ -41,7 +41,7 @@ describe('OrgsComponent', () => {
         OrgService,
         {
           provide: BlockchainService,
-          useClass: MockBlockchainsService
+          useClass: MockBlockchainService
         },
         {
           provide: ActivatedRoute,

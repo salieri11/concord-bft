@@ -13,7 +13,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { InivteUserComponent } from '../inivte-user/inivte-user.component';
-import { MockBlockchainsService, BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { MockBlockchainService, BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 describe('OrgListComponent', () => {
   let component: OrgListComponent;
@@ -34,7 +34,7 @@ describe('OrgListComponent', () => {
         OrgService,
         {
           provide: BlockchainService,
-          useClass: MockBlockchainsService
+          useClass: MockBlockchainService
         },
 
         {

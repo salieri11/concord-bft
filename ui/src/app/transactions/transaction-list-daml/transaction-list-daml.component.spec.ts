@@ -1,29 +1,16 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { TransactionListDamlComponent } from './transaction-list-daml.component';
-import { getSpecTestingModule } from '../../shared/shared-testing.module';
+import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
+import { ClarityModule } from '@clr/angular';
 
 describe('TransactionListDamlComponent', () => {
-  let component: TransactionListDamlComponent;
-  let fixture: ComponentFixture<TransactionListDamlComponent>;
-
-  beforeEach(async( () => {
-    const tester = getSpecTestingModule();
-    TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
-    })).compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(TransactionListDamlComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  const test = testFor(TransactionListDamlComponent).expedite({
+    imports: [ClarityModule], provides: [], declarations: [TransactionListDamlComponent],
+  }, beforeTesting(() => { }), prepareEach(() => {}));
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(test.component).toBeTruthy();
   });
 });

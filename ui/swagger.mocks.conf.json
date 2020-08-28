@@ -1,0 +1,6 @@
+{
+  "sourceSwaggerPath": "../helen/src/main/resources/api-doc/api.yaml",
+  "outputFolderPath": "src/static/mocks/swagger/samples",
+
+  "angularServePath": "static/mocks/swagger/samples"
+}
