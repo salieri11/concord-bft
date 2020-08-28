@@ -19,6 +19,9 @@ import org.springframework.retry.backoff.BackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.vmware.blockchain.agent.services.exceptions.AgentException;
+import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
+
 
 /**
  * Interceptor to retry a request. Retry policy is defined via @{@link RetryTemplate}.
@@ -34,7 +37,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
     /**
      * Construct a retry interceptor.
      *
-     * @param retryPolicy - RetryPolicy
+     * @param retryPolicy   - RetryPolicy
      * @param backOffPolicy - Backoff policy
      */
     public BaseRetryInterceptor(RetryPolicy retryPolicy, BackOffPolicy backOffPolicy) {
@@ -47,8 +50,8 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
     /**
      * Intercepts the request and retries based on the {@link RetryTemplate}.
      *
-     * @param request - Request.
-     * @param body - Request body.
+     * @param request   - Request.
+     * @param body      - Request body.
      * @param execution - Execution.
      * @return ClientHttpResponse
      * @throws IOException - In case of an IO error.
@@ -63,7 +66,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 response = execution.execute(request, body);
             } catch (Exception ex) {
                 logger.error("Failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
-                throw new InternalError("Error logged : ", ex);
+                throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE, new InternalError("Error logged : ", ex));
             }
             if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.
@@ -78,7 +81,8 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                         cleanQueryParams(request.getURI()), response.getStatusCode(), context.getRetryCount());
                 // closing response releases connection back to pool
                 response.close();
-                throw new InternalError("Exhausted retry attempts.");
+                throw new AgentException(ErrorCode.RETRY_REST_CALL_FAILURE,
+                                         new InternalError("Exhausted retry attempts."));
             }
             logger.warn("{} on endpoint {} failed permanently after {} retries with status {}, returning last response",
                     request.getMethod(), cleanQueryParams(request.getURI()), context.getRetryCount(),

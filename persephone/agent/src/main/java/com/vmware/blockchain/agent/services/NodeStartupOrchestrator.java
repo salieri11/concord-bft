@@ -37,6 +37,8 @@ import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
 import com.vmware.blockchain.agent.services.configuration.HlfConfig;
 import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
+import com.vmware.blockchain.agent.services.exceptions.AgentException;
+import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
@@ -134,6 +136,8 @@ public class NodeStartupOrchestrator {
             } catch (Exception | InternalError e) {
                 log.error("Unexpected exception encountered during launch sequence", e);
                 log.warn("******Node not Functional********");
+                throw new AgentException(ErrorCode.NODE_START_FAILED,
+                                         "Failure during launch sequence " + e.getMessage(), e);
             }
         });
     }
@@ -161,7 +165,8 @@ public class NodeStartupOrchestrator {
                 outputStream.write(artifact.getComponent().getBytes(StandardCharsets.UTF_8));
             } catch (Exception error) {
                 log.error("Error populating configuration for {}", destination, error);
-                throw error;
+                throw new AgentException(ErrorCode.ERROR_POPULATING_NODE_CONFIG,
+                                         "Error populating configuration for  " + destination, error);
             }
         }
 
@@ -227,7 +232,8 @@ public class NodeStartupOrchestrator {
                         containerSpec = DamlParticipantConfig.valueOf(component.getServiceType().name());
                         break;
                     default:
-                        throw new RuntimeException("DAML Node type not provided.");
+                        throw new AgentException(ErrorCode.DAML_NODE_MISSING, "DAML Node type not provided. ",
+                                                 new RuntimeException());
                 }
                 break;
             case HLF:
@@ -235,7 +241,8 @@ public class NodeStartupOrchestrator {
                 break;
             default:
                 var message = String.format("Invalid blockchain network type(%s)", blockchainType);
-                throw new RuntimeException(message);
+                throw new AgentException(ErrorCode.INVALID_BLOCKCHAIN_NETWORK_TYPE, message,
+                                         new RuntimeException(message));
         }
 
         return containerSpec;

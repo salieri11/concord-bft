@@ -27,6 +27,8 @@ import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
+import com.vmware.blockchain.agent.services.exceptions.AgentException;
+import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.Endpoint;
@@ -79,7 +81,9 @@ public class AgentDockerClient {
                 }
             } catch (Exception error) {
                 log.error("Encountered error while parsing name, using default values", error);
-                throw new RuntimeException("Error parsing Image name:" + name);
+                throw new AgentException(ErrorCode.DOCKER_CLIENT_PARSING_IMAGE_NAME_FAILURE,
+                                         "Encountered error while parsing name [" + name + "], using default values "
+                                          + error.getMessage(), error);
             }
         }
 
@@ -161,7 +165,9 @@ public class AgentDockerClient {
             log.info("Container image ID: {}", containerConfig.getImageId());
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", imageName, error);
-            throw error;
+            throw new AgentException(ErrorCode.DOCKER_CLIENT_PULLING_IMAGE_FAILURE,
+                                    "Error while pulling image for component [" + imageName + "] " + error.getMessage(),
+                                    error);
         } finally {
             try {
                 docker.close();

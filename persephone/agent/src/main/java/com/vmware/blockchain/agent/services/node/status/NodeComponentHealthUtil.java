@@ -21,6 +21,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry;
  * Util class to monitor health of components.
  */
 @Component
+//TODO add throw new AgentException(..) in case of functional fail
 public class NodeComponentHealthUtil {
 
     private final String damlExecutionEngineService = "validator";
@@ -76,6 +77,7 @@ public class NodeComponentHealthUtil {
                 MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
 
         // TODO: call grpc health check service for execution engine.
+        //TODO add throw new AgentException(..) in case of functional fail
         return true;
     }
 
@@ -85,6 +87,7 @@ public class NodeComponentHealthUtil {
      */
     private boolean getDamlParticipantHealth() {
         // TODO: create single grpc channel and call all health check services on that. Pass arguments accordingly.
+        //TODO add throw new AgentException(..) in case of functional fail
         return getDamlIndexHealth() && getDamlReadHealth() && getDamlWriteHealth();
     }
 
@@ -98,6 +101,7 @@ public class NodeComponentHealthUtil {
                 Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.name(), damlLedgerApiServiceIndex));
         this.metricsAgent.gauge(1, "Daml health status",
                 MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+        //TODO add throw new AgentException(..) in case of functional fail
         return true;
     }
 
@@ -111,6 +115,7 @@ public class NodeComponentHealthUtil {
                 Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.name(), damlLedgerApiServiceRead));
         this.metricsAgent.gauge(1, "Daml health status",
                 MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+        //TODO add throw new AgentException(..) in case of functional fail
         return true;
     }
 
@@ -124,6 +129,7 @@ public class NodeComponentHealthUtil {
                 Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.name(), damlLedgerApiServiceWrite));
         this.metricsAgent.gauge(1, "Daml health status",
                 MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+        //TODO add throw new AgentException(..) in case of functional fail
         return true;
     }
 }
