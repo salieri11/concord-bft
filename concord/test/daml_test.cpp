@@ -378,7 +378,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
       BuildPreExecutionResponse(outdated_block_height);
 
   const Sliver expected_key = CreateDamlKvbKey(std::string{"read_key"});
-  EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
+  EXPECT_CALL(*mock_ro_storage_, get(kLastBlockId, Eq(expected_key), _, _))
       .Times(1)
       .WillOnce(
           DoAll(SetArgReferee<3>(current_block_height), Return(Status::OK())));
@@ -400,7 +400,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
   EXPECT_FALSE(actual_response.has_pre_execution_result());
 }
 
-TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetUnknownKey) {
+TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetKeyNotFound) {
   auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
   auto instance = CreateInstance(daml_validator_client);
 
@@ -616,7 +616,7 @@ TEST_F(DamlKvbCommandsHandlerTest, ReadKeysPopulatesFingerprint) {
                                    actual[expected_key].second));
 }
 
-TEST_F(DamlKvbCommandsHandlerTest, ReadKeysThrowsKeyNotAvailableInStorage) {
+TEST_F(DamlKvbCommandsHandlerTest, ReadKeysThrowsKeyNotFound) {
   const std::string expected_key = "a key";
   EXPECT_CALL(*mock_ro_storage_,
               get(_, Eq(CreateDamlKvbKey(expected_key)), _, _))
