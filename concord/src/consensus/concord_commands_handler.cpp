@@ -443,13 +443,13 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::ReadSet &read_set) const {
+  const auto last_block_id = storage_.getLastBlock();
   for (const auto &kf : read_set.keys_with_fingerprints()) {
     const Sliver key{std::string{kf.key()}};
     const BlockId read_block_height = DeserializeFingerprint(kf.fingerprint());
     BlockId current_block_height;
     Value out;
-    if (!storage_.get(read_block_height, key, out, current_block_height)
-             .isOK()) {
+    if (!storage_.get(last_block_id, key, out, current_block_height).isOK()) {
       std::stringstream msg;
       msg << "Key " << key << " is not available in storage.";
       throw std::runtime_error(msg.str());
