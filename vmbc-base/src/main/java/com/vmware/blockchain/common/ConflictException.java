@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -7,7 +7,7 @@ package com.vmware.blockchain.common;
 import org.springframework.http.HttpStatus;
 
 /**
- * Conflict exception.
+ * Throw ConflictException.
  */
 public class ConflictException extends VmbcException {
     private static final long serialVersionUID = 1L;
@@ -17,7 +17,7 @@ public class ConflictException extends VmbcException {
     }
 
     public ConflictException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.CONFLICT, args));
+        super(HttpStatus.CONFLICT, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              args));
     }
 }

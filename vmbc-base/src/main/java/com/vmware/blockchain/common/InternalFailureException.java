@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -22,12 +22,12 @@ public class InternalFailureException extends VmbcException {
     }
 
     public InternalFailureException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.INTERNAL_SERVER_ERROR, args));
+        super(HttpStatus.INTERNAL_SERVER_ERROR,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 
     public InternalFailureException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-             HttpStatus.INTERNAL_SERVER_ERROR, cause, args));
+        super(HttpStatus.INTERNAL_SERVER_ERROR,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), cause, args));
     }
 }
