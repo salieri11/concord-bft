@@ -19,7 +19,6 @@ from suites import (
   eth_core_vm_tests,
   eth_json_rpc_tests,
   eth_regression_tests,
-  hlf_tests,
   performance_tests,
   persistency_tests,
   persephone_tests,
@@ -91,7 +90,6 @@ suiteList = {
    "PerformanceTests": performance_tests.PerformanceTests,
    "UiTests": ui_tests.UiTests,
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
-   "HlfTests": hlf_tests.HlfTests,
    "MetadataPersistencyTests": persistency_tests.MetadataPersistencyTests,
 }
 
