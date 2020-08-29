@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -8,8 +8,8 @@ package com.vmware.blockchain.common;
  * Error Messages. At some point we will turn this into a class loading from a resource bundle.
  */
 public final class ErrorCode {
-
     public static final String AGREEMENT_NOT_FOUND = "No agreement exists";
+    public static final String BAD_GRPCS_CONFIGURATION = "Required property {0} for grpc over TLS is not set";
     public static final String BAD_LOGIN_REQUEST = "Invalid email/password";
     public static final String BAD_PASSWORD_CHANGE = "Can't use same password!";
     public static final String BAD_REQUEST = "Bad request (e.g. missing request body).";
@@ -18,9 +18,11 @@ public final class ErrorCode {
     public static final String BAD_TOKEN = "Bad token";
     public static final String BAD_UUID_FORMAT = "Error converting {0} to UUID";
     public static final String BLOCKCHAIN_UNSPECIFIED = "No blockchain specified";
+    public static final String BLOCKCHAIN_NOT_FOUND = "Blockchain with ID {0} not found.";
     public static final String BYTECODE_OR_METADATA_ALLOWED = "Only bytecode or metadata file path are supported";
     public static final String CANNOT_EXCHANGE_TOKEN = "Cannot exchange access code";
     public static final String CANNOT_REDIRECT_TO_TARGET = "Cannot redirect to {0}";
+    public static final String CLIENT_NOT_FOUND = "Client with ID {0} not found on blockchain with ID {1}.";
     public static final String CONCORD_CONNECTION = "Unable to get concord connection";
     public static final String CONCORD_INVALID_RESPONSE = "Concord sent invalid response";
     public static final String CONCORD_INTERNAL_ERROR = "Concord internal error: ";
@@ -29,6 +31,7 @@ public final class ErrorCode {
     public static final String CONCURRENT_UPDATE_FAILED =
             "Concurrent update on {0}, column name {1}. Try operation again";
     public static final String CONNECTION_POOL_UNSUPPORTED = "getConnection, pool not initialized";
+    public static final String CONSORTIUM_NOT_FOUND = "Consortium with ID {0} not found.";
     public static final String CONTRACT_COMPILE_FAILED = "Compilation failure {0}";
     public static final String CONTRACT_DEPLOY_FAILED = "Could not deploy contract {0}";
     public static final String CONTRACT_NOT_FOUND = "Contract not found: {0}";
@@ -38,6 +41,8 @@ public final class ErrorCode {
     public static final String DATABASE_UNAVAILABLE = "Database service is not available";
     public static final String DELETE_INTEGRITY_ERROR =
             "Cannot delete entity with id {0} and column name {1}. It is referenced by other entities.";
+
+    public static final String DE_REGISTERED = "Deregistered blockchains are hidden";
     public static final String DUPLICATE_CONTRACT_ID = "ContractVersion with id {0} and version {1} already exists";
     public static final String DUPLICATE_EMAIL = "Duplicate email address";
     public static final String DUPLICATE_UPDATION = "The row has already been updated";
@@ -56,7 +61,7 @@ public final class ErrorCode {
     public static final String ID_UNSPECIFIED = "request must contain an id";
     public static final String INVALID_BLOCK_NUMBER =
             "Invalid block number requested. Block number can either be 'latest', "
-            + "'pending', 'earliest'or a hex number starting with '0x'";
+                    + "'pending', 'earliest'or a hex number starting with '0x'";
     public static final String INVALID_BLOCK_REQUEST =
             "Invalid request: Choose correct block numbers, range or a block hash";
     public static final String INVALID_EMAIL = "invalid email specified";
@@ -82,12 +87,14 @@ public final class ErrorCode {
     public static final String METHOD_UNSPECIFIED = "request must contain a method";
     public static final String NULL_TENANT_ID = "Null tenantId for column %s";
     public static final String NO_AUTHORIZATION = "No Authorization";
+    public static final String NO_REPLICAS_FOUND = "No replicas found for blockchain with ID {0}.";
     public static final String NOT_ALLOWED = "Not allowed";
     public static final String NOT_FOUND = "Not found";
     public static final String ORG_NOT_FOUND = "Organization with ID {0} not found.";
     public static final String PASSPHRASE_INVALID = "Invalid passphrase";
     public static final String RAW_TRANSCATION_UNPARSED = "Unable to parse raw transaction (extra data after envelope)";
     public static final String REQUEST_UNPARSED = "unable to parse request";
+    public static final String REPLICA_NOT_FOUND = "Replica with ID {0} not found on blockchain with ID {1}.";
     public static final String RETRY_FAILURE = "Failed to retry for {0}. Max retries exceeded.";
     public static final String UNALLOWED = "Not allowed or forbidden";
     public static final String UNINITIALIZED_POOL = "returnConnection, pool not initialized";
@@ -100,7 +107,5 @@ public final class ErrorCode {
     public static final String UNSUITABLE_PARAMETER_NUMBERS = "Too many parameters. Either none or a JSON object.";
     public static final String UUID_BINDING_UNSUCCESSFUL = "Failed to cast linked entity field to UUID.";
     public static final String TO_UNSPECIFIED = "'to' must be specified";
-
-
-
+    public static final String ZONE_NOT_FOUND = "Zone with ID {0} not found.";
 }

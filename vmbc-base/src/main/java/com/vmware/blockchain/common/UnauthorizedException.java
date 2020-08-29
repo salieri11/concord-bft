@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -18,7 +18,7 @@ public class UnauthorizedException extends VmbcException {
     }
 
     public UnauthorizedException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-            HttpStatus.UNAUTHORIZED, args));
+        super(HttpStatus.UNAUTHORIZED, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                args));
     }
 }

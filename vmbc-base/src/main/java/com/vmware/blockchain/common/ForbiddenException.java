@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -17,9 +17,18 @@ public class ForbiddenException extends VmbcException {
         super(HttpStatus.FORBIDDEN, message, args);
     }
 
+    public ForbiddenException(Throwable cause, String message, Object... args) {
+        super(HttpStatus.FORBIDDEN, cause, message, args);
+    }
+
     public ForbiddenException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.FORBIDDEN, args));
+        super(HttpStatus.FORBIDDEN, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                args));
+    }
+
+    public ForbiddenException(ErrorCodeType codeType, Throwable cause, Object... args) {
+        super(HttpStatus.FORBIDDEN, cause,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 
 }

@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ResourceUtils;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.HelenCommonErrorCode;
 import com.vmware.blockchain.common.HelenException;
 
 import io.grpc.ManagedChannel;
@@ -62,7 +62,7 @@ public class GrpcConfig {
             if (provisioningServiceCertChainProp == null) {
                 logger.error("grpc(s) is enabled but required property {} for grpc over TLS is not set",
                         provisioningCertchainProp);
-                throw new HelenException(ErrorCode.BAD_GRPCS_CONFIGURATION, provisioningCertchainProp);
+                throw new HelenException(HelenCommonErrorCode.BAD_GRPCS_CONFIGURATION, provisioningCertchainProp);
             }
 
             File provisioningServiceCertChain = ResourceUtils.getFile(provisioningServiceCertChainProp);

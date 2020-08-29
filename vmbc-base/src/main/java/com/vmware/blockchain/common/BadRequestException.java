@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019-2020 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.common;
@@ -27,8 +27,8 @@ public class BadRequestException extends VmbcException {
     }
 
     public BadRequestException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(HttpStatus.BAD_REQUEST, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              cause, args));
+        super(HttpStatus.BAD_REQUEST, cause,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 
 }
