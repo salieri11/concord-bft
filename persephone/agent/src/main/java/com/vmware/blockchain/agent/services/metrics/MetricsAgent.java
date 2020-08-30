@@ -14,6 +14,8 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 /**
  * Class holding metrics functions.
@@ -25,12 +27,10 @@ public class MetricsAgent {
 
     /**
      * Constructor.
-     * @param meterRegistry meter registry
      * @param metricsTags metrics tag
      */
-    public MetricsAgent(MeterRegistry meterRegistry,
-                        List<Tag> metricsTags) {
-        this.meterRegistry = meterRegistry;
+    public MetricsAgent(List<Tag> metricsTags) {
+        this.meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         this.metricTags = metricsTags;
     }
 

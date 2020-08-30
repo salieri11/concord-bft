@@ -15,6 +15,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 
@@ -81,6 +82,11 @@ public class Application {
     @Bean
     public Endpoint configServiceEndpoint() {
         return configuration.getConfigService();
+    }
+
+    @Bean
+    public ConcordModelSpecification.NodeType nodeType() {
+        return configuration.getModel().getNodeType();
     }
 
     @Bean
