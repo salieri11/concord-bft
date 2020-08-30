@@ -9,6 +9,11 @@
         <version>1.0</version>
     </parent>
 
+    <properties>
+        <maven.test.failure.ignore>true</maven.test.failure.ignore>
+        <runSuite>**/ApiTestSuite.class</runSuite>
+    </properties>
+
     <artifactId>api-tests</artifactId>
     <name>API tests</name>
     <dependencies>
@@ -40,7 +45,7 @@
                 <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>copy-appCtx</id>
+                        <id>copy-generated-source</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -60,7 +65,55 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>spinUp</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>docker-compose</executable>
+                            <workingDirectory>${docker.dir}</workingDirectory>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>${docker.dir}/docker-compose.yml</argument>
+                                <argument>up</argument>
+                                <argument>-d</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tearDown</id>
+                        <phase>post-integration-test</phase>
+                    <goals>
+                      <goal>exec</goal>
+                    </goals>
+                        <configuration>
+                            <executable>docker-compose</executable>
+                            <workingDirectory>${docker.dir}</workingDirectory>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>${docker.dir}/docker-compose.yml</argument>
+                                <argument>down</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>${runSuite}</include>
+                    </includes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
-
