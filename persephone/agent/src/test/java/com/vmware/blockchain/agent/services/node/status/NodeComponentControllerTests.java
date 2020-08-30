@@ -7,6 +7,7 @@ package com.vmware.blockchain.agent.services.node.status;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,7 +31,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -42,6 +42,7 @@ import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.NodeStartupOrchestrator;
 import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
 import com.vmware.blockchain.agent.services.node.health.ComponentHealth;
+import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.HealthStatusResponse;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
 import com.vmware.blockchain.agent.utils.AgentTestConfiguration;
@@ -61,6 +62,7 @@ public class NodeComponentControllerTests {
 
     private MockMvc mockMvc;
     private String jsonResponse;
+    private String jsonException;
     private final ComponentHealth mockComponentHealth = mock(ComponentHealth.class);
 
     @MockBean
@@ -72,6 +74,16 @@ public class NodeComponentControllerTests {
     @MockBean
     private NodeComponentHealthFactory nodeComponentHealthFactory;
 
+    @MockBean
+    private HealthCheckScheduler healthCheckScheduler;
+
+    private final HealthStatusResponse response = HealthStatusResponse.builder()
+            .status(HealthStatusResponse.HealthStatus.HEALTHY)
+            .build();
+    private final Exception exception = new IllegalArgumentException("Exception in unit test");
+    private final HealthStatusResponse exceptionResponse = HealthStatusResponse.builder()
+            .exception(exception.getLocalizedMessage()).build();
+
     @BeforeEach
     void init() throws JsonProcessingException {
         mockMvc = MockMvcBuilders
@@ -81,12 +93,9 @@ public class NodeComponentControllerTests {
         var containerObj = mock(BaseContainerSpec.class);
         when(nodeStartupOrchestrator.getComponents()).thenReturn(Arrays.asList(containerObj));
 
-        var response = HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.HEALTHY).build();
-        when(nodeComponentHealthFactory.getHealthComponent(any())).thenReturn(mockComponentHealth);
-        when(mockComponentHealth.getHealth()).thenReturn(response);
-
         ObjectMapper objectMapper = new ObjectMapper();
         jsonResponse = objectMapper.writeValueAsString(response);
+        jsonException = objectMapper.writeValueAsString(exceptionResponse);
     }
 
     @Test
@@ -95,7 +104,7 @@ public class NodeComponentControllerTests {
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).startComponent(any(), any(), any());
 
-        MvcResult result = mockMvc.perform(post("/api/node/start")
+        mockMvc.perform(post("/api/node/start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         verify(agentDockerClient, times(1)).inspectContainer(any(), any());
@@ -107,7 +116,7 @@ public class NodeComponentControllerTests {
         var res = mock(InspectContainerResponse.class);
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
-        MvcResult result = mockMvc.perform(post("/api/node/stop")
+        mockMvc.perform(post("/api/node/stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 
@@ -117,6 +126,9 @@ public class NodeComponentControllerTests {
 
     @Test
     void getConcordHealth() throws Exception {
+        when(nodeComponentHealthFactory.getHealthComponent(any())).thenReturn(mockComponentHealth);
+        when(mockComponentHealth.getHealth()).thenReturn(response);
+
         mockMvc.perform(get("/api/health/concord")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -127,11 +139,76 @@ public class NodeComponentControllerTests {
 
     @Test
     void getDamlHealth() throws Exception {
+        when(nodeComponentHealthFactory.getHealthComponent(any())).thenReturn(mockComponentHealth);
+        when(mockComponentHealth.getHealth()).thenReturn(response);
+
         mockMvc.perform(get("/api/health/daml")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(jsonResponse))
                 .andReturn();
         verify(mockComponentHealth, times(1)).getHealth();
+    }
+
+    @Test
+    void getConcordHealthException() throws Exception {
+        when(nodeComponentHealthFactory.getHealthComponent(any())).thenThrow(exception);
+        mockMvc.perform(get("/api/health/concord")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is5xxServerError())
+                .andExpect(content().json(jsonException))
+                .andReturn();
+        verify(nodeComponentHealthFactory, times(1)).getHealthComponent(any());
+    }
+
+    @Test
+    void getDamlHealthException() throws Exception {
+        when(nodeComponentHealthFactory.getHealthComponent(any())).thenThrow(exception);
+        mockMvc.perform(get("/api/health/daml")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is5xxServerError())
+                .andExpect(content().json(jsonException))
+                .andReturn();
+        verify(nodeComponentHealthFactory, times(1)).getHealthComponent(any());
+    }
+
+    @Test
+    void stopHealthCheck() throws Exception {
+        doNothing().when(healthCheckScheduler).stopHealthCheck();
+
+        mockMvc.perform(post("/api/health/stop")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+        verify(healthCheckScheduler, times(1)).stopHealthCheck();
+    }
+
+    @Test
+    void stopHealthCheckException() throws Exception {
+        doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).stopHealthCheck();
+
+        mockMvc.perform(post("/api/health/stop")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is5xxServerError()).andReturn();
+        verify(healthCheckScheduler, times(1)).stopHealthCheck();
+    }
+
+    @Test
+    void startHealthCheck() throws Exception {
+        doNothing().when(healthCheckScheduler).startHealthCheck();
+
+        mockMvc.perform(post("/api/health/start")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+        verify(healthCheckScheduler, times(1)).startHealthCheck();
+    }
+
+    @Test
+    void startHealthCheckException() throws Exception {
+        doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).startHealthCheck();
+
+        mockMvc.perform(post("/api/health/start")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is5xxServerError()).andReturn();
+        verify(healthCheckScheduler, times(1)).startHealthCheck();
     }
 }

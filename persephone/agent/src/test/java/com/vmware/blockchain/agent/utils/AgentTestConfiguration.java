@@ -6,6 +6,8 @@ package com.vmware.blockchain.agent.utils;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -26,4 +28,8 @@ public class AgentTestConfiguration {
         return ConcordModelSpecification.NodeType.NONE;
     }
 
+    @Bean
+    TaskScheduler taskScheduler() {
+        return new ThreadPoolTaskScheduler();
+    }
 }
