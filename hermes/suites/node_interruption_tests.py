@@ -221,7 +221,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
       intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
-         intr_helper.CONTAINERS_TO_CRASH: ["fluentd", "daml_execution_engine"]
+         intr_helper.CONTAINERS_TO_CRASH: ["concord", "daml_execution_engine"]
       }
    }
 
