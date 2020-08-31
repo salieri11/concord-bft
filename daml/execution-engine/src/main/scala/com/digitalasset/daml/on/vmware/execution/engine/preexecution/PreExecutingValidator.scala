@@ -123,6 +123,8 @@ class PreExecutingValidator(
           logger.info(
             s"Pre-execution validation completed, correlationId=${request.correlationId} " +
               s"participantId=${request.submittingParticipantId} " +
+              s"minRecordTime=${preExecutionResult.minRecordTime} " +
+              s"maxRecordTime=${preExecutionResult.maxRecordTime} " +
               s"readSetSize=${preExecutionResult.readSet.size} " +
               s"successWriteSetSize=${preExecutionResult.successWriteSet.size} " +
               s"outOfTimeBoundsWriteSetSize=${preExecutionResult.outOfTimeBoundsWriteSet.size} ")

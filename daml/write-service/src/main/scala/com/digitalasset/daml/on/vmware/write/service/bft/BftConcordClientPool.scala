@@ -49,7 +49,7 @@ private[bft] class BftConcordClientPool(
           val requestSize = request.size
           Metrics.submissionSizes.update(requestSize)
           logger.debug(
-            s"Submitting request, correlationId=$correlationId serializedRequestSize=$requestSize")
+            s"Submitting request, correlationId=$correlationId serializedRequestSize=$requestSize timeout=$timeout")
           Metrics.submissions.inc()
           val sendRequestNativeResult = coreClient
             .sendRequest(request.toByteArray, timeout.toMillis, preExecute, correlationId)
