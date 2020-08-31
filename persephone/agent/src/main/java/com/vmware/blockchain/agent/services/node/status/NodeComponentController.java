@@ -14,7 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.NodeStartupOrchestrator;
+import com.vmware.blockchain.agent.services.node.health.HealthStatusResponse;
+import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,22 +30,19 @@ import lombok.extern.slf4j.Slf4j;
 public class NodeComponentController {
 
     private final AgentDockerClient agentDockerClient;
-    private final ConcordAgentConfiguration configuration;
+    private final ConcordAgentConfiguration concordAgentConfiguration;
     private final NodeStartupOrchestrator nodeStartupOrchestrator;
-    private final NodeComponentHealthUtil nodeComponentHealthUtil;
-
-    private final String healthy = "HEALTHY";
-    private final String unhealthy = "UNHEALTHY";
+    private final NodeComponentHealthFactory nodeComponentHealthFactory;
 
     @Autowired
     public NodeComponentController(AgentDockerClient agentDockerClient,
-                                   ConcordAgentConfiguration configuration,
+                                   ConcordAgentConfiguration concordAgentConfiguration,
                                    NodeStartupOrchestrator nodeStartupOrchestrator,
-                                   NodeComponentHealthUtil nodeComponentHealthUtil) {
+                                   NodeComponentHealthFactory nodeComponentHealthFactory) {
         this.agentDockerClient = agentDockerClient;
-        this.configuration = configuration;
+        this.concordAgentConfiguration = concordAgentConfiguration;
         this.nodeStartupOrchestrator = nodeStartupOrchestrator;
-        this.nodeComponentHealthUtil = nodeComponentHealthUtil;
+        this.nodeComponentHealthFactory = nodeComponentHealthFactory;
     }
 
     /**
@@ -79,24 +80,30 @@ public class NodeComponentController {
     }
 
     @RequestMapping(path = "/api/health/concord", method = RequestMethod.GET)
-    ResponseEntity<NodeStatusResponse> getConcordHealth() {
-        NodeStatusResponse response;
-        if (this.nodeComponentHealthUtil.getConcordHealth()) {
-            response = NodeStatusResponse.builder().status(healthy).build();
-        } else {
-            response = NodeStatusResponse.builder().status(unhealthy).build();
-        }
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    ResponseEntity<HealthStatusResponse> getConcordHealth() {
+        log.info("Receieved request to query concord health...");
+        return getHealthResponse(ConcordComponent.ServiceType.CONCORD);
     }
 
     @RequestMapping(path = "/api/health/daml", method = RequestMethod.GET)
-    ResponseEntity<NodeStatusResponse> getDamlHealth() {
-        NodeStatusResponse response;
-        if (this.nodeComponentHealthUtil.getDamlHealth(configuration.getModel().getNodeType())) {
-            response = NodeStatusResponse.builder().status(healthy).build();
-        } else {
-            response = NodeStatusResponse.builder().status(unhealthy).build();
+    ResponseEntity<HealthStatusResponse> getDamlHealth() {
+        log.info("Receieved request to query daml health...");
+        ConcordComponent.ServiceType serviceType = concordAgentConfiguration.getModel().getNodeType()
+                .equals(ConcordModelSpecification.NodeType.DAML_COMMITTER)
+                ? ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE
+                : ConcordComponent.ServiceType.DAML_LEDGER_API;
+        log.info("Daml service type on node: {}", serviceType);
+        return getHealthResponse(serviceType);
+    }
+
+    private ResponseEntity<HealthStatusResponse> getHealthResponse(ConcordComponent.ServiceType serviceType) {
+        try {
+            return new ResponseEntity<HealthStatusResponse>(
+                    nodeComponentHealthFactory.getHealthComponent(serviceType).getHealth(), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<HealthStatusResponse>(
+                    HealthStatusResponse.builder().exception(e.getLocalizedMessage()).build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

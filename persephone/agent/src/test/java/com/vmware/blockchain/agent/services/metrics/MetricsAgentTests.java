@@ -17,7 +17,6 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /**
  * Test class for {@link MetricsAgent}.
@@ -32,7 +31,7 @@ public class MetricsAgentTests {
         List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(), "unit_test"));
         additionalTags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "testCounter"),
                 Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.name(), "unitTesting"));
-        metricsAgent = new MetricsAgent(new SimpleMeterRegistry(), tags);
+        metricsAgent = new MetricsAgent(tags);
     }
 
     @Test
