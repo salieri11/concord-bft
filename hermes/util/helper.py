@@ -2249,3 +2249,22 @@ def getClientNodes(num_groups, client_zone_ids):
 
    log.debug("client nodes {}".format(client_nodes))
    return client_nodes
+
+def getNetworkIPAddress(interface="ens160"):
+   command = ["/sbin/ifconfig", interface]
+   ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   ifconfig_output.check_returncode()
+   if ifconfig_output.stderr:
+      log.error("ifconfig stderr: {}".format(ifconfig_output.stderr))
+   log.debug("ifconfig output: {}".format(ifconfig_output.stdout.decode()))
+   host_ip = None
+   for line in ifconfig_output.stdout.decode().split('\n'):
+      fields = line.split()
+      log.info("***** fields: {}".format(fields))
+      if fields[0] == 'inet':
+         if ":" in fields[1]:
+            host_ip = fields[1].split(':')[1]
+         else:
+            host_ip = fields[1]
+         break
+   return host_ip
