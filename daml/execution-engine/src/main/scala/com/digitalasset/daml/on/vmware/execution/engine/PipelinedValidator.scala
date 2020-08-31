@@ -5,15 +5,32 @@ package com.digitalasset.daml.on.vmware.execution.engine
 import java.time.Instant
 
 import akka.stream.Materializer
+import com.daml.caching.Cache
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.{DamlStateKey, DamlStateValue}
+import com.daml.ledger.participant.state.kvutils.Envelope
+import com.daml.ledger.participant.state.kvutils.`export`.LedgerDataExporter
+import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.batch.BatchedSubmissionValidator
 import com.daml.ledger.validator.caching.CachingDamlLedgerStateReader.StateCache
-import com.daml.ledger.validator.caching.{ImmutablesOnlyCacheUpdatePolicy, QueryableReadSet}
+import com.daml.ledger.validator.caching.{
+  CacheUpdatePolicy,
+  CachingCommitStrategy,
+  CachingDamlLedgerStateReader,
+  ImmutablesOnlyCacheUpdatePolicy,
+  QueryableReadSet
+}
 import com.daml.ledger.validator.privacy.{
   LedgerStateOperationsWithAccessControl,
-  PrivacyAwareSubmissionValidator
+  LogFragmentingCommitStrategy
 }
-import com.daml.ledger.validator.{CommitStrategy, DamlLedgerStateReader, LedgerStateOperations}
+import com.daml.ledger.validator.{
+  CommitStrategy,
+  DamlLedgerStateReader,
+  LedgerStateOperations,
+  LedgerStateReader,
+  StateKeySerializationStrategy
+}
 import com.daml.lf.data.Time
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
 import com.digitalasset.kvbc.daml_validator.{EventFromValidator, EventToValidator}
@@ -146,10 +163,56 @@ object PipelinedValidator {
       implicit executionContext: ExecutionContext)
     : (DamlLedgerStateReader with QueryableReadSet, CommitStrategy[Unit]) = {
     val cache = cachePerReplica.getOrElseUpdate(replicaId, cacheFactory())
-    PrivacyAwareSubmissionValidator.cachingReaderAndCommitStrategyFrom(
+    cachingReaderAndCommitStrategyFrom(
       ledgerStateOperations,
       cache,
       ImmutablesOnlyCacheUpdatePolicy,
       SharedKeySerializationStrategy)
   }
+
+  private def cachingReaderAndCommitStrategyFrom(
+      ledgerStateOperations: LedgerStateOperationsWithAccessControl,
+      stateCache: Cache[DamlStateKey, DamlStateValue],
+      cacheWritePolicy: CacheUpdatePolicy,
+      keySerializationStrategy: KeySerializationStrategy = KeySerializationStrategy
+        .createDefault(),
+      ledgerDataExporter: LedgerDataExporter = LedgerDataExporter())(
+      implicit executionContext: ExecutionContext)
+    : (DamlLedgerStateReader with QueryableReadSet, CommitStrategy[Unit]) = {
+    val ledgerStateReader = new CachingDamlLedgerStateReader(
+      stateCache,
+      cacheWritePolicy.shouldCacheOnRead,
+      keySerializationStrategy,
+      new RawToDamlLedgerStateReaderAdapter(ledgerStateOperations, keySerializationStrategy)
+    )
+    val commitStrategy = new CachingCommitStrategy(
+      stateCache,
+      cacheWritePolicy.shouldCacheOnWrite,
+      new LogFragmentingCommitStrategy(
+        ledgerStateOperations,
+        keySerializationStrategy,
+        ledgerDataExporter))
+    (ledgerStateReader, commitStrategy)
+  }
+}
+
+// TODO Use SDK's once public
+private class RawToDamlLedgerStateReaderAdapter(
+    ledgerStateReader: LedgerStateReader,
+    keySerializationStrategy: StateKeySerializationStrategy)(
+    implicit executionContext: ExecutionContext)
+    extends DamlLedgerStateReader {
+  import RawToDamlLedgerStateReaderAdapter.deserializeDamlStateValue
+
+  override def readState(keys: Seq[DamlStateKey]): Future[Seq[Option[DamlStateValue]]] =
+    ledgerStateReader
+      .read(keys.map(keySerializationStrategy.serializeStateKey))
+      .map(_.map(_.map(deserializeDamlStateValue)))
+}
+
+private object RawToDamlLedgerStateReaderAdapter {
+  val deserializeDamlStateValue: LedgerStateOperations.Value => DamlStateValue =
+    Envelope
+      .openStateValue(_)
+      .getOrElse(sys.error("Opening enveloped DamlStateValue failed"))
 }
