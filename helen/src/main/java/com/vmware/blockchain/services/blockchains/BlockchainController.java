@@ -382,6 +382,12 @@ public class BlockchainController {
                         organization.getOrganizationProperties()
                                 .get(Constants.ORG_PREEXECUTION_ENABLED));
             }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DECENTRALIZED_KEYS)) {
+                basePropBuilder.putValues(DeploymentAttributes.DECENTRALIZED_KEYS.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_PREEXECUTION_ENABLED));
+            }
         }
 
         body.getReplicaZoneIds()
