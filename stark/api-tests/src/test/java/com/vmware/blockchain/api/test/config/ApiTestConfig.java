@@ -76,16 +76,6 @@ public class ApiTestConfig {
     }
 
     protected void watch() {
-        /*new FileWatcher(folder).addListener(new FileAdapter() {
-            @Override
-            public void onCreated(FileEvent event) {
-                File file = event.getFile();
-                if (file.isFile() && file.getName().equalsIgnoreCase(CONFIG_FILE_NAME)) {
-                    logger.info("processing event on config file " + file.getName());
-                    process(file);
-                }
-            }
-        }).watch();*/
         Thread thread = new Thread(new Runnable() {
             public void run() {
                 try {
@@ -204,29 +194,6 @@ public class ApiTestConfig {
     }
 
     public class ConfigFileWatcher {
-
-        /*public static void main(String[] args) {
-            WatchService watchService = FileSystems.getDefault().newWatchService();
-
-            Path path = Paths.get(System.getProperty("user.home"));
-
-            path.register(
-                    watchService,
-                    StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE,
-                    StandardWatchEventKinds.ENTRY_MODIFY);
-
-            WatchKey key;
-            while ((key = watchService.take()) != null) {
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    System.out.println(
-                            "Event kind:" + event.kind()
-                            + ". File affected: " + event.context() + ".");
-                }
-                key.reset();
-            }
-        }*/
-
         public void watch(String configFilePath) {
             try {
                 WatchService watchService = FileSystems.getDefault().newWatchService();
@@ -254,15 +221,4 @@ public class ApiTestConfig {
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 }
