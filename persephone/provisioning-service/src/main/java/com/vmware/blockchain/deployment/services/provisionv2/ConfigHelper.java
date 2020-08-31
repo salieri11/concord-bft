@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.deployment.services.provisionv2;
 
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.CLIENT_GROUP_ID;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -64,6 +66,10 @@ public class ConfigHelper {
                 eachNode -> {
                     var components = context.getComponentsByNode().get(UUID.fromString(eachNode.getNodeId()))
                             .stream().map(each -> each.getServiceType()).collect(Collectors.toList());
+                    if (key == NodeType.CLIENT
+                        && !eachNode.getProperties().getValuesMap().containsKey(CLIENT_GROUP_ID.name())) {
+                        eachNode.getProperties().getValuesMap().put(CLIENT_GROUP_ID.name(), eachNode.getNodeId());
+                    }
                     var nodeInfoBuilder = NodesInfo.Entry.newBuilder().setId(eachNode.getNodeId())
                             .setType(eachNode.getType())
                             .setId(eachNode.getNodeId())
