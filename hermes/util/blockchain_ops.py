@@ -7,6 +7,7 @@
 #
 #########################################################################
 
+import json
 import traceback
 import random
 import threading
@@ -416,7 +417,7 @@ def deregister_blockchain(org_name, bc_id, service):
 
   if bc_id == "all":
     resp = req.getBlockchains()
-    
+
     for bc in resp:
       resp = req.deregisterBlockchain(bc["id"])
       log.info("response: {}".format(resp))
@@ -424,6 +425,45 @@ def deregister_blockchain(org_name, bc_id, service):
     log.info("Deregistering blockchain {} from {}".format(bc_id, service))
     resp = req.deregisterBlockchain(bc_id)
     log.info("Response: {}".format(resp))
-    
+
   resp = req.getBlockchains()
   log.info("Blockchains remaining: {}".format(resp))
+
+
+def get_blockchain_nodes(org_name, bc_id, service):
+  '''
+  Utility method to get blockchain node information in a format which is compatible
+  with the --replicasConfig parameter of Hermes.
+  '''
+  token_descriptor = {
+    "org": org_name,
+    "user": "vmbc_test_con_admin",
+    "role": auth.ROLE_CON_ADMIN
+  }
+
+  req = rest.request.Request("get_blockchain_nodes",
+                             "get_blockchain_nodes",
+                             service,
+                             None,
+                             tokenDescriptor=token_descriptor,
+                             service=service)
+
+  log.info("Getting node information for {} from {}".format(bc_id, service))
+  participants = req.get_participant_details(bc_id)
+
+  replicas = req.getReplicas(bc_id)
+
+  output = {
+    "daml_committer": [],
+    "daml_participant": []
+  }
+
+  for p in participants:
+    output["daml_participant"].append(p)
+
+  for r in replicas:
+    output["daml_committer"].append(r)
+
+  output = json.dumps(output, indent=4)
+  log.info(output)
+  return output
