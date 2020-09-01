@@ -64,6 +64,7 @@ configure_file(test/resources/external_client_tls.config test/resources/external
 configure_file(test/resources/external_client_udp.config test/resources/external_client_udp.config COPYONLY)
 file(COPY test/resources/tls_certs DESTINATION test/resources)
 file(COPY test/resources/yaml_merge DESTINATION test/resources)
+file(COPY test/resources/signing_keys DESTINATION test/resources)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(DEFINED USE_HERA)

@@ -11,6 +11,7 @@
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
+#include <reconfiguration/mock_plugin.hpp>
 #include <reconfiguration/wedge_plugin.hpp>
 #include <string>
 #include <utils/open_tracing_utils.hpp>
@@ -149,6 +150,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
           config, prometheus_registry);
   reconfiguration_sm_->LoadPlugin(
       std::make_unique<concord::reconfiguration::WedgePlugin>());
+  reconfiguration_sm_->LoadPlugin(
+      std::make_unique<concord::reconfiguration::MockPlugin>());
   reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 

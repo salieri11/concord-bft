@@ -3,7 +3,6 @@ c_val: 0
 f_val: 1
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
-signing_key_path: resources/signing_keys
 comm_to_use: tls
 FEATURE_time_service: false
 node__TEMPLATE:

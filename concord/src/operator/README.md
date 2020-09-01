@@ -34,31 +34,34 @@ concord_tag=latest
 
 ## Create participant node configs
 
-`./gen-docker-client-config.sh config-public/dockerClientConfigInput.yaml`
 
-## Create concord configs
-
-`./gen-docker-concord-config.sh config-public/dockerConfigurationInput-daml-nano.yaml`
-
-## Add 2 more TLS cert files for the operator
-
+## Create configuration files
+Go to `docker/config-public/dockerClientConfigInput.yaml` and set `num_of_participant_nodes: 1`, in addition, go to 
+`docker/config-public/dockerConfigurationInput-daml-nano.yaml` and set `num_of_external_clients: 16`.
+    
+Now, generate the corresponding configuration files with
 ```
-../concord/submodules/concord-bft/scripts/linux/create_tls_certs.sh 52
-mv certs/50 tls_certs/
-mv certs/51 tls_certs/
-rm -rf certs
+./gen-docker-concord-config.sh config-public/dockerConfigurationInput-daml-nano.yaml
+./gen-docker-client-config.sh config-public/dockerClientConfigInput.yaml
 ```
-
 # Start cluster
 
 This starts 4 concord containers and their corresponding execution engines, along with 1 operator container.
 
 `docker-compose -f docker-compose-daml-nano.yml -f docker-compose-operator.yml up`
 
-# Show the current status
+# Supported Commands
 
 Enter the operator container.
 `docker exec -it docker_operator_1 bash`
 
-Check the status. This is currently just a dummy call.
-`./concop release status`
+## Test the operator setup
+To test the operator setup (i.e. check the keys generation and the connection to the replicas), initiate a mock command
+```
+root@f441baea613f:/operator# ./concop mock
+```
+If everything went well the output will be
+```$xslt
+{'response': 'Hello From Reconfiguration Mock plugin', 'succ': True}
+```
+The above means that the request has gone through the consensus, validation and that the operator was able to receive at least 2f + 1 replies.
