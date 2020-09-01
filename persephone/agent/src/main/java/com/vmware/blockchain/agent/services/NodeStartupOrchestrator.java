@@ -41,6 +41,7 @@ import com.vmware.blockchain.agent.services.exceptions.AgentException;
 import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
+import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -76,6 +77,8 @@ public class NodeStartupOrchestrator {
 
     private final DamlHealthServiceInvoker damlHealthServiceInvoker;
 
+    private final HealthCheckScheduler healthCheckScheduler;
+
     @Getter
     private List<BaseContainerSpec> components;
 
@@ -87,11 +90,13 @@ public class NodeStartupOrchestrator {
     @Autowired
     public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient,
                                    ConfigServiceInvoker configServiceInvoker,
-                                   DamlHealthServiceInvoker damlHealthServiceInvoker) {
+                                   DamlHealthServiceInvoker damlHealthServiceInvoker,
+                                   HealthCheckScheduler healthCheckScheduler) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
         this.configServiceInvoker = configServiceInvoker;
         this.damlHealthServiceInvoker = damlHealthServiceInvoker;
+        this.healthCheckScheduler = healthCheckScheduler;
 
         List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
                 NodeStartupOrchestrator.class.getName()));
@@ -147,6 +152,8 @@ public class NodeStartupOrchestrator {
                 } catch (ConflictException e) {
                     log.warn("Did not launch the container again. Container already present", e);
                 }
+                log.info("Starting periodic healthchecks per minute...");
+                healthCheckScheduler.startHealthCheck();
             } catch (Exception | InternalError e) {
                 log.error("Unexpected exception encountered during launch sequence", e);
                 log.warn("******Node not Functional********");

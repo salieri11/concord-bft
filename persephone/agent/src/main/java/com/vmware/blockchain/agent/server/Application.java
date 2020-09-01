@@ -12,6 +12,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
@@ -97,5 +99,10 @@ public class Application {
     @Bean
     public Endpoint containerRegistry() {
         return configuration.getContainerRegistry();
+    }
+
+    @Bean
+    TaskScheduler taskScheduler() {
+        return new ThreadPoolTaskScheduler();
     }
 }
