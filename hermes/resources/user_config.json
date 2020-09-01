@@ -175,11 +175,11 @@
     "configDistributionScript":
         "../docker/config-public/distribute-configuration-files.sh",
     "configDistributionArgs": [
-        "../docker/config-public/concord",
-        "../docker/config-concord1/concord.config",
-        "../docker/config-concord2/concord.config",
-        "../docker/config-concord3/concord.config",
-        "../docker/config-concord4/concord.config"]
+        "../docker/config-public/",
+        "../docker/config-concord1/",
+        "../docker/config-concord2/",
+        "../docker/config-concord3/",
+        "../docker/config-concord4/"]
   },
   "logInsight": {
     "destinationName": "LOG_INSIGHT",

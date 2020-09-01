@@ -92,11 +92,14 @@ using std::endl;
 #define OPT_GET "get"
 #define OPT_LIST "list"
 #define OPT_NO_SEND "nosend"
+#define OPT_APPLICATION "application"
+#define OPT_DEPLOYMENT "deployment"
+#define OPT_SECRETS "secrets"
 
 void add_options(options_description &desc) {
   // clang-format off
   desc.add_options()
-    (OPT_SOURCE ",s", value<std::string>(), "Source of the update sample")
+    (OPT_SOURCE ",source", value<std::string>(), "Source of the update sample")
     (OPT_TIME ",t", value<uint64_t>(), "Time of the update sample")
     (OPT_SIGNATURE ",x", value<std::string>(),
      "Signature of the time and sample. Hex-encoded.")
@@ -109,7 +112,13 @@ void add_options(options_description &desc) {
     (OPT_NO_SEND ",n", bool_switch()->default_value(false),
      "Do not send the request; only print the configured source and (if the "
      "configuration enables a time verification scheme that uses signatures) a "
-     "signature for the given sample. Requires \'" OPT_CONFIG "\' parameter");
+     "signature for the given sample. Requires \'" OPT_CONFIG "\' parameter")
+    (OPT_APPLICATION ",app", value<std::string>(),
+     "Concord config file for application parameters.")
+    (OPT_DEPLOYMENT ",depl", value<std::string>(),
+     "Concord config file deployment patameters.")
+    (OPT_SECRETS ",secr", value<std::string>(),
+     "Concord config file for keys.");
   // clang-format on
 }
 
@@ -155,12 +164,41 @@ int main(int argc, char **argv) {
 
     ConcordConfiguration config;
     ConcordConfiguration nodeConfig;
+    bool configProvided = false;
     if (opts.count(OPT_CONFIG) > 0) {
+      configProvided = true;
       std::ifstream fileInput(opts[OPT_CONFIG].as<std::string>());
       specifyConfiguration(config);
       YAMLConfigurationInput input(fileInput);
       input.parseInput();
       concord::config::loadNodeConfiguration(config, input);
+
+      size_t nodeIndex = concord::config::detectLocalNode(config);
+      nodeConfig = config.subscope("node", nodeIndex);
+    } else if (opts.count(OPT_APPLICATION) > 0 &&
+               opts.count(OPT_DEPLOYMENT) > 0 && opts.count(OPT_SECRETS) > 0) {
+      configProvided = true;
+      specifyConfiguration(config);
+      std::ifstream applicationInput(opts[OPT_APPLICATION].as<std::string>());
+      std::ifstream deploymentInput(opts[OPT_DEPLOYMENT].as<std::string>());
+      std::ifstream secretsInput(opts[OPT_SECRETS].as<std::string>());
+      YAML::Node yamlApplicationConfiguration;
+      YAML::Node yamlDeploymentConfiguration;
+      YAML::Node yamlSecretsConfiguration;
+      yamlApplicationConfiguration.reset(YAML::Load(applicationInput));
+      yamlDeploymentConfiguration.reset(YAML::Load(deploymentInput));
+      yamlSecretsConfiguration.reset(YAML::Load(secretsInput));
+
+      YAML::Node yamlMerged;
+
+      yamlMerged = yaml_merge(yamlApplicationConfiguration,
+                              yamlDeploymentConfiguration, {"principal_id"});
+      yamlMerged =
+          yaml_merge(yamlMerged, yamlSecretsConfiguration, {"principal_id"});
+
+      concord::config::YAMLConfigurationInput input(YAML::Clone(yamlMerged));
+      concord::config::loadNodeConfiguration(config, input);
+
       size_t nodeIndex = concord::config::detectLocalNode(config);
       nodeConfig = config.subscope("node", nodeIndex);
     }
@@ -168,7 +206,7 @@ int main(int argc, char **argv) {
     if (opts.count(OPT_SOURCE) > 0) {
       require_sample(timeReq, &sample);
       sample->set_source(opts[OPT_SOURCE].as<std::string>());
-    } else if (opts.count(OPT_CONFIG) > 0) {
+    } else if (configProvided) {
       require_sample(timeReq, &sample);
       sample->set_source(nodeConfig.getValue<string>("time_source_id"));
     }
@@ -183,8 +221,7 @@ int main(int argc, char **argv) {
       // if any additional time verification schemes that use signatures are
       // added, an else-if case to create a signature under each new scheme
       // added will need to be manually added here.
-    } else if ((opts.count(OPT_CONFIG) > 0) &&
-               config.hasValue<string>("time_verification") &&
+    } else if (configProvided && config.hasValue<string>("time_verification") &&
                (config.getValue<string>("time_verification") ==
                 "rsa-time-signing")) {
       require_sample(timeReq, &sample);
@@ -211,8 +248,7 @@ int main(int argc, char **argv) {
       // added, this condition will need to be modified to recognizes whether
       // one of them is in use from the configuration.
       bool signing_enable =
-          (opts.count(OPT_CONFIG) > 0) &&
-          config.hasValue<string>("time_verification") &&
+          configProvided && config.hasValue<string>("time_verification") &&
           (config.getValue<string>("time_verification") == "rsa-time-signing");
 
       if (signing_enable && !sample->has_signature()) {
