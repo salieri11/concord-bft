@@ -31,7 +31,6 @@ void ReconfigurationSM::Handle(
       "reconfiguration_request",
       {opentracing::ChildOf(&parent_span.context())});
   if (!ValidateReconfigurationRequest(request)) {
-    LOG_WARN(logger_, "Reconfiguration request validation failed");
     response.mutable_reconfiguration_sm_response()->set_success(false);
     return;
   }
@@ -65,23 +64,43 @@ ReconfigurationSM::ReconfigurationSM(
           "counts how many operations the reconfiguration command handler has "
           "done",
           {})) {
-  if (!config.hasValue<std::string>("reconfiguration_operator_public_key")) {
+  if (!config.hasValue<std::string>("signing_key_path")) {
     LOG_WARN(logger_,
              "System operator public key is missing, concord won't be able to "
              "execute reconfiguration commands");
   } else {
-    operator_public_key_ = utils::openssl_crypto::DeserializePublicKey(
-        config.getValue<std::string>("reconfiguration_operator_public_key"));
-    LOG_INFO(logger_, "Successfully read the system operator public key");
+    std::string op_pub_key_path =
+        config.getValue<std::string>("signing_key_path") + "/operator_pub.pem";
+    operator_public_key_ =
+        concord::utils::openssl_crypto::DeserializePublicKeyFromPem(
+            op_pub_key_path, "secp256r1");
+    if (operator_public_key_ == nullptr) {
+      LOG_WARN(
+          logger_,
+          "System operator public key is missing, concord won't be able to \"\n"
+          "             \"execute reconfiguration commands");
+    } else {
+      LOG_INFO(logger_, "Successfully read the system operator public key");
+    }
   }
 }
 
 bool ReconfigurationSM::ValidateReconfigurationRequest(
     const ReconfigurationSmRequest& request) {
   if (!request.has_command() || !request.has_signature() ||
-      !request.has_pluginid() || operator_public_key_ == nullptr)
+      !request.has_pluginid() || operator_public_key_ == nullptr) {
+    LOG_WARN(logger_,
+             "Reconfiguration request validation failed" << KVLOG(
+                 request.has_command(), request.has_signature(),
+                 request.has_pluginid(), operator_public_key_ == nullptr));
     return false;
-  return operator_public_key_->Verify(request.command(), request.signature());
+  }
+  auto valid =
+      operator_public_key_->Verify(request.command(), request.signature());
+  if (!valid)
+    LOG_WARN(logger_,
+             "Reconfiguration request validation failed" << KVLOG(valid));
+  return valid;
 }
 void ReconfigurationSM::setControlHandlers(
     std::shared_ptr<ConcordControlHandler> control_handlers) {

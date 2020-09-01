@@ -24,6 +24,7 @@
 #include "kvstream.h"
 
 #include "config.h"
+#include "operations.hpp"
 
 using namespace httplib;
 using namespace bft::communication;
@@ -31,7 +32,7 @@ using json = nlohmann::json;
 
 static const char* CONFIG_FILE = "/operator/config-local/participant.config";
 
-void startServer(bft::client::Client& client) {
+void startServer(concord::op::Operations& ops) {
   auto logger = logging::getLogger("concord.operator.server");
   Server svr;
 
@@ -79,6 +80,18 @@ void startServer(bft::client::Client& client) {
             LOG_INFO(logger, "Installing release: " << req.body);
           });
 
+  svr.Get("/concord/mock", [&ops](const Request& req, Response& res) {
+    auto result = ops.initiateMockCommand(5s);
+    json j;
+    if (!result.has_value()) {
+      j = {{"succ", false}};
+    } else {
+      j = {{"succ", result.value().success()},
+           {"response", result.value().additionaldata()}};
+    }
+    res.set_content(j.dump(), "application/json");
+  });
+
   // TODO: Make this part of operator config file?
   uint16_t port = 41444;
   LOG_INFO(logger, "HTTP Server listening on localhost:" << port);
@@ -116,6 +129,7 @@ int main(int argc, char** argv) {
   auto config = concord::op::Config::parse(CONFIG_FILE);
   auto comm = initComm(config);
   bft::client::Client client(initComm(config), config.client_config);
-  startServer(client);
+  concord::op::Operations ops(config, client);
+  startServer(ops);
   return 0;
 }

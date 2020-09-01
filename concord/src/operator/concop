@@ -27,6 +27,12 @@ def release_status(args):
     pprint(json.loads(res.text))
 
 
+def mock_impl(args):
+    url = base_url + "/mock"
+    res = requests.get(url, timeout=args.timeout)
+    pprint(json.loads(res.text))
+
+
 def args_parser():
     parser = argparse.ArgumentParser(description="Concord Operator CLI")
     subparsers = parser.add_subparsers()
@@ -55,6 +61,15 @@ def args_parser():
                          type=float,
                          help="The release version to install")
     install.set_defaults(func=release_install)
+
+    mock = subparsers.add_parser("mock",
+                                 help="Send mock request to the system")
+    mock.add_argument("--timeout",
+                        type=int,
+                        help="Optional timeout in seconds",
+                        default=5)
+    mock.set_defaults(func=mock_impl)
+
     return parser
 
 

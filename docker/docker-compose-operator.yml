@@ -9,4 +9,5 @@ services:
     volumes:
       - ./config-participant0:/operator/config-local
       - ./config-public:/operator/config-public:ro
+      - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro

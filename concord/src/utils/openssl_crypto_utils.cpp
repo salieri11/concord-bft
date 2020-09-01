@@ -4,6 +4,8 @@
 
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <stdio.h>
 
 using concord::utils::openssl_crypto::AsymmetricPrivateKey;
 using concord::utils::openssl_crypto::AsymmetricPublicKey;
@@ -439,6 +441,83 @@ concord::utils::openssl_crypto::DeserializePrivateKey(const string& input) {
         "(which could be because it does not meet them, or could simply be "
         "because we have not assessed this particular scheme).");
   }
+}
+
+std::unique_ptr<AsymmetricPrivateKey>
+concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+    const std::string& path_to_file, const std::string& scheme) {
+  if (scheme != "secp256r1") {
+    throw invalid_argument(
+        "Failed to deserialize private key: scheme \"" + scheme +
+        "\" is either not recognized, not supported, or has not been permitted "
+        "for use in Concord in consideration of our security requirements "
+        "(which could be because it does not meet them, or could simply be "
+        "because we have not assessed this particular scheme).");
+  }
+  FILE* fp = fopen(path_to_file.c_str(), "r");
+  if (!fp) {
+    return nullptr;
+  }
+  EC_KEY* pkey = EC_KEY_new();
+
+  if (!PEM_read_ECPrivateKey(fp, &pkey, nullptr, nullptr)) {
+    fclose(fp);
+    EC_KEY_free(pkey);
+    throw UnexpectedOpenSSLCryptoFailureException(
+        "OpenSSL Crypto unexpectedly failed to parse the private key file "
+        "for " +
+        path_to_file);
+  }
+  fclose(fp);
+  unique_ptr<EVP_PKEY, EVPPKEYDeleter> private_pkey(EVP_PKEY_new(),
+                                                    EVPPKEYDeleter());
+  if (!EVP_PKEY_set1_EC_KEY(private_pkey.get(), pkey)) {
+    EC_KEY_free(pkey);
+    throw UnexpectedOpenSSLCryptoFailureException(
+        "OpenSSL Crypto unexpectedly failed to initialize a high-level key "
+        "object given an elliptic curve key object.");
+  }
+  EC_KEY_free(pkey);
+  return std::make_unique<EVPPKEYPrivateKey>(std::move(private_pkey),
+                                             "secp256r1");
+}
+
+std::unique_ptr<AsymmetricPublicKey>
+concord::utils::openssl_crypto::DeserializePublicKeyFromPem(
+    const std::string& path_to_file, const std::string& scheme) {
+  if (scheme != "secp256r1") {
+    throw invalid_argument(
+        "Failed to deserialize private key: scheme \"" + scheme +
+        "\" is either not recognized, not supported, or has not been permitted "
+        "for use in Concord in consideration of our security requirements "
+        "(which could be because it does not meet them, or could simply be "
+        "because we have not assessed this particular scheme).");
+  }
+  FILE* fp = fopen(path_to_file.c_str(), "r");
+  if (!fp) {
+    return nullptr;
+  }
+  EC_KEY* pkey = EC_KEY_new();
+
+  if (!PEM_read_EC_PUBKEY(fp, &pkey, nullptr, nullptr)) {
+    fclose(fp);
+    EC_KEY_free(pkey);
+    throw UnexpectedOpenSSLCryptoFailureException(
+        "OpenSSL Crypto unexpectedly failed to parse the public key file for " +
+        path_to_file);
+  }
+  fclose(fp);
+  unique_ptr<EVP_PKEY, EVPPKEYDeleter> public_pkey(EVP_PKEY_new(),
+                                                   EVPPKEYDeleter());
+  if (!EVP_PKEY_set1_EC_KEY(public_pkey.get(), pkey)) {
+    EC_KEY_free(pkey);
+    throw UnexpectedOpenSSLCryptoFailureException(
+        "OpenSSL Crypto unexpectedly failed to initialize a high-level key "
+        "object given an elliptic curve key object.");
+  }
+  EC_KEY_free(pkey);
+  return std::make_unique<EVPPKEYPublicKey>(std::move(public_pkey),
+                                            "secp256r1");
 }
 
 unique_ptr<AsymmetricPublicKey>
