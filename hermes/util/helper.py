@@ -1093,8 +1093,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
 
-         testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config + " --logLevel DEBUG"
-         test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
+         test_cmd = [python] + test_set["test_command"] + ["--replicasConfig", replica_config, "--resultsDir", results_dir]
 
          log.info("{}. {}...".format(test_count+1, test_set["testname"]))
          status, msg = execute_ext_command(test_cmd, verbose=False)
