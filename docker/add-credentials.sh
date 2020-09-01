@@ -45,12 +45,11 @@ if [ -z "$VAULT_API_TOKEN" ];
 
 		exit 1;
 fi
-version=${1:-1}
 
 get_value() {
   name=$1
   key=$2
-	RESPONSE=`curl -s --header "X-Vault-Token: ${VAULT_API_TOKEN}" http://10.78.20.9:8200/v1/kv/data/$name?version=$version | \
+	RESPONSE=`curl -s --header "X-Vault-Token: ${VAULT_API_TOKEN}" http://10.78.20.9:8200/v1/kv/data/$name | \
     python3 -c "import sys, json; resp = json.load(sys.stdin); data = resp.get('data', {}).get('data'); value = data.get('$key'); print(value)"`
 
 	echo "$RESPONSE"
