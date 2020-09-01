@@ -252,26 +252,8 @@ grpc::Status DamlValidatorClient::PreExecute(
       HandleReadRequestForPreExecution(response.read_request(),
                                        read_from_storage, &pre_execute_request);
     } else if (response.has_preexecution_result()) {
-      auto result = response.mutable_preexecution_result();
-      result->Swap(pre_execution_result);
+      SetAndLogPreExecutionResult(response, pre_execution_result);
       success = true;
-      if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
-        da_kvbc::PreExecutionOutput pre_execution_output;
-        if (pre_execution_output.ParseFromString(
-                pre_execution_result->output())) {
-          LOG_DEBUG(logger_, "Received pre-execution output: "
-                                 << pre_execution_output.ShortDebugString());
-          std::string to_hash(pre_execution_result->output());
-          LOG_DEBUG(logger_, "Hash of pre-execution output ["
-                                 << Hash(SHA3_256().digest(to_hash.c_str(),
-                                                           to_hash.size()))
-                                        .toString()
-                                 << "]");
-          MangleDamlPreExecutionOutputForConcord(pre_execution_output);
-        } else {
-          LOG_DEBUG(logger_, "Could not parse pre-execution output");
-        }
-      }
       break;
     } else {
       LOG_ERROR(
@@ -294,29 +276,25 @@ grpc::Status DamlValidatorClient::PreExecute(
   }
 }
 
-void DamlValidatorClient::MangleDamlPreExecutionOutputForConcord(
-    da_kvbc::PreExecutionOutput& pre_execution_output) {
-  MangleDamlWriteSetForConcord(
-      pre_execution_output.mutable_success_write_set());
-  MangleDamlWriteSetForConcord(
-      pre_execution_output.mutable_out_of_time_bounds_write_set());
-}
-
-void DamlValidatorClient::MangleDamlWriteSetForConcord(
-    da_kvbc::WriteSet* mutable_write_set) {
-  for (int i = 0; i < mutable_write_set->writes_size(); i++) {
-    MangleDamlAclForConcord(
-        mutable_write_set->mutable_writes(i)->mutable_access());
-  }
-}
-
-void DamlValidatorClient::MangleDamlAclForConcord(
-    da_kvbc::AccessControlList* mutable_access) {
-  if (mutable_access->has_restricted() &&
-      mutable_access->restricted().participant_id_size() == 0) {
-    mutable_access->mutable_restricted()->add_participant_id(
-        "_");  // Magic invalid thin replica ID, it ensures no participant will
-               // receive this write set
+void DamlValidatorClient::SetAndLogPreExecutionResult(
+    da_kvbc::PreExecuteResponse& pre_execute_response,
+    com::vmware::concord::PreExecutionResult* pre_execution_result) {
+  auto result = pre_execute_response.mutable_preexecution_result();
+  result->Swap(pre_execution_result);
+  if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
+    da_kvbc::PreExecutionOutput pre_execution_output;
+    if (pre_execution_output.ParseFromString(pre_execution_result->output())) {
+      LOG_DEBUG(logger_, "Received pre-execution output: "
+                             << pre_execution_output.ShortDebugString());
+      std::string to_hash(pre_execution_result->output());
+      LOG_DEBUG(logger_,
+                "Hash of pre-execution output ["
+                    << Hash(SHA3_256().digest(to_hash.c_str(), to_hash.size()))
+                           .toString()
+                    << "]");
+    } else {
+      LOG_DEBUG(logger_, "Could not parse pre-execution output");
+    }
   }
 }
 
