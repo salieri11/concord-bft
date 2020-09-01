@@ -77,7 +77,7 @@ class PreExecutingValidatorSpec
       inputStream.onNext(aPreExecutionRequest())
       inputStream.onCompleted()
 
-      val expectedProtoPreExcutionOutput =
+      val expectedProtoPreExecutionOutput =
         ProtoPreExecutionOutput.of(
           aPreExecutionOutput.minRecordTime.map(TimestampConversion.fromInstant),
           aPreExecutionOutput.maxRecordTime.map(TimestampConversion.fromInstant),
@@ -93,7 +93,7 @@ class PreExecutingValidatorSpec
             Some(ReadSet.of(aPreExecutionOutput.readSet.map {
               case (key, fingerprint) => KeyAndFingerprint.of(key, fingerprint)
             })),
-            Some(expectedProtoPreExcutionOutput.toByteString),
+            Some(expectedProtoPreExecutionOutput.toByteString),
             Some(aCorrelationId),
           ))
       verify(mockStreamObserver, times(1)).onNext(expectedPreExecutionResultEvent)
@@ -158,16 +158,16 @@ class PreExecutingValidatorSpec
         Seq(KeyValueAccessTriple.of(aKey, aValue, expectedAcl)))
     }
 
-    "order participant IDs deterministically in ACL message for restricted ACL" in {
-      val inputThinReplicaIds = Seq("participant 2", "participant 1")
-      val expectedThiReplicaIds = inputThinReplicaIds.sorted
+    "sort participant IDs in ACL message for restricted ACL" in {
+      val inputThinReplicaIds = Seq("c", "b", "a")
+      val expectedThinReplicaIds = inputThinReplicaIds.sorted
       val input: KeyValuePairsWithAccessControlList = Seq(
         (
           aKey,
           aValue,
           RestrictedAccess(inputThinReplicaIds.map(ParticipantId.assertFromString).toSet))
       )
-      val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(expectedThiReplicaIds))))
+      val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(expectedThinReplicaIds))))
       PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
         Seq(KeyValueAccessTriple.of(aKey, aValue, expectedAcl)))
     }
@@ -198,9 +198,9 @@ class PreExecutingValidatorSpec
 
   private def aCorrelationId = "aCorrelationId"
   private def aParticipantId = "aParticipantId"
-  private def aSpanContext = ByteString.copyFromUtf8("aSpanContext")
-  private def aKey = ByteString.copyFromUtf8("a key")
-  private def aValue = ByteString.copyFromUtf8("a value")
+  private def aSpanContext: ByteString = ByteString.copyFromUtf8("aSpanContext")
+  private def aKey: ByteString = ByteString.copyFromUtf8("a key")
+  private def aValue: ByteString = ByteString.copyFromUtf8("a value")
 
   private def aPreExecutionRequest(): PreprocessorToEngine = {
     PreprocessorToEngine().withPreexecutionRequest(
