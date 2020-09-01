@@ -81,7 +81,7 @@ suiteList = {
    "ApolloBftTests": "suites/apollo_bft_tests.py",
    "SkvbcStateTransferTests": "suites/skvbc_state_transfer_tests.py",
    "SkvbcPreexecutionTests": "suites/skvbc_preexecution_tests.py",
-   "DamlPreexecutionTests": "suites/daml_preexecution_tests.py",
+   "DamlPreexecutionTests": "suites/daml_tests.py",
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
    "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
