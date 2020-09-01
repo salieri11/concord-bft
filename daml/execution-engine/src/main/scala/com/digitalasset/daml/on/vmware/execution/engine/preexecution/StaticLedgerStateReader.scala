@@ -7,6 +7,7 @@ import com.daml.ledger.validator.LedgerStateOperations.{Key, Value}
 import com.daml.ledger.validator.preexecution.LedgerStateReaderWithFingerprints
 import com.digitalasset.daml.on.vmware.execution.engine.preexecution.StaticLedgerStateReader.KeysUnavailableException
 import com.digitalasset.kvbc.daml_validator.PreExecuteRequest
+import com.google.protobuf.ByteString
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,6 +26,7 @@ private[preexecution] class StaticLedgerStateReader(
 }
 
 private[preexecution] object StaticLedgerStateReader {
+
   case class KeysUnavailableException(unavailableKeys: Seq[Key]) extends Exception {
     override def getMessage: String =
       s"Following keys are not available: ${unavailableKeys.mkString(", ")}"
@@ -33,13 +35,16 @@ private[preexecution] object StaticLedgerStateReader {
   def apply(readResult: PreExecuteRequest.ReadResult)(
       implicit executionContext: ExecutionContext): StaticLedgerStateReader = {
     val staticData = readResult.keyValuePairs.map { keyValuePair =>
-      val value = (if (keyValuePair.value.isEmpty) {
-                     None
-                   } else {
-                     Some(keyValuePair.value)
-                   }) -> keyValuePair.fingerprint
+      val value = byteStringToOptional(keyValuePair.value) -> keyValuePair.fingerprint
       keyValuePair.key -> value
     }.toMap
     new StaticLedgerStateReader(staticData)
   }
+
+  private def byteStringToOptional(value: ByteString): Option[ByteString] =
+    if (value.isEmpty) {
+      None
+    } else {
+      Some(value)
+    }
 }

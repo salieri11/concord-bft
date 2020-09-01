@@ -33,6 +33,22 @@ class StaticLedgerStateReaderSpec extends AsyncWordSpec with Matchers with Mocki
   }
 
   "apply" should {
+    "convert non-empty value as Some" in {
+      val expectedValue = ByteString.copyFromUtf8("some")
+      val input = PreExecuteRequest.ReadResult.of(
+        Seq(
+          KeyValueFingerprintTriple
+            .of(key = aKey, value = expectedValue, fingerprint = aFingerprint)
+        ))
+
+      val instance = StaticLedgerStateReader(input)
+
+      val actual = instance.data
+      actual should have size 1
+      actual should be definedAt aKey
+      actual(aKey) shouldBe (Some(expectedValue) -> aFingerprint)
+    }
+
     "convert empty value as None" in {
       val input = PreExecuteRequest.ReadResult.of(
         Seq(
@@ -44,7 +60,7 @@ class StaticLedgerStateReaderSpec extends AsyncWordSpec with Matchers with Mocki
 
       val actual = instance.data
       actual should have size 1
-      actual should be definedAt (aKey)
+      actual should be definedAt aKey
       actual(aKey) shouldBe (None -> aFingerprint)
     }
   }
