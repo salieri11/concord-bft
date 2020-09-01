@@ -11,8 +11,12 @@ services:
       - --log-file=/tmp/valgrind_concord1.log
       - --suppressions=/concord/concord.supp
       - /concord/concord
-      - -c
-      - /concord/config-local/concord.config
+      - -a
+      - /concord/config-local/application.config
+      - -d
+      - /concord/config-local/deployment.config
+      - -s
+      - /concord/config-local/secrets.config
     volumes:
       - /tmp:/tmp
       - ./tls_certs:/concord/tls_certs:ro

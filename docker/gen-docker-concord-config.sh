@@ -31,6 +31,21 @@ docker run -it \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
-                          --output-name ${MOUNT_POINT}/config-public/concord
+                          --configuration-type application \
+                          --output-name ${MOUNT_POINT}/config-public/application
+
+docker run -it \
+  -v ${DOCKER_DIR}:${MOUNT_POINT} \
+  ${DOCKER_IMAGE} \
+  /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
+                          --configuration-type deployment \
+                          --output-name ${MOUNT_POINT}/config-public/deployment
+
+docker run -it \
+  -v ${DOCKER_DIR}:${MOUNT_POINT} \
+  ${DOCKER_IMAGE} \
+  /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
+                          --configuration-type secrets \
+                          --output-name ${MOUNT_POINT}/config-public/secrets
 
 ${DOCKER_DIR}/config-public/distribute-configuration-files.sh
