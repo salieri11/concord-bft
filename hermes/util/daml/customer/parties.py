@@ -1,13 +1,12 @@
 #########################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
-from gevent import monkey
-monkey.patch_all()
-
 import concurrent.futures
+import copy
 import datetime
 import json
 import os
+import pprint
 import random
 import shutil
 import time
@@ -41,7 +40,7 @@ class Parties:
             Parties.names.append("Customer_Name_{}".format(i))
 
         log.debug("Names: {}".format(Parties.names))
-        
+
         if NO_EXEC:
             self._bombardier_fleet = type('obj', (object,), {
                 "clients": [
@@ -61,7 +60,7 @@ class Parties:
             })
         else:
             log.info("Starting bombardier fleet")
-            self._bombardier_fleet = util.daml.bombardier.BombardierFleet(test_name, count)
+            self._bombardier_fleet = util.daml.bombardier.BombardierFleet(test_name, count, check_install=False)
 
         # Organize our group list such that we can distribute parties
         # among groups evenly, and parties within groups among nodes in that
@@ -69,7 +68,7 @@ class Parties:
         # groups = {
         #     "group_1": {
         #         "participants": [p1, p2, p3],
-        #         "parties_count": 0
+        #         "parites": [Alice, Bob, ...]
         #     }
         # }
         groups = {}
@@ -79,7 +78,7 @@ class Parties:
             else:
                 groups[p.group] = {
                     "participants": [p],
-                    "party_count": 0
+                    "parties": []
                 }
 
         group_name_index = 0
@@ -91,7 +90,7 @@ class Parties:
             group_name = None
 
             # Define all of the participants this party can use.
-            # Use party_count to help define which the party should use first,
+            # Use # parties to help define which the party should use first,
             # so all are not starting on the same node.
             for g in groups:
                 if g == group_names[group_name_index]:
@@ -100,20 +99,27 @@ class Parties:
                     break
 
             participants = party_group["participants"]
-            participant_index = groups[g]["party_count"] % len(participants)
+            participant_index = len(groups[g]["parties"]) % len(participants)
             initial_participant = participants[participant_index]
             bombardier_client = self._bombardier_fleet.clients[i]
             party = Party(name, group_name, participants, initial_participant, bombardier_client, Parties.base_daml_app_path)
             self._parties.append(party)
-
-            party_group["party_count"] += 1
+            groups[g]["parties"].append(name)
 
             if group_name_index < len(group_names)-1:
                 group_name_index += 1
             else:
                 group_name_index = 0
 
-                
+        group_summary = copy.deepcopy(groups)
+        for g in group_summary:
+            for p in group_summary[g]["participants"].copy():
+                group_summary[g]["participants"].append(p.ip)
+                group_summary[g]["participants"].remove(p)
+
+        pprint.pprint(group_summary, indent=4)
+
+
     def get_party(self, index):
         '''
         Return the party at the given index.
@@ -130,12 +136,8 @@ class Parties:
 
     def clean(self):
         '''
-        Terminates all bombardiers.
         Tells each party to clean its test data.
         '''
-        if self._bombardier_fleet:
-            self._bombardier_fleet.terminate_all()
-
         for party in self._parties:
             party.clean()
 
@@ -255,11 +257,11 @@ class Party:
         Note: Requires the DAML SDK.
         '''
         cmd = ["daml", "deploy", "--host", self._participant.ip, "--port", str(self._participant.port)]
+
         success, output = util.helper.execute_ext_command(cmd, timeout=120,
                                                           working_dir=self._party_project_dir,
                                                           verbose=True)
-        log.debug(output)
-        if not success:
+        if not success and not "Party already exists" in output:
             raise Exception("Unable to deploy DAML app for party {}".format(self._name))
 
 
@@ -292,6 +294,7 @@ class Party:
         use its original participant.
         '''
         self._participant = self._original_participant
+        log.debug("Clean: {} is back to {}".format(self._name, self._participant))
         self._all_load_responses = []
         self._txIds = []
 
@@ -394,9 +397,9 @@ class Party:
                                                    txIds=True,
                                                    timeout=txload_timeout)
                 elapsed = (datetime.datetime.now() - start).total_seconds()
-                #log.debug("{}: Elapsed time for creating transactions: {}".format(self._name, elapsed))
+                log.debug("{}: Elapsed time for creating transactions: {}".format(self._name, elapsed))
                 self._all_load_responses.append(response)
-                #log.debug("all responses: {}".format(self._all_load_responses))
+                log.debug("all responses: {}".format(self._all_load_responses))
 
                 if response and response["result"]["rejected"] == 0:
                     for txId in response["result"]["txIds"]:
@@ -591,7 +594,7 @@ class Party:
         self._participant.wait_for_startup()
 
 
-    def verify_contract_creation_failure(self, bombardier_fleet, timeout=60):
+    def verify_contract_creation_failure(self, bombardier_fleet, timeout=10):
         '''
         bombardier_fleet: A util.daml.bombardier.BombardierFleet object.
         Try to fail to create a contract before the passed in timeout.
@@ -603,11 +606,33 @@ class Party:
             try:
                 self.create_tx_threadfn(bombardier_fleet, 1, 1)
                 elapsed += 1
-                log.info("Waiting for transaction failure")
+                log.info("Waiting for transaction write failure")
                 time.sleep(3)
             except TransactionCreationError as e:
                 log.info(e)
-                log.info("Intentional transaction failure occurred")
+                log.info("INTENTIONAL transaction failure occurred")
                 return True
 
         return False
+
+
+    def verify_contract_read_failure(self, bombardier_fleet, timeout=10):
+        '''
+        bombardier_fleet: A util.daml.bombardier.BombardierFleet object.
+        Try to fail to read a contract.
+        '''
+        elapsed = 0
+        log.info("Waiting for a transaction read failure")
+
+        while elapsed <= timeout:
+            try:
+                self.verify_tx_threadfn(bombardier_fleet, 1)
+                elapsed += 1
+                log.info("Waiting for transaction read failure")
+                time.sleep(3)
+            except TransactionReadError as e:
+                log.info(e)
+                log.info("INTENTIONAL transaction failure occurred")
+                return True
+
+            return False
