@@ -2,6 +2,7 @@
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests covering Performance.
+# Converted to pytest for Jira:- BC-493
 #########################################################################
 
 
@@ -13,113 +14,62 @@
 import logging
 import os
 import traceback
+import pytest
 import subprocess
-
-from . import test_suite
-from suites.case import describe, passed, failed, getStackInfo
-from rest.request import Request
+import collections
 import util.json_helper
-
 import util.hermes_logging
+
+from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from suites.case import describe
+from rest.request import Request
+from util.blockchain import eth as eth_helper
+
 log = util.hermes_logging.getMainLogger()
+LocalSetupFixture = collections.namedtuple(
+    "LocalSetupFixture", "args, testLogDir, performanceSubModule, ethrpcApiUrl")
 
-class PerformanceTests(test_suite.TestSuite):
-   _args = None
-   _userConfig = None
-   _resultFile = None
+@pytest.fixture(scope="function")
+@describe("fixture; local setup for given test suite")
+def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+    testName = fxConnection.request.testName
+    args = fxHermesRunSettings["hermesCmdlineArgs"]
+    testLogDir = os.path.join(
+        fxHermesRunSettings["hermesTestLogDir"], testName)
+    os.makedirs(testLogDir, exist_ok=True)
+    performanceSubModuleDir = os.path.join(
+        args.hermes_dir, '..', "performance")
+    os.makedirs(performanceSubModuleDir, exist_ok=True)
+    if args.ethrpcApiUrl:
+        ethrpcApiUrl = args.ethrpcApiUrl
+        log.debug("Url is getting retrieved from the args retrieved for the test")
+    else:
+        ethrpcApiUrl = eth_helper.getEthrpcApiUrl(
+            fxConnection.request, fxBlockchain.blockchainId)
+    return LocalSetupFixture(args=args, testLogDir=testLogDir,
+                             performanceSubModule=performanceSubModuleDir, ethrpcApiUrl=ethrpcApiUrl)
 
-   def __init__(self, passedArgs, product):
-      super(PerformanceTests, self).__init__(passedArgs, product)
-      self._performance_submodule = os.path.join(self._hermes_home,
-                                            '..', 'performance')
-
-   def getName(self):
-      return "PerformanceTests"
-
-   def _runTest(self, testName, testFun, testLogDir):
-      log.info("Starting test '{}'".format(testName))
-      fileRoot = os.path.join(self._testLogDir, testName);
-      os.makedirs(fileRoot, exist_ok=True)
-      return testFun(fileRoot)
-
-
-   def run(self):
-      ''' Runs all of the tests. '''
-      self.launchProduct()
-      tests = self._getTests()
-
-      for (testName, testFun) in tests:
-         testLogDir = os.path.join(self._testLogDir, testName)
-         try:
-            testLogDir = os.path.join(self._testLogDir, testName)
-            # When this suite is switched over to pytest, the request object
-            # and the blockchain ID will be available from fixtures.  For now,
-            # create a request object and derive the blockchain ID here.
-            request = Request(testLogDir,
-                              testName,
-                              self._args.reverseProxyApiBaseUrl,
-                              self._userConfig,
-                              util.auth.internal_admin)
-            blockchainId = request.getBlockchains()[0]["id"]
-            self.setEthrpcNode(request, blockchainId)
-            result, info, stackInfo = self._runTest(testName,
-                                         testFun,
-                                         testLogDir)
-         except Exception as e:
-            result = False
-            info = str(e)
-            stackInfo = getStackInfo(e)
-            traceback.print_tb(e.__traceback__)
-            log.error("Exception running test: '{}'".format(info))
-
-         if info:
-            info += "  "
-         else:
-            info = ""
-
-         relativeLogDir = self.makeRelativeTestPath(testLogDir)
-         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
-                                                     testLogDir)
-         self.writeResult(testName, result, info, stackInfo)
-
-      log.info("Tests are done.")
-      return super().run()
-
-
-   def _getTests(self):
-      return [("performance_test", self._test_performance)]
-
-
-   @describe()
-   def _test_performance(self, fileRoot):
-      if not os.path.isdir(self._performance_submodule):
-         return failed("Performance repo {} does not Exist"
-                 .format(self._performance_submodule))
-
-      performance_jar = os.path.join(self._performance_submodule,
-                                     "ballotApp", "target",
-                                     "performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
-      if not os.path.isfile(performance_jar):
-         return failed("Performance jar file {} does not Exist".
-                 format(performance_jar))
-
-      concord_ip = self.ethrpcApiUrl.split("/")[2].split(":")[0]
-      number_of_votes = str(self._args.performanceVotes)
-      log.info("No. of votes: {}".format(self._args.performanceVotes))
-      input_data = os.path.join(self._performance_submodule,
-                                "data", "proposals")
-
-      cmd = ["java", "-Xmx1g", "-jar", performance_jar,
-             "--concord", concord_ip, number_of_votes, input_data, fileRoot]
-
-      log.info("Running benchmark tool: {}".format(" ".join(cmd)))
-
-      completedProcess = subprocess.run(cmd,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
-      psOutput = completedProcess.stdout.decode("UTF-8")
-      log.info(psOutput)
-      if 'Throughput: ' not in psOutput:
-         return failed("Failed to run Performance Test")
-
-      return passed()
+@describe()
+def test_performance(fxLocalSetup):
+    log.debug("Validation for Performance repo path: {}".format(fxLocalSetup.performanceSubModule))
+    assert os.path.isdir(fxLocalSetup.performanceSubModule), "Performance repo does not Exist"
+    performanceJar = os.path.join(fxLocalSetup.performanceSubModule,
+                                 "ballotApp", "target",
+                                 "performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
+    log.debug("Validation for Performance jar file: {}".format(performanceJar))
+    assert os.path.isfile(performanceJar), "Performance jar file does not Exist"
+    concordIp = fxLocalSetup.ethrpcApiUrl.split("/")[2].split(":")[0]
+    log.info("Concord IP {}".format(concordIp))
+    numberOfVotes = str(fxLocalSetup.args.performanceVotes)
+    log.info("No. of votes: {}".format(fxLocalSetup.args.performanceVotes))
+    inputData = os.path.join(fxLocalSetup.performanceSubModule,
+                            "data", "proposals")
+    cmd = ["java", "-Xmx1g", "-jar", performanceJar,
+         "--concord", concordIp, numberOfVotes, inputData, fxLocalSetup.testLogDir]
+    log.info("Running benchmark tool: {}".format(" ".join(cmd)))
+    completedProcess = subprocess.run(cmd,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
+    psOutput = completedProcess.stdout.decode("UTF-8")
+    log.info(psOutput)
+    assert "Throughput: " in psOutput, "Failed to run Performance Test"
