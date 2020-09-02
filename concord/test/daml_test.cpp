@@ -44,6 +44,7 @@ using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::PreExecutionResult;
+using com::vmware::concord::TimeRequest;
 using com::vmware::concord::kvb::ValueWithTrids;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
@@ -239,6 +240,16 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
   std::string BuildCommitRequest() {
     auto concord_request = BuildConcordRequest();
+    std::string request_string;
+    concord_request.SerializeToString(&request_string);
+    return request_string;
+  }
+
+  std::string BuildTimeRequest() {
+    ConcordRequest concord_request;
+    TimeRequest time_request;
+    concord_request.mutable_time_request()->MergeFrom(time_request);
+
     std::string request_string;
     concord_request.SerializeToString(&request_string);
     return request_string;
@@ -628,6 +639,17 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
   EXPECT_EQ(kCorrelationId,
             actual_response.pre_execution_result().request_correlation_id());
   EXPECT_FALSE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PreExecuteWithTimeRequestFails) {
+  std::string request_string = BuildTimeRequest();
+  auto instance = CreateInstance();
+
+  EXPECT_DEATH(instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+                                 request_string.size(), request_string.c_str(),
+                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                                 replica_specific_info_size_, span_wrapper_),
+               "");
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PreExecuteExecutionEngineReturnsFailure) {
