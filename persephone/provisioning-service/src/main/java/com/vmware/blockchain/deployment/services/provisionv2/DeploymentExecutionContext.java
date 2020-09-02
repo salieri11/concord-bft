@@ -53,7 +53,6 @@ public class DeploymentExecutionContext {
     @Data
     @Builder
     public static class LocalNodeDetails {
-        int index;
         String privateIp;
     }
 }

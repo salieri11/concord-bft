@@ -69,10 +69,9 @@ public class NetworkHelper {
                                                                    .build())
                                         .build();
                                 results.add(deployedResource);
-                                DeploymentExecutionContext.LocalNodeDetails localNode
-                                        = DeploymentExecutionContext.LocalNodeDetails.builder().build();
-                                localNode.privateIp = createdEvent.getAddress();
-                                privateNetworkAddressMap.put(UUID.fromString(entry.getNodeId()), localNode);
+                                privateNetworkAddressMap.put(UUID.fromString(entry.getNodeId()),
+                                                             DeploymentExecutionContext.LocalNodeDetails.builder()
+                                                                     .privateIp(createdEvent.getAddress()).build());
                             });
                 })
                 .toArray(CompletableFuture[]::new);

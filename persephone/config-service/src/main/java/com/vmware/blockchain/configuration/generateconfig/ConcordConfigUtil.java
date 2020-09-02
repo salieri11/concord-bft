@@ -170,6 +170,7 @@ public class ConcordConfigUtil {
             configInput.put("FEATURE_time_service", false);
         } else if (blockchainType.equals(BlockchainType.DAML)) {
             configInput.put(ConfigUtilHelpers.ConfigProperty.DAML_ENABLED.name, true);
+
         } else if (blockchainType.equals(BlockchainType.HLF)) {
             configInput.put(ConfigUtilHelpers.ConfigProperty.HLF_ENABLED.name, true);
         }
