@@ -445,10 +445,11 @@ void RunDamlGrpcServer(
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
-  CommitServiceImpl *commitService = new CommitServiceImpl(pool, config);
-  ThinReplicaService *thinReplicaService =
-      new ThinReplicaService{std::make_unique<ThinReplicaImpl>(
-          ro_storage, subscriber_list, prometheus_registry)};
+  auto commitService = std::make_unique<CommitServiceImpl>(pool, config);
+  auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
+      ro_storage, subscriber_list, prometheus_registry);
+  auto thinReplicaService =
+      std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -457,8 +458,8 @@ void RunDamlGrpcServer(
   builder.SetResourceQuota(quota);
   builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(commitService);
-  builder.RegisterService(thinReplicaService);
+  builder.RegisterService(commitService.get());
+  builder.RegisterService(thinReplicaService.get());
 
   daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
@@ -471,9 +472,11 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
                       SubBufferList &subscriber_list, int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.tee");
 
-  TeeServiceImpl *teeService = new TeeServiceImpl(pool);
-  ThinReplicaService *thinReplicaService = new ThinReplicaService{
-      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list)};
+  auto teeService = std::make_unique<TeeServiceImpl>(pool);
+  auto thinReplicaServiceImpl =
+      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list);
+  auto thinReplicaService =
+      std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -481,8 +484,8 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
   grpc::ServerBuilder builder;
   builder.SetResourceQuota(quota);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(teeService);
-  builder.RegisterService(thinReplicaService);
+  builder.RegisterService(teeService.get());
+  builder.RegisterService(thinReplicaService.get());
 
   tee_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
@@ -495,10 +498,12 @@ void RunPerfGrpcServer(std::string server_address, KVBClientPool &pool,
                        SubBufferList &subscriber_list, int max_num_threads) {
   Logger logger = Logger::getInstance("concord.perf.grpc");
 
-  concord::performance::PerformanceServiceImp *perfService =
-      new concord::performance::PerformanceServiceImp(pool);
-  ThinReplicaService *thinReplicaService = new ThinReplicaService{
-      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list)};
+  auto perfService =
+      std::make_unique<concord::performance::PerformanceServiceImp>(pool);
+  auto thinReplicaServiceImpl =
+      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list);
+  auto thinReplicaService =
+      std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -506,8 +511,8 @@ void RunPerfGrpcServer(std::string server_address, KVBClientPool &pool,
   grpc::ServerBuilder builder;
   builder.SetResourceQuota(quota);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(perfService);
-  builder.RegisterService(thinReplicaService);
+  builder.RegisterService(perfService.get());
+  builder.RegisterService(thinReplicaService.get());
 
   perf_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
