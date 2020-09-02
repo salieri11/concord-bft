@@ -17,6 +17,7 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
@@ -70,6 +71,12 @@ public class ProvisioningServiceUtil {
                                                        nodeProperties.get(entry.getType().name()).getValuesMap());
                                            }
                                            propertiesBuilder.putAllValues(entry.getProperties().getValuesMap());
+                                           //Handle optional group id
+                                           if (entry.getType() == NodeType.CLIENT && !propertiesBuilder.containsValues(
+                                                   NodeProperty.Name.CLIENT_GROUP_ID.name())) {
+                                               propertiesBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(),
+                                                                           nodeId);
+                                           }
                                            return NodeAssignment.Entry.newBuilder(entry)
                                                    .setProperties(propertiesBuilder)
                                                    .setNodeId(nodeId).build();
