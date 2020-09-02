@@ -50,7 +50,8 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests",
               "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests",
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest",
-              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests"
+              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
+	      "MetadataPersistencyTests"
              ]
 
 suiteList = {
@@ -92,7 +93,7 @@ suiteList = {
    "UiTests": ui_tests.UiTests,
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
    "HlfTests": hlf_tests.HlfTests,
-   "MetadataPersistencyTests": persistency_tests.MetadataPersistencyTests,
+   "MetadataPersistencyTests": "suites/persistency_tests.py"
 }
 
 local_modules = [os.path.join(".", "lib", "persephone")]
