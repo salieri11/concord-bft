@@ -3207,6 +3207,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "15");
   config.tagParameter("num_of_external_clients", defaultableByUtilityTags);
   config.tagParameter("num_of_external_clients", applicationTag);
+  config.tagParameter("num_of_external_clients", deploymentTag);
 
   // TODO: The following parameters should be completely optional because
   // its default values are within concord-bft
