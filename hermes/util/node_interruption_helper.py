@@ -59,14 +59,14 @@ def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    Verify readiness for node interruption testing
    :param fxHermesRunSettings: hermes run settings (fixture)
    '''
-   for ip,vm_handle in fxHermesRunSettings.vm_handles.items():
+   for ip, vm_handle in fxHermesRunSettings.vm_handles.items():
       if vm_handle is None:
          log.error("")
          log.error("**** Failed to fetch VM handles; aborting Run! ****")
          sys.exit(1)
 
 def get_nodes_available_for_interruption(fxBlockchain,
-                                              node_interruption_details):
+                                         node_interruption_details):
    '''
    Return a list of committer nodes allowed for interrupting
    :param fxBlockchain: blockchain fixture
@@ -79,9 +79,9 @@ def get_nodes_available_for_interruption(fxBlockchain,
       if node_interruption_details[SKIP_MASTER_REPLICA]:
          master_replica = blockchain_ops.fetch_master_replica(fxBlockchain)
          nodes_available_for_interruption = [ip for ip in
-                                                  blockchain_ops.committers_of(
-                                                     fxBlockchain) if
-                                                  ip != master_replica]
+                                             blockchain_ops.committers_of(
+                                                fxBlockchain) if
+                                             ip != master_replica]
       else:
          nodes_available_for_interruption = blockchain_ops.committers_of(
             fxBlockchain)
@@ -102,8 +102,8 @@ def get_f_count(fxBlockchain):
    return blockchain_ops.get_f_count(fxBlockchain)
 
 def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
-                                      node_interruption_details,
-                                      last_interrupted_node_index=None):
+                                   node_interruption_details,
+                                   last_interrupted_node_index=None):
    '''
    Return list of nodes for this iteration of node interruption
    :param nodes_available_for_interruption: nodes available for interruption
@@ -118,7 +118,7 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
    start_node_index = (last_interrupted_node_index + 1) % no_of_available_committers_for_interruption
    nodes_to_interrupt = []
    for j in range(node_interruption_details[NO_OF_NODES_TO_INTERRUPT]):
-      node_index_to_interrupt = start_node_index+j
+      node_index_to_interrupt = start_node_index + j
       if node_index_to_interrupt >= no_of_available_committers_for_interruption:
          node_index_to_interrupt = node_index_to_interrupt - no_of_available_committers_for_interruption
       log.debug(nodes_available_for_interruption[node_index_to_interrupt])
@@ -161,6 +161,7 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
          list_of_participant_nodes_to_run_txns = crashed_participants
       log.info("")
+
       if run_txn_in_background:
          status = True
       else:
@@ -247,7 +248,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type,
 
    if len(interrupted_nodes) > 0:
       log.info("  Interrupted '{}' nodes: {}".format(interrupted_node_type,
-                                                   interrupted_nodes))
+                                                     interrupted_nodes))
    log.info("  Total no. of crashed committer nodes: {}".format(
       total_no_of_committers_crashed))
    log.info("  Total no. of crashed participant nodes: {}".format(
@@ -330,7 +331,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       max_timeout = 120  # seconds
       node_interruption_completed = False
       while vm_handle["entity"].runtime.powerState != EXPECTED_POWER_STATE or \
-         not node_interruption_completed:
+            not node_interruption_completed:
          if mode == NODE_INTERRUPT:
             if vm_handle["entity"].guest.ipAddress is None:
                node_interruption_completed = True
@@ -349,7 +350,8 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_INTERRUPT:
          if custom_interruption_params[CONTAINERS_TO_CRASH] == ALL_CONTAINERS:
             containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"] \
-               ["modelService"]["defaults"]["deployment_components"][node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
+               ["modelService"]["defaults"]["deployment_components"][
+               node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
          else:
             containers = custom_interruption_params[CONTAINERS_TO_CRASH]
 
@@ -559,10 +561,10 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          log.info("")
          log.info("** Restoring node: {}...".format(node))
          perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                           node_interruption_details,
-                                           mode=NODE_RECOVER)
+                                              node_interruption_details,
+                                              mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
-      #Run Daml test for the period of time_remaining_before_next_interruption
+   # Run Daml test for the period of time_remaining_before_next_interruption
    result, crashed_committer_count = check_node_health_and_run_sanity_check(
       fxBlockchain, results_dir,
       node_interruption_details,
