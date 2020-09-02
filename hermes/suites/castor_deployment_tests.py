@@ -32,6 +32,7 @@ _CASTOR_DESCRIPTORS_LOC_KEY = "CASTOR_DESCRIPTORS_LOC"
 _CASTOR_DESCRIPTORS_LOC_VALUE = "../docker/config-castor/descriptors"
 _CASTOR_INFRA_DESCRIPTOR_FILE = "test01_infrastructure_descriptor.json"
 _CASTOR_OUTPUT_DIR_KEY = "CASTOR_OUTPUT_DIR"
+_CASTOR_CONFIG_SERVICE_IP = "CONFIG_SERVICE_IP"
 
 _COMPOSE_CASTOR_LOG = "docker-compose-castor.log"
 _DEPLOYMENT_SUCCESS_MSG = "Deployment completed with status: SUCCESS"
@@ -139,6 +140,7 @@ def upCastorDockerCompose(hermes_settings, product):
     newEnv = os.environ.copy()
     newEnv[_CASTOR_DESCRIPTORS_LOC_KEY] = _CASTOR_DESCRIPTORS_LOC_VALUE
     newEnv[_CASTOR_OUTPUT_DIR_KEY] = castorOutputDir
+    newEnv[_CASTOR_CONFIG_SERVICE_IP] = helper.getNetworkIPAddress()
 
     castorComposeOutputLogFilePath = os.path.join(castorOutputDir, _COMPOSE_CASTOR_LOG)
     with open(castorComposeOutputLogFilePath, "a") as composeOutputLogFile:
