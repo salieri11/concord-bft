@@ -97,6 +97,57 @@ def cleanUp():
    concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
 
 
+@describe()
+@pytest.mark.skip 
+def test_asset_transfer(fxLocalSetup):
+   ''' Tests if AssetTransfer can be deployed using the docker container '''
+
+   contracts_before = requests.get(url = "http://" + fxLocalSetup.user + ":" + fxLocalSetup.password + "@localhost/api/concord/contracts").content
+
+   env = fxLocalSetup.docker_env
+
+   asset_transfer_repo = env["asset_transfer_repo"]
+   asset_transfer_tag = env["asset_transfer_tag"]
+   cmd = "docker run --rm --name asset_transfer-test --network docker_default -td {0}:{1}".format(asset_transfer_repo, asset_transfer_tag)
+   out, err = executeInContainer(cmd)
+
+   assert err == None, err 
+
+
+   if fxLocalSetup.apiServerUrl != '':
+      pass_endpoint = fxLocalSetup.apiServerUrl.replace('/','\/')
+
+      # Edit placeholders with actual values inside the container
+      log.debug("Replacing ADDRESS_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(pass_endpoint))
+      comm = 'docker exec asset_transfer-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_AssetTransfer.js'
+      out1, err1 = executeInContainer(comm)
+      assert err1 == None, err1
+
+
+      log.debug("Replacing USER_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(fxLocalSetup.user))
+      out2, err2 = executeInContainer("docker exec asset_transfer-test sed -i -e 's/USER_PLACEHOLDER/" + fxLocalSetup.user + "/g' test/test_AssetTransfer.js")
+      assert err2 == None, err2 
+
+      log.debug("Replacing PASSWORD_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(fxLocalSetup.password))
+      out3, err3 = executeInContainer("docker exec asset_transfer-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + fxLocalSetup.password + "/g' test/test_AssetTransfer.js")
+      
+      assert err3 == None, err3
+
+   # Run the test script(s)
+   log.debug("Running 'docker exec asset_transfer-test mocha'")
+   out, err = executeInContainer("docker exec asset_transfer-test mocha")
+   log.debug("Done running 'docker exec asset_transfer-test mocha'.  err: '{}', out: '{}'".format(err, out))
+   
+   assert err == None and out != "", err
+
+   contracts_after = requests.get(url = "http://" + fxLocalSetup.user + ":" + fxLocalSetup.password + "@localhost/api/concord/contracts").content
+
+   
+   assert contracts_after != contracts_before,"Contracts have not changed after asset transfer deployment."
+
+   log.debug("Contracts changed after asset transfer deployment, as expected.")
+   log.info(out)
+
 
 @describe()
 def test_supply_chain_and_verify_contracts(fxLocalSetup):
