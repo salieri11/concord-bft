@@ -1,11 +1,9 @@
 #########################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
-from gevent import monkey
-monkey.patch_all()
-
 import time
 import util.helper
+import util.blockchain_ops
 import util.hermes_logging as hermes_logging_util
 log = hermes_logging_util.getMainLogger()
 
@@ -64,139 +62,55 @@ class Participant:
         '''
         Make sure we are powered on and able to receive transactions.
         '''
-        log.info("Startup for participant {}".format(self.ip))
-        needs_wait = False
-        reachable = False
-        wait_time = 60
-
-        while not reachable and wait_time > 0:
-            statuses = util.helper.ssh_connect(self.ip,
-                                               self.concord_username, self.concord_password,
-                                               "docker ps -a --format '{{ .Names }}\t\t{{ .Status }}'")
-            if statuses:
-                reachable = True
-            else:
-                time.sleep(1)
-                wait_time -= 1
-
-        if not reachable:
-            raise Exception("VM {} was not reachable".format(self.ip))
-
-        statuses = statuses.split("\n")
-        log.info("  Statuses:")
-        for status in statuses:
-            log.info("    {}".format(status))
-
-            if "Exited" in status or "Restarting" in status:
-                needs_wait = True
-
-        if needs_wait:
-            # Get list, or maybe this entire chunk of functionality, from central resource.
-            names = ["telegraf", "jaeger-agent", "daml_ledger_api", "wavefront-proxy", "daml_index_db", "fluentd", "agent"]
-            log.info("Waiting for new containers to come up")
-            time.sleep(10)
-            wait_time = 60
-            all_up = False
-
-            while not all_up and wait_time > 0:
-                all_up = True
-                statuses = util.helper.ssh_connect(self.ip,
-                                                   self.concord_username, self.concord_password,
-                                                   "docker ps -a --format '{{ .Names }} {{ .Status }}'")
-                statuses = statuses.split("\n")
-                log.info("  Statuses:")
-
-                for name in names:
-                    name_found = False
-
-                    for status in statuses:
-                        if status.split(" ")[0] == name:
-                            name_found = True
-                            break
-
-                    if not name_found:
-                        log.info("Docker container {} not found yet".format(name))
-                        all_up = False
-                        time.sleep(1)
-                        wait_time -= 1
-                        continue
-
-                for status in statuses:
-                    log.info("    {}".format(status))
-                    if "Restarting" in status or "Exited" in status:
-                        all_up = False
-                        time.sleep(1)
-                        wait_time -= 1
-                        continue
-
-            if wait_time <= 0:
-                raise Exception("Cleaning VM failed")
+        names = util.helper.getDefaultParticipantContainers()
+        util.blockchain_ops.wait_for_docker_startup(self.ip, self.concord_username, self.concord_password, names)
 
 
     def pause_services(self, services):
         '''
         services: A list of the docker containers to pause.
         '''
-        for svc in services:
-            log.info("Pausing {}".format(svc))
-            cmd = "docker pause {}".format(svc)
-            util.helper.ssh_connect(self.ip, self.concord_username, self.concord_password, cmd)
+        util.blockchain_ops.pause_services(self.ip, self.concord_username, self.concord_password, services)
 
-            
+
     def unpause_services(self, services):
         '''
         services: A list of the docker containers to unpause.
         '''
-        for svc in services:
-            log.info("Unpausing {}".format(svc))
-            cmd = "docker unpause {}".format(svc)
-            util.helper.ssh_connect(self.ip, self.concord_username, self.concord_password, cmd)
+        util.blockchain_ops.unpause_services(self.ip, self.concord_username, self.concord_password, services)
 
 
     def stop_services(self, services):
         '''
         services: A list of the docker containers to stop.
         '''
-        for svc in services:
-            log.info("Stopping {}".format(svc))
-            cmd = "docker stop {}".format(svc)
-            util.helper.ssh_connect(self.ip, self.concord_username, self.concord_password, cmd)
+        util.blockchain_ops.stop_services(self.ip, self.concord_username, self.concord_password, services)
 
 
     def start_services(self, services):
         '''
         services: A list of the docker containers to start.
         '''
-        for svc in services:
-            log.info("Starting {}".format(svc))
-            cmd = "docker start  {}".format(svc)
-            util.helper.ssh_connect(self.ip, self.concord_username, self.concord_password, cmd)
+        util.blockchain_ops.start_services(self.ip, self.concord_username, self.concord_password, services)
 
-            
+
     def shutdown(self, timeout=10):
         '''
         Gets a VM handle before shutting down the VM, and returns the handle.
         The handle is needed to power it back on.
         '''
-        vm = util.infra.findVMByInternalIP(self.ip)
-        vm["entity"].PowerOffVM_Task()
-        time.sleep(timeout)
-        return vm
+        return util.blockchain_ops.shutdown(self.ip, timeout)
 
 
     def powerup(self, vm, timeout=20):
         '''
         The vm parameter is a vim handle returned by, for example, shutdown().
         '''
-        log.info("Participant {} powering on".format(self.ip))
-        vm["entity"].PowerOnVM_Task()
-        time.sleep(timeout)
+        util.blockchain_ops.powerup(vm, timeout)
 
 
     def reboot(self, timeout=20):
-        log.info("Participant {} shutting down".format(self.ip))
-        vm = self.shutdown(timeout)
-        self.powerup(vm, timeout)
+        util.blockchain_ops.reboot(self.ip, timeout)
 
 
     def maintain_vim_connection(self):
@@ -242,6 +156,3 @@ class Participant:
                 pass
 
         return mb
-
-
-
