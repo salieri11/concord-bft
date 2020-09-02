@@ -318,6 +318,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                 clientNode.setId(nodeId);
                 clientNode.setZoneId(zoneId);
                 clientNode.setBlockchainId(rawBlockchain.getId());
+                // Init groupId to nodeId, which will be overwritten by the following loop, if grouping in in use.
+                clientNode.setGroupId(nodeId);
                 resources.forEach(each -> {
                     var attributes = each.getAdditionalInfo().getValuesMap();
 
@@ -325,9 +327,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                     String clientGroupId = attributes.get(NodeProperty.Name.CLIENT_GROUP_ID.name());
                     if (clientGroupId != null && !clientGroupId.isEmpty()) {
                         clientNode.setGroupId(UUID.fromString(clientGroupId));
-                    } else {
-                        // If we do not have grouping information, use client ID as group ID.
-                        clientNode.setGroupId(nodeId);
                     }
 
                     // CLIENT_GROUP_NAME is available regardless of the resource type.
