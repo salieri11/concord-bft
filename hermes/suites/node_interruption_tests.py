@@ -39,8 +39,6 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
-         intr_helper.NODE_OFFLINE_TIME: 5,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10
       }
    }
 
@@ -79,6 +77,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.committer_node_interruption
+@pytest.mark.committer_node_interruption_longrun
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -86,7 +85,8 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
-         "place_holder_for_other_interruption_params": "value"
+         intr_helper.NODE_OFFLINE_TIME: 5,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 10
       }
    }
 
@@ -127,6 +127,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 @pytest.mark.smoke
 @pytest.mark.participant_node_interruption
 @pytest.mark.participant_node_interruption_smoke
+@pytest.mark.participant_node_interruption_longrun
 def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
