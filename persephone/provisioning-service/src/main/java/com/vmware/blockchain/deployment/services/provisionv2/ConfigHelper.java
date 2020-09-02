@@ -23,6 +23,7 @@ import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequestV2;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
@@ -103,6 +104,10 @@ public class ConfigHelper {
                 .setGenericProperties(genericProperties)
                 .build();
 
+        // This check helps for nodes flow.
+        if (genericProperties.containsValues(DeploymentAttributes.NO_LAUNCH.name())) {
+            return ConfigurationSessionIdentifier.newBuilder().setId("inactive").build();
+        }
         try {
             ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
                     .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);

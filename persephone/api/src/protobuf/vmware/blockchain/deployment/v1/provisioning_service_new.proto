@@ -133,6 +133,10 @@ message DeploymentRequestResponse {
     string id = 1;
 }
 
+message GenerateConfigurationResponse {
+    string id = 1;
+}
+
 /**
  * Enum List of various key attributes used in Provisioning service only.
  */
@@ -177,5 +181,10 @@ service ProvisioningServiceV2 {
     */
     rpc DeprovisionDeployment (DeprovisionDeploymentRequest)
 	    returns (DeprovisionDeploymentResponse) {};
+
+    /**
+     * Operation to create a cluster based on a [CreateClusterRequest].
+     */
+    rpc GenerateConfiguration (DeploymentRequest) returns (GenerateConfigurationResponse) {};
 }
 /* [END services] */

@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,9 @@ import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
+import com.vmware.blockchain.deployment.v1.GenerateConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.NodeType;
+import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -201,6 +204,64 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         try {
             deprovision(request);
             response.onNext(DeprovisionDeploymentResponse.newBuilder().build());
+            response.onCompleted();
+        } catch (Throwable error) {
+            response.onError(error);
+        }
+    }
+
+    @Override
+    public void generateConfiguration(
+            DeploymentRequest message,
+            StreamObserver<GenerateConfigurationResponse> observer
+    ) {
+        var request = Objects.requireNonNull(message);
+        var response = Objects.requireNonNull(observer);
+
+        final val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
+        final val consortiumId = UUID.fromString(request.getSpec().getConsortiumId());
+        final val blockchainId = UUID.fromString(request.getSpec().getBlockchainId());
+        final var genericProperties = request.getSpec().getProperties();
+        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
+                                                                          genericProperties,
+                                                                          request.getSpec().getNodePropertiesMap());
+
+        Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteMap = message.getSpec().getSites().getInfoListList()
+            .stream().collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
+
+        var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
+
+        var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
+                                                                   nodeAssignment);
+
+        var localNodeDetailsMap = new HashMap<UUID, DeploymentExecutionContext.LocalNodeDetails>();
+
+        nodeAssignment.getEntriesList().stream()
+                .forEach(entry -> {
+                    var ip = entry.getProperties().getValuesMap().get(DeployedResource
+                                                                              .DeployedResourcePropertyKey
+                                                                              .PRIVATE_IP.name());
+                    localNodeDetailsMap.put(UUID.fromString(entry.getNodeId()),
+                                            DeploymentExecutionContext.LocalNodeDetails.builder().privateIp(ip)
+                                                    .build());
+                });
+
+        var deploymentSession = DeploymentExecutionContext.builder()
+                .id(sessionId)
+                .consortiumId(consortiumId)
+                .blockchainId(blockchainId)
+                .blockchainType(request.getSpec().getBlockchainType())
+                .sitesById(siteMap)
+                .componentsByNode(componentsByNode)
+                .nodeAssignment(nodeAssignment)
+                .deploymentType(deploymentType)
+                .localNodeDetailsMap(localNodeDetailsMap)
+                .build();
+
+        ConfigurationSessionIdentifier configGenerated = configHelper.generateConfigurationId(deploymentSession,
+                                                                                              genericProperties);
+        try {
+            response.onNext(GenerateConfigurationResponse.newBuilder().setId(configGenerated.getId()).build());
             response.onCompleted();
         } catch (Throwable error) {
             response.onError(error);
