@@ -44,13 +44,13 @@ log = None
 
 pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests", 
               "HelenAPITests", "HelenBlockTests", "HelenBlockchainTests", "HelenClientTests",
-              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests", 
+              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
               "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
               "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
-              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
-              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
-              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
-              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests"
+              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests",
+              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests",
+              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest",
+              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests"
              ]
 
 suiteList = {
@@ -86,7 +86,7 @@ suiteList = {
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
    "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
    "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
-   "EthRegressionTests": eth_regression_tests.EthRegressionTests,
+   "EthRegressionTests": "suites/eth_regression_tests.py",
    "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
    "PerformanceTests": "suites/performance_tests.py",
    "UiTests": ui_tests.UiTests,
@@ -357,7 +357,7 @@ def main():
       import util.infra
       folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
       util.infra.overrideDefaultZones(args.zoneOverride, folder)
-   
+
    #Valid Test Suite List? 
    allSuitesValid = True
    unKnownSuites = []
@@ -367,10 +367,12 @@ def main():
          unKnownSuites.append(suiteName)
       else:
          allSuitesValid = (allSuitesValid and True)
-   
+
    if not allSuitesValid :
       log.error("Unknown Suites found: {}".format(unKnownSuites))
       log.info("Available Test Suites {}".format([*suiteList]))
+      try: raise Exception("Unknown test suite")
+      except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(3)
 
    for i, suiteName in enumerate(args.suites.split(",")):
