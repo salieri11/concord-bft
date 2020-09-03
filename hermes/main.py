@@ -51,7 +51,7 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
-              "MetadataPersistencyTests", "UiTests"
+              "MetadataPersistencyTests", "UiTests", "SampleDAppTests" 
              ]
 
 suiteList = {
@@ -85,7 +85,7 @@ suiteList = {
    "DamlPreexecutionTests": "suites/daml_tests.py",
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
-   "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
+   "SampleDAppTests":"suites/sample_dapp_tests.py",
    "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
