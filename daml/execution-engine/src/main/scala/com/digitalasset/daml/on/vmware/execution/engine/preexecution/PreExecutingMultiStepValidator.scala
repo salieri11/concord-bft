@@ -50,6 +50,8 @@ class PreExecutingMultiStepValidator(
             "Pre-execution validation completed, " +
               s"correlationId=${preExecutionRequest.correlationId} " +
               s"participantId=${preExecutionRequest.submittingParticipantId} " +
+              s"minRecordTime=${preExecutionResult.minRecordTime} " +
+              s"maxRecordTime=${preExecutionResult.maxRecordTime} " +
               s"readSetSize=${preExecutionResult.readSet.size} " +
               s"successWriteSetSize=${preExecutionResult.successWriteSet.size} " +
               s"outOfTimeBoundsWriteSetSize=${preExecutionResult.outOfTimeBoundsWriteSet.size} ")

@@ -35,28 +35,29 @@ public class DamlLedgerApiUtil {
         StringBuilder builder = new StringBuilder();
 
         builder.append("export INDEXDB_HOST=daml_index_db");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
 
         builder.append("export INDEXDB_PORT=5432");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
 
         builder.append("export INDEXDB_USER=indexdb");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
 
         builder.append("export REPLICAS=" + getReplicas(nodeInfo.getProperties()));
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
 
         builder.append("export JAVA_OPTS=\"-XX:+UseG1GC -Xmx10G "
                        + "-XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
 
         builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831\"");
+        builder.append(System.lineSeparator());
 
         addProperties(builder, nodeInfo);
-
         addBftClient(builder, nodeInfo.getProperties());
+        addPreexecutionThreshold(builder, nodeInfo.getProperties());
 
-        return builder.toString();
+        return builder.toString().trim();
     }
 
     private String getReplicas(Properties properties) {
@@ -72,9 +73,20 @@ public class DamlLedgerApiUtil {
         if (properties.getValuesMap()
                 .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
                 .equalsIgnoreCase("True")) {
-            builder.append(System.getProperty("line.separator"));
             builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
                     + BftClientConfigUtil.configPath + "\"");
+            builder.append(System.lineSeparator());
+        }
+    }
+
+    private void addPreexecutionThreshold(StringBuilder builder, Properties properties) {
+        if (properties.getValuesMap()
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "False")
+                .equalsIgnoreCase("True")) {
+            builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
+            builder.append(properties.getValuesMap()
+                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0"));
+            builder.append(System.lineSeparator());
         }
     }
 
@@ -89,8 +101,8 @@ public class DamlLedgerApiUtil {
         // Add auth token
         var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.toString());
         if (!Strings.isNullOrEmpty(authToken)) {
-            builder.append(System.getProperty("line.separator"));
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
+            builder.append(System.lineSeparator());
         }
         addClientGroupId(builder, nodeInfo, properties);
     }
@@ -99,13 +111,12 @@ public class DamlLedgerApiUtil {
         // Add client group id
         var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.toString());
         if (!Strings.isNullOrEmpty(clientGroupId)) {
-            builder.append(System.getProperty("line.separator"));
-
             // TODO Remove the convertor after new release.
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(clientGroupId));
+            builder.append(System.lineSeparator());
         } else {
-            builder.append(System.getProperty("line.separator"));
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeInfo.getId()));
+            builder.append(System.lineSeparator());
         }
     }
 

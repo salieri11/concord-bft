@@ -1093,8 +1093,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
          if not os.path.exists(results_dir):
             os.makedirs(results_dir)
 
-         testsuite_cmd = python + " " + test_set["test"] + " --replicasConfig " + replica_config + " --logLevel DEBUG"
-         test_cmd = testsuite_cmd.split(' ') + ["--resultsDir", results_dir]
+         test_cmd = [python] + test_set["test_command"] + ["--replicasConfig", replica_config, "--resultsDir", results_dir]
 
          log.info("{}. {}...".format(test_count+1, test_set["testname"]))
          status, msg = execute_ext_command(test_cmd, verbose=False)
@@ -2249,3 +2248,22 @@ def getClientNodes(num_groups, client_zone_ids):
 
    log.debug("client nodes {}".format(client_nodes))
    return client_nodes
+
+def getNetworkIPAddress(interface="ens160"):
+   command = ["/sbin/ifconfig", interface]
+   ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   ifconfig_output.check_returncode()
+   if ifconfig_output.stderr:
+      log.error("ifconfig stderr: {}".format(ifconfig_output.stderr))
+   log.debug("ifconfig output: {}".format(ifconfig_output.stdout.decode()))
+   host_ip = None
+   for line in ifconfig_output.stdout.decode().split('\n'):
+      fields = line.split()
+      log.info("***** fields: {}".format(fields))
+      if fields[0] == 'inet':
+         if ":" in fields[1]:
+            host_ip = fields[1].split(':')[1]
+         else:
+            host_ip = fields[1]
+         break
+   return host_ip

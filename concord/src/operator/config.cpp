@@ -149,6 +149,14 @@ Config Config::parse(const char* path) {
   auto config = Config{};
   config.comm_config = loadCommConfig(conc_config);
   config.client_config = loadClientConfig(conc_config, config.comm_config);
+  if (conc_config.hasValue<std::string>("signing_key_path")) {
+    config.signing_key_path =
+        conc_config.getValue<std::string>("signing_key_path");
+  } else {
+    LOG_ERROR(
+        logger,
+        "No signingKeyPath, the operator won't be able to sign any message");
+  }
   return config;
 }
 

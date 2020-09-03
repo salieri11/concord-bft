@@ -12,7 +12,7 @@ final class KVBCGraphMetricsEndpoint(registry: MetricRegistry, context: ServletC
 
   val indexFile = "index.html"
   val resourceUri: URI =
-    new URI(this.getClass.getResource(s"/assets/$indexFile").toString().dropRight(indexFile.length))
+    new URI(this.getClass.getResource(s"/assets/$indexFile").toString.dropRight(indexFile.length))
   val resource: Resource = Resource.newResource(resourceUri)
   context.setBaseResource(resource)
 

@@ -285,23 +285,7 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
                                                         "ports")
                 config_service_port = ports[0].split(':')[0]
                 config_service_rest_port = ports[1].split(':')[0]
-                command = ["/sbin/ifconfig", "ens160"]
-                ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                ifconfig_output.check_returncode()
-                if ifconfig_output.stderr:
-                    log.error("ifconfig stderr: {}".format(ifconfig_output.stderr))
-                log.debug("ifconfig output: {}".format(ifconfig_output.stdout.decode()))
-                host_ip = None
-                for line in ifconfig_output.stdout.decode().split('\n'):
-                    fields = line.split()
-                    log.info("***** fields: {}".format(fields))
-                    if fields[0] == 'inet':
-                        if ":" in fields[1]:
-                            host_ip = fields[1].split(':')[1]
-                        else:
-                            host_ip = fields[1]
-                        break
-
+                host_ip = helper.getNetworkIPAddress("ens160")
                 log.info("Updating configService grpc[\"address\"] to: {}:{}".format(host_ip, config_service_port))
                 log.info("Updating configService rest[\"address\"] to: {}:{}".format(host_ip, config_service_rest_port))
 

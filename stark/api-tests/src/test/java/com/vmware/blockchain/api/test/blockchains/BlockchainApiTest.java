@@ -8,6 +8,8 @@ import java.util.logging.Logger;
 import org.junit.Test;
 
 import com.vmware.blockchain.api.test.base.ApiTestBase;
+import com.vmware.blockchain.api.test.config.ApiTestConfig;
+import com.vmware.blockchain.api.test.util.ConfigUtil;
 
 import io.swagger.client.ApiException;
 import io.swagger.client.api.BlockchainsApi;
@@ -45,11 +47,14 @@ public class BlockchainApiTest extends ApiTestBase {
      */
     @Test
     public void blockchainPostTest() throws ApiException {
-        api.getApiClient().setBasePath("http://localhost:8080/api");
-        api.getApiClient().addDefaultHeader("Content-Type", "application/json");
+        // Get the config object to read the custom/default values.
+        ApiTestConfig apiTestConfig = ConfigUtil.getApiTestConfig();
 
-        String accessToken = authMap.get("access_token");
-        api.getApiClient().addDefaultHeader(AUTH_HEADER_NAME, accessToken);
+        api.getApiClient().setBasePath(apiTestConfig.getApiServiceUrl());
+        api.getApiClient().addDefaultHeader(apiTestConfig.HTTP_ACCEPT_PARAM, apiTestConfig.HTTP_ACCEPT_TYPE_JSON);
+
+        String accessToken = authMap.get(apiTestConfig.ACCESS_TOKEN_PARAM);
+        api.getApiClient().addDefaultHeader(apiTestConfig.getCspAuthHeader(), accessToken);
         logger.info("API base path: " + api.getApiClient().getBasePath());
         logger.info("API user authentication: " + api.getApiClient().getAuthentications());
 
@@ -58,7 +63,7 @@ public class BlockchainApiTest extends ApiTestBase {
         List<ClientNode> clientNodes = new ArrayList<>();
         ClientNode cNode = new ClientNode();
         cNode.setZoneId(UUID.randomUUID());
-        cNode.setAuthUrlJwt("token");
+        cNode.setAuthUrlJwt(apiTestConfig.TOKEN_PARAM);
         body.setClientNodes(clientNodes);
         body.setConsortiumId(UUID.randomUUID());
         List<UUID> replicaZones = new ArrayList<>();

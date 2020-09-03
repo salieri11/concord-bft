@@ -7,6 +7,7 @@
 #
 #########################################################################
 
+import json
 import traceback
 import random
 import threading
@@ -416,7 +417,7 @@ def deregister_blockchain(org_name, bc_id, service):
 
   if bc_id == "all":
     resp = req.getBlockchains()
-    
+
     for bc in resp:
       resp = req.deregisterBlockchain(bc["id"])
       log.info("response: {}".format(resp))
@@ -424,6 +425,182 @@ def deregister_blockchain(org_name, bc_id, service):
     log.info("Deregistering blockchain {} from {}".format(bc_id, service))
     resp = req.deregisterBlockchain(bc_id)
     log.info("Response: {}".format(resp))
-    
+
   resp = req.getBlockchains()
   log.info("Blockchains remaining: {}".format(resp))
+
+
+def get_blockchain_nodes(org_name, bc_id, service):
+  '''
+  Utility method to get blockchain node information in a format which is compatible
+  with the --replicasConfig parameter of Hermes.
+  '''
+  token_descriptor = {
+    "org": org_name,
+    "user": "vmbc_test_con_admin",
+    "role": auth.ROLE_CON_ADMIN
+  }
+
+  req = rest.request.Request("get_blockchain_nodes",
+                             "get_blockchain_nodes",
+                             service,
+                             None,
+                             tokenDescriptor=token_descriptor,
+                             service=service)
+
+  log.info("Getting node information for {} from {}".format(bc_id, service))
+  participants = req.get_participant_details(bc_id)
+
+  replicas = req.getReplicas(bc_id)
+
+  output = {
+    "daml_committer": [],
+    "daml_participant": []
+  }
+
+  for p in participants:
+    output["daml_participant"].append(p)
+
+  for r in replicas:
+    output["daml_committer"].append(r)
+
+  output = json.dumps(output, indent=4)
+  log.info(output)
+  return output
+
+
+def wait_for_docker_startup(host, user, password, container_names):
+  '''
+  Given a host, creds, and list of services, wait for them to be up.
+  Raises an exception on failure.
+  '''
+  log.info("Waiting for docker startup for {}".format(host))
+  needs_wait = False
+  reachable = False
+  wait_time = 60
+
+  while not reachable and wait_time > 0:
+    statuses = helper.ssh_connect(host,
+                                  user, password,
+                                  "docker ps -a --format '{{ .Names }}\t\t{{ .Status }}'")
+    if statuses:
+      reachable = True
+    else:
+      time.sleep(1)
+      wait_time -= 1
+
+  if not reachable:
+    raise Exception("VM {} was not reachable".format(host))
+
+  statuses = statuses.split("\n")
+  log.info("  Statuses:")
+  for status in statuses:
+    log.info("    {}".format(status))
+
+    if "Exited" in status or "Restarting" in status or "Paused" in status:
+      needs_wait = True
+
+  if needs_wait:
+    log.info("Waiting for containers to come up")
+    time.sleep(10)
+    wait_time = 60
+    all_up = False
+
+    while not all_up and wait_time > 0:
+      all_up = True
+      statuses = helper.ssh_connect(host,
+                                    user, password,
+                                    "docker ps -a --format '{{ .Names }} {{ .Status }}'")
+      statuses = statuses.split("\n")
+      log.info("  Statuses:")
+
+      for name in container_names:
+        name_found = False
+
+        for status in statuses:
+          if status.split(" ")[0] == name:
+            name_found = True
+            break
+
+        if not name_found:
+          log.info("Docker container {} not found yet".format(name))
+          all_up = False
+          time.sleep(1)
+          wait_time -= 1
+          continue
+
+      for status in statuses:
+        log.info("    {}".format(status))
+        if "Restarting" in status or "Exited" in status:
+          all_up = False
+          time.sleep(1)
+          wait_time -= 1
+          continue
+
+    if wait_time <= 0:
+      raise Exception("Docker startup failed")
+
+
+def pause_services(host, user, password, services):
+  '''
+  services: A list of the docker containers to pause.
+  '''
+  for svc in services:
+    log.info("Pausing {}".format(svc))
+    cmd = "docker pause {}".format(svc)
+    helper.ssh_connect(host, user, password, cmd)
+
+
+def unpause_services(host, user, password, services):
+  '''
+  services: A list of the docker containers to unpause.
+  '''
+  for svc in services:
+    log.info("Unpausing {}".format(svc))
+    cmd = "docker unpause {}".format(svc)
+    helper.ssh_connect(host, user, password, cmd)
+
+
+def stop_services(host, user, password, services):
+  '''
+  services: A list of the docker containers to stop.
+  '''
+  for svc in services:
+    log.info("Stopping {} on {}".format(svc, host))
+    cmd = "docker stop {}".format(svc)
+    helper.ssh_connect(host, user, password, cmd)
+
+
+def start_services(host, user, password, services):
+  '''
+  services: A list of the docker containers to start.
+  '''
+  for svc in services:
+    log.info("Starting {} on {}".format(svc, host))
+    cmd = "docker start  {}".format(svc)
+    helper.ssh_connect(host, user, password, cmd)
+
+
+def shutdown(host, timeout=10):
+  '''
+  Gets a VM handle before shutting down the VM, and returns the handle.
+  The handle is needed to power it back on.
+  '''
+  vm = infra.findVMByInternalIP(host)
+  vm["entity"].PowerOffVM_Task()
+  time.sleep(timeout)
+  return vm
+
+
+def powerup(vm, timeout=20):
+  '''
+  The vm parameter is a vim handle returned by, for example, shutdown().
+  '''
+  vm["entity"].PowerOnVM_Task()
+  time.sleep(timeout)
+
+
+def reboot(host, timeout=20):
+  log.info("Node {} rebooting".format(host))
+  vm = shutdown(host, timeout)
+  powerup(vm, timeout)

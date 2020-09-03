@@ -226,6 +226,18 @@ class Product():
          raise Exception("The docker compose file list contains an invalid value.")
 
 
+   def _getConfigRunCommand(self, configVolumePath, concordRepo, concordTag, concordCfg, configType):
+       runCommand = ["docker", "run", "--mount"]
+       runCommand += ["type=bind,source=" + configVolumePath + \
+                      ",destination=/concord/config"]
+       imageName = concordRepo + ":" + concordTag
+       runCommand += [imageName]
+       runCommand += ["/concord/conc_genconfig"]
+       runCommand += ["--configuration-input", concordCfg]
+       runCommand += ["--configuration-type", configType]
+       runCommand += ["--output-name", f"/concord/config/{configType}"]
+       return runCommand
+
    def _generateConcordConfiguration(self, concordCfg):
        '''
        Runs Concord configuration generation for the test Concord cluster that
@@ -268,14 +280,21 @@ class Product():
        if not os.path.isabs(configVolumePath):
            configVolumePath = os.path.join(os.getcwd(), configVolumePath)
 
-       runCommand = ["docker", "run", "--mount"]
-       runCommand += ["type=bind,source=" + configVolumePath + \
-                      ",destination=/concord/config"]
-       imageName = concordRepo + ":" + concordTag
-       runCommand += [imageName]
-       runCommand += ["/concord/conc_genconfig"]
-       runCommand += ["--configuration-input", concordCfg]
-       runCommand += ["--output-name", "/concord/config/concord"]
+       runCommand = self._getConfigRunCommand(configVolumePath, concordRepo, concordTag, concordCfg, "application")
+
+       completedProcess = subprocess.run(runCommand, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+
+       completedProcess.check_returncode()
+
+       runCommand = self._getConfigRunCommand(configVolumePath, concordRepo, concordTag, concordCfg, "deployment")
+
+       completedProcess = subprocess.run(runCommand, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+
+       completedProcess.check_returncode()
+
+       runCommand = self._getConfigRunCommand(configVolumePath, concordRepo, concordTag, concordCfg, "secrets")
 
        completedProcess = subprocess.run(runCommand, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)

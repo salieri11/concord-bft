@@ -23,7 +23,7 @@ if [[ $# -gt 0 ]]; then
     PUBPATH=$1
     shift
 else
-    PUBPATH="./config-public/concord"
+    PUBPATH="./config-public/"
 fi
 
 if [[ $# -gt 0 ]]; then
@@ -31,20 +31,26 @@ if [[ $# -gt 0 ]]; then
 else
     # Default
     PREFIX="./config-concord"
-    SUFFIX="/concord.config"
-    for f in $(ls config-public/concord*.config); do
+    for f in $(ls config-public/application*.config); do
         # Get the replica number
         NUM=${f%.config}
-        NUM=${NUM##*/concord}
+        NUM=${NUM##*/application}
 
         # Create destination directory
         mkdir -p ${PREFIX}${NUM}
 
-        PRIVPATHS+=("${PREFIX}${NUM}${SUFFIX}")
+        PRIVPATHS+=("${PREFIX}${NUM}")
     done
 fi
 
+function getFileName() {
+    echo "/$1$2.config"
+}
+
 for i in $(seq 1 ${#PRIVPATHS[@]}); do
-    CONFIGPATH="${PUBPATH}${i}.config"
-    mv -f ${CONFIGPATH} "${PRIVPATHS[i - 1]}"
+
+    mv -f ${PUBPATH}$(getFileName application $i) ${PRIVPATHS[i - 1]}$(getFileName application)
+    mv -f ${PUBPATH}$(getFileName deployment $i) "${PRIVPATHS[i - 1]}$(getFileName deployment)"
+    mv -f ${PUBPATH}$(getFileName secrets $i) "${PRIVPATHS[i - 1]}$(getFileName secrets)"
+    
 done

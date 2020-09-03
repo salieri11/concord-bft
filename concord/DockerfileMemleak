@@ -21,4 +21,6 @@ RUN apt-get update \
 
 # Set working directory and start.
 WORKDIR /concord
-CMD ["/concord/concord","-c","/concord/config-local/concord.config"]
+CMD ["/concord/concord","-a","/concord/config-local/application.config", \
+                        "-d","/concord/config-local/deployment.config", \
+                        "-s","/concord/config-local/secrets.config"]

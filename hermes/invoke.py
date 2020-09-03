@@ -124,7 +124,7 @@ def capturePipelineError(args, options, secret):
 def resetIPAM(args, options, secret):
   ''' Usage, DRY RUN, provide target segments:
       a[0]: targetSegments, e.g. "sddc1.mr.*, sddc4.mr.cloud" or "sddc1.*, sddc2.*, sddc3.*"
-    
+
       Usage, actual reset, provide COMMENCE flag first and then target segments:
       a[0]: "COMMENCE"
       a[1]: targetSegments e.g. "sddc1.mr.*, sddc4.mr.cloud" or "sddc1.*, sddc2.*, sddc3.*"
@@ -157,7 +157,7 @@ def zonesOverride(args, options, secret):
   '''
   a = prepareArgs(args)
   infra.overrideDefaultZones(targetSegments=a[0], targetFolder=a[1])
-  
+
 def zonesRestore(args, options, secret):
   '''Restores the overridden zone_config.json'''
   a = prepareArgs(args)
@@ -231,6 +231,30 @@ def deregisterBlockchain(args, options, secret):
   ops.deregister_blockchain(orgName, bcId, service)
 
 
+def getBlockchainNodes(args, options, secret):
+  '''
+  Utility method to get blockchain node information in a format which is compatible
+  with the --replicasConfig parameter of Hermes.
+
+  args[0]: Name of an org which contains the user vmbc_test_con_admin.
+  args[1]: Blockchain ID
+  args[2]: Service, optional.  Defaults to util.auth.SERVICE_STAGING.
+
+  Sample invocation:
+    python invoke.py getBlockchainNodes --param system_test_master 0123456789
+  '''
+  a = prepareArgs(args)
+  orgName = args[0]
+  bcId = args[1]
+
+  if len(args) > 2:
+    service = args[2]
+  else:
+    service = util.auth.SERVICE_STAGING
+
+  ops.get_blockchain_nodes(orgName, bcId, service)
+
+
 def getZones(args, options, secret):
   '''
   Utility method to get zones
@@ -295,6 +319,7 @@ DISPATCH = {
   # Blockchain-related functions
   "resetBlockchain" : resetBlockchain,
   "deregisterBlockchain": deregisterBlockchain,
+  "getBlockchainNodes": getBlockchainNodes,
 
   # Patch an org
   "patchOrg": patchOrg,

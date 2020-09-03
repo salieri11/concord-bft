@@ -16,7 +16,7 @@ import com.digitalasset.kvbc.daml_validator.{
   PreExecutionOutput => ProtoPreExecutionOutput
 }
 import com.google.protobuf.ByteString
-import com.vmware.concord.concord.{PreExecutionResult, ReadSet}
+import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.scalatest.{AsyncWordSpec, Matchers}
@@ -63,6 +63,37 @@ class PreExecutingMultiStepValidatorSpec extends AsyncWordSpec with Matchers wit
           .of(preexecutionRequest = Some(anEmptyPreExecutionRequest), readResult = None))
         .map { actual =>
           actual shouldBe anEmptyPreExecuteResponse
+        }
+    }
+
+    "convert read set from pre-execution output" in {
+      val expectedReadSet = ReadSet.of(
+        Seq(
+          "a" -> "b",
+          "c" -> "d"
+        ).map {
+          case (key, value) =>
+            KeyAndFingerprint.of(ByteString.copyFromUtf8(key), ByteString.copyFromUtf8(value))
+        })
+      val mockValidator = mock[PreExecutingSubmissionValidator[KeyValuePairsWithAccessControlList]]
+      val inputReadSet = expectedReadSet.keysWithFingerprints.map { keyAndValue =>
+        keyAndValue.key -> keyAndValue.fingerprint
+      }
+      val aPreExecutionOutputWithReadSet = aPreExecutionOutput.copy(readSet = inputReadSet)
+      when(
+        mockValidator
+          .validate(any(), anyString(), any(), any())(any())
+      ).thenReturn(Future.successful(aPreExecutionOutputWithReadSet))
+      val instance = new PreExecutingMultiStepValidator(
+        mockValidator,
+        () => Cache.none,
+        aKeySerializationStrategy)
+
+      instance
+        .preExecute(PreExecuteRequest
+          .of(preexecutionRequest = Some(anEmptyPreExecutionRequest), readResult = None))
+        .map { actual =>
+          actual.getPreexecutionResult.readSet shouldBe Some(expectedReadSet)
         }
     }
 
@@ -121,7 +152,7 @@ class PreExecutingMultiStepValidatorSpec extends AsyncWordSpec with Matchers wit
       Set(ParticipantId.assertFromString(aParticipantId))
     )
 
-  private val anEmptyProtoPreExcutionOutput =
+  private val anEmptyProtoPreExecutionOutput =
     ProtoPreExecutionOutput.of(
       None,
       None,
@@ -135,7 +166,7 @@ class PreExecutingMultiStepValidatorSpec extends AsyncWordSpec with Matchers wit
     PreExecuteResponse().withPreexecutionResult(
       PreExecutionResult.of(
         Some(ReadSet()),
-        Some(anEmptyProtoPreExcutionOutput.toByteString),
+        Some(anEmptyProtoPreExecutionOutput.toByteString),
         Some(""),
       ))
 }

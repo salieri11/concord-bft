@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.NodeStartupOrchestrator;
+import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.HealthStatusResponse;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
@@ -33,16 +34,19 @@ public class NodeComponentController {
     private final ConcordAgentConfiguration concordAgentConfiguration;
     private final NodeStartupOrchestrator nodeStartupOrchestrator;
     private final NodeComponentHealthFactory nodeComponentHealthFactory;
+    private final HealthCheckScheduler healthCheckScheduler;
 
     @Autowired
     public NodeComponentController(AgentDockerClient agentDockerClient,
                                    ConcordAgentConfiguration concordAgentConfiguration,
                                    NodeStartupOrchestrator nodeStartupOrchestrator,
-                                   NodeComponentHealthFactory nodeComponentHealthFactory) {
+                                   NodeComponentHealthFactory nodeComponentHealthFactory,
+                                   HealthCheckScheduler healthCheckScheduler) {
         this.agentDockerClient = agentDockerClient;
         this.concordAgentConfiguration = concordAgentConfiguration;
         this.nodeStartupOrchestrator = nodeStartupOrchestrator;
         this.nodeComponentHealthFactory = nodeComponentHealthFactory;
+        this.healthCheckScheduler = healthCheckScheduler;
     }
 
     /**
@@ -94,6 +98,28 @@ public class NodeComponentController {
                 : ConcordComponent.ServiceType.DAML_LEDGER_API;
         log.info("Daml service type on node: {}", serviceType);
         return getHealthResponse(serviceType);
+    }
+
+    @RequestMapping(path = "/api/health/stop", method = RequestMethod.POST)
+    ResponseEntity<String> stopHealthCheck() {
+        log.info("Receieved manual request to suspend health check...");
+        try {
+            healthCheckScheduler.stopHealthCheck();
+            return new ResponseEntity<>("Health check suspended.", HttpStatus.OK);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(ex.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @RequestMapping(path = "/api/health/start", method = RequestMethod.POST)
+    ResponseEntity<String> startHealthCheck() {
+        log.info("Receieved manual request to resume health check...");
+        try {
+            healthCheckScheduler.startHealthCheck();
+            return new ResponseEntity<>("Health check resumed.", HttpStatus.OK);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(ex.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     private ResponseEntity<HealthStatusResponse> getHealthResponse(ConcordComponent.ServiceType serviceType) {

@@ -24,7 +24,7 @@ public class ConcordHealth implements ComponentHealth {
     public HealthStatusResponse getHealth() {
         /** TODO: UNIMPLEMENTED. */
         List<Tag> tags = Collections.singletonList(
-                Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.name(), "concord"));
+                Tag.of(MetricsConstants.MetricsTags.TAG_COMPONENT.metricsTagName, "concord"));
         this.metricsAgent.gauge(1, "concord health status",
                 MetricsConstants.MetricsNames.CONCORD_HEALTH_STATUS, tags);
         return HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.HEALTHY).build();

@@ -54,11 +54,16 @@ Sliver CreateSliver(const string& content) {
   return CreateSliver(content.c_str(), content.size());
 }
 
-Sliver CreateDamlKvbKey(const string& content) {
-  // TODO: This should be hidden in a separate DAML storage implementation
+// TODO: This should be hidden in a separate DAML storage implementation
+string PrefixDamlKey(const string& content) {
   string full_key(content);
   full_key.insert(0, &concord::storage::kKvbKeyDaml,
                   sizeof(concord::storage::kKvbKeyDaml));
+  return full_key;
+}
+
+Sliver CreateDamlKvbKey(const string& content) {
+  string full_key = PrefixDamlKey(content);
   return CreateSliver(full_key.c_str(), full_key.size());
 }
 
@@ -391,10 +396,8 @@ com::vmware::concord::ReadSet DamlKvbCommandsHandler::ReadSetToRaw(
   com::vmware::concord::ReadSet output_read_set;
   for (const auto& kf : input_read_set.keys_with_fingerprints()) {
     auto output_kf = output_read_set.add_keys_with_fingerprints();
-    string decorated_key(kf.key());
-    decorated_key.insert(0, &concord::storage::kKvbKeyDaml,
-                         sizeof(concord::storage::kKvbKeyDaml));
-    output_kf->set_key(std::move(decorated_key));
+    string prefixed_key = PrefixDamlKey(kf.key());
+    output_kf->set_key(std::move(prefixed_key));
     output_kf->set_fingerprint(kf.fingerprint());
   }
   return output_read_set;

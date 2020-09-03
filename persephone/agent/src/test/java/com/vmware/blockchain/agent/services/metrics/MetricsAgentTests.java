@@ -5,6 +5,7 @@
 package com.vmware.blockchain.agent.services.metrics;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -12,11 +13,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /**
  * Test class for {@link MetricsAgent}.
@@ -26,12 +31,16 @@ public class MetricsAgentTests {
     private static MetricsAgent metricsAgent;
     private static List<Tag> additionalTags;
 
+    private static MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @BeforeAll
     static void setUp() {
-        List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(), "unit_test"));
-        additionalTags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "testCounter"),
-                Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.name(), "unitTesting"));
+        List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
+                "unit_test"));
+        additionalTags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "testCounter"),
+                Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName, "unitTesting"));
         metricsAgent = new MetricsAgent(tags);
+        ReflectionTestUtils.setField(metricsAgent, "meterRegistry", meterRegistry);
     }
 
     @Test
@@ -41,7 +50,7 @@ public class MetricsAgentTests {
                 additionalTags);
 
         counter.increment();
-        Assertions.assertTrue(counter.count() == 1);
+        Assertions.assertEquals(1, counter.count());
         verifyNamesAndTags(counter.getId(), MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES);
     }
 
@@ -77,11 +86,11 @@ public class MetricsAgentTests {
     }
 
     private void verifyNamesAndTags(Meter.Id meterId, MetricsConstants.MetricsNames metricName) {
-        Assertions.assertEquals(meterId.getName(), metricName.name());
+        Assertions.assertEquals(meterId.getName(), metricName.metricsName);
         Assertions.assertEquals(meterId.getTags().size(), 3);
-        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_IMAGE.name()), "unitTesting");
-        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_METHOD.name()), "testCounter");
-        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_SERVICE.name()), "unit_test");
+        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName), "unitTesting");
+        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName), "testCounter");
+        Assertions.assertEquals(meterId.getTag(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName), "unit_test");
     }
 }
 

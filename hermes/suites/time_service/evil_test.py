@@ -109,7 +109,10 @@ def test_publish_as_other(fxBlockchain):
    unsuccessful_mod_count = 0
    for n in range(1, len(samples)+1):
       concord = util.blockchain.eth.get_concord_container_name(n)
-      output = run_conc_time(concord, "-l -c /concord/config-local/concord.config -s {} -t {}".format(target, test_target_value))
+      output = run_conc_time(concord, "-l --app /concord/config-local/application.config \
+                                          --depl /concord/config-local/deployment.config \
+                                          --secr /concord/config-local/secrets.config \
+                                       --source {} -t {}".format(target, test_target_value))
 
       new_samples = extract_samples_from_response(output)
       if new_samples.get(target) == test_target_value:
@@ -134,7 +137,10 @@ def find_source_container(source):
    containerIndex = 1
    container = util.blockchain.eth.get_concord_container_name(containerIndex)
    while container:
-      output = run_conc_time(container, "-c /concord/config-local/concord.config -t 0 -n")
+      output = run_conc_time(container, "--app /concord/config-local/application.config \
+                                         --depl /concord/config-local/deployment.config \
+                                         --secr /concord/config-local/secrets.config \
+                                         -t 0 -n")
       if output.find(source) > 0:
          log.info("Found time source '{}' in container '{}'".format(source, container))
          return container
@@ -210,7 +216,10 @@ def run_faulty_clock(faulty_time):
       # Publish our skewed time. The '-s' parameter is not needed
       # here, but is a nice way to make sure that
       # find_source_container returned the correct response.
-      output = run_conc_time(concordContainer, args="-g -l -c /concord/config-local/concord.config -s {} -t {}".format(test_target_source, test_target_time))
+      output = run_conc_time(concordContainer, args="-g -l --app /concord/config-local/application.config \
+                                                           --depl /concord/config-local/deployment.config \
+                                                           --secr /concord/config-local/secrets.config \
+                                                     --source {} -t {}".format(test_target_source, test_target_time))
       summary = extract_time_summary_response(output)
       samples = extract_samples_from_response(output)
 

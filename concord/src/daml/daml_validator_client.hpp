@@ -85,6 +85,10 @@ class DamlValidatorClient : public IDamlValidatorClient {
       com::vmware::concord::PreExecutionResult* pre_execution_result) override;
 
  private:
+  void SetAndLogPreExecutionResult(
+      com::digitalasset::kvbc::PreExecuteResponse& pre_execute_response,
+      com::vmware::concord::PreExecutionResult* pre_execution_result);
+
   grpc::Status PreExecuteViaStreamingProtocol(
       const std::string& submission, const std::string& participant_id,
       const std::string& correlation_id, const opentracing::Span& parent_span,
@@ -106,13 +110,6 @@ class DamlValidatorClient : public IDamlValidatorClient {
       google::protobuf::RepeatedPtrField<
           com::digitalasset::kvbc::ProtectedKeyValuePair>* write_set,
       std::vector<KeyValuePairWithThinReplicaIds>* result);
-
-  static void MangleDamlPreExecutionOutputForConcord(
-      da_kvbc::PreExecutionOutput& pre_execution_output);
-  static void MangleDamlWriteSetForConcord(
-      da_kvbc::WriteSet* mutable_write_set);
-  static void MangleDamlAclForConcord(
-      da_kvbc::AccessControlList* mutable_access);
 
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::StubInterface>
       stub_;

@@ -34,18 +34,11 @@ auto registry =
 // pair for the operator privileged to issue pruning commands, add the public
 // key for that key pair to the provided ConcordConfiguration object, and return
 // the private key from that key pair for use in the testing.
-std::unique_ptr<AsymmetricPrivateKey> ConfigureOperatorKey(
-    ConcordConfiguration& config) {
-  config.declareParameter("reconfiguration_operator_public_key",
+void ConfigureOperatorKey(ConcordConfiguration& config) {
+  config.declareParameter("signing_key_path",
                           "Public key for the privileged operator authorized "
                           "to issue reconfiguration commands.");
-
-  std::pair<std::unique_ptr<AsymmetricPrivateKey>,
-            std::unique_ptr<AsymmetricPublicKey>>
-      operator_key_pair = GenerateAsymmetricCryptoKeyPair("secp256r1");
-  config.loadValue("reconfiguration_operator_public_key",
-                   operator_key_pair.second->Serialize());
-  return move(operator_key_pair.first);
+  config.loadValue("signing_key_path", "./resources/signing_keys");
 }
 
 ConcordConfiguration defaultTestConfig() {
@@ -85,7 +78,7 @@ auto test_span =
  */
 TEST(reconfiguration_sm_test, create_rsm) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  ConfigureOperatorKey(config);
   EXPECT_NO_THROW(ReconfigurationSM rsm(config, registry));
 }
 
@@ -94,7 +87,7 @@ TEST(reconfiguration_sm_test, create_rsm) {
  */
 TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest reconfig_sm_req;
@@ -110,9 +103,10 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
  */
 TEST(reconfiguration_sm_test, reject_invalid_command) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
   rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
@@ -133,13 +127,6 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   reconfig_sm_req.set_signature("hello world");
   rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
-
-  // Test that signature with a different key will be rejected
-  auto config2 = defaultTestConfig();
-  priv_key = ConfigureOperatorKey(config2);
-  reconfig_sm_req.set_signature(priv_key->Sign("hello world"));
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
-  ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
 /*
@@ -147,7 +134,9 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
  */
 TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
   rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
@@ -166,7 +155,9 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
 
 TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
   rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
@@ -189,7 +180,9 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
 
 TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
   rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;
@@ -212,7 +205,9 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
 
 TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
   auto config = defaultTestConfig();
-  auto priv_key = ConfigureOperatorKey(config);
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
   rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
   ReconfigurationSmRequest_UpgradeCommand upgrade_command;

@@ -43,13 +43,14 @@ log = None
 
 pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests", 
               "HelenAPITests", "HelenBlockTests", "HelenBlockchainTests", "HelenClientTests",
-              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests", 
+              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
               "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
               "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
               "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
               "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
-              "ContractCompilerTests", "CastorDeploymentTests"
+              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
+              "MetadataPersistencyTests", "UiTests", "SampleDAppTests" 
              ]
 
 suiteList = {
@@ -80,17 +81,17 @@ suiteList = {
    "ApolloBftTests": "suites/apollo_bft_tests.py",
    "SkvbcStateTransferTests": "suites/skvbc_state_transfer_tests.py",
    "SkvbcPreexecutionTests": "suites/skvbc_preexecution_tests.py",
-   "DamlPreexecutionTests": "suites/daml_preexecution_tests.py",
+   "DamlPreexecutionTests": "suites/daml_tests.py",
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
-   "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
+   "SampleDAppTests":"suites/sample_dapp_tests.py",
    "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
-   "EthRegressionTests": eth_regression_tests.EthRegressionTests,
+   "EthRegressionTests": "suites/eth_regression_tests.py",
    "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
-   "PerformanceTests": performance_tests.PerformanceTests,
-   "UiTests": ui_tests.UiTests,
+   "PerformanceTests": "suites/performance_tests.py",
+   "UiTests": "suites/ui_tests.py",
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
-   "MetadataPersistencyTests": persistency_tests.MetadataPersistencyTests,
+   "MetadataPersistencyTests": "suites/persistency_tests.py"
 }
 
 local_modules = [os.path.join(".", "lib", "persephone")]
@@ -355,7 +356,7 @@ def main():
       import util.infra
       folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
       util.infra.overrideDefaultZones(args.zoneOverride, folder)
-   
+
    #Valid Test Suite List? 
    allSuitesValid = True
    unKnownSuites = []
@@ -365,10 +366,12 @@ def main():
          unKnownSuites.append(suiteName)
       else:
          allSuitesValid = (allSuitesValid and True)
-   
+
    if not allSuitesValid :
       log.error("Unknown Suites found: {}".format(unKnownSuites))
       log.info("Available Test Suites {}".format([*suiteList]))
+      try: raise Exception("Unknown test suite")
+      except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(3)
 
    for i, suiteName in enumerate(args.suites.split(",")):

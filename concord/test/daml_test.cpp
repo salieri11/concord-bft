@@ -44,6 +44,7 @@ using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::PreExecutionResult;
+using com::vmware::concord::TimeRequest;
 using com::vmware::concord::kvb::ValueWithTrids;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
@@ -71,6 +72,8 @@ constexpr size_t OUT_BUFFER_SIZE = 512000;
 const int64_t kCurrentTimeMillis = 12345678;
 google::protobuf::Timestamp kCurrentTime =
     TimeUtil::MillisecondsToTimestamp(kCurrentTimeMillis);
+
+const std::string kReadKey = "read_key";
 
 const auto NEVER = Exactly(0);
 
@@ -242,6 +245,16 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
     return request_string;
   }
 
+  std::string BuildTimeRequest() {
+    ConcordRequest concord_request;
+    TimeRequest time_request;
+    concord_request.mutable_time_request()->MergeFrom(time_request);
+
+    std::string request_string;
+    concord_request.SerializeToString(&request_string);
+    return request_string;
+  }
+
   ConcordRequest BuildConcordRequest() {
     da_kvbc::CommitRequest commit_request;
     commit_request.set_participant_id("participant_id");
@@ -265,17 +278,24 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
     pre_execution_result.set_request_correlation_id(kCorrelationId);
 
-    const std::string read_key = "read_key";
-
     auto* read_set = pre_execution_result.mutable_read_set();
     auto* key_with_fingerprint = read_set->add_keys_with_fingerprints();
-    key_with_fingerprint->set_key(read_key);
+    key_with_fingerprint->set_key(kReadKey);
     key_with_fingerprint->set_fingerprint(
         ConcordCommandsHandler::SerializeFingerprint(read_set_block_height));
 
     concord_response.mutable_pre_execution_result()->MergeFrom(
         pre_execution_result);
 
+    return concord_response;
+  }
+
+  ConcordResponse BuildPreExecutionResponseWithoutReadSet() {
+    ConcordResponse concord_response;
+    PreExecutionResult pre_execution_result;
+    pre_execution_result.set_request_correlation_id(kCorrelationId);
+    concord_response.mutable_pre_execution_result()->MergeFrom(
+        pre_execution_result);
     return concord_response;
   }
 
@@ -367,6 +387,58 @@ TEST_F(DamlKvbCommandsHandlerTest,
   EXPECT_FALSE(actual_response.has_daml_response());
 }
 
+TEST_F(DamlKvbCommandsHandlerTest, PostExecutionFailsWhenNoReadSet) {
+  auto instance = CreateInstance();
+  const ConcordResponse concord_response =
+      BuildPreExecutionResponseWithoutReadSet();
+  std::string request_string;
+  concord_response.SerializeToString(&request_string);
+
+  ASSERT_EQ(1,
+            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+                              request_string.size(), request_string.c_str(),
+                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                              replica_specific_info_size_, span_wrapper_));
+
+  ASSERT_TRUE(reply_size_ > 0);
+  ConcordResponse actual_response;
+  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  EXPECT_EQ(1, actual_response.error_response_size());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PostExecutionNoConflictSameBlockHeightRead) {
+  auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
+  auto instance = CreateInstance(daml_validator_client);
+
+  const BlockId current_block_height = 123;
+  const ConcordResponse concord_response =
+      BuildPreExecutionResponse(current_block_height);
+  std::string request_string;
+  concord_response.SerializeToString(&request_string);
+
+  const Sliver expected_key = CreateDamlKvbKey(kReadKey);
+  EXPECT_CALL(*mock_ro_storage_, get(kLastBlockId, Eq(expected_key), _, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<3>(current_block_height), Return(Status::OK())));
+
+  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
+
+  ASSERT_EQ(0,
+            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+                              request_string.size(), request_string.c_str(),
+                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                              replica_specific_info_size_, span_wrapper_));
+
+  ASSERT_TRUE(reply_size_ > 0);
+  ConcordResponse actual_response;
+  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  EXPECT_TRUE(actual_response.has_daml_response());
+}
+
 TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
   auto daml_validator_client = std::make_unique<MockDamlValidatorClient>();
   auto instance = CreateInstance(daml_validator_client);
@@ -376,8 +448,10 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
 
   const ConcordResponse concord_response =
       BuildPreExecutionResponse(outdated_block_height);
+  std::string request_string;
+  concord_response.SerializeToString(&request_string);
 
-  const Sliver expected_key = CreateDamlKvbKey(std::string{"read_key"});
+  const Sliver expected_key = CreateDamlKvbKey(kReadKey);
   EXPECT_CALL(*mock_ro_storage_, get(kLastBlockId, Eq(expected_key), _, _))
       .Times(1)
       .WillOnce(
@@ -385,17 +459,15 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
 
   EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _)).Times(NEVER);
 
-  std::string req_string;
-  concord_response.SerializeToString(&req_string);
-
   ASSERT_EQ(1,
             instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
-                              req_string.size(), req_string.c_str(),
+                              request_string.size(), request_string.c_str(),
                               OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
                               replica_specific_info_size_, span_wrapper_));
 
-  ConcordResponse actual_response;
   ASSERT_TRUE(reply_size_ > 0);
+  ConcordResponse actual_response;
+  actual_response.ParseFromArray(reply_buffer_, reply_size_);
   EXPECT_FALSE(actual_response.has_daml_response());
   EXPECT_FALSE(actual_response.has_pre_execution_result());
 }
@@ -407,19 +479,19 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetKeyNotFound) {
   const ConcordResponse concord_response =
       BuildPreExecutionResponse(kLastBlockId);
 
-  const Sliver expected_key = CreateDamlKvbKey(std::string{"read_key"});
+  const Sliver expected_key = CreateDamlKvbKey(kReadKey);
   EXPECT_CALL(*mock_ro_storage_, get(_, Eq(expected_key), _, _))
       .Times(1)
-      .WillOnce(Return(Status::NotFound("read_key")));
+      .WillOnce(Return(Status::NotFound(kReadKey)));
 
   EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _)).Times(NEVER);
 
-  std::string req_string;
-  concord_response.SerializeToString(&req_string);
+  std::string request_string;
+  concord_response.SerializeToString(&request_string);
 
   EXPECT_ANY_THROW(instance->execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
-      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, request_string.size(),
+      request_string.c_str(), OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
       replica_specific_info_size_, span_wrapper_));
 }
 
@@ -567,6 +639,17 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
   EXPECT_EQ(kCorrelationId,
             actual_response.pre_execution_result().request_correlation_id());
   EXPECT_FALSE(actual_response.has_daml_response());
+}
+
+TEST_F(DamlKvbCommandsHandlerTest, PreExecuteWithTimeRequestFails) {
+  std::string request_string = BuildTimeRequest();
+  auto instance = CreateInstance();
+
+  EXPECT_DEATH(instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+                                 request_string.size(), request_string.c_str(),
+                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
+                                 replica_specific_info_size_, span_wrapper_),
+               "");
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PreExecuteExecutionEngineReturnsFailure) {

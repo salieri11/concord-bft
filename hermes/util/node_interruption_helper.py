@@ -26,6 +26,8 @@ log = hermes_logging_util.getMainLogger()
 NODE_INTERRUPT = "Interrupt node"
 NODE_RECOVER = "Recover node"
 NODE_INTERRUPT_VM_STOP_START = "VM power off/on"
+ALL_CONTAINERS = "ALL_CONTAINERS"
+NODE_INTERRUPT_CONTAINER_CRASH = "Container Crash"
 
 # Preset keys for NODE_INTERRUPTION_DETAILS
 NODE_TYPE_TO_INTERRUPT = "NODE_TYPE_TO_INTERRUPT"
@@ -35,6 +37,7 @@ SKIP_MASTER_REPLICA = "SKIP_MASTER_REPLICA"
 CUSTOM_INTERRUPTION_PARAMS = "CUSTOM_INTERRUPTION_PARAMS"
 NODE_OFFLINE_TIME = "NODE_OFFLINE_TIME"
 TIME_BETWEEN_INTERRUPTIONS = "TIME_BETWEEN_INTERRUPTIONS"
+CONTAINERS_TO_CRASH = "CONTAINERS_TO_CRASH"
 
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    '''
@@ -46,7 +49,6 @@ def verify_node_interruption_testing_readiness(fxHermesRunSettings):
          log.error("")
          log.error("**** Failed to fetch VM handles; aborting Run! ****")
          sys.exit(1)
-
 
 def get_nodes_available_for_interruption(fxBlockchain,
                                               node_interruption_details):
@@ -76,7 +78,6 @@ def get_nodes_available_for_interruption(fxBlockchain,
       nodes_available_for_interruption))
    return nodes_available_for_interruption
 
-
 def get_f_count(fxBlockchain):
    '''
    Return f count
@@ -84,7 +85,6 @@ def get_f_count(fxBlockchain):
    :return: f count
    '''
    return blockchain_ops.get_f_count(fxBlockchain)
-
 
 def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
                                       node_interruption_details,
@@ -111,7 +111,6 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
          nodes_available_for_interruption[node_index_to_interrupt])
 
    return nodes_to_interrupt, last_interrupted_node_index + 1
-
 
 def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                                            interrupted_node_type,
@@ -260,7 +259,6 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type,
 
    return crashed_committers, crashed_participants
 
-
 def workaround_to_rejoin_node(node):
    '''
    Workaround to automatically rejoin a node when it comes up
@@ -335,9 +333,51 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
             log.error("Failed to '{}' node".format(EXPECTED_POWER_STATE))
             return False
 
-      log.info("Wait for a min... (** THIS SHOULD BE REMOVED AFTER A STABLE RUN **)")
-      time.sleep(60)
-      log.info("{}".format(vm_handle["entity"].runtime.powerState))
+   elif node_interruption_type == NODE_INTERRUPT_CONTAINER_CRASH:
+      if mode == NODE_INTERRUPT:
+         if custom_interruption_params[CONTAINERS_TO_CRASH] == ALL_CONTAINERS:
+            containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"] \
+               ["modelService"]["defaults"]["deployment_components"][node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
+         else:
+            containers = custom_interruption_params[CONTAINERS_TO_CRASH]
+
+         username, password = helper.getNodeCredentials()
+         log.info("containers to be crashed: {}".format(containers))
+         for container in containers:
+            log.info("Performing container crash for VM: {} and container: {}".format(node, container))
+            command_to_get_pid_and_status = "docker inspect --format='{}' {}; docker inspect --format='{}'\
+                         {}".format('{{.State.Pid}}', container, '{{.State.Status}}', container)
+            command_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container)
+            pid_and_status_before_crash = helper.ssh_connect(node, username, password, command_to_get_pid_and_status)
+            log.debug("process id and status before crash: {}".format(pid_and_status_before_crash))
+
+            pid_before_crash, status_before_crash = pid_and_status_before_crash.split("\r\n", 1)
+            command_to_crash_container = "kill -9 {}".format(pid_before_crash)
+            crash_output = helper.ssh_connect(node, username, password, command_to_crash_container)
+            log.debug("Container crash output for VM {} and container {}: {}".format(node, container, crash_output))
+
+            status_of_container = None
+            count = 0
+            while status_of_container != "running\r\n" and count <= 5:
+               count = count + 1
+               time.sleep(2)
+               status_of_container = helper.ssh_connect(node, username, password, command_to_get_status)
+
+            pid_and_status_after_crash = helper.ssh_connect(node, username, password, command_to_get_pid_and_status)
+            pid_after_crash, status_after_crash = pid_and_status_after_crash.split("\r\n", 1)
+
+            if pid_before_crash != pid_after_crash and status_of_container == "running\r\n":
+               log.info("Container: {} crashed and started automatically for VM: {}".format(container, node))
+            elif pid_before_crash == pid_after_crash:
+               log.error("Container: {} could not be crashed for VM: {}".format(container, node))
+               sys.exit(1)
+            elif status_of_container != "running\r\n":
+               log.error("container: {} did not start automatically for VM: {}".format(container, node))
+               sys.exit(1)
+
+   log.info("Wait for a min... (** THIS SHOULD BE REMOVED AFTER A STABLE RUN **)")
+   time.sleep(60)
+   log.info("{}".format(vm_handle["entity"].runtime.powerState))
 
    return True
 
@@ -383,7 +423,8 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          if perform_interrupt_recovery_operation(fxHermesRunSettings, node,
                                                  node_interruption_details,
                                                  mode=NODE_INTERRUPT):
-            interrupted_nodes.append(node)
+            if not node_interruption_details[NODE_INTERRUPTION_TYPE] == NODE_INTERRUPT_CONTAINER_CRASH:
+               interrupted_nodes.append(node)
          result, crashed_committer_count = check_node_health_and_run_sanity_check(
             fxBlockchain, results_dir,
             node_interruption_details[NODE_TYPE_TO_INTERRUPT],
@@ -394,22 +435,25 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          log.error("** Not proceeding with node interruption")
          return False
 
-   # Run DAML test for the period of node_offline_time
-   result, crashed_committer_count = check_node_health_and_run_sanity_check(
-      fxBlockchain, results_dir,
-      node_interruption_details[NODE_TYPE_TO_INTERRUPT],
-      interrupted_nodes=interrupted_nodes,
-      duration_to_run_transaction=node_offline_time)
-
    # restore nodes
-   for node in nodes_to_interrupt:
-      log.info("")
-      log.info("** Restoring node: {}...".format(node))
-      perform_interrupt_recovery_operation(fxHermesRunSettings, node,
+   if node_interruption_details[NODE_INTERRUPTION_TYPE] == NODE_INTERRUPT_CONTAINER_CRASH:
+      log.info("Skipping nodes restore as this should be done automatically for container crash test")
+   else:
+      # Run DAML test for the period of node_offline_time
+      result, crashed_committer_count = check_node_health_and_run_sanity_check(
+         fxBlockchain, results_dir,
+         node_interruption_details[NODE_TYPE_TO_INTERRUPT],
+         interrupted_nodes=interrupted_nodes,
+         duration_to_run_transaction=node_offline_time)
+
+      for node in nodes_to_interrupt:
+         log.info("")
+         log.info("** Restoring node: {}...".format(node))
+         perform_interrupt_recovery_operation(fxHermesRunSettings, node,
                                            node_interruption_details,
                                            mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
-   #Run Daml test for the period of time_remaining_before_next_interruption
+      #Run Daml test for the period of time_remaining_before_next_interruption
    result, crashed_committer_count = check_node_health_and_run_sanity_check(
       fxBlockchain, results_dir,
       node_interruption_details[NODE_TYPE_TO_INTERRUPT],

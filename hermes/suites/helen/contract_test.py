@@ -641,6 +641,7 @@ def test_getContractById_oneVersion(fxConnection, fxBlockchain):
 
 @describe()
 @pytest.mark.smoke
+@pytest.mark.skip(reason="Unknown intermittent failure BC-4254 & BC-4288")
 def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
     '''
     Upload multiple versions of a contract, get all of them in one call with /contracts/{id},

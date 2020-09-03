@@ -129,6 +129,11 @@ GenerateAsymmetricCryptoKeyPair(const std::string& scheme_name);
 std::unique_ptr<AsymmetricPrivateKey> DeserializePrivateKey(
     const std::string& input);
 
+std::unique_ptr<AsymmetricPrivateKey> DeserializePrivateKeyFromPem(
+    const std::string& path_to_file, const std::string& spec);
+std::unique_ptr<AsymmetricPublicKey> DeserializePublicKeyFromPem(
+    const std::string& path_to_file, const std::string& spec);
+
 // Deserialize a public key serialized with an implementation of
 // AsymmetricPublicKey's implementation of Serialize from a given string.
 // This function will handle determining what scheme the key is for and

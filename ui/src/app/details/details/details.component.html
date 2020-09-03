@@ -3,10 +3,10 @@
     {{ 'details.blockchain' | translate }}:
     {{ blockchainService.selectedBlockchain?.consortium_name }}
   </h2>
-  
+
   <!-- Used for detecting the page is set with all data -->
   <span *ngIf="ready" id="details-page-ready"></span>
-  
+
   <clr-tabs>
 
     <!-- Blockchain Information -->
@@ -311,6 +311,14 @@
                       [size]="12"></concord-copy-to-clipboard-button>
                   </div>
                 </div>
+                <div class="nodeprop-container" *ngIf="client.group_name">
+                  <label>{{ 'details.client.groupName' | translate }}:</label>
+                  <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-group-name'">
+                    {{ client.group_name }}
+                    <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+                      tooltipDirection="top-right" [value]="client.group_name" [size]="12"></concord-copy-to-clipboard-button>
+                  </div>
+                </div>
                 <div class="nodeprop-container" *ngIf="client.public_ip">
                   <label>{{ 'details.node.publicIp' | translate }}:</label>
                   <div class="nodeprop-value" [attr.id]="'details-page-client-' + i + '-public-ip'">
@@ -393,7 +401,7 @@
   <h3 class="modal-title">{{ securePasswordNode?.name_ordinal }} - {{ 'details.ssh.modalTitle' | translate }}</h3>
   <div class="modal-body ssh-info-body">
     <div *ngIf="securePasswordFetching" class="spinner-container">
-      <clr-spinner clrMedium class="spinner spinner-margin"></clr-spinner>  
+      <clr-spinner clrMedium class="spinner spinner-margin"></clr-spinner>
     </div>
     <div *ngIf="!securePasswordFetching">
       <p class="no-margin-top">{{ 'details.ssh.description' | translate }}</p>
@@ -412,7 +420,7 @@
       </div>
       <div class="clr-row ssh-field">
         <div class="clr-col-3">{{ 'details.ssh.password' | translate }}</div>
-        <div class="clr-col-7 ssh-value">{{ 
+        <div class="clr-col-7 ssh-value">{{
           securePasswordHidden ? '•••••••••••••••' : securePasswordData?.password
         }}<span class="password-view-toggle">
           <button class="btn btn-link button-show-hide-password" (click)="securePasswordHiddenToggle()">

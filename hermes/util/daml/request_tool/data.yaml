@@ -1,0 +1,38 @@
+parties:
+  issuer:       &issuer AcmeBank
+  client:       &client WonkaCorp
+  agent:        Alice
+  trader:       Tom
+  clerk:        Charlie
+  supervisor:   Sarah
+
+option:       &option_data
+  isin:       '123'
+  underlying: &underlying sp5
+  strike:     2500.0
+  expiry:     &expiry 1969-12-12
+
+quote_bank:
+  quoteId:    '123_0'
+  issuer:     *issuer
+  client:     *client
+  optionData: *option_data
+  price:      55.0
+  status:     Firm
+  observers:  []
+
+quote_agent:
+  pricingData:
+    commission: 20.0
+    overhedge:  0.05
+  price:      50.0
+  observers:  []
+
+fixing:
+  issuer:     *issuer
+  underlying: *underlying
+  date:       *expiry
+  value:      2600.0
+  observers:
+    - *client
+

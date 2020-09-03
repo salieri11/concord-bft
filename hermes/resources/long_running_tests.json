@@ -3,13 +3,57 @@
     "basic_tests": [
       {
         "testname": "Daml Test",
-        "test": "./main.py DamlTests"
+        "test_command": [
+          "./main.py",
+          "DamlTests",
+          "--logLevel",
+          "DEBUG"
+        ]
       }
     ],
-    "additional_tests": [
+    "participant_node_interruption_tests": [
+      {
+        "testname": "Participant Node Interruption Tests",
+        "test_command": [
+          "./main.py",
+          "NodeInterruptionTests",
+          "--tests",
+          "-m participant_node_interruption_longrun"
+        ]
+      }
+    ],
+    "committer_node_interruption_tests": [
+      {
+        "testname": "Committer Node Interruption Tests",
+        "test_command": [
+          "./main.py",
+          "NodeInterruptionTests",
+          "--tests",
+          "-m committer_node_interruption_longrun"
+        ]
+      }
+    ],
+    "chess_plus_tests": [
       {
         "testname": "CHESS+",
-        "test": "./main.py ChessPlusTests --marketFlavor nfr --noOfRequests 100000 --concurrency 3 --dockerHubUser blockchainrepositoryreader --dockerHubPassword <DOCKERHUB_PASSWORD> --deploymentOrg <DEPLOYMENT_ORG> --deploymentService staging"
+        "test_command": [
+          "./main.py",
+          "ChessPlusTests",
+          "--marketFlavor",
+          "nfr",
+          "--noOfRequests",
+          "100000",
+          "--concurrency",
+          "3",
+          "--dockerHubUser",
+          "blockchainrepositoryreader",
+          "--dockerHubPassword",
+          "<DOCKERHUB_PASSWORD>",
+          "--deploymentOrg",
+          "<DEPLOYMENT_ORG>",
+          "--deploymentService",
+          "staging"
+        ]
       }
     ]
   }

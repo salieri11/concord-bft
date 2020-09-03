@@ -6,6 +6,7 @@ import com.codahale.metrics.MetricRegistry
 import com.daml.dec.DirectExecutionContext
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.daml.ledger.participant.state.kvutils.DamlKvutils._
+import com.daml.ledger.participant.state.kvutils.`export`.NoopLedgerDataExporter
 import com.daml.ledger.participant.state.pkvutils.KeySerializationStrategy
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.LedgerStateOperations.Key
@@ -107,7 +108,8 @@ class PipelinedValidatorSpec
               mockDamlLedgerStateReaderWithQueryableReadSet,
               new LogFragmentingCommitStrategy(
                 ledgerStateOperations,
-                KeySerializationStrategy.createDefault())),
+                KeySerializationStrategy.createDefault(),
+                NoopLedgerDataExporter)),
           createMetrics()
         )
 

@@ -24,6 +24,7 @@ namespace concord::op {
 struct Config {
   static Config parse(const char* path);
 
+  std::string signing_key_path;
   bft::client::ClientConfig client_config;
   concord::config::CommConfig comm_config;
 };

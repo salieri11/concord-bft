@@ -11,6 +11,7 @@
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
+#include <reconfiguration/mock_plugin.hpp>
 #include <reconfiguration/wedge_plugin.hpp>
 #include <string>
 #include <utils/open_tracing_utils.hpp>
@@ -149,6 +150,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
           config, prometheus_registry);
   reconfiguration_sm_->LoadPlugin(
       std::make_unique<concord::reconfiguration::WedgePlugin>());
+  reconfiguration_sm_->LoadPlugin(
+      std::make_unique<concord::reconfiguration::MockPlugin>());
   reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 
@@ -342,11 +345,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     uint32_t &out_response_size,
                                     uint32_t &out_replica_specific_info_size,
                                     concordUtils::SpanWrapper &parent_span) {
-  // Make sure there is no leftover state in the TimeContract across execute()
-  // calls by resetting the TimeContract now and when the execute() scope is
-  // left.
-  auto time_contract_resetter = TimeContractResetter{time_.get()};
-
   LOG_DEBUG(logger_, "ConcordCommandsHandler::execute, clientId: "
                          << client_id << ", seq: " << sequence_num);
 
@@ -361,6 +359,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     // `executing_bft_sequence_num_` is not used at all, so we may as well not
     // update it, in order to avoid concurrent reads/writes.
     executing_bft_sequence_num_ = sequence_num;
+
+    // Make sure there is no leftover state in the TimeContract across execute()
+    // calls by resetting the TimeContract now and when the execute() scope is
+    // left.
+    auto time_contract_resetter = TimeContractResetter{time_.get()};
   }
 
   com::vmware::concord::ConcordRequest request;
@@ -386,6 +389,10 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   if ((request.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
        parseFromPreExecutionResponse(request_buffer, request_size, request))) {
+    // For now, pre-execution is not supported for time requests,
+    // due to the stateful nature of the TimeContract
+    assert(!(pre_execute && request.has_time_request()));
+
     execute_span->SetTag(concord::utils::kRequestSeqNumTag, sequence_num);
     execute_span->SetTag(concord::utils::kClientIdTag, client_id);
     execute_span->SetTag(concord::utils::kReplicaIdTag, replica_id_);

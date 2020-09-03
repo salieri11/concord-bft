@@ -32,7 +32,7 @@ import com.digitalasset.kvbc.daml_validator.{
   WriteSet
 }
 import com.google.protobuf.ByteString
-import com.digitalasset.kvbc.daml_validator.{AccessControlList => AccessControlListProtobuf}
+import com.digitalasset.kvbc.daml_validator
 import com.vmware.concord.concord.{KeyAndFingerprint, PreExecutionResult, ReadSet}
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
@@ -123,6 +123,8 @@ class PreExecutingValidator(
           logger.info(
             s"Pre-execution validation completed, correlationId=${request.correlationId} " +
               s"participantId=${request.submittingParticipantId} " +
+              s"minRecordTime=${preExecutionResult.minRecordTime} " +
+              s"maxRecordTime=${preExecutionResult.maxRecordTime} " +
               s"readSetSize=${preExecutionResult.readSet.size} " +
               s"successWriteSetSize=${preExecutionResult.successWriteSet.size} " +
               s"outOfTimeBoundsWriteSetSize=${preExecutionResult.outOfTimeBoundsWriteSet.size} ")
@@ -210,19 +212,21 @@ object PreExecutingValidator {
     })
   }
 
-  // TODO Reuse oem-integration-kit's proto and conversion, if possible
-  private def accessControlListToProtobuf(acl: AccessControlList): AccessControlListProtobuf =
+  private def accessControlListToProtobuf(
+      acl: AccessControlList): daml_validator.AccessControlList =
     acl match {
       case PublicAccess =>
-        AccessControlListProtobuf.defaultInstance
+        daml_validator.AccessControlList.defaultInstance
       case RestrictedAccess(participants) =>
-        AccessControlListProtobuf.of(
+        // Participant IDs must be sorted to avoid non-determinism caused by multiple
+        // execution engines producing different ACLs.
+        daml_validator.AccessControlList.of(
           Some(
             Restricted.of(
               participants
                 .map(_.toString)
                 .toSeq
-                .sorted))) // To ensure the ordering is deterministic
+                .sorted)))
     }
 
   private[preexecution] def preExecutionResultToOutput(
