@@ -20,9 +20,9 @@ log = util.hermes_logging.getMainLogger()
 class PytestSuite(test_suite.TestSuite):
 
    def __init__(self, passedArgs, testFile, product):
-       self._reportFile = "report.json"
        self._testFile = testFile
        super(PytestSuite, self).__init__(passedArgs, product)
+       self._reportFile = os.path.join(self._testLogDir, "report.json")
        self._supportBundleFile = os.path.join(self._testLogDir, "support_bundles.json")
 
 

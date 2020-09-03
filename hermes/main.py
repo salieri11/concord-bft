@@ -47,11 +47,11 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
               "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
               "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
-              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests",
-              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests",
-              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest",
+              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
+              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
+              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
-	      "MetadataPersistencyTests"
+              "MetadataPersistencyTests", "UiTests"
              ]
 
 suiteList = {
@@ -90,7 +90,7 @@ suiteList = {
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
    "PerformanceTests": "suites/performance_tests.py",
-   "UiTests": ui_tests.UiTests,
+   "UiTests": "suites/ui_tests.py",
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
    "HlfTests": hlf_tests.HlfTests,
    "MetadataPersistencyTests": "suites/persistency_tests.py"
