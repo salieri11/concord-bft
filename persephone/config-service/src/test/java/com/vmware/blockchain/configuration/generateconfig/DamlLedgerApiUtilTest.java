@@ -131,6 +131,60 @@ public class DamlLedgerApiUtilTest {
     }
 
     @Test
+    public void testHappyPathWithPreexecutionThreshold() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "True",
+                        DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "100")).build();
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
+                .setProperties(properties).build();
+
+        String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfigWithPreexecutionEnabled.txt")
+                .getFile());
+        String expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual.equals(expected)).isTrue();
+    }
+
+    @Test
+    public void testHappyPathWithDefaultPreexecutionThreshold() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "True")).build();
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
+                .setProperties(properties).build();
+
+        String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfigWithDefaultPreexecutionThreshold.txt")
+                .getFile());
+        String expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual.equals(expected)).isTrue();
+    }
+
+    @Test
+    public void testHappyPathWithPreexecutionDeploymentDisabled() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(
+                        ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
+                                DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "false"))
+                .build();
+
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE").setProperties(properties).build();
+        String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfig.txt")
+                .getFile());
+        String expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void testPath() {
         Assertions.assertThat(DamlLedgerApiUtil.envVarPath.equals("/daml-ledger-api/environment-vars")).isTrue();
     }

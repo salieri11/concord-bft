@@ -105,6 +105,8 @@ public class ValidatorServiceImpl implements ValidatorService {
                     ve.getErrorCode(), msgArgs, Locale.getDefault());
             log.error(msg);
         }
+
+        log.info("Finished validation, found {} errors", errors.size());
         return errors;
     }
 

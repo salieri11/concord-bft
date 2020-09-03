@@ -1,0 +1,101 @@
+module AssetCheck where
+
+import Daml.Script
+import DA.Date as D
+
+import Asset
+
+template FetchCmd
+  with
+    issuer : Party
+    client : Party
+  where
+    signatory issuer
+
+    choice Validate : ()
+      with
+        cashEntry1Cid : ContractId CashEntry
+        cashEntry2Cid : ContractId CashEntry
+      controller issuer
+      do
+        cashEntry1 <- fetch cashEntry1Cid
+        assertMsg "issuer ok" $ cashEntry1.issuer == issuer
+        assertMsg "client ok" $ cashEntry1.client == client
+        assertMsg "amount ok" $ cashEntry1.amount == -55.0
+
+        cashEntry2 <- fetch cashEntry2Cid
+        assertMsg "issuer ok" $ cashEntry2.issuer == issuer
+        assertMsg "client ok" $ cashEntry2.client == client
+        assertMsg "amount ok" $ cashEntry2.amount == 100.0
+        return ()
+
+
+template DiscloseCmd
+  with
+    issuer : Party
+  where
+    signatory issuer
+
+    choice Disclose : (ContractId Quote )
+      with
+        quoteCid : ContractId Quote
+        observers : [Party]
+      controller issuer
+      do
+        quote <- fetch quoteCid
+        archive quoteCid
+        create quote with observers = quote.observers ++ observers
+
+asset_check : Script ()
+asset_check = do
+
+  issuer <- allocateParty "AcmeBank"
+  client <- allocateParty "WonkaCorp"
+
+  let underlying = "SP5"
+  let expiry = D.date 1969 Dec 31
+
+  let optionData = OptionData with isin = "123"; underlying; strike = 2500.0; expiry
+  let pricingData = PricingData with commission = 20.0; overhedge = 0.05
+
+  quoteCid <- submit issuer do
+    createCmd Quote with
+      quoteId = "123_0"; issuer; client; optionData
+      price = 55.0; status = Firm; observers = []
+  (optionCid, cashEntry1Cid) <- submit client do exerciseCmd quoteCid Fill
+
+  fixingCid <- submit issuer do
+    createCmd Fixing with
+      issuer; underlying; date = expiry
+      value = 2600.0; observers = [client]
+  cashEntry2Cid <- submit issuer do exerciseCmd optionCid Expire with fixingCid
+
+  fetchEntry <- submit issuer do createCmd FetchCmd with issuer; client
+  submit issuer do exerciseCmd fetchEntry Validate with cashEntry1Cid; cashEntry2Cid
+
+  agent <- allocateParty "Alice"
+  trader <- allocateParty "Tom"
+  agentCid <- submit issuer do createCmd Agent with issuer; agent
+  traderCid <- submit issuer do createCmd Trader with issuer; trader
+
+  (pricingCid, quoteCid) <- submit agent do
+    exerciseCmd agentCid Agent_Quote with
+      quoteId = "123_0"; client; optionData; pricingData
+      price = 50.0; trader; observers = []
+  quoteCid <- submit trader do
+    exerciseCmd traderCid Trader_Quote with quoteCid; price = 55.0
+
+  clerk <- allocateParty "Charlie"
+  supervisor <- allocateParty "Sarah"
+  clerkCid <- submit client do createCmd Clerk with client; clerk
+  supervisorCid <- submit client do createCmd Supervisor with client; supervisor
+
+  discloseEntry <- submit issuer do createCmd DiscloseCmd with issuer
+  quoteCid <- submit issuer do exerciseCmd discloseEntry Disclose with quoteCid; observers = [clerk, supervisor]
+
+  requestCid <- submit clerk do
+    exerciseCmd clerkCid Clerk_Request with quoteCid; observers = [supervisor]
+  (optionCid, cashEntry1Cid) <- submit supervisor do
+    exerciseCmd supervisorCid Supervisor_Accept with requestCid
+
+  pure ()

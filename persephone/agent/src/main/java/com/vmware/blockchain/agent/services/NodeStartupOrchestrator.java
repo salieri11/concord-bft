@@ -98,7 +98,7 @@ public class NodeStartupOrchestrator {
         this.damlHealthServiceInvoker = damlHealthServiceInvoker;
         this.healthCheckScheduler = healthCheckScheduler;
 
-        List<Tag> tags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
+        List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
                 NodeStartupOrchestrator.class.getName()));
         this.metricsAgent = new MetricsAgent(tags);
     }
@@ -109,10 +109,12 @@ public class NodeStartupOrchestrator {
     public void bootstrapConcord() {
         Counter counter = this.metricsAgent.getCounter("Number of containers launched",
                 MetricsConstants.MetricsNames.CONTAINERS_LAUNCH_COUNT,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "bootstrapConcord")));
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+                        "bootstrapConcord")));
         Timer timer = this.metricsAgent.getTimer("Bootstrap blockchain",
                 MetricsConstants.MetricsNames.CONTAINERS_LAUNCH,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "bootstrapConcord")));
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+                        "bootstrapConcord")));
         timer.record(() -> {
             try {
                 // Download configuration and certs.
@@ -230,7 +232,8 @@ public class NodeStartupOrchestrator {
         var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         Timer timer = this.metricsAgent.getTimer("Pull component docker images",
                 MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.name(), "pullImages")));
+                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+                        "pullImages")));
         timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
 
         return result;

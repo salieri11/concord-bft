@@ -47,11 +47,11 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
               "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
               "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
-              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests",
-              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests",
-              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest",
+              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
+              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
+              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
-	      "MetadataPersistencyTests", "HelenNodeSizeTemplateTests"
+              "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests" 
              ]
 
 suiteList = {
@@ -85,12 +85,12 @@ suiteList = {
    "DamlPreexecutionTests": "suites/daml_tests.py",
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
-   "SampleDAppTests": sample_dapp_tests.SampleDAppTests,
+   "SampleDAppTests":"suites/sample_dapp_tests.py",
    "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
    "PerformanceTests": "suites/performance_tests.py",
-   "UiTests": ui_tests.UiTests,
+   "UiTests": "suites/ui_tests.py",
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
    "HlfTests": hlf_tests.HlfTests,
    "MetadataPersistencyTests": "suites/persistency_tests.py",

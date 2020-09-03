@@ -383,10 +383,16 @@ public class BlockchainController {
                                 .get(Constants.ORG_PREEXECUTION_ENABLED));
             }
 
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_THRESHOLD)) {
+                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_PREEXECUTION_THRESHOLD));
+            }
+
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_DECENTRALIZED_KEYS)) {
                 basePropBuilder.putValues(DeploymentAttributes.DECENTRALIZED_KEYS.name(),
                         organization.getOrganizationProperties()
-                                .get(Constants.ORG_PREEXECUTION_ENABLED));
+                                .get(Constants.ORG_DECENTRALIZED_KEYS));
             }
         }
 

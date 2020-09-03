@@ -107,7 +107,7 @@ public class DamlHealthServiceInvoker {
         log.info("received health check request for daml components.");
         String metricsDesc = "Daml health status";
         List<Tag> tags = Collections.singletonList(
-                Tag.of(MetricsConstants.MetricsTags.TAG_NODE_TYPE.name(), getNodeTypeName()));
+                Tag.of(MetricsConstants.MetricsTags.TAG_NODE_TYPE.metricsTagName, getNodeTypeName()));
         try {
             List<HealthCheckResponse.ServingStatus> statusList = this.check().stream()
                     .map(HealthCheckResponse::getStatus).collect(Collectors.toList());
@@ -121,6 +121,7 @@ public class DamlHealthServiceInvoker {
                     MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
             return HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.UNHEALTHY).build();
         } catch (Exception e) {
+            log.error("Exception caught in retrieving daml health\n" + e.getLocalizedMessage());
             ComponentHealth.metricsAgent.gauge(-1, metricsDesc,
                     MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
             return HealthStatusResponse.builder()

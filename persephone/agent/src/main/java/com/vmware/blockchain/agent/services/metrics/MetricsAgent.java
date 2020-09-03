@@ -12,10 +12,9 @@ import java.util.function.ToDoubleFunction;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.prometheus.PrometheusConfig;
-import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 /**
  * Class holding metrics functions.
@@ -30,7 +29,7 @@ public class MetricsAgent {
      * @param metricsTags metrics tag
      */
     public MetricsAgent(List<Tag> metricsTags) {
-        this.meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        this.meterRegistry = Metrics.globalRegistry;
         this.metricTags = metricsTags;
     }
 
@@ -42,7 +41,7 @@ public class MetricsAgent {
      * @return {@link Counter}
      */
     public Counter getCounter(String desc, MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
-        return Counter.builder(metricsName.name())
+        return Counter.builder(metricsName.metricsName)
                 .tags(getAllTags(addedTags))
                 .description(desc)
                 .register(meterRegistry);
@@ -59,7 +58,7 @@ public class MetricsAgent {
     public Gauge gauge(int value, String desc,
                        MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
         ToDoubleFunction<Integer> val = Double::valueOf;
-        return Gauge.builder(metricsName.name(), value, val)
+        return Gauge.builder(metricsName.metricsName, value, val)
                 .tags(getAllTags(addedTags))
                 .description(desc)
                 .register(meterRegistry);
@@ -73,7 +72,7 @@ public class MetricsAgent {
      * @return {@link Timer}
      */
     public Timer getTimer(String desc, MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
-        return Timer.builder(metricsName.name())
+        return Timer.builder(metricsName.metricsName)
                 .tags(getAllTags(addedTags))
                 .description(desc)
                 .register(meterRegistry);

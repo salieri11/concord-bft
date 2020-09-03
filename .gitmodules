@@ -7,3 +7,6 @@
 [submodule "concord/submodules/HdrHistogram_c"]
 	path = concord/submodules/HdrHistogram_c
 	url = https://github.com/HdrHistogram/HdrHistogram_c
+[submodule "hermes/util/daml/dazl-client"]
+	path = hermes/util/daml/dazl-client
+	url = https://github.com/digital-asset/dazl-client

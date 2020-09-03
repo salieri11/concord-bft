@@ -6,6 +6,8 @@ package com.vmware.blockchain.deployment.services.exception;
 
 import org.springframework.http.HttpStatus;
 
+import io.grpc.Status;
+
 /**
  * Base exception class for Oauth2 common utility exceptions.
  * This class is for external - and requires an errorCode as a string.
@@ -21,6 +23,7 @@ public class InternalFailurePersephoneException extends PersephoneException {
      */
     public InternalFailurePersephoneException(String message, Object... args) {
         super(HttpStatus.INTERNAL_SERVER_ERROR, message, args);
+        setGrpcStatus(Status.INTERNAL);
     }
 
     /**
@@ -31,5 +34,6 @@ public class InternalFailurePersephoneException extends PersephoneException {
      */
     public InternalFailurePersephoneException(Throwable cause, String message, Object... args) {
         super(HttpStatus.INTERNAL_SERVER_ERROR, cause, message, args);
+        setGrpcStatus(Status.INTERNAL);
     }
 }
