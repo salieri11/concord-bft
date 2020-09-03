@@ -115,7 +115,7 @@ class ConcordClient {
   // Logger
   logging::Logger logger_;
   int client_id_;
-  bftEngine::SeqNumberGeneratorForClientRequests* seqGen_ = nullptr;
+  std::unique_ptr<bftEngine::SeqNumberGeneratorForClientRequests> seqGen_;
   uint64_t seq_num_ = 0;
   std::chrono::steady_clock::time_point start_job_time_ =
       std::chrono::steady_clock::now();
