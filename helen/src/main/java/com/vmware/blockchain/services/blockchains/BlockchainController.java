@@ -71,6 +71,7 @@ import com.vmware.blockchain.deployment.v1.Sites;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplateService;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -106,6 +107,7 @@ public class BlockchainController {
     private ConnectionPoolManager connectionPoolManager;
     private Integer clientNumber;
     private List<Integer> replicaNumber;
+    private NodeSizeTemplateService nodeSizeTemplateService;
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
@@ -122,7 +124,8 @@ public class BlockchainController {
                                 @Value("${vmbc.client.number}")
                                 int clientNumber,
                                 @Value("#{${vmbc.replica.number}}")
-                                List<Integer> replicaNumber) {
+                                List<Integer> replicaNumber,
+                                NodeSizeTemplateService nodeSizeTemplateService) {
         this.blockchainService = blockchainService;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
@@ -136,6 +139,7 @@ public class BlockchainController {
         this.connectionPoolManager = connectionPoolManager;
         this.clientNumber = clientNumber;
         this.replicaNumber = replicaNumber;
+        this.nodeSizeTemplateService = nodeSizeTemplateService;
 
     }
 
@@ -326,6 +330,13 @@ public class BlockchainController {
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
         var zoneIds = body.getReplicaZoneIds();
+        if (zoneIds == null || zoneIds.isEmpty()) {
+            if (body.getReplicaNodes() != null) {
+                zoneIds.addAll(body.getReplicaNodes().stream().map(k -> k.getZoneId())
+                                                       .collect(Collectors.toList()));
+            }
+        }
+
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
             throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
                                          "user input replicas %s", body.getReplicaZoneIds().size(),
@@ -490,8 +501,13 @@ public class BlockchainController {
     }
 
     private boolean validateNumberofReplicas(BlockchainPost body) {
-        int m = body.getReplicaZoneIds().size();
-        return (replicaNumber.contains(m));
+        if (body.getReplicaZoneIds() == null || body.getReplicaZoneIds().isEmpty()) {
+            if (body.getReplicaNodes() != null) {
+                int m = body.getReplicaNodes().size();
+                return (replicaNumber.contains(m));
+            }
+        }
+        return replicaNumber.contains(body.getReplicaZoneIds().size());
     }
 
     private boolean validateNumberOfClients(BlockchainPost body) {

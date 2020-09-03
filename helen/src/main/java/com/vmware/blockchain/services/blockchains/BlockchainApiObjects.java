@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains;
 import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ import javax.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplate;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -39,8 +41,21 @@ public class BlockchainApiObjects {
         @NotNull(message = "Blockchain type cannot be empty")
         private BlockchainType blockchainType;
 
+        @Deprecated
         private List<UUID> replicaZoneIds;
+
+        private List<ReplicaNodeRequest> replicaNodes;
+
         private List<ClientNodeRequest> clientNodes;
+    }
+
+    @Getter
+    @Setter
+    @Valid
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ReplicaNodeRequest {
+        private UUID zoneId;
+        private HashMap<NodeSizeTemplate.Parameter, String> sizingInfo;
     }
 
     // Can extract a base node type.
@@ -52,6 +67,7 @@ public class BlockchainApiObjects {
         private UUID zoneId;
         private String authUrlJwt;
         private String groupName;
+        private HashMap<NodeSizeTemplate.Parameter, String> sizingInfo;
         // TLS fields.
     }
 
