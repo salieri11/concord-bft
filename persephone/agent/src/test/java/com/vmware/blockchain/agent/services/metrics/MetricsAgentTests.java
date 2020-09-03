@@ -5,20 +5,18 @@
 package com.vmware.blockchain.agent.services.metrics;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.test.util.ReflectionTestUtils;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -26,39 +24,33 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 /**
  * Test class for {@link MetricsAgent}.
  */
+@ExtendWith(SpringExtension.class)
+@ComponentScan(basePackageClasses = { MetricsAgentTests.class})
 public class MetricsAgentTests {
 
-    private static MetricsAgent metricsAgent;
-    private static List<Tag> additionalTags;
+    private static final MetricsAgent metricsAgent = new MetricsAgent(new SimpleMeterRegistry());
 
-    private static MeterRegistry meterRegistry = new SimpleMeterRegistry();
-
-    @BeforeAll
-    static void setUp() {
-        List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
-                "unit_test"));
-        additionalTags = Arrays.asList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "testCounter"),
-                Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName, "unitTesting"));
-        metricsAgent = new MetricsAgent(tags);
-        ReflectionTestUtils.setField(metricsAgent, "meterRegistry", meterRegistry);
-    }
+    private static final List<Tag> tags = Arrays.asList(
+            Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName, "unit_test"),
+            Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "testCounter"),
+            Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName, "unitTesting"));
 
     @Test
     void testCounter() {
-        Counter counter = metricsAgent.getCounter("unit testing",
-                MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES,
-                additionalTags);
+        Counter counter = metricsAgent.getCounter(MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES, tags);
 
         counter.increment();
         Assertions.assertEquals(1, counter.count());
         verifyNamesAndTags(counter.getId(), MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES);
+
+        counter.increment();
+        counter.increment();
+        Assertions.assertEquals(3, counter.count());
     }
 
     @Test
     void testTimer() {
-        Timer timer = metricsAgent.getTimer("unit testing",
-                MetricsConstants.MetricsNames.CONTAINERS_LAUNCH,
-                additionalTags);
+        Timer timer = metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINERS_LAUNCH, tags);
 
         timer.record(() -> {
             try {
@@ -76,13 +68,15 @@ public class MetricsAgentTests {
 
     @Test
     void testGauge() {
-        int value = 1234;
-        Gauge gauge = metricsAgent.gauge(value, "unit testing",
-                MetricsConstants.MetricsNames.WRITE,
-                additionalTags);
+        int value1 = 1234;
+        int value2 = 5678;
+        int v1 = metricsAgent.gaugeValue(value1, MetricsConstants.MetricsNames.WRITE, tags);
 
-        Assertions.assertEquals(gauge.value(), Double.valueOf(value));
-        verifyNamesAndTags(gauge.getId(), MetricsConstants.MetricsNames.WRITE);
+        Assertions.assertEquals(value1, v1);
+
+        int v2 = metricsAgent.gaugeValue(value2, MetricsConstants.MetricsNames.WRITE, tags);
+
+        Assertions.assertEquals(value2, v2);
     }
 
     private void verifyNamesAndTags(Meter.Id meterId, MetricsConstants.MetricsNames metricName) {

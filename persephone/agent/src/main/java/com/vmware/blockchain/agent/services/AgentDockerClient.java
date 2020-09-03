@@ -7,7 +7,6 @@ package com.vmware.blockchain.agent.services;
 import java.io.IOException;
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -55,9 +54,7 @@ public class AgentDockerClient {
             Pattern.compile("(?:(?<registry>[^:]+:?[0-9]+)/)?(?<repository>[^:]+)(?::(?<tag>.+))?");
 
     /** metrics from agent. **/
-    List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
-            AgentDockerClient.class.getName()));
-    private final MetricsAgent metricsAgent = new MetricsAgent(tags);
+    Tag classTag = Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName, AgentDockerClient.class.getName());
 
     /**
      * Data class to contain metadata information about a container image.
@@ -95,14 +92,16 @@ public class AgentDockerClient {
         }
     }
 
-    private Endpoint containerRegistry;
+    private final Endpoint containerRegistry;
+    private final MetricsAgent metricsAgent;
 
     /**
      * Default constructor.
      */
     @Autowired
-    public AgentDockerClient(Endpoint containerRegistry) {
+    public AgentDockerClient(Endpoint containerRegistry, MetricsAgent metricsAgent) {
         this.containerRegistry = containerRegistry;
+        this.metricsAgent = metricsAgent;
     }
 
     BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
@@ -176,18 +175,16 @@ public class AgentDockerClient {
         }
 
         var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
-        Timer timer = this.metricsAgent.getTimer("Pull each component image",
-                MetricsConstants.MetricsNames.CONTAINER_PULL_IMAGE,
-                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "getImageIdAfterDl"),
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINER_PULL_IMAGE,
+                List.of(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "getImageIdAfterDl"),
                         Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName, imageName)));
         timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
         return containerConfig;
     }
 
     void createNetwork(String networkName) {
-        Timer timer = this.metricsAgent.getTimer("Create container network",
-                MetricsConstants.MetricsNames.CREATE_NETWORK,
-                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "createNetwork"),
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CREATE_NETWORK,
+                List.of(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "createNetwork"),
                         Tag.of(MetricsConstants.MetricsTags.TAG_DOCKER_NETWORK.metricsTagName, networkName)));
 
         timer.record(() -> {
@@ -233,9 +230,8 @@ public class AgentDockerClient {
      */
     public void startComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
                                       String containerId) {
-        Timer timer = this.metricsAgent.getTimer("Start each component container",
-                MetricsConstants.MetricsNames.CONTAINER_LAUNCH,
-                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "startComponent"),
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINER_LAUNCH,
+                List.of(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "startComponent"),
                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.metricsTagName, containerId),
                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_NAME.metricsTagName,
                                 containerParam.getContainerName())));
@@ -251,9 +247,8 @@ public class AgentDockerClient {
      */
     public void stopComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
                                String containerId) {
-        Timer timer = this.metricsAgent.getTimer("Stop each component container",
-                MetricsConstants.MetricsNames.CONTAINER_STOP,
-                List.of(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "stopComponent"),
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINER_STOP,
+                List.of(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName, "stopComponent"),
                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_ID.metricsTagName, containerId),
                         Tag.of(MetricsConstants.MetricsTags.TAG_CONTAINER_NAME.metricsTagName,
                                 containerParam.getContainerName())));

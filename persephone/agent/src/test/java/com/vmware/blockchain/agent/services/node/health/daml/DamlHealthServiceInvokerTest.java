@@ -5,6 +5,10 @@
 package com.vmware.blockchain.agent.services.node.health.daml;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -41,6 +45,7 @@ public class DamlHealthServiceInvokerTest {
         when(damlHealthServiceInvoker.getHealthResponse()).thenCallRealMethod();
         when(damlHealthServiceInvoker.getServices()).thenReturn(List.of("unit", "test"));
         when(damlHealthServiceInvoker.getNodeTypeName()).thenReturn("myUnitTest");
+        doNothing().when(damlHealthServiceInvoker).logMetrics(isA(Integer.class));
     }
 
     @Test
@@ -62,6 +67,7 @@ public class DamlHealthServiceInvokerTest {
         HealthStatusResponse response = damlHealthServiceInvoker.getHealthResponse();
         Assertions.assertEquals(HealthStatusResponse.builder()
                 .status(HealthStatusResponse.HealthStatus.HEALTHY).build(), response);
+        verify(damlHealthServiceInvoker, times(1)).logMetrics(1);
     }
 
     @Test
@@ -71,6 +77,7 @@ public class DamlHealthServiceInvokerTest {
         HealthStatusResponse response = damlHealthServiceInvoker.getHealthResponse();
         Assertions.assertEquals(HealthStatusResponse.builder()
                 .status(HealthStatusResponse.HealthStatus.UNHEALTHY).build(), response);
+        verify(damlHealthServiceInvoker, times(1)).logMetrics(0);
     }
 
     @Test
@@ -83,5 +90,6 @@ public class DamlHealthServiceInvokerTest {
                 .status(HealthStatusResponse.HealthStatus.SERVICE_UNAVAILABLE)
                 .exception(new IllegalArgumentException("java.lang.IllegalArgumentException: unit test exception")
                         .getLocalizedMessage()).build(), response);
+        verify(damlHealthServiceInvoker, times(1)).logMetrics(-1);
     }
 }
