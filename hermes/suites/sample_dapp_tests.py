@@ -62,8 +62,6 @@ def fxLocalSetup(fxHermesRunSettings, fxProduct, fxConnection,fxBlockchain):
    
    return LocalSetupfixture(user=user,password=password,apiServerUrl=apiServerUrl,testName=testName,testLogDir=testLogDir,docker_env=docker_env)
 
-
-
 def executeInContainer(command):
    '''
          Execute command; check for errors and return (output, error) pair
@@ -76,8 +74,6 @@ def executeInContainer(command):
    elif 'Error' in out or 'error' in out:
       return (None, out)
    return (out, None)
-
-
 
 def concatenatedExecuteInContainer(command1, command2):
    ''' Equivalent to the following steps :
@@ -95,7 +91,6 @@ def cleanUp():
    log.info("Cleaning up")
    concatenatedExecuteInContainer("docker stop","docker ps | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
    concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
-
 
 @describe()
 @pytest.mark.skip 
@@ -146,6 +141,7 @@ def test_asset_transfer(fxLocalSetup):
    assert contracts_after != contracts_before,"Contracts have not changed after asset transfer deployment."
 
    log.debug("Contracts changed after asset transfer deployment, as expected.")
+   cleanUp()
    log.info(out)
 
 
@@ -201,4 +197,3 @@ def test_supply_chain_and_verify_contracts(fxLocalSetup):
    cleanUp()
    log.info(output)
  
-
