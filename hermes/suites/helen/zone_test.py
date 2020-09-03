@@ -161,6 +161,23 @@ def test_get_single_zone(fxConnection, fxBlockchain):
 
 @describe()
 @pytest.mark.zones
+def test_get_zone_dependencies(fxConnection, fxBlockchain):
+    '''
+    Create a zone, then retrieve its dependencies.
+    '''
+    req = util.helen.common.createDefaultConsortiumAdminRequest(fxConnection.request)
+
+    # Create a dummy zone just in case
+    zoneInfo = util.helen.zone.createZoneObject()
+    zoneInfo = req.createZone(zoneInfo)
+
+    sampleZoneId = zoneInfo["id"]
+
+    util.helen.validators.validateZoneDependenciesResponse(req.getZoneDependencies(sampleZoneId))
+
+
+@describe()
+@pytest.mark.zones
 @pytest.mark.skip(reason="VB-2090")
 def test_get_missing_zone(fxConnection, fxBlockchain):
     '''

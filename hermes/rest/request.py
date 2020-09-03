@@ -598,6 +598,16 @@ class Request():
       self._endpointName = "get_zone"
       return self._send()
 
+   def getZoneDependencies(self, zoneId):
+      '''
+      Get a single zone's dependencies.
+      '''
+      self._subPath = "/api/blockchains/zones/dependencies/{}".format(zoneId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "get_zone_dependencies"
+      return self._send()
+
    def deleteZone(self, zoneId):
       '''
       Delete a zone.

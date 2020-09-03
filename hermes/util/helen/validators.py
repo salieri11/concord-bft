@@ -662,6 +662,17 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
         format(json.dumps(origZoneInfo, sort_keys=True, indent=4),
                json.dumps(newZoneResponse, sort_keys=True, indent=4))
 
+def validateZoneDependenciesResponse(zoneDependenciesResponse):
+    '''
+    Validates a Zone dependency response.
+    '''
+    assert type(zoneDependenciesResponse) == collections.OrderedDict, "Expecting collections.OrderedDict value for zone_dependencies"
+
+    assert "replica_list" in zoneDependenciesResponse, "Field replica_list not found in zone_dependencies in response"
+    assert type(zoneDependenciesResponse["replica_list"]) == list, "Expecting list value for replica_list in zone_dependencies"
+
+    assert "client_list" in zoneDependenciesResponse, "Field client_list not found in zone_dependencies in response"
+    assert type(zoneDependenciesResponse["client_list"]) == list, "Expecting list value for client_list in zone_dependencies"
 
 def validateDeletedZoneResponse(deletedZone):
     '''
