@@ -8,6 +8,8 @@ import java.text.MessageFormat;
 
 import org.springframework.http.HttpStatus;
 
+import io.grpc.Status;
+
 /**
  * Base class for Persephone exceptions.
  */
@@ -17,6 +19,7 @@ public class PersephoneException extends RuntimeException {
 
     private final Object[] args;
     private final HttpStatus httpStatus;
+    private Status grpcStatus = Status.UNKNOWN;
 
     /**
      * Create a new Persephone Exception.
@@ -51,6 +54,15 @@ public class PersephoneException extends RuntimeException {
 
     public HttpStatus getHttpStatus() {
         return httpStatus;
+    }
+
+
+    public Status getGrpcStatus() {
+        return grpcStatus;
+    }
+
+    protected void setGrpcStatus(Status status) {
+        this.grpcStatus = status.withCause(this).withDescription(this.getMessage());
     }
 
 }

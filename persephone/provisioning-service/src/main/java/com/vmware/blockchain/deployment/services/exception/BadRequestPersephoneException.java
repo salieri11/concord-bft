@@ -6,6 +6,8 @@ package com.vmware.blockchain.deployment.services.exception;
 
 import org.springframework.http.HttpStatus;
 
+import io.grpc.Status;
+
 /**
  * Class for BadRequest Persephone exceptions.
  */
@@ -15,6 +17,7 @@ public class BadRequestPersephoneException extends PersephoneException {
 
     public BadRequestPersephoneException(String message, Object... args) {
         super(HttpStatus.BAD_REQUEST, message, args);
+        this.setGrpcStatus(Status.INVALID_ARGUMENT);
     }
 
     /**
@@ -22,6 +25,7 @@ public class BadRequestPersephoneException extends PersephoneException {
      */
     public BadRequestPersephoneException(Throwable cause, String message, Object... args) {
         super(HttpStatus.BAD_REQUEST, cause, message, args);
+        this.setGrpcStatus(Status.INVALID_ARGUMENT);
     }
 
 }

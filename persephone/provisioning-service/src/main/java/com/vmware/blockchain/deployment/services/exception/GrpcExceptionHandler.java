@@ -61,7 +61,8 @@ public class GrpcExceptionHandler implements ServerInterceptor {
         private void handleException(Exception exception, ServerCall<ReqT, RespT> serverCall, Metadata metadata) {
             PersephoneExceptionHandlerUtil.ErrorMessage errMsg =
                     PersephoneExceptionHandlerUtil.getErrorMessage(exception, "");
-            serverCall.close(errMsg.getStatus().getValue().withDescription(exception.getMessage()), metadata);
+            serverCall.close(errMsg.getStatus().getValue().withDescription(exception.getMessage()).withCause(exception),
+                             metadata);
         }
     }
 }
