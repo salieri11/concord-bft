@@ -30,6 +30,10 @@ NODE_INTERRUPT_VM_STOP_START = "VM power off/on"
 ALL_CONTAINERS = "ALL_CONTAINERS"
 NODE_INTERRUPT_CONTAINER_CRASH = "Container Crash"
 NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL = "Index DB read/write failure"
+NODE_INTERRUPT_NETWORK_DISCONNECT = "Network disconnect"
+NETWORK_DISCONNECT_VM_LEVEL = "VM network disconnect"
+NETWORK_DISCONNECT_CONTAINER_LEVEL = "Container network disconnect"
+CONTAINER_BLOCKCHAIN_NETWORK = "blockchain-fabric"
 EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL]
 
 # Preset keys for NODE_INTERRUPTION_DETAILS
@@ -42,6 +46,8 @@ NODE_OFFLINE_TIME = "NODE_OFFLINE_TIME"
 TIME_BETWEEN_INTERRUPTIONS = "TIME_BETWEEN_INTERRUPTIONS"
 CONTAINERS_TO_CRASH = "CONTAINERS_TO_CRASH"
 INDEX_DB_CONTAINER_NAME = "daml_index_db"
+CONTAINERS_TO_DISCONNECT = "CONTAINERS_TO_DISCONNECT"
+NETWORK_DISCONNECT_LEVEL = "NETWORK_DISCONNECT_LEVEL"
 
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    '''
@@ -427,6 +433,68 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
             log.error("failed to restore access (700) on container: {}".format(INDEX_DB_CONTAINER_NAME))
             sys.exit(1)
 
+   elif node_interruption_type == NODE_INTERRUPT_NETWORK_DISCONNECT:
+      username, password = helper.getNodeCredentials()
+      if custom_interruption_params[NETWORK_DISCONNECT_LEVEL] == NETWORK_DISCONNECT_CONTAINER_LEVEL:
+         containers = custom_interruption_params[CONTAINERS_TO_DISCONNECT]
+         for container in containers:
+            if mode == NODE_INTERRUPT:
+               log.info("Container disconnect: {}".format(container))
+               command_to_disconnect_container = "docker network disconnect {} {}".format(CONTAINER_BLOCKCHAIN_NETWORK,
+                                                                                          container)
+               disconnect_output = helper.ssh_connect(node, username, password, command_to_disconnect_container)
+               log.debug("Output of network disconnect for container: {} and VM: {}".format(container, node),
+                         disconnect_output)
+               command_to_get_container_network = "docker inspect --format '{}' {}".format(
+                  '{{.NetworkSettings.Networks}}',
+                  container)
+               container_network = helper.ssh_connect(node, username, password, command_to_get_container_network)
+               if not CONTAINER_BLOCKCHAIN_NETWORK in container_network:
+                  log.debug("{} Container disconnected successfully from blockchain on VM {}".format(container, node))
+               else:
+                  log.error("Unable to disconnect {} container from blockchain on VM: {}".format(container, node))
+                  sys.exit(1)
+            elif mode == NODE_RECOVER:
+               log.info("Container reconnect: {}".format(container))
+               command_to_reconnect_container = "docker network connect {} {}".format(CONTAINER_BLOCKCHAIN_NETWORK,
+                                                                                      container)
+               reconnect_output = helper.ssh_connect(node, username, password, command_to_reconnect_container)
+               log.debug("Output of VM reconnect command for VM: {}".format(node), reconnect_output)
+               command_to_get_container_network = "docker inspect --format '{}' {}".format(
+                  '{{.NetworkSettings.Networks}}',
+                  container)
+               container_network = helper.ssh_connect(node, username, password, command_to_get_container_network)
+               if CONTAINER_BLOCKCHAIN_NETWORK in container_network:
+                  log.debug("Container: {} reconnected successfully to blockchain".format(container))
+               else:
+                  log.error("Unable to reconnect container: {} to blockchain".format(container))
+                  sys.exit(1)
+
+      elif custom_interruption_params[NETWORK_DISCONNECT_LEVEL] == NETWORK_DISCONNECT_VM_LEVEL:
+         command_to_get_network_id_if_running = "ifconfig | grep br- | cut -f 1 -d ' '"
+         if mode == NODE_INTERRUPT:
+            log.info("Performing network disconnect for VM: {}".format(node))
+            command_to_disconnect_vm = "network_id=$(ifconfig -a | grep br- | cut -f 1 -d ' '); ifconfig $network_id down"
+            disconnect_output = helper.ssh_connect(node, username, password, command_to_disconnect_vm)
+            log.debug("Output of VM disconnect command for VM: {}".format(node), disconnect_output)
+            network_id = helper.ssh_connect(node, username, password, command_to_get_network_id_if_running)
+            if network_id == "":
+               log.info("VM disconnect successful")
+            else:
+               log.error("Network disconnect failed for VM: {}".format(node))
+               sys.exit(1)
+         elif mode == NODE_RECOVER:
+            log.info("VM reconnect")
+            command_to_reconnect_vm = "network_id=$(ifconfig -a | grep br- | cut -f 1 -d ' '); ifconfig $network_id up"
+            reconnect_output = helper.ssh_connect(node, username, password, command_to_reconnect_vm)
+            log.debug("Output of VM reconnect command for VM: {}".format(node), reconnect_output)
+            network_id = helper.ssh_connect(node, username, password, command_to_get_network_id_if_running)
+            if network_id == "":
+               log.error("Network reconnect failed for VM: {}".format(node))
+               sys.exit(1)
+            else:
+               log.debug("Network reconnect successful for VM: {}".format(node))
+
    log.info("Wait for a min... (** THIS SHOULD BE REMOVED AFTER A STABLE RUN **)")
    time.sleep(60)
    log.info("{}".format(vm_handle["entity"].runtime.powerState))
@@ -514,6 +582,3 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       duration_to_run_transaction=time_remaining_before_next_interruption)
 
    return result
-
-
-

@@ -32,6 +32,7 @@ productType = helper.TYPE_NO_VERIFY
 @pytest.mark.smoke
 @pytest.mark.committer_node_interruption
 @pytest.mark.committer_node_interruption_smoke
+@pytest.mark.skip
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -78,6 +79,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.committer_node_interruption
 @pytest.mark.committer_node_interruption_longrun
+@pytest.mark.skip
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -128,6 +130,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 @pytest.mark.participant_node_interruption
 @pytest.mark.participant_node_interruption_smoke
 @pytest.mark.participant_node_interruption_longrun
+@pytest.mark.skip
 def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -172,6 +175,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
 
 @describe("Node Interruption - crash containers for all containers of committer nodes")
 @pytest.mark.committer_container_crash
+@pytest.mark.skip
 def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -215,6 +219,7 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
 
 @describe("Node Interruption - crash containers for user defined containers of committer nodes")
 @pytest.mark.committer_container_crash
+@pytest.mark.skip
 def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -258,6 +263,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
 
 @describe("Node Interruption - crash containers for all containers of participant nodes")
 @pytest.mark.participant_container_crash
+@pytest.mark.skip
 def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -302,6 +308,7 @@ def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - crash containers for user defined containers of participant nodes")
 @pytest.mark.participant_container_crash
+@pytest.mark.skip
 def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -346,6 +353,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - simulate read/write failure index db through permission change")
 @pytest.mark.index_db_read_write_fail
+@pytest.mark.skip
 def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
@@ -354,6 +362,96 @@ def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockc
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          "place_holder_for_other_interruption_params": "value"
+      }
+   }
+
+   nodes_available_for_interruption = \
+      intr_helper.get_nodes_available_for_interruption(
+         fxBlockchain, node_interruption_details)
+
+   status = False
+   last_interrupted_node_index = None
+   for iteration, ips in enumerate(nodes_available_for_interruption):
+      nodes_to_interrupt, last_interrupted_node_index = \
+         intr_helper.get_list_of_nodes_to_interrupt(
+            nodes_available_for_interruption, node_interruption_details,
+            last_interrupted_node_index=last_interrupted_node_index)
+
+      log.info("************************************************************")
+      log.info(
+         "Iteration {} - Nodes to be interrupted ({}): {}".format(iteration + 1,
+                                                                  node_interruption_details[
+                                                                     intr_helper.NODE_TYPE_TO_INTERRUPT],
+                                                                  nodes_to_interrupt))
+
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details)
+      if not status:
+         log.info("")
+         log.error("**** Test aborted/failed ****")
+         break
+
+   assert status, "Node Interruption Test Failed"
+   log.info("**** Test completed successfully ****")
+
+@describe("Node Interruption - disconnect f committer nodes from Blockchain network")
+@pytest.mark.committer_vm_disconnect
+def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+         intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_VM_LEVEL
+      }
+   }
+
+   nodes_available_for_interruption = \
+      intr_helper.get_nodes_available_for_interruption(
+         fxBlockchain, node_interruption_details)
+
+   status = False
+   last_interrupted_node_index = None
+   for iteration, ips in enumerate(nodes_available_for_interruption):
+      nodes_to_interrupt, last_interrupted_node_index = \
+         intr_helper.get_list_of_nodes_to_interrupt(
+            nodes_available_for_interruption, node_interruption_details,
+            last_interrupted_node_index=last_interrupted_node_index)
+
+      log.info("************************************************************")
+      log.info(
+         "Iteration {} - Nodes to be interrupted ({}): {}".format(iteration + 1,
+                                                                  node_interruption_details[
+                                                                     intr_helper.NODE_TYPE_TO_INTERRUPT],
+                                                                  nodes_to_interrupt))
+
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details)
+      if not status:
+         log.info("")
+         log.error("**** Test aborted/failed ****")
+         break
+
+   assert status, "Node Interruption Test Failed"
+   log.info("**** Test completed successfully ****")
+
+@describe("Node Interruption - disconnect committer containers from Blockchain network")
+@pytest.mark.committer_container_network_disconnect
+@pytest.mark.skip
+def test_committer_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+         intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_CONTAINER_LEVEL,
+         intr_helper.CONTAINERS_TO_DISCONNECT: ["concord"]
       }
    }
 
