@@ -61,10 +61,10 @@ public class PersephoneExceptionHandlerUtil {
         // If the exception class is in the map, use that type
         Pair<HttpStatus, Status> status = statusCodes.getOrDefault(root.getClass(),
                                                                    Pair.of(HttpStatus.INTERNAL_SERVER_ERROR,
-                                                                           Status.INTERNAL));
+                                                                           Status.UNKNOWN));
         // However, if this is a PersephoneException, pull the code from exception
         if (ex instanceof PersephoneException) {
-            status = Pair.of(((PersephoneException) ex).getHttpStatus(), status.getValue());
+            status = Pair.of(((PersephoneException) ex).getHttpStatus(), ((PersephoneException) ex).getGrpcStatus());
         } else if (root instanceof InvalidFormatException && ((InvalidFormatException) root).getTargetType().isEnum()) {
             status = Pair.of(HttpStatus.BAD_REQUEST, Status.INVALID_ARGUMENT);
         }
