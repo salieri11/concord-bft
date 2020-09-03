@@ -101,6 +101,8 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         site_ids, site_infos = self.get_orchestration_site_ids_and_infos(zone_type, zone_config)
         sites = self.create_sites(site_ids, site_infos)
         deployment_stream_events = self.stream_deployment_session_events(session_id)
+        if not deployment_stream_events:
+            raise Exception("Error while streaming deployment events")
         resource = []
         for event in deployment_stream_events:
             if event.type == ps_apis.DeploymentExecutionEvent.RESOURCE:

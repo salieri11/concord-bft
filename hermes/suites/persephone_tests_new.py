@@ -3,18 +3,18 @@
 #
 # This test file covers the tests related to Persephone (Deployment Service)
 ############################################################################
+import json
 import os
 import pytest
 import shutil
-import subprocess
 import time
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 
 from lib.persephone.provisioning_service_new_helper import ProvisioningServiceNewRPCHelper
 from suites.case import describe
-from util import helper, hermes_logging, infra, auth, generate_grpc_bindings
+from util import helper, hermes_logging, infra, auth
 from util.daml import daml_helper
 from util.product import Product
 
@@ -59,12 +59,6 @@ def ps_setup(request, hermes_settings):
     cmdline_args = hermes_settings["cmdline_args"]
     user_config = hermes_settings["user_config"]
     try:
-        # Generate gRPC bindings for Hermes
-        log.info("Generating Persephone gRPC bindings - source: {} ; destination: {}"
-                 .format(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH, helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH))
-        generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
-                                                 helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
-
         # Update provisioning service application properties file
         update_provisioning_service_application_properties(cmdline_args)
 
@@ -131,6 +125,7 @@ def teardown(hermes_settings, ps_helper):
     # Reset provisioning service application properties file
     update_provisioning_service_application_properties(cmdline_args, mode="RESET")
     print_deployment_summary(ps_helper)
+    save_nodes_info_to_file(hermes_settings["cmdline_args"].fileRoot, ps_helper)
 
 
 def create_deployment(ps_helper, deployment_params, zone_config):
@@ -158,11 +153,15 @@ def create_deployment(ps_helper, deployment_params, zone_config):
                                                       zone_config, num_client_groups)
 
     # Validate deployment response
+    if not deployment_response:
+        raise Exception("No deployment response from create deployment")
     deployment_session_id = get_deployment_session_id(deployment_response)
     deployment_stream_events = None
     if deployment_session_id:
         log.info("Deployment session id: {}".format(deployment_session_id))
         deployment_stream_events = ps_helper.stream_deployment_session_events(deployment_session_id)
+        if not deployment_stream_events:
+            raise Exception("Error while streaming deployment events")
         end_time = datetime.now(timezone.utc).astimezone()
         log.info("Deployment end time: {}".format(end_time.strftime(helper.TIME_FMT_TIMEZONE)))
         deployment_time = end_time - start_time
@@ -209,21 +208,23 @@ def post_deployment(hermes_settings, ps_helper, deployment_session_id, deploymen
                                   consortium_id, blockchain_id, blockchain_type, zone_type, file_root)
             if len(node_info_list) == num_nodes:
                 # Verify containers running on each node
-                status = verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type)
+                status, error_msg = verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type)
+                if not status:
+                    handle_exception(error_msg, hermes_settings, ps_helper, deployment_session_id)
             else:
-                log.error("Received {} number of node information in stream events. Expected {}"
-                          .format(len(node_info_list), num_nodes))
-                status = False
+                msg = "Received {} number of node information in stream events. Expected {}"\
+                    .format(len(node_info_list), num_nodes)
+                handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
 
         else:
-            log.error("Stream session events validation failed")
-            status = False
+            msg = "Stream session events validation failed"
+            handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
 
     else:
-        log.error("Deployment session id or stream session events unavailable")
-        status = False
+        msg = "Deployment session id or stream session events unavailable"
+        handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
 
-    return node_info_list if status else None
+    return node_info_list
 
 
 def deploy_and_post_deploy_wrapper(hermes_settings, ps_helper, deployment_params, file_root):
@@ -235,14 +236,10 @@ def deploy_and_post_deploy_wrapper(hermes_settings, ps_helper, deployment_params
     :param file_root: Root directory to save test log files
     :return: Deployment session id, List of NodeInfo
     """
-
-    cmdline_args = hermes_settings["cmdline_args"]
     zone_config = hermes_settings["zone_config"]
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)
     node_info_list = post_deployment(hermes_settings, ps_helper, deployment_session_id, deployment_stream_events,
                                      deployment_params, file_root)
-    status = True if node_info_list is not None else False
-    retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployment_session_id)
     return deployment_session_id, node_info_list
 
 
@@ -334,13 +331,12 @@ def get_deployment_session_id(deployment_response):
     """
     deployment_session_id = None
     if deployment_response:
-        log.debug("Deployment response: {}".format(deployment_response))
         deployment_response_json = helper.protobuf_message_to_json(deployment_response)
         if "id" in deployment_response_json[0]:
             deployment_session_id = deployment_response_json[0]["id"]
 
     if deployment_session_id is None:
-        log.error("Deployment session id not found")
+        raise Exception("Deployment session id not found")
 
     return deployment_session_id
 
@@ -392,7 +388,9 @@ def validate_stream_deployment_session_events(execution_events, num_replicas, nu
                       .format(event_type, count))
             validation_status = False
 
-    assert len(client_groups) == num_client_groups
+    if len(client_groups) != num_client_groups:
+        log.error("Expected client groups: {}; Actual client groups: {}".format(num_client_groups, client_groups))
+        validation_status = False
     
     return validation_status
 
@@ -513,9 +511,8 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
         for deployment_info in ps_helper.deployment_info:
             if get_deployment_session_id(deployment_info["deployment_session_id"]) == deployment_session_id:
                 log.debug("Updating more info for deployment session ID: {}".format(deployment_session_id))
-                replicas = [node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-                            for node in node_info_list]
-                deployment_info["replicas"] = replicas
+                deployment_info["node_ips"] = [node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
+                                               for node in node_info_list]
                 deployment_info["private_ips"] = [node.private_ip for node in node_info_list]
                 deployment_info["concord_username"] = "root"
                 deployment_info["concord_password"] = [node.password for node in node_info_list]
@@ -523,13 +520,17 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
                     get_docker_containers_by_blockchain_type(hermes_settings["user_config"], blockchain_type)
                 deployment_info["concord_type"] = blockchain_type
                 deployment_info["log_dir"] = file_root
+                deployment_info["replicas"] = [node for node in node_info_list
+                                               if node.node_type == helper.NodeType.REPLICA]
+                deployment_info["clients"] = [node for node in node_info_list
+                                              if node.node_type == helper.NodeType.CLIENT]
                 break
     except Exception as e:
         log.error("Exception in saving deployment information: {}".format(e))
 
     log.info("Annotating VMs with deployment context")
     try:
-        nodes_list = [vars(node_info) for node_info in node_info_list] # convert NodeInfo to dict
+        nodes_list = [vars(node_info) for node_info in node_info_list]  # convert NodeInfo to dict
         fatal_errors = infra.giveDeploymentContext({
             "id": blockchain_id,
             "consortium_id": consortium_id,
@@ -540,7 +541,8 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
         if fatal_errors:  # e.g. IP conflicts
             infra.save_fatal_errors_to_summary(fatal_errors)
     except Exception as e:
-        raise Exception("Received IP conflict exception from infra: {}".format(e))
+        msg = "Received IP conflict exception from infra: {}".format(e)
+        handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
 
 
 def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type):
@@ -552,16 +554,16 @@ def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, z
     :param zone_type: sddc or onprem
     :return: True/False
     """
-    status = True
+    status = False
     user_config = hermes_settings["user_config"]
-    for node in node_info_list:
+    error_msg = "Error verifying docker containers"
+    for idx, node in enumerate(node_info_list):
         containers_to_verify = get_docker_containers_by_node_type(user_config, blockchain_type, node.node_type)
         # Verify SSH connection
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
         ssh_status = ssh_connect_node(ip, node.username, node.password)
         if not ssh_status:
-            log.error("Could not SSH to {}. Aborting docker container verification".format(ip))
-            status = False
+            error_msg = "Could not SSH to {}. Aborting docker container verification".format(ip)
             break
 
         # Verify docker containers
@@ -587,13 +589,15 @@ def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, z
                     log.debug("Container {} found in node {}".format(container_name, ip))
 
         if not docker_images_found:
-            log.error("Not all containers are up and running on node '{}'".format(ip))
-            status = False
+            error_msg = "Not all containers are up and running on node '{}'".format(ip)
             break  # break out of node in node_info_list for-loop
         else:
             log.info("Docker containers verified on {}".format(ip))
+            if idx == len(node_info_list) - 1:
+                log.info("Docker containers verified on all nodes")
+                status = True
 
-    return status
+    return status, error_msg
 
 
 def ssh_connect_node(ip, username, password, mode=None):
@@ -717,6 +721,7 @@ def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deploy
     helper.add_ethrpc_port_forwarding(ip, username, password, src_port=src_port, dest_port=dest_port)
 
     status = False
+    error_msg = "DAR upload failed"
     if helper.verify_connectivity(ip, src_port):
         log.info("Verified connectivity to client {} on port {}".format(ip, src_port))
         try:
@@ -726,31 +731,62 @@ def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deploy
             daml_helper.verify_ledger_api_test_tool(host=ip, port=str(src_port))
             status = True
         except Exception as e:
-            log.error("DAR upload/verification failed")
+            error_msg = "DAR upload/verification failed with exception: {}".format(e)
+            log.error(error_msg)
     else:
-        log.error("Could not verify connectivity to client {} on port {}".format(ip, src_port))
+        error_msg = "Could not verify connectivity to client {} on port {}".format(ip, src_port)
+        log.error(error_msg)
 
     retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
-    return status
+    return status, error_msg
 
 
 def print_deployment_summary(ps_helper):
-    log.info("Tests are done.")
-    log.info("")
+    """
+    Prints summary after deployment.
+    """
+    log.info("Tests are done.\n")
     log.info("############################################################")
     log.info("##########          Deployment Summary            ##########")
     log.info("############################################################")
     for deployment_info in ps_helper.deployment_info:
-        session_id = deployment_info["deployment_session_id"]
-        log.info("Node type: {} (deployment {})".format(
-            deployment_info["concord_type"], session_id[0]))
-        log.info("Replicas (public IP)/Private IP")
-        for index, public_ip in enumerate(deployment_info["replicas"]):
-            log.info("{}) {:>15}/{}".format(index + 1, public_ip,
-                                            deployment_info["private_ips"][
-                                                index]))
+        session_id = get_deployment_session_id(deployment_info["deployment_session_id"])
+        log.info("Blockchain type: {} (deployment session id: {})"
+                 .format(deployment_info["concord_type"].upper(), session_id))
+        log.info("Replicas (Public IP)/Private IP")
+        for index, replica in enumerate(deployment_info["replicas"]):
+            log.info("{}) {:>15}/{}".format(index + 1, replica.public_ip, replica.private_ip))
+
+        if deployment_info["concord_type"] == helper.TYPE_DAML:
+            log.info("Clients (Public IP)/Private IP")
+            for index, client in enumerate(deployment_info["clients"]):
+                log.info("{}) {:>15}/{}".format(index + 1, client.public_ip, client.private_ip))
         log.info("")
     log.info("############################################################")
+
+
+def save_nodes_info_to_file(file_root, ps_helper):
+    """
+    Saves nodes to replicas.json file inside file_root, which is different for each test.
+    """
+    contents = {}
+    for deployment_info in ps_helper.deployment_info:
+        session_id = get_deployment_session_id(deployment_info["deployment_session_id"])
+        replicas_list = [asdict(replica) for replica in deployment_info["replicas"]]
+        clients_list = [asdict(client) for client in deployment_info["clients"]]
+        deployment = {"deployment_session_id": session_id, "replicas": replicas_list, "clients": clients_list}
+        contents[session_id] = deployment
+
+    nodes_path = os.path.join(file_root, helper.REPLICAS_JSON_FILE)
+    try:
+        os.remove(nodes_path)
+    except OSError:
+        pass
+
+    with open(nodes_path, 'w') as fp:
+        json.dump(contents, fp, default=str, indent=2)
+
+    log.info("Saved nodes information in {}".format(nodes_path))
 
 
 def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployment_session_id=None):
@@ -787,6 +823,15 @@ def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployme
 
         if not deployment_info_found:
             log.info("Deployment session id not found in deployment_info list")
+
+
+def handle_exception(msg, hermes_settings, ps_helper, deployment_session_id, status=False):
+    """
+    Log error message, create support bundle, and then raise the exception
+    """
+    log.error(msg)
+    retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
+    raise Exception(msg)
 
 
 def deprovision(hermes_settings, ps_helper):
@@ -863,20 +908,20 @@ def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, tea
     # Call the deploy and post deploy wrapper
     deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
                                                                            deployment_params, file_root)
-    assert node_info_list is not None
+    assert node_info_list is not None, "Error in post deployment verifications"
 
     # Verify ethrpc block 0 on all nodes
     for node in node_info_list:
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
         assert verify_ethrpc_block_0(hermes_settings, ps_helper, ip, node.username, node.password, file_root,
-                                     deployment_session_id)
+                                     deployment_session_id), "Error verifying ethrpc block 0"
 
     log.info("Test {} completed successfully".format(request.node.name))
 
 
 @describe("Test to run a DAML ONPREM deployment (7 replicas + 3 client + 2 group)")
 @pytest.mark.smoke
-@pytest.mark.on_demand_concord_default # IMPORTANT. DO NOT DELETE.
+@pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
 def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, teardown):
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
@@ -890,14 +935,15 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
     # Call the deploy and post deploy wrapper
     deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
                                                                            deployment_params, file_root)
-    assert node_info_list is not None
+    assert node_info_list is not None, "Error in post deployment verifications"
 
     # Verify DAR upload on all client nodes
     for node in node_info_list:
         if node.node_type == helper.NodeType.CLIENT:
             ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-            assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
-                                     deployment_session_id)
+            dar_upload_status, error_msg = verify_dar_upload(hermes_settings, ps_helper, ip, node.username,
+                                                             node.password, deployment_session_id)
+            assert dar_upload_status, error_msg
 
     log.info("Test {} completed successfully".format(request.node.name))
 
@@ -915,18 +961,19 @@ def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown
     # Call the deploy and post deploy wrapper
     deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
                                                                            deployment_params, file_root)
-    assert node_info_list is not None
+    assert node_info_list is not None, "Error in post deployment verifications"
 
     # Verify DAR upload for DAML, or ethrpc block 0 for Ethereum
     for node in node_info_list:
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
         if blockchain_type.lower() == helper.TYPE_DAML:
             if node.node_type == helper.NodeType.CLIENT:
-                assert verify_dar_upload(hermes_settings, ps_helper, ip, node.username, node.password,
-                                         deployment_session_id)
+                dar_upload_status, error_msg = verify_dar_upload(hermes_settings, ps_helper, ip, node.username,
+                                                                 node.password, deployment_session_id)
+                assert dar_upload_status, error_msg
         else:
             assert verify_ethrpc_block_0(hermes_settings, ps_helper, ip, node.username, node.password, file_root,
-                                         deployment_session_id)
+                                         deployment_session_id), "Error verifying ethrpc block 0"
 
     log.info("Test {} completed successfully".format(request.node.name))
 
@@ -943,6 +990,6 @@ def test_deployment_only(request, hermes_settings, ps_helper):
     deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_client_groups=0)
 
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)
-    assert deployment_session_id is not None
+    assert deployment_session_id is not None, "Deployment session id not found"
 
     log.info("Test {} completed successfully".format(request.node.name))
