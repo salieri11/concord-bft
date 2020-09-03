@@ -155,7 +155,8 @@ enum DeploymentAttributes {
     SPLIT_CONFIG = 11;
     VM_STORAGE = 12;
     PREEXECUTION_ENABLED = 13;
-    DECENTRALIZED_KEYS = 14;
+    PREEXECUTION_THRESHOLD = 14;
+    DECENTRALIZED_KEYS = 15;
 }
 
 /* [END messages] */

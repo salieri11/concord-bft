@@ -40,14 +40,14 @@ public class DamlIndexDbUtil {
 
         StringBuilder builder = new StringBuilder();
         builder.append("export POSTGRES_USER=indexdb");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
         // Remove this once 0.8 version is deprecated
         builder.append("export POSTGRES_MULTIPLE_DATABASES=" + nodeName);
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
         builder.append("export MAX_CONNECTIONS=300");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
         builder.append("export BUFFER_SIZE=4096MB");
-        builder.append(System.getProperty("line.separator"));
+        builder.append(System.lineSeparator());
         builder.append("export POSTGRES_CONFIG_FILE_OPT=\"-c config_file=/config" + postGresConfig + "\"");
         return builder.toString();
     }

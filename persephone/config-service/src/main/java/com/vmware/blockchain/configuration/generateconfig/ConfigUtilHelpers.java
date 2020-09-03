@@ -53,7 +53,8 @@ public class ConfigUtilHelpers {
         CLIENT_HOST("client_host"),
         COMMITTER_PORT("replica_port"),
         CLIENT_PORT("client_port"),
-        NUM_EXTERNAL_CLIENTS("num_of_external_clients");
+        NUM_EXTERNAL_CLIENTS("num_of_external_clients"),
+        PREEXECUTION_ENABLED("preexecution_enabled");
 
         String name;
 

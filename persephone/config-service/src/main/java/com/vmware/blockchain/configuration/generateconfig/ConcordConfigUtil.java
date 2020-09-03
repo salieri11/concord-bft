@@ -71,13 +71,13 @@ public class ConcordConfigUtil {
      */
     public Map<String, Map<String, String>> getConcordConfig(List<String> nodeIds, List<String> hostIps,
                                                 BlockchainType blockchainType, int bftClients,
-                                                boolean isSplitConfig) {
+                                                boolean isSplitConfig, boolean isPreexecutionDeployment) {
         try {
             var outputPath = Files.createTempDirectory(null);
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
 
-            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType, bftClients);
+            generateInputConfigYaml(hostIps, inputYamlPath, blockchainType, bftClients, isPreexecutionDeployment);
 
             var configFutures = ConfigUtilHelpers.getConcGenConfigCmd(inputYamlPath, principalsMapFile,
                     outputPath, isSplitConfig);
@@ -123,7 +123,7 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
-                                    BlockchainType blockchainType, int bftClients) {
+                                    BlockchainType blockchainType, int bftClients, boolean isPreexecutionDeployment) {
 
         if (!ConfigUtilHelpers.validateSbft(hostIps.size())) {
             return false;
@@ -131,7 +131,8 @@ public class ConcordConfigUtil {
         int clusterSize = hostIps.size();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath, blockchainType, bftClients);
+        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath, blockchainType, bftClients,
+                                       isPreexecutionDeployment);
     }
 
     /**
@@ -139,7 +140,7 @@ public class ConcordConfigUtil {
      */
     @SuppressWarnings({"unchecked"})
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
-                                    BlockchainType blockchainType, int bftClients) {
+                                    BlockchainType blockchainType, int bftClients, boolean isPreexecutionDeployment) {
 
         if (!ConfigUtilHelpers.validateSbft(hostIp.size(), fVal, cVal)) {
             return false;
@@ -179,11 +180,15 @@ public class ConcordConfigUtil {
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_EXTERNAL_CLIENTS.name, bftClients);
 
+        if (isPreexecutionDeployment) {
+            configInput.put(ConfigUtilHelpers.ConfigProperty.PREEXECUTION_ENABLED.name, isPreexecutionDeployment);
+        }
+
         // Prepare per replica config
         List node = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.NODE.name);
         Map<String, Object> nodeConfig = (Map<String, Object>) node.get(0);
 
-        //FIXME: Concord to fix: Why is replica a list?
+        // FIXME: Concord to fix: Why is replica a list?
         List replicaConfig = (List) nodeConfig.get(ConfigUtilHelpers.ConfigProperty.REPLICA.name);
         Map<String, Object> replicaValues = (Map<String, Object>) replicaConfig.get(0);
 

@@ -183,8 +183,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
         }
 
+        boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "False")
+                .equalsIgnoreCase("True");
+
+        int preexecutionThreshold = Integer.parseInt(request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0"));
+
         var concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
-                convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig);
+                convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig,
+                isPreexecutionDeployment);
 
         log.info("Generated concord configurations for session Id : {}", sessionId);
 
