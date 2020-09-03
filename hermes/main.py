@@ -93,7 +93,7 @@ suiteList = {
    "UiTests": ui_tests.UiTests,
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
    "HlfTests": hlf_tests.HlfTests,
-   "MetadataPersistencyTests": "suites/persistency_tests.py"
+   "MetadataPersistencyTests": "suites/persistency_tests.py",
    "HelenNodeSizeTemplateTests": "suites/helen/nodesize_test.py"
 }
 
