@@ -17,7 +17,7 @@ import io.micrometer.core.instrument.Tag;
  */
 public interface ComponentHealth {
 
-    List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.name(),
+    List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
             ComponentHealth.class.getName()));
     MetricsAgent metricsAgent = new MetricsAgent(tags);
 
