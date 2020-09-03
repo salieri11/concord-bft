@@ -27,6 +27,7 @@ RUN apt-get update && apt-get -y install \
     libsnappy-dev \
     libzstd1-dev \
     libtool \
+    libs3-dev \
     llvm-5.0 \
     llvm-5.0-dev \
     libyaml-cpp0.5v5 \
