@@ -88,11 +88,9 @@ suiteList = {
    "SampleDAppTests":"suites/sample_dapp_tests.py",
    "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
    "EthRegressionTests": "suites/eth_regression_tests.py",
-   "WebSocketRPCTests": websocket_rpc_tests.WebSocketRPCTests,
    "PerformanceTests": "suites/performance_tests.py",
    "UiTests": "suites/ui_tests.py",
    "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
-   "HlfTests": hlf_tests.HlfTests,
    "MetadataPersistencyTests": "suites/persistency_tests.py"
 }
 
