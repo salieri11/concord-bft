@@ -7,6 +7,7 @@ import copy
 import difflib
 import json
 from uuid import UUID, uuid4
+from uuid import UUID
 
 import util.blockchain.eth
 import util.hermes_logging
@@ -670,6 +671,53 @@ def validateDeletedZoneResponse(deletedZone):
     assert "id" in deletedZone, "Expecting id in response"
     assert type(deletedZone["id"]) == str, "Expecting str value for id"
     assert len(deletedZone["id"]) == 36, "Expecting UUID of length 36"
+
+def validateNodeSizeTemplateResponse(template):
+    '''
+    Validate a node size template response object.
+    '''
+    log.debug(template)
+
+    assert type(template) == collections.OrderedDict, "Expecting collections.OrderedDict value for template"
+    # The following statement throws an exception, if id is not of type UUID.
+    UUID(template["id"])
+
+    assert "name" in template, "No field called name in node size template"
+    assert type(template["name"]) == str, "Expecting str value for name"
+    assert len(template["name"]) > 0, "Expected a valid name"
+
+    templates = template["templates"]
+    assert templates, "Expecting templates for node sizing"
+
+    for templateItem in templates:
+        validateTemplateItem(templateItem)
+
+    range = template["range"]
+    assert range, "Expecting range to be non-empty"
+
+    for key in range.keys():
+        valMap = range[key]
+        assert len(valMap) > 0, "Expecting range values to be non-empty"
+        for valKey in valMap:
+            assert valMap[valKey] > 0, "Expecting a valid value for " + valKey
+
+def validateTemplateItem(templateItem):
+    '''
+    Validate a node size template item object.
+    '''
+    log.debug(templateItem)
+    assert type(templateItem) == collections.OrderedDict, "Expecting collections.OrderedDict value for templateItem"
+
+    assert "name" in templateItem, "No field called name in template item"
+    assert type(templateItem["name"]) == str, "Expecting str value for name"
+    assert len(templateItem["name"]) > 0, "Expected a valid name"
+
+    items = templateItem["items"]
+    assert len(items) > 0, "Expecting items for the template item"
+
+    for item in items:
+        for key in item.keys():
+            assert len(item[key]) > 0, "Expecting a valid value for " + key
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # EXCEPTION VALIDATORS
