@@ -98,7 +98,7 @@ import io.grpc.stub.StreamObserver;
 @WebMvcTest(controllers = { BlockchainController.class, TaskController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class})
 @ComponentScan(basePackageClasses = { BlockchainControllerTest.class, HelenExceptionHandler.class,
-        TaskController.class})
+                                      TaskController.class})
 public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
@@ -134,21 +134,78 @@ public class BlockchainControllerTest {
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                         + "    ,\"replica_nodes\": ["
+                                         + "{"
+                                         + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "             \"sizing_info\": {"
+                                         + "             \"no_of_cpus\": \"2\","
+                                         + "             \"storage_in_gigs\": \"60\","
+                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                         + "{"
+                                         + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "             \"sizing_info\": {"
+                                         + "             \"no_of_cpus\": \"2\","
+                                         + "             \"storage_in_gigs\": \"60\","
+                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                         + "{"
+                                         + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                         + "             \"sizing_info\": {"
+                                         + "             \"no_of_cpus\": \"2\","
+                                         + "             \"storage_in_gigs\": \"60\","
+                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                         + "{"
+                                         + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                         + "             \"sizing_info\": {"
+                                         + "             \"no_of_cpus\": \"2\","
+                                         + "             \"storage_in_gigs\": \"60\","
+                                         + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                         + "]"
                                          + "    ,\"client_nodes\": [{"
                                          + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"auth_url_jwt\": \"user@server.com\","
-                                         + "            \"group_name\": \"1\""
+                                         + "            \"group_name\": \"1\","
+                                         + "             \"sizing_info\": {"
+                                         + "             \"no_of_cpus\": \"2\","
+                                         + "             \"storage_in_gigs\": \"60\","
+                                         + "             \"memory_in_gigs\": \"32\"}"
                                          + "      }]"
                                          + "}";
 
     static final String POST_BODY_BAD_CONS = "{"
-                                         + "    \"consortium_id\": \"a4b8f7ed-00b3-451e-97bc-4aa51a211288\","
-                                         + "    \"blockchain_type\": \"DAML\","
-                                         + "    \"replica_zone_ids\": ["
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
+                                             + "    \"consortium_id\": \"a4b8f7ed-00b3-451e-97bc-4aa51a211288\","
+                                             + "    \"blockchain_type\": \"DAML\","
+                                             + "    \"replica_zone_ids\": ["
+                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                             + "    ,\"replica_nodes\": ["
+                                             + "{"
+                                             + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                             + "{"
+                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                             + "{"
+                                             + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                             + "{"
+                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                             + "]"
+                                             + "}";
 
     static final String POST_BODY_ETH = "{"
                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
@@ -157,17 +214,64 @@ public class BlockchainControllerTest {
                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                         + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
+                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                        + "    ,\"replica_nodes\": ["
+                                        + "{"
+                                        + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                        + "{"
+                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                        + "{"
+                                        + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                        + "{"
+                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                        + "]"
+                                        + "}";
 
     // Bad placement, wrong number of sites
     static final String POST_BODY_BAD = "{"
-                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                          + "    \"f_count\": 1,"
-                                          + "    \"c_count\": 0,"
-                                          + "    \"zone_ids\": ["
-                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
+                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                        + "    \"f_count\": 1,"
+                                        + "    \"c_count\": 0,"
+                                        + "    \"replica_zone_ids\": ["
+                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                        + "    ,\"replica_nodes\": ["
+                                        + "{"
+                                        + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                        + "{"
+                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                        + "{"
+                                        + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                        + "             \"sizing_info\": {"
+                                        + "             \"no_of_cpus\": \"2\","
+                                        + "             \"storage_in_gigs\": \"60\","
+                                        + "             \"memory_in_gigs\": \"32\"}" + "}" + "]" +  "}";
 
     static final String CORRECT_CLIENT_NUM = "{"
                                              + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
@@ -177,16 +281,41 @@ public class BlockchainControllerTest {
                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                              + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                             + "    ,\"client_nodes\": ["
+                                             + "    ,\"replica_nodes\": ["
                                              + "{"
                                              + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"auth_url_jwt\": \"user@server.com\","
-                                             + "            \"group_name\": \"Group 1\"},"
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
                                              + "{"
                                              + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"auth_url_jwt\": \"user@server.com\","
-                                             + "            \"group_name\": \"Group 1\"}"
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                             + "{"
+                                             + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                             + "{"
+                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}" + "}"
                                              + "]"
+                                             + "    ,\"client_nodes\": [{"
+                                             + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                             + "            \"auth_url_jwt\": \"user@server.com\","
+                                             + "            \"group_name\": \"1\","
+                                             + "             \"sizing_info\": {"
+                                             + "             \"no_of_cpus\": \"2\","
+                                             + "             \"storage_in_gigs\": \"60\","
+                                             + "             \"memory_in_gigs\": \"32\"}"
+                                             + "      }]"
                                              + "}";
 
     static final String WRONG_CLIENT_NUM = "{"
@@ -197,51 +326,121 @@ public class BlockchainControllerTest {
                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                           + "    ,\"replica_nodes\": ["
+                                           + "{"
+                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                           + "]"
                                            + "    ,\"client_nodes\": ["
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \" Group 1\"},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\"},"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
                                            + "{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\":\"Group 1\"}"
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "            \"auth_url_jwt\": \"user@server.com\","
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "            \"auth_url_jwt\": \"user@server.com\","
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
                                            + "]"
                                            + "}";
 
@@ -251,13 +450,35 @@ public class BlockchainControllerTest {
                                            + "    \"replica_zone_ids\": ["
                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                           + "    ,\"replica_nodes\": ["
+                                           + "{"
+                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                           + "{"
+                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                           + "]"
                                            + "    ,\"client_nodes\": [{"
                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\""
+                                           + "            \"group_name\": \"Group 1\","
+                                           + "             \"sizing_info\": {"
+                                           + "             \"no_of_cpus\": \"2\","
+                                           + "             \"storage_in_gigs\": \"60\","
+                                           + "             \"memory_in_gigs\": \"32\"}"
                                            + "      }]"
                                            + "}";
 
@@ -272,26 +493,86 @@ public class BlockchainControllerTest {
                                                + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                                + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                                + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                               + "    ,\"replica_nodes\": ["
+                                               + "{"
+                                               + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                               + "             \"sizing_info\": {"
+                                               + "             \"no_of_cpus\": \"2\","
+                                               + "             \"storage_in_gigs\": \"60\","
+                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                               + "{"
+                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                               + "             \"sizing_info\": {"
+                                               + "             \"no_of_cpus\": \"2\","
+                                               + "             \"storage_in_gigs\": \"60\","
+                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                               + "{"
+                                               + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                               + "             \"sizing_info\": {"
+                                               + "             \"no_of_cpus\": \"2\","
+                                               + "             \"storage_in_gigs\": \"60\","
+                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                               + "{"
+                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                               + "             \"sizing_info\": {"
+                                               + "             \"no_of_cpus\": \"2\","
+                                               + "             \"storage_in_gigs\": \"60\","
+                                               + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                               + "]"
                                                + "    ,\"client_nodes\": [{"
                                                + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                                + "            \"auth_url_jwt\": \"user@server.com\","
-                                               + "            \"group_name\": \"Group 1\""
+                                               + "            \"group_name\": \"Group 1\","
+                                               + "             \"sizing_info\": {"
+                                               + "             \"no_of_cpus\": \"2\","
+                                               + "             \"storage_in_gigs\": \"60\","
+                                               + "             \"memory_in_gigs\": \"32\"}"
                                                + "      }]"
                                                + "}";
 
     static final String BC_DAML_NO_CLIENT_GROUPING = "{"
-                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                           + "    \"blockchain_type\": \"DAML\","
-                                           + "    \"replica_zone_ids\": ["
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                           + "    ,\"client_nodes\": [{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\""
-                                           + "      }]"
-                                           + "}";
+                                                   + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                                     + "    \"blockchain_type\": \"DAML\","
+                                                     + "    \"replica_zone_ids\": ["
+                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
+                                                     + "    ,\"replica_nodes\": ["
+                                                     + "{"
+                                                     + "     \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "             \"sizing_info\": {"
+                                                     + "             \"no_of_cpus\": \"2\","
+                                                     + "             \"storage_in_gigs\": \"60\","
+                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                                     + "{"
+                                                     + "       \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "             \"sizing_info\": {"
+                                                     + "             \"no_of_cpus\": \"2\","
+                                                     + "             \"storage_in_gigs\": \"60\","
+                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                                     + "{"
+                                                     + "       \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                                     + "             \"sizing_info\": {"
+                                                     + "             \"no_of_cpus\": \"2\","
+                                                     + "             \"storage_in_gigs\": \"60\","
+                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
+                                                     + "{"
+                                                     + "        \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "             \"sizing_info\": {"
+                                                     + "             \"no_of_cpus\": \"2\","
+                                                     + "             \"storage_in_gigs\": \"60\","
+                                                     + "             \"memory_in_gigs\": \"32\"}" + "}"
+                                                     + "]"
+                                                     + "    ,\"client_nodes\": [{"
+                                                     + "      \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                                     + "      \"auth_url_jwt\": \"user@server.com\","
+                                                     + "      \"sizing_info\": {"
+                                                     + "      \"no_of_cpus\": \"2\","
+                                                     + "      \"storage_in_gigs\": \"60\","
+                                                     + "      \"memory_in_gigs\": \"32\"}"
+                                                     + "      }]"
+                                                     + "}";
 
     private static final UUID REPLICA_1 = UUID.fromString("73ba5deb-1046-48e3-a369-3982177cabed");
     private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
@@ -357,7 +638,7 @@ public class BlockchainControllerTest {
     private void setStreamCluster(Answer answer) {
         doAnswer(answer).when(client)
                 .streamDeploymentSessionEvents(any(StreamDeploymentSessionEventRequest.class),
-                                                      any(StreamObserver.class));
+                                               any(StreamObserver.class));
     }
 
     /**
@@ -408,22 +689,22 @@ public class BlockchainControllerTest {
         final Blockchain b = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("1", "2", "3")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "", "", SITE_1))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "", "", SITE_1))
+                                  .collect(Collectors.toList()))
                 .build();
 
         final Blockchain b2 = Blockchain.builder()
                 .consortium(c2.getId())
                 .nodeList(Stream.of("4", "5", "6")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "", "", SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "", "", SITE_2))
+                                  .collect(Collectors.toList()))
                 .build();
 
         final Blockchain bcInactive = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                                  .collect(Collectors.toList()))
                 .state(Blockchain.BlockchainState.INACTIVE)
                 .type(BlockchainType.ETHEREUM)
                 .build();
@@ -431,31 +712,31 @@ public class BlockchainControllerTest {
         final Blockchain bn = Blockchain.builder()
                 .consortium(UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3"))
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                                  .collect(Collectors.toList()))
                 .build();
 
         final Blockchain bcdaml = Blockchain.builder()
                 .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                                  .collect(Collectors.toList()))
                 .type(BlockchainType.DAML)
                 .build();
 
         final Blockchain bcDeregister = Blockchain.builder()
                 .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                                  .collect(Collectors.toList()))
                 .type(BlockchainType.ETHEREUM)
                 .build();
 
         final Blockchain bcDeregisterInactive = Blockchain.builder()
                 .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
-                        .collect(Collectors.toList()))
+                                  .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                                  .collect(Collectors.toList()))
                 .state(Blockchain.BlockchainState.INACTIVE)
                 .type(BlockchainType.ETHEREUM)
                 .build();
@@ -523,9 +804,9 @@ public class BlockchainControllerTest {
                                  ImmutableList.of(BC_ID), "");
 
         user2Auth = createContext("operator", ORG2_ID,
-                                 ImmutableList.of(VmbcRoles.ORG_USER),
-                                 ImmutableList.of(C3_ID),
-                                 Collections.emptyList(), "");
+                                  ImmutableList.of(VmbcRoles.ORG_USER),
+                                  ImmutableList.of(C3_ID),
+                                  Collections.emptyList(), "");
 
         setCreateCluster(i -> {
             StreamObserver ob = i.getArgument(1);
@@ -558,7 +839,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainOperatorListActiveOnly() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/blockchains/").with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         List<BlockchainApiObjects.BlockchainGetResponse> res =
@@ -570,7 +851,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainOperatorListAllBlockchains() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/blockchains?all=true").with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         List<BlockchainApiObjects.BlockchainGetResponse> res =
@@ -587,7 +868,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainUserList() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/blockchains/").with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         List<BlockchainApiObjects.BlockchainGetResponse> res = objectMapper.readValue(body, new TypeReference<>() {});
@@ -598,7 +879,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainUser2List() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/blockchains/").with(authentication(user2Auth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         List<BlockchainApiObjects.BlockchainGetResponse> res = objectMapper.readValue(body, new TypeReference<>() {});
@@ -609,7 +890,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainOperator() throws Exception {
         mockMvc.perform(get("/api/blockchains/" + BC_ID.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
@@ -617,7 +898,7 @@ public class BlockchainControllerTest {
     void getBlockchainOperatorNotFound() throws Exception {
         // There is no such blockchain.
         MvcResult result = mockMvc.perform(get("/api/blockchains/" + C2_ID.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -632,7 +913,7 @@ public class BlockchainControllerTest {
         // There is no such blockchain.
         MvcResult result = mockMvc.perform(
                 get("/api/blockchains/" + BC_MISSING.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -645,28 +926,28 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainUser() throws Exception {
         mockMvc.perform(get("/api/blockchains/" + BC_ID.toString()).with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBlockchainOperatorBc2() throws Exception {
         mockMvc.perform(get("/api/blockchains/" + BC2_ID.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBlockchainUserBc2() throws Exception {
         mockMvc.perform(get("/api/blockchains/" + BC2_ID.toString()).with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void getBlockchainNoAccess() throws Exception {
         mockMvc.perform(get("/api/blockchains/" + BC_ID.toString())
-                .contentType(MediaType.APPLICATION_JSON))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -675,8 +956,8 @@ public class BlockchainControllerTest {
         MvcResult result =
                 mockMvc.perform(
                         get("/api/blockchains/" + BC_UNAVAILABLE.toString()).with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound()).andReturn();
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
 
@@ -688,10 +969,10 @@ public class BlockchainControllerTest {
     @Test
     void postUserAccess() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(userAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_DAML)
-                .characterEncoding("utf-8"))
-            .andExpect(status().isForbidden());
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_DAML)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -706,9 +987,9 @@ public class BlockchainControllerTest {
     @Test
     void createTooMany() throws Exception {
         AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
-                                       ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
-                                       ImmutableList.of(C2_ID),
-                                       ImmutableList.of(BC_ID), "");
+                                                     ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
+                                                     ImmutableList.of(C2_ID),
+                                                     ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_BODY_DAML).characterEncoding("utf-8"))
@@ -807,18 +1088,18 @@ public class BlockchainControllerTest {
 
 
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_DAML).characterEncoding("utf-8"))
-            .andExpect(status().isAccepted()).andReturn();
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted()).andReturn();
         String body = result.getResponse().getContentAsString();
 
         BlockchainTaskResponse t = objectMapper.readValue(body, BlockchainTaskResponse.class);
         Assertions.assertEquals(TASK_ID, t.getTaskId());
 
         result = mockMvc.perform(get("/api/tasks/" + TASK_ID.toString())
-                .with(authentication(consortiumAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk()).andReturn();
+                                         .with(authentication(consortiumAuth))
+                                         .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
 
         body = result.getResponse().getContentAsString();
         Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
@@ -837,8 +1118,8 @@ public class BlockchainControllerTest {
     @Test
     void deregisterBlockchain() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_DEREGISTER.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isAccepted()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -851,8 +1132,8 @@ public class BlockchainControllerTest {
     @Test
     void deregisterUnavailableBlockchain() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_UNAVAILABLE.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -865,8 +1146,8 @@ public class BlockchainControllerTest {
     @Test
     void deregisterMissingBlockchain() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_MISSING.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -879,13 +1160,13 @@ public class BlockchainControllerTest {
     @Test
     void deregisterInactiveBlockchain() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/deregister/" + BC_DEREGISTER_INACTIVE.toString())
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest()).andReturn();
 
         Assertions.assertEquals(String.format("Blockchain %s is already de-registered.", BC_DEREGISTER_INACTIVE
-                        .toString()),
-                result.getResolvedException().getMessage());
+                                        .toString()),
+                                result.getResolvedException().getMessage());
     }
 
     DeploymentExecutionEvent buildEvent(DeployedResource resource, DeploymentExecutionEvent.Type type,
@@ -936,7 +1217,6 @@ public class BlockchainControllerTest {
                                 .content(CORRECT_NUM_REPLICAS).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
-
 
     @Test
     void testBcWithNoGrouping() throws Exception {

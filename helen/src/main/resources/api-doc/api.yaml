@@ -95,16 +95,15 @@ paths:
                     - ETHEREUM
                     - DAML
                   description: Type of blockchain node
-                replica_zone_ids:
+                replica_nodes:
                   description: |
-                    List of zone IDs for replicas. Must contain 3f + 2c + 1 elements.
+                    Replica node details. Contains zone ID and node sizing info of replicas.
                   type: array
                   items:
-                    type: string
-                    format: uuid
+                    $ref: '#/components/schemas/ReplicaNode'
                 client_nodes:
                   description: |
-                    Client nodes details
+                    Client nodes details. Contains zone ID, authURL, group name and node sizing info of clients.
                   type: array
                   items:
                     $ref: '#/components/schemas/ClientNode'
@@ -2022,6 +2021,70 @@ components:
         group_name:
           type: string
           description: User supplied group name
+        sizing_info:
+          type: object
+          description: Sizing info of clients
+          items:
+            $ref: '#/components/schemas/SizingInfo'
+
+    ReplicaNode:
+      description: Replica Proxy information
+      type: object
+      properties:
+        zone_id:
+          type: string
+          format: uuid
+          description: ID of owning consortium
+        sizing_info:
+          type: object
+          description: Sizing info of replicas
+          items:
+            $ref: '#/components/schemas/SizingInfo'
+
+
+    SizingInfo:
+      description: Details of sizing info
+      type: object
+      additionalProperties:
+        type: string
+        example:
+          type: committer
+          no_of_cpus: 1
+          storage_in_gigs: 1024
+          memory_in_gigs: 64
+
+    SizingTemplate:
+      description: A template with node sizing params for each type.
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name for this template item.
+        items:
+          description: A template item.
+          type: array
+          items:
+            $ref: '#/components/schemas/SizingTemplateItem'
+
+    SizingTemplateItem:
+      description: Details of sizing template.
+      type: object
+      additionalProperties:
+        type: string
+        example:
+          type: committer
+          no_of_cpus: 1
+          storage_in_gigs: 1024
+          memory_in_gigs: 64
+
+    ThresholdMap:
+      description: Map of threshold values for parameters.
+      type: string
+      example:
+        min: 1
+        max: 64
+
+
 
   responses:
     ErrorResponse:
@@ -2102,79 +2165,36 @@ components:
                 description: Template Name
               templates:
                 description: List of sizing templates for each type
-                content:
-                  application/json:
-                    schema:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/SizingTemplate'
+                type: array
+                items:
+                  $ref: '#/components/schemas/SizingTemplate'
               range:
                 description: A range of values for each node sizing template parameter.
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      additionalProperties:
-                        $ref: '#/components/responses/ThresholdMap'
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/ThresholdMap'
 
-    SizingTemplate:
-      description: A template with node sizing params for each type.
+    DependentNodesGetResponse:
+      description: Object containing the Replica and Client IDs for the given On Prem Zone
       content:
         application/json:
           schema:
             type: object
             properties:
-              name:
-                type: string
-                description: Name for this template item.
-              items:
-                description: A template item.
+              replica_list:
                 type: array
+                description: List of replica IDs on the zone.
+                example: [9ecb07bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-482c-48f3-80d0-23c4f9514902]
                 items:
-                  $ref: '#/components/schemas/SizingTemplateItem'
-
-    SizingTemplateItem:
-      description: Details of sizing template.
-      content:
-        application/json:
-          schema:
-            type: object
-            additionalProperties:
-              type: string
-              example:
-                type: committer
-                no_of_cpus: 1
-                storage_in_gigs: 1024
-                memory_in_gigs: 64
-
-    ThresholdMap:
-      description: Map of threshold values for parameters.
-      content:
-        application/json:
-          schema:
-            type: string
-            example:
-              min: 1
-              max: 64
-
-    DependentNodesGetResponse:
-      description: Object containing the Replica and Client IDs for the given On Prem Zone
-      type: object
-      properties:
-        replica_list:
-          type: array
-          description: List of replica IDs on the zone.
-          example: [9ecb07bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-482c-48f3-80d0-23c4f9514902]
-          items:
-            type: string
-            format: uuid
-        client_list:
-          type: array
-          description: List of client IDs on the zone.
-          example: [9ecaa7bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-abcd-48f3-80d0-23c4f9514902]
-          items:
-            type: string
-            format: uuid
+                  type: string
+                  format: uuid
+              client_list:
+                type: array
+                description: List of client IDs on the zone.
+                example: [9ecaa7bc-482c-48f3-80d0-23c4f9514902, 9acb07bc-abcd-48f3-80d0-23c4f9514902]
+                items:
+                  type: string
+                  format: uuid
 
   requestBodies:
     CreateZoneRequest:
