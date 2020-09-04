@@ -407,7 +407,7 @@ public class BlockchainController {
             }
         }
 
-        body.getReplicaZoneIds()
+        zoneIds
                 .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                                                 .setType(NodeType.REPLICA)
                                                                 .setNodeId(UUID.randomUUID().toString())
