@@ -133,17 +133,23 @@ def inflate(content, depth=0):
                 if "]" not in subkeyChunk: continue
                 arrayNav.append(int(subkeyChunk.split("]")[0]))
             subkey = subkey.split("[")[0]
-            if subkey in travelNode: # key travel
+            if subkey in travelNode: # propname travel
               travelNode = travelNode[subkey]
-            for arrayIndex in arrayNav: # array travel
-              if notFound: continue
-              if arrayIndex < 0 or arrayIndex >= len(travelNode):
-                notFound = True; break
-              travelNode = travelNode[arrayIndex]
-            else: notFound = True; break
+            if arrayNav: # array index travel if specified
+              for arrayIndex in arrayNav:
+                if notFound: continue
+                if type(travelNode) is not list:
+                  notFound = True; break
+                if arrayIndex < 0 or arrayIndex >= len(travelNode):
+                  notFound = True; break
+                travelNode = travelNode[arrayIndex]
+              else: notFound = True; break
         else: notFound = True
-        if notFound: results.append(chunk["rest"])
-        else: results.append(str(travelNode) + chunk["rest"])
+        if notFound:
+          log.info("Vault identifier '{}' not found.".format(".".join(chunk["path"])))
+          results.append(chunk["rest"])
+        else:
+          results.append(str(travelNode) + chunk["rest"])
     result = front + "".join(results)
     return inflate(result, depth+1)
 
