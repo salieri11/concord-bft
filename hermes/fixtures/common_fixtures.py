@@ -468,7 +468,6 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
     return success, participant_replicas
 
 
-
 def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas,
                           log_dir):
     """
