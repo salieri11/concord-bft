@@ -4,92 +4,65 @@
 
 package com.vmware.blockchain.agent.services.metrics;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.ToDoubleFunction;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 
 /**
  * Class holding metrics functions.
  */
+@Component
 public class MetricsAgent {
     private final MeterRegistry meterRegistry;
-    List<Tag> metricTags;
-
 
     /**
      * Constructor.
-     * @param metricsTags metrics tag
      */
-    public MetricsAgent(List<Tag> metricsTags) {
-        this.meterRegistry = Metrics.globalRegistry;
-        this.metricTags = metricsTags;
+    @Autowired
+    public MetricsAgent(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
     }
 
     /**
      * metrics counter.
-     * @param desc description
      * @param metricsName metrics name
-     * @param addedTags tags if any
+     * @param tags tags if any
      * @return {@link Counter}
      */
-    public Counter getCounter(String desc, MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
-        return Counter.builder(metricsName.metricsName)
-                .tags(getAllTags(addedTags))
-                .description(desc)
-                .register(meterRegistry);
+    public Counter getCounter(MetricsConstants.MetricsNames metricsName, List<Tag> tags) {
+        return meterRegistry.counter(metricsName.metricsName, getIterable(tags));
     }
 
     /**
      * metrics gauge.
      * @param value gaige value
-     * @param desc description
      * @param metricsName metrics name
-     * @param addedTags tags if any
-     * @return {@link Gauge}
+     * @param tags tags if any
+     * @return {@link Integer}
      */
-    public Gauge gauge(int value, String desc,
-                       MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
-        ToDoubleFunction<Integer> val = Double::valueOf;
-        return Gauge.builder(metricsName.metricsName, value, val)
-                .tags(getAllTags(addedTags))
-                .description(desc)
-                .register(meterRegistry);
+    public Integer gaugeValue(int value, MetricsConstants.MetricsNames metricsName, List<Tag> tags) {
+        return meterRegistry.gauge(metricsName.metricsName, getIterable(tags), value);
     }
 
     /**
      * metrics timer.
-     * @param desc description
      * @param metricsName metrics name
-     * @param addedTags added tags if any
+     * @param tags added tags if any
      * @return {@link Timer}
      */
-    public Timer getTimer(String desc, MetricsConstants.MetricsNames metricsName, List<Tag> addedTags) {
-        return Timer.builder(metricsName.metricsName)
-                .tags(getAllTags(addedTags))
-                .description(desc)
-                .register(meterRegistry);
-    }
-
-    private Iterable<Tag> getAllTags(List<Tag> additionalTags) {
-        if (additionalTags.isEmpty()) {
-            return getIterable(this.metricTags);
-        }
-        List<Tag> list = new ArrayList<>();
-        list.addAll(this.metricTags);
-        list.addAll(additionalTags);
-        return getIterable(list);
+    public Timer getTimer(MetricsConstants.MetricsNames metricsName, List<Tag> tags) {
+        return meterRegistry.timer(metricsName.metricsName, getIterable(tags));
     }
 
     private Iterable<Tag> getIterable(List<Tag> list) {
-        Tag[] array = list.toArray(new Tag[list.size()]);
+        Tag[] array = list.toArray(new Tag[0]);
         return () -> new Iterator<>() {
             private int index;
 

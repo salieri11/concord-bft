@@ -5,6 +5,7 @@
 package com.vmware.blockchain.agent.services.node.health.daml;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.agent.services.node.health.ComponentHealth;
 import com.vmware.blockchain.agent.services.node.health.HealthStatusResponse;
@@ -57,6 +59,7 @@ public class DamlHealthServiceInvoker {
 
     private ManagedChannel channel;
     private HealthGrpc.HealthBlockingStub blockingStub;
+    private final MetricsAgent metricsAgent;
 
     @Getter
     private String hostIp;
@@ -68,10 +71,12 @@ public class DamlHealthServiceInvoker {
     private final ConcordModelSpecification.NodeType nodeType;
 
     @Autowired
-    public DamlHealthServiceInvoker(ConcordModelSpecification.NodeType nodeType) {
+    public DamlHealthServiceInvoker(ConcordModelSpecification.NodeType nodeType,
+                                    MetricsAgent metricsAgent) {
         this.nodeType = nodeType;
         this.service = this.nodeType
                 .equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT) ? Service.PARTICIPANT : Service.COMMITTER;
+        this.metricsAgent = metricsAgent;
     }
 
     /**
@@ -99,31 +104,33 @@ public class DamlHealthServiceInvoker {
         return response;
     }
 
+    void logMetrics(int value) {
+        List<Tag> tags = Arrays.asList(ComponentHealth.tag,
+                Tag.of(MetricsConstants.MetricsTags.TAG_NODE_TYPE.metricsTagName, getNodeTypeName()));
+        int val = this.metricsAgent.gaugeValue(value, MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+        log.info("Metric {} is updated with value {}", MetricsConstants.MetricsNames.DAML_HEALTH_STATUS.metricsName,
+                val);
+    }
+
     /**
      * get health status of daml component.
      * @return {@link HealthStatusResponse}
      */
     public HealthStatusResponse getHealthResponse() {
         log.info("received health check request for daml components.");
-        String metricsDesc = "Daml health status";
-        List<Tag> tags = Collections.singletonList(
-                Tag.of(MetricsConstants.MetricsTags.TAG_NODE_TYPE.metricsTagName, getNodeTypeName()));
         try {
             List<HealthCheckResponse.ServingStatus> statusList = this.check().stream()
                     .map(HealthCheckResponse::getStatus).collect(Collectors.toList());
             if (statusList.contains(HealthCheckResponse.ServingStatus.SERVING) && Collections.frequency(statusList,
                     HealthCheckResponse.ServingStatus.SERVING) == statusList.size()) {
-                ComponentHealth.metricsAgent.gauge(1, metricsDesc,
-                        MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+                logMetrics(1);
                 return HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.HEALTHY).build();
             }
-            ComponentHealth.metricsAgent.gauge(0, metricsDesc,
-                    MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+            logMetrics(0);
             return HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.UNHEALTHY).build();
         } catch (Exception e) {
             log.error("Exception caught in retrieving daml health\n" + e.getLocalizedMessage());
-            ComponentHealth.metricsAgent.gauge(-1, metricsDesc,
-                    MetricsConstants.MetricsNames.DAML_HEALTH_STATUS, tags);
+            logMetrics(-1);
             return HealthStatusResponse.builder()
                     .status(HealthStatusResponse.HealthStatus.SERVICE_UNAVAILABLE)
                     .exception(e.getLocalizedMessage()).build();

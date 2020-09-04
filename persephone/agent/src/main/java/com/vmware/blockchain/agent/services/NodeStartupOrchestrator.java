@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -84,36 +83,36 @@ public class NodeStartupOrchestrator {
 
     private final MetricsAgent metricsAgent;
 
+    private final Tag classTag = Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
+            NodeStartupOrchestrator.class.getName());
+
     /**
      * Default constructor.
      */
     @Autowired
-    public NodeStartupOrchestrator(ConcordAgentConfiguration configuration, AgentDockerClient agentDockerClient,
+    public NodeStartupOrchestrator(ConcordAgentConfiguration configuration,
+                                   AgentDockerClient agentDockerClient,
                                    ConfigServiceInvoker configServiceInvoker,
                                    DamlHealthServiceInvoker damlHealthServiceInvoker,
-                                   HealthCheckScheduler healthCheckScheduler) {
+                                   HealthCheckScheduler healthCheckScheduler,
+                                   MetricsAgent metricsAgent) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
         this.configServiceInvoker = configServiceInvoker;
         this.damlHealthServiceInvoker = damlHealthServiceInvoker;
         this.healthCheckScheduler = healthCheckScheduler;
-
-        List<Tag> tags = Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
-                NodeStartupOrchestrator.class.getName()));
-        this.metricsAgent = new MetricsAgent(tags);
+        this.metricsAgent = metricsAgent;
     }
 
     /**
      * Start the local setup as a Concord node.
      */
     public void bootstrapConcord() {
-        Counter counter = this.metricsAgent.getCounter("Number of containers launched",
-                MetricsConstants.MetricsNames.CONTAINERS_LAUNCH_COUNT,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+        Counter counter = this.metricsAgent.getCounter(MetricsConstants.MetricsNames.CONTAINERS_LAUNCH_COUNT,
+                Arrays.asList(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
                         "bootstrapConcord")));
-        Timer timer = this.metricsAgent.getTimer("Bootstrap blockchain",
-                MetricsConstants.MetricsNames.CONTAINERS_LAUNCH,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINERS_LAUNCH,
+                Arrays.asList(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
                         "bootstrapConcord")));
         timer.record(() -> {
             try {
@@ -230,9 +229,8 @@ public class NodeStartupOrchestrator {
                         .collect(Collectors.toList())).join();
 
         var stopMillis = ZonedDateTime.now().toInstant().toEpochMilli();
-        Timer timer = this.metricsAgent.getTimer("Pull component docker images",
-                MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES,
-                Collections.singletonList(Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
+        Timer timer = this.metricsAgent.getTimer(MetricsConstants.MetricsNames.CONTAINERS_PULL_IMAGES,
+                Arrays.asList(classTag, Tag.of(MetricsConstants.MetricsTags.TAG_METHOD.metricsTagName,
                         "pullImages")));
         timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
 
