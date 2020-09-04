@@ -115,6 +115,12 @@ def resetBlockchain(args, options, secret):
   fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
   ops.reset_blockchain(fxBlockchain)
 
+def moveVMs(args, options, secret):
+  a = prepareArgs(args)
+  blockchain_id = args[0]
+  dest_dir = args[1]
+  ops.move_vms(blockchain_id, dest_dir=dest_dir)
+
 def capturePipelineError(args, options, secret):
   a = prepareArgs(args)
   pipelineError = json.loads(a[0])
@@ -326,6 +332,9 @@ DISPATCH = {
 
   # Zones
   "getZones": getZones,
+
+  # Move VMs to a different folder
+  "moveVMs": moveVMs,
 }
 
 

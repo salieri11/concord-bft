@@ -604,3 +604,17 @@ def reboot(host, timeout=20):
   log.info("Node {} rebooting".format(host))
   vm = shutdown(host, timeout)
   powerup(vm, timeout)
+
+def move_vms(blockchain_id, dest_dir="HermesTesting", sddcs=None):
+  '''
+  Move VMs to a destination folder (garbage collecttion after a testrun)
+  :param blockchain_id: Blockchain ID
+  :param dest_dir: destination folder
+  :param sddcs: Optionals list of SDDCs
+  '''
+  sddcs = sddcs if sddcs is not None else infra.getListFromZoneConfig()
+  infra.prepareConnections(sddcs)
+  for sddc_name in sddcs:
+    sddc_conn = infra.getConnection(sddc_name)
+    sddc_conn.vmMoveToFolderByName(dest_dir, [blockchain_id])
+
