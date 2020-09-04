@@ -4,13 +4,13 @@
 
 # output all images for deletion
 echo "Images to be deleted:"
-docker images --format "{{.ID}}    {{.Tag}}    {{.Repository}}" | grep "0.0.0.*" | grep -Eiv "$1"
+docker images --format "{{.ID}}    {{.Tag}}    {{.Repository}}" | grep '\(.\.\)\{3\}' | grep -Eiv "$1"
 
 echo "Unnamed images to be deleted:"
 docker images --format "{{.ID}}    {{.Tag}}    {{.Repository}}" | grep "<none>"
 
-# get all image ids matching the pattern
-image_ids=$(docker images --format "{{.ID}} {{.Tag}}" | grep "0.0.0.*" | grep -Eiv "$1" | cut -d " " -f 1)
+# get all image ids matching the pattern (*.*.*.*, just like 0.0.0.1231, with three dots)
+image_ids=$(docker images --format "{{.ID}} {{.Tag}}" | grep '\(.\.\)\{3\}' | grep -Eiv "$1" | cut -d " " -f 1)
 for image_id in $image_ids
 do
   docker rmi -f "$image_id"
