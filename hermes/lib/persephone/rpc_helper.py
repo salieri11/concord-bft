@@ -201,13 +201,11 @@ class RPCHelper():
       gRPC server
       :param e: Exception
       '''
-      log.error("Error: {}".format(e))
+      log.error("Exception: {}".format(e))
+      log.error("Status Code: {}".format(e.code()))
       log.error(traceback.format_exc())
       try:
-         status_code = e.code()
-         if status_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-            log.error("gRPC Call TIMED OUT")
+         if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
+            log.error("gRPC call timed out")
       except Exception as err:
          pass
-
-

@@ -5,8 +5,6 @@
 #########################################################################
 
 import argparse
-import datetime
-import logging
 import os
 import sys
 import tempfile
@@ -22,16 +20,14 @@ from suites import (
   hlf_tests,
   performance_tests,
   persistency_tests,
-  persephone_tests,
   pytest_suite,
   sample_dapp_tests,
   ui_e2e_deploy_daml,
   ui_tests,
-  websocket_rpc_tests,
-  persephone_tests
+  websocket_rpc_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
-from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings
+from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
 
@@ -375,6 +371,12 @@ def main():
       try: raise Exception("Unknown test suite")
       except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(3)
+
+   # Generate gRPC bindings for Hermes
+   log.info("Generating Persephone gRPC bindings - source: {} ; destination: {}"
+            .format(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH, helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH))
+   generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
+                                            helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
 
    for i, suiteName in enumerate(args.suites.split(",")):
       if args.eventsFile:

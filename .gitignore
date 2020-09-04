@@ -110,6 +110,8 @@ cockroachdb_test_local.sh
 hermes/.env
 hermes/pickled*
 hermes/report.json
+hermes/venv/*
+venv/*
 # Persephone APIs in Hermes
 hermes/lib/persephone/google/
 hermes/lib/persephone/grpc/
