@@ -14,7 +14,7 @@ import traceback
 import subprocess
 import time
 
-from . import test_suite
+from hermes.suites import test_suite
 from suites.case import describe, passed, failed, getStackInfo
 from util.product import Product
 from random import randrange

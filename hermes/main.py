@@ -17,7 +17,6 @@ from suites import (
   eth_core_vm_tests,
   eth_json_rpc_tests,
   eth_regression_tests,
-  hlf_tests,
   performance_tests,
   persistency_tests,
   pytest_suite,
