@@ -1,0 +1,19 @@
+version: '3'
+services:
+  config-service:
+    image: "${persephone_configuration_repo}:${persephone_configuration_tag}"
+    ports:
+      - 9003:9003
+      - 0.0.0.0:8000:9023
+    volumes:
+      - ../hermes/resources/persephone/configuration:/config:ro
+  persephone-provisioning:
+    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
+    ports:
+      - 9002:9002
+    volumes:
+      - ../hermes/resources/persephone/provisioning:/config:ro
+    environment:
+      - provisioning.config.service.address=config-service:9003
+      - provisioning.config.service.transportSecurity.type=NONE
+      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP}:8000
