@@ -25,6 +25,7 @@ public final class ErrorCode {
     public static final String REQUEST_EXECUTION_FAILURE = "Request execution failed";
     public static final String SITE_DATASTORE_INCORRECT = "Incorrect datastore information: {0}";
     public static final String SITE_FOLDER_INCORRECT = "Incorrect folder information: {0}";
+    public static final String SITE_GATEWAY_IP_INCORRECT = "Provided gateway {0} not a valid Inet address";
     public static final String SITE_NETWORK_INCORRECT = "Incorrect network information: {0}";
     public static final String SITE_RESOURCE_POOL_INCORRECT = "Incorrect resource pool information: {0}";
     public static final String SSL_CONTEXT_CREATION_ERROR = "Error creating SSLContext";

@@ -5,21 +5,30 @@
 package com.vmware.blockchain.deployment.services.orchestration.vm;
 
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.assertj.core.util.Strings;
 
+import com.google.common.net.InetAddresses;
+import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Credential;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
+import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +64,7 @@ public class CloudInitConfiguration {
     /**
      * Constructor.
      */
+    @Deprecated
     public CloudInitConfiguration(Endpoint containerRegistry,
                                   ConcordModelSpecification model,
                                   String ipAddress,
@@ -83,6 +93,48 @@ public class CloudInitConfiguration {
         this.vmPassword = vmPassword;
         this.noLaunch = noLaunch;
         this.newDisk = newDisk;
+    }
+
+    /**
+     * Constructor.
+     */
+    public CloudInitConfiguration(OrchestratorData.CreateComputeResourceRequestV2 request,
+                                  VSphereDatacenterInfo datacenterInfo,
+                                  String vmPassword) {
+
+        this.containerRegistry = request.getCloudInitData().getContainerRegistry();
+        this.model = request.getCloudInitData().getModel();
+        this.ipAddress = request.getCloudInitData().getPrivateIp();
+        this.gateway = getGateway(datacenterInfo);
+        this.nameServers = datacenterInfo.getNetwork().getNameServersList();
+        this.subnet = datacenterInfo.getNetwork().getSubnet();
+        this.clusterId = ConcordClusterIdentifier.newBuilder()
+                .setId(request.getBlockchainId().toString())
+                .build();
+        this.nodeIdString = request.getNodeId().toString();
+        this.configGenId = request.getCloudInitData().getConfigGenId();
+        this.configServiceRestEndpoint = request.getCloudInitData().getConfigServiceRestEndpoint();
+        this.outboundProxy = datacenterInfo.getOutboundProxy();
+        this.vmPassword = vmPassword;
+        this.noLaunch = request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name());
+        this.newDisk = request.getProperties().containsKey(DeploymentAttributes.VM_STORAGE.name());
+    }
+
+    private String getGateway(VSphereDatacenterInfo datacenterInfo) {
+        String gateway;
+        try {
+            // TODO : deprecate gateway in favor of gatewayIp.
+            gateway = datacenterInfo.getNetwork().getGatewayIp().isEmpty()
+                    ? InetAddress.getByName(String.valueOf(datacenterInfo.getNetwork().getGateway())).getHostAddress()
+                    : datacenterInfo.getNetwork().getGatewayIp();
+        } catch (UnknownHostException e) {
+            throw new NotFoundPersephoneException(e, ErrorCode.UNKNOWN_GATEWAY,
+                    datacenterInfo.getNetwork().getGateway());
+        }
+        if (!InetAddresses.isInetAddress(gateway)) {
+            throw new BadRequestPersephoneException(ErrorCode.SITE_GATEWAY_IP_INCORRECT, gateway);
+        }
+        return gateway;
     }
 
     private String agentImageName() {

@@ -4,9 +4,7 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Map;
@@ -14,7 +12,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
-import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
@@ -26,7 +23,6 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
 import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
-import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
@@ -118,33 +114,7 @@ public class VSphereOrchestrator implements Orchestrator {
             var vmPassword = request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())
                              ? PasswordGeneratorUtil.generateCommonTextPassword() : "c0nc0rd";
 
-            // TODO : deprecate gateway in favor of gateway ip.
-            String gatewayIp = datacenterInfo.getNetwork().getGatewayIp().isEmpty()
-                    ? InetAddress.getByName(String.valueOf(datacenterInfo.getNetwork().getGateway())).getHostAddress()
-                    : datacenterInfo.getNetwork().getGatewayIp();
-
-            if (!InetAddresses.isInetAddress(gatewayIp)) {
-                throw new IllegalArgumentException("Provided gateway is not a valid Inet address. ip: " + gatewayIp);
-            }
-
-            val cloudInit = new CloudInitConfiguration(
-                    request.getCloudInitData().getContainerRegistry(),
-                    request.getCloudInitData().getModel(),
-                    request.getCloudInitData().getPrivateIp(),
-                    gatewayIp,
-                    datacenterInfo.getNetwork().getNameServersList(),
-                    datacenterInfo.getNetwork().getSubnet(),
-                    ConcordClusterIdentifier.newBuilder()
-                            .setId(request.getBlockchainId().toString())
-                            .build(),
-                    request.getNodeId().toString(),
-                    request.getCloudInitData().getConfigGenId(),
-                    request.getCloudInitData().getConfigServiceRestEndpoint(),
-                    datacenterInfo.getOutboundProxy(),
-                    vmPassword,
-                    request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name()),
-                    request.getProperties().containsKey(DeploymentAttributes.VM_STORAGE.name())
-            );
+            val cloudInit = new CloudInitConfiguration(request, datacenterInfo, vmPassword);
 
             var libraryItem = getLibraryItem.get();
             var instance = vSphereHttpClient
@@ -162,9 +132,6 @@ public class VSphereOrchestrator implements Orchestrator {
                     .password(vmPassword)
                     .nodeId(request.getNodeId()).build();
 
-        } catch (UnknownHostException e) {
-            throw new NotFoundPersephoneException(e, ErrorCode.UNKNOWN_GATEWAY,
-                    datacenterInfo.getNetwork().getGateway());
         } catch (InterruptedException | ExecutionException e) {
             throw new NotFoundPersephoneException(e, ErrorCode.NOT_FOUND_LIBRARY_ITEM,
                     request.getCloudInitData().getModel().getTemplate());
