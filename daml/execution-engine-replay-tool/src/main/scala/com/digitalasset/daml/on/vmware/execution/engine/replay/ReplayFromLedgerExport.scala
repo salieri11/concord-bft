@@ -1,137 +1,97 @@
+// Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+
 package com.digitalasset.daml.on.vmware.execution.engine.replay
 
 import java.io.DataInputStream
 import java.util
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.concurrent.TimeUnit
 
 import com.daml.ledger.participant.state.kvutils.export.FileBasedLedgerDataExporter.{
   SubmissionInfo,
   WriteSet
 }
 import com.daml.ledger.participant.state.kvutils.export.Serialization
-import com.daml.ledger.validator.LedgerStateOperations.{Key, Value}
-import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Done, Read}
-import com.digitalasset.kvbc.daml_validator.EventToValidator.ReadResult
+import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.digitalasset.kvbc.daml_validator.ValidationServiceGrpc.ValidationServiceStub
-import com.digitalasset.kvbc.daml_validator.{
-  EventFromValidator,
-  EventToValidator,
-  KeyValuePair,
-  ValidateRequest
-}
-import com.google.protobuf.{ByteString, Empty}
-import com.google.protobuf.timestamp.Timestamp
+import com.google.protobuf.ByteString
 import io.grpc.Metadata
-import io.grpc.stub.{MetadataUtils, StreamObserver}
-import io.opentracing.Span
-import io.opentracing.contrib.tracerresolver.TracerResolver
+import io.grpc.stub.MetadataUtils
 import io.opentracing.propagation.Format.Builtin
 import io.opentracing.propagation.TextMap
+import io.opentracing.{Span, SpanContext, Tracer}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-class ReplayFromLedgerExport(validationService: ValidationServiceStub) {
-  type InMemoryStore = mutable.Map[ByteString, ByteString]
+trait ReplayFromLedgerExport {
 
-  private val showDetails = false
-
-  def run(input: DataInputStream): Unit = {
+  final def run(input: DataInputStream): Unit = {
     processSubmissions(input)
   }
+
+  protected type InMemoryStore = mutable.Map[ByteString, ByteString]
+  protected val validationService: ValidationServiceStub
+  protected val tracer: Tracer
+  protected def runValidation(
+      validationService: ValidationServiceStub,
+      spanContext: SpanContext,
+      info: SubmissionInfo,
+      store: InMemoryStore): Seq[WriteSet]
+  protected def validateResults(expectedResults: Seq[WriteSet], actualResults: Seq[WriteSet]): Unit
+
+  protected final def printWriteSet(writeSet: WriteSet): Unit =
+    for ((key, value) <- writeSet) {
+      println(s"${bytesAsHexString(key)} -> ${bytesAsHexString(value)}")
+    }
+
+  protected final def readFromStore(
+      store: InMemoryStore,
+      keys: Seq[Key]): Seq[(ByteString, Option[ByteString])] =
+    store.synchronized {
+      keys.map(store.get).zip(keys).map(_.swap)
+    }
+
+  protected final def writeToStore(
+      store: InMemoryStore,
+      keyValuePairs: Seq[(ByteString, ByteString)]): Seq[(ByteString, ByteString)] = {
+    store.synchronized {
+      keyValuePairs.foreach { case (key, value) => store.put(key, value) }
+    }
+    keyValuePairs
+  }
+
+  protected val ReplicaId = 1L
 
   private def processSubmissions(input: DataInputStream): Unit = {
     val state = mutable.Map[ByteString, ByteString]()
     var counter = 0
     while (input.available() > 0) {
-      val (submissionInfo, expectedWriteSet) = Serialization.readEntry(input)
-      val actualWriteSet = runValidation(submissionInfo, state)
-      val sortedActualWriteSet = actualWriteSet.sortBy(_._1.asReadOnlyByteBuffer())
-      if (expectedWriteSet == sortedActualWriteSet) {
-        println("OK")
-      } else {
-        println("FAIL")
-        if (showDetails) {
-          println("Expected:")
-          printWriteSet(expectedWriteSet)
-          println("Actual:")
-          printWriteSet(sortedActualWriteSet)
+      val (submissionInfo, expectedResults) = readSerializationEntry(input)
+      val actualWriteSets =
+        decorateWithNewSpan(validationService) { (decoratedStub, spanContext) =>
+          runValidation(decoratedStub, spanContext, submissionInfo, state)
         }
-      }
+      validateResults(expectedResults, actualWriteSets)
       counter += 1
     }
     println(s"Processed $counter submissions")
   }
 
-  private def printWriteSet(writeSet: WriteSet): Unit =
-    for ((key, value) <- writeSet) {
-      println(s"${bytesAsHexString(key)} -> ${bytesAsHexString(value)}")
-    }
-
   private def bytesAsHexString(bytes: ByteString): String =
     bytes.toByteArray.map(byte => "%02x".format(byte)).mkString
 
-  // Without a service name jaeger-client won't initialize.
-  System.setProperty("JAEGER_SERVICE_NAME", "submission-replay")
-  private val tracer = TracerResolver.resolveTracer()
-
-  private def runValidation(info: SubmissionInfo, store: InMemoryStore): WriteSet = {
-    val doneLatch = new CountDownLatch(1)
-    val span = createSpan()
-    val decoratedStub = decorateStubWithTracingHeaders(validationService, span)
-    val fromValidatorStream = new ValidationClientStreamObserver(store, doneLatch)
-    val toValidatorStream = decoratedStub.validate(fromValidatorStream)
-    fromValidatorStream.toValidatorStream = toValidatorStream
-    val validateRequest = ValidateRequest(
-      submission = info.submissionEnvelope,
-      recordTime =
-        Some(Timestamp.of(info.recordTimeInstant.getEpochSecond, info.recordTimeInstant.getNano)),
-      participantId = info.participantId,
-      replicaId = 1,
-      correlationId = info.correlationId
-    )
-    toValidatorStream.onNext(
-      EventToValidator(EventToValidator.ToValidator.ValidateRequest(validateRequest)))
-    doneLatch.await(10, TimeUnit.SECONDS)
-    span.finish(nowMicros())
-    fromValidatorStream.getCollectedWriteSet
+  private def readSerializationEntry(input: DataInputStream): (SubmissionInfo, Seq[WriteSet]) = {
+    val (submissionInfo, writeSet) = Serialization.readEntry(input)
+    (submissionInfo, Seq(writeSet))
   }
 
-  class ValidationClientStreamObserver(store: InMemoryStore, doneLatch: CountDownLatch)
-      extends StreamObserver[EventFromValidator] {
-    var toValidatorStream: StreamObserver[EventToValidator] = _
-
-    private val collectedWriteSet = mutable.Buffer[(Key, Value)]()
-
-    def getCollectedWriteSet: WriteSet = collectedWriteSet
-
-    override def onNext(value: EventFromValidator): Unit =
-      value match {
-        case EventFromValidator(EventFromValidator.FromValidator.Read(Read(tag, keys))) =>
-          val keyValuePairs = keys.map(store.get).zip(keys).collect {
-            case (Some(key), value) => KeyValuePair(key, value)
-          }
-          val readResult = ReadResult(tag, keyValuePairs)
-          val response = EventToValidator(EventToValidator.ToValidator.ReadResult(readResult))
-          toValidatorStream.onNext(response)
-        case EventFromValidator(EventFromValidator.FromValidator.Done(Done(_, writeSet))) =>
-          println(s"Received write-set of size=${writeSet.size}")
-          // Save and apply write-set.
-          for (protectedKeyValuePair <- writeSet) {
-            collectedWriteSet.append((protectedKeyValuePair.key, protectedKeyValuePair.value))
-            store.put(protectedKeyValuePair.key, protectedKeyValuePair.value)
-          }
-        case _ => ()
-      }
-
-    override def onError(error: Throwable): Unit = {
-      println(error.getLocalizedMessage)
-      doneLatch.countDown()
-    }
-
-    override def onCompleted(): Unit = {
-      doneLatch.countDown()
-    }
+  private def decorateWithNewSpan[Result](validationService: ValidationServiceStub)(
+      body: (ValidationServiceStub, SpanContext) => Result): Result = {
+    val span = createSpan()
+    val decoratedStub = decorateStubWithTracingHeaders(validationService, span)
+    val result = body(decoratedStub, span.context())
+    span.finish(nowMicros())
+    result
   }
 
   private def nowMicros(): Long =
