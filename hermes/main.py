@@ -20,7 +20,6 @@ from suites import (
   persistency_tests,
   pytest_suite,
   sample_dapp_tests,
-  ui_e2e_deploy_daml,
   ui_tests,
   websocket_rpc_tests
 )
