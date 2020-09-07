@@ -190,9 +190,9 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60), 1)
                log.info(
                   "Repeating Daml transactions ({} / {} mins)...".format(elapsed_time, duration_to_run_transaction))
-      else:
-         log.info("** Skipping DAML test as all participant nodes are interrupted")
-         status = True
+         else:
+            log.info("** Skipping DAML test as all participant nodes are interrupted")
+            status = True
 
 
    return status, crashed_committer_count
