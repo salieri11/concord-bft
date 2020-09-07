@@ -14,6 +14,7 @@ import com.digitalasset.daml.on.vmware.execution.engine.Digests.{
   hexDigestOfStrings
 }
 import com.digitalasset.daml.on.vmware.execution.engine.metrics.ConcordLedgerStateOperationsMetrics
+
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.Read
 import com.digitalasset.kvbc.daml_validator.{
   EventFromValidator,
@@ -27,14 +28,16 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 final class ConcordLedgerStateOperations(
     sendEvent: EventFromValidator => Unit,
-    metrics: ConcordLedgerStateOperationsMetrics)(implicit val executionContext: ExecutionContext)
-    extends LedgerStateOperationsWithAccessControl
+    metrics: ConcordLedgerStateOperationsMetrics,
+) extends LedgerStateOperationsWithAccessControl
     with ConcordLedgerStateReadHandler[EventToValidator.ReadResult, KeyValuePair] {
   import ConcordLedgerStateOperations.accessControlListToThinReplicaIds
 
   private[engine] val pendingWrites = mutable.Buffer[(Key, Value, AccessControlList)]()
 
-  override def read(keys: Seq[Key]): Future[Seq[Option[Value]]] = {
+  override def read(
+      keys: Seq[Key],
+  )(implicit executionContext: ExecutionContext): Future[Seq[Option[Value]]] = {
     // Create a promise that we'll fulfill from [[handleReadResult]] when the
     // result arrives.
     val promise = Promise[Seq[KeyValuePair]]()
@@ -60,7 +63,9 @@ final class ConcordLedgerStateOperations(
       }
   }
 
-  override def write(data: Seq[(Key, Value, AccessControlList)]): Future[Unit] = Future {
+  override def write(
+      data: Seq[(Key, Value, AccessControlList)],
+  )(implicit executionContext: ExecutionContext): Future[Unit] = Future {
     scala.concurrent.blocking {
       this.synchronized {
         pendingWrites.appendAll(data)
@@ -120,6 +125,6 @@ object ConcordLedgerStateOperations {
     accessControlList match {
       case PublicAccess => Seq.empty
       case RestrictedAccess(participants) if participants.isEmpty => HiddenFromAllParticipants
-      case RestrictedAccess(participants) => participants.map(toReplicaId).toSeq.sorted
+      case RestrictedAccess(participants) => participants.toSeq.map(toReplicaId)
     }
 }

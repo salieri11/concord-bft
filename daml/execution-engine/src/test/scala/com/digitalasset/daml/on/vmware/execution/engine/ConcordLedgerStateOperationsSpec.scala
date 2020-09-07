@@ -144,21 +144,18 @@ class ConcordLedgerStateOperationsSpec
       accessControlListToThinReplicaIds(PublicAccess) shouldBe Seq.empty
     }
 
-    "sort participant IDs for restricted access" in {
-      val someParticipants = Set(
+    "returns sorted participant IDs for restricted access" in {
+      val accessControlList = RestrictedAccess(
         v1.ParticipantId.assertFromString("c"),
         v1.ParticipantId.assertFromString("a"),
-        v1.ParticipantId.assertFromString("b")
+        v1.ParticipantId.assertFromString("b"),
       )
-      accessControlListToThinReplicaIds(RestrictedAccess(someParticipants)) shouldBe Seq(
-        "a",
-        "b",
-        "c"
-      )
+
+      accessControlListToThinReplicaIds(accessControlList) shouldBe Seq("a", "b", "c")
     }
 
     "return magic list for restricted access with no participants" in {
-      accessControlListToThinReplicaIds(RestrictedAccess(Set.empty)) shouldBe HiddenFromAllParticipants
+      accessControlListToThinReplicaIds(RestrictedAccess.empty) shouldBe HiddenFromAllParticipants
     }
   }
 

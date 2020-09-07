@@ -5,8 +5,8 @@ ThisBuild / organizationName := "Digital Asset, LLC"
 ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com.digitalasset.kvbc.daml_validator.*"
 
 lazy val akkaVersion = "2.6.1"
-lazy val sdkVersion = "1.4.0"
-lazy val integrationKitVersion = "0.0.11"
+lazy val sdkVersion = "1.5.0-snapshot.20200907.5151.0.eb68e680"
+lazy val integrationKitVersion = "0.0.12-snapshot.20200908.773.0.97e625ec"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"

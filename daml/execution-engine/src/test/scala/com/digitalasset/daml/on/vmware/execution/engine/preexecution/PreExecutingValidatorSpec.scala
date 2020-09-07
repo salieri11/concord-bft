@@ -151,7 +151,7 @@ class PreExecutingValidatorSpec
     "populate ACL message for restricted ACL" in {
       val expectedThinReplicaId = "a participant"
       val input: KeyValuePairsWithAccessControlList = Seq(
-        (aKey, aValue, RestrictedAccess(Set(ParticipantId.assertFromString(expectedThinReplicaId))))
+        (aKey, aValue, RestrictedAccess(ParticipantId.assertFromString(expectedThinReplicaId)))
       )
       val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(Seq(expectedThinReplicaId)))))
       PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(
@@ -165,7 +165,7 @@ class PreExecutingValidatorSpec
         (
           aKey,
           aValue,
-          RestrictedAccess(inputThinReplicaIds.map(ParticipantId.assertFromString).toSet))
+          RestrictedAccess(inputThinReplicaIds.map(ParticipantId.assertFromString): _*)),
       )
       val expectedAcl = Some(AccessControlList.of(Some(Restricted.of(expectedThinReplicaIds))))
       PreExecutingValidator.toWriteSet(input) shouldBe WriteSet.of(

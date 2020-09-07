@@ -6,6 +6,7 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import com.daml.grpc.adapter.{ExecutionSequencerFactory, SingleThreadExecutionSequencerPool}
 import com.daml.ledger.api.health.HealthChecks
+import com.daml.ledger.participant.state.kvutils.`export`.LedgerDataExporter
 import com.daml.lf.engine.{Engine, EngineConfig}
 import com.daml.metrics.Metrics
 import com.daml.platform.server.api.services.grpc.GrpcHealthService
@@ -22,7 +23,8 @@ import io.opentracing.Tracer
 import io.opentracing.util.GlobalTracer
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext}
 
 case object KVBCValidatorMain extends App {
   val server = new KVBCValidatorServer(parseCommandLine, GlobalTracer.get())
@@ -66,10 +68,15 @@ class KVBCValidatorServer(config: Config, tracer: Tracer) {
     new SingleThreadExecutionSequencerPool("validator-health", 1)
 
   private val engine = new Engine(EngineConfig.Stable)
+  // TODO: We need to release this in the future.
+  private val ledgerDataExporter =
+    Await.result(LedgerDataExporter.Owner.acquire().asFuture, Duration.Inf)
   private val validator = new ValidationServiceImpl(
     engine,
     new Metrics(metricsRegistry.registry),
-    config.preExecutionThreadPoolSize)
+    ledgerDataExporter,
+    config.preExecutionThreadPoolSize,
+  )
   private val healthChecks = new HealthChecks("validator" -> validator)
   private val apiHealthService = new GrpcHealthService(healthChecks)
   private val apiReflectionService = ProtoReflectionService.newInstance()
