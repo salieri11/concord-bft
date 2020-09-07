@@ -19,10 +19,10 @@ stop_prometheus () {
 }
 
 default_env_variables () {
-  export DEFAULT_SPIDER_IMAGE_TAG=1.30.0
+  export DEFAULT_SPIDER_IMAGE_TAG=1.30.195
   export DEFAULT_DAML_SDK_VERSION=1.4.0
   export DEFAULT_MARKET_FLAVOUR=sample
-  export DEFAULT_LOAD_RUNNER_TRADE_TIMEOUT=180
+  export DEFAULT_LOAD_RUNNER_TRADE_TIMEOUT=30
   export DEFAULT_LOAD_RUNNER_CONCURRENCY=8
   export DEFAULT_LOAD_RUNNER_REQUESTS=333
 }
@@ -96,9 +96,11 @@ create_prerequisites () {
   allocate-ledger-party 00001 $(_get_all_sample_parties ${MARKET_FLAVOUR})
 
   ## Create genesis contracts
-  market-setup | grep -v akka
+  export MIN_LEDGER_TIME_REL=30
+  market-genesis | grep -v akka
+  export MIN_LEDGER_TIME_REL=0
   ## Load sample data for load-runner
-  import-data-set ${MARKET_FLAVOUR} | grep -v akka
+  import-market-set ${MARKET_FLAVOUR} | grep -v akka
 }
 
 run_load_runner () {
