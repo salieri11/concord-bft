@@ -359,7 +359,7 @@ class ConnectionToSDDC:
           vmList.append(vm)
           vmNames.append(vm.name)
     if len(vmList) == 0:
-      log.info("{}, Cannot find any VMs matching the name descriptions (matchExactly={}): [{}]".format(
+      log.debug("{}, Cannot find any VMs matching the name descriptions (matchExactly={}): [{}]".format(
                  self.sddcName, matchExactly, ", ".join(entityNames)))
       return False
     log.info("{}, Moving total {} VMs to '{}': VMs: [{}]".format(

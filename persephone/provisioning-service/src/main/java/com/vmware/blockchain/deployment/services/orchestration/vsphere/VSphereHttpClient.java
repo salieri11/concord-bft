@@ -349,24 +349,24 @@ public class VSphereHttpClient {
         boolean mem = true;
         boolean cpu = true;
         boolean disk = true;
-        if (properties.containsKey(DeploymentAttributes.VM_MEMORY.toString())) {
+        if (properties.containsKey(DeploymentAttributes.VM_MEMORY.name())) {
             long memoryMb = Long.parseLong(properties
-                    .getOrDefault(DeploymentAttributes.VM_MEMORY.toString(), Constants.DEFAULT_VM_MEMORY_GB))  * 1024;
+                    .getOrDefault(DeploymentAttributes.VM_MEMORY.name(), Constants.DEFAULT_VM_MEMORY_GB))  * 1024;
             mem = updateVirtualMachineMemory(name, memoryMb);
         }
 
-        if (properties.containsKey(DeploymentAttributes.VM_CPU_COUNT.toString())) {
+        if (properties.containsKey(DeploymentAttributes.VM_CPU_COUNT.name())) {
             int cpuCount = Integer.parseInt(properties
-                    .getOrDefault(DeploymentAttributes.VM_CPU_COUNT.toString(), Constants.DEFAULT_VM_CPU_COUNT));
+                    .getOrDefault(DeploymentAttributes.VM_CPU_COUNT.name(), Constants.DEFAULT_VM_CPU_COUNT));
             int coresPerSocket = Integer.parseInt(properties
-                    .getOrDefault(DeploymentAttributes.VM_CORES_PER_SOCKET.toString(),
+                    .getOrDefault(DeploymentAttributes.VM_CORES_PER_SOCKET.name(),
                             Constants.DEFAULT_VM_CORES_PER_SOCKET));
             cpu = updateVirtualMachineCpu(name, cpuCount, coresPerSocket);
         }
 
-        if (properties.containsKey(DeploymentAttributes.VM_STORAGE.toString())) {
+        if (properties.containsKey(DeploymentAttributes.VM_STORAGE.name())) {
             long storageGb = Long.parseLong(properties
-                    .getOrDefault(DeploymentAttributes.VM_STORAGE.toString(), Constants.DEFAULT_VM_STORAGE_GB));
+                    .getOrDefault(DeploymentAttributes.VM_STORAGE.name(), Constants.DEFAULT_VM_STORAGE_GB));
             disk = createVirtualMachineDisk(name, storageGb);
         }
         return mem && cpu && disk;
