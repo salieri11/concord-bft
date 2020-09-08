@@ -14,7 +14,9 @@
 #pragma once
 
 #include <future>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include "Logger.hpp"
 #include "concord_client_pool.hpp"
@@ -29,22 +31,30 @@ class ExternalClient {
   const std::string kErrorResponse{1, '\0'};
 
   const int udp_server_port_;
-  unsigned int corr_id_ =
-      0;  // corr_id_ always starts from 0, for ease of debugging
+  // corr_id_ always starts from 0, for ease of debugging
+  unsigned int corr_id_ = 0;
   concord::concord_client_pool::ConcordClientPool client_pool_;
   int server_fd_ = 0;
   logging::Logger logger_;
+  std::mutex map_mutex_;
+  std::unordered_map<unsigned int, std::promise<uint8_t> &> cid_to_pr_map_;
 
   void ServerLoop();
+  auto WorkerHandleRequest(
+      unsigned int corr_id,
+      const com::vmware::concord::ConcordRequest &&conc_request,
+      struct sockaddr src_addr, socklen_t src_addr_size,
+      bftEngine::ClientMsgFlag rq_flags, uint64_t seq_num);
   com::vmware::concord::ConcordRequest ReadConcordRequest(
-      struct sockaddr &src_addr, socklen_t &src_addr_size, uint8_t *recv_buf,
-      const int recv_buf_size, bftEngine::ClientMsgFlag &msg_flags,
-      uint64_t &seq_num);
+      struct sockaddr &src_addr, socklen_t &src_addr_size,
+      bftEngine::ClientMsgFlag &msg_flags, uint64_t &seq_num);
   void SendError(const struct sockaddr *src_addr,
                  const socklen_t src_addr_size);
   bft::client::Msg CreateBftClientMsg(
-      com::vmware::concord::ConcordRequest &conc_request);
-  std::promise<uint8_t> SetResponseCallback();
+      const com::vmware::concord::ConcordRequest &conc_request);
+  std::promise<uint8_t> RegisterResponseCallback(unsigned int corr_id);
+  void ResponseCallback(const uint64_t &seq_num, const std::string cid,
+                        uint8_t reply_size);
 
  public:
   ExternalClient(std::string config_path, int internal_udp_port);
