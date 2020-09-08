@@ -79,7 +79,14 @@ void announceSDDCCleanupFailures(failures){
 // Clean all SDDCs.
 // Store all failures in an array and report them in one message.
 void cleanUpSDDCs(){
-  sddcs = ['VMware-Blockchain-SDDC-1', 'VMware-Blockchain-SDDC-2', 'VMware-Blockchain-SDDC-3', 'VMware-Blockchain-SDDC-4']
+  sddcs = [
+    'VMware-Blockchain-SDDC-1',
+    'VMware-Blockchain-SDDC-2',
+    'VMware-Blockchain-SDDC-3',
+    'VMware-Blockchain-SDDC-4',
+    'VMware-Blockchain-SDDC-5',
+    'VMware-Blockchain-SDDC-6'
+  ]
   failures = []
 
   for(sddc in sddcs){
@@ -89,9 +96,9 @@ void cleanUpSDDCs(){
     }
   }
 
-  // LongTests Clean up older than 168 hours (7 days)
+  // LongTests Clean up older than 216 hours (9 days)
   for(sddc in sddcs){
-    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "168")
+    failure = cleanSDDC(sddc, "HermesTesting-LongTests", "216")
     if (failure){
       failures << failure
     }
