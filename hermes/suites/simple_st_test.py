@@ -211,7 +211,6 @@ def sleep_and_check(initSleepTime, step, maxSleepTime, transactions):
 def test_kill_replica(request, fxSstSetup, fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection):
       try:
          
-         log.info("Starting Test ---> {0}".format(request.node.name))
          global path
          
          transactions = 1000
@@ -236,23 +235,20 @@ def test_kill_replica(request, fxSstSetup, fxHermesRunSettings, fxProduct, fxBlo
          assert fxProduct.product.start_concord_replica(2), "Failed to start replica 2"
          assert sleep_and_check(120, 30, 360, transactions + fxSstSetup.existing_transactions), "Data check failed"
          
-         log.info("Finishing Test Sucessfully---> {0}".format(request.node.name))
-
          # return passed("Data checked")
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
          stack = traceback.format_exc()
          log.error(f"{message}\n{stack}")
-         log.info("Finishing Test with Errors ---> {0}".format(request.node.name))
-         assert 1 == 2, message
+         assert False, message
        
        
 @describe()
 @pytest.mark.smoke
 def test_pause_replica(request, fxSstSetup, fxHermesRunSettings, fxBlockchain, fxProduct, fxConnection):
       try:
-         log.info("Starting Test ---> {0}".format(request.node.name))
+
          global path
          hermesSettings = fxHermesRunSettings       
 
@@ -292,16 +288,15 @@ def test_pause_replica(request, fxSstSetup, fxHermesRunSettings, fxBlockchain, f
          send_async(hermesSettings, fxSstSetup, fxBlockchain.blockchainId, transactions_2, contractAddress, 3)
 
          assert fxProduct.product.resume_concord_replica(3), "Failed to resume replica"
-         assert sleep_and_check(90, 10, 150, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
+         assert sleep_and_check(90, 10, 200, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
 
          # check all blocks
          assert check_data(path, 0, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
-         log.info("Finishing Test Sucessfully --> {0}".format(request.node.name))
+
          # return passed("Data checked")
       except Exception as ex:
          t = "An exception of type {0} occurred. Arguments:\n{1!r}"
          message = t.format(type(ex).__name__, ex.args)
          stack = traceback.format_exc()
          log.error(f"{message}\n{stack}")
-         log.info("Finishing Test with Errors ---> {0}".format(request.node.name))
-         assert 1 == 2, message
+         assert False, message
