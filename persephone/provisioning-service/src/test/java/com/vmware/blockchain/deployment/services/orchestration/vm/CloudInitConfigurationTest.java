@@ -14,10 +14,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.List;
+import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,18 +27,22 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.protobuf.ProtocolStringList;
 import com.vmware.blockchain.deployment.server.Application;
+import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData.CreateComputeResourceRequestV2;
 import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
-import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
+import com.vmware.blockchain.deployment.v1.IPv4Network;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
+import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 
 /**
  * Tests for the class that generates User Data.
@@ -55,19 +60,8 @@ public class CloudInitConfigurationTest {
     @Mock
     private ConcordModelSpecification model;
 
-    private String ipAddress = "10.0.0.10";
-
-    private String gateway = "10.0.0.1";
-
     @Mock
-    private List<String> nameServers;
-
-    private Integer subnet = 24;
-
-    @Mock
-    private ConcordClusterIdentifier clusterId;
-
-    private String nodeIdString = "12345";
+    private ProtocolStringList nameServers;
 
     @Mock
     private ConfigurationSessionIdentifier configGenId;
@@ -78,35 +72,75 @@ public class CloudInitConfigurationTest {
     @Mock
     private OutboundProxyInfo outboundProxy;
 
+    @Mock
+    private IPv4Network network;
+
+    @Mock
+    CreateComputeResourceRequestV2 request;
+
+    @Mock
+    VSphereDatacenterInfo datacenterInfo;
+
     /**
      * Initialize various mocks.
      */
     @BeforeEach
     void init() {
-        cloudInitConfiguration =
-                new CloudInitConfiguration(containerRegistry, model, ipAddress, gateway, nameServers, subnet, clusterId,
-                                           nodeIdString, configGenId,
-                                           configServiceRestEndpoint, outboundProxy, "c0nc0rd",
-                                           false, false);
+        setupRequestObject();
+        setupDatacenterInfoObject();
+
+        cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
 
+        doReturn(ConcordAgentConfiguration.getDefaultInstance()).when(cloudInitConfiguration).getConfiguration();
+    }
+
+    private void setupRequestObject() {
+
+        // mock containerRegistry details
         Credential mockCredential = mock(Credential.class);
         when(mockCredential.getType()).thenReturn(Credential.Type.PASSWORD);
         when(mockCredential.getPasswordCredential()).thenReturn(PasswordCredential.newBuilder()
-                                                                        .setPassword("password")
-                                                                        .setUsername("username").build());
+                .setPassword("password")
+                .setUsername("username").build());
         when(containerRegistry.getCredential()).thenReturn(mockCredential);
         when(containerRegistry.getAddress()).thenReturn("https://containerRegistry.com");
 
+        // mock model details
         when(model.getComponentsList()).thenReturn(Arrays.asList(ConcordComponent.newBuilder()
-                                                                         .setType(ConcordComponent.Type.CONTAINER_IMAGE)
-                                                                         .setServiceType(
-                                                                                 ConcordComponent.ServiceType.GENERIC)
-                                                                         .setName("agent")
-                                                                         .build()
+                .setType(ConcordComponent.Type.CONTAINER_IMAGE)
+                .setServiceType(ConcordComponent.ServiceType.GENERIC)
+                .setName("agent")
+                .build()
         ));
 
-        doReturn(ConcordAgentConfiguration.getDefaultInstance()).when(cloudInitConfiguration).getConfiguration();
+        // mock cloudInitData details
+        CreateComputeResourceRequestV2.CloudInitData cloudInitData =
+                mock(CreateComputeResourceRequestV2.CloudInitData.class);
+        when(cloudInitData.getContainerRegistry()).thenReturn(containerRegistry);
+        when(cloudInitData.getModel()).thenReturn(model);
+        when(cloudInitData.getPrivateIp()).thenReturn("10.0.0.10");
+        when(cloudInitData.getConfigGenId()).thenReturn(configGenId);
+        when(cloudInitData.getConfigServiceRestEndpoint()).thenReturn(configServiceRestEndpoint);
+
+        // mock request details
+        UUID nodeId = UUID.fromString("5f3e3221-9c92-4d92-b328-67d08ac91a81");
+        UUID blockchainId = UUID.fromString("1ddf42e1-29ed-4d36-8e07-5f545d16c15c");
+        when(request.getCloudInitData()).thenReturn(cloudInitData);
+        when(request.getNodeId()).thenReturn(nodeId);
+        when(request.getBlockchainId()).thenReturn(blockchainId);
+    }
+
+    private void setupDatacenterInfoObject() {
+
+        // mock network details
+        when(network.getNameServersList()).thenReturn(nameServers);
+        when(network.getSubnet()).thenReturn(24);
+        when(network.getGatewayIp()).thenReturn("10.0.0.1");
+
+        // mock datacenterInfo details
+        when(datacenterInfo.getNetwork()).thenReturn(network);
+        when(datacenterInfo.getOutboundProxy()).thenReturn(outboundProxy);
     }
 
     @Test
@@ -205,6 +239,34 @@ public class CloudInitConfigurationTest {
 
         Assert.assertNotNull(actualDiskCmd);
         Assert.assertEquals(expectedDiskCmd, actualDiskCmd);
+    }
+
+    @Nested
+    class TestGateway {
+
+        @Test
+        void badGateway() {
+            setupRequestObject();
+            String badGateway = "10.0.1";
+
+            // mock network details
+            when(network.getNameServersList()).thenReturn(nameServers);
+            when(network.getSubnet()).thenReturn(24);
+            when(network.getGatewayIp()).thenReturn(badGateway);
+
+            // mock datacenterInfo details
+            when(datacenterInfo.getNetwork()).thenReturn(network);
+            when(datacenterInfo.getOutboundProxy()).thenReturn(outboundProxy);
+
+            try {
+                cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof BadRequestPersephoneException);
+                Assert.assertEquals(String.format("Provided gateway %s not a valid Inet address", badGateway),
+                        e.getLocalizedMessage());
+            }
+        }
+
     }
 
 }
