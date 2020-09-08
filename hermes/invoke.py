@@ -176,7 +176,8 @@ def vaultResolveFile(args, options, secret):
     a[0]: filename is the file path e.g. "resources/zone_config.json"
   '''
   a = prepareArgs(args)
-  vault.resolveFile(filename=a[0])
+  for filename in a: # resolve multiple files if supplied
+    if filename: vault.resolveFile(filename=filename)
 
 def patchOrg(args, options, secret):
   '''
