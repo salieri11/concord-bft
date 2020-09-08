@@ -7,7 +7,11 @@ package com.vmware.blockchain.agent.services.node.health;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.core.DockerClientBuilder;
+import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealth;
+import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealthServiceInvoker;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealth;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
@@ -25,12 +29,20 @@ public class NodeComponentHealthFactory {
 
     private final ConcordAgentConfiguration concordAgentConfiguration;
     private final DamlHealthServiceInvoker damlHealthServiceInvoker;
+    private final ConcordHealthServiceInvoker concordHealthServiceInvoker;
+    private final AgentDockerClient agentDockerClient;
+
+    private final DockerClient dockerClient = DockerClientBuilder.getInstance().build();
 
     @Autowired
     NodeComponentHealthFactory(ConcordAgentConfiguration concordAgentConfiguration,
-                               DamlHealthServiceInvoker damlHealthServiceInvoker) {
+                               DamlHealthServiceInvoker damlHealthServiceInvoker,
+                               ConcordHealthServiceInvoker concordHealthServiceInvoker,
+                               AgentDockerClient agentDockerClient) {
         this.concordAgentConfiguration = concordAgentConfiguration;
         this.damlHealthServiceInvoker = damlHealthServiceInvoker;
+        this.concordHealthServiceInvoker = concordHealthServiceInvoker;
+        this.agentDockerClient = agentDockerClient;
     }
 
     /**
@@ -81,7 +93,7 @@ public class NodeComponentHealthFactory {
         switch (serviceType) {
             case CONCORD:
                 log.info("Invoking {}", ConcordHealth.class.getName());
-                return new ConcordHealth();
+                return new ConcordHealth(concordHealthServiceInvoker);
             case DAML_LEDGER_API:
             case DAML_EXECUTION_ENGINE:
                 log.info("Invoking {}", DamlHealth.class.getName());
@@ -92,7 +104,64 @@ public class NodeComponentHealthFactory {
         }
     }
 
+    /**
+     * initializes health check components.
+     * TODO: to be also used in node start workflow.
+     * @param containerNetworkName container network name.
+     */
+    public void initHealthChecks(String containerNetworkName) {
+        if (getConcordAgentConfiguration()
+                .getModel().getBlockchainType().equals(ConcordModelSpecification.BlockchainType.DAML)) {
+            if (getConcordAgentConfiguration().getModel().getNodeType()
+                    .equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)) {
+                String host = getHost(DamlHealthServiceInvoker.Service.PARTICIPANT.getHost(), containerNetworkName);
+                damlHealthServiceInvoker.start(host);
+            }
+            if (getConcordAgentConfiguration().getModel().getNodeType()
+                    .equals(ConcordModelSpecification.NodeType.DAML_COMMITTER)) {
+                String host = getHost(DamlHealthServiceInvoker.Service.COMMITTER.getHost(),
+                        containerNetworkName);
+                damlHealthServiceInvoker.start(host);
+                host = getHost(concordHealthServiceInvoker.getContainer(),
+                        containerNetworkName);
+                concordHealthServiceInvoker.createSocket(host);
+            }
+        } else {
+            concordHealthServiceInvoker.createSocket(getHost(concordHealthServiceInvoker.getContainer(),
+                    containerNetworkName));
+        }
+    }
+
+    /**
+     * tears down component health checks.
+     * TODO: this is never used. To be used for node stop workflow.
+     * @param containerNetworkName container network name.
+     */
+    public void tearDownHealthChecks(String containerNetworkName) throws InterruptedException {
+        if (getConcordAgentConfiguration()
+                .getModel().getBlockchainType() == ConcordModelSpecification.BlockchainType.DAML) {
+            if (getConcordAgentConfiguration().getModel().getNodeType()
+                    .equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)) {
+                damlHealthServiceInvoker.shutdown();
+            }
+            if (getConcordAgentConfiguration().getModel().getNodeType()
+                    .equals(ConcordModelSpecification.NodeType.DAML_COMMITTER)) {
+                damlHealthServiceInvoker.shutdown();
+                concordHealthServiceInvoker.closeSocket();
+            }
+        } else {
+            concordHealthServiceInvoker.closeSocket();
+        }
+    }
+
     ConcordAgentConfiguration getConcordAgentConfiguration() {
         return this.concordAgentConfiguration;
+    }
+
+    String getHost(String containerName, String networkName) {
+        // Since "_" is not a valid literal in hostname, we can not use container name
+        var inspectContainerResponse = agentDockerClient.inspectContainer(this.dockerClient, containerName);
+        return inspectContainerResponse.getNetworkSettings().getNetworks()
+                .get(networkName).getIpAddress();
     }
 }

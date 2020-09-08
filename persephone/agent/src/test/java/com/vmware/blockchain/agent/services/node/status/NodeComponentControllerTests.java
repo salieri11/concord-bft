@@ -103,10 +103,14 @@ public class NodeComponentControllerTests {
         var res = mock(InspectContainerResponse.class);
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).startComponent(any(), any(), any());
+        doNothing().when(healthCheckScheduler).startHealthCheck();
+        doNothing().when(nodeComponentHealthFactory).initHealthChecks(any());
 
         mockMvc.perform(post("/api/node/start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
+        verify(nodeComponentHealthFactory, times(1)).initHealthChecks(any());
+        verify(healthCheckScheduler, times(1)).startHealthCheck();
         verify(agentDockerClient, times(1)).inspectContainer(any(), any());
         verify(agentDockerClient, times(1)).startComponent(any(), any(), any());
     }
@@ -116,6 +120,38 @@ public class NodeComponentControllerTests {
         var res = mock(InspectContainerResponse.class);
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
+        doNothing().when(healthCheckScheduler).stopHealthCheck();
+        doNothing().when(nodeComponentHealthFactory).tearDownHealthChecks(any());
+        mockMvc.perform(post("/api/node/stop")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+
+        verify(healthCheckScheduler, times(1)).stopHealthCheck();
+        verify(nodeComponentHealthFactory, times(1)).tearDownHealthChecks(any());
+        verify(agentDockerClient, times(1)).inspectContainer(any(), any());
+        verify(agentDockerClient, times(1)).stopComponent(any(), any(), any());
+    }
+
+    @Test
+    void startComponentsHealthCheckException() throws Exception {
+        var res = mock(InspectContainerResponse.class);
+        doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
+        doNothing().when(agentDockerClient).startComponent(any(), any(), any());
+        doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).startHealthCheck();
+
+        mockMvc.perform(post("/api/node/start")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+        verify(agentDockerClient, times(1)).inspectContainer(any(), any());
+        verify(agentDockerClient, times(1)).startComponent(any(), any(), any());
+    }
+
+    @Test
+    void stopComponentsHealthCheckException() throws Exception {
+        var res = mock(InspectContainerResponse.class);
+        doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
+        doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
+        doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).stopHealthCheck();
         mockMvc.perform(post("/api/node/stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
