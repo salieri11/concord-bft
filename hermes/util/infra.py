@@ -31,6 +31,7 @@ VSPHERE = {}
 # list of all deployed replicas by Hermes from this particular build
 # auto populated by `giveDeploymentContext` with replicaInfo
 DEPLOYED_REPLICAS = []
+DEPLOYED_REPLICAS_SHORT = []
 
 
 def credentialsAreGood(sddcName, sddcInfo):
@@ -218,7 +219,31 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
       dockerTag = configObject["metainf"]["env"]["dockerTag"]
       pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
       runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
-      DEPLOYED_REPLICAS.append(blockchainFullDetails)
+
+      # short list for monitor replicas job
+      shortList = { helper.TYPE_DAML_COMMITTER: [], helper.TYPE_DAML_PARTICIPANT: [] }
+      for replicaInfo in blockchainFullDetails["nodes_list"]:
+        nodeIP = replicaInfo["private_ip"]
+        if "type_name" not in replicaInfo: replicaInfo["type_name"] = None # type_name used by Helen
+        if "node_type" not in replicaInfo: replicaInfo["node_type"] = None # node_type used by Persephone
+        if replicaInfo["node_type"] == helper.NodeType.REPLICA or \
+           replicaInfo["type_name"] == helper.TYPE_DAML_COMMITTER:
+          replicaInfo["type_name"] = helper.TYPE_DAML_COMMITTER
+          replicaInfo["node_type"] = helper.NodeType.REPLICA
+          shortList[helper.TYPE_DAML_COMMITTER].append(nodeIP)
+        elif replicaInfo["node_type"] == helper.NodeType.CLIENT or \
+             replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT:
+          replicaInfo["type_name"] = helper.TYPE_DAML_PARTICIPANT
+          replicaInfo["node_type"] = helper.NodeType.CLIENT
+          shortList[helper.TYPE_DAML_PARTICIPANT].append(nodeIP)
+      shortParam = "{}:{} {}:{}".format(helper.TYPE_DAML_COMMITTER, ",".join(shortList[helper.TYPE_DAML_COMMITTER]),
+                                        helper.TYPE_DAML_PARTICIPANT, ",".join(shortList[helper.TYPE_DAML_PARTICIPANT]))
+      shortType = "{}-{}".format(len(shortList[helper.TYPE_DAML_COMMITTER]), len(shortList[helper.TYPE_DAML_PARTICIPANT]))
+      
+      add_to_tracker_file("deployed_blockchains.json", [blockchainFullDetails])
+      add_to_tracker_file("deployed_blockchains_short.json", [{
+                          "blockchain_id": blockchainFullDetails["id"],
+                          "setup": shortType, "short_param": shortParam }])
       
       prepareConnections(sddcs) # connect to applicable SDDCs if not already connected
       for sddcName in sddcs: VSPHERE[sddcName].checkForNewEntities()
@@ -228,9 +253,6 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
           isParticipant = False
           if "type_name" in replicaInfo: # must be from getBlockchainFullDetails function
             isParticipant = replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT
-          # From Persephone tests
-          elif "node_type" in replicaInfo and replicaInfo["node_type"] == helper.NodeType.CLIENT:
-            isParticipant = True
 
           replicaTypeDisplayName = PRETTY_TYPE_COMMITTER if not isParticipant else PRETTY_TYPE_PARTICIPANT
           if "id" not in replicaInfo: # from new persephone test
@@ -623,3 +645,16 @@ def parseTargetsString(targetSegsStr):
         allTargets.append("{}.{}.{}".format(sddcName.lower(), segCategory.lower(), zoneType.lower()))
   return allTargets
 
+
+def add_to_tracker_file(filename, target_list):
+  tracker_file = helper.getJenkinsWorkspace() + '/summary/' + filename
+  tracker_file_exists = os.path.exists(tracker_file)
+  if tracker_file_exists:
+    with open(tracker_file , 'r') as file:
+      tracker_total_list = json.load(file)
+  else:
+    tracker_total_list = []
+  with open(tracker_file , 'w+') as file:
+    for newly_deployed in target_list:
+      tracker_total_list.append(newly_deployed)
+    json.dump(tracker_total_list, file, indent=4, default=str)

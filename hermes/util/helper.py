@@ -1810,20 +1810,6 @@ def hermesPreexitWrapUp():
   try:
     hermesJoinAllFreeAsyncThreads()
     hermesNonCriticalTraceFinalize()
-    from . import infra
-    if infra.DEPLOYED_REPLICAS:
-      deployed_list_file = getJenkinsWorkspace() + '/summary/deployed_blockchains.json'
-      deployed_list_file_exists = os.path.exists(deployed_list_file)
-      deployed_blockchains_list = []
-      with open(deployed_list_file , 'w+') as file:
-        if deployed_list_file_exists:
-          list_content = file.read()
-          if list_content and list_content.startswith("["):
-            deployed_blockchains_list = json.loads(list_content)
-        else: deployed_blockchains_list = []
-        for newly_deployed in infra.DEPLOYED_REPLICAS:
-          deployed_blockchains_list.append(newly_deployed)
-        json.dump(deployed_blockchains_list, file, indent=4, default=str)
   except Exception as e:
     traceback.print_exc()
 
