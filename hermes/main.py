@@ -84,7 +84,7 @@ suiteList = {
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "PerformanceTests": "suites/performance_tests.py",
    "UiTests": "suites/ui_tests.py",
-   "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
+   "DeployDamlTests": "suites/ui_e2e_deploy_daml.py",
    "MetadataPersistencyTests": "suites/persistency_tests.py",
    "HelenNodeSizeTemplateTests": "suites/helen/nodesize_test.py"
 }
