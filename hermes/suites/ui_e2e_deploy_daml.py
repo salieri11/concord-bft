@@ -1,8 +1,7 @@
 #########################################################################
-# Copyright 2018 - 2019 VMware, Inc. All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2020 VMware, Inc. All rights reserved. -- VMware Confidential
 #
 # Utility to test the performance of the Helen+concord ecosystem
-#Converted to pytest for Jira BC-4173
 #########################################################################
 import logging
 import os
@@ -23,7 +22,7 @@ LocalSetupFixture = collections.namedtuple(
     "LocalSetupFixture", "testLogDir, uiPath, vdisplay")
 pytest.XvfbPresent = False
 
-#start vdisplay for the test
+
 def startVDisplay(vdisplay):
     try:
         vdisplay.start()
@@ -31,17 +30,17 @@ def startVDisplay(vdisplay):
     except Exception as e:
         log.info(str(e))
 
-#stop vdisplay if it is running
+
 def stopVDisplay(vdisplay):
     if pytest.XvfbPresent:
         vdisplay.stop()
-        
+
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
 def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     testName = fxConnection.request.testName
-    testName = testName.replace('test_','')
+    testName = testName.replace('test_', '')
     testLogDir = os.path.join(
         fxHermesRunSettings["hermesTestLogDir"], testName)
     pathlib.Path(testLogDir).mkdir(parents=True, exist_ok=True)
@@ -55,17 +54,16 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
 # =============================================================================================
 # Actual Test Functions
 # =============================================================================================
-
-@describe()
+@describe("run UI  lint e2e tests")
 def test_lint_e2e(fxLocalSetup):
-    vdisplay=uiPath=save_path=testLogDir=""
+    vdisplay = uiPath = save_path = testLogDir = ""
     for vLocalSetup in fxLocalSetup:
-        vdisplay=vLocalSetup.vdisplay
-        uiPath=vLocalSetup.uiPath
-        save_path=vLocalSetup.testLogDir
-        testLogDir=vLocalSetup.testLogDir
+        vdisplay = vLocalSetup.vdisplay
+        uiPath = vLocalSetup.uiPath
+        save_path = vLocalSetup.testLogDir
+        testLogDir = vLocalSetup.testLogDir
     startVDisplay(vdisplay)
-    cmd = ["npm", "run", "e2e:integration", ]
+    cmd = ["npm", "run", "e2e:integration"]
     # Add the path to logs output to a file so we can save screenshot
     # from e2e tests in a directory that is familiar to other users
     fileTxtDirPath = os.path.join(uiPath, "ui_e2e_path.txt")
@@ -74,7 +72,8 @@ def test_lint_e2e(fxLocalSetup):
     logFilePath = os.path.join(testLogDir, "e2e.log")
     with open(logFilePath, "wb+") as logFile:
         procOutput = subprocess.run(cmd,
-                                        stdout=logFile,
-                                        stderr=subprocess.STDOUT,
-                                        cwd=uiPath, )
-    assert procOutput.returncode == 0, "UI Integration E2E tests failed, please see {}".format(logFilePath)
+                                    stdout=logFile,
+                                    stderr=subprocess.STDOUT,
+                                    cwd=uiPath, )
+    assert procOutput.returncode == 0, "UI Integration E2E tests failed, please see {}".format(
+        logFilePath)
