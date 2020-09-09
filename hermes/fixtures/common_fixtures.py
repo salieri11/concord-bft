@@ -34,31 +34,6 @@ def isBuiltInOrg(orgId):
    return orgId in BUILTIN_ORGS
 
 
-def retrieveCustomCmdlineData(pytestRequest):
-   '''
-   Given a PyTest fixture's request object, returns a dictionary of various
-   pieces of Hermes info that has been passed to PyTest via custom PyTest
-   command line parameters.
-   cmdlineArgs: The argparse object containing arguments passed to Hermes.
-   userConfig: The dictionary containing the contents of user_config.json.
-   logDir: The log directory path, as a string.
-   '''
-   cmdlineArgsDict = json.loads(pytestRequest.config.getoption("--hermesCmdlineArgs"))
-   cmdlineArgsObject = types.SimpleNamespace(**cmdlineArgsDict)
-   userConfig = json.loads(pytestRequest.config.getoption("--hermesUserConfig"))
-   zoneConfig = json.loads(pytestRequest.config.getoption("--hermesZoneConfig"))
-   logDir = pytestRequest.config.getoption("--hermesTestLogDir")
-   supportBundleFile = pytestRequest.config.getoption("--supportBundleFile")
-
-   return {
-      "hermesCmdlineArgs": cmdlineArgsObject,
-      "hermesUserConfig": userConfig,
-      "hermesZoneConfig": zoneConfig,
-      "hermesTestLogDir": logDir,
-      "supportBundleFile": supportBundleFile
-   }
-
-
 # TODO: refactor this method to make it generic
 def setUpPortForwarding(url_or_host, creds, blockchainType, logDir, src_port=443, dest_port=8545, timeout=600,):
    '''
@@ -540,11 +515,23 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
 
 @pytest.fixture(scope="module")
 @describe("fixture; run settings")
-def fxHermesRunSettings(request):
+def fxHermesRunSettings(hermes_settings):
     '''
-    Returns a dictionary of information about the Hermes run.
+    Returns a dictionary of information about the Hermes run - various
+    pieces of Hermes info that has been passed to PyTest via custom PyTest
+    command line parameters.
+    cmdlineArgs: The argparse object containing arguments passed to Hermes.
+    userConfig: The dictionary containing the contents of user_config.json.
+    logDir: The log directory path, as a string.
+    supportBundleFile: path to support bundle file
     '''
-    return retrieveCustomCmdlineData(request)
+    return {
+            "hermesCmdlineArgs": hermes_settings["cmdline_args"],
+            "hermesUserConfig": hermes_settings["user_config"],
+            "hermesZoneConfig": hermes_settings["zone_config"],
+            "hermesTestLogDir": hermes_settings["log_dir"],
+            "supportBundleFile": hermes_settings["support_bundle_file"]
+    }
 
 
 @pytest.fixture(scope="module")
@@ -658,7 +645,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    conId = None
    replicas = None
    clientNodes = None
-   hermesData = retrieveCustomCmdlineData(request)
+   hermesData = fxHermesRunSettings
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
    if not auth.tokens[auth.CUSTOM_ORG]:
@@ -701,13 +688,13 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
 
 @pytest.fixture(scope="module")
 @describe("fixture; Helen with initial org registered")
-def fxInitializeOrgs(request):
+def fxInitializeOrgs(request, fxHermesRunSettings):
    '''
    Inserts some orgs used for testing into the local Helen database.  This is needed, for example,
    when adding an org to a consortium.  Helen needs to know about the org first, so we
    need to do something to generate a record about it.
    '''
-   hermesData = retrieveCustomCmdlineData(request)
+   hermesData = fxHermesRunSettings
    request = Request(hermesData["hermesTestLogDir"],
                      "initializeOrgs",
                      hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
@@ -758,7 +745,7 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    and RPC object.
    The accepted parameter, "request", is an internal PyTest name and must be that.
    '''
-   hermesData = retrieveCustomCmdlineData(request)
+   hermesData = fxHermesRunSettings
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
 

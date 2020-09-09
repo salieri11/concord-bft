@@ -122,7 +122,7 @@ def removeSkippedTests(testList, ethereumTestRoot):
             testList.remove(skippedTest)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 @describe("fixture; run settings")
 def hermes_settings(request):
     """
