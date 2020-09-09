@@ -8,8 +8,9 @@ import com.daml.metrics.Metrics
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftWriteClient,
+  RequestTimeoutFunction,
   RequestTimeoutStrategy,
-  RequestTimeoutFunction
+  RetryStrategyFactory
 }
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient
 import com.google.common.net.HostAndPort
@@ -34,6 +35,7 @@ private[server] object ConcordWriteClients {
         config,
         createBftWriteClient,
         config.bftClient.requestTimeoutStrategy,
+        () => config.bftClient.sendRetryStrategy,
         createKvbcWriteClient,
         metrics)
     waitForConcordWriteClientsToBeReady(
@@ -49,18 +51,26 @@ private[server] object ConcordWriteClients {
 
   private[server] def createConcordWriteClients(
       config: WriteClientsConfig,
-      bftWriteClientFactory: (Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient,
+      bftWriteClientFactory: (
+          Option[Path],
+          RequestTimeoutFunction,
+          RetryStrategyFactory,
+          Metrics,
+      ) => BftWriteClient,
       requestTimeoutStrategy: RequestTimeoutStrategy,
+      sendRetryStrategyFactory: RetryStrategyFactory,
       kvbcWriteClientFactory: String => KvbcWriteClient,
-      metrics: Metrics)(
-      implicit executionContext: ExecutionContext): PrimarySecondaryConcordWriteClients =
+      metrics: Metrics,
+  )(implicit executionContext: ExecutionContext): PrimarySecondaryConcordWriteClients =
     if (config.bftClient.enable) {
       val result = PrimarySecondaryConcordWriteClients(
         bftWriteClientFactory(
           config.bftClient.configPath,
           computeTimeoutIfPreExecutingElseDefault(requestTimeoutStrategy),
-          metrics),
-        None
+          sendRetryStrategyFactory,
+          metrics,
+        ),
+        None,
       )
       logger.debug("BFT Client created")
       result
@@ -69,7 +79,8 @@ private[server] object ConcordWriteClients {
 
       PrimarySecondaryConcordWriteClients(
         kvbcWriteClientFactory(config.replicas.head),
-        Some(config.replicas.tail.map(createKvbcWriteClient)))
+        Some(config.replicas.tail.map(createKvbcWriteClient)),
+      )
     }
 
   private[server] def computeTimeoutIfPreExecutingElseDefault(
@@ -82,7 +93,9 @@ private[server] object ConcordWriteClients {
   private def createBftWriteClient(
       configPath: Option[Path],
       requestTimeoutFunction: RequestTimeoutFunction,
-      metrics: Metrics) = {
+      sendRetryStrategyFactory: RetryStrategyFactory,
+      metrics: Metrics,
+  ) = {
     logger.debug("Loading the native 'bft-client-native0' library")
     System.loadLibrary("bft-client-native0")
     logger.debug("Creating the BFT Client")
@@ -93,7 +106,8 @@ private[server] object ConcordWriteClients {
           "When BFT Client is selected, the BFT Client configuration file path is required but none was specified.")
       },
       requestTimeoutFunction,
-      metrics
+      sendRetryStrategyFactory,
+      metrics,
     )
   }
 

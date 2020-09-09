@@ -45,41 +45,72 @@ object RetryStrategy {
 
   def exponentialBackoff(
       shouldRetry: Throwable => Boolean,
-      attempts: Int,
+      retries: Int,
       firstWaitTime: Duration): RetryStrategy =
     new RetryStrategy(
       shouldRetry,
-      attempts,
+      retries,
       firstWaitTime,
-      firstWaitTime * math.pow(2.0, attempts.toDouble),
-      _ * 2)
+      exponentialBackoffWaitTimeCap(retries, firstWaitTime),
+      exponentialBackoffProgression)
 
-  def constant(
-      shouldRetry: Throwable => Boolean,
-      attempts: Int,
-      waitTime: Duration): RetryStrategy =
-    new RetryStrategy(shouldRetry, attempts, waitTime, waitTime, identity)
+  def exponentialBackoffProgression(duration: Duration): Duration =
+    duration * 2
+
+  def exponentialBackoffWaitTimeCap(retries: Int, firstWaitTime: Duration): Duration =
+    firstWaitTime * math.pow(2.0, retries.toDouble)
+
+  def constant(shouldRetry: Throwable => Boolean, retries: Int, waitTime: Duration): RetryStrategy =
+    new RetryStrategy(shouldRetry, retries, waitTime, waitTime, identity)
+
+  // The following predicates are accurate only under the assumption that 'progression' is stateless (as it should)
+
+  def isConstant(retryStrategy: RetryStrategy): Boolean =
+    isProgressionConstant(retryStrategy.progression)
+
+  def isProgressionConstant(progression: Duration => Duration): Boolean =
+    progression(1.milli) == 1.milli
+
+  def isExponential(retryStrategy: RetryStrategy): Boolean =
+    retryStrategy.progression(1.milli) == 2.milli
 }
 
-final class RetryStrategy(
+final case class RetryStrategy(
     shouldRetry: Throwable => Boolean,
-    attempts: Int,
+    retries: Int,
     firstWaitTime: Duration,
     waitTimeCap: Duration,
-    progression: Duration => Duration) {
+    progression: Duration => Duration,
+) {
+
   import RetryStrategy.after
-  private def clip(t: Duration): Duration = t.min(waitTimeCap).max(0.millis)
+
   def apply[A](run: Int => Future[A])(implicit ec: ExecutionContext): Future[A] = {
     def go(attempt: Int, wait: Duration): Future[A] = {
+      attemptsCount = attempt
       run(attempt)
         .recoverWith {
           case err =>
-            if (shouldRetry(err) && attempt <= attempts)
+            if (attempt <= retries && shouldRetry(err)) {
+              synchronized { waits += wait }
               after(wait)(go(attempt + 1, clip(progression(wait))))
-            else
+            } else {
               Future.failed(err)
+            }
         }
     }
     go(1, clip(firstWaitTime))
   }
+
+  def extractTotalWait: Duration = extractWaits.reduceLeftOption(_ plus _).getOrElse(Duration.Zero)
+
+  def getAttemptsCount: Integer = attemptsCount
+
+  private def extractWaits: Seq[Duration] = waits.result()
+
+  private def clip(t: Duration): Duration = t.min(waitTimeCap).max(0.millis)
+
+  @volatile private var attemptsCount: Integer = 0
+
+  private val waits = Vector.newBuilder[Duration]
 }

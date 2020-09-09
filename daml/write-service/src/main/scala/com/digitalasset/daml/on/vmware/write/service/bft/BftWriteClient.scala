@@ -51,9 +51,14 @@ object BftWriteClient {
   def apply(
       configPath: Path,
       requestTimeout: RequestTimeoutFunction,
-      metrics: Metrics): BftWriteClient = {
+      sendRetryStrategyFactory: RetryStrategyFactory,
+      metrics: Metrics,
+  ): BftWriteClient = {
     val concordClientPool =
-      new BftConcordClientPool(new BftConcordClientPoolJni(configPath), metrics)
+      new BftConcordClientPool(
+        new BftConcordClientPoolJni(configPath),
+        sendRetryStrategyFactory,
+        metrics)
     new BftWriteClient(concordClientPool, requestTimeout)
   }
 

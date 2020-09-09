@@ -9,4 +9,5 @@ import scala.concurrent.duration.Duration
 
 package object bft {
   type RequestTimeoutFunction = (CommitRequest, CommitMetadata) => Duration
+  type RetryStrategyFactory = () => RetryStrategy
 }

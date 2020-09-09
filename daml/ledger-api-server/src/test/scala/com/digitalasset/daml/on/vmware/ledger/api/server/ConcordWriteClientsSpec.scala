@@ -13,8 +13,9 @@ import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.MessageFlags
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftWriteClient,
+  RequestTimeoutFunction,
   RequestTimeoutStrategy,
-  RequestTimeoutFunction
+  RetryStrategyFactory
 }
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient
 import com.digitalasset.kvbc.daml_commit.CommitRequest
@@ -66,9 +67,7 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
   "createConcordWriteClients()" should {
     "create only a single BFT client when BFT client is enabled" in {
       val bftWriteClientFactory =
-        mock[(Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient]
-      when(bftWriteClientFactory(any[Option[Path]], any[RequestTimeoutFunction](), any[Metrics]))
-        .thenReturn(mock[BftWriteClient])
+        newBftWriteClientFactoryMock()
       val kvbcWriteClientFactory =
         mock[String => KvbcWriteClient]
       when(kvbcWriteClientFactory(any[String])).thenReturn(mock[KvbcWriteClient])
@@ -78,6 +77,7 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
           bftClient = BftClientConfig.ReasonableDefault.copy(enable = true)),
         bftWriteClientFactory,
         mock[RequestTimeoutStrategy],
+        mock[RetryStrategyFactory],
         kvbcWriteClientFactory,
         aMetrics
       )
@@ -85,23 +85,18 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
       verify(bftWriteClientFactory, times(1))(
         any[Option[Path]],
         any[RequestTimeoutFunction](),
+        any[RetryStrategyFactory](),
         any[Metrics])
       verify(kvbcWriteClientFactory, times(0))(any[String])
     }
 
     "create a BFT client using a default request timeout if requests are not pre-executing" in {
-      val bftWriteClientFactory =
-        mock[(Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient]
       val requestTimeoutFunctionCaptor =
         ArgumentCaptor
           .forClass(classOf[RequestTimeoutFunction])
           .asInstanceOf[ArgumentCaptor[RequestTimeoutFunction]]
-      when(
-        bftWriteClientFactory(
-          any[Option[Path]],
-          requestTimeoutFunctionCaptor.capture(),
-          any[Metrics]))
-        .thenReturn(mock[BftWriteClient])
+      val bftWriteClientFactory =
+        newBftWriteClientFactoryMock(requestTimeoutFunctionCaptor.capture)
       val kvbcWriteClientFactory =
         mock[String => KvbcWriteClient]
       val requestTimeoutStrategy = mock[RequestTimeoutStrategy]
@@ -111,6 +106,7 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
           bftClient = BftClientConfig.ReasonableDefault.copy(enable = true)),
         bftWriteClientFactory,
         requestTimeoutStrategy,
+        mock[RetryStrategyFactory],
         kvbcWriteClientFactory,
         aMetrics
       )
@@ -121,18 +117,12 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
     }
 
     "create a BFT client that computes the request timeout if pre-executing" in {
-      val bftWriteClientFactory =
-        mock[(Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient]
       val requestTimeoutFunctionCaptor =
         ArgumentCaptor
           .forClass(classOf[RequestTimeoutFunction])
           .asInstanceOf[ArgumentCaptor[RequestTimeoutFunction]]
-      when(
-        bftWriteClientFactory(
-          any[Option[Path]],
-          requestTimeoutFunctionCaptor.capture(),
-          any[Metrics]))
-        .thenReturn(mock[BftWriteClient])
+      val bftWriteClientFactory =
+        newBftWriteClientFactoryMock(requestTimeoutFunctionCaptor.capture)
       val kvbcWriteClientFactory =
         mock[String => KvbcWriteClient]
       val requestTimeoutStrategy = mock[RequestTimeoutStrategy]
@@ -144,8 +134,9 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
           bftClient = BftClientConfig.ReasonableDefault.copy(enable = true)),
         bftWriteClientFactory,
         requestTimeoutStrategy,
+        mock[RetryStrategyFactory],
         kvbcWriteClientFactory,
-        aMetrics
+        aMetrics,
       )
       requestTimeoutFunctionCaptor.getValue()(aPreExecutingCommitRequest, aCommitMetadata)
 
@@ -155,9 +146,7 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
 
     "create only KVBC clients when BFT client is not enabled" in {
       val bftWriteClientFactory =
-        mock[(Option[Path], RequestTimeoutFunction, Metrics) => BftWriteClient]
-      when(bftWriteClientFactory(any[Option[Path]], any[RequestTimeoutFunction](), any[Metrics]))
-        .thenReturn(mock[BftWriteClient])
+        newBftWriteClientFactoryMock()
       val kvbcWriteClientFactory =
         mock[String => KvbcWriteClient]
       when(kvbcWriteClientFactory(any[String])).thenReturn(mock[KvbcWriteClient])
@@ -167,6 +156,7 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
           bftClient = BftClientConfig.ReasonableDefault.copy(enable = false)),
         bftWriteClientFactory,
         mock[RequestTimeoutStrategy],
+        mock[RetryStrategyFactory],
         kvbcWriteClientFactory,
         aMetrics
       )
@@ -174,14 +164,31 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
       verify(bftWriteClientFactory, times(0))(
         any[Option[Path]],
         any[RequestTimeoutFunction](),
+        any[RetryStrategyFactory](),
         any[Metrics])
       verify(kvbcWriteClientFactory, atLeastOnce())(any[String])
     }
   }
 
-  private implicit val anExecutionContext: ExecutionContext = DirectExecutionContext
-  private val aMetrics = new Metrics(new MetricRegistry)
-  private val aNonPreExecutingCommitRequest = CommitRequest()
-  private val aPreExecutingCommitRequest = CommitRequest(flags = MessageFlags.PreExecuteFlag)
-  private val aCommitMetadata = SimpleCommitMetadata(Some(1))
+  private def newBftWriteClientFactoryMock(
+      requestTimeoutFunctionArgumentFactory: () => RequestTimeoutFunction = () =>
+        any[RequestTimeoutFunction](),
+  ): (Option[Path], RequestTimeoutFunction, RetryStrategyFactory, Metrics) => BftWriteClient = {
+    val bftWriteClientFactoryMock =
+      mock[(Option[Path], RequestTimeoutFunction, RetryStrategyFactory, Metrics) => BftWriteClient]
+    when(
+      bftWriteClientFactoryMock(
+        any[Option[Path]],
+        requestTimeoutFunctionArgumentFactory(),
+        any[RetryStrategyFactory](),
+        any[Metrics]))
+      .thenReturn(mock[BftWriteClient])
+    bftWriteClientFactoryMock
+  }
+
+  private implicit val AnExecutionContext: ExecutionContext = DirectExecutionContext
+  private def aMetrics = new Metrics(new MetricRegistry)
+  private def aNonPreExecutingCommitRequest = CommitRequest()
+  private def aPreExecutingCommitRequest = CommitRequest(flags = MessageFlags.PreExecuteFlag)
+  private def aCommitMetadata = SimpleCommitMetadata(Some(1))
 }
