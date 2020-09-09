@@ -16,27 +16,60 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include "Logger.hpp"
 #include "bftclient/bft_client.h"
+#include "bftclient/seq_num_generator.h"
 #include "concord.pb.h"
 #include "config.h"
 #include "utils/openssl_crypto_utils.hpp"
 
 namespace concord::op {
+struct Response {
+  std::vector<
+      std::tuple<bft::client::ReplicaId,
+                 com::vmware::concord::ConcordReplicaSpecificInfoResponse>>
+      rsis;
+  com::vmware::concord::ConcordResponse res;
+
+  Response(const bft::client::Reply& reply);
+};
+
 class Operations {
   /*
    * Here we will implement the actual operator actions.
    */
  public:
   Operations(const Config& config, bft::client::Client& client);
-  std::optional<com::vmware::concord::ReconfigurationSmResponse>
-  initiateMockCommand(std::chrono::milliseconds timeout);
+  Response WedgeStatus(std::chrono::milliseconds timeout);
+  Response initiateWedge(std::chrono::milliseconds timeout);
+  Response initiateSwDownload(std::chrono::milliseconds timeout);
+  Response initiateHasSwVersion(std::chrono::milliseconds timeout);
+  Response initiateInstallSwVersion(std::chrono::milliseconds timeout);
 
  private:
+  /*
+   * This method sign on a reconfiguration message and set the
+   * ReconfigurationSmRequest signature to that signature.
+   */
+  void signRequest(com::vmware::concord::ReconfigurationSmRequest& request);
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPrivateKey>
       priv_key_;
   bft::client::Client& client_;
+  Config config_;
+  bft::client::SeqNumberGenerator snGen_;
   logging::Logger logger_ = logging::getLogger("operator.operations");
+
+  Response initiateWriteRequest(
+      const com::vmware::concord::ConcordRequest& request,
+      const bft::client::WriteQuorum& quorum, std::chrono::milliseconds timeout,
+      const std::string& cid, const std::string& span_context);
+
+  Response initiateReadRequest(
+      const com::vmware::concord::ConcordRequest& request,
+      const bft::client::ReadQuorum& quorum, std::chrono::milliseconds timeout,
+      const std::string& cid, const std::string& span_context);
 };
 }  // namespace concord::op

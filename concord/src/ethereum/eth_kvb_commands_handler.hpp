@@ -143,12 +143,6 @@ class EthKvbCommandsHandler
       const concord::common::EthBlock &block, EthKvbStorage &kvbStorage,
       const com::vmware::concord::LogsRequest &request,
       com::vmware::concord::LogsResponse *response) const;
-
-  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
-    return nullptr;
-  }
-  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
-                                  controlStateManager) override {}
 };
 
 }  // namespace ethereum

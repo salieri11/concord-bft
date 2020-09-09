@@ -184,12 +184,6 @@ class DamlKvbCommandsHandler
   prometheus::Summary& read_keys_count_;
   prometheus::Summary& written_keys_count_;
   prometheus::Summary& daml_kv_size_summary_;
-
-  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
-    return nullptr;
-  }
-  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
-                                  controlStateManager) override {}
 };
 
 }  // namespace daml
