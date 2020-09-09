@@ -1,0 +1,29 @@
+{
+  "committers": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.11.12.13"
+    },
+    {
+      "zoneName": "test-zone-1 - B",
+      "providedIp": "127374948"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - C"
+    }
+  ],
+  "clients": [
+    {
+      "providedIp": "11.12.13.14"
+    },
+    {
+      "zoneName": "test-zone-1 - D"
+    }
+  ],
+  "blockchain": {
+    "bockchainType": "DAML"
+  }
+}
