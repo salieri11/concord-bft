@@ -348,12 +348,42 @@ object ExtraConfig {
 
   private implicit val bftClientConfigReader: Read[BftClientConfig] =
     Read.mapRead[String, String].map { keyValuePairs =>
-      val configKeys = keyValuePairs.keySet
+      verifyBftClientConfigurationKeysOrThrow(keyValuePairs)
+      readBftClientTimeoutKeys(
+        keyValuePairs,
+        readNonBftClientNonTimeoutKeys(
+          keyValuePairs,
+          ExtraConfig.ReasonableDefault.bftClient,
+        ),
+      )
+    }
 
-      verifyBftClientConfigurationKeysOrThrow(configKeys)
+  private def readBftClientTimeoutKeys(keyValuePairs: Map[String, String], config: BftClientConfig): BftClientConfig = {
+    val configKeys = keyValuePairs.keySet
+    if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty) {
+      val linearTimeoutStrategy = keyValuePairs.filterKeys(LinearTimeoutKeysSet.contains)
+        .foldLeft(LinearAffineInterpretationCostTransform.ReasonableDefault) {
+          case (strategy, (LinearTimeoutSlopeKey, value)) =>
+            strategy.copy(slope = Read.doubleRead.reads(value))
+          case (strategy, (LinearTimeoutInterceptKey, value)) =>
+            strategy.copy(intercept = Read.doubleRead.reads(value))
+          case (strategy, (LinearTimeoutDefaultKey, value)) =>
+            strategy.copy(defaultTimeout = Read.durationRead.reads(value))
+        }
+      config.copy(requestTimeoutStrategy = linearTimeoutStrategy)
+    } else if (configKeys.contains(ConstantTimeoutKey)) {
+      val constantTimeoutStrategy = keyValuePairs.get(ConstantTimeoutKey).map { value =>
+        ConstantRequestTimeout(Read.durationRead.reads(value))
+      }.getOrElse(ConstantRequestTimeout.ReasonableDefault)
+      config.copy(requestTimeoutStrategy = constantTimeoutStrategy)
+    } else {
+      config
+    }
+  }
 
-      val config = keyValuePairs.filterKeys(GeneralParametersKeySet.contains)
-        .foldLeft(ExtraConfig.ReasonableDefault.bftClient) {
+  private def readNonBftClientNonTimeoutKeys(keyValuePairs: Map[String, String], config: BftClientConfig): BftClientConfig =
+    keyValuePairs.filterKeys(GeneralParametersKeySet.contains)
+      .foldLeft(config) {
         case (config, (EnableKey, value)) => config.copy(enable = Read.booleanRead.reads(value))
         case (config, (ConfigPathKey, value)) =>
           config.copy(configPath = Some(pathReader.reads(value)))
@@ -365,25 +395,7 @@ object ExtraConfig {
           config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, firstWaitTime = Some(waitTime)))
         case (config, (SendRetryStrategyKey, value)) =>
           config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, progression = Some(parseProgression(value))))
-        }
-      if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty) {
-        val linearTimeoutStrategy = keyValuePairs.filterKeys(LinearTimeoutKeysSet.contains)
-          .foldLeft(LinearAffineInterpretationCostTransform.ReasonableDefault) {
-            case (strategy, (LinearTimeoutSlopeKey, value)) =>
-              strategy.copy(slope = Read.doubleRead.reads(value))
-            case (strategy, (LinearTimeoutInterceptKey, value)) =>
-              strategy.copy(intercept = Read.doubleRead.reads(value))
-            case (strategy, (LinearTimeoutDefaultKey, value)) =>
-              strategy.copy(defaultTimeout = Read.durationRead.reads(value))
-          }
-        config.copy(requestTimeoutStrategy = linearTimeoutStrategy)
-      } else {
-        val constantTimeoutStrategy = keyValuePairs.get(ConstantTimeoutKey).map { value =>
-          ConstantRequestTimeout(Read.durationRead.reads(value))
-        }.getOrElse(ConstantRequestTimeout.ReasonableDefault)
-        config.copy(requestTimeoutStrategy = constantTimeoutStrategy)
       }
-    }
 
   private def parseProgression(value: String): Duration => Duration =
     value match {
@@ -411,7 +423,8 @@ object ExtraConfig {
     )
   }
 
-  private def verifyBftClientConfigurationKeysOrThrow(configKeys: Set[String]): Unit = {
+  private def verifyBftClientConfigurationKeysOrThrow(keyValuePairs: Map[String, String]): Unit = {
+    val configKeys = keyValuePairs.keySet
     if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty && configKeys.contains(ConstantTimeoutKey)) {
       throwRequestStrategyKeysCannotBeMixed()
     }
