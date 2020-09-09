@@ -107,7 +107,8 @@ def own_all_jenkins_nodes_workspace(args, options, secret):
 
 def run_on_workers(args, options, secret):
   a = prepareArgs(args)
-  jenkins.run_cmd_over_all_workers(cmd=a[0], auto_output=True)
+  timeout = int(a[1]) if a[1] else 30
+  jenkins.run_cmd_over_all_workers(cmd=a[0], timeout=timeout, auto_output=True)
 
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
