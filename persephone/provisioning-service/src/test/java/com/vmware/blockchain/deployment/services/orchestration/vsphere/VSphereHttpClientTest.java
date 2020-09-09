@@ -33,6 +33,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerState;
 import com.vmware.blockchain.deployment.services.orchestration.vm.CloudInitConfiguration;
@@ -476,14 +477,15 @@ class VSphereHttpClientTest {
     @Test
     void createVirtualMachineDiskBad() {
         String name = "vm-008";
-
-        server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name)))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withStatus(400)));
-
-        long diskGb = -1;
-        Assertions.assertFalse(vSphereHttpClient.createVirtualMachineDisk(name, diskGb));
+        try {
+            server.stubFor(post(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_DISK_CREATE.getPath().replace("{vm}", name)))
+                                   .willReturn(aResponse()
+                                                       .withHeader("Content-Type", "application/json")
+                                                       .withStatus(400)));
+        } catch (Exception e) {
+            Assertions.assertTrue(e instanceof PersephoneException);
+            Assertions.assertTrue(e.getMessage().startsWith(ErrorCode.VM_DISK_CREATE_ERROR));
+        }
     }
 
     @Test

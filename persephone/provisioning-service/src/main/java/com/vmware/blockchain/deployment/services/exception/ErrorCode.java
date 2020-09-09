@@ -31,8 +31,11 @@ public final class ErrorCode {
     public static final String SSL_CONTEXT_CREATION_ERROR = "Error creating SSLContext";
     public static final String UNKNOWN_GATEWAY = "Unknown host exception while getting gateway for {0}";
     public static final String VM_CREATE_ERROR = "Error creating VM";
+    public static final String VM_CPU_UPGRADE_ERROR = "Error upgrading VM CPU: {0}";
     public static final String VM_DISK_CREATE_ERROR = "Error creating VM disk: {0}";
+    public static final String VM_MEMORY_UPGRADE_ERROR = "Error upgrading VM memory: {0}";
     public static final String VM_POWER_OFF_ERROR = "Unable to power off VM: {0}";
+    public static final String VM_POWER_STATE_UPDATE_ERROR = "Unable to update VM power state: {0}";
     public static final String VM_START_ERROR = "Error creating/starting the VM";
     public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator";
 
