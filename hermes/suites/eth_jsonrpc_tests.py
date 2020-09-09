@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Test the parts of the Ethereum JSON RPC API beyond what the
 # EthCoreVmTests cover. This checks things like web3_sha3,
@@ -11,8 +11,7 @@ import random
 import re
 import pytest
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
-from util.blockchain import eth as bc_eth_helper
-from util import eth_helper
+from util.blockchain import eth as eth_helper
 from suites.case import describe
 import util.helper
 from util.auth import getAccessToken
@@ -24,11 +23,7 @@ log = util.hermes_logging.getMainLogger()
 LocalSetupFixture = collections.namedtuple(
     "LocalSetupFixture", "args,request,rpc,ethereumMode,productMode,productUserConfig,ethrpcApiUrl,blockchainId")
 
-pytest.rpc = None
 CONTRACTS_DIR = "resources/contracts"
-
-pytest.currentBlockNumber = None
-pytest.currentBlock = None
 
 
 @pytest.fixture(scope="function")
@@ -43,13 +38,107 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
     if args.ethrpcApiUrl:
         ethrpcApiUrl = args.ethrpcApiUrl
     else:
-        ethrpcApiUrl = bc_eth_helper.getEthrpcApiUrl(
+        ethrpcApiUrl = eth_helper.getEthrpcApiUrl(
             fxConnection.request, fxBlockchain.blockchainId)
 
     return LocalSetupFixture(args=args, request=fxConnection.request, rpc=fxConnection.rpc,
                              ethereumMode=args.ethereumMode, productMode=not args.ethereumMode,
                              productUserConfig=userConfig["product"],
                              ethrpcApiUrl=ethrpcApiUrl, blockchainId=fxBlockchain.blockchainId)
+
+
+# All these common functions will be moved to a common utility file later
+def getReverseProxyHttpProvider():
+    return HTTPProvider(
+        "https://localhost/blockchains/local/api/concord/eth/",
+        request_kwargs={
+            'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
+            'verify': False
+        }
+    )
+
+
+def isDATA(value):
+    # Hex-encoded string
+    if not isinstance(value, str):
+        return False
+    # Leading 0x
+    if not value.startswith("0x"):
+        return False
+    # Even number of chars because it represents bytes
+    if (len(value) % 2) != 0:
+        return False
+    return True
+
+
+def requireDATAFields(ob, fieldList):
+    for f in fieldList:
+        if not isDATA(ob[f]):
+            return (False, f)
+    return (True, None)
+
+
+def isQUANTITY(value):
+    # Hex-encoded string
+    if not isinstance(value, str):
+        return False
+    # Leading 0x
+    if not value.startswith("0x"):
+        return False
+    # Valid number (will flag "0x")
+    try:
+        int(value, 16)
+    except ValueError as e:
+        return False
+    # No leading 0s
+    if len(value) > 3 and value[2] == "0":
+        return False
+    return True
+
+
+def requireQUANTITYFields(ob, fieldList):
+    for f in fieldList:
+        if not isQUANTITY(ob[f]):
+            return (False, f)
+    return (True, None)
+
+
+def getWeb3Instance(localSetup):
+    '''
+    Connect the web3 framework to an ethrpc node
+    '''
+    return Web3(HTTPProvider(
+        localSetup.ethrpcApiUrl,
+        request_kwargs={
+                'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
+                'verify': False,
+                'timeout': 60
+                }
+    ))
+
+
+def loadContract(name):
+    '''
+    Return contract object to deploy and run queries on.
+    Note: We assume that there is only one contract per file.
+    Technically, the solidity file isn't required but should be there anyways
+    for documentation.
+    '''
+    sol_path = "{}.sol".format(os.path.join(CONTRACTS_DIR, name))
+    abi_path = "{}.abi".format(os.path.join(CONTRACTS_DIR, name))
+    hex_path = "{}.hex".format(os.path.join(CONTRACTS_DIR, name))
+
+    assert os.path.isfile(sol_path), "Not a file : {}".format(sol_path)
+    assert os.path.isfile(abi_path), "Not a file : {}".format(abi_path)
+    assert os.path.isfile(hex_path), "Not a file : {}".format(hex_path)
+
+    with open(abi_path, "r") as f:
+        abi = f.read()
+
+    with open(hex_path, "r") as f:
+        hex_str = f.read()
+
+    return (abi.strip(), hex_str.strip())
 
 
 def _createBlockFilterAndSendTransactions(rpc, txCount):
@@ -162,7 +251,7 @@ def _allTransactionBlocksCaught(request, blockchainId, transactions, blocks):
     return True
 
 
-@describe()
+@describe("test block filter update")
 def test_block_filter(fxLocalSetup):
     '''
     Check that a block filter sees updates
@@ -177,7 +266,7 @@ def test_block_filter(fxLocalSetup):
                                        blocksCaught), "Expected %d blocks, but read %d from filter" % (testCount, len(blocksCaught))
 
 
-@describe()
+@describe("test block filter independence")
 def test_block_filter_independence(fxLocalSetup):
     '''
     Check that two block filters see updates independently.
@@ -201,7 +290,7 @@ def test_block_filter_independence(fxLocalSetup):
             not _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1, blocksCaught2)), "Expected %d blocks, but read %d from filter2" % (testCount2, len(blocksCaught2))
 
 
-@describe()
+@describe("test block filter uninstall")
 def test_block_filter_uninstall(fxLocalSetup):
     '''
     Check that a filter can't be found after uninstalling it
@@ -216,7 +305,7 @@ def test_block_filter_uninstall(fxLocalSetup):
         assert True
 
 
-@describe()
+@describe("test correct reporting of gas price")
 def test_eth_estimateGas(fxLocalSetup):
     '''
     Check that gas price is reported correctly
@@ -232,7 +321,7 @@ def test_eth_estimateGas(fxLocalSetup):
     assert not fxLocalSetup.productMode or (result == "0x0"), errorMessage
 
 
-@describe()
+@describe("test contract fallback")
 def test_fallback(fxLocalSetup):
     '''
     Check that a contract's fallback function is called if the data passed in a transaction
@@ -266,7 +355,7 @@ def test_fallback(fxLocalSetup):
     expectedCount = 1000
 
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    web3 = getWeb3Instance(fxLocalSetup)
 
     Counter = web3.eth.contract(
         abi=contract_interface['abi'], bytecode=contract_interface['bin'])
@@ -312,7 +401,7 @@ def test_fallback(fxLocalSetup):
         assert count == expectedCount, "Did not trigger fallback function"
 
 
-@describe()
+@describe("test ethereum balance")
 def test_eth_getBalance(fxLocalSetup):
     addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
     addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
@@ -356,7 +445,7 @@ def test_eth_getBalance(fxLocalSetup):
             fxLocalSetup.rpc.getBalance(addrTo, currentBlockNumber), 16), "receiver balance does not match expected value"
 
 
-@describe()
+@describe("test that blocks can be fetched by number")
 def test_eth_getBlockByNumber(fxConnection):
     '''
     Check that blocks can be fetched by number.
@@ -369,10 +458,10 @@ def test_eth_getBlockByNumber(fxConnection):
     (present, missing) = util.helper.requireFields(latestBlock, expectedFields)
     assert present, "No '{}' field in block response.".format(missing)
 
-    (success, field) = eth_helper.requireDATAFields(latestBlock, dataFields)
+    (success, field) = requireDATAFields(latestBlock, dataFields)
     assert success, 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = eth_helper.requireQUANTITYFields(latestBlock, quantityFields)
+    (success, field) = requireQUANTITYFields(latestBlock, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     assert int(latestBlock["number"], 16) >= int(
@@ -400,7 +489,7 @@ def test_eth_getBlockByNumber(fxConnection):
         pass
 
 
-@describe()
+@describe("test ethereum code")
 def test_eth_getCode(fxLocalSetup):
     contractTransaction = "0xf901628085051f4d5c0083419ce08080b9010f608060405234801561001057600080fd5b506104d260005560ea806100256000396000f30060806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb8000291ca080c9884eefca39aece8d308136f3bc2b95e44bd812afc33a9d741fcacee2f874a0125e2c8cd8af9e32cdbabf525a2e69ba7ebdd16411314a9bfa1e6bf414db6122"
     expectedCode = "0x60806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb800029"
@@ -422,10 +511,10 @@ def test_eth_getCode(fxLocalSetup):
     assert txResultLatest == expectedCode, "code does not match expected"
 
 
-@describe()
+@describe("test ethereum logs")
 def test_eth_getLogs(fxLocalSetup):
-    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
-    abi, bin = eth_helper.loadContract("SimpleEvent")
+    w3 = getWeb3Instance(fxLocalSetup)
+    abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -464,10 +553,10 @@ def test_eth_getLogs(fxLocalSetup):
         str(func_txr.blockNumber)
 
 
-@describe()
+@describe("test ethereum log addresses")
 def test_eth_getLogs_addr(fxLocalSetup):
-    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
-    abi, bin = eth_helper.loadContract("SimpleEvent")
+    w3 = getWeb3Instance(fxLocalSetup)
+    abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -523,10 +612,10 @@ def test_eth_getLogs_addr(fxLocalSetup):
         logs), "Unexpected logs - only logs from {} expected".format(caddr2)
 
 
-@describe()
+@describe("test block range")
 def test_eth_getLogs_block_range(fxLocalSetup):
-    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
-    abi, bin = eth_helper.loadContract("SimpleEvent")
+    w3 = getWeb3Instance(fxLocalSetup)
+    abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -583,10 +672,10 @@ def test_eth_getLogs_block_range(fxLocalSetup):
     assert not expected, "From log range: Couldn't find " + str(expected)
 
 
-@describe()
+@describe("test ethereum log topics")
 def test_eth_getLogs_topics(fxLocalSetup):
-    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
-    abi, bin = eth_helper.loadContract("SimpleEvent")
+    w3 = getWeb3Instance(fxLocalSetup)
+    abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x0000A12B3F3d6c9B0d3F126a83Ec2dd3Dad15f39"}
 
@@ -629,7 +718,7 @@ def test_eth_getLogs_topics(fxLocalSetup):
         logs) == 1 and logs[0]["topics"][1] == param, "Expected one log in the transaction block with 124"
 
 
-@describe()
+@describe("test correct reporting of gas price")
 def test_eth_gasPrice(fxLocalSetup):
     '''
     Check that gas price is reported correctly
@@ -645,7 +734,7 @@ def test_eth_gasPrice(fxLocalSetup):
     assert not fxLocalSetup.productMode or (result == "0x0"), errorMessage
 
 
-@describe()
+@describe("test ethereum storage")
 def test_eth_getStorageAt(fxLocalSetup):
     '''
     here we use the Counter contract. We first deploy the Counter contract and
@@ -685,7 +774,7 @@ def test_eth_getStorageAt(fxLocalSetup):
     assert endStorage == expectedEndStorage, "end storage does not match expected"
 
 
-@describe()
+@describe("test ethereum transaction using hash")
 def test_eth_getTransactionByHash(fxLocalSetup):
     '''
     Make sure the API is available and all expected fields are present.
@@ -712,10 +801,10 @@ def test_eth_getTransactionByHash(fxLocalSetup):
     assert success, 'Field "{}" not found in getTransactionByHash'.format(
         field)
 
-    (success, field) = eth_helper.requireDATAFields(tx, dataFields)
+    (success, field) = requireDATAFields(tx, dataFields)
     assert success, 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = eth_helper.requireQUANTITYFields(tx, quantityFields)
+    (success, field) = requireQUANTITYFields(tx, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     # TODO: Better end-to-end test for semantic evaluation of transactions
@@ -726,7 +815,7 @@ def test_eth_getTransactionByHash(fxLocalSetup):
         txHash, tx["hash"])
 
 
-@describe()
+@describe("test transaction count")
 def test_eth_getTransactionCount(fxLocalSetup):
     '''
     Check that transaction count is updated.
@@ -752,7 +841,7 @@ def test_eth_getTransactionCount(fxLocalSetup):
                                    16) == 1, "End nonce '{}' should be exactly one greater than start nonce {})".format(endNonce, startNonce)
 
 
-@describe()
+@describe("test availibility of API and all expected fields")
 def test_eth_getTransactionReceipt(fxLocalSetup):
     '''
     Make sure the API is available and all expected fields are present.
@@ -780,18 +869,18 @@ def test_eth_getTransactionReceipt(fxLocalSetup):
     assert success, 'Field "{}" not found in getTransactionByHash'.format(
         field)
 
-    (success, field) = eth_helper.requireDATAFields(tx, dataFields)
+    (success, field) = requireDATAFields(tx, dataFields)
     if not success:
         assert (field == "contractAddress" and tx["contractAddress"]
                 is None), 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = eth_helper.requireQUANTITYFields(tx, quantityFields)
+    (success, field) = requireQUANTITYFields(tx, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     assert isinstance(tx["logs"], list), 'Array expected for field "logs"'
 
 
-@describe()
+@describe("test correct mining status report")
 def test_eth_mining(fxLocalSetup):
     '''
     Check that mining status is reported correctly
@@ -804,14 +893,14 @@ def test_eth_mining(fxLocalSetup):
         result)
 
 
-@describe()
+@describe("test correct account creation")
 def test_personal_newAccount(fxLocalSetup):
     '''
     Check that account is created correctly
     '''
     user_id = fxLocalSetup.request.getUsers()[0]['user_id']
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = Web3(eth_helper.getReverseProxyHttpProvider())
+    web3 = Web3(getReverseProxyHttpProvider())
     password = "123456"
     address = web3.personal.newAccount(password)
     wallet = fxLocalSetup.request.getWallet(user_id, address[2:].lower())
@@ -839,7 +928,7 @@ def test_personal_newAccount(fxLocalSetup):
         assert tx["from"][2:] == wallet['address'], "Found from does not match expected from"
 
 
-@describe()
+@describe("test replay protection")
 def test_replay_protection(fxLocalSetup):
     '''
     Check that transactions with incorrect chain IDs
@@ -847,7 +936,7 @@ def test_replay_protection(fxLocalSetup):
     '''
     user_id = fxLocalSetup.request.getUsers()[0]['user_id']
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = Web3(eth_helper.getReverseProxyHttpProvider())
+    web3 = Web3(getReverseProxyHttpProvider())
     password = "123456"
     address = web3.personal.newAccount(password)
     wallet = fxLocalSetup.request.getWallet(user_id, address[2:].lower())
@@ -887,7 +976,7 @@ def test_replay_protection(fxLocalSetup):
         assert False, "Unsuccessful transaction with correct chain ID"
 
 
-@describe()
+@describe("test correct decoding of raw transaction")
 def test_eth_sendRawTransaction(fxLocalSetup):
     '''
     Check that a raw transaction gets decoded correctly.
@@ -928,7 +1017,7 @@ def test_eth_sendRawTransaction(fxLocalSetup):
         assert tx["value"] == expectedValue, "Found value does not match expected value"
 
 
-@describe()
+@describe("test contract creation by a raw transaction")
 def test_eth_sendRawContract(fxLocalSetup):
     '''
     Check that a raw transaction can create a contract. For the contract in use,
@@ -963,7 +1052,7 @@ def test_eth_sendRawContract(fxLocalSetup):
     expectedBalance = 20
 
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    web3 = getWeb3Instance(fxLocalSetup)
 
     Counter = web3.eth.contract(
         abi=contract_interface['abi'], bytecode=contract_interface['bin'])
@@ -1008,7 +1097,7 @@ def test_eth_sendRawContract(fxLocalSetup):
         assert balance == expectedBalance, "Ether balance is incorrect, which means contract did not get deployed properly"
 
 
-@describe()
+@describe("test correct syncing of state")
 def test_eth_syncing(fxLocalSetup):
     '''
     Check that syncing state is reported correctly
@@ -1023,7 +1112,7 @@ def test_eth_syncing(fxLocalSetup):
         result)
 
 
-@describe()
+@describe("test correct listing of RPC modules")
 def test_rpc_modules(fxLocalSetup):
     '''
     Check that available RPC modules are listed correctly
@@ -1048,7 +1137,7 @@ def test_rpc_modules(fxLocalSetup):
             v), "Module version should be version like, but was '{}'".format(v)
 
 
-@describe()
+@describe("test expected working of hashing")
 def test_web3_sha3(fxLocalSetup):
     '''
     Check that hashing works as expected.
@@ -1065,7 +1154,7 @@ def test_web3_sha3(fxLocalSetup):
         assert result == h, errorMessage
 
 
-@describe()
+@describe("test valid client version")
 def test_web3_clientVersion(fxLocalSetup):
     '''
     Check that we return a valid version
