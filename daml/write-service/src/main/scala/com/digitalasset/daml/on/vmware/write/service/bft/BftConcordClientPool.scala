@@ -74,7 +74,8 @@ private[bft] class BftConcordClientPool(
                   Metrics.otherFailedSubmissions.inc()
                   logger.debug(
                     s"The submission failed due to an internal error, please see the log; correlationId=$correlationId")
-                case SubmissionResult.Overloaded =>
+                case SubmissionResult.Overloaded => // This should never happen; if it happens, then there's a bug.
+                  throw new IllegalStateException("Unexpected 'SubmissionResult.Overloaded' result")
                 case SubmissionResult.NotSupported => // This should never happen; if it happens, then there's a bug.
                   val msg = s"Unsupported submission, correlationId=$correlationId"
                   logger.debug(msg)

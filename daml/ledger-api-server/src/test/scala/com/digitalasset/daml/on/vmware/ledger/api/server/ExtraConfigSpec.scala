@@ -130,7 +130,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
   }
 
   "BFT client command-line parsers" should {
-    "parse a BFT client config with a constant timeout by default" in {
+    "parse a BFT client config with a linear timeout by default" in {
       val config =
         parseExtraConfig(
           Array(
@@ -142,7 +142,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
         BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
-          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
+          requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault,
         ))
     }
 
@@ -198,7 +198,6 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
         BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
-          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
           sendRetryStrategy = BftClientConfig.ReasonableDefault.sendRetryStrategy
             .copy(
               retries = 5,
@@ -225,7 +224,6 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
         BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
-          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
           sendRetryStrategy = BftClientConfig.ReasonableDefault.sendRetryStrategy
             .copy(
               retries = 5,
