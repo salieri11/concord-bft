@@ -1,5 +1,18 @@
-file(GLOB concord_reconfiguration_sources "*.cpp")
+# Future open-source library
+add_library(concord_reconfiguration_open reconfiguration_sm_open.cpp)
+target_include_directories(concord_reconfiguration_open PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(concord_reconfiguration_open PUBLIC
+ concord_consensus
+ concordbft_storage
+ corebft
+ kvbc
+ proto
+ util
+)
 
-add_library(concord_reconfiguration ${concord_reconfiguration_sources})
-
-target_link_libraries(concord_reconfiguration PUBLIC concord_consensus proto util concordbft_storage corebft kvbc)
+# Future closed-source library
+add_library(concord_reconfiguration reconfiguration_sm.cpp)
+target_include_directories(concord_reconfiguration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(concord_reconfiguration PUBLIC
+ concord_reconfiguration_open
+)
