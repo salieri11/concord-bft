@@ -27,7 +27,7 @@ helper.disable_duplicate_logs()
 
 # Read by the fxProduct fixture
 productType = helper.TYPE_NO_VERIFY
-
+@pytest.mark.skip
 @describe("Node Interruption - VM Stop/start - 1 node")
 @pytest.mark.smoke
 @pytest.mark.committer_node_interruption
@@ -74,7 +74,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-
+@pytest.mark.skip
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.committer_node_interruption
 @pytest.mark.committer_node_interruption_longrun
@@ -122,7 +122,6 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-
 @describe("1 Participant node crash/recovery - VM Stop/start")
 @pytest.mark.smoke
 @pytest.mark.participant_node_interruption
@@ -169,7 +168,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
-
+@pytest.mark.skip
 @describe("Node Interruption - crash containers for all containers of committer nodes")
 @pytest.mark.committer_container_crash
 def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
@@ -212,7 +211,7 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
-
+@pytest.mark.skip
 @describe("Node Interruption - crash containers for user defined containers of committer nodes")
 @pytest.mark.committer_container_crash
 def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
@@ -255,7 +254,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
-
+@pytest.mark.skip
 @describe("Node Interruption - crash containers for all containers of participant nodes")
 @pytest.mark.participant_container_crash
 def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
@@ -299,7 +298,7 @@ def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, 
 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
-
+@pytest.mark.skip
 @describe("Node Interruption - crash containers for user defined containers of participant nodes")
 @pytest.mark.participant_container_crash
 def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
@@ -343,7 +342,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
-
+@pytest.mark.skip
 @describe("Node Interruption - simulate read/write failure index db through permission change")
 @pytest.mark.index_db_read_write_fail
 def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
