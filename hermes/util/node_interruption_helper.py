@@ -30,7 +30,7 @@ NODE_INTERRUPT_VM_STOP_START = "VM power off/on"
 ALL_CONTAINERS = "ALL_CONTAINERS"
 NODE_INTERRUPT_CONTAINER_CRASH = "Container Crash"
 NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL = "Index DB read/write failure"
-RUN_DAML_TEST_EXCEPTION_LIST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL]
+EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL]
 
 # Preset keys for NODE_INTERRUPTION_DETAILS
 NODE_TYPE_TO_INTERRUPT = "NODE_TYPE_TO_INTERRUPT"
@@ -137,7 +137,6 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
       fxBlockchain, results_dir, node_interruption_details[NODE_TYPE_TO_INTERRUPT], interrupted_nodes)
    crashed_committer_count = len(crashed_committers)
 
-   participant_not_crashed = False
    status = False
    if crashed_committer_count <= blockchain_ops.get_f_count(fxBlockchain):
       blockchain_ops.print_replica_info(fxBlockchain,
@@ -146,30 +145,28 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
       uninterrupted_participants = [ip for ip in
                                     blockchain_ops.participants_of(fxBlockchain)
                                     if ip not in crashed_participants]
-      if node_interruption_details[NODE_INTERRUPTION_TYPE] in RUN_DAML_TEST_EXCEPTION_LIST and mode == NODE_INTERRUPT:
-         participant_not_crashed = True
+      list_of_participant_nodes_to_run_txns = uninterrupted_participants
+      if mode == NODE_INTERRUPT and node_interruption_details[NODE_INTERRUPTION_TYPE] \
+            in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
+         list_of_participant_nodes_to_run_txns = crashed_participants
       log.info("")
-      if uninterrupted_participants or participant_not_crashed :
+      if list_of_participant_nodes_to_run_txns:
          start_time = datetime.datetime.now()
          log.info("** Run DAML tests...")
          daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                    "daml_tests")
          while True:
             status = helper.run_daml_sanity(
-               crashed_participants,
-               daml_tests_results_dir,
-               run_all_tests=False, verbose=False) \
-               if participant_not_crashed else \
-               helper.run_daml_sanity(
-               uninterrupted_participants,
+               list_of_participant_nodes_to_run_txns,
                daml_tests_results_dir,
                run_all_tests=False, verbose=False)
-            if participant_not_crashed and mode == NODE_INTERRUPT:
+            if mode == NODE_INTERRUPT and node_interruption_details[NODE_INTERRUPTION_TYPE] \
+                  in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
                if not status:
-                  log.info("DAML transactions failed for interrupted participant node")
+                  log.info("DAML transactions failed as expected (db failure simulated)")
                   status = True
                else:
-                  log.error("DAML transactions succeeded for interrupted node")
+                  log.error("DAML transactions succeeded, whereas db has read/write error")
                   status = False
             if not status:
                log.info(
@@ -398,7 +395,8 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
 
    elif node_interruption_type == NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL:
       username, password = helper.getNodeCredentials()
-      command_to_get_index_db_locations = "docker inspect  --format '{}' {}".format('{{json .Mounts}}', INDEX_DB_CONTAINER_NAME)
+      command_to_get_index_db_locations = "docker inspect  --format '{}' {}".format('{{json .Mounts}}',
+                                                                                    INDEX_DB_CONTAINER_NAME)
       index_db_locations = helper.ssh_connect(node, username, password, command_to_get_index_db_locations)
       index_db_locations = json.loads(index_db_locations)
       for location in index_db_locations:
@@ -406,27 +404,27 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
             index_db_location = location["Destination"].strip('\'')
 
       if mode == NODE_INTERRUPT:
-         log.info("Performing read/write failure on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
-         command_to_change_index_db_permission = "docker exec -it {} chmod 000 {}".format(INDEX_DB_CONTAINER_NAME, index_db_location)
-         helper.ssh_connect(node, username, password, command_to_change_index_db_permission)
-         command_for_index_db_permission_status = "docker exec -it {} ls {} -l | cut -b 2-10 | sed -n 2p".format(INDEX_DB_CONTAINER_NAME, index_db_location)
+         log.info("setting no access (000) on {}".format(index_db_location))
+         command_for_index_db_permission_status = \
+            "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\""\
+               .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
-         if "r" or "w" or "x" not in index_db_status:
-            log.info("read/write disabled on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
+         if index_db_status == "---------\r\n":
+            log.debug("removed access (000) on container: {}".format(INDEX_DB_CONTAINER_NAME))
          else:
-            log.error("read/write revoke unsuccessful on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
+            log.error("failed to remove access (000) on container: {}".format(INDEX_DB_CONTAINER_NAME))
             sys.exit(1)
 
       if mode == NODE_RECOVER:
-         log.info("Enabling read/write permission on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
-         command_to_change_index_db_permission = "docker exec -it {} chmod 700 {}".format(INDEX_DB_CONTAINER_NAME, index_db_location)
-         helper.ssh_connect(node, username, password, command_to_change_index_db_permission)
-         command_for_index_db_permission_status = "docker exec -it {} ls {} -l | cut -b 2-10 | sed -n 2p".format(INDEX_DB_CONTAINER_NAME, index_db_location)
+         log.info("reverting access (700) on {}".format(index_db_location))
+         command_for_index_db_permission_status = \
+            "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\""\
+               .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
-         if "r" or "w" or "x" in index_db_status:
-            log.info("read/write permission enabled on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
+         if index_db_status == "rwx------\r\n":
+            log.debug("restored access (700) on container: {}".format(INDEX_DB_CONTAINER_NAME))
          else:
-            log.error("read/write permission enable unsuccessful on container: {} for VM: {}".format(INDEX_DB_CONTAINER_NAME, node))
+            log.error("failed to restore access (700) on container: {}".format(INDEX_DB_CONTAINER_NAME))
             sys.exit(1)
 
    log.info("Wait for a min... (** THIS SHOULD BE REMOVED AFTER A STABLE RUN **)")
