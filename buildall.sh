@@ -54,30 +54,6 @@ BuildPersephoneGRPCpyBindings() {
     popd
 }
 
-BuildSupplyChain() {
-    pushd .
-    cd vmware-blockchain-samples/supply-chain
-    sed -i -e 's?<change-me>?http://helen:8080?g' docker-compose.yml
-    docker-compose build supply-chain
-    popd
-}
-
-docker_pull() {
-    if [ "$#" -ne "2" ]
-    then
-        error "Missing Required Parameters for docker pull method"
-        error "Usage: docker_pull <docker image:tag> <Task Name>"
-        killAllProcs
-        exit 1
-    fi
-    local DOCKER_IMAGE_WITH_TAG="$1"
-    local DOCKER_PULL_TASK_NAME="$2"
-    local LOG_FILE="${DOCKER_PULL_TASK_NAME}.log"
-
-    docker pull "${DOCKER_IMAGE_WITH_TAG}" > "${LOG_FILE}" 2>&1 &
-    addToProcList "${DOCKER_PULL_TASK_NAME}" $! "${LOG_FILE}"
-}
-
 docker_build() {
     if [ "$#" -lt "4" ]
     then
@@ -133,23 +109,24 @@ docker_pull() {
     if [ "$#" -ne "2" ]
     then
         error "Missing Required Parameters for docker pull method"
-        error "Usage: docker_pull <docker image:tag> <Task Name>"
+        error "Usage: docker_pull <image name> <image tag>"
         killAllProcs
         exit 1
     fi
-    DOCKER_IMAGE_WITH_TAG="$1"
-    DOCKER_PULL_TASK_NAME="$2"
-
-    docker pull "${DOCKER_IMAGE_WITH_TAG}" &
-    addToProcList "${DOCKER_PULL_TASK_NAME}" $!
+    DOCKER_REPO_NAME="$1"
+    DOCKER_REPO_TAG="$2"
+    local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_pull.log`
+    echo Pulling ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}
+    docker pull ${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG} > "${LOG_FILE}" 2>&1 &
+    addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
 }
 
 node-dependency() {
     info "Installing node package dependencies..."
     saveTimeEvent "Install node dependencies" Start
     . ~/.nvm/nvm.sh
-    nvm install 11.15.0
-    nvm alias default 11.15.0
+    nvm install 12.16.2
+    nvm alias default 12.16.2
     npm_install "node dependency for UI" "ui"
     npm_install "node dependency for contract-compiler" "contract-compiler"
     saveTimeEvent "Install node dependencies" End
@@ -231,13 +208,19 @@ persephone() {
 }
 
 reverse-proxy() {
-    info "Build reverse-proxy..."
-    docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
+    info "Pulling reverse-proxy..."
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy "0.1.2"
 }
 
 asset-transfer() {
-    info "Build asset-transfer..."
-    docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
+    info "Pulling asset-transfer..."
+    # Asset transfer image will only be used prebuilt.
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/asset-transfer "2020.8.26"
+}
+
+supply-chain() {
+    info "Pulling supply-chain..."
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain "latest"
 }
 
 contract-compiler() {
@@ -372,12 +355,14 @@ then
     trc-test-app
     waitForProcesses
 
+    contract-compiler
+    
     reverse-proxy
     asset-transfer
-    contract-compiler
+    supply-chain
+    waitForProcesses
 
     BuildPersephoneGRPCpyBindings
-    BuildSupplyChain
     PerformanceTests
 fi
 

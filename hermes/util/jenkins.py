@@ -626,7 +626,7 @@ def is_builder_node():
   return lambda nodeName: nodeName.startswith("onecloud-build-") and \
                           "coordinator" not in nodeName
 
-def run_cmd_over_all_workers(cmd, tracker={}, eligible_name=None, builder_password=None, auto_output=False):
+def run_cmd_over_all_workers(cmd, tracker={}, timeout=30, eligible_name=None, builder_password=None, auto_output=False):
   '''
     Owns /var/jenkins/workspaces of all nodes (or all blockchain-worker nodes)
   '''
@@ -679,7 +679,7 @@ def run_cmd_over_all_workers(cmd, tracker={}, eligible_name=None, builder_passwo
         thd.start()
       except Exception as e:
         traceback.print_exc()
-    for thd in threads: thd.join(timeout=30) # wait for all exec calls to return
+    for thd in threads: thd.join(timeout=timeout) # wait for all exec calls to return
     return True
   else:
     log.error("Unable to fetch worker nodes list from Jenkins. (Status Code: {})".format(response.status_code))

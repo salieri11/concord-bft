@@ -71,6 +71,13 @@ do
             continue
         fi
 
+        # Fixed version for asset-transfer image
+        if [[ ${SERVICE} == 'asset_transfer' ]]; then
+            echo 'asset_transfer_repo=athena-docker-local.artifactory.eng.vmware.com/asset-transfer'
+            echo 'asset_transfer_tag=2020.8.26'
+            continue
+        fi
+
         # try not to double-up artifactory prefixes if someone runs this twice
         if [[ $IMAGE_BASE_NAME =~ $ARTIFACTORY_BASE_IMAGE_PATH ]]; then
             IMAGE_BASE_NAME=`echo ${IMAGE_BASE_NAME} | cut -d "/" -f 2 -`
