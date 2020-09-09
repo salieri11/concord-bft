@@ -2,15 +2,10 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine.replay
 
-import java.io.DataInputStream
 import java.util
 import java.util.concurrent.TimeUnit
 
-import com.daml.ledger.participant.state.kvutils.export.FileBasedLedgerDataExporter.{
-  SubmissionInfo,
-  WriteSet
-}
-import com.daml.ledger.participant.state.kvutils.export.Serialization
+import com.daml.ledger.participant.state.kvutils.export.{LedgerDataImporter, SubmissionInfo, WriteSet}
 import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.digitalasset.kvbc.daml_validator.ValidationServiceGrpc.ValidationServiceStub
 import com.google.protobuf.ByteString
@@ -25,8 +20,8 @@ import scala.collection.mutable
 
 trait ReplayFromLedgerExport {
 
-  final def run(input: DataInputStream): Unit = {
-    processSubmissions(input)
+  def run(importer: LedgerDataImporter): Unit = {
+    processSubmissions(importer)
   }
 
   protected type InMemoryStore = mutable.Map[ByteString, ByteString]
@@ -62,28 +57,23 @@ trait ReplayFromLedgerExport {
 
   protected val ReplicaId = 1L
 
-  private def processSubmissions(input: DataInputStream): Unit = {
+  private def processSubmissions(importer: LedgerDataImporter): Unit = {
     val state = mutable.Map[ByteString, ByteString]()
-    var counter = 0
-    while (input.available() > 0) {
-      val (submissionInfo, expectedResults) = readSerializationEntry(input)
-      val actualWriteSets =
-        decorateWithNewSpan(validationService) { (decoratedStub, spanContext) =>
-          runValidation(decoratedStub, spanContext, submissionInfo, state)
-        }
-      validateResults(expectedResults, actualWriteSets)
-      counter += 1
-    }
-    println(s"Processed $counter submissions")
+    val count = importer
+      .read()
+      .map {
+        case (submissionInfo, expectedWriteSet) =>
+          val actualWriteSets = decorateWithNewSpan(validationService) { (decoratedStub, spanContext) =>
+            runValidation(decoratedStub, spanContext, submissionInfo, state)
+          }
+          validateResults(Seq(expectedWriteSet), actualWriteSets)
+      }
+      .length
+    println(s"Processed $count submissions")
   }
 
   private def bytesAsHexString(bytes: ByteString): String =
     bytes.toByteArray.map(byte => "%02x".format(byte)).mkString
-
-  private def readSerializationEntry(input: DataInputStream): (SubmissionInfo, Seq[WriteSet]) = {
-    val (submissionInfo, writeSet) = Serialization.readEntry(input)
-    (submissionInfo, Seq(writeSet))
-  }
 
   private def decorateWithNewSpan[Result](validationService: ValidationServiceStub)(
       body: (ValidationServiceStub, SpanContext) => Result): Result = {

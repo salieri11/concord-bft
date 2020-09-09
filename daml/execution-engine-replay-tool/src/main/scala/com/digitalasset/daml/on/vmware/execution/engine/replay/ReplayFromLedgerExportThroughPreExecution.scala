@@ -3,10 +3,7 @@
 package com.digitalasset.daml.on.vmware.execution.engine.replay
 
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
-import com.daml.ledger.participant.state.kvutils.export.FileBasedLedgerDataExporter.{
-  SubmissionInfo,
-  WriteSet
-}
+import com.daml.ledger.participant.state.kvutils.export.{SubmissionInfo, WriteSet}
 import com.daml.ledger.participant.state.kvutils.{Bytes, Envelope}
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.ledger.validator.ValidationFailed

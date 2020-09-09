@@ -2,19 +2,18 @@
 
 package com.digitalasset.daml.on.vmware.participant.state
 
-import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
+import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
+import com.digitalasset.daml.on.vmware.testing.MockitoScala
 import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
-import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.{AsyncWordSpec, Matchers}
-import org.scalatestplus.mockito.MockitoSugar
 
 import scala.concurrent.Future
 
-class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSugar {
+class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoScala {
 
   private sealed trait CommitTransaction {
     def commit(request: CommitRequest, metadata: CommitMetadata): Future[SubmissionResult]
@@ -26,18 +25,22 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
   "ledger writer" should {
     "wrap parameters and call commitTransaction" in {
       val commitFunction = mock[CommitTransaction]
-      val requestCaptor =
-        ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
-      when(commitFunction.commit(requestCaptor.capture(), any()))
+      val requestCaptor = captor[CommitRequest]
+      val metadataCaptor = captor[CommitMetadata]
+      when(commitFunction.commit(requestCaptor.capture(), metadataCaptor.capture()))
         .thenReturn(Future.successful(SubmissionResult.Acknowledged))
-      val instance =
-        new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
-      instance.commit(correlationId = "aCorrelationId", envelope = anEnvelope).map { actual =>
+      val instance = new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
+      val metadata = SimpleCommitMetadata(estimatedInterpretationCost = Some(60))
+      instance.commit("aCorrelationId", anEnvelope, metadata).map { actual =>
         actual shouldBe SubmissionResult.Acknowledged
+
         val actualRequest = requestCaptor.getValue
         actualRequest.submission shouldEqual anEnvelope
         actualRequest.participantId shouldBe aParticipantId
         actualRequest.correlationId shouldBe "aCorrelationId"
+
+        val actualMetadata = metadataCaptor.getValue
+        actualMetadata shouldBe metadata
       }
     }
 
@@ -47,7 +50,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
         .thenReturn(Future.successful(SubmissionResult.Overloaded))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
-      instance.commit("aCorrelationId", anEnvelope).map { actual =>
+      instance.commit("aCorrelationId", anEnvelope, CommitMetadata.Empty).map { actual =>
         actual shouldBe SubmissionResult.Overloaded
       }
     }
@@ -58,7 +61,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
         .thenReturn(Future.successful(SubmissionResult.InternalError("ERROR")))
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
-      instance.commit("aCorrelationId", anEnvelope).map {
+      instance.commit("aCorrelationId", anEnvelope, CommitMetadata.Empty).map {
         case SubmissionResult.InternalError(reason) =>
           reason should include("ERROR")
         case _ =>
@@ -73,7 +76,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance
-        .commit("aCorrelationId", anEnvelope)
+        .commit("aCorrelationId", anEnvelope, CommitMetadata.Empty)
         .failed
         .map { exception: Throwable =>
           exception shouldBe an[IllegalStateException]
@@ -90,7 +93,7 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSu
       val instance =
         new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
       instance
-        .commit("aCorrelationId", anEnvelope)
+        .commit("aCorrelationId", anEnvelope, CommitMetadata.Empty)
         .failed
         .map { exception: Throwable =>
           exception shouldBe an[IllegalStateException]

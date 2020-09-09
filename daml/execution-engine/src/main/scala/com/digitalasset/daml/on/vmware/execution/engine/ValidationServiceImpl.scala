@@ -8,6 +8,7 @@ import akka.stream.Materializer
 import com.codahale.metrics.{InstrumentedExecutorService, MetricRegistry}
 import com.daml.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.daml.ledger.participant.state.kvutils.KeyValueCommitting
+import com.daml.ledger.participant.state.kvutils.export.LedgerDataExporter
 import com.daml.ledger.validator.batch.{
   BatchedSubmissionValidator,
   BatchedSubmissionValidatorParameters,
@@ -36,8 +37,12 @@ import io.grpc.{BindableService, ServerServiceDefinition}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ValidationServiceImpl(engine: Engine, metrics: Metrics, threadPoolSize: Option[Int] = None)(
-    implicit materializer: Materializer)
+class ValidationServiceImpl(
+    engine: Engine,
+    metrics: Metrics,
+    ledgerDataExporter: LedgerDataExporter,
+    threadPoolSize: Option[Int] = None,
+)(implicit materializer: Materializer)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
@@ -57,6 +62,7 @@ class ValidationServiceImpl(engine: Engine, metrics: Metrics, threadPoolSize: Op
       keyValueCommitting,
       new ConflictDetection(metrics),
       metrics,
+      ledgerDataExporter,
     )
 
   private val preExecutingReaderFactoryFunction =

@@ -2,9 +2,9 @@
 
 package com.digitalasset.daml.on.vmware.execution.engine.replay
 
-import java.io.{DataInputStream, FileInputStream}
 import java.nio.file.{Path, Paths}
 
+import com.daml.ledger.participant.state.kvutils.export.v2.ProtobufBasedLedgerDataImporter
 import com.digitalasset.kvbc.daml_validator.ValidationServiceGrpc
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
 import io.opentracing.Tracer
@@ -103,8 +103,8 @@ case object ReplayLedgerExportTool extends App {
         new ReplayFromLedgerExportThroughBatching(
           validationServiceClient,
           commandLineOptions.tracer)
-      ledgerDumpStream = new DataInputStream(new FileInputStream(ledgerExportPath.toFile))
-    } yield instance.run(ledgerDumpStream)
+      importer = ProtobufBasedLedgerDataImporter(ledgerExportPath)
+    } yield instance.run(importer)
 
   private def createManagedChannel(
       host: String,

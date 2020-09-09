@@ -4,10 +4,7 @@ package com.digitalasset.daml.on.vmware.execution.engine.replay
 
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 
-import com.daml.ledger.participant.state.kvutils.export.FileBasedLedgerDataExporter.{
-  SubmissionInfo,
-  WriteSet
-}
+import com.daml.ledger.participant.state.kvutils.export.{SubmissionInfo, WriteSet}
 import com.daml.ledger.validator.LedgerStateOperations.{Key, Value}
 import com.digitalasset.kvbc.daml_validator.EventFromValidator.{Done, Read}
 import com.digitalasset.kvbc.daml_validator.EventToValidator.ReadResult
