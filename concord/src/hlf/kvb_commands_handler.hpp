@@ -41,6 +41,8 @@ class HlfKvbCommandsHandler
       concord::kvbc::IBlocksDeleter& block_deleter,
       bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
+      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+          reconfiguration_sm,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
 
   ~HlfKvbCommandsHandler();

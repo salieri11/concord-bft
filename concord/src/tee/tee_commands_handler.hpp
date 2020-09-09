@@ -43,9 +43,12 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
       concord::kvbc::IBlocksDeleter& blocks_deleter,
       bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
+      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+          reconfiguration_sm,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, blocks_appender,
                                blocks_deleter, state_transfer, subscriber_list,
+                               std::move(reconfiguration_sm),
                                prometheus_registry),
         logger_(logging::getLogger("com.vmware.concord.tee")),
         skvbc_commands_handler_(&ros, &blocks_appender, &metadata_storage_,

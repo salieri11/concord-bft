@@ -4,8 +4,7 @@
 
 #include "concord_commands_handler.hpp"
 #include "OpenTracing.hpp"
-#include "reconfiguration/upgrade_plugin.hpp"
-#include "reconfiguration/wedge_plugin.hpp"
+#include "reconfiguration/ireconfiguration.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
@@ -62,11 +61,14 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     concord::kvbc::IBlocksDeleter &deleter,
     bftEngine::IStateTransfer &state_transfer,
     concord::thin_replica::SubBufferList &subscriber_list,
+    std::unique_ptr<concord::reconfiguration::IReconfiguration>
+        reconfiguration_sm,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
     concord::time::TimeContract *time_contract)
     : logger_(logging::getLogger("concord.consensus.ConcordCommandsHandler")),
       executing_bft_sequence_num_(0),
       subscriber_list_(subscriber_list),
+      reconfiguration_sm_(std::move(reconfiguration_sm)),
       concord_control_handlers_(
           std::make_shared<reconfiguration::ConcordControlHandler>()),
       storage_(storage),
@@ -145,10 +147,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
   pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
       storage, appender, deleter, state_transfer, config, node_config,
       time_.get());
-  reconfiguration_sm_ =
-      std::make_unique<concord::reconfiguration::ReconfigurationSM>(
-          config, prometheus_registry);
-  reconfiguration_sm_->LoadAllPlugins();
   reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 
@@ -421,7 +419,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
     if (request.has_reconfiguration_sm_request()) {
-      result = reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
+      result = reconfiguration_sm_->handle(request.reconfiguration_sm_request(),
                                            response, sequence_num, read_only,
                                            rsi_response, *execute_span);
     }
