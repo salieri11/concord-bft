@@ -15,9 +15,9 @@ from util.blockchain import eth as eth_helper
 from suites.case import describe
 import util.helper
 from util.auth import getAccessToken
-import web3
 from web3 import Web3, HTTPProvider
 import util.hermes_logging
+
 log = util.hermes_logging.getMainLogger()
 
 LocalSetupFixture = collections.namedtuple(
@@ -28,12 +28,14 @@ CONTRACTS_DIR = "resources/contracts"
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
-def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+    '''
+    Local fixture which takes existing common fixtures as input and returns the collection
+    of various variables available for all the test functions.
+    Improves code reusability.
+    '''
     args = fxHermesRunSettings["hermesCmdlineArgs"]
     userConfig = fxHermesRunSettings["hermesUserConfig"]
-
-    testLogDir = os.path.join(
-        fxHermesRunSettings["hermesTestLogDir"], fxConnection.request.testName)
 
     if args.ethrpcApiUrl:
         ethrpcApiUrl = args.ethrpcApiUrl
@@ -47,8 +49,10 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
                              ethrpcApiUrl=ethrpcApiUrl, blockchainId=fxBlockchain.blockchainId)
 
 
-# All these common functions will be moved to a common utility file later
 def getReverseProxyHttpProvider():
+    '''
+    Get reverse proxy http provider
+    '''
     return HTTPProvider(
         "https://localhost/blockchains/local/api/concord/eth/",
         request_kwargs={
@@ -59,6 +63,9 @@ def getReverseProxyHttpProvider():
 
 
 def isDATA(value):
+    '''
+    Internal function called from requireDATAFields(). It will be moved to a common utility in near future.
+    '''
     # Hex-encoded string
     if not isinstance(value, str):
         return False
@@ -72,6 +79,9 @@ def isDATA(value):
 
 
 def requireDATAFields(ob, fieldList):
+    '''
+    Function to check if required data fields are available. It will be moved to a common utility in near future.
+    '''
     for f in fieldList:
         if not isDATA(ob[f]):
             return (False, f)
@@ -79,6 +89,9 @@ def requireDATAFields(ob, fieldList):
 
 
 def isQUANTITY(value):
+    '''
+    Internal function called from requireQUANTITYFields(). It will be moved to a common utility in near future.
+    '''
     # Hex-encoded string
     if not isinstance(value, str):
         return False
@@ -97,6 +110,9 @@ def isQUANTITY(value):
 
 
 def requireQUANTITYFields(ob, fieldList):
+    '''
+    Internal function called from requireQUANTITYFields(). It will be moved to a common utility in near future.
+    '''
     for f in fieldList:
         if not isQUANTITY(ob[f]):
             return (False, f)
@@ -110,10 +126,10 @@ def getWeb3Instance(localSetup):
     return Web3(HTTPProvider(
         localSetup.ethrpcApiUrl,
         request_kwargs={
-                'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
-                'verify': False,
-                'timeout': 60
-                }
+            'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
+            'verify': False,
+            'timeout': 60
+        }
     ))
 
 
@@ -263,7 +279,8 @@ def test_block_filter(fxLocalSetup):
     blocksCaught = _readBlockFilterToEnd(fxLocalSetup.rpc, filter)
 
     assert _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions,
-                                       blocksCaught), "Expected %d blocks, but read %d from filter" % (testCount, len(blocksCaught))
+                                       blocksCaught), "Expected %d blocks, but read %d from filter" % (
+        testCount, len(blocksCaught))
 
 
 @describe("test block filter independence")
@@ -281,13 +298,19 @@ def test_block_filter_independence(fxLocalSetup):
 
     blocksCaught1 = _readBlockFilterToEnd(fxLocalSetup.rpc, filter1)
 
-    assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1, blocksCaught1) and
-            _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2, blocksCaught1)), "Expected %d blocks, but read %d from filter1" % (testCount1 + testCount2, len(blocksCaught1))
+    assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1,
+                                        blocksCaught1) and
+            _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2,
+                                        blocksCaught1)), "Expected %d blocks, but read %d from filter1" % (
+        testCount1 + testCount2, len(blocksCaught1))
 
     blocksCaught2 = _readBlockFilterToEnd(fxLocalSetup.rpc, filter2)
 
-    assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2, blocksCaught2) and
-            not _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1, blocksCaught2)), "Expected %d blocks, but read %d from filter2" % (testCount2, len(blocksCaught2))
+    assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2,
+                                        blocksCaught2) and
+            not _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1,
+                                            blocksCaught2)), "Expected %d blocks, but read %d from filter2" % (
+        testCount2, len(blocksCaught2))
 
 
 @describe("test block filter uninstall")
@@ -391,7 +414,7 @@ def test_fallback(fxLocalSetup):
             'value': 0,
             'gas': 2000000,
             'gasPrice': web3.eth.gasPrice,
-            'nonce':  web3.eth.getTransactionCount(account.address),
+            'nonce': web3.eth.getTransactionCount(account.address),
             'data': '0xff'}
         signed = web3.eth.account.signTransaction(transaction, private_key)
         txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
@@ -440,9 +463,11 @@ def test_eth_getBalance(fxLocalSetup):
         assert tx["value"] == hex(
             transferAmount), "Found value does not match expected value"
         assert expectedAddrFromBalance == int(
-            fxLocalSetup.rpc.getBalance(addrFrom, currentBlockNumber), 16), "sender balance does not match expected value"
+            fxLocalSetup.rpc.getBalance(addrFrom, currentBlockNumber),
+            16), "sender balance does not match expected value"
         assert expectedAddrToBalance == int(
-            fxLocalSetup.rpc.getBalance(addrTo, currentBlockNumber), 16), "receiver balance does not match expected value"
+            fxLocalSetup.rpc.getBalance(addrTo, currentBlockNumber),
+            16), "receiver balance does not match expected value"
 
 
 @describe("test that blocks can be fetched by number")
@@ -550,7 +575,7 @@ def test_eth_getLogs(fxLocalSetup):
             assert True
 
     assert logFound == True, "Couldn't find log in block #" + \
-        str(func_txr.blockNumber)
+                             str(func_txr.blockNumber)
 
 
 @describe("test ethereum log addresses")
@@ -656,7 +681,7 @@ def test_eth_getLogs_block_range(fxLocalSetup):
 
     # Let's omit the "0x0ddba11" and don't get everything
     from_block = int(foo_func_txr["blockNumber"])
-    to_block = int(oddball_func_txr["blockNumber"])-1
+    to_block = int(oddball_func_txr["blockNumber"]) - 1
     logs = fxLocalSetup.rpc.getLogs(
         {"fromBlock": str(from_block), "toBlock": str(to_block)})
 
@@ -785,7 +810,7 @@ def test_eth_getTransactionByHash(fxLocalSetup):
     # it. Look at an earlier block, if that's the case
     while not block["transactions"]:
         block = fxLocalSetup.rpc.getBlockByNumber(
-            hex(int(block["number"], 16)-1))
+            hex(int(block["number"], 16) - 1))
     txHash = random.choice(block["transactions"])
 
     tx = fxLocalSetup.rpc.getTransactionByHash(txHash)
@@ -838,7 +863,8 @@ def test_eth_getTransactionCount(fxLocalSetup):
     assert endNonce, "Unable to get ending nonce"
 
     assert int(endNonce, 16) - int(startNonce,
-                                   16) == 1, "End nonce '{}' should be exactly one greater than start nonce {})".format(endNonce, startNonce)
+                                   16) == 1, "End nonce '{}' should be exactly one greater than start nonce {})".format(
+        endNonce, startNonce)
 
 
 @describe("test availibility of API and all expected fields")
@@ -851,7 +877,7 @@ def test_eth_getTransactionReceipt(fxLocalSetup):
     # it. Look at an earlier block, if that's the case
     while not block["transactions"]:
         block = fxLocalSetup.rpc.getBlockByNumber(
-            hex(int(block["number"], 16)-1))
+            hex(int(block["number"], 16) - 1))
     txHash = random.choice(block["transactions"])
 
     tx = fxLocalSetup.rpc.getTransactionReceipt(txHash)
