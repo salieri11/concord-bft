@@ -9,13 +9,15 @@ namespace concord {
 namespace reconfiguration {
 class WedgePlugin : public IReconfigurationPlugin {
  public:
-  explicit WedgePlugin() {
-    pluginId_ = com::vmware::concord::ReconfigurationSmRequest_PluginId_WEDGE;
+  com::vmware::concord::ReconfigurationSmRequest::CommandCase GetPluginId()
+      const override {
+    return com::vmware::concord::ReconfigurationSmRequest::CommandCase::
+        kWedgeCmd;
   }
 
-  void Handle(
-      const std::string& command, uint64_t sequence_num, bool readOnly,
-      opentracing::Span& parent_span,
+  bool Handle(
+      const com::vmware::concord::ReconfigurationSmRequest& command,
+      uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       bftEngine::ControlStateManager& control_state_manager,
@@ -23,15 +25,21 @@ class WedgePlugin : public IReconfigurationPlugin {
     if (readOnly) {
       rsi_response.mutable_wedge_response()->set_stopped(
           control_handlers.isOnNOutOfNCheckpoint());
-      return;
+      return true;
     }
-
-    com::vmware::concord::ReconfigurationSmRequest_WedgeCommand cmd;
-    cmd.ParseFromString(command);
+    auto& cmd = command.wedge_cmd();
     uint64_t seqNumToStopAt = sequence_num;
     if (cmd.has_seqnumtostopat()) seqNumToStopAt = cmd.seqnumtostopat();
     control_state_manager.setStopAtNextCheckpoint(seqNumToStopAt);
+    auto reconfig_res = concord_response.mutable_reconfiguration_sm_response();
+    LOG_INFO(logger_, "initiated wedge-stop command");
+    reconfig_res->set_success(true);
+    reconfig_res->set_additionaldata("set stop flag");
+    return true;
   }
+
+ private:
+  logging::Logger logger_ = logging::getLogger("reconfiguration.wedgePlugin");
 };
 }  // namespace reconfiguration
 }  // namespace concord

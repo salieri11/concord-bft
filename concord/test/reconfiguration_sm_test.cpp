@@ -1,6 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "reconfiguration/reconfiguration_sm.hpp"
+#include <concord.pb.h>
 #include <opentracing/tracer.h>
 #include "Logger.hpp"
 #include "concord.pb.h"
@@ -15,10 +16,6 @@ using com::vmware::concord::ConcordReplicaSpecificInfoResponse;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ReconfigurationResponse;
 using com::vmware::concord::ReconfigurationSmRequest;
-using com::vmware::concord::ReconfigurationSmRequest_PluginId_MOCK;
-using com::vmware::concord::ReconfigurationSmRequest_PluginId_UPGRADE;
-using com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand;
-using com::vmware::concord::ReconfigurationSmRequest_UpgradeCommand_UpgradeType;
 using concord::reconfiguration::IReconfigurationPlugin;
 using concord::reconfiguration::ReconfigurationSM;
 using concord::utils::openssl_crypto::AsymmetricPrivateKey;
@@ -52,21 +49,33 @@ ConcordConfiguration defaultTestConfig() {
                            duration_to_keep_minutes, pruning_enabled,
                            time_service_enabled);
 }
+void sign_message(
+    com::vmware::concord::ReconfigurationSmRequest& request,
+    concord::utils::openssl_crypto::AsymmetricPrivateKey* priv_key) {
+  auto sig = priv_key->Sign(request.SerializeAsString());
+  request.set_signature(sig);
+}
 
 class MockPlugin : public IReconfigurationPlugin {
  public:
-  MockPlugin() { pluginId_ = ReconfigurationSmRequest_PluginId_MOCK; }
-  void Handle(
-      const std::string& command, uint64_t sequence_num, bool readOnly,
-      opentracing::Span& parent_span,
+  virtual com::vmware::concord::ReconfigurationSmRequest::CommandCase
+  GetPluginId() const override {
+    return com::vmware::concord::ReconfigurationSmRequest::CommandCase::
+        kTestCmd;
+  }
+  bool Handle(
+      const com::vmware::concord::ReconfigurationSmRequest& command,
+      uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       bftEngine::ControlStateManager& control_state_manager,
       concord::reconfiguration::ConcordControlHandler& control_handlers)
       override {
+    auto& cmd = command.test_cmd();
     auto res = concord_response.mutable_reconfiguration_sm_response();
     res->set_success(true);
-    res->set_additionaldata(command + "-world");
+    res->set_additionaldata(cmd + "-world");
+    return true;
   }
 };
 
@@ -91,7 +100,7 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
   ReconfigurationSM rsm(config, registry);
 
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
+  reconfig_sm_req.set_test_cmd("hello");
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
   rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
@@ -110,7 +119,7 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
+  reconfig_sm_req.set_test_cmd("hello");
 
   // Test that an empty reconfiguration request will be rejected
   ConcordResponse res;
@@ -119,12 +128,12 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command without signature will be rejected
-  reconfig_sm_req.set_command("hello world");
+  reconfig_sm_req.set_test_cmd("hello");
   rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command with invalid signature will be rejected
-  reconfig_sm_req.set_signature("hello world");
+  reconfig_sm_req.set_signature("xxx");
   rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
@@ -141,9 +150,8 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
   rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_MOCK);
-  reconfig_sm_req.set_command("hello");
-  reconfig_sm_req.set_signature(priv_key->Sign("hello"));
+  reconfig_sm_req.set_test_cmd("hello");
+  sign_message(reconfig_sm_req, priv_key.get());
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
@@ -159,16 +167,12 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
       "./resources/signing_keys/operator_priv.pem", "secp256r1");
   ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
-  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
-  upgrade_command.set_type(
-      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
-          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_GET_VERSION);
+  rsm.LoadPlugin(
+      std::make_unique<concord::reconfiguration::DownLoadSwVersionPlugin>());
+
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
-  auto upgrade_as_string = upgrade_command.SerializeAsString();
-  reconfig_sm_req.set_command(upgrade_as_string);
-  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+  reconfig_sm_req.mutable_download_sw_version_cmd();
+  sign_message(reconfig_sm_req, priv_key.get());
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
@@ -184,16 +188,12 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
       "./resources/signing_keys/operator_priv.pem", "secp256r1");
   ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
-  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
-  upgrade_command.set_type(
-      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
-          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_VALIDATE_VERSION);
+  rsm.LoadPlugin(
+      std::make_unique<concord::reconfiguration::HasSwVersionPlugin>());
+
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
-  auto upgrade_as_string = upgrade_command.SerializeAsString();
-  reconfig_sm_req.set_command(upgrade_as_string);
-  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+  reconfig_sm_req.mutable_has_sw_version_cmd();
+  sign_message(reconfig_sm_req, priv_key.get());
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
@@ -209,16 +209,12 @@ TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
       "./resources/signing_keys/operator_priv.pem", "secp256r1");
   ConfigureOperatorKey(config);
   ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(std::make_unique<concord::reconfiguration::UpgradePlugin>());
-  ReconfigurationSmRequest_UpgradeCommand upgrade_command;
-  upgrade_command.set_type(
-      ReconfigurationSmRequest_UpgradeCommand_UpgradeType::
-          ReconfigurationSmRequest_UpgradeCommand_UpgradeType_EXECUTE_UPGRADE);
+  rsm.LoadPlugin(
+      std::make_unique<concord::reconfiguration::UpgradeSwVersionPlugin>());
+
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_pluginid(ReconfigurationSmRequest_PluginId_UPGRADE);
-  auto upgrade_as_string = upgrade_command.SerializeAsString();
-  reconfig_sm_req.set_command(upgrade_as_string);
-  reconfig_sm_req.set_signature(priv_key->Sign(upgrade_as_string));
+  reconfig_sm_req.mutable_upgrade_sw_version_cmd();
+  sign_message(reconfig_sm_req, priv_key.get());
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;

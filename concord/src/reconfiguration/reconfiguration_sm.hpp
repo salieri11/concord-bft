@@ -10,9 +10,9 @@
 #include <array>
 #include <bftengine/ControlStateManager.hpp>
 #include <cstdint>
+#include <unordered_map>
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/openssl_crypto_utils.hpp>
-#include <vector>
 #include "IReconfigurationPlugin.hpp"
 #include "bftengine/Replica.hpp"
 #include "concord.pb.h"
@@ -22,7 +22,10 @@ namespace concord {
 namespace reconfiguration {
 
 class ReconfigurationSM {
-  std::vector<std::unique_ptr<IReconfigurationPlugin>> plugins_;
+  std::unordered_map<
+      com::vmware::concord::ReconfigurationSmRequest::CommandCase,
+      std::unique_ptr<IReconfigurationPlugin>>
+      plugins_;
   logging::Logger logger_;
   prometheus::Family<prometheus::Counter>& reconfiguration_counters_;
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
@@ -33,7 +36,7 @@ class ReconfigurationSM {
   bool ValidateReconfigurationRequest(
       const com::vmware::concord::ReconfigurationSmRequest& request);
   IReconfigurationPlugin* GetPlugin(
-      com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId) const;
+      com::vmware::concord::ReconfigurationSmRequest::CommandCase cmd) const;
 
  public:
   ReconfigurationSM(
@@ -41,6 +44,7 @@ class ReconfigurationSM {
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   void LoadPlugin(std::unique_ptr<IReconfigurationPlugin> plugin);
 
+  void LoadAllPlugins();
   void setControlHandlers(
       std::shared_ptr<ConcordControlHandler> control_handlers);
   void setControlStateManager(
@@ -57,7 +61,7 @@ class ReconfigurationSM {
    * blockchain and document it as part of the state. This will be under the
    * responsibility of each plugin to write its own commands to the blockchain.
    */
-  void Handle(
+  bool Handle(
       const com::vmware::concord::ReconfigurationSmRequest& request,
       com::vmware::concord::ConcordResponse& response, uint64_t sequence_num,
       bool readOnly,

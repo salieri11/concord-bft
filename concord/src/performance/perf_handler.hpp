@@ -225,12 +225,6 @@ class PerformanceCommandsHandler
     }
     return true;
   }
-
-  std::shared_ptr<bftEngine::ControlHandlers> getControlHandlers() override {
-    return nullptr;
-  }
-  void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
-                                  controlStateManager) override {}
 };
 
 }  // namespace performance

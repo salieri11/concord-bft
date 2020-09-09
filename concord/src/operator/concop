@@ -12,13 +12,13 @@ base_url = "http://localhost:41444/concord"
 def release_download(args):
     url = base_url + "/releases"
     res = requests.put(url, json={'version': args.version})
-    print(res)
+    pprint(json.loads(res.text))
 
 
 def release_install(args):
     url = base_url + "/releases/install"
     res = requests.put(url, json={'version': args.version})
-    print(res)
+    pprint(json.loads(res.text))
 
 
 def release_status(args):
@@ -26,12 +26,15 @@ def release_status(args):
     res = requests.get(url, timeout=args.timeout)
     pprint(json.loads(res.text))
 
-
-def mock_impl(args):
-    url = base_url + "/mock"
+def wedge_status_impl(args):
+    url = base_url + "/wedge/status"
     res = requests.get(url, timeout=args.timeout)
     pprint(json.loads(res.text))
 
+def wedge_impl(args):
+    url = base_url + "/wedge/stop"
+    res = requests.put(url, timeout=args.timeout)
+    pprint(json.loads(res.text))
 
 def args_parser():
     parser = argparse.ArgumentParser(description="Concord Operator CLI")
@@ -51,8 +54,9 @@ def args_parser():
         "status", help="Get status of releases at all replicas")
     status.add_argument("--timeout",
                         type=int,
-                        help="Optional timeout in seconds",
+                        help="Optional request timeout in seconds",
                         default=5)
+
     status.set_defaults(func=release_status)
 
     install = release_subparsers.add_parser(
@@ -62,13 +66,27 @@ def args_parser():
                          help="The release version to install")
     install.set_defaults(func=release_install)
 
-    mock = subparsers.add_parser("mock",
-                                 help="Send mock request to the system")
-    mock.add_argument("--timeout",
+    wedge = subparsers.add_parser("wedge",
+                                 help="Send wedge request which is used for maintenance.")
+
+    wedge_subparsers = wedge.add_subparsers()
+    wedge_status = wedge_subparsers.add_parser("status", help="Send a status query for all replicas. "
+                                                               "Returns the replicas' status")
+    wedge_status.add_argument("--timeout",
                         type=int,
-                        help="Optional timeout in seconds",
+                        help="Optional request timeout in seconds",
                         default=5)
-    mock.set_defaults(func=mock_impl)
+
+    wedge_status.set_defaults(func=wedge_status_impl)
+
+    init_wedge = wedge_subparsers.add_parser("stop", help="Send a bft wedge command to the cluster. Returns {\"succ\": \"true\"} "
+                                                          "if the request has been received by the replicas successfully")
+    init_wedge.add_argument("--timeout",
+                                  type=int,
+                                  help="Optional request timeout in seconds",
+                                  default=5)
+
+    init_wedge.set_defaults(func=wedge_impl)
 
     return parser
 

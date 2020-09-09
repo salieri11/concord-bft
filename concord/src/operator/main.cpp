@@ -37,57 +37,62 @@ void startServer(concord::op::Operations& ops) {
   Server svr;
 
   // Return the status of all releases
-  svr.Get("/concord/releases", [](const Request& req, Response& res) {
+  svr.Get("/concord/releases", [&ops](const Request& req, Response& res) {
     // TODO: Get actual values via BFT Client
-    json installed;
-    installed["version"] = 0.8;
-    installed["status"] = "installed";
-
-    json j = {{"replica0", installed},
-              {"replica1", installed},
-              {"replica2", installed},
-              {"replica3", installed}};
+    auto result = ops.initiateHasSwVersion(1s);
+    json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
+    if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+      j["additional_data"] =
+          result.res.reconfiguration_sm_response().additionaldata();
+    }
     res.set_content(j.dump(), "application/json");
   });
 
   // Return the status of the given release
-  svr.Get(R"(/concord/releases/(\d+))", [](const Request& req, Response& res) {
-    // TODO: Get actual values via BFT Client
-    auto version = req.matches[1];
-    json j;
-    j["version"] = version;
-    if (version == "0.8") {
-      j["status"] = "installed";
-    } else {
-      j["status"] = "does-not-exist";
-    }
-    json j2 = {
-        {"replica0", j}, {"replica1", j}, {"replica2", j}, {"replica3", j}};
-
-    res.set_content(j2.dump(), "application/json");
-  });
+  svr.Get(R"(/concord/releases/(\d+))",
+          [&logger](const Request& req, Response& res) {
+            LOG_INFO(logger, "not implemented");
+          });
 
   // Download all images for a given release
-  svr.Put("/concord/releases", [&logger](const Request& req, Response& res) {
-    // TODO: Trigger the download via BFT Client
-    LOG_INFO(logger, "Downloading release: " << req.body);
+  svr.Put("/concord/releases", [&ops](const Request& req, Response& res) {
+    auto result = ops.initiateSwDownload(1s);
+    json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
+    if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+      j["additional_data"] =
+          result.res.reconfiguration_sm_response().additionaldata();
+    }
+    res.set_content(j.dump(), "application/json");
   });
 
   // Trigger installation of a given release
-  svr.Put("/concord/releases/install",
-          [&logger](const Request& req, Response& res) {
-            // TODO: Trigger install via BFT client
-            LOG_INFO(logger, "Installing release: " << req.body);
-          });
+  svr.Put(
+      "/concord/releases/install", [&ops](const Request& req, Response& res) {
+        auto result = ops.initiateInstallSwVersion(1s);
+        json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
+        if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+          j["additional_data"] =
+              result.res.reconfiguration_sm_response().additionaldata();
+        }
+        res.set_content(j.dump(), "application/json");
+      });
 
-  svr.Get("/concord/mock", [&ops](const Request& req, Response& res) {
-    auto result = ops.initiateMockCommand(5s);
+  svr.Get("/concord/wedge/status", [&ops](const Request& req, Response& res) {
+    concord::op::Response result = ops.WedgeStatus(1s);
     json j;
-    if (!result.has_value()) {
-      j = {{"succ", false}};
-    } else {
-      j = {{"succ", result.value().success()},
-           {"response", result.value().additionaldata()}};
+    for (auto& rsi : result.rsis) {
+      j[std::to_string(std::get<0>(rsi).val)] =
+          std::get<1>(rsi).wedge_response().stopped() ? "true" : "false";
+    }
+    res.set_content(j.dump(), "application/json");
+  });
+
+  svr.Put("/concord/wedge/stop", [&ops](const Request& req, Response& res) {
+    auto result = ops.initiateWedge(1s);
+    json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
+    if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+      j["additional_data"] =
+          result.res.reconfiguration_sm_response().additionaldata();
     }
     res.set_content(j.dump(), "application/json");
   });

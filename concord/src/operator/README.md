@@ -56,12 +56,13 @@ Enter the operator container.
 `docker exec -it docker_operator_1 bash`
 
 ## Test the operator setup
-To test the operator setup (i.e. check the keys generation and the connection to the replicas), initiate a mock command
-```
-root@f441baea613f:/operator# ./concop mock
-```
-If everything went well the output will be
-```$xslt
-{'response': 'Hello From Reconfiguration Mock plugin', 'succ': True}
-```
-The above means that the request has gone through the consensus, validation and that the operator was able to receive at least 2f + 1 replies.
+Below we describe the current supported commands.
+Type `./concop` and then ont of the following commands:
+
+| Command | Action | Output |
+|-------|------|------|
+| release download [version] | Download SW version to the replicas (not implemented yet) | `{'additional_data': 'Upgrading', 'succ': True}` or `{'succ': False}`|
+| release status | Check the installation status (not implemented yet) | `{'additional_data': 'Valid', 'succ': True}` or `{'succ': False}`|
+| release install [version] | install the SW version on the replicas (not implemented yet) | `{'additional_data': 'Upgraded', 'succ': True}` or  `{'succ': False}`|
+| wedge stop | Stop all replicas on the next next checkpoint | `{'additional_data': 'set stop flag', 'succ': True}` or `{'succ': False}`|
+| wedge status | Check the wedge status of the replicas | list of `replica_id : wedge_status`|

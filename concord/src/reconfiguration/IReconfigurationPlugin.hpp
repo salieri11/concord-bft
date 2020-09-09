@@ -3,6 +3,7 @@
 #ifndef CONCORD_CONCORD_SRC_RECONFIGURATION_IRECONFIGURATIONPLUGIN_HPP_
 #define CONCORD_CONCORD_SRC_RECONFIGURATION_IRECONFIGURATIONPLUGIN_HPP_
 
+#include <concord.pb.h>
 #include <opentracing/tracer.h>
 #include <string>
 #include "bftengine/ControlStateManager.hpp"
@@ -13,18 +14,14 @@ namespace concord {
 namespace reconfiguration {
 
 class IReconfigurationPlugin {
- protected:
-  com::vmware::concord::ReconfigurationSmRequest::PluginId pluginId_;
-
  public:
   virtual ~IReconfigurationPlugin() {}
-  com::vmware::concord::ReconfigurationSmRequest::PluginId GetPluginId() const {
-    return pluginId_;
-  }
+  virtual com::vmware::concord::ReconfigurationSmRequest::CommandCase
+  GetPluginId() const = 0;
 
-  virtual void Handle(
-      const std::string& command, uint64_t sequence_num, bool readOnly,
-      opentracing::Span& parent_span,
+  virtual bool Handle(
+      const com::vmware::concord::ReconfigurationSmRequest& command,
+      uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       bftEngine::ControlStateManager& control_state_manager,

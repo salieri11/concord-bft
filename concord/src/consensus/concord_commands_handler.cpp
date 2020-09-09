@@ -4,6 +4,8 @@
 
 #include "concord_commands_handler.hpp"
 #include "OpenTracing.hpp"
+#include "reconfiguration/upgrade_plugin.hpp"
+#include "reconfiguration/wedge_plugin.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
@@ -11,8 +13,6 @@
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
 #include <chrono>
-#include <reconfiguration/mock_plugin.hpp>
-#include <reconfiguration/wedge_plugin.hpp>
 #include <string>
 #include <utils/open_tracing_utils.hpp>
 #include <vector>
@@ -148,10 +148,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
   reconfiguration_sm_ =
       std::make_unique<concord::reconfiguration::ReconfigurationSM>(
           config, prometheus_registry);
-  reconfiguration_sm_->LoadPlugin(
-      std::make_unique<concord::reconfiguration::WedgePlugin>());
-  reconfiguration_sm_->LoadPlugin(
-      std::make_unique<concord::reconfiguration::MockPlugin>());
+  reconfiguration_sm_->LoadAllPlugins();
   reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 
@@ -424,9 +421,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
     if (request.has_reconfiguration_sm_request()) {
-      reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
-                                  response, sequence_num, read_only,
-                                  rsi_response, *execute_span);
+      result = reconfiguration_sm_->Handle(request.reconfiguration_sm_request(),
+                                           response, sequence_num, read_only,
+                                           rsi_response, *execute_span);
     }
   } else {
     ErrorResponse *err = response.add_error_response();
