@@ -23,6 +23,8 @@ deploy_scripts () {
   gcloud compute scp --recurse docker/config-public/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/config-public
   gcloud compute scp --recurse docker/tls_certs/* ${GCP_TARGET}:~/vmwathena_blockchain/docker/tls_certs
   gcloud compute scp --recurse docker/config-concord* ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute scp --recurse docker/config-castor* ${GCP_TARGET}:~/vmwathena_blockchain/docker
+  gcloud compute scp --recurse docker/config-participant* ${GCP_TARGET}:~/vmwathena_blockchain/docker
   gcloud compute ssh "${GCP_TARGET}" -- "
     cd ~/vmwathena_blockchain/docker &&
     ./make-prebuilt-env.sh > new.env &&
