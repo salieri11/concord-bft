@@ -11,7 +11,9 @@ import com.daml.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcar
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.lf.data.Ref.IdString
+import com.digitalasset.daml.on.vmware.write.service.{ConcordWriteClient, RetryStrategy}
 import com.digitalasset.daml.on.vmware.write.service.bft.{
+  BftConcordClientPool,
   ConstantRequestTimeout,
   LinearAffineInterpretationCostTransform,
   RequestTimeoutStrategy
@@ -30,6 +32,7 @@ final case class BftClientConfig(
     enable: Boolean, // Whether to use the BFT Concord Client Pool in the writer.
     configPath: Option[Path],
     requestTimeoutStrategy: RequestTimeoutStrategy,
+    sendRetryStrategy: RetryStrategy,
 )
 
 object BftClientConfig {
@@ -37,6 +40,8 @@ object BftClientConfig {
     enable = false,
     configPath = None,
     requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault,
+    sendRetryStrategy =
+      ConcordWriteClient.exponentialBackOff(_ == BftConcordClientPool.OverloadedException)()
   )
 }
 
@@ -243,7 +248,8 @@ object ExtraConfig {
             bftClientDefaultConfig.configPath
               .getOrElse("<not defined>")
           }) " +
-          s"and timeout strategy keys (use --bft-timeout-strategies for more info).")
+          s"as well as timeout strategy and send retry strategy keys " +
+          s"(use --bft-timeout-strategies or --bft-send-retry-strategies for more info).")
 
     parser
       .opt[Unit]("bft-timeout-strategies")
@@ -253,7 +259,7 @@ object ExtraConfig {
         println(
           s"""The supported BFT client request timeout strategies are:
             |
-            | * Constant timeout; key: $ConstantTimeoutKey (default value: ${durationToCommandlineText(ConstantRequestTimeout.ReasonableDefault.defaultTimeout)})
+            | * Constant timeout (default); key: $ConstantTimeoutKey (default value: ${durationToCommandlineText(ConstantRequestTimeout.ReasonableDefault.defaultTimeout)})
             | * Linear transform in the estimated interpretation cost as milliseconds; keys:
             |   - $LinearTimeoutSlopeKey (default value: ${linearDefault.slope})
             |   - $LinearTimeoutInterceptKey (default value: ${linearDefault.intercept})
@@ -261,6 +267,19 @@ object ExtraConfig {
         sys.exit(0)
       })
       .text("Prints the BFT client request timeout strategies and exits.")
+
+    parser
+      .opt[Unit]("bft-send-retry-strategies")
+      .optional()
+      .action((_, _) => {
+        println(
+          s"""BFT client send retry strategies can be selected through the $SendRetryStrategyKey key and support the $SendRetryFirstWaitKey (default value: ${durationToCommandlineText(BftClientConfig.ReasonableDefault.sendRetryStrategy.firstWaitTime)}) and $SendRetriesKey (default value: ${BftClientConfig.ReasonableDefault.sendRetryStrategy.retries}) keys; they are:
+             |
+             | * Exponential back-off (default); value: $ConstantWaitTime
+             | * Constant wait time; value: $ExponentialBackOff""".stripMargin)
+        sys.exit(0)
+      })
+      .text("Prints the BFT client send retry strategies and exits.")
 
     addDeprecatedBftClientCommandLineArguments(parser)
   }
@@ -310,23 +329,42 @@ object ExtraConfig {
 
   private val EnableKey = "enable"
   private val ConfigPathKey = "config-path"
+  private val SendRetryStrategyKey = "send-retry-strategy"
+  private val SendRetriesKey = "send-retries"
+  private val SendRetryFirstWaitKey = "send-retry-first-wait"
+
+  private val GeneralParametersKeySet =
+    Set(EnableKey, ConfigPathKey, SendRetryStrategyKey, SendRetriesKey, SendRetryFirstWaitKey)
+
   private val ConstantTimeoutKey = "constant-timeout"
   private val LinearTimeoutSlopeKey = "linear-timeout-slope"
   private val LinearTimeoutInterceptKey = "linear-timeout-intercept"
   private val LinearTimeoutDefaultKey = "linear-timeout-default"
 
-  private val GeneralParametersKeySet = Set(EnableKey, ConfigPathKey)
   private val LinearTimeoutKeysSet = Set(LinearTimeoutSlopeKey, LinearTimeoutInterceptKey, LinearTimeoutDefaultKey)
+
+  private val ConstantWaitTime = "constant-wait-time"
+  private val ExponentialBackOff = "exponential-backoff"
 
   private implicit val bftClientConfigReader: Read[BftClientConfig] =
     Read.mapRead[String, String].map { keyValuePairs =>
       val configKeys = keyValuePairs.keySet
+
       verifyBftClientConfigurationKeysOrThrow(configKeys)
+
       val config = keyValuePairs.filterKeys(GeneralParametersKeySet.contains)
         .foldLeft(ExtraConfig.ReasonableDefault.bftClient) {
         case (config, (EnableKey, value)) => config.copy(enable = Read.booleanRead.reads(value))
         case (config, (ConfigPathKey, value)) =>
           config.copy(configPath = Some(pathReader.reads(value)))
+        case (config, (SendRetriesKey, value)) =>
+          val retries = Read.intRead.reads(value)
+          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, retries = Some(retries)))
+        case (config, (SendRetryFirstWaitKey, value)) =>
+          val waitTime = Read.durationRead.reads(value)
+          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, firstWaitTime = Some(waitTime)))
+        case (config, (SendRetryStrategyKey, value)) =>
+          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, progression = Some(parseProgression(value))))
         }
       if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty) {
         val linearTimeoutStrategy = keyValuePairs.filterKeys(LinearTimeoutKeysSet.contains)
@@ -342,11 +380,36 @@ object ExtraConfig {
       } else {
         val constantTimeoutStrategy = keyValuePairs.get(ConstantTimeoutKey).map { value =>
           ConstantRequestTimeout(Read.durationRead.reads(value))
-        }
-          .getOrElse(ConstantRequestTimeout.ReasonableDefault)
+        }.getOrElse(ConstantRequestTimeout.ReasonableDefault)
         config.copy(requestTimeoutStrategy = constantTimeoutStrategy)
       }
     }
+
+  private def parseProgression(value: String): Duration => Duration =
+    value match {
+      case ConstantWaitTime => identity
+      case ExponentialBackOff => RetryStrategy.exponentialBackoffProgression
+    }
+
+  private def updateSendRetryStrategy(
+    sendRetryStrategy: RetryStrategy,
+    retries: Option[Int] = None,
+    firstWaitTime: Option[Duration] = None,
+    progression: Option[Duration => Duration] = None,
+  ): RetryStrategy = {
+    val updatedProgression = progression.getOrElse(sendRetryStrategy.progression)
+    val updatedRetries = retries.getOrElse(sendRetryStrategy.retries)
+    val updatedFirstWaitTime = firstWaitTime.getOrElse(sendRetryStrategy.firstWaitTime)
+    sendRetryStrategy.copy(
+      retries = updatedRetries,
+      firstWaitTime = updatedFirstWaitTime,
+      progression = updatedProgression,
+      waitTimeCap = if (RetryStrategy.isProgressionConstant(updatedProgression))
+        sendRetryStrategy.firstWaitTime
+      else
+        RetryStrategy.exponentialBackoffWaitTimeCap(updatedRetries, updatedFirstWaitTime)
+    )
+  }
 
   private def verifyBftClientConfigurationKeysOrThrow(configKeys: Set[String]): Unit = {
     if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty && configKeys.contains(ConstantTimeoutKey)) {

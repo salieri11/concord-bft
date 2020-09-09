@@ -6,7 +6,7 @@ import com.daml.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
-import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.backOff
+import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.exponentialBackOff
 import com.digitalasset.daml.on.vmware.write.service.kvbc.KvbcWriteClient._
 import com.digitalasset.kvbc.daml_commit._
 import io.grpc._
@@ -34,7 +34,7 @@ class KvbcWriteClient private[kvbc] (
       ec: ExecutionContext): Future[SubmissionResult] = {
     implicit val executionContext: ExecutionContext = ec
     val correlationId = request.correlationId
-    backOff(shouldRetry) { _ =>
+    exponentialBackOff(shouldRetry)() { _ =>
       commitClient
         .commitTransaction(request)
     }.map {

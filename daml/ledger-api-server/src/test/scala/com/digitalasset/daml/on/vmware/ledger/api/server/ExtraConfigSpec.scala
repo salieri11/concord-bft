@@ -10,6 +10,7 @@ import com.daml.jwt.domain.DecodedJwt
 import com.daml.jwt.{JwtSigner, KeyUtils, domain}
 import com.daml.ledger.api.auth.{AuthService, ClaimPublic}
 import com.daml.ledger.participant.state.kvutils.app.Config
+import com.digitalasset.daml.on.vmware.write.service.RetryStrategy
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   ConstantRequestTimeout,
   LinearAffineInterpretationCostTransform
@@ -129,6 +130,22 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
   }
 
   "BFT client command-line parsers" should {
+    "parse a BFT client config with a constant timeout by default" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf"
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig.ReasonableDefault.copy(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
+        ))
+    }
+
     "parse a BFT client config with a linear timeout strategy" in {
       val config =
         parseExtraConfig(
@@ -141,11 +158,11 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
               "linear-timeout-default=2.0s"
           ))
       config.extra.bftClient should be(
-        BftClientConfig(
+        BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
           requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
-            .copy(slope = 2.0, intercept = 2.0, defaultTimeout = 2.seconds)
+            .copy(slope = 2.0, intercept = 2.0, defaultTimeout = 2.seconds),
         ))
     }
 
@@ -159,11 +176,65 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
               "constant-timeout=2.0s"
           ))
       config.extra.bftClient should be(
-        BftClientConfig(
+        BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
-          requestTimeoutStrategy = ConstantRequestTimeout(defaultTimeout = 2.seconds)
+          requestTimeoutStrategy = ConstantRequestTimeout(defaultTimeout = 2.seconds),
         ))
+    }
+
+    "parse a BFT client config with a constant send retry wait time" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "send-retry-strategy=constant-wait-time," +
+              "send-retries=5," +
+              "send-retry-first-wait=1ms"
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig.ReasonableDefault.copy(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
+          sendRetryStrategy = BftClientConfig.ReasonableDefault.sendRetryStrategy
+            .copy(
+              retries = 5,
+              firstWaitTime = 1.milli,
+              waitTimeCap = 1.milli,
+              progression = config.extra.bftClient.sendRetryStrategy.progression,
+            )
+        ))
+      RetryStrategy.isConstant(config.extra.bftClient.sendRetryStrategy) should be(true)
+    }
+
+    "parse a BFT client config with an exponential backoff send retry strategy" in {
+      val config =
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "send-retry-strategy=exponential-backoff," +
+              "send-retries=5," +
+              "send-retry-first-wait=1ms"
+          ))
+      config.extra.bftClient should be(
+        BftClientConfig.ReasonableDefault.copy(
+          enable = true,
+          configPath = Some(Paths.get("/conf")),
+          requestTimeoutStrategy = ConstantRequestTimeout.ReasonableDefault,
+          sendRetryStrategy = BftClientConfig.ReasonableDefault.sendRetryStrategy
+            .copy(
+              retries = 5,
+              firstWaitTime = 1.milli,
+              waitTimeCap = RetryStrategy.exponentialBackoffWaitTimeCap(5, 1.milli),
+              progression = config.extra.bftClient.sendRetryStrategy.progression,
+            )
+        ))
+      RetryStrategy.isExponential(config.extra.bftClient.sendRetryStrategy) should be(true)
     }
 
     "not parse a BFT client config with a mixed timeout strategy" in {
@@ -211,11 +282,11 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
             "--bft-client-request-timeout=2ms",
           ))
       config.extra.bftClient should be(
-        BftClientConfig(
+        BftClientConfig.ReasonableDefault.copy(
           enable = true,
           configPath = Some(Paths.get("/conf")),
           requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
-            .copy(defaultTimeout = 2.millis)
+            .copy(defaultTimeout = 2.millis),
         ))
     }
   }

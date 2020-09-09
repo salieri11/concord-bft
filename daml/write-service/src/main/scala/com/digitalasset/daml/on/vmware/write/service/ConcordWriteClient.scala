@@ -7,7 +7,7 @@ import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
 import com.digitalasset.kvbc.daml_commit.CommitRequest
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -55,6 +55,9 @@ object ConcordWriteClient {
     delegate(flaggedRequest, commitMetadata)
   }
 
-  private[service] def backOff(shouldRetry: Throwable => Boolean): RetryStrategy =
-    RetryStrategy.exponentialBackoff(shouldRetry, attempts = 10, firstWaitTime = 100.milliseconds)
+  def exponentialBackOff(shouldRetry: Throwable => Boolean)(
+      retries: Int = 10,
+      firstWaitTime: Duration = 100.milliseconds,
+  ): RetryStrategy =
+    RetryStrategy.exponentialBackoff(shouldRetry, retries, firstWaitTime)
 }
