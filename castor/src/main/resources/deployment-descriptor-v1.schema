@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://vmware.com/blockchain.castor.deployment.schema.json",
+  "title": "Castor On-prem Deployment",
+  "description": "Castor on-prem deployment product schema - deployment descriptor",
+  "type": "object",
+  "definitions": {
+    "blockchain": {
+      "description": "Organization properties",
+      "type": "object",
+      "properties": {
+        "consortiumName": {
+          "description": "Consortium name",
+          "type": "string"
+        },
+        "bockchainType": {
+          "description": "Blockchain type",
+          "type": "string",
+          "enum": ["ETHEREUM", "DAML", "HLF"]
+        }
+      },
+      "required": ["consortiumName", "bockchainType"]
+    },
+    "client": {
+      "description": "Client properties",
+      "type": "object",
+      "properties": {
+        "zoneName": {
+          "description": "Zone where client is to be placed",
+          "type": "string"
+        },
+        "authUrlJwt": {
+          "description": "Authorization Url JWT",
+          "type": "string"
+        },
+        "providedIp": {
+          "description": "The user-provided IP address to be assigned to the client",
+          "type": "string"
+        }
+      },
+      "required": ["zoneName"]
+    },
+    "committer": {
+      "description": "Committer properties",
+      "type": "object",
+      "properties": {
+        "zoneName": {
+          "description": "Zone where committer is to be placed",
+          "type": "string"
+        },
+        "providedIp": {
+          "description": "The user-provided IP address to be assigned to the committer",
+          "type": "string",
+          "format": "ipv4"
+        }
+      },
+      "required": ["zoneName"]
+    }
+  },
+  "properties": {
+    "blockchain": {
+      "$ref": "#/definitions/blockchain"
+    },
+    "committers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/committer"
+      },
+      "minItems": 1
+    },
+    "clients": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/client"
+      }
+    }
+  },
+  "required": [
+    "blockchain",
+    "committers",
+    "clients"
+  ]
+}

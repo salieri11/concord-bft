@@ -1,0 +1,296 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://vmware.com/blockchain.castor.infrastructure.schema.json",
+  "title": "Castor On-prem Deployment",
+  "description": "Castor on-prem deployment product schema - infrastructure descriptor",
+  "type": "object",
+  "definitions": {
+    "organization": {
+      "description": "Organization properties",
+      "type": "object",
+      "properties": {
+        "sddcUrl": {
+          "description": "SDDC URL",
+          "type": "string",
+          "format": "url"
+        },
+        "damlSdk": {
+          "description": "DAML SDK",
+          "type": "string"
+        },
+        "templateId": {
+          "description": "Template ID",
+          "type": "string"
+        },
+        "cpuCount": {
+          "description": "Number of CPUs for the deployed blockchain VM",
+          "type": "integer",
+          "minimum": 0
+        },
+        "memoryGB": {
+          "description": "Memory in GB for the deployed blockchain VM",
+          "type": "integer",
+          "minimum": 0
+        },
+        "enableBftClient": {
+          "description": "Whether BFT client should be enabled",
+          "type": "boolean"
+        },
+        "generatePassword": {
+          "description": "Whether a root password should be generated",
+          "type": "boolean"
+        }
+      },
+      "required": ["sddcUrl"]
+    },
+    "vCenter": {
+      "description": "vCenter properties",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "vCenter URL",
+          "type": "string"
+        },
+        "userName": {
+          "description": "vCenter user name",
+          "type": "string"
+        },
+        "password": {
+          "description": "vCenter password",
+          "type": "string"
+        },
+        "resourcePool": {
+          "description": "vCenter resource pool",
+          "type": "string"
+        },
+        "storage": {
+          "description": "vCenter storage location",
+          "type": "string"
+        },
+        "folder": {
+          "description": "vCenter folder",
+          "type": "string"
+        }
+      },
+      "required": ["url", "userName", "password", "resourcePool", "storage", "folder"]
+    },
+    "network": {
+      "description": "Network properties for the organization",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Network name",
+          "type": "string"
+        },
+        "gateway": {
+          "description": "Network gateway in dotted decimal (four octet) form",
+          "type": "string"
+        },
+        "subnet": {
+          "description": "decimal subnet mask",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "nameServers": {
+          "description": "List of name servers, each in dotted decimal form",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["name", "gateway", "subnet", "nameServers"]
+    },
+    "outboundProxy": {
+      "description": "Outbound Proxy if required by the organization",
+      "type": "object",
+      "properties": {
+        "httpHost": {
+          "description": "The (http) hostname or IP adderss of the outbound proxy",
+          "type": "string"
+        },
+        "httpPort": {
+          "description": "The (http) port for the outbound proxy",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "httpsHost": {
+          "description": "The (https) hostname or IP adderss of the outbound proxy",
+          "type": "string"
+        },
+        "httpsPort": {
+          "description": "The (https) port for the outbound proxy",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["httpHost", "httpPort"]
+        },
+        {
+          "required": ["httpsHost", "httpsPort"]
+        }
+      ]
+    },
+    "containerRegistry": {
+      "description": "Docker container registry information from where to pull blockchain images",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "The URL for the docker container registry",
+          "type": "string",
+          "format": "url"
+        },
+        "userName": {
+          "description": "The user name for the docker container registry",
+          "type": "string"
+        },
+        "password": {
+          "description": "The password for the docker container registry",
+          "type": "string"
+        }
+      },
+      "required": ["url", "userName", "password"]
+    },
+    "wavefront": {
+      "description": "Wavefront properties",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "The URL for the Wavefront endpoint",
+          "type": "string",
+          "format": "url"
+        },
+        "token": {
+          "description": "The token for the endpoint",
+          "type": "string"
+        }
+      },
+      "required": ["url"]
+    },
+    "elasticSearch": {
+      "description": "ElasticSearch properties",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "The URL for the ElasticSearch endpoint",
+          "type": "string",
+          "format": "url"
+        },
+        "userName": {
+          "description": "The user name for the endpoint",
+          "type": "string"
+        },
+        "password": {
+          "description": "The password for the endpoint",
+          "type": "string"
+        }
+      },
+      "required": ["url", "userName", "password"]
+    },
+    "logManagement": {
+      "description": "Log management endpoint properties",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "LOG_INTELLIGENCE or LOG_INSIGHT",
+          "type": "string",
+          "enum": ["LOG_INTELLIGENCE", "LOG_INSIGHT"]
+        },
+        "address": {
+          "description": "IP or FQDN of the endpoint",
+          "type": "string"
+        },
+        "port": {
+          "description": "port of the endpoint",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "userName": {
+          "description": "The user name for the endpoint",
+          "type": "string"
+        },
+        "password": {
+          "description": "The password for the endpoint",
+          "type": "string"
+        },
+        "logInsightAgentId": {
+          "description": "Log Insight agent ID",
+          "type": "integer"
+        }
+      }
+    },
+    "zone": {
+      "description": "Zone properties",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Zone name",
+          "type": "string"
+        },
+        "latitude": {
+          "description": "Zone latitude",
+          "type": "string"
+        },
+        "longitude": {
+          "description": "Zone longitude",
+          "type": "string"
+        },
+        "vCenter": {
+          "description": "vCenter instance",
+          "$ref": "#/definitions/vCenter"
+        },
+        "network": {
+          "description": "Network properties",
+          "$ref": "#/definitions/network"
+        },
+        "outboundProxy": {
+          "description": "Outbound Proxy",
+          "$ref": "#/definitions/outboundProxy"
+        },
+        "containerRegistry": {
+          "description": "Docker container registry properties",
+          "$ref": "#/definitions/containerRegistry"
+        },
+        "wavefront": {
+          "description": "Wavefront properties",
+          "$ref": "#/definitions/wavefront"
+        },
+        "elasticSearch": {
+          "description": "ElasticSearch properties",
+          "$ref": "#/definitions/elasticSearch"
+        },
+        "logManagement": {
+          "description": "Log management properties",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/logManagement"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["name", "vCenter", "network"]
+    }
+  },
+  "properties": {
+    "organization": {
+      "$ref": "#/definitions/organization"
+    },
+    "zones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/zone"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "organization",
+    "zones"
+  ]
+}

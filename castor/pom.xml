@@ -2,7 +2,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.vmware.blockchain</groupId>
         <artifactId>blockchain</artifactId>
@@ -12,6 +11,13 @@
 
     <artifactId>castor</artifactId>
     <packaging>jar</packaging>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <properties>
         <springframework.boot.version>2.1.13.RELEASE</springframework.boot.version>
@@ -31,6 +37,7 @@
         <org.hamcrest.version>2.2</org.hamcrest.version>
         <io.grpc.tesing.version>1.31.0</io.grpc.tesing.version>
         <grpc-spring-boot-starter.version>3.5.6</grpc-spring-boot-starter.version>
+        <everit.json.schema.version>1.12.1</everit.json.schema.version>
     </properties>
 
     <dependencyManagement>
@@ -129,6 +136,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <!-- Test dependencies -->
+        <dependency>
+            <groupId>com.github.everit-org.json-schema</groupId>
+            <artifactId>org.everit.json.schema</artifactId>
+            <version>${everit.json.schema.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.lognet</groupId>
             <artifactId>grpc-spring-boot-starter</artifactId>

@@ -1,0 +1,44 @@
+{
+  "organization": {
+    "sddcUrl": "https://console-stg.cloud.vmware.com/",
+    "damlSdk": "1.0.1",
+    "cpuCount": 4,
+    "memoryGb": 4,
+    "enableBftClient": true,
+    "generatePassword": true
+  },
+  "zones": [
+    {
+      "name": "test-zone-1 - A",
+      "vCenter": {
+        "url": "https://vcenter.sddc.vmware.com/",
+        "userName": "admin@vsphere.local",
+        "password": "The rain in Spain falls mainly on the plain",
+        "resourcePool": "testresourcepool",
+        "folder": "testfolder"
+      },
+      "network": {
+        "name": "testnetwork",
+        "gateway": "10.20.30.1",
+        "subnet": 24,
+        "nameServers": [
+          "1.1.1.1",
+          "1.0.0.1"
+        ]
+      },
+      "outboundProxy": {
+        "httpHost": "host-1.vmware.com",
+        "httpsPort": 9999
+      },
+      "logManagement": [
+        {
+          "type": "INVALID_LOG_MANAGEMENT",
+          "address": "loginsight01.vmware.com",
+          "port": -9999,
+          "userName": "user021",
+          "password": "Valhalla"
+        }
+      ]
+    }
+  ]
+}
