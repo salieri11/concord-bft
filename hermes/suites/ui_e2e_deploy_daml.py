@@ -3,16 +3,12 @@
 #
 # Utility to test the performance of the Helen+concord ecosystem
 #########################################################################
-import logging
 import os
 import pathlib
-import traceback
 import subprocess
 import pytest
 import collections
-import util.json_helper
 import util.hermes_logging
-
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxConnection, fxBlockchain
 from suites.case import describe
 from xvfbwrapper import Xvfb
@@ -24,6 +20,9 @@ pytest.XvfbPresent = False
 
 
 def startVDisplay(vdisplay):
+    '''
+    Start virtual display
+    '''
     try:
         vdisplay.start()
         pytest.XvfbPresent = True
@@ -32,13 +31,21 @@ def startVDisplay(vdisplay):
 
 
 def stopVDisplay(vdisplay):
+    '''
+    Stop virtual display if already started
+    '''
     if pytest.XvfbPresent:
         vdisplay.stop()
 
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
-def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+def fxLocalSetup(fxHermesRunSettings, fxProduct, fxConnection):
+    '''
+    Local fixture which takes existing common fixtures as input and returns the collection
+    of various variables available for all the test functions.
+    Improves code reusability.
+    '''
     testName = fxConnection.request.testName
     testName = testName.replace('test_', '')
     testLogDir = os.path.join(
@@ -54,8 +61,8 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
 # =============================================================================================
 # Actual Test Functions
 # =============================================================================================
-@describe("run UI  lint e2e tests")
-def test_lint_e2e(fxLocalSetup):
+@describe("run UI DAML deploy e2e tests")
+def test_deploy_daml_e2e(fxLocalSetup):
     vdisplay = uiPath = save_path = testLogDir = ""
     for vLocalSetup in fxLocalSetup:
         vdisplay = vLocalSetup.vdisplay
