@@ -12,7 +12,8 @@ import time
 import datetime
 import json
 
-interrupted_nodes =[]
+interrupted_nodes = []
+
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.hermes_logging as hermes_logging_util
@@ -402,7 +403,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_INTERRUPT:
          log.info("setting no access (000) on {}".format(index_db_location))
          command_for_index_db_permission_status = \
-            "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\""\
+            "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\"" \
                .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
          if index_db_status == "---------\r\n":
@@ -414,7 +415,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_RECOVER:
          log.info("reverting access (700) on {}".format(index_db_location))
          command_for_index_db_permission_status = \
-            "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\""\
+            "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\"" \
                .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
          if index_db_status == "rwx------\r\n":
@@ -578,7 +579,6 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
 
    return status
 
-
 def run_daml_sanity(fxBlockchain, daml_tests_results_dir,
                     daml_txn_result_queue=None,
                     list_of_participant_nodes_to_run_txns=[],
@@ -670,4 +670,3 @@ def start_daml_txn_background_thread(fxBlockchain, daml_txn_result_queue,
    log.info("***sleeping for 5 seconds after running daml tests in  background")
    time.sleep(5)
    return daml_txn_background_thread
-
