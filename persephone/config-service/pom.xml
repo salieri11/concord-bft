@@ -19,7 +19,7 @@
         <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
 <!--        <persephone.version>1.0.0-SNAPSHOT</persephone.version>-->
         <bouncycastle.version>1.60</bouncycastle.version>
-        <snakeyaml.version>1.25</snakeyaml.version>
+        <snakeyaml.version>1.26</snakeyaml.version>
     </properties>
 
     <dependencies>
