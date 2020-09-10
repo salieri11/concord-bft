@@ -24,6 +24,14 @@ public class DamlHealth implements ComponentHealth {
     @Override
     public HealthStatusResponse getHealth() {
         log.info("Invoking daml health query..");
-        return damlHealthServiceInvoker.getHealthResponse();
+        try {
+            return damlHealthServiceInvoker.getHealthResponse();
+        } catch (Exception ex) {
+            log.error("Exception while querying concord health:\n{}\n", ex.getLocalizedMessage());
+            return HealthStatusResponse.builder()
+                    .status(HealthStatusResponse.HealthStatus.SERVICE_UNAVAILABLE)
+                    .exception(ex.getLocalizedMessage())
+                    .build();
+        }
     }
 }

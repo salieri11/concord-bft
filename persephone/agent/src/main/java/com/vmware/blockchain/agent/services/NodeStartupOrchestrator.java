@@ -41,7 +41,7 @@ import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
-import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
+import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -63,7 +63,8 @@ public class NodeStartupOrchestrator {
     private static final Logger log = LoggerFactory.getLogger(NodeStartupOrchestrator.class);
 
     /** Container network name alias. */
-    private static final String CONTAINER_NETWORK_NAME = "blockchain-fabric";
+    @Getter
+    private static final String containerNetworkName = "blockchain-fabric";
 
     private static final String configDownloadMarker = "/config/agent/configDownloadMarker";
 
@@ -74,7 +75,7 @@ public class NodeStartupOrchestrator {
 
     private final AgentDockerClient agentDockerClient;
 
-    private final DamlHealthServiceInvoker damlHealthServiceInvoker;
+    private final NodeComponentHealthFactory nodeComponentHealthFactory;
 
     private final HealthCheckScheduler healthCheckScheduler;
 
@@ -93,13 +94,13 @@ public class NodeStartupOrchestrator {
     public NodeStartupOrchestrator(ConcordAgentConfiguration configuration,
                                    AgentDockerClient agentDockerClient,
                                    ConfigServiceInvoker configServiceInvoker,
-                                   DamlHealthServiceInvoker damlHealthServiceInvoker,
+                                   NodeComponentHealthFactory nodeComponentHealthFactory,
                                    HealthCheckScheduler healthCheckScheduler,
                                    MetricsAgent metricsAgent) {
         this.configuration = configuration;
         this.agentDockerClient = agentDockerClient;
         this.configServiceInvoker = configServiceInvoker;
-        this.damlHealthServiceInvoker = damlHealthServiceInvoker;
+        this.nodeComponentHealthFactory = nodeComponentHealthFactory;
         this.healthCheckScheduler = healthCheckScheduler;
         this.metricsAgent = metricsAgent;
     }
@@ -124,7 +125,7 @@ public class NodeStartupOrchestrator {
                 containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
                 components = containerConfigList;
 
-                agentDockerClient.createNetwork(CONTAINER_NETWORK_NAME);
+                agentDockerClient.createNetwork(containerNetworkName);
 
                 // Start all containers
                 // Get Docker client instance
@@ -138,21 +139,14 @@ public class NodeStartupOrchestrator {
                         } else {
                             agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
                             counter.increment();
-
-                            // Since "_" is not a valid literal in hostname, we can not use container name
-                            if (container.getContainerName()
-                                    .equalsIgnoreCase(damlHealthServiceInvoker.getService().getHost())) {
-                                var inspectContainerResponse = agentDockerClient.inspectContainer(dockerClient,
-                                        container.getContainerName());
-                                String host = inspectContainerResponse.getNetworkSettings().getNetworks()
-                                        .get(CONTAINER_NETWORK_NAME).getIpAddress();
-                                damlHealthServiceInvoker.start(host);
-                            }
                         }
                     });
                 } catch (ConflictException e) {
                     log.warn("Did not launch the container again. Container already present", e);
                 }
+                Thread.sleep(60000);
+                log.info("Initializing health check components...");
+                nodeComponentHealthFactory.initHealthChecks(containerNetworkName);
                 log.info("Starting periodic healthchecks per minute...");
                 healthCheckScheduler.startHealthCheck();
             } catch (Exception | InternalError e) {
@@ -315,7 +309,7 @@ public class NodeStartupOrchestrator {
         }
 
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withNetworkMode(CONTAINER_NETWORK_NAME)
+                .withNetworkMode(containerNetworkName)
                 .withRestartPolicy(containerParam.getRestartPolicy())
                 .withBinds(volumes);
 

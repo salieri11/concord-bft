@@ -55,15 +55,28 @@ public class NodeComponentController {
     @RequestMapping(path = "/api/node/start", method = RequestMethod.POST)
     ResponseEntity<Void> startNodeComponents() {
         log.info("Received request to start node components...");
-
-        nodeStartupOrchestrator.getComponents()
-                .forEach(container -> {
-                    var dockerClient = DockerClientBuilder.getInstance().build();
-                    var containerResponse = agentDockerClient.inspectContainer(dockerClient,
-                                                                               container.getContainerName());
-                    agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
-                });
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            log.info("Starting healthchecks...");
+            nodeComponentHealthFactory.initHealthChecks(nodeStartupOrchestrator.getContainerNetworkName());
+            healthCheckScheduler.startHealthCheck();
+        } catch (Exception ex) {
+            log.error("Exception in starting healthchecks on node components.\n{}", ex);
+            log.info("Node component start activity will continue without healthchecks..");
+        }
+        try {
+            log.info("Starting components...");
+            nodeStartupOrchestrator.getComponents()
+                    .forEach(container -> {
+                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var containerResponse = agentDockerClient.inspectContainer(dockerClient,
+                                container.getContainerName());
+                        agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
+                    });
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            log.error("Exception in starting node components.\n{}", ex);
+            return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
+        }
     }
 
     /**
@@ -73,14 +86,28 @@ public class NodeComponentController {
     ResponseEntity<Void> stopNodeComponents() {
         log.info("Received request to stop node components...");
 
-        nodeStartupOrchestrator.getComponents()
-                .forEach(container -> {
-                    var dockerClient = DockerClientBuilder.getInstance().build();
-                    var containerResponse = agentDockerClient.inspectContainer(dockerClient,
-                                                                               container.getContainerName());
-                    agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
-                });
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            log.info("Stopping healthchecks...");
+            healthCheckScheduler.stopHealthCheck();
+            nodeComponentHealthFactory.tearDownHealthChecks(nodeStartupOrchestrator.getContainerNetworkName());
+        } catch (Exception ex) {
+            log.error("Exception in stopping healthchecks on node components.\n{}", ex);
+            log.info("Node component stop activity will continue..");
+        }
+        try {
+            log.info("Stopping components...");
+            nodeStartupOrchestrator.getComponents()
+                    .forEach(container -> {
+                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var containerResponse = agentDockerClient.inspectContainer(dockerClient,
+                                container.getContainerName());
+                        agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
+                    });
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            log.error("Exception in stopping node components.\n{}", ex);
+            return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
+        }
     }
 
     @RequestMapping(path = "/api/health/concord", method = RequestMethod.GET)
@@ -105,7 +132,7 @@ public class NodeComponentController {
         log.info("Receieved manual request to suspend health check...");
         try {
             healthCheckScheduler.stopHealthCheck();
-            return new ResponseEntity<>("Health check suspended.", HttpStatus.OK);
+            return new ResponseEntity<>("Health check suspended.\n", HttpStatus.OK);
         } catch (Exception ex) {
             return new ResponseEntity<>(ex.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -116,7 +143,7 @@ public class NodeComponentController {
         log.info("Receieved manual request to resume health check...");
         try {
             healthCheckScheduler.startHealthCheck();
-            return new ResponseEntity<>("Health check resumed.", HttpStatus.OK);
+            return new ResponseEntity<>("Health check resumed.\n", HttpStatus.OK);
         } catch (Exception ex) {
             return new ResponseEntity<>(ex.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

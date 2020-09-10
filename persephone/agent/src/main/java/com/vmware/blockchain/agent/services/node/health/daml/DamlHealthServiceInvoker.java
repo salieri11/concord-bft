@@ -99,7 +99,7 @@ public class DamlHealthServiceInvoker {
 
     HealthCheckResponse getResponse(String serviceName) {
         HealthCheckRequest request = HealthCheckRequest.newBuilder().setService(serviceName).build();
-        HealthCheckResponse response = blockingStub.check(request);
+        HealthCheckResponse response = blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS).check(request);
         log.info("Request - {}; Response - {}", request, response);
         return response;
     }
@@ -129,7 +129,7 @@ public class DamlHealthServiceInvoker {
             logMetrics(0);
             return HealthStatusResponse.builder().status(HealthStatusResponse.HealthStatus.UNHEALTHY).build();
         } catch (Exception e) {
-            log.error("Exception caught in retrieving daml health\n" + e.getLocalizedMessage());
+            log.error("Exception caught in retrieving daml health\n{}", e);
             logMetrics(-1);
             return HealthStatusResponse.builder()
                     .status(HealthStatusResponse.HealthStatus.SERVICE_UNAVAILABLE)
@@ -141,7 +141,7 @@ public class DamlHealthServiceInvoker {
      * Placeholder to invoke idle/suspend condition.
      * @throws InterruptedException exception.
      */
-    public void shutdown() throws InterruptedException {
+    public synchronized void shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
@@ -150,7 +150,7 @@ public class DamlHealthServiceInvoker {
      * NOTE: since "_" is not a valid literal in hostname, we can not use container name
      * Future work: If we have container names without "_", replace "host" with "service.host"
      */
-    public void start(String host) {
+    public synchronized void start(String host) {
         if (this.channel != null && host.equalsIgnoreCase(this.hostIp)) {
             log.info("gRPC channel for service {} on ip {} already created.", service.host, host);
             return;
