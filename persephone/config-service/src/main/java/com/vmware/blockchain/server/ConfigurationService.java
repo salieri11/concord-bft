@@ -65,9 +65,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      */
     private final ExecutorService executor;
 
-    private final Cache<String, Map<String, List<ConfigurationComponent>>> cacheByNodeId;
+    private final Cache<String, List<ConfigurationComponent>> cacheByNodeId;
 
     private ConfigurationServiceHelper configurationServiceHelper;
+
+    private final String separator = "-";
 
     /**
      * Constructor.
@@ -108,11 +110,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
         try {
             log.info("Received request {}", request);
-            var components = cacheByNodeId.getIfPresent(request.getIdentifier().getId());
-            log.info("Configurations found for session id {}", request.getIdentifier());
-            log.info("List of node ids supported: " + (components != null ? components.keySet() : null));
-            List<ConfigurationComponent>  nodeComponents
-                    = components != null ? components.get(request.getNodeId()) : null;
+
+            String key = String.join(separator, request.getIdentifier().getId(), request.getNodeId());
+            List<ConfigurationComponent> nodeComponents = cacheByNodeId.getIfPresent(key);
 
             if (nodeComponents != null && nodeComponents.size() != 0) {
                 NodeConfigurationResponse.Builder builder = NodeConfigurationResponse.newBuilder();
@@ -122,7 +122,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 observer.onCompleted();
             } else {
                 observer.onError(new StatusException(Status.NOT_FOUND.withDescription(
-                        "Node configuration is empty for node: " + request.getNodeId())));
+                        "Node configuration is empty for session: "
+                                + request.getIdentifier().getId() + ", node: " + request.getNodeId())));
             }
         } catch (Exception e) {
             var errorMsg = String.format("Retrieving configuration results failed for id: %s with error: %s",
@@ -226,22 +227,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         log.info("Generated tls identity elements for session id: {}", sessionId);
 
-        Map<String, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
-
         try {
             configByNodeId.forEach((nodeId, componentList) -> {
-                nodeComponent.put(nodeId, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
-                                                                                       concordConfig, bftClientConfig,
-                                                                                       concordIdentityComponents,
-                                                                                       bftIdentityComponents));
+
+                String key = String.join(separator, sessionId.getId(), nodeId);
+                log.info("Persisting configurations for session: {}, node: {} in memory...", sessionId, nodeId);
+                cacheByNodeId.put(key, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
+                        concordConfig, bftClientConfig,
+                        concordIdentityComponents,
+                        bftIdentityComponents));
             });
         } catch (Exception e) {
             log.error("Error organizing the configurations for sessions {}", sessionId);
             observer.onError(e);
         }
-
-        log.info("Persisting configurations for session: {} in memory...", sessionId);
-        cacheByNodeId.put(sessionId.getId(), nodeComponent);
 
         observer.onNext(sessionId);
         observer.onCompleted();
