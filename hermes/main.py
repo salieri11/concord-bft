@@ -45,7 +45,7 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
               "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests",
-	      "EthJsonRpcTests"
+	      "EthJsonRpcTests", "DeployDamlTests"
              ]
 
 suiteList = {
