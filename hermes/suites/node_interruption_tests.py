@@ -434,7 +434,6 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
 
 @describe("Node Interruption - disconnect committer containers from Blockchain network")
 @pytest.mark.committer_container_network_disconnect
-@pytest.mark.skip
 def test_committer_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
