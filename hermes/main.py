@@ -15,7 +15,6 @@ import event_recorder
 from suites import (
   contract_compiler_tests,
   eth_core_vm_tests,
-  eth_json_rpc_tests,
   eth_regression_tests,
   performance_tests,
   persistency_tests,
@@ -46,7 +45,8 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests", 
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
-              "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests" 
+              "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests",
+	      "EthJsonRpcTests"
              ]
 
 suiteList = {
@@ -81,7 +81,7 @@ suiteList = {
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
    "SampleDAppTests":"suites/sample_dapp_tests.py",
-   "EthJsonRpcTests": eth_json_rpc_tests.EthJsonRpcTests,
+   "EthJsonRpcTests": "suites/eth_jsonrpc_tests.py",
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "PerformanceTests": "suites/performance_tests.py",
    "UiTests": "suites/ui_tests.py",
