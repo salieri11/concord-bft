@@ -11,9 +11,6 @@ import tempfile
 import time
 import datetime
 import json
-
-interrupted_nodes = []
-
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.hermes_logging as hermes_logging_util
@@ -26,7 +23,7 @@ else:
    import util.blockchain_ops as blockchain_ops
 
 log = hermes_logging_util.getMainLogger()
-
+interrupted_nodes = []
 # Node interrupt & recovery modes
 NODE_INTERRUPT = "Interrupt node"
 NODE_RECOVER = "Recover node"
@@ -576,7 +573,6 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       txn_run_status = daml_txn_result_queue.queue[-1]
       if not txn_run_status:
          status = txn_run_status
-
    return status
 
 def run_daml_sanity(fxBlockchain, daml_tests_results_dir,

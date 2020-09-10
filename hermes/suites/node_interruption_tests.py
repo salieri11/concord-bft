@@ -82,6 +82,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.committer_node_interruption
 @pytest.mark.committer_node_interruption_longrun
+@pytest.mark.skip()
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -354,7 +355,6 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - simulate read/write failure index db through permission change")
 @pytest.mark.index_db_read_write_fail
-@pytest.mark.skip()
 def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
@@ -399,6 +399,7 @@ def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockc
 
 @describe("Node Interruption - disconnect f committer nodes from Blockchain network")
 @pytest.mark.committer_vm_disconnect
+@pytest.mark.skip()
 def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
@@ -443,6 +444,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
 
 @describe("Node Interruption - disconnect committer containers from Blockchain network")
 @pytest.mark.committer_container_network_disconnect
+@pytest.mark.skip()
 def test_committer_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
