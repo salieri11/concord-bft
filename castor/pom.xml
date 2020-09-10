@@ -12,6 +12,27 @@
     <artifactId>castor</artifactId>
     <packaging>jar</packaging>
 
+    <profiles>
+        <profile>
+            <id>fortify</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.fortify.ps.maven.plugin</groupId>
+                        <artifactId>sca-maven-plugin</artifactId>
+                        <version>3.90</version>
+                        <configuration>
+                            <exclude>**/*.min.js</exclude>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <repositories>
         <repository>
             <id>jitpack.io</id>
