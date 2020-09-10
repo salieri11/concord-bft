@@ -6,6 +6,7 @@ package com.vmware.blockchain.agent.services.metrics;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -14,13 +15,20 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.search.MeterNotFoundException;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Class holding metrics functions.
  */
 @Component
+@Slf4j
 public class MetricsAgent {
+
     private final MeterRegistry meterRegistry;
+
+    private final AtomicInteger atomicInteger;
 
     /**
      * Constructor.
@@ -28,6 +36,7 @@ public class MetricsAgent {
     @Autowired
     public MetricsAgent(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
+        this.atomicInteger = new AtomicInteger(0);
     }
 
     /**
@@ -48,7 +57,15 @@ public class MetricsAgent {
      * @return {@link Integer}
      */
     public Integer gaugeValue(int value, MetricsConstants.MetricsNames metricsName, List<Tag> tags) {
-        return meterRegistry.gauge(metricsName.metricsName, getIterable(tags), value);
+        try {
+            meterRegistry.get(metricsName.metricsName).gauge();
+            atomicInteger.set(value);
+        } catch (MeterNotFoundException ex) {
+            log.info("Creating new metrics gauge for metric: {}", metricsName.metricsName);
+            meterRegistry.gauge(metricsName.metricsName, getIterable(tags), atomicInteger);
+            atomicInteger.set(value);
+        }
+        return (int) meterRegistry.get(metricsName.metricsName).gauge().value();
     }
 
     /**
