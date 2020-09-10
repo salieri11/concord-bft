@@ -20,7 +20,6 @@ from suites import (
   persistency_tests,
   pytest_suite,
   sample_dapp_tests,
-  ui_e2e_deploy_daml,
   ui_tests,
   websocket_rpc_tests
 )
@@ -46,7 +45,7 @@ pyTestSuiteList = ["ChessPlusTests", "EthCoreVmTests", "DamlTests", "ClientPoolD
               "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
               "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
               "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests",
-	      "EthJsonRpcTests"
+	      "EthJsonRpcTests", "DeployDamlTests"
              ]
 
 suiteList = {
@@ -85,7 +84,7 @@ suiteList = {
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "PerformanceTests": "suites/performance_tests.py",
    "UiTests": "suites/ui_tests.py",
-   "DeployDamlTests": ui_e2e_deploy_daml.DeployDamlTests,
+   "DeployDamlTests": "suites/ui_e2e_deploy_daml.py",
    "MetadataPersistencyTests": "suites/persistency_tests.py",
    "HelenNodeSizeTemplateTests": "suites/helen/nodesize_test.py"
 }
