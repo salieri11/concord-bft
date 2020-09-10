@@ -15,7 +15,6 @@ import event_recorder
 from suites import (
   contract_compiler_tests,
   eth_core_vm_tests,
-  eth_json_rpc_tests,
   eth_regression_tests,
   performance_tests,
   persistency_tests,

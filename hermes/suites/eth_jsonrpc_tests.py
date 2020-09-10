@@ -30,9 +30,20 @@ CONTRACTS_DIR = "resources/contracts"
 @describe("fixture; local setup for given test suite")
 def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     '''
-    Local fixture which takes existing common fixtures as input and returns the collection
-    of various variables available for all the test functions.
-    Improves code reusability.
+    Args:
+        fxBlockchain: Blockchain fixture
+        fxHermesRunSettings: Fixture which returns a dictionary of information about the Hermes run.
+        fxProduct: Product fixture which provides launched instance of product to the tests being run
+        fxConnection: Fixture containing a Hermes Request object and RPC object.
+    Returns:
+        args: Command line arguments
+        request: Hermes request object
+        rpc: Hermes RPC object
+        ethereumMode: Boolean value - whether ethereum mode
+        productMode: Boolean value - whether product mode
+        productUserConfig: Product config
+        ethrpcApiUrl: Random ethRpc node
+        blockchainId: Blockchain Id
     '''
     args = fxHermesRunSettings["hermesCmdlineArgs"]
     userConfig = fxHermesRunSettings["hermesUserConfig"]
@@ -279,7 +290,7 @@ def test_block_filter(fxLocalSetup):
     blocksCaught = _readBlockFilterToEnd(fxLocalSetup.rpc, filter)
 
     assert _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions,
-                                       blocksCaught), "Expected %d blocks, but read %d from filter" % (
+                                       blocksCaught), "Expected {} blocks, but read {} from filter".format(
         testCount, len(blocksCaught))
 
 
@@ -301,7 +312,7 @@ def test_block_filter_independence(fxLocalSetup):
     assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1,
                                         blocksCaught1) and
             _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2,
-                                        blocksCaught1)), "Expected %d blocks, but read %d from filter1" % (
+                                        blocksCaught1)), "Expected {} blocks, but read {} from filter1".format(
         testCount1 + testCount2, len(blocksCaught1))
 
     blocksCaught2 = _readBlockFilterToEnd(fxLocalSetup.rpc, filter2)
@@ -309,7 +320,7 @@ def test_block_filter_independence(fxLocalSetup):
     assert (_allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions2,
                                         blocksCaught2) and
             not _allTransactionBlocksCaught(fxLocalSetup.request, fxLocalSetup.blockchainId, transactions1,
-                                            blocksCaught2)), "Expected %d blocks, but read %d from filter2" % (
+                                            blocksCaught2)), "Expected {} blocks, but read {} from filter2".format(
         testCount2, len(blocksCaught2))
 
 
@@ -319,8 +330,8 @@ def test_block_filter_uninstall(fxLocalSetup):
     Check that a filter can't be found after uninstalling it
     '''
     filter = fxLocalSetup.rpc.newBlockFilter()
-    result = fxLocalSetup.rpc.getFilterChanges(filter)
-    success = fxLocalSetup.rpc.uninstallFilter(filter)
+    fxLocalSetup.rpc.getFilterChanges(filter)
+    fxLocalSetup.rpc.uninstallFilter(filter)
     try:
         fxLocalSetup.rpc.getFilterChanges(filter)
         assert False, "Deleted filter should not be found"
@@ -524,7 +535,7 @@ def test_eth_getCode(fxLocalSetup):
     endingBlockNumber = fxLocalSetup.rpc.getBlockNumber()
 
     try:
-        txResult = fxLocalSetup.rpc.getCode(address, startBlockNumber)
+        fxLocalSetup.rpc.getCode(address, startBlockNumber)
         assert False, "getCode at the block before the contract deployed should fail"
     except:
         pass
@@ -538,6 +549,9 @@ def test_eth_getCode(fxLocalSetup):
 
 @describe("test ethereum logs")
 def test_eth_getLogs(fxLocalSetup):
+    '''
+    Validate the ethereum logs based on block filter.
+    '''
     w3 = getWeb3Instance(fxLocalSetup)
     abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
@@ -574,12 +588,15 @@ def test_eth_getLogs(fxLocalSetup):
             logFound = True
             assert True
 
-    assert logFound == True, "Couldn't find log in block #" + \
-                             str(func_txr.blockNumber)
+    assert logFound == True, "Couldn't find log in block #{}".format(
+        str(func_txr.blockNumber))
 
 
 @describe("test ethereum log addresses")
 def test_eth_getLogs_addr(fxLocalSetup):
+    '''
+    Validate the ethereum logs based on block and address filters.
+    '''
     w3 = getWeb3Instance(fxLocalSetup)
     abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
@@ -600,27 +617,27 @@ def test_eth_getLogs_addr(fxLocalSetup):
     func = contract1.get_function_by_name("foo")
     func_tx = func(w3.toInt(hexstr="0x0ff1ce")).transact(tx_args)
     func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-    assert func_txr.status == 1
+    assert func_txr.status == 1, "Transaction has failed"
 
     func = contract1.get_function_by_name("foo")
     func_tx = func(w3.toInt(hexstr="0x0ff1cef001")).transact(tx_args)
     func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-    assert func_txr.status == 1
+    assert func_txr.status == 1, "Transaction has failed"
 
     func = contract2.get_function_by_name("foo")
     func_tx = func(w3.toInt(hexstr="0xba1d0ff1ce")).transact(tx_args)
     func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-    assert func_txr.status == 1
+    assert func_txr.status == 1, "Transaction has failed"
 
     # Get all logs for caddr1
     logs = fxLocalSetup.rpc.getLogs(
         {"fromBlock": "earliest", "address": caddr1})
 
-    assert len(logs) == 2, "Expected two log entries for addr " + caddr1
+    assert len(logs) == 2, "Expected two log entries for addr {}".format(caddr1)
 
     filter_out = list(
         filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr1, logs))
-    assert filter_out, "Couldn't find logs for addr " + caddr1
+    assert filter_out, "Couldn't find logs for addr {}".format(caddr1)
     assert len(filter_out) == len(
         logs), "Unexpected logs - only logs from {} expected".format(caddr1)
 
@@ -628,17 +645,20 @@ def test_eth_getLogs_addr(fxLocalSetup):
     logs = fxLocalSetup.rpc.getLogs(
         {"fromBlock": "earliest", "address": caddr2})
 
-    assert len(logs) == 1, "Expected one log entries for addr " + caddr1
+    assert len(logs) == 1, "Expected one log entries for addr {}".format(caddr1)
     filter_out = list(
         filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
 
-    assert filter_out, "Couldn't find logs for addr " + caddr2
+    assert filter_out, "Couldn't find logs for addr {}".format(caddr2)
     assert len(filter_out) == len(
         logs), "Unexpected logs - only logs from {} expected".format(caddr2)
 
 
 @describe("test block range")
 def test_eth_getLogs_block_range(fxLocalSetup):
+    '''
+    Validate the ethereum logs based on block range.
+    '''
     w3 = getWeb3Instance(fxLocalSetup)
     abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
@@ -677,7 +697,7 @@ def test_eth_getLogs_block_range(fxLocalSetup):
             if val in expected:
                 expected.remove(val)
 
-    assert not expected, "From all logs: Couldn't find " + str(expected)
+    assert not expected, "From all logs: Couldn't find {} ".format(str(expected))
 
     # Let's omit the "0x0ddba11" and don't get everything
     from_block = int(foo_func_txr["blockNumber"])
@@ -694,11 +714,14 @@ def test_eth_getLogs_block_range(fxLocalSetup):
             if val in expected:
                 expected.remove(val)
 
-    assert not expected, "From log range: Couldn't find " + str(expected)
+    assert not expected, "From log range: Couldn't find {} ".format(str(expected))
 
 
 @describe("test ethereum log topics")
 def test_eth_getLogs_topics(fxLocalSetup):
+    '''
+    Validate the ethereum logs based on topics.
+    '''
     w3 = getWeb3Instance(fxLocalSetup)
     abi, bin = loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
@@ -721,7 +744,7 @@ def test_eth_getLogs_topics(fxLocalSetup):
     func = contract1.get_function_by_name("twoEvents")
     func_tx = func(w3.toInt(hexstr="0xc0ffee")).transact(tx_args)
     func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-    assert func_txr.status == 1
+    assert func_txr.status == 1, "Transaction has failed"
     logs = contract1.events.Event().processReceipt(func_txr)
     assert logs[0].args.value == w3.toInt(hexstr="0xc0ffef")
     assert logs[1].args.value == w3.toInt(hexstr="0xc0fff0")
@@ -731,7 +754,7 @@ def test_eth_getLogs_topics(fxLocalSetup):
         {"fromBlock": hex(func_txr["blockNumber"]), "topics": [event_signature]})
 
     assert len(logs) == 2 and logs[0]["topics"][0] == event_signature and logs[1]["topics"][
-        0] == event_signature, "Expected two logs in the transaction block with event sig " + event_signature
+        0] == event_signature, "Expected two logs in the transaction block with event sig {}".format(event_signature)
 
     # Let's get only one event from the two
     # The "twoEvents" function emits two events one with x+1 and the other with x+2
@@ -1033,8 +1056,7 @@ def test_eth_sendRawTransaction(fxLocalSetup):
 
         assert tx, "No transaction receipt found"
 
-        # This is the important one: it tells whether signature address
-        # recovery works.
+        # This is the important one: it tells whether signature address recovery works.
         assert tx["from"] == expectedFrom, "Found from does not match expected from"
 
         # The rest of these are just checking parsing.
@@ -1117,7 +1139,7 @@ def test_eth_sendRawContract(fxLocalSetup):
         })
 
         count = counter.functions.getCount().call()
-        assert count == expectedCount, "incrementCounter does not work, which means contract did not get deployed properly"
+        assert count == expectedCount, "IncrementCounter does not work, which means contract did not get deployed properly"
 
         balance = web3.eth.getBalance(tx.contractAddress)
         assert balance == expectedBalance, "Ether balance is incorrect, which means contract did not get deployed properly"
