@@ -35,7 +35,8 @@ NODE_INTERRUPT_NETWORK_DISCONNECT = "Network disconnect"
 NETWORK_DISCONNECT_VM_LEVEL = "VM network disconnect"
 NETWORK_DISCONNECT_CONTAINER_LEVEL = "Container network disconnect"
 CONTAINER_BLOCKCHAIN_NETWORK = "blockchain-fabric"
-EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL]
+EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
+                                                 NODE_INTERRUPT_NETWORK_DISCONNECT]
 
 # Preset keys for NODE_INTERRUPTION_DETAILS
 NODE_TYPE_TO_INTERRUPT = "NODE_TYPE_TO_INTERRUPT"
@@ -151,13 +152,16 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
       blockchain_ops.print_replica_info(fxBlockchain,
                                         interrupted_nodes=crashed_committers)
 
-      uninterrupted_participants = [ip for ip in
-                                    blockchain_ops.participants_of(fxBlockchain)
-                                    if ip not in crashed_participants]
-      list_of_participant_nodes_to_run_txns = uninterrupted_participants
-      if mode == NODE_INTERRUPT and node_interruption_details[NODE_INTERRUPTION_TYPE] \
-            in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
+      if mode == NODE_INTERRUPT \
+            and node_interruption_details[NODE_TYPE_TO_INTERRUPT] == helper.TYPE_DAML_PARTICIPANT \
+            and node_interruption_details[NODE_INTERRUPTION_TYPE] in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
          list_of_participant_nodes_to_run_txns = crashed_participants
+      else:
+         uninterrupted_participants = [ip for ip in
+                                       blockchain_ops.participants_of(fxBlockchain)
+                                       if ip not in crashed_participants]
+         list_of_participant_nodes_to_run_txns = uninterrupted_participants
+
       log.info("")
 
       if run_txn_in_background:
@@ -169,10 +173,11 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                    "daml_tests")
             while True:
-               status = run_daml_sanity(fxBlockchain, daml_tests_results_dir,
+               status = run_daml_sanity(fxBlockchain,
+                                        daml_tests_results_dir,
                                         list_of_participant_nodes_to_run_txns=list_of_participant_nodes_to_run_txns,
                                         mode=mode,
-                                        node_interruption_type=node_interruption_details[NODE_INTERRUPTION_TYPE])
+                                        node_interruption_details = node_interruption_details)
                if not status:
                   break
                if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
@@ -575,10 +580,12 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          status = txn_run_status
    return status
 
-def run_daml_sanity(fxBlockchain, daml_tests_results_dir,
+def run_daml_sanity(fxBlockchain,
+                    daml_tests_results_dir,
                     daml_txn_result_queue=None,
                     list_of_participant_nodes_to_run_txns=[],
-                    mode=None, node_interruption_type=None):
+                    mode=None,
+                    node_interruption_details=None):
    '''
    Util to run daml txns and collect support logs
    :param fxBlockchain: blockchain
@@ -586,9 +593,12 @@ def run_daml_sanity(fxBlockchain, daml_tests_results_dir,
    :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
    :param list_of_participant_nodes_to_run_txns: list of participant nodes to run daml txns
    :param mode: mode of node interruption
-   :param node_interruption_type: Type of node interruption
+   :param node_interruption_details: node interruption details (dict)
    :return: success status
    '''
+   if node_interruption_details is not None:
+      node_interruption_type = node_interruption_details[NODE_INTERRUPTION_TYPE]
+      node_type_to_interrupt = node_interruption_details[NODE_TYPE_TO_INTERRUPT]
    global interrupted_nodes
    if not list_of_participant_nodes_to_run_txns:
       list_of_participant_nodes_to_run_txns = blockchain_ops.participants_of(fxBlockchain)
@@ -599,13 +609,15 @@ def run_daml_sanity(fxBlockchain, daml_tests_results_dir,
       run_all_tests=False, verbose=False)
    if daml_txn_result_queue:
       daml_txn_result_queue.put(status)
-   if mode == NODE_INTERRUPT and node_interruption_type \
-         in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
+   if mode == NODE_INTERRUPT \
+         and node_type_to_interrupt == helper.TYPE_DAML_PARTICIPANT \
+         and node_interruption_type in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
       if not status:
-         log.info("DAML transactions failed as expected (db failure simulated)")
+         log.info("DAML transactions failed as expected (db failure/network disconnect for participant simulated)")
          status = True
       else:
-         log.error("DAML transactions succeeded, whereas db has read/write error")
+         log.error("DAML transactions succeeded, whereas db has read/write error or participant is disconnected"
+                   " from the network")
          status = False
    if not status:
       log.info(
