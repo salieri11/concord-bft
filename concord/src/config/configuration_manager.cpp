@@ -302,7 +302,12 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
     return false;
   }
 
-  concord::config::loadSBFTCryptosystems(config_out);
+  bool isReadOnly;
+  std::tie(std::ignore, isReadOnly) = detectLocalNode(config_out);
+
+  if (!isReadOnly) {
+    concord::config::loadSBFTCryptosystems(config_out);
+  }
 
   concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState =
       dynamic_cast<concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
@@ -3902,11 +3907,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
   service_port_param(node);
   service_port_param(ro_node);
 
-  node.declareParameter("bft_metrics_udp_port",
-                        "Port for reading BFT metrics (JSON payload) via UDP.");
-  node.tagParameter("bft_metrics_udp_port", privateOptionalTags);
-  node.tagParameter("bft_metrics_udp_port", deploymentTag);
-  node.addValidator("bft_metrics_udp_port", make_shared<PortNumberValidator>());
+  auto bft_metrics_udp_port_param = [&](ConcordConfiguration& c) {
+    c.declareParameter("bft_metrics_udp_port",
+                       "Port for reading BFT metrics (JSON payload) via UDP.");
+    c.tagParameter("bft_metrics_udp_port", privateOptionalTags);
+    c.tagParameter("bft_metrics_udp_port", deploymentTag);
+    c.addValidator("bft_metrics_udp_port", make_shared<PortNumberValidator>());
+  };
+  bft_metrics_udp_port_param(node);
+  bft_metrics_udp_port_param(ro_node);
 
   node.declareParameter(
       "transaction_list_max_count",
@@ -4841,6 +4850,9 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   ParameterSelection nodeConfiguration(
       config, make_shared<NodeConfigurationSelector>(
                   localNode, isReadOnly ? "ro_node" : "node"));
+  LOG_INFO(logger, "Detected node "
+                       << localNode
+                       << (isReadOnly ? " (RO node)" : " (committer node"));
 
   // Try loading defaults and running generators for optional parameters and
   // parameters that can be implicit in the node configuration, excluding those
@@ -4915,15 +4927,13 @@ void loadNodeConfiguration(ConcordConfiguration& config,
 
 std::pair<size_t, bool> detectLocalNode(ConcordConfiguration& config) {
   size_t nodeDetected;
+  bool roNodeDetected = true;
   bool hasDetectedNode = false;
   ConfigurationPath detectedPath;
 
   bool hasValueForAnyNodePublicParameter = false;
   bool hasValueForAnyNodeTemplateParameter = false;
   bool hasValueForAnyNonNodeParameter = false;
-
-  size_t nodeSize = getCommitterNodesCount(
-      config, "Can't get the size of the nodes during local node detection.");
 
   for (auto iterator =
            config.begin(ConcordConfiguration::kIterateAllParameters);
@@ -4934,7 +4944,8 @@ std::pair<size_t, bool> detectLocalNode(ConcordConfiguration& config) {
       if (path.useInstance) {
         // If the node is in ro_node section -> shift its id so that it's
         // after the regular nodes
-        size_t node = path.name == "node" ? path.index : path.index + nodeSize;
+        size_t node = path.index;
+        bool isReadOnly = path.name == "ro_node";
         ConcordConfiguration* containingScope =
             &(config.subscope(path.trimLeaf()));
         if (containingScope->isTagged(path.getLeaf().name, "private") &&
@@ -4948,6 +4959,7 @@ std::pair<size_t, bool> detectLocalNode(ConcordConfiguration& config) {
           }
           hasDetectedNode = true;
           nodeDetected = node;
+          roNodeDetected = isReadOnly;
           detectedPath = path;
         } else if (config.hasValue<string>(path)) {
           hasValueForAnyNodePublicParameter = true;
@@ -4988,7 +5000,7 @@ std::pair<size_t, bool> detectLocalNode(ConcordConfiguration& config) {
           "Is the configuration file malformatted?)");
     }
   }
-  return std::make_pair(nodeDetected, nodeDetected >= nodeSize);
+  return std::make_pair(nodeDetected, roNodeDetected);
 }
 
 void loadSBFTCryptosystems(ConcordConfiguration& config) {

@@ -2,6 +2,8 @@
 //
 // Concord node startup.
 
+#define BOOST_BIND_NO_PLACEHOLDERS
+
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/resource_quota.h>
 #include <jaegertracing/Tracer.h>
@@ -138,10 +140,12 @@ static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 static unique_ptr<grpc::Server> tee_grpc_server = nullptr;
 static unique_ptr<grpc::Server> perf_grpc_server = nullptr;
 static unique_ptr<concordMetrics::Server> bft_metrics_server = nullptr;
+static std::atomic<bool> stop_ro_replica = false;
 
 std::unique_ptr<Cryptosystem> cryptosys;
 
 static void signalHandler(int signum) {
+  stop_ro_replica = true;
   try {
     Logger logger = Logger::getInstance("concord.main");
     LOG_INFO(logger, "Signal received (" << signum << ")");
@@ -258,7 +262,7 @@ static concord::storage::s3::StoreConfig getS3ConfigParams(
 }
 
 std::unique_ptr<IStorageFactory> create_storage_factory(
-    const ConcordConfiguration &nodeConfig, Logger logger) {
+    const ConcordConfiguration &nodeConfig, Logger logger, bool isReadOnly) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -284,6 +288,15 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
   } else if (db_impl_name == "rocksdb") {
     const auto rocks_path =
         nodeConfig.getValue<std::string>("blockchain_db_path");
+
+    if (isReadOnly) {
+      concord::storage::s3::StoreConfig s3Config =
+          getS3ConfigParams(nodeConfig, logger);
+      return std::make_unique<
+          concord::kvbc::v1DirectKeyValue::S3StorageFactory>(rocks_path,
+                                                             s3Config);
+    }
+
     if (storage_type == "basic") {
       LOG_INFO(logger, "Using rocksdb basic blockchain storage");
       return std::make_unique<
@@ -598,6 +611,64 @@ static concordUtils::Status create_perf_genesis_block(
   return concordUtils::Status::OK();
 }
 
+static auto initialise_prometheus(ConcordConfiguration &nodeConfig,
+                                  Logger &logger) {
+  auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
+  auto prometheus_for_concordbft =
+      std::make_shared<concord::utils::ConcordBftPrometheusCollector>();
+  prometheus_registry->scrapeRegistry(prometheus_for_concordbft);
+  auto bft_stat_collector =
+      std::make_shared<concord::utils::ConcordBftStatisticsCollector>();
+  prometheus_registry->scrapeRegistry(bft_stat_collector);
+
+  return std::make_tuple(prometheus_registry, prometheus_for_concordbft,
+                         bft_stat_collector);
+}
+
+static bft::communication::ICommunication *initialise_communication(
+    CommConfig &commConfig) {
+  bft::communication::ICommunication *icomm = nullptr;
+  if (commConfig.commType == "tls") {
+    bft::communication::TlsTcpConfig configuration(
+        commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
+        commConfig.nodes, commConfig.maxServerId, commConfig.selfId,
+        commConfig.certificatesRootPath, commConfig.cipherSuite,
+        commConfig.statusCallback);
+    icomm = bft::communication::CommFactory::create(configuration);
+  } else if (commConfig.commType == "udp") {
+    bft::communication::PlainUdpConfig configuration(
+        commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
+        commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
+    icomm = bft::communication::CommFactory::create(configuration);
+  } else {
+    throw std::invalid_argument("Unknown communication module type" +
+                                commConfig.commType);
+  }
+
+  return icomm;
+}
+
+std::shared_ptr<concordMetrics::Aggregator> initialise_bft_metrics_aggregator(
+    ConcordConfiguration &nodeConfig, Logger &logger,
+    std::shared_ptr<concord::utils::ConcordBftPrometheusCollector>
+        &prometheus_for_concordbft) {
+  std::shared_ptr<concordMetrics::Aggregator> bft_metrics_aggregator;
+  if (nodeConfig.hasValue<uint16_t>("bft_metrics_udp_port")) {
+    auto bft_metrics_udp_port =
+        nodeConfig.getValue<uint16_t>("bft_metrics_udp_port");
+    bft_metrics_server =
+        std::make_unique<concordMetrics::Server>(bft_metrics_udp_port);
+    bft_metrics_aggregator = bft_metrics_server->GetAggregator();
+    bft_metrics_server->Start();
+    LOG_INFO(logger, "Exposing BFT metrics via UDP server, listening on port "
+                         << bft_metrics_udp_port);
+  } else {
+    bft_metrics_aggregator = prometheus_for_concordbft->getAggregator();
+    LOG_INFO(logger, "Exposing BFT metrics via Prometheus.");
+  }
+
+  return bft_metrics_aggregator;
+}
 /*
  * Start the service that listens for connections from Helen.
  */
@@ -625,13 +696,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
              "HLF, TEE or Perf) is set");
     return 0;
   }
-  auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
-  auto prometheus_for_concordbft =
-      std::make_shared<concord::utils::ConcordBftPrometheusCollector>();
-  prometheus_registry->scrapeRegistry(prometheus_for_concordbft);
-  auto bft_stat_collector =
-      std::make_shared<concord::utils::ConcordBftStatisticsCollector>();
-  prometheus_registry->scrapeRegistry(bft_stat_collector);
+
+  auto [prometheus_registry, prometheus_for_concordbft, bft_stat_collector] =
+      initialise_prometheus(nodeConfig, logger);
 
   try {
     if (eth_enabled) {
@@ -656,9 +723,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     ReplicaConfig replicaConfig;
 
-    bool success =
-        InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
-                                    &replicaConfig, cryptosys.release());
+    bool success = InitializeSbftConfiguration(
+        config, nodeConfig, &commConfig, nullptr, 0, &replicaConfig,
+        false /*isReadOnly*/, cryptosys.release());
     assert(success);
 
     LOG_INFO(logger,
@@ -673,38 +740,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // EthKvbCommandsHandler and thus we can't use IReplica here. Need to
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
-    bft::communication::ICommunication *icomm = nullptr;
-    if (commConfig.commType == "tls") {
-      bft::communication::TlsTcpConfig configuration(
-          commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
-          commConfig.nodes, commConfig.maxServerId, commConfig.selfId,
-          commConfig.certificatesRootPath, commConfig.cipherSuite,
-          commConfig.statusCallback);
-      icomm = bft::communication::CommFactory::create(configuration);
-    } else if (commConfig.commType == "udp") {
-      bft::communication::PlainUdpConfig configuration(
-          commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
-          commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
-      icomm = bft::communication::CommFactory::create(configuration);
-    } else {
-      throw std::invalid_argument("Unknown communication module type" +
-                                  commConfig.commType);
-    }
+    bft::communication::ICommunication *icomm =
+        initialise_communication(commConfig);
 
-    std::shared_ptr<concordMetrics::Aggregator> bft_metrics_aggregator;
-    if (nodeConfig.hasValue<uint16_t>("bft_metrics_udp_port")) {
-      auto bft_metrics_udp_port =
-          nodeConfig.getValue<uint16_t>("bft_metrics_udp_port");
-      bft_metrics_server =
-          std::make_unique<concordMetrics::Server>(bft_metrics_udp_port);
-      bft_metrics_aggregator = bft_metrics_server->GetAggregator();
-      bft_metrics_server->Start();
-      LOG_INFO(logger, "Exposing BFT metrics via UDP server, listening on port "
-                           << bft_metrics_udp_port);
-    } else {
-      bft_metrics_aggregator = prometheus_for_concordbft->getAggregator();
-      LOG_INFO(logger, "Exposing BFT metrics via Prometheus.");
-    }
+    std::shared_ptr<concordMetrics::Aggregator> bft_metrics_aggregator =
+        initialise_bft_metrics_aggregator(nodeConfig, logger,
+                                          prometheus_for_concordbft);
 
     // Reconfiguration execution engine
     auto reconf_dispatcher =
@@ -712,9 +753,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
             std::make_unique<concord::reconfiguration::ReconfigurationSM>(),
             config, prometheus_registry);
 
-    ReplicaImp replica(icomm, replicaConfig,
-                       create_storage_factory(nodeConfig, logger),
-                       bft_metrics_aggregator);
+    ReplicaImp replica(
+        icomm, replicaConfig,
+        create_storage_factory(nodeConfig, logger, replicaConfig.isReadOnly),
+        bft_metrics_aggregator);
+
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
 
@@ -834,8 +877,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       ClientConfig clientConfig;
       CommConfig clientCommConfig;
-      bool success = InitializeSbftConfiguration(
-          config, nodeConfig, &clientCommConfig, &clientConfig, i, nullptr);
+      bool success =
+          InitializeSbftConfiguration(config, nodeConfig, &clientCommConfig,
+                                      &clientConfig, i, nullptr, false);
       assert(success);
 
       bft::communication::ICommunication *comm = nullptr;
@@ -869,10 +913,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     if (timePusher) {
       timePusher->Start(&pool);
     }
-
-    signal(SIGINT, signalHandler);
-    signal(SIGABRT, signalHandler);
-    signal(SIGTERM, signalHandler);
 
     // API server
 
@@ -961,6 +1001,60 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   return 0;
 }
 
+int run_ro_service(ConcordConfiguration &config,
+                   ConcordConfiguration &nodeConfig, Logger &logger) {
+  auto [prometheus_registry, prometheus_for_concordbft, bft_stat_collector] =
+      initialise_prometheus(nodeConfig, logger);
+
+  try {
+    CommConfig commConfig;
+    StatusAggregator sag;
+    commConfig.statusCallback = sag.get_update_connectivity_fn();
+    ReplicaConfig replicaConfig;
+
+    bool success =
+        InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
+                                    &replicaConfig, true /*isReadOnly*/);
+    assert(success);
+
+    LOG_INFO(logger,
+             "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
+                                       << " and C=" << replicaConfig.cVal);
+
+    bft::communication::ICommunication *icomm =
+        initialise_communication(commConfig);
+
+    std::shared_ptr<concordMetrics::Aggregator> bft_metrics_aggregator =
+        initialise_bft_metrics_aggregator(nodeConfig, logger,
+                                          prometheus_for_concordbft);
+
+    ReplicaImp replica(
+        icomm, replicaConfig,
+        create_storage_factory(nodeConfig, logger, replicaConfig.isReadOnly),
+        bft_metrics_aggregator);
+
+    // replica.set_command_handler(kvb_commands_handler.get());
+    replica.start();
+
+    while (!stop_ro_replica) {
+      // replica.start() is not blocking so we have to busy loop here
+      pause();
+    }
+
+    if (bft_metrics_server) {
+      bft_metrics_server->Stop();
+    }
+
+    replica.stop();
+
+  } catch (std::exception &ex) {
+    LOG_FATAL(logger, ex.what());
+    return -1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   bool tracingInitialized = false;
   int result = 0;
@@ -986,7 +1080,10 @@ int main(int argc, char **argv) {
     // current running Concord node because that is needed frequently and we do
     // not want to have to determine the current node every time.
     auto [nodeIndex, isReadOnly] = detectLocalNode(config);
-    ConcordConfiguration &nodeConfig = config.subscope("node", nodeIndex);
+
+    ConcordConfiguration &nodeConfig =
+        isReadOnly ? config.subscope("ro_node", nodeIndex)
+                   : config.subscope("node", nodeIndex);
 
     // Initialize logger
     LOG_CONFIGURE_AND_WATCH(nodeConfig.getValue<std::string>("logger_config"),
@@ -1001,7 +1098,21 @@ int main(int argc, char **argv) {
     tracingInitialized = true;
     // actually run the service - when this call returns, the
     // service has shutdown
-    result = run_service(config, nodeConfig, mainLogger);
+    if (isReadOnly) {
+      LOG_INFO(mainLogger, "Starting read-only replica with id " << nodeIndex);
+    } else {
+      LOG_INFO(mainLogger, "Starting committer replica with id " << nodeIndex);
+    }
+
+    signal(SIGINT, signalHandler);
+    signal(SIGABRT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
+    if (isReadOnly) {
+      result = run_ro_service(config, nodeConfig, mainLogger);
+    } else {
+      result = run_service(config, nodeConfig, mainLogger);
+    }
 
     LOG_INFO(mainLogger, "VMware Project concord halting");
   } catch (const std::exception &ex) {
