@@ -58,7 +58,9 @@ RUN git clone https://github.com/google/googletest.git && \
     cd /googletest && \
     git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
 WORKDIR /googletest/_build
-RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j4
+RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j4 && make install && \
+    cd / && \
+    rm -r googletest
 
 WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git && \
