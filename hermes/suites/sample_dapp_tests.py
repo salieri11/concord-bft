@@ -27,7 +27,7 @@ import pytest
 import util.hermes_logging
 import collections
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxConnection,fxBlockchain
+from fixtures.common_fixtures import fxProduct, fxConnection,fxBlockchain
 from suites.case import describe
 from util.auth import tokens
 

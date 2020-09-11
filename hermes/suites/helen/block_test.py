@@ -5,7 +5,7 @@
 import pytest
 from suites.case import describe, passed, failed
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 import util.blockchain.eth
 import util.helen.block
 import util.numbers_strings

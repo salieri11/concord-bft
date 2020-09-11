@@ -10,7 +10,7 @@ import re
 from urllib.parse import urlparse
 
 # These are fixtures used by tests directly.
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
+from fixtures.common_fixtures import fxBlockchain, fxConnection   
 
 # These are fixtures that the fixtures above depend on.  The way pytest works,
 # these must be imported into a test file even though they are in the same

@@ -14,7 +14,7 @@ import util.json_helper
 import util.hermes_logging
 
 from util.blockchain import eth as eth_helper
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
 from util.auth import getAccessToken
 from web3 import Web3, HTTPProvider
 from suites.case import describe

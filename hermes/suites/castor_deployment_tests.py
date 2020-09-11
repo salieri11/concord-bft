@@ -52,18 +52,18 @@ def match_pattern(lines, pattern):
     return matches
 
 
-def _populateDescriptorFiles(hermes_settings):
+def _populateDescriptorFiles(fxHermesRunSettings):
     # Read hermes configs for infrastructure
-    url = hermes_settings['zone_config']['zones']['onprem'][0]['api']['address']
-    userName = hermes_settings['zone_config']['infra']['SDDC1']['username']
-    password = hermes_settings['zone_config']['infra']['SDDC1']['password']
-    resource = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['resourcePool']
-    storage = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['datastore']
-    folder = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['folder']
-    networkName = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['name']
-    gateway = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['gateway']
-    subnet = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['subnet']
-    nameServers = hermes_settings['zone_config']['zones']['onprem'][0]['vsphere']['network']['nameServers']
+    url = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['api']['address']
+    userName = fxHermesRunSettings['hermesZoneConfig']['infra']['SDDC1']['username']
+    password = fxHermesRunSettings['hermesZoneConfig']['infra']['SDDC1']['password']
+    resource = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['resourcePool']
+    storage = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['datastore']
+    folder = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['folder']
+    networkName = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['network']['name']
+    gateway = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['network']['gateway']
+    subnet = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['network']['subnet']
+    nameServers = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['network']['nameServers']
 
     # Read the infra descriptor file
     infraFilePath = os.path.join(_CASTOR_DESCRIPTORS_LOC_VALUE, _CASTOR_INFRA_DESCRIPTOR_FILE)
@@ -100,15 +100,15 @@ def downCastorDockerCompose(dockerComposeFiles):
 
 
 @pytest.fixture
-def product(hermes_settings):
-    cmdLineArgs = hermes_settings["cmdline_args"]
-    userConfig = hermes_settings["user_config"]
+def product(fxHermesRunSettings):
+    cmdLineArgs = fxHermesRunSettings['hermesCmdlineArgs']
+    userConfig = fxHermesRunSettings['hermesUserConfig']
     product = Product(cmdLineArgs, userConfig)
     return product
 
 
 @pytest.fixture
-def upCastorDockerCompose(hermes_settings, product):
+def upCastorDockerCompose(fxHermesRunSettings, product):
     """
     Launch docker-compose-castor.yml, and wait for it to finish.
     The whole test is predicated on the successful launch and completion of the castor docker process:
@@ -117,10 +117,10 @@ def upCastorDockerCompose(hermes_settings, product):
 
     :return success or failure of launching the compose file:
     """
-    _populateDescriptorFiles(hermes_settings);
+    _populateDescriptorFiles(fxHermesRunSettings)
 
-    dockerComposeFiles = hermes_settings["cmdline_args"].dockerComposeFile
-    castorOutputDir = hermes_settings["log_dir"]
+    dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
+    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     os.makedirs(castorOutputDir, exist_ok=True)
 
     atexit.register(downCastorDockerCompose, dockerComposeFiles)
@@ -166,14 +166,14 @@ def upCastorDockerCompose(hermes_settings, product):
 
 
 @describe()
-def test_castor_deployment(upCastorDockerCompose, hermes_settings):
+def test_castor_deployment(upCastorDockerCompose, fxHermesRunSettings):
     """
         The startup/shutdown of the Castor containers is verified by the upCastorDockerCompose fixture. If that
         fails, there is no point in continuing onward with this test. The test itself only verifies from the output file
         that the clients and committers specified in the descriptors files were provisioned successfully.
     """
     log.info("Starting test test_castor_deployment")
-    castorOutputDir = hermes_settings["log_dir"]
+    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     files = os.listdir(castorOutputDir)
 
     filePatternStr = _CONSORTIUM_NAME + "*"

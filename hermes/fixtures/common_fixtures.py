@@ -514,27 +514,6 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
 
 
 @pytest.fixture(scope="module")
-@describe("fixture; run settings")
-def fxHermesRunSettings(hermes_settings):
-    '''
-    Returns a dictionary of information about the Hermes run - various
-    pieces of Hermes info that has been passed to PyTest via custom PyTest
-    command line parameters.
-    cmdlineArgs: The argparse object containing arguments passed to Hermes.
-    userConfig: The dictionary containing the contents of user_config.json.
-    logDir: The log directory path, as a string.
-    supportBundleFile: path to support bundle file
-    '''
-    return {
-            "hermesCmdlineArgs": hermes_settings["cmdline_args"],
-            "hermesUserConfig": hermes_settings["user_config"],
-            "hermesZoneConfig": hermes_settings["zone_config"],
-            "hermesTestLogDir": hermes_settings["log_dir"],
-            "supportBundleFile": hermes_settings["support_bundle_file"]
-    }
-
-
-@pytest.fixture(scope="module")
 @describe("fixture; product")
 def fxProduct(request, fxHermesRunSettings):
    '''

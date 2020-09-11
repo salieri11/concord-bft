@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 from suites.case import describe, passed, failed
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 import util.auth
 import util.helen.validators
 

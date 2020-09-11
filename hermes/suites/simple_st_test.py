@@ -19,7 +19,7 @@
 
 import pytest
 from suites.case import describe, passed, failed
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 from util.blockchain import eth as eth_helper
 from util import auth, csp, helper, infra, hermes_logging, numbers_strings, blockchain_ops, node_interruption_helper
 import math
@@ -55,7 +55,7 @@ RequestConnection = collections.namedtuple("RequestConnection", "request, rpc")
 
 @pytest.fixture
 @describe("fixture; Initial Setup")
-def fxSstSetup(request, hermes_settings):
+def fxSstSetup(request):
      return SstSetupFixture(to="0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019", 
                             funcPref="0xe4b421f2000000000000000000000000000000000000000000000000000000000000",
                             gas="100000000",

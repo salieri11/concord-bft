@@ -25,7 +25,7 @@ import util.daml.daml_helper as daml_helper
 import util.helper as helper
 from util.thin_replica.trutil import ThinReplica
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxProduct
 
 LOG = logging.getLogger("main")
 

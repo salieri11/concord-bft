@@ -39,7 +39,7 @@ from util.tee.tutil import Tee
 from util.thin_replica.trutil import ThinReplica
 from suites.thin_replica_server_tests import get_newest_block_id
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxProduct
 
 import tee_pb2 as tproto
 import util.hermes_logging  
