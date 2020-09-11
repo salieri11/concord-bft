@@ -1,24 +1,20 @@
 #########################################################################
-# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests the special corner case scenarios which where discovered while
 # running ethereum transactions on concord
 #########################################################################
-import argparse
 import collections
 import os
 import re
-import random
 import pytest
-import util.json_helper
 import util.hermes_logging
-
-from util.blockchain import eth as eth_helper
 from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
-from util.auth import getAccessToken
-from web3 import Web3, HTTPProvider
+from util.blockchain import eth as bc_eth_helper
+from util import eth_helper
 from suites.case import describe
 from rpc.rpc_call import RPC
+
 log = util.hermes_logging.getMainLogger()
 
 pytest.ethereumMode = None
@@ -56,13 +52,10 @@ CONTRACTS_DIR = "resources/contracts"
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
-def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
+def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     args = fxHermesRunSettings["hermesCmdlineArgs"]
-    if args.ethrpcApiUrl:
-        ethrpcApiUrl = args.ethrpcApiUrl
-    else:
-        ethrpcApiUrl = eth_helper.getEthrpcApiUrl(
-            fxConnection.request, fxBlockchain.blockchainId)
+    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(fxConnection.request,
+                                                                                             fxBlockchain.blockchainId)
     pytest.ethereumMode = args.ethereumMode
 
     testName = fxConnection.request.testName
@@ -76,46 +69,6 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
               userConfig)
     return LocalSetupFixture(rpc=rpc, productMode=not args.ethereumMode, ethrpcApiUrl=ethrpcApiUrl,
                              product=fxProduct.product)
-
-
-def _getWeb3Instance(localSetup):
-    '''
-    Connect the web3 framework to an ethrpc node
-    '''
-    return Web3(HTTPProvider(
-        localSetup.ethrpcApiUrl,
-        request_kwargs={
-                'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
-                'verify': False,
-                'timeout': 60
-                }
-    ))
-
-
-def _loadContract(name):
-    '''
-    Return contract object to deploy and run queries on.
-
-    Note: We assume that there is only one contract per file.
-
-    Technically, the solidity file isn't required but should be there anyways
-    for documentation.
-    '''
-    sol_path = "{}.sol".format(os.path.join(CONTRACTS_DIR, name))
-    abi_path = "{}.abi".format(os.path.join(CONTRACTS_DIR, name))
-    hex_path = "{}.hex".format(os.path.join(CONTRACTS_DIR, name))
-
-    assert os.path.isfile(sol_path)
-    assert os.path.isfile(abi_path)
-    assert os.path.isfile(hex_path)
-
-    with open(abi_path, "r") as f:
-        abi = f.read()
-
-    with open(hex_path, "r") as f:
-        hex_str = f.read()
-
-    return (abi.strip(), hex_str.strip())
 
 
 # TODO - This will work once the invocation is direct and not through main.py file
@@ -296,8 +249,8 @@ def test_large_transactions(fxLocalSetup):
         # Get Web3 instance and load and deploy StringStorage contract.
         # Please see hermes/resources/contracts/StringStorage.sol for details
         # about this contract.
-        w3 = _getWeb3Instance(fxLocalSetup)
-        abi, bin = _loadContract("StringStorage")
+        w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+        abi, bin = eth_helper.loadContract("StringStorage")
         contract = w3.eth.contract(abi=abi, bytecode=bin)
 
         # Note that, in this test, we specify explicit values here for every
