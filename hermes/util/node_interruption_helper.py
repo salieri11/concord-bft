@@ -4,6 +4,7 @@
 
 # Helper file with common utility methods for node interruption and recovery
 import os
+import threading
 from random import randrange
 import sys
 import tempfile
@@ -22,7 +23,7 @@ else:
    import util.blockchain_ops as blockchain_ops
 
 log = hermes_logging_util.getMainLogger()
-
+interrupted_nodes = []
 # Node interrupt & recovery modes
 NODE_INTERRUPT = "Interrupt node"
 NODE_RECOVER = "Recover node"
@@ -48,20 +49,22 @@ CONTAINERS_TO_CRASH = "CONTAINERS_TO_CRASH"
 INDEX_DB_CONTAINER_NAME = "daml_index_db"
 CONTAINERS_TO_DISCONNECT = "CONTAINERS_TO_DISCONNECT"
 NETWORK_DISCONNECT_LEVEL = "NETWORK_DISCONNECT_LEVEL"
+RUN_TXNS_IN_BACKGROUND = "RUN_TXNS_IN_BACKGROUND"
+
 
 def verify_node_interruption_testing_readiness(fxHermesRunSettings):
    '''
    Verify readiness for node interruption testing
    :param fxHermesRunSettings: hermes run settings (fixture)
    '''
-   for ip,vm_handle in fxHermesRunSettings.vm_handles.items():
+   for ip, vm_handle in fxHermesRunSettings.vm_handles.items():
       if vm_handle is None:
          log.error("")
          log.error("**** Failed to fetch VM handles; aborting Run! ****")
          sys.exit(1)
 
 def get_nodes_available_for_interruption(fxBlockchain,
-                                              node_interruption_details):
+                                         node_interruption_details):
    '''
    Return a list of committer nodes allowed for interrupting
    :param fxBlockchain: blockchain fixture
@@ -74,9 +77,9 @@ def get_nodes_available_for_interruption(fxBlockchain,
       if node_interruption_details[SKIP_MASTER_REPLICA]:
          master_replica = blockchain_ops.fetch_master_replica(fxBlockchain)
          nodes_available_for_interruption = [ip for ip in
-                                                  blockchain_ops.committers_of(
-                                                     fxBlockchain) if
-                                                  ip != master_replica]
+                                             blockchain_ops.committers_of(
+                                                fxBlockchain) if
+                                             ip != master_replica]
       else:
          nodes_available_for_interruption = blockchain_ops.committers_of(
             fxBlockchain)
@@ -97,8 +100,8 @@ def get_f_count(fxBlockchain):
    return blockchain_ops.get_f_count(fxBlockchain)
 
 def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
-                                      node_interruption_details,
-                                      last_interrupted_node_index=None):
+                                   node_interruption_details,
+                                   last_interrupted_node_index=None):
    '''
    Return list of nodes for this iteration of node interruption
    :param nodes_available_for_interruption: nodes available for interruption
@@ -113,7 +116,7 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
    start_node_index = (last_interrupted_node_index + 1) % no_of_available_committers_for_interruption
    nodes_to_interrupt = []
    for j in range(node_interruption_details[NO_OF_NODES_TO_INTERRUPT]):
-      node_index_to_interrupt = start_node_index+j
+      node_index_to_interrupt = start_node_index + j
       if node_index_to_interrupt >= no_of_available_committers_for_interruption:
          node_index_to_interrupt = node_index_to_interrupt - no_of_available_committers_for_interruption
       log.debug(nodes_available_for_interruption[node_index_to_interrupt])
@@ -124,7 +127,6 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
 
 def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                                            node_interruption_details,
-                                           interrupted_nodes=[],
                                            duration_to_run_transaction=0,
                                            mode=None):
    '''
@@ -132,11 +134,12 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
    :param fxBlockchain: blockchain fixture
    :param results_dir: results dir
    :param node_interruption_details: node interruption details (dict)
-   :param interrupted_nodes: list of interrupted nodes
    :param duration_to_run_transaction: duration to run transactions (in minutes)
    :param mode: Interruption/recovery mode
    :return: True if blockchain is healthy and ran tests, else False, & crashed node count
    '''
+   global interrupted_nodes
+   run_txn_in_background = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS].get(RUN_TXNS_IN_BACKGROUND)
    log.info("")
    log.info("** Verifying health of all nodes...")
    crashed_committers, crashed_participants = get_all_crashed_nodes(
@@ -156,47 +159,31 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
          list_of_participant_nodes_to_run_txns = crashed_participants
       log.info("")
-      if list_of_participant_nodes_to_run_txns:
-         start_time = datetime.datetime.now()
-         log.info("** Run DAML tests...")
-         daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
+
+      if run_txn_in_background:
+         status = True
+      else:
+         if list_of_participant_nodes_to_run_txns:
+            start_time = datetime.datetime.now()
+            log.info("** Run DAML tests...")
+            daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                    "daml_tests")
-         while True:
-            status = helper.run_daml_sanity(
-               list_of_participant_nodes_to_run_txns,
-               daml_tests_results_dir,
-               run_all_tests=False, verbose=False)
-            if mode == NODE_INTERRUPT and node_interruption_details[NODE_INTERRUPTION_TYPE] \
-                  in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
+            while True:
+               status = run_daml_sanity(fxBlockchain, daml_tests_results_dir,
+                                        list_of_participant_nodes_to_run_txns=list_of_participant_nodes_to_run_txns,
+                                        mode=mode,
+                                        node_interruption_type=node_interruption_details[NODE_INTERRUPTION_TYPE])
                if not status:
-                  log.info("DAML transactions failed as expected (db failure simulated)")
-                  status = True
+                  break
+               if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
+                  break
                else:
-                  log.error("DAML transactions succeeded, whereas db has read/write error")
-                  status = False
-            if not status:
-               log.info(
-                  "Collect support logs ({})...".format(daml_tests_results_dir))
-               helper.create_concord_support_bundle(
-                  [ip for ip in blockchain_ops.committers_of(fxBlockchain) if
-                   ip not in interrupted_nodes], helper.TYPE_DAML_COMMITTER,
-                  daml_tests_results_dir,
-                  verbose=False)
-               helper.create_concord_support_bundle(
-                  blockchain_ops.participants_of(fxBlockchain),
-                  helper.TYPE_DAML_PARTICIPANT, daml_tests_results_dir,
-                  verbose=False)
-               break
-            if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
-               break
-            else:
-               elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60), 1)
-               log.info(
-                  "Repeating Daml transactions ({} / {} mins)...".format(elapsed_time, duration_to_run_transaction))
+                  elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60), 1)
+                  log.info(
+                     "Repeating Daml transactions ({} / {} mins)...".format(elapsed_time, duration_to_run_transaction))
          else:
             log.info("** Skipping DAML test as all participant nodes are interrupted")
             status = True
-
 
    return status, crashed_committer_count
 
@@ -259,7 +246,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type,
 
    if len(interrupted_nodes) > 0:
       log.info("  Interrupted '{}' nodes: {}".format(interrupted_node_type,
-                                                   interrupted_nodes))
+                                                     interrupted_nodes))
    log.info("  Total no. of crashed committer nodes: {}".format(
       total_no_of_committers_crashed))
    log.info("  Total no. of crashed participant nodes: {}".format(
@@ -342,7 +329,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       max_timeout = 120  # seconds
       node_interruption_completed = False
       while vm_handle["entity"].runtime.powerState != EXPECTED_POWER_STATE or \
-         not node_interruption_completed:
+            not node_interruption_completed:
          if mode == NODE_INTERRUPT:
             if vm_handle["entity"].guest.ipAddress is None:
                node_interruption_completed = True
@@ -361,7 +348,8 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_INTERRUPT:
          if custom_interruption_params[CONTAINERS_TO_CRASH] == ALL_CONTAINERS:
             containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"] \
-               ["modelService"]["defaults"]["deployment_components"][node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
+               ["modelService"]["defaults"]["deployment_components"][
+               node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
          else:
             containers = custom_interruption_params[CONTAINERS_TO_CRASH]
 
@@ -412,7 +400,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_INTERRUPT:
          log.info("setting no access (000) on {}".format(index_db_location))
          command_for_index_db_permission_status = \
-            "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\""\
+            "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\"" \
                .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
          if index_db_status == "---------\r\n":
@@ -424,7 +412,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
       if mode == NODE_RECOVER:
          log.info("reverting access (700) on {}".format(index_db_location))
          command_for_index_db_permission_status = \
-            "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\""\
+            "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\"" \
                .format(index_db_location, index_db_location)
          index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
          if index_db_status == "rwx------\r\n":
@@ -502,13 +490,15 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
    return True
 
 def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
-                            nodes_to_interrupt, node_interruption_details):
+                            nodes_to_interrupt, node_interruption_details,
+                            daml_txn_result_queue=None):
    '''
    Util to trigger crash & recovery operations
    :param fxBlockchain: blockchain
    :param fxHermesRunSettings: hermes run settings (fixture)
    :param nodes_to_interrupt: node to interrupt
    :param node_interruption_details: interruptions/recovery details
+   :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
    :return: success status
    '''
    custom_interruption_params = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS]
@@ -528,14 +518,14 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       fxHermesRunSettings["hermesTestLogDir"],
       results_dir_name)
    f_count = blockchain_ops.get_f_count(fxBlockchain)
+   global interrupted_nodes
    interrupted_nodes = []
    result = False
    for node in nodes_to_interrupt:
       if not interrupted_nodes:
          result, crashed_committer_count = check_node_health_and_run_sanity_check(
             fxBlockchain, results_dir,
-            node_interruption_details,
-            interrupted_nodes=interrupted_nodes)
+            node_interruption_details)
 
       log.info("")
       if crashed_committer_count < f_count:
@@ -548,7 +538,6 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          result, crashed_committer_count = check_node_health_and_run_sanity_check(
             fxBlockchain, results_dir,
             node_interruption_details,
-            interrupted_nodes=interrupted_nodes,
             mode=NODE_INTERRUPT)
       else:
          log.error("")
@@ -564,21 +553,116 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
       result, crashed_committer_count = check_node_health_and_run_sanity_check(
          fxBlockchain, results_dir,
          node_interruption_details,
-         interrupted_nodes=interrupted_nodes,
          duration_to_run_transaction=node_offline_time)
 
       for node in nodes_to_interrupt:
          log.info("")
          log.info("** Restoring node: {}...".format(node))
          perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                           node_interruption_details,
-                                           mode=NODE_RECOVER)
+                                              node_interruption_details,
+                                              mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
-      #Run Daml test for the period of time_remaining_before_next_interruption
+   # Run Daml test for the period of time_remaining_before_next_interruption
    result, crashed_committer_count = check_node_health_and_run_sanity_check(
       fxBlockchain, results_dir,
       node_interruption_details,
-      interrupted_nodes=interrupted_nodes,
       duration_to_run_transaction=time_remaining_before_next_interruption)
 
-   return result
+   status = result
+   if daml_txn_result_queue and not daml_txn_result_queue.empty():
+      txn_run_status = daml_txn_result_queue.queue[-1]
+      if not txn_run_status:
+         status = txn_run_status
+   return status
+
+def run_daml_sanity(fxBlockchain, daml_tests_results_dir,
+                    daml_txn_result_queue=None,
+                    list_of_participant_nodes_to_run_txns=[],
+                    mode=None, node_interruption_type=None):
+   '''
+   Util to run daml txns and collect support logs
+   :param fxBlockchain: blockchain
+   :param daml_tests_results_dir: daml tests result directory
+   :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
+   :param list_of_participant_nodes_to_run_txns: list of participant nodes to run daml txns
+   :param mode: mode of node interruption
+   :param node_interruption_type: Type of node interruption
+   :return: success status
+   '''
+   global interrupted_nodes
+   if not list_of_participant_nodes_to_run_txns:
+      list_of_participant_nodes_to_run_txns = blockchain_ops.participants_of(fxBlockchain)
+
+   status = helper.run_daml_sanity(
+      list_of_participant_nodes_to_run_txns,
+      daml_tests_results_dir,
+      run_all_tests=False, verbose=False)
+   if daml_txn_result_queue:
+      daml_txn_result_queue.put(status)
+   if mode == NODE_INTERRUPT and node_interruption_type \
+         in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
+      if not status:
+         log.info("DAML transactions failed as expected (db failure simulated)")
+         status = True
+      else:
+         log.error("DAML transactions succeeded, whereas db has read/write error")
+         status = False
+   if not status:
+      log.info(
+         "Collect support logs ({})...".format(daml_tests_results_dir))
+      helper.create_concord_support_bundle(
+         [ip for ip in blockchain_ops.committers_of(fxBlockchain) if
+          ip not in interrupted_nodes], helper.TYPE_DAML_COMMITTER,
+         daml_tests_results_dir,
+         verbose=False)
+      helper.create_concord_support_bundle(
+         blockchain_ops.participants_of(fxBlockchain),
+         helper.TYPE_DAML_PARTICIPANT, daml_tests_results_dir,
+         verbose=False)
+   return status
+
+def run_daml_sanity_in_background_loop(fxBlockchain, daml_txn_result_queue, daml_tests_results_dir):
+   '''
+   Util to run daml txns in continuously in loop concurrently with node interruption & recovery operation
+   :param fxBlockchain: blockchain
+   :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
+   :param daml_tests_results_dir: daml tests result directory
+   '''
+   t = threading.currentThread()
+   # While True run daml txns in concurrency with node interruption.
+   while getattr(t, "do_run", True):
+      log.info("")
+      log.info("** Running DAML tests concurrently with node interruption operation in background")
+      status = run_daml_sanity(fxBlockchain, daml_tests_results_dir,
+                               daml_txn_result_queue=daml_txn_result_queue)
+      if not status:
+         log.info("")
+         log.info("** DAML test FAILED in background")
+         break
+      log.info("")
+      log.info("** DAML test PASSED in background")
+
+def start_daml_txn_background_thread(fxBlockchain, daml_txn_result_queue,
+                                     node_interruption_details, fxHermesRunSettings):
+   '''
+      Util to trigger daml transactions in background
+      :param fxBlockchain: blockchain
+      :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
+      :param node_interruption_details: interruptions/recovery detail
+      :param fxHermesRunSettings: hermes run settings (fixture)
+      :return: reference of background thread to main thread
+      '''
+   results_dir_name = ''.join(
+      e for e in node_interruption_details[NODE_INTERRUPTION_TYPE] if e.isalnum())
+   results_dir = helper.create_results_sub_dir(
+      fxHermesRunSettings["hermesTestLogDir"],
+      results_dir_name)
+   daml_tests_results_dir = helper.create_results_sub_dir(results_dir, "daml_tests")
+   daml_txn_background_thread = threading.Thread(target=run_daml_sanity_in_background_loop,
+                                                 args=(fxBlockchain, daml_txn_result_queue, daml_tests_results_dir))
+
+   daml_txn_background_thread.start()
+   log.info("")
+   log.info("***sleeping for 5 seconds after running daml tests in  background")
+   time.sleep(5)
+   return daml_txn_background_thread
