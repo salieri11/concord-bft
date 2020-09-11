@@ -159,10 +159,7 @@ memleak_concord() {
 
 ui() {
     info "Build UI..."
-    # ! temp pivot to pulling (See BC-4402)
-    # docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
-    docker_pull athena-docker-local.artifactory.eng.vmware.com/ui "0.0.0.2116" # latest good UI image
-    docker tag athena-docker-local.artifactory.eng.vmware.com/ui:0.0.0.2116 "${ui_repo}:${ui_tag}"
+    docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
 }
 
 fluentd() {
