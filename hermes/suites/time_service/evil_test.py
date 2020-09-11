@@ -22,7 +22,7 @@ import time
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxProduct
 from suites import test_suite
 from suites.case import describe, passed, failed
 from rest.request import Request

@@ -20,7 +20,7 @@ import collections
 import util.json_helper
 import util.hermes_logging
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
 from suites.case import describe
 from rest.request import Request
 from util.blockchain import eth as eth_helper

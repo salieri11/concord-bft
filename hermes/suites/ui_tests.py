@@ -14,7 +14,7 @@ import collections
 import util.json_helper
 import util.hermes_logging
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxConnection, fxBlockchain
+from fixtures.common_fixtures import fxProduct, fxConnection, fxBlockchain
 from suites.case import describe
 from xvfbwrapper import Xvfb
 

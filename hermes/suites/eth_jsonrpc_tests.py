@@ -10,7 +10,7 @@ import os
 import random
 import re
 import pytest
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
 from util.blockchain import eth as eth_helper
 from suites.case import describe
 import util.helper

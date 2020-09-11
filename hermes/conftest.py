@@ -124,7 +124,7 @@ def removeSkippedTests(testList, ethereumTestRoot):
 
 @pytest.fixture(scope="module")
 @describe("fixture; run settings")
-def hermes_settings(request):
+def fxHermesRunSettings(request):
     """
     Given a PyTest fixture's request object, returns a dictionary of various
     pieces of Hermes info that has been passed to PyTest via custom PyTest
@@ -143,9 +143,9 @@ def hermes_settings(request):
     support_bundle_file = request.config.getoption("--supportBundleFile")
 
     return {
-        "cmdline_args": cmdline_args,
-        "user_config": user_config,
-        "zone_config": zone_config,
-        "log_dir": log_dir,
-        "support_bundle_file": support_bundle_file
+            "hermesCmdlineArgs": cmdline_args,
+            "hermesUserConfig": user_config,
+            "hermesZoneConfig": zone_config,
+            "hermesTestLogDir": log_dir,
+            "supportBundleFile": support_bundle_file
     }

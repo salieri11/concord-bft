@@ -32,7 +32,7 @@ from suites.case import describe
 from rpc.rpc_call import RPC
 import util.json_helper
 import util.numbers_strings
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxConnection
+from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
 
 import util.hermes_logging
 from util.blockchain import eth as eth_helper

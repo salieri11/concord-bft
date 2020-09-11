@@ -9,7 +9,7 @@ import time
 from suites.case import describe, passed, failed
 from rest.request import Request
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 import util.helper
 import util.product
 

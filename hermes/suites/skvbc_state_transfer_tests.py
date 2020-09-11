@@ -31,7 +31,7 @@ import trio
 from bft import with_trio
 from test_skvbc import SkvbcTest
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxProduct
 from suites.case import describe
 import hermes_util.helper as helper
 from hermes_util.apollo_helper import with_timeout

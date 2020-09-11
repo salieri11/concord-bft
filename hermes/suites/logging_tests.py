@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from util.daml import daml_helper
 from util.auth import getAccessToken
 from fixtures.common_fixtures import (
-    fxBlockchain, fxConnection, fxHermesRunSettings,
+    fxBlockchain, fxConnection,
     fxInitializeOrgs, fxProduct)
 
 import util.hermes_logging

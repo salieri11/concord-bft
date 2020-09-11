@@ -20,7 +20,7 @@ import pytest
 import util.helper as helper
 import util.node_interruption_helper as intr_helper
 from suites.case import describe
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxBlockchain, fxNodeInterruption
+from fixtures.common_fixtures import fxProduct, fxBlockchain, fxNodeInterruption
 import util.hermes_logging
 
 log = util.hermes_logging.getMainLogger()

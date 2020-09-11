@@ -37,7 +37,7 @@ from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 from test_skvbc_checkpoints import SkvbcCheckpointTest
 
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxProduct
 from suites.case import describe
 import hermes_util.helper as helper
 from hermes_util.apollo_helper import with_timeout

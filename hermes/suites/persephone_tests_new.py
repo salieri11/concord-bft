@@ -43,11 +43,11 @@ class DeploymentParams:
 
 @pytest.fixture
 @describe("fixture; provisioning service")
-def ps_setup(request, hermes_settings):
+def ps_setup(request, fxHermesRunSettings):
     """
     Sets up provisioning service docker instance
     :param request: Default Pytest request param
-    :param hermes_settings: hermes_settings fixture from conftest.py
+    :param fxHermesRunSettings: fxHermesRunSettings fixture from conftest.py
     :return: None
     """
     log.info("Provisioning Service setup fixture for {}".format(request.node.name))
@@ -56,8 +56,8 @@ def ps_setup(request, hermes_settings):
     session_ids_to_retain.clear()
 
     # Parameters
-    cmdline_args = hermes_settings["cmdline_args"]
-    user_config = hermes_settings["user_config"]
+    cmdline_args = fxHermesRunSettings["hermesCmdlineArgs"]
+    user_config = fxHermesRunSettings["hermesUserConfig"]
     try:
         # Update provisioning service application properties file
         update_provisioning_service_application_properties(cmdline_args)
@@ -76,16 +76,16 @@ def ps_setup(request, hermes_settings):
 
 @pytest.fixture
 @describe("fixture; provisioning service helper")
-def ps_helper(request, hermes_settings, ps_setup):
+def ps_helper(request, fxHermesRunSettings, ps_setup):
     """
     Returns instance of ProvisioningServiceNewRPCHelper
     :param request: Default Pytest request param
-    :param hermes_settings: hermes_settings fixture from conftest.py
+    :param fxHermesRunSettings: fxHermesRunSettings fixture from conftest.py
     :param ps_setup: Fixture that launches provisioning service. Don't need the results from it, but need to start it.
     :return: Instance of ProvisioningServiceNewRPCHelper
     """
     log.info("Provisioning Service gRPC Helper fixture for {}".format(request.node.name))
-    args = hermes_settings["cmdline_args"]
+    args = fxHermesRunSettings["hermesCmdlineArgs"]
     try:
         return ProvisioningServiceNewRPCHelper(args)
     except Exception as e:
@@ -95,24 +95,24 @@ def ps_helper(request, hermes_settings, ps_setup):
 
 @pytest.fixture
 @describe("fixture; file_root path")
-def file_root(request, hermes_settings):
+def file_root(request, fxHermesRunSettings):
     """
     Sets the file_root path for a test case
     :param request: Default Pytest request param
-    :param hermes_settings: hermes_settings fixture from conftest.py
+    :param fxHermesRunSettings: fxHermesRunSettings fixture from conftest.py
     :return: file_root directory path
     """
-    test_log_dir = os.path.join(hermes_settings["cmdline_args"].resultsDir, "test_logs")
+    test_log_dir = os.path.join(fxHermesRunSettings["hermesCmdlineArgs"].resultsDir, "test_logs")
     file_root = os.path.join(test_log_dir, request.node.name)
     os.makedirs(file_root, exist_ok=True)
     # Set fileRoot in cmdline args to file_root, so that it can be used downstream in Persephone rpc calls
-    hermes_settings["cmdline_args"].fileRoot = file_root
+    fxHermesRunSettings["hermesCmdlineArgs"].fileRoot = file_root
     log.debug("File root for test: {}".format(file_root))
     return file_root
 
 
 @pytest.fixture
-def teardown(hermes_settings, ps_helper):
+def teardown(fxHermesRunSettings, ps_helper):
     """
     This fixture is used for cleanup activities, which is why it yields a dummy return value.
     It needs to be a parameter in every test case.
@@ -120,12 +120,12 @@ def teardown(hermes_settings, ps_helper):
     """
     yield True  # yield dummy value to run teardown code below after test case is completed
     log.info("Starting teardown")
-    cmdline_args = hermes_settings["cmdline_args"]
-    deprovision(hermes_settings, ps_helper)
+    cmdline_args = fxHermesRunSettings["hermesCmdlineArgs"]
+    deprovision(fxHermesRunSettings, ps_helper)
     # Reset provisioning service application properties file
     update_provisioning_service_application_properties(cmdline_args, mode="RESET")
     print_deployment_summary(ps_helper)
-    save_nodes_info_to_file(hermes_settings["cmdline_args"].fileRoot, ps_helper)
+    save_nodes_info_to_file(fxHermesRunSettings["hermesCmdlineArgs"].fileRoot, ps_helper)
 
 
 def create_deployment(ps_helper, deployment_params, zone_config):
@@ -171,11 +171,11 @@ def create_deployment(ps_helper, deployment_params, zone_config):
     return deployment_session_id, deployment_stream_events
 
 
-def post_deployment(hermes_settings, ps_helper, deployment_session_id, deployment_stream_events, deployment_params,
+def post_deployment(fxHermesRunSettings, ps_helper, deployment_session_id, deployment_stream_events, deployment_params,
                     file_root):
     """
     Post deployment validations
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :param deployment_session_id: Deployment session id
     :param deployment_stream_events: Deployment session stream events
@@ -204,41 +204,41 @@ def post_deployment(hermes_settings, ps_helper, deployment_session_id, deploymen
             # Get Node Info list
             node_info_list = get_node_info_list(execution_events_json, blockchain_type)
             # Save details to infra and for adding information to deployment_info
-            save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, 
+            save_details_to_infra(fxHermesRunSettings, ps_helper, deployment_session_id, node_info_list, 
                                   consortium_id, blockchain_id, blockchain_type, zone_type, file_root)
             if len(node_info_list) == num_nodes:
                 # Verify containers running on each node
-                status, error_msg = verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type)
+                status, error_msg = verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_type, zone_type)
                 if not status:
-                    handle_exception(error_msg, hermes_settings, ps_helper, deployment_session_id)
+                    handle_exception(error_msg, fxHermesRunSettings, ps_helper, deployment_session_id)
             else:
                 msg = "Received {} number of node information in stream events. Expected {}"\
                     .format(len(node_info_list), num_nodes)
-                handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
+                handle_exception(msg, fxHermesRunSettings, ps_helper, deployment_session_id)
 
         else:
             msg = "Stream session events validation failed"
-            handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
+            handle_exception(msg, fxHermesRunSettings, ps_helper, deployment_session_id)
 
     else:
         msg = "Deployment session id or stream session events unavailable"
-        handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
+        handle_exception(msg, fxHermesRunSettings, ps_helper, deployment_session_id)
 
     return node_info_list
 
 
-def deploy_and_post_deploy_wrapper(hermes_settings, ps_helper, deployment_params, file_root):
+def deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper, deployment_params, file_root):
     """
     Wrapper called from every test case to run deployment and post deployment operations
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :param deployment_params: Object of dataclass DeploymentParams
     :param file_root: Root directory to save test log files
     :return: Deployment session id, List of NodeInfo
     """
-    zone_config = hermes_settings["zone_config"]
+    zone_config = fxHermesRunSettings["hermesZoneConfig"]
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)
-    node_info_list = post_deployment(hermes_settings, ps_helper, deployment_session_id, deployment_stream_events,
+    node_info_list = post_deployment(fxHermesRunSettings, ps_helper, deployment_session_id, deployment_stream_events,
                                      deployment_params, file_root)
     return deployment_session_id, node_info_list
 
@@ -489,11 +489,11 @@ def get_docker_containers_by_node_type(user_config, blockchain_type, node_type):
                 [container_type].values())
 
 
-def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, node_info_list, consortium_id,
+def save_details_to_infra(fxHermesRunSettings, ps_helper, deployment_session_id, node_info_list, consortium_id,
                           blockchain_id, blockchain_type, zone_type, file_root):
     """
     Saves deployment information to infra
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :param deployment_session_id: Deployment session ID
     :param node_info_list: List of NodeInfo objects
@@ -517,7 +517,7 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
                 deployment_info["concord_username"] = "root"
                 deployment_info["concord_password"] = [node.password for node in node_info_list]
                 deployment_info["docker_containers"] = \
-                    get_docker_containers_by_blockchain_type(hermes_settings["user_config"], blockchain_type)
+                    get_docker_containers_by_blockchain_type(fxHermesRunSettings["hermesUserConfig"], blockchain_type)
                 deployment_info["concord_type"] = blockchain_type
                 deployment_info["log_dir"] = file_root
                 deployment_info["replicas"] = [node for node in node_info_list
@@ -542,20 +542,20 @@ def save_details_to_infra(hermes_settings, ps_helper, deployment_session_id, nod
             infra.save_fatal_errors_to_summary(fatal_errors)
     except Exception as e:
         msg = "Received IP conflict exception from infra: {}".format(e)
-        handle_exception(msg, hermes_settings, ps_helper, deployment_session_id)
+        handle_exception(msg, fxHermesRunSettings, ps_helper, deployment_session_id)
 
 
-def verify_docker_containers(hermes_settings, node_info_list, blockchain_type, zone_type):
+def verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_type, zone_type):
     """
     Verify if the necessary docker containers are running on all the nodes
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param node_info_list: List of NodeInfo
     :param blockchain_type: DAML, Ethereum, HLF
     :param zone_type: sddc or onprem
     :return: True/False
     """
     status = False
-    user_config = hermes_settings["user_config"]
+    user_config = fxHermesRunSettings["hermesUserConfig"]
     error_msg = "Error verifying docker containers"
     for idx, node in enumerate(node_info_list):
         containers_to_verify = get_docker_containers_by_node_type(user_config, blockchain_type, node.node_type)
@@ -653,10 +653,10 @@ def ssh_connect_node(ip, username, password, mode=None):
     return status
 
 
-def verify_ethrpc_block_0(hermes_settings, ps_helper, ip, username, password, file_root, deployment_session_id):
+def verify_ethrpc_block_0(fxHermesRunSettings, ps_helper, ip, username, password, file_root, deployment_session_id):
     """
     Method to verify hitting ethrpc endpoint and getting block 0
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :param ip: IP of the node
     :param username: username
@@ -673,7 +673,7 @@ def verify_ethrpc_block_0(hermes_settings, ps_helper, ip, username, password, fi
     from rpc.rpc_call import RPC
     token_descriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN, True, auth.internal_admin)
     rpc = RPC(file_root, "verify_ethrpc_block_0", "http://{}:{}".format(ip, src_port),
-              hermes_settings["user_config"], token_descriptor)
+              fxHermesRunSettings["hermesUserConfig"], token_descriptor)
     attempt = 0
     max_tries = 5
     status = False
@@ -698,14 +698,14 @@ def verify_ethrpc_block_0(hermes_settings, ps_helper, ip, username, password, fi
                 log.debug("Retry after {} seconds".format(sleep_time))
                 time.sleep(sleep_time)
 
-    retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
+    retention_check_and_support_bundle(fxHermesRunSettings["hermesCmdlineArgs"], ps_helper, status, deployment_session_id)
     return status
 
 
-def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deployment_session_id):
+def verify_dar_upload(fxHermesRunSettings, ps_helper, ip, username, password, deployment_session_id):
     """
     Method to verify connectivity to client, upload DAR, and run tests
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :param ip: IP of the node
     :param username: username
@@ -737,7 +737,7 @@ def verify_dar_upload(hermes_settings, ps_helper, ip, username, password, deploy
         error_msg = "Could not verify connectivity to client {} on port {}".format(ip, src_port)
         log.error(error_msg)
 
-    retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
+    retention_check_and_support_bundle(fxHermesRunSettings["hermesCmdlineArgs"], ps_helper, status, deployment_session_id)
     return status, error_msg
 
 
@@ -825,26 +825,26 @@ def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployme
             log.info("Deployment session id not found in deployment_info list")
 
 
-def handle_exception(msg, hermes_settings, ps_helper, deployment_session_id, status=False):
+def handle_exception(msg, fxHermesRunSettings, ps_helper, deployment_session_id, status=False):
     """
     Log error message, create support bundle, and then raise the exception
     """
     log.error(msg)
-    retention_check_and_support_bundle(hermes_settings["cmdline_args"], ps_helper, status, deployment_session_id)
+    retention_check_and_support_bundle(fxHermesRunSettings["hermesCmdlineArgs"], ps_helper, status, deployment_session_id)
     raise Exception(msg)
 
 
-def deprovision(hermes_settings, ps_helper):
+def deprovision(fxHermesRunSettings, ps_helper):
     """
     Deprovision/Teardown function
-    :param hermes_settings: Fixture for Hermes settings
+    :param fxHermesRunSettings: Fixture for Hermes settings
     :param ps_helper: Instance of ProvisioningServiceNewRPCHelper
     :return: None
     """
     log.info("Deprovision all deployments")
 
-    zone_type = hermes_settings["cmdline_args"].blockchainLocation.lower()
-    zone_config = hermes_settings["zone_config"]
+    zone_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()
+    zone_config = fxHermesRunSettings["hermesZoneConfig"]
     deprovision_status = None
     for deployment_info in ps_helper.deployment_info:
         session_id = get_deployment_session_id(deployment_info["deployment_session_id"])
@@ -895,25 +895,25 @@ def deprovision(hermes_settings, ps_helper):
 @describe("Test to run 4 node Ethereum deployment on VMC")
 @pytest.mark.smoke
 @pytest.mark.skip(reason="Reduce segment congestion")
-def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, teardown):
+def test_ethereum_4_node_vmc(request, fxHermesRunSettings, ps_helper, file_root, teardown):
 
     # Set the deployment params for this test case
     deployment_params = DeploymentParams(helper.TYPE_ETHEREUM, helper.LOCATION_SDDC, 4, 0)
     zone_type = helper.LOCATION_SDDC
 
     # Rest of the code below shouldn't change between different combinations of Ethereum test cases
-    # Update zone_type in hermes_settings fixture, since it is used downstream in deprovision function
-    hermes_settings["cmdline_args"].blockchainLocation = zone_type
+    # Update zone_type in fxHermesRunSettings fixture, since it is used downstream in deprovision function
+    fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation = zone_type
 
     # Call the deploy and post deploy wrapper
-    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
+    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper,
                                                                            deployment_params, file_root)
     assert node_info_list is not None, "Error in post deployment verifications"
 
     # Verify ethrpc block 0 on all nodes
     for node in node_info_list:
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-        assert verify_ethrpc_block_0(hermes_settings, ps_helper, ip, node.username, node.password, file_root,
+        assert verify_ethrpc_block_0(fxHermesRunSettings, ps_helper, ip, node.username, node.password, file_root,
                                      deployment_session_id), "Error verifying ethrpc block 0"
 
     log.info("Test {} completed successfully".format(request.node.name))
@@ -922,18 +922,18 @@ def test_ethereum_4_node_vmc(request, hermes_settings, ps_helper, file_root, tea
 @describe("Test to run a DAML ONPREM deployment (7 replicas + 3 client + 2 group)")
 @pytest.mark.smoke
 @pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
-def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, teardown):
+def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, teardown):
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
     deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 3, 2)
     zone_type = helper.LOCATION_ONPREM
 
     # Rest of the code below shouldn't change between different combinations of DAML test cases
-    # Update zone_type in hermes_settings fixture, since it is used downstream in deprovision function
-    hermes_settings["cmdline_args"].blockchainLocation = zone_type
+    # Update zone_type in fxHermesRunSettings fixture, since it is used downstream in deprovision function
+    fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation = zone_type
 
     # Call the deploy and post deploy wrapper
-    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
+    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper,
                                                                            deployment_params, file_root)
     assert node_info_list is not None, "Error in post deployment verifications"
 
@@ -941,7 +941,7 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
     for node in node_info_list:
         if node.node_type == helper.NodeType.CLIENT:
             ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-            dar_upload_status, error_msg = verify_dar_upload(hermes_settings, ps_helper, ip, node.username,
+            dar_upload_status, error_msg = verify_dar_upload(fxHermesRunSettings, ps_helper, ip, node.username,
                                                              node.password, deployment_session_id)
             assert dar_upload_status, error_msg
 
@@ -950,16 +950,16 @@ def test_daml_7_node_onprem(request, hermes_settings, ps_helper, file_root, tear
 
 @describe("Use this test to test Persephone with desired cmdline arguments")
 @pytest.mark.cmdline
-def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown):
+def test_cmdline_driven(request, fxHermesRunSettings, ps_helper, file_root, teardown):
 
-    blockchain_type = hermes_settings["cmdline_args"].blockchainType
-    zone_type = validate_blockchain_location(hermes_settings["cmdline_args"].blockchainLocation)
-    num_replicas = int(hermes_settings["cmdline_args"].numReplicas)
-    num_clients = int(hermes_settings["cmdline_args"].numParticipants)
+    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType
+    zone_type = validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
+    num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
+    num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
     deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients)
 
     # Call the deploy and post deploy wrapper
-    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(hermes_settings, ps_helper,
+    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper,
                                                                            deployment_params, file_root)
     assert node_info_list is not None, "Error in post deployment verifications"
 
@@ -968,11 +968,11 @@ def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown
         ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
         if blockchain_type.lower() == helper.TYPE_DAML:
             if node.node_type == helper.NodeType.CLIENT:
-                dar_upload_status, error_msg = verify_dar_upload(hermes_settings, ps_helper, ip, node.username,
+                dar_upload_status, error_msg = verify_dar_upload(fxHermesRunSettings, ps_helper, ip, node.username,
                                                                  node.password, deployment_session_id)
                 assert dar_upload_status, error_msg
         else:
-            assert verify_ethrpc_block_0(hermes_settings, ps_helper, ip, node.username, node.password, file_root,
+            assert verify_ethrpc_block_0(fxHermesRunSettings, ps_helper, ip, node.username, node.password, file_root,
                                          deployment_session_id), "Error verifying ethrpc block 0"
 
     log.info("Test {} completed successfully".format(request.node.name))
@@ -980,13 +980,13 @@ def test_cmdline_driven(request, hermes_settings, ps_helper, file_root, teardown
 
 @describe("Use this test to run a manual deployment from Persephone with the desired cmdline arguments")
 @pytest.mark.deployment_only
-def test_deployment_only(request, hermes_settings, ps_helper):
+def test_deployment_only(request, fxHermesRunSettings, ps_helper):
 
-    blockchain_type = hermes_settings["cmdline_args"].blockchainType
-    zone_type = validate_blockchain_location(hermes_settings["cmdline_args"].blockchainLocation)
-    num_replicas = int(hermes_settings["cmdline_args"].numReplicas)
-    num_clients = int(hermes_settings["cmdline_args"].numParticipants)
-    zone_config = hermes_settings["zone_config"]
+    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType
+    zone_type = validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
+    num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
+    num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    zone_config = fxHermesRunSettings["hermesZoneConfig"]
     deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_client_groups=0)
 
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)

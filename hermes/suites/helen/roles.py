@@ -8,7 +8,7 @@ import rest.test_methods
 import util.auth
 
 from suites.case import describe, passed, failed
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxHermesRunSettings, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
