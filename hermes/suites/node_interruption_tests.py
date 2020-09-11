@@ -175,6 +175,62 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
+@describe("Node Interruption - VM Stop/start - upto f nodes with daml tests in background")
+@pytest.mark.committer_node_interruption
+@pytest.mark.skip()
+def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
+      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+         intr_helper.RUN_TXNS_IN_BACKGROUND: True
+      }
+   }
+
+   # skipping master committer from interruption: bug BC-3264
+   nodes_available_for_interruption = \
+      intr_helper.get_nodes_available_for_interruption(
+         fxBlockchain, node_interruption_details)
+
+   daml_txn_background_thread = intr_helper.start_daml_txn_background_thread(fxBlockchain,
+                                                                             daml_txn_result_queue,
+                                                                             node_interruption_details,
+                                                                             fxHermesRunSettings)
+   status = False
+   last_interrupted_node_index = None
+   for iteration, ips in enumerate(nodes_available_for_interruption):
+      nodes_to_interrupt, last_interrupted_node_index = \
+         intr_helper.get_list_of_nodes_to_interrupt(
+            nodes_available_for_interruption, node_interruption_details,
+            last_interrupted_node_index=last_interrupted_node_index)
+
+      log.info("************************************************************")
+      log.info(
+         "Iteration {} - Nodes to be interrupted ({}): {}".format(iteration + 1,
+                                                                  node_interruption_details[
+                                                                     intr_helper.NODE_TYPE_TO_INTERRUPT],
+                                                                  nodes_to_interrupt))
+
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details,
+                                                   daml_txn_result_queue=daml_txn_result_queue)
+
+      if not status:
+         log.info("")
+         log.error("**** Test aborted/failed ****")
+         break
+
+   # join background thread running daml_txns with main execution thread
+   daml_txn_background_thread.do_run = False
+   daml_txn_background_thread.join()
+   assert status, "Node Interruption Test Failed"
+   log.info("**** Test completed successfully ****")
+
+
 @describe("Node Interruption - crash containers for all containers of committer nodes")
 @pytest.mark.committer_container_crash
 @pytest.mark.skip()
@@ -355,6 +411,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - simulate read/write failure index db through permission change")
 @pytest.mark.index_db_read_write_fail
+@pytest.mark.skip
 def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
@@ -488,30 +545,24 @@ def test_committer_node_interruption_container_network_disconnect(fxHermesRunSet
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-
-@describe("Node Interruption - VM Stop/start - upto f nodes with daml tests in background")
-@pytest.mark.committer_node_interruption
-@pytest.mark.skip()
-def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
+@describe("Node Interruption - disconnect f participant nodes from Blockchain network")
+@pytest.mark.participant_vm_disconnect
+@pytest.mark.skip
+def test_participant_node_interruption_vm_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
-      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
-      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_PARTICIPANT,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
-         intr_helper.RUN_TXNS_IN_BACKGROUND: True
+         intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_VM_LEVEL
       }
    }
 
-   # skipping master committer from interruption: bug BC-3264
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
          fxBlockchain, node_interruption_details)
 
-   daml_txn_background_thread = intr_helper.start_daml_txn_background_thread(fxBlockchain,
-                                                                             daml_txn_result_queue,
-                                                                             node_interruption_details,
-                                                                             fxHermesRunSettings)
    status = False
    last_interrupted_node_index = None
    for iteration, ips in enumerate(nodes_available_for_interruption):
@@ -530,18 +581,57 @@ def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSett
       status = intr_helper.crash_and_restore_nodes(fxBlockchain,
                                                    fxHermesRunSettings,
                                                    nodes_to_interrupt,
-                                                   node_interruption_details,
-                                                   daml_txn_result_queue=daml_txn_result_queue)
-
+                                                   node_interruption_details)
       if not status:
          log.info("")
          log.error("**** Test aborted/failed ****")
          break
 
-   # join background thread running daml_txns with main execution thread
-   daml_txn_background_thread.do_run = False
-   daml_txn_background_thread.join()
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
+@describe("Node Interruption - disconnect participant containers from Blockchain network")
+@pytest.mark.participant_container_network_disconnect
+def test_participant_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
+   node_interruption_details = {
+      intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+      intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_PARTICIPANT,
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
+      intr_helper.SKIP_MASTER_REPLICA: True,
+      intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+         intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_CONTAINER_LEVEL,
+         intr_helper.CONTAINERS_TO_DISCONNECT: ["daml_ledger_api"]
+      }
+   }
+
+   nodes_available_for_interruption = \
+      intr_helper.get_nodes_available_for_interruption(
+         fxBlockchain, node_interruption_details)
+
+   status = False
+   last_interrupted_node_index = None
+   for iteration, ips in enumerate(nodes_available_for_interruption):
+      nodes_to_interrupt, last_interrupted_node_index = \
+         intr_helper.get_list_of_nodes_to_interrupt(
+            nodes_available_for_interruption, node_interruption_details,
+            last_interrupted_node_index=last_interrupted_node_index)
+
+      log.info("************************************************************")
+      log.info(
+         "Iteration {} - Nodes to be interrupted ({}): {}".format(iteration + 1,
+                                                                  node_interruption_details[
+                                                                     intr_helper.NODE_TYPE_TO_INTERRUPT],
+                                                                  nodes_to_interrupt))
+
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+                                                   fxHermesRunSettings,
+                                                   nodes_to_interrupt,
+                                                   node_interruption_details)
+      if not status:
+         log.info("")
+         log.error("**** Test aborted/failed ****")
+         break
+
+   assert status, "Node Interruption Test Failed"
+   log.info("**** Test completed successfully ****")
 
