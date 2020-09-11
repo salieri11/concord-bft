@@ -223,7 +223,8 @@ asset-transfer() {
 
 supply-chain() {
     info "Pulling supply-chain..."
-    docker_pull athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain "latest"
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain "2020.8.26"
+    docker tag athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain:2020.8.26 mrharrison/supply-chain:latest
 }
 
 contract-compiler() {
