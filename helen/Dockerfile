@@ -57,7 +57,7 @@ COPY ./helen/src ./helen/src
 RUN mvn -f helen/pom.xml package
 
 ## Runtime image.
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.1
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.2
 LABEL description="Blockchain Management Service (Helen)"
 
 WORKDIR /helen

@@ -40,12 +40,12 @@ RUN apt-get update \
     && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
 
 # Runtime image (Provisioning Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.1
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.2
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
 ## Install CA certificate.
 ## This has hardcoded dependency on JAVA folder.
-COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.39.16-sa-jdk11.0.7-linux_x64/lib/security/cacerts
+COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.41.24-sa-jdk11.0.8-linux_x64/lib/security/cacerts
 
 WORKDIR /persephone-provisioning-service
 COPY ./provisioning-service/src/main/resources .
