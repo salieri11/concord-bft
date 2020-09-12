@@ -20,7 +20,7 @@ IReconfigurationPlugin* ReconfigurationSM::GetPlugin(
   return plugins_.at(cmd).get();
 }
 
-bool ReconfigurationSM::Handle(
+bool ReconfigurationSM::handle(
     const ReconfigurationSmRequest& request, ConcordResponse& response,
     uint64_t sequence_num, bool readOnly,
     com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,

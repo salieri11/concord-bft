@@ -43,6 +43,8 @@ class PerformanceCommandsHandler
       concord::kvbc::IBlocksDeleter& blocks_deleter,
       bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
+      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+          reconfiguration_sm,
       shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler{config,
                                node_config,
@@ -51,6 +53,7 @@ class PerformanceCommandsHandler
                                blocks_deleter,
                                state_transfer,
                                subscriber_list,
+                               std::move(reconfiguration_sm),
                                prometheus_registry},
         logger_{logging::getLogger("concord.perf.handler")} {}
 

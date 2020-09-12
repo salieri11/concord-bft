@@ -67,10 +67,12 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     concord::kvbc::IBlocksDeleter &deleter,
     bftEngine::IStateTransfer &state_transfer,
     concord::thin_replica::SubBufferList &subscriber_list,
+    std::unique_ptr<concord::reconfiguration::IReconfiguration>
+        reconfiguration_sm,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
-    : ConcordCommandsHandler(config, nodeConfig, storage, appender, deleter,
-                             state_transfer, subscriber_list,
-                             prometheus_registry),
+    : ConcordCommandsHandler(
+          config, nodeConfig, storage, appender, deleter, state_transfer,
+          subscriber_list, std::move(reconfiguration_sm), prometheus_registry),
       logger(logging::getLogger("com.vmware.concord")),
       concevm_(concevm),
       verifier_(verifier),

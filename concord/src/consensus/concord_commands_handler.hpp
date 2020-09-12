@@ -16,8 +16,7 @@
 #include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "pruning/kvb_pruning_sm.hpp"
-#include "reconfiguration/concord_control_handler.hpp"
-#include "reconfiguration/reconfiguration_sm.hpp"
+#include "reconfiguration/ireconfiguration.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
@@ -58,6 +57,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
+  std::unique_ptr<concord::reconfiguration::IReconfiguration>
+      reconfiguration_sm_;
   std::shared_ptr<reconfiguration::ConcordControlHandler>
       concord_control_handlers_;
   uint16_t replica_id_;
@@ -90,8 +91,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
-  std::unique_ptr<concord::reconfiguration::ReconfigurationSM>
-      reconfiguration_sm_;
 
  public:
   ConcordCommandsHandler(
@@ -102,6 +101,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       concord::kvbc::IBlocksDeleter &deleter,
       bftEngine::IStateTransfer &state_transfer,
       concord::thin_replica::SubBufferList &subscriber_list,
+      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+          reconfiguration_sm,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
       concord::time::TimeContract *time_contract = nullptr);
   virtual ~ConcordCommandsHandler() = default;

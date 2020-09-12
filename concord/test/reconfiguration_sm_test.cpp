@@ -103,7 +103,7 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
   reconfig_sm_req.set_test_cmd("hello");
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
@@ -124,17 +124,17 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   // Test that an empty reconfiguration request will be rejected
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command without signature will be rejected
   reconfig_sm_req.set_test_cmd("hello");
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command with invalid signature will be rejected
   reconfig_sm_req.set_signature("xxx");
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
@@ -155,7 +155,7 @@ TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "hello-world");
@@ -176,7 +176,7 @@ TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgrading");
@@ -197,7 +197,7 @@ TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Valid");
@@ -218,7 +218,7 @@ TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.Handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgraded");
