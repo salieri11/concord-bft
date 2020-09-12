@@ -618,3 +618,87 @@ def move_vms(blockchain_id, dest_dir="HermesTesting", sddcs=None):
     sddc_conn = infra.getConnection(sddc_name)
     sddc_conn.vmMoveToFolderByName(dest_dir, [blockchain_id])
 
+
+def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
+                          interrupted_nodes=[]):
+  '''
+  Get list of all crashed nodes
+  :param fxBlockchain: blockchain fixture
+  :param results_dir: results dir
+  :param interrupted_nodes: test interrupted nodes
+  :return: list of all crashed nodes
+  '''
+  log.info("")
+  log.info("** Verifying health of all nodes...")
+  username, password = helper.getNodeCredentials()
+  all_committers_other_than_interrupted = [ip for ip in
+                                           committers_of(fxBlockchain) if
+                                           ip not in interrupted_nodes]
+  log.info("** committers **")
+  unexpected_interrupted_committers = []
+  for ip in all_committers_other_than_interrupted:
+    log.info("  {}...".format(ip))
+    if not helper.check_docker_health(ip, username, password,
+                                      helper.TYPE_DAML_COMMITTER,
+                                      max_timeout=5, verbose=False):
+      log.warning("  ** Unexpected crash")
+      unexpected_interrupted_committers.append(ip)
+
+  uninterrupted_participants = [ip for ip in participants_of(fxBlockchain) if
+                                ip not in interrupted_nodes]
+
+  log.info("** participants **")
+  if len(uninterrupted_participants) == 0:
+    log.info("  None")
+  unexpected_crashed_participants = []
+  for ip in uninterrupted_participants:
+    log.info("  {}...".format(ip))
+    if not helper.check_docker_health(ip, username, password,
+                                      helper.TYPE_DAML_PARTICIPANT,
+                                      max_timeout=5, verbose=False):
+      log.warning("  ** Unexpected crash")
+      unexpected_crashed_participants.append(ip)
+
+  if interrupted_node_type == helper.TYPE_DAML_COMMITTER:
+    crashed_committers = unexpected_interrupted_committers + interrupted_nodes
+    crashed_participants = unexpected_crashed_participants
+  else:
+    crashed_committers = unexpected_interrupted_committers
+    crashed_participants = unexpected_crashed_participants + interrupted_nodes
+
+  total_no_of_committers_crashed = len(crashed_committers)
+  log.info("")
+  log.info("Summary of Interrupted nodes:")
+  if len(unexpected_interrupted_committers) > 0:
+    log.warning("  Unexpectedly crashed committers: {}".format(
+      unexpected_interrupted_committers))
+  if len(unexpected_crashed_participants) > 0:
+    log.warning("  Unexpectedly crashed participants: {}".format(
+      unexpected_crashed_participants))
+
+  if len(interrupted_nodes) > 0:
+    log.info("  Interrupted '{}' nodes: {}".format(interrupted_node_type,
+                                                   interrupted_nodes))
+  log.info("  Total no. of crashed committer nodes: {}".format(
+    total_no_of_committers_crashed))
+  log.info("  Total no. of crashed participant nodes: {}".format(
+    len(crashed_participants)))
+
+  if len(unexpected_interrupted_committers) > 0:
+    unexpected_crash_results_dir = helper.create_results_sub_dir(results_dir,
+                                                                 "unexpected_crash")
+    log.info(
+      "Collect support logs ({})...".format(unexpected_crash_results_dir))
+    helper.create_concord_support_bundle(
+      [ip for ip in committers_of(fxBlockchain) if
+       ip not in interrupted_nodes], helper.TYPE_DAML_COMMITTER,
+      unexpected_crash_results_dir, verbose=False)
+    helper.create_concord_support_bundle(
+      participants_of(fxBlockchain),
+      helper.TYPE_DAML_PARTICIPANT, unexpected_crash_results_dir,
+      verbose=False)
+
+  if total_no_of_committers_crashed > get_f_count(fxBlockchain):
+    log.error("**** System is unhealthy")
+
+  return crashed_committers, crashed_participants

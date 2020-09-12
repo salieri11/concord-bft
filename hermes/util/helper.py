@@ -36,11 +36,13 @@ if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.json_helper as json_helper_util
    import hermes_util.hermes_logging as hermes_logging_util
+   import hermes_util.blockchain_ops as blockchain_ops
 else:
    import util.auth as auth
    import util.daml.daml_helper as daml_helper
    import util.json_helper as json_helper_util
    import util.hermes_logging as hermes_logging_util
+   import util.blockchain_ops as blockchain_ops
    import rest
 
 
@@ -783,48 +785,6 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 
-def check_replica_health(all_replicas_and_type, username, password):
-   '''
-   Helper util method to check the health of replicas supplied. This method checks the
-   crash file created by the health daemon incase of a failure (like container not up)
-   :param all_replicas_and_type: List of replicas and it's blockchain type to be monitored
-   :param username: replica login username
-   :param password: replica login password
-   :return: False if a replica is crashed, else True
-   '''
-   node_crashed = False
-   crashed_nodes = {}
-   log.info("************************************************************")
-   for blockchain_type, replica_ips in all_replicas_and_type.items():
-      log.info("Verifying health on {} ({})".format(replica_ips, blockchain_type))
-      crashed_ips = []
-      for ip in replica_ips:
-         log.info("{}...".format(ip))
-         cmd = "stat {}".format(HEALTHD_CRASH_FILE)
-         ssh_output = ssh_connect(ip, username, password, cmd)
-         log.debug("cmd '{}' output: {}".format(cmd, ssh_output))
-         if ssh_output:
-            for line in ssh_output.split('\n'):
-               if "File: {}".format(HEALTHD_CRASH_FILE) in line:
-                  log.warning("**** CRASHED!")
-                  crashed_ips.append(ip)
-                  node_crashed = True
-         else:
-            log.warning("Unable to connect to host: {}".format(ip))
-            crashed_ips.append(ip)
-            node_crashed = True
-
-      crashed_nodes[blockchain_type] = crashed_ips
-
-
-   if node_crashed:
-      return False, crashed_nodes
-   else:
-      log.info("**** All replicas are healthy")
-      log.info("")
-      return True, crashed_nodes
-
-
 def collect_support_logs_for_long_running_tests(all_replicas_and_type,
                                                 save_support_logs_to,
                                                 verbose=True):
@@ -859,6 +819,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
+   BlockchainFixture = collections.namedtuple("BlockchainFixture",
+                                              "blockchainId, consortiumId, replicas, clientNodes")
 
    from . import slack
    configObject = getUserConfig()
@@ -908,33 +870,24 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    overall_run_status = None
    replica_status = None
    while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
-      status, crashed_nodes = \
-         check_replica_health(all_replicas_and_type, username, password)
-      if not status:
-         f = int((len(all_replicas_and_type[TYPE_DAML_COMMITTER])-1)/3)
-         no_of_committer_crash = 0
-         no_of_other_node_crash = 0
-         for node_type, crashed_ips in crashed_nodes.items():
-            if node_type == TYPE_DAML_COMMITTER:
-               no_of_committer_crash = len(crashed_ips)
-            else:
-               no_of_other_node_crash += len(crashed_ips)
+      fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None,
+                                       replicas=all_replicas_and_type,
+                                       clientNodes=None)
+      log.info("************************************************************")
+      crashed_committers, crashed_participants = blockchain_ops.get_all_crashed_nodes(
+         fxBlockchain, log_dir)
 
-         crash_logs_dir = os.path.join(log_dir, "replica_crash_{}".format(
-            time.strftime("%Y%m%d_%H%M%S", time.localtime())))
-         collect_support_logs_for_long_running_tests(all_replicas_and_type,
-                                                     crash_logs_dir,
-                                                     verbose=False)
+      status = False if len(crashed_committers + crashed_participants) > 0 else True
+      if not status:
+         f = blockchain_ops.get_f_count(fxBlockchain)
          overall_run_status = False
-         if len(crashed_nodes[TYPE_DAML_COMMITTER]) > f or no_of_other_node_crash > 0:
-            log.error("**** replica status is unhealthy")
-            log.error("**** Crashed nodes: {}".format(
-               json.dumps(crashed_nodes, indent=True)))
+
+         if len(crashed_committers) > f or len(crashed_participants) > 0:
             replica_status = False
          else:
             log.warning(
                "**** As no. of crashed replica(s) {} ({}) is less than/equal to f ({}), continue the run...".format(
-                  crashed_nodes[TYPE_DAML_COMMITTER], no_of_committer_crash, f))
+                  crashed_committers, len(crashed_committers), f))
             replica_status = True
 
       if status or replica_status:
@@ -1621,6 +1574,8 @@ def check_docker_health(node, username, password, replica_type,
                time.sleep(5)
 
       log.debug("SSH output: {}".format(ssh_output))
+      if not ssh_output:
+         return False
       for container_name in expected_docker_containers:
          if container_name not in ssh_output:
             docker_images_found = False

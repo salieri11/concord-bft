@@ -13,7 +13,12 @@ EVENTS_RECORDER="PATH_TO_event_recorder.py"
 saveTimeEvent() {
     local STAGE="${1}"
     local EVENT="${2}"
-    local CMD="python3 \"${EVENTS_RECORDER}\" record_event \"${STAGE}\" \"${EVENT}\" \"${EVENTS_FILE}\""
+
+    if [ ! -f "${python}" ]
+    then
+       python="python3"
+    fi
+    local CMD="${python} \"${EVENTS_RECORDER}\" record_event \"${STAGE}\" \"${EVENT}\" \"${EVENTS_FILE}\""
     eval "${CMD}"
 }
 
