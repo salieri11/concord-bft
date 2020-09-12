@@ -879,7 +879,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
       status = False if len(crashed_committers + crashed_participants) > 0 else True
       if not status:
-         f = int((len(all_replicas_and_type[TYPE_DAML_COMMITTER]) - 1) / 3)
+         f = blockchain_ops.get_f_count(fxBlockchain)
          overall_run_status = False
 
          if len(crashed_committers) > f or len(crashed_participants) > 0:
