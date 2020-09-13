@@ -3341,6 +3341,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("pruning_enabled", validateBoolean, nullptr);
 
   config.declareParameter(
+      "key_exchange_on_start",
+      "A flag to indicate if key exchange on start is required.", "false");
+  config.tagParameter("key_exchange_on_start", publicDefaultableTags);
+  config.tagParameter("key_exchange_on_start", applicationTag);
+  config.addValidator("key_exchange_on_start", validateBoolean, nullptr);
+
+  config.declareParameter(
       "pruning_num_blocks_to_keep",
       "Minimum number of blocks to always keep in storage when pruning. If not "
       "specified, a value of 0 is assumed. If pruning_duration_to_keep_minutes "

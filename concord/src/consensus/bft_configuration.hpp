@@ -241,6 +241,9 @@ inline bool InitializeSbftConfiguration(
     repConf->debugStatisticsEnabled =
         nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
+    repConf->keyExchangeOnStart =
+        config.getValue<bool>("key_exchange_on_start");
+
     repConf->preExecutionFeatureEnabled =
         config.getValue<bool>("preexecution_enabled");
 
