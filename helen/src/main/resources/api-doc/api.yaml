@@ -1729,12 +1729,13 @@ components:
 
     BaseZoneGet:
       type: object
-      properties:
-        id:
-          type: string
-          format: uuid
       allOf:
         - $ref: '#/components/schemas/BaseZone'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
 
     OnPremZonePost:
       type: object
@@ -2024,7 +2025,7 @@ components:
         sizing_info:
           type: object
           description: Sizing info of clients
-          items:
+          additionalProperties:
             $ref: '#/components/schemas/SizingInfo'
 
     ReplicaNode:
@@ -2038,7 +2039,7 @@ components:
         sizing_info:
           type: object
           description: Sizing info of replicas
-          items:
+          additionalProperties:
             $ref: '#/components/schemas/SizingInfo'
 
 

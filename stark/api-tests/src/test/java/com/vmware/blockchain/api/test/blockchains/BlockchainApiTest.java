@@ -23,6 +23,8 @@ import io.swagger.client.model.InlineResponse2003;
 import io.swagger.client.model.InlineResponse2004;
 import io.swagger.client.model.InlineResponse202;
 import io.swagger.client.model.Zone;
+import io.swagger.client.model.InlineResponse20013;
+import io.swagger.client.model.InlineResponse2005;
 
 
 /**
@@ -68,7 +70,7 @@ public class BlockchainApiTest extends ApiTestBase {
         body.setConsortiumId(UUID.randomUUID());
         List<UUID> replicaZones = new ArrayList<>();
         //TODO: Add some zones.
-        body.setReplicaZoneIds(replicaZones);
+        //body.setReplicaZoneIds(replicaZones);
         logger.info("sending request........." + api);
         InlineResponse202 response1 = api.blockchainPost(body);
         logger.info("response = " + response1);
@@ -104,7 +106,7 @@ public class BlockchainApiTest extends ApiTestBase {
     @Test
     public void getReplicas() throws ApiException {
         if (bId != null) {
-            List<InlineResponse2003> response = api.listReplicas(bId);
+            List<InlineResponse2004> response = api.listReplicas(bId);
             logger.info("Response  = " + response);
             if (response != null && !response.isEmpty()) {
                 replicaId = response.get(0).getId();
@@ -116,7 +118,7 @@ public class BlockchainApiTest extends ApiTestBase {
     @Test
     public void getClients() throws ApiException {
         if (bId != null) {
-            List<InlineResponse20012> response = api.getClients(bId);
+            List<InlineResponse20013> response = api.getClients(bId);
             logger.info("Response  = " + response);
             if (response != null && !response.isEmpty()) {
                 zoneId = response.get(0).getZoneId();
@@ -137,7 +139,7 @@ public class BlockchainApiTest extends ApiTestBase {
     @Test
     public void getReplicaCredentials() throws ApiException {
         if (bId != null && replicaId != null) {
-            InlineResponse2004 response = api.getReplicaCredentials(bId, replicaId);
+            InlineResponse2005 response = api.getReplicaCredentials(bId, replicaId);
             logger.info("Response  = " + response);
         }
     }
