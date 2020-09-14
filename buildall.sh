@@ -221,6 +221,7 @@ asset-transfer() {
 supply-chain() {
     info "Pulling supply-chain..."
     docker_pull athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain "2020.8.26"
+    waitForProcesses # docker_pull is async; below re-tagging cmd will not work if it's not awaited.
     docker tag athena-docker-local.artifactory.eng.vmware.com/mrharrison/supply-chain:2020.8.26 mrharrison/supply-chain:latest
 }
 
@@ -357,7 +358,6 @@ then
     waitForProcesses
 
     contract-compiler
-    
     reverse-proxy
     asset-transfer
     supply-chain
