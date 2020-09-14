@@ -819,9 +819,9 @@ def retention_check_and_support_bundle(cmdline_args, ps_helper, status, deployme
         for deployment_info in ps_helper.deployment_info:
             if get_deployment_session_id(deployment_info["deployment_session_id"]) == deployment_session_id:
                 deployment_info_found = True
-                if "replicas" in deployment_info and deployment_info["replicas"]:
+                if "node_ips" in deployment_info and deployment_info["node_ips"]:
                     log.info("Create support bundle for session id: {}".format(deployment_session_id))
-                    helper.create_concord_support_bundle(deployment_info["replicas"], deployment_info["concord_type"],
+                    helper.create_concord_support_bundle(deployment_info["node_ips"], deployment_info["concord_type"],
                                                          deployment_info["log_dir"])
                 else:
                     log.info("No replicas found to get support logs")
