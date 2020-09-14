@@ -6,16 +6,15 @@
 # eth_clientVersion, eth_mining, ...
 #########################################################################
 import collections
-import os
 import random
 import re
 import pytest
 from fixtures.common_fixtures import fxProduct, fxBlockchain, fxConnection
-from util.blockchain import eth as eth_helper
+from util.blockchain import eth as bc_eth_helper
+from util import eth_helper
 from suites.case import describe
 import util.helper
-from util.auth import getAccessToken
-from web3 import Web3, HTTPProvider
+from web3 import Web3
 import util.hermes_logging
 
 log = util.hermes_logging.getMainLogger()
@@ -48,124 +47,17 @@ def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     args = fxHermesRunSettings["hermesCmdlineArgs"]
     userConfig = fxHermesRunSettings["hermesUserConfig"]
 
-    if args.ethrpcApiUrl:
-        ethrpcApiUrl = args.ethrpcApiUrl
-    else:
-        ethrpcApiUrl = eth_helper.getEthrpcApiUrl(
-            fxConnection.request, fxBlockchain.blockchainId)
+    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(
+        fxConnection.request, fxBlockchain.blockchainId)
 
-    return LocalSetupFixture(args=args, request=fxConnection.request, rpc=fxConnection.rpc,
-                             ethereumMode=args.ethereumMode, productMode=not args.ethereumMode,
+    return LocalSetupFixture(args=args,
+                             request=fxConnection.request,
+                             rpc=fxConnection.rpc,
+                             ethereumMode=args.ethereumMode,
+                             productMode=not args.ethereumMode,
                              productUserConfig=userConfig["product"],
-                             ethrpcApiUrl=ethrpcApiUrl, blockchainId=fxBlockchain.blockchainId)
-
-
-def getReverseProxyHttpProvider():
-    '''
-    Get reverse proxy http provider
-    '''
-    return HTTPProvider(
-        "https://localhost/blockchains/local/api/concord/eth/",
-        request_kwargs={
-            'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
-            'verify': False
-        }
-    )
-
-
-def isDATA(value):
-    '''
-    Internal function called from requireDATAFields(). It will be moved to a common utility in near future.
-    '''
-    # Hex-encoded string
-    if not isinstance(value, str):
-        return False
-    # Leading 0x
-    if not value.startswith("0x"):
-        return False
-    # Even number of chars because it represents bytes
-    if (len(value) % 2) != 0:
-        return False
-    return True
-
-
-def requireDATAFields(ob, fieldList):
-    '''
-    Function to check if required data fields are available. It will be moved to a common utility in near future.
-    '''
-    for f in fieldList:
-        if not isDATA(ob[f]):
-            return (False, f)
-    return (True, None)
-
-
-def isQUANTITY(value):
-    '''
-    Internal function called from requireQUANTITYFields(). It will be moved to a common utility in near future.
-    '''
-    # Hex-encoded string
-    if not isinstance(value, str):
-        return False
-    # Leading 0x
-    if not value.startswith("0x"):
-        return False
-    # Valid number (will flag "0x")
-    try:
-        int(value, 16)
-    except ValueError as e:
-        return False
-    # No leading 0s
-    if len(value) > 3 and value[2] == "0":
-        return False
-    return True
-
-
-def requireQUANTITYFields(ob, fieldList):
-    '''
-    Internal function called from requireQUANTITYFields(). It will be moved to a common utility in near future.
-    '''
-    for f in fieldList:
-        if not isQUANTITY(ob[f]):
-            return (False, f)
-    return (True, None)
-
-
-def getWeb3Instance(localSetup):
-    '''
-    Connect the web3 framework to an ethrpc node
-    '''
-    return Web3(HTTPProvider(
-        localSetup.ethrpcApiUrl,
-        request_kwargs={
-            'headers': {'Authorization': 'Bearer {0}'.format(getAccessToken())},
-            'verify': False,
-            'timeout': 60
-        }
-    ))
-
-
-def loadContract(name):
-    '''
-    Return contract object to deploy and run queries on.
-    Note: We assume that there is only one contract per file.
-    Technically, the solidity file isn't required but should be there anyways
-    for documentation.
-    '''
-    sol_path = "{}.sol".format(os.path.join(CONTRACTS_DIR, name))
-    abi_path = "{}.abi".format(os.path.join(CONTRACTS_DIR, name))
-    hex_path = "{}.hex".format(os.path.join(CONTRACTS_DIR, name))
-
-    assert os.path.isfile(sol_path), "Not a file : {}".format(sol_path)
-    assert os.path.isfile(abi_path), "Not a file : {}".format(abi_path)
-    assert os.path.isfile(hex_path), "Not a file : {}".format(hex_path)
-
-    with open(abi_path, "r") as f:
-        abi = f.read()
-
-    with open(hex_path, "r") as f:
-        hex_str = f.read()
-
-    return (abi.strip(), hex_str.strip())
+                             ethrpcApiUrl=ethrpcApiUrl,
+                             blockchainId=fxBlockchain.blockchainId)
 
 
 def _createBlockFilterAndSendTransactions(rpc, txCount):
@@ -389,7 +281,7 @@ def test_fallback(fxLocalSetup):
     expectedCount = 1000
 
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = getWeb3Instance(fxLocalSetup)
+    web3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
 
     Counter = web3.eth.contract(
         abi=contract_interface['abi'], bytecode=contract_interface['bin'])
@@ -494,10 +386,11 @@ def test_eth_getBlockByNumber(fxConnection):
     (present, missing) = util.helper.requireFields(latestBlock, expectedFields)
     assert present, "No '{}' field in block response.".format(missing)
 
-    (success, field) = requireDATAFields(latestBlock, dataFields)
+    (success, field) = eth_helper.requireDATAFields(latestBlock, dataFields)
     assert success, 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = requireQUANTITYFields(latestBlock, quantityFields)
+    (success, field) = eth_helper.requireQUANTITYFields(
+        latestBlock, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     assert int(latestBlock["number"], 16) >= int(
@@ -552,8 +445,8 @@ def test_eth_getLogs(fxLocalSetup):
     '''
     Validate the ethereum logs based on block filter.
     '''
-    w3 = getWeb3Instance(fxLocalSetup)
-    abi, bin = loadContract("SimpleEvent")
+    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    abi, bin = eth_helper.loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -597,8 +490,8 @@ def test_eth_getLogs_addr(fxLocalSetup):
     '''
     Validate the ethereum logs based on block and address filters.
     '''
-    w3 = getWeb3Instance(fxLocalSetup)
-    abi, bin = loadContract("SimpleEvent")
+    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    abi, bin = eth_helper.loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -659,8 +552,8 @@ def test_eth_getLogs_block_range(fxLocalSetup):
     '''
     Validate the ethereum logs based on block range.
     '''
-    w3 = getWeb3Instance(fxLocalSetup)
-    abi, bin = loadContract("SimpleEvent")
+    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    abi, bin = eth_helper.loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
 
@@ -697,7 +590,8 @@ def test_eth_getLogs_block_range(fxLocalSetup):
             if val in expected:
                 expected.remove(val)
 
-    assert not expected, "From all logs: Couldn't find {} ".format(str(expected))
+    assert not expected, "From all logs: Couldn't find {} ".format(
+        str(expected))
 
     # Let's omit the "0x0ddba11" and don't get everything
     from_block = int(foo_func_txr["blockNumber"])
@@ -714,7 +608,8 @@ def test_eth_getLogs_block_range(fxLocalSetup):
             if val in expected:
                 expected.remove(val)
 
-    assert not expected, "From log range: Couldn't find {} ".format(str(expected))
+    assert not expected, "From log range: Couldn't find {} ".format(
+        str(expected))
 
 
 @describe("test ethereum log topics")
@@ -722,8 +617,8 @@ def test_eth_getLogs_topics(fxLocalSetup):
     '''
     Validate the ethereum logs based on topics.
     '''
-    w3 = getWeb3Instance(fxLocalSetup)
-    abi, bin = loadContract("SimpleEvent")
+    w3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
+    abi, bin = eth_helper.loadContract("SimpleEvent")
     contract = w3.eth.contract(abi=abi, bytecode=bin)
     tx_args = {"from": "0x0000A12B3F3d6c9B0d3F126a83Ec2dd3Dad15f39"}
 
@@ -849,10 +744,10 @@ def test_eth_getTransactionByHash(fxLocalSetup):
     assert success, 'Field "{}" not found in getTransactionByHash'.format(
         field)
 
-    (success, field) = requireDATAFields(tx, dataFields)
+    (success, field) = eth_helper.requireDATAFields(tx, dataFields)
     assert success, 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = requireQUANTITYFields(tx, quantityFields)
+    (success, field) = eth_helper.requireQUANTITYFields(tx, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     # TODO: Better end-to-end test for semantic evaluation of transactions
@@ -918,12 +813,12 @@ def test_eth_getTransactionReceipt(fxLocalSetup):
     assert success, 'Field "{}" not found in getTransactionByHash'.format(
         field)
 
-    (success, field) = requireDATAFields(tx, dataFields)
+    (success, field) = eth_helper.requireDATAFields(tx, dataFields)
     if not success:
         assert (field == "contractAddress" and tx["contractAddress"]
                 is None), 'DATA expected for field "{}"'.format(field)
 
-    (success, field) = requireQUANTITYFields(tx, quantityFields)
+    (success, field) = eth_helper.requireQUANTITYFields(tx, quantityFields)
     assert success, 'QUANTITY expected for field "{}"'.format(field)
 
     assert isinstance(tx["logs"], list), 'Array expected for field "logs"'
@@ -949,7 +844,7 @@ def test_personal_newAccount(fxLocalSetup):
     '''
     user_id = fxLocalSetup.request.getUsers()[0]['user_id']
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = Web3(getReverseProxyHttpProvider())
+    web3 = Web3(eth_helper.getReverseProxyHttpProvider())
     password = "123456"
     address = web3.personal.newAccount(password)
     wallet = fxLocalSetup.request.getWallet(user_id, address[2:].lower())
@@ -985,7 +880,7 @@ def test_replay_protection(fxLocalSetup):
     '''
     user_id = fxLocalSetup.request.getUsers()[0]['user_id']
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = Web3(getReverseProxyHttpProvider())
+    web3 = Web3(eth_helper.getReverseProxyHttpProvider())
     password = "123456"
     address = web3.personal.newAccount(password)
     wallet = fxLocalSetup.request.getWallet(user_id, address[2:].lower())
@@ -1100,7 +995,7 @@ def test_eth_sendRawContract(fxLocalSetup):
     expectedBalance = 20
 
     user = fxLocalSetup.productUserConfig.get('db_users')[0]
-    web3 = getWeb3Instance(fxLocalSetup)
+    web3 = eth_helper.getWeb3Instance(fxLocalSetup.ethrpcApiUrl)
 
     Counter = web3.eth.contract(
         abi=contract_interface['abi'], bytecode=contract_interface['bin'])
