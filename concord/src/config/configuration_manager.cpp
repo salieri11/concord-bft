@@ -3463,7 +3463,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "proxies to it without that proxy's private key). If \"none\" is "
       "selected, no verification of received time samples will be used (this "
       "is NOT recommended for production deployments).",
-      "rsa-time-signing");
+      "none");
   config.tagParameter("time_verification", publicDefaultableTags);
   config.tagParameter("time_verification", applicationTag);
   config.addValidator("time_verification", validateEnumeratedOption,

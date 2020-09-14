@@ -82,6 +82,7 @@ def find_faulty_clocks():
    return slow_sources, healthy_sources, fast_sources
 
 
+@pytest.mark.skip(reason="BC-4237")
 @describe()
 def test_publish_as_other(fxBlockchain):
    '''
