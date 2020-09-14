@@ -48,7 +48,7 @@ class DamlKvbCommandsHandler
       concord::kvbc::IBlocksDeleter& blocks_deleter,
       bftEngine::IStateTransfer& state_transfer,
       concord::thin_replica::SubBufferList& subscriber_list,
-      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+      std::unique_ptr<concord::reconfiguration::IReconfigurationDispatcher>
           reconfiguration_sm,
       std::unique_ptr<IDamlValidatorClient> validator,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,

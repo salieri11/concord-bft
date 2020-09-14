@@ -9,6 +9,7 @@
 #include <daml/daml_validator_client.hpp>
 #include <memory>
 #include <reconfiguration/reconfiguration_sm.hpp>
+#include <reconfiguration/reconfiguration_sm_dispatcher.hpp>
 #include "Logger.hpp"
 #include "NullStateTransfer.hpp"
 #include "OpenTracing.hpp"
@@ -54,6 +55,8 @@ using concord::daml::AccessControlListToThinReplicaIds;
 using concord::daml::CreateDamlKvbKey;
 using concord::daml::CreateDamlKvbValue;
 using concord::daml::CreateSliver;
+using concord::reconfiguration::ReconfigurationSM;
+using concord::reconfiguration::ReconfigurationSMDispatcher;
 
 using concord::pruning::KVBPruningSM;
 using concord::time::TimeContract;
@@ -134,15 +137,15 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
         .WillOnce(Return(Status::NotFound("last_agreed_prunable_block_id")));
     prometheus_registry_ = CreatePrometheusRegistry();
     // No reconfiguration requests are expected
-    auto reconfiguration_sm =
-        std::make_unique<concord::reconfiguration::ReconfigurationSM>(
-            configuration_, prometheus_registry_);
+    auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
+        std::make_unique<ReconfigurationSM>(), configuration_,
+        prometheus_registry_);
 
     instance_ = std::make_unique<DamlKvbCommandsHandler>(
         configuration_, GetNodeConfig(configuration_, 1), *mock_ro_storage_,
         *mock_block_appender_, *mock_block_deleter_, *mock_state_transfer_,
-        subscriber_list_, std::move(reconfiguration_sm),
-        std::move(daml_validator_client), prometheus_registry_);
+        subscriber_list_, std::move(rsm), std::move(daml_validator_client),
+        prometheus_registry_);
     return instance_.get();
   }
 

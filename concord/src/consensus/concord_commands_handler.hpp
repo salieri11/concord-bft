@@ -57,7 +57,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   logging::Logger logger_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
-  std::unique_ptr<concord::reconfiguration::IReconfiguration>
+  std::unique_ptr<concord::reconfiguration::IReconfigurationDispatcher>
       reconfiguration_sm_;
   std::shared_ptr<reconfiguration::ConcordControlHandler>
       concord_control_handlers_;
@@ -101,7 +101,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
       concord::kvbc::IBlocksDeleter &deleter,
       bftEngine::IStateTransfer &state_transfer,
       concord::thin_replica::SubBufferList &subscriber_list,
-      std::unique_ptr<concord::reconfiguration::IReconfiguration>
+      std::unique_ptr<concord::reconfiguration::IReconfigurationDispatcher>
           reconfiguration_sm,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
       concord::time::TimeContract *time_contract = nullptr);

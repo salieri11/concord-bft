@@ -5,15 +5,23 @@
 
 #include "reconfiguration_sm_open.hpp"
 
+#include "concord.pb.h"
+
 namespace concord {
 namespace reconfiguration {
 
 class ReconfigurationSM : public ReconfigurationSMOpen {
  public:
-  ReconfigurationSM(
-      const config::ConcordConfiguration& config,
-      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
-      : ReconfigurationSMOpen(config, prometheus_registry) {}
+  // Use WedgeCommand handler from parent class but implement the others
+  bool handle(
+      const com::vmware::concord::ReconfigurationSmRequest::GetVersionCommand&)
+      override;
+  bool handle(
+      const com::vmware::concord::ReconfigurationSmRequest::DownloadCommand&)
+      override;
+  bool handle(
+      const com::vmware::concord::ReconfigurationSmRequest::UpgradeCommand&)
+      override;
 };
 
 }  // namespace reconfiguration
