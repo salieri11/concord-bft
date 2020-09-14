@@ -469,6 +469,9 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     auto key = CreateDamlKvbKey(entry.first);
     auto value = CreateDamlKvbValue(entry.second);
     daml_kv_size_summary_.Observe(value.length());
+    LOG_DEBUG(logger_, "KV_metrics Key length: " << key.length()
+                                                 << ", Value length: "
+                                                 << value.length());
     updates.insert(std::make_pair(std::move(key), std::move(value)));
   }
   HashAndLogWriteSet(write_set, updates, determinism_logger_);
