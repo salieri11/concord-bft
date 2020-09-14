@@ -36,6 +36,9 @@ def resolve(content, pretty=True):
     Nested Imports supported:
     With '+' prefix, parser will import the resolved json object, not the string value.
     { "some_key": "+<vault.my_secret>" } ==> { "some_key": { "secret1": "value" } }
+
+    Keys containing dots (with single quotes):
+    { "some_key": "<vault.my_secret.'keys.with.dot'.'dot.key2'>" }
   '''
   try:
     resolved = inflate(content)
@@ -80,7 +83,7 @@ def inflate(content, depth=0):
     (Max recursion is capped at VAULT_PARAM_MAX_RECURSION_DEPTH)
   '''
 
-  if depth > VAULT_PARAM_MAX_RECURSION_DEPTH:
+  if depth > VAULT_PARAM_MAX_RECURSION_DEPTH: # prevent circular ref; stack overflow
     raise Exception("Max recursion depth has been reached ({})".format(
                     VAULT_PARAM_MAX_RECURSION_DEPTH))
   
@@ -108,14 +111,14 @@ def inflate(content, depth=0):
     # fetch ALL identifiers in parallel, caching them as proceeding
     chunks = []; threads = []
     def resolveByName(name, i): # function used for concurrent look up
-      tryCount = 0; maxTries = 100 # with 0.2 wait per tick; max timeout of 20s
+      tryCount = 0; maxTries = 150 # with 0.1 wait per tick; max timeout of 15s
       while tryCount < maxTries:
         tryCount += 1
         result = fetchParam(name) # this uses caching; same iden is fetched only once.
         if result == VAULT_FETCHING_FLAG:
           # some other thread is already fetching that same identifer from Vault;
           # so this thread can wait for that thread to fetch the exact same iden
-          time.sleep(0.2)
+          time.sleep(0.1)
         else:
           chunks[i]["outcome"] = result
           break
@@ -127,9 +130,19 @@ def inflate(content, depth=0):
       idenPath = innerSplit[0].split(".")
       rest = innerSplit[1] if len(innerSplit) > 1 else ""
       paramName = idenPath[0] # <vault.My-Secret.propname> ==> "My-Secret"
-      if "[" in paramName: # exclude index part e.g. [1] from <vault.My-Secret[1]> 
+      if "[" in paramName: # exclude index part e.g. [1] from <vault.My-Secret[1]>
         paramName = paramName.split("[")[0]
-        idenPath.insert(1, idenPath[0].replace(paramName, ""))
+        idenPath.insert(1, idenPath[0].replace(paramName, "")) # only preserve
+      if "'" in innerSplit[0]: # has dot-containing key (e.g. My-Secret.'key.with.dot')
+        quotesSplit = '.'.join(idenPath[1:]).split("'")
+        q = 0; idenPath = [paramName]
+        for quotedKey in quotesSplit:
+          quoteOpen = (q % 2 == 1) # odd means quotes are open
+          if quoteOpen: idenPath.append(quotedKey)
+          else:
+            for unquotedKey in quotedKey.split('.'):
+              if unquotedKey: idenPath.append(unquotedKey)
+          q += 1
       # all chunks with these properties for future processing
       chunks.append({
         "i": i, # chunk index
@@ -143,14 +156,14 @@ def inflate(content, depth=0):
       )
       threads.append(thd); thd.start()
       i += 1
-    for thd in threads: thd.join(timeout=30)
+    for thd in threads: thd.join(timeout=20)
 
     # All requrests returned; proceed to replace `<vault.` idens with actual value
     results = [] # store all replaced value of chunks in this
     for chunk in chunks:
-      if len(chunk["path"]) == 1:
+      if len(chunk["path"]) == 1: # just <vault.My-Secret> (whole json)
         results.append(chunk["outcome"]["serialized"] + chunk["rest"])
-      else:
+      else: # has subpaths
         travelNode = chunk["outcome"]["data"]
         notFound = False
         if chunk["outcome"]["data"]: # data contains whole <vault.My-Secret.*>
