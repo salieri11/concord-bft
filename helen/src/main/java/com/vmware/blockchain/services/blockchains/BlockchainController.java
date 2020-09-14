@@ -13,6 +13,7 @@ import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.Bl
 import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -329,12 +330,13 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
-        var zoneIds = body.getReplicaZoneIds();
-        if (zoneIds == null || zoneIds.isEmpty()) {
-            if (body.getReplicaNodes() != null) {
-                zoneIds.addAll(body.getReplicaNodes().stream().map(k -> k.getZoneId())
+        List<UUID> zoneIds = new ArrayList<>();
+        if (body.getReplicaZoneIds() != null) {
+            zoneIds.addAll(body.getReplicaZoneIds());
+        }
+        if (body.getReplicaNodes() != null) {
+            zoneIds.addAll(body.getReplicaNodes().stream().map(k -> k.getZoneId())
                                                        .collect(Collectors.toList()));
-            }
         }
 
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
