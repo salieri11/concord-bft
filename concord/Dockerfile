@@ -9,10 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v22
-
-## Install gtest - patch for backward compatibility until conan is supported
-RUN make -C /googletest/_build install
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication

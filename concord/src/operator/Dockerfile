@@ -2,10 +2,7 @@
 # Dockerfile for building the concord operator image
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v22 AS build
-
-## Install gtest
-RUN make -C /googletest/_build install
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23 AS build
 
 WORKDIR /concord
 COPY ./concord /concord

@@ -3,7 +3,22 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v22
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+# Copy sources
+COPY ./concord/cmake /concord/cmake
+COPY ./communication/src/main/proto /communication/src/main/proto
+COPY ./thin-replica-client /thin-replica-client
+
+# Build Thin Replica Client Library
+WORKDIR /thin-replica-client/build
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
+     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
+     -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
+     make -j$(nproc) all test && \
+     make install
 
 # Base runtime image.
 FROM ubuntu:18.04
@@ -11,10 +26,6 @@ LABEL Description="Thin Replica Client Library"
 
 # Install packaged runtime dependencies.
 RUN apt-get update && apt-get -y install \
-    build-essential \
-    clang-7 \
-    clang-format-7 \
-    cmake \
     zlib1g-dev \
     libcurl4-openssl-dev \
     libboost-atomic1.65.1 \
@@ -27,9 +38,6 @@ RUN apt-get update && apt-get -y install \
     libyaml-cpp0.5v5 \
     libyaml-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
-
-RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
-RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
 # Copy dependencies from the prereqs image.
 # Note symbolic links are manually created or recreated as just copying them
@@ -98,9 +106,6 @@ RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.s
 COPY --from=0 /usr/local/include/jaegertracing /usr/local/include/jaegertracing
 COPY --from=0 /usr/local/lib/libjaegertracing.a /usr/local/lib
 
-# Googletest
-COPY --from=0 /googletest /googletest
-
 # Prometheus-cpp
 COPY --from=0 /usr/local/lib/cmake/prometheus-cpp \
               /usr/local/lib/cmake/prometheus-cpp
@@ -127,14 +132,7 @@ RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Copy sources
-COPY ./concord/cmake /concord/cmake
-COPY ./communication/src/main/proto /communication/src/main/proto
-COPY ./thin-replica-client /thin-replica-client
+COPY --from=0 /thin-replica-client /thin-replica-client
+COPY --from=0 /usr/local/include/ /usr/local/include/
+COPY --from=0 /usr/local/lib/ /usr/local/lib/
 
-# Build Thin Replica Client Library
-WORKDIR /thin-replica-client/build
-RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
-     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
-     -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
-     make -j$(nproc) all test && \
-     make -j$(nproc) install
