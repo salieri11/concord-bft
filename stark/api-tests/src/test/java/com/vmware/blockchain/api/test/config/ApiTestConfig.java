@@ -42,6 +42,14 @@ public class ApiTestConfig {
     private static final String CSP_REFRESH_TOKEN_PARAM = "csp.refresh.token";
     private static final String CSP_REFRESH_TOKEN_DEFAULT_VAL = "e0HWXg5LHxJnvZxgBuHM6rXyq5rNwCY5Ppohyz1lZZiqygt1eXtS9HwVn7nPs3Vv";
 
+    private static final String MIN_REPLICAS_PARAM = "min.replicas";
+    private static final String MIN_REPLICAS_DEFAULT_VAL = "4";
+    private static final String MAX_REPLICAS_PARAM = "max.replicas";
+    private static final String MAX_REPLICAS_DEFAULT_VAL = "7";
+    private static final String MIN_CLIENTS_PARAM = "min.clients";
+    private static final String MIN_CLIENTS_DEFAULT_VAL = "1";
+    private static final String MAX_CLIENTS_PARAM = "max.clients";
+    private static final String MAX_CLIENTS_DEFAULT_VAL = "10";
 
     // Publicly available Constants
     public static final String HTTP_POST_PARAM = "POST";
@@ -73,6 +81,10 @@ public class ApiTestConfig {
         configProperties.setProperty(CONFIG_FILE_NAME_PARAM, CONFIG_FILE_NAME_DEFAULT_VAL);
         configProperties.setProperty(CONFIG_FILE_PATH_PARAM, CONFIG_FILE_PATH_DEFAULT_VAL);
         configProperties.setProperty(CSP_REFRESH_TOKEN_PARAM, CSP_REFRESH_TOKEN_DEFAULT_VAL);
+        configProperties.setProperty(MIN_REPLICAS_PARAM, MIN_REPLICAS_DEFAULT_VAL);
+        configProperties.setProperty(MAX_REPLICAS_PARAM, MAX_REPLICAS_DEFAULT_VAL);
+        configProperties.setProperty(MIN_CLIENTS_PARAM, MIN_CLIENTS_DEFAULT_VAL);
+        configProperties.setProperty(MAX_CLIENTS_PARAM, MAX_CLIENTS_DEFAULT_VAL);
     }
 
     protected void watch() {
@@ -81,7 +93,7 @@ public class ApiTestConfig {
                 try {
                     new ConfigFileWatcher().watch(configProperties.getProperty(CONFIG_FILE_PATH_PARAM));
                 } catch (Exception e) {
-                    // log or print exception here
+                    logger.severe("Exception while watching for config file changes: " + e.getLocalizedMessage());
                 }
             }
         });
@@ -186,6 +198,46 @@ public class ApiTestConfig {
         return path;
     }
 
+    /**
+     * Get minimum number of replicas configuration.
+     * @return min replicas in string format.
+     */
+    public String getMinReplicas() {
+        String path = configProperties.getProperty(MIN_REPLICAS_PARAM, "");
+        return path;
+    }
+
+    /**
+     * Get maximum number of replicas configuration.
+     * @return max replicas in string format.
+     */
+    public String getMaxReplicas() {
+        String path = configProperties.getProperty(MAX_REPLICAS_PARAM, "");
+        return path;
+    }
+
+    /**
+     * Get minimmum number of clients configuration.
+     * @return min clients in string format.
+     */
+    public String getMinClients() {
+        String path = configProperties.getProperty(MIN_CLIENTS_PARAM, "");
+        return path;
+    }
+
+    /**
+     * Get maximum clients configuration.
+     * @return max clients in string format.
+     */
+    public String getMaxClients() {
+        String path = configProperties.getProperty(MAX_CLIENTS_PARAM, "");
+        return path;
+    }
+
+    /**
+     * String representation of this class.
+     * @return A string
+     */
     @Override
     public String toString() {
         return "ApiTestConfig{" +
@@ -193,6 +245,9 @@ public class ApiTestConfig {
                '}';
     }
 
+    /**
+     * A class responsible for watching configuration file changes.
+     */
     public class ConfigFileWatcher {
         public void watch(String configFilePath) {
             try {

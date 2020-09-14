@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -25,6 +26,7 @@ import io.swagger.client.model.InlineResponse202;
 import io.swagger.client.model.Zone;
 import io.swagger.client.model.InlineResponse20013;
 import io.swagger.client.model.InlineResponse2005;
+import io.swagger.client.model.ReplicaNode;
 
 
 /**
@@ -60,17 +62,53 @@ public class BlockchainApiTest extends ApiTestBase {
         logger.info("API base path: " + api.getApiClient().getBasePath());
         logger.info("API user authentication: " + api.getApiClient().getAuthentications());
 
+        // Get current blockchains to get consortium.
+        List<InlineResponse200> list = api.getBlockchains();
+        if (list == null || list.isEmpty()) {
+            throw new ApiException("No Blockchain found to get Consortium.");
+        }
+        InlineResponse200 bcResponse = list.get(0);
+        UUID consortiumId = bcResponse.getConsortiumId();
+
+        // How many replicas do we need?
+        int noReplicas = Pattern.matches("\\d", apiTestConfig.getMinReplicas()) ?
+                         Integer.parseInt(apiTestConfig.getMinReplicas()) : 0;
+        int count = 0;
+        List<ReplicaNode> replicaNodes = new ArrayList<>();
+        List<BaseZoneGet> zoneResponse = api.getBlockchainZones();
+        if (zoneResponse == null || zoneResponse.isEmpty()) {
+            throw new ApiException("No zones available to use.");
+        }
+        while (count++ < noReplicas) {
+            int zoneIndex = (count < zoneResponse.size()) ? count : 0;
+            UUID zoneId = zoneResponse.get(zoneIndex).getId();
+            ReplicaNode replicaNode = new ReplicaNode();
+            replicaNode.setZoneId(zoneId);
+            replicaNode.setSizingInfo(null);
+            replicaNodes.add(replicaNode);
+        }
+
+        // How many clients do we need?
+        int noClients = Pattern.matches("\\d", apiTestConfig.getMinClients()) ?
+                        Integer.parseInt(apiTestConfig.getMinClients()) : 0;
+        List<ClientNode> clientNodes = new ArrayList<>();
+        count = 0;
+        while (count++ < noClients) {
+            int zoneIndex = (count < zoneResponse.size()) ? count : 0;
+            ClientNode cNode = new ClientNode();
+            cNode.setZoneId(zoneResponse.get(zoneIndex).getId());
+            cNode.setAuthUrlJwt(apiTestConfig.TOKEN_PARAM);
+            cNode.setGroupName("Group " + zoneIndex);
+            cNode.setSizingInfo(null);
+            clientNodes.add(cNode);
+        }
+
         Body body = new Body();
         body.setBlockchainType(Body.BlockchainTypeEnum.DAML);
-        List<ClientNode> clientNodes = new ArrayList<>();
-        ClientNode cNode = new ClientNode();
-        cNode.setZoneId(UUID.randomUUID());
-        cNode.setAuthUrlJwt(apiTestConfig.TOKEN_PARAM);
+        body.setReplicaNodes(replicaNodes);
         body.setClientNodes(clientNodes);
-        body.setConsortiumId(UUID.randomUUID());
-        List<UUID> replicaZones = new ArrayList<>();
-        //TODO: Add some zones.
-        //body.setReplicaZoneIds(replicaZones);
+        body.setConsortiumId(consortiumId);
+
         logger.info("sending request........." + api);
         InlineResponse202 response1 = api.blockchainPost(body);
         logger.info("response = " + response1);
