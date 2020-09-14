@@ -54,8 +54,8 @@ CONTRACTS_DIR = "resources/contracts"
 @describe("fixture; local setup for given test suite")
 def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     args = fxHermesRunSettings["hermesCmdlineArgs"]
-    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(fxConnection.request,
-                                                                                             fxBlockchain.blockchainId)
+    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(
+        fxConnection.request, fxBlockchain.blockchainId)
     pytest.ethereumMode = args.ethereumMode
 
     testName = fxConnection.request.testName
@@ -67,7 +67,9 @@ def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
               testName,
               ethrpcApiUrl,
               userConfig)
-    return LocalSetupFixture(rpc=rpc, productMode=not args.ethereumMode, ethrpcApiUrl=ethrpcApiUrl,
+    return LocalSetupFixture(rpc=rpc,
+                             productMode=not args.ethereumMode,
+                             ethrpcApiUrl=ethrpcApiUrl,
                              product=fxProduct.product)
 
 

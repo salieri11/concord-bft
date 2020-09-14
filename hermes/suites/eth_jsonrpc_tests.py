@@ -47,13 +47,17 @@ def fxLocalSetup(fxBlockchain, fxHermesRunSettings, fxProduct, fxConnection):
     args = fxHermesRunSettings["hermesCmdlineArgs"]
     userConfig = fxHermesRunSettings["hermesUserConfig"]
 
-    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(fxConnection.request,
-                                                                                             fxBlockchain.blockchainId)
+    ethrpcApiUrl = args.ethrpcApiUrl if args.ethrpcApiUrl else bc_eth_helper.getEthrpcApiUrl(
+        fxConnection.request, fxBlockchain.blockchainId)
 
-    return LocalSetupFixture(args=args, request=fxConnection.request, rpc=fxConnection.rpc,
-                             ethereumMode=args.ethereumMode, productMode=not args.ethereumMode,
+    return LocalSetupFixture(args=args,
+                             request=fxConnection.request,
+                             rpc=fxConnection.rpc,
+                             ethereumMode=args.ethereumMode,
+                             productMode=not args.ethereumMode,
                              productUserConfig=userConfig["product"],
-                             ethrpcApiUrl=ethrpcApiUrl, blockchainId=fxBlockchain.blockchainId)
+                             ethrpcApiUrl=ethrpcApiUrl,
+                             blockchainId=fxBlockchain.blockchainId)
 
 
 def _createBlockFilterAndSendTransactions(rpc, txCount):
