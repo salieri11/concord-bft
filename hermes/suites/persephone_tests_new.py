@@ -254,20 +254,26 @@ def update_provisioning_service_application_properties(cmdline_args, mode="UPDAT
         persephone_config_file = helper.get_deployment_service_config_file(cmdline_args.dockerComposeFile,
                                                                            Product.PERSEPHONE_SERVICE_PROVISIONING)
 
-        # Below environment settings below should ideally be handled in pipeline;
-        # it has nothing to do with the testing itself; shouldn't be in Hermes
+        # Set base image version, and agent tag if different from concord tag
         tags_info = helper.get_agent_pulled_tags_info()
         concord_current_tag = tags_info["tags"]["concord"]["tag"]
         helper.set_props_file_value(persephone_config_file, 'docker.image.base.version', concord_current_tag)
         if not tags_info["uniform"] and helper.thisHermesIsFromJenkins():
-            job_name = helper.getJenkinsJobNameAndBuildNumber()["jobName"]
-            if "ON DEMAND Persephone" in job_name:  # Use agent locally built on the run
+            if tags_info["tags"]["agent"]["tag"] != tags_info["tags"]["concord"]["tag"]:
                 helper.DEPLOYMENT_PROPERTIES["GENERIC"] = tags_info["tags"]["agent"]["tag"]
 
+        # Print properties file with secrets redacted
         with open(persephone_config_file, 'r') as config_file:
-            log.info("\nPersephone config file is as follows:\n\n{}\n\n".format(config_file.read()))
+            properties_content = config_file.read(); lines = []
+            for line in properties_content.split('\n'):
+                if 'password' in line or 'token' in line:
+                    lines.append(line.split('=')[0] + '=<SECRET_REDACTED>')
+                else: lines.append(line)
+            properties_content = '\n'.join(lines)
+            log.info("\nPersephone config file is as follows:\n\n{}\n\n".format(properties_content))
         
-        infra.outputEffectiveZones() # which zones? which segments?
+        # Print info; which zones? which segments are used?
+        infra.outputEffectiveZones()
 
         if cmdline_args.useLocalConfigService:
             persephone_config_file_orig = "{}.orig".format(persephone_config_file)
