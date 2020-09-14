@@ -23,6 +23,7 @@ import {
 
 import { Zone, mockZones } from './../../zones/shared/zones.model';
 import { Apis, uuidRegExp } from '../../shared/urls.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -60,6 +61,7 @@ export class BlockchainService {
     const deployRequestTime = Date.now();
     const tempKey = 'unassigned_' + deployRequestTime;
     const tracker: TempDeployTracker = { key: tempKey, create_params: params, requested: deployRequestTime };
+    if (environment.production) { tracker.create_params = null; }
     this.saveDeployingData(tracker);
 
     return this.consortiumService.create(params.consortium_name).pipe(
