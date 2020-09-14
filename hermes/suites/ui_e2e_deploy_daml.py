@@ -9,7 +9,7 @@ import subprocess
 import pytest
 import collections
 import util.hermes_logging
-from fixtures.common_fixtures import fxHermesRunSettings, fxProduct, fxConnection, fxBlockchain
+from fixtures.common_fixtures import fxProduct, fxConnection, fxBlockchain
 from suites.case import describe
 from xvfbwrapper import Xvfb
 
