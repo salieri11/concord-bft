@@ -131,13 +131,6 @@ other:jaeger-client-cpp:0.5.0:
  license: Apache 2.0
  url: https://github.com/jaegertracing/jaeger-client-cpp/tree/v0.5.0
 
-other:prometheus-cpp:0.8.0:
- name: prometheus-cpp
- version: 0.8.0
- repository: Other
- license: The MIT License
- url: https://github.com/jupp0r/prometheus-cpp/tree/v0.8.0
-
 other:llvm-project:5.0:
  name: llvm-project
  version: 5.0
@@ -242,3 +235,17 @@ other:cpp-httplib:0.7.5:
  repository: Other
  license: MIT License
  url: https://github.com/yhirose/cpp-httplib
+
+other:cpplint:1.5.4:
+ name: cpplint
+ version: 1.5.4
+ repository: Other
+ license: BSD 3-Clause
+ url: https://github.com/cpplint/cpplint
+
+other:Tatsu:4.4:
+ name: Tatsu
+ version: 4.4
+ repository: Other
+ license: BSD License
+ url: https://github.com/neogeny/TatSu
