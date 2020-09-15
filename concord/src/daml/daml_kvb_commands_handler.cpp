@@ -154,7 +154,9 @@ DamlKvbCommandsHandler::GetFromStorage(
     }
     result[skey] = std::make_pair(proto.value(), actual_block_id);
   }
-  read_keys_count_.Observe(keys.size());
+  if (enable_histograms_or_summaries) {
+    read_keys_count_.Observe(keys.size());
+  }
   return result;
 }
 
@@ -206,7 +208,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
             << record_transaction_duration.count() << ", clock: "
             << std::chrono::steady_clock::now().time_since_epoch().count());
     execution_time_.Increment((double)total_duration.count());
-    daml_hdlr_exec_dur_.Observe(total_duration.count());
+    if (enable_histograms_or_summaries) {
+      daml_hdlr_exec_dur_.Observe(total_duration.count());
+    }
     return true;
   } else {
     LOG_INFO(logger_, "Failed handling DAML commit command, time: "
@@ -233,7 +237,9 @@ bool DamlKvbCommandsHandler::PreExecute(
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::steady_clock::now() - start)
                       .count();
-  daml_exec_eng_dur_.Observe(duration);
+  if (enable_histograms_or_summaries) {
+    daml_exec_eng_dur_.Observe(duration);
+  }
   LOG_INFO(logger_, "DAML external PreExecute duration [" << duration << "ms]");
   if (!status.ok()) {
     LOG_ERROR(logger_, "Pre-execution failed " << status.error_code() << ": "
@@ -386,7 +392,9 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
     std::vector<string> thin_replica_ids;
     AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
     auto value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
-    daml_kv_size_summary_.Observe(value.length());
+    if (enable_histograms_or_summaries) {
+      daml_kv_size_summary_.Observe(value.length());
+    }
     updates.insert(std::make_pair(std::move(key), std::move(value)));
   }
 }
@@ -460,7 +468,9 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::steady_clock::now() - start)
                       .count();
-  daml_exec_eng_dur_.Observe(duration);
+  if (enable_histograms_or_summaries) {
+    daml_exec_eng_dur_.Observe(duration);
+  }
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
 
@@ -468,7 +478,9 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
   for (const auto& entry : write_set) {
     auto key = CreateDamlKvbKey(entry.first);
     auto value = CreateDamlKvbValue(entry.second);
-    daml_kv_size_summary_.Observe(value.length());
+    if (enable_histograms_or_summaries) {
+      daml_kv_size_summary_.Observe(value.length());
+    }
     LOG_DEBUG(logger_, "KV_metrics Key length: " << key.length()
                                                  << ", Value length: "
                                                  << value.length());
@@ -491,11 +503,13 @@ void DamlKvbCommandsHandler::RecordTransaction(
     ConcordResponse& concord_response) {
   auto record_transaction = concordUtils::startChildSpanFromContext(
       parent_span.context(), "record_transaction");
-  written_keys_count_.Observe(updates.size());
   SetOfKeyValuePairs amended_updates(updates);
   auto copied_correlation_id = correlation_id;
   auto cid_val = kvbc::Value(std::move(copied_correlation_id));
-  internal_kv_size_summary_.Observe(cid_val.length());
+  if (enable_histograms_or_summaries) {
+    internal_kv_size_summary_.Observe(cid_val.length());
+    written_keys_count_.Observe(updates.size());
+  }
   amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
   auto status = addBlock(amended_updates, new_block_id, record_transaction);

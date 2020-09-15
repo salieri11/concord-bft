@@ -47,7 +47,8 @@ ConcordConfiguration TestConfiguration(
     std::size_t replica_count, std::size_t proxies_per_replica,
     std::uint64_t num_blocks_to_keep = 0,
     std::uint32_t duration_to_keep_minutes = 0, bool pruning_enabled = true,
-    bool time_service_enabled = true) {
+    bool time_service_enabled = true,
+    bool summaries_or_histograms_enabled = true) {
   ConcordConfiguration config;
 
   config.declareScope("node", "Node scope", NodeScopeSizer, &replica_count);
@@ -74,6 +75,7 @@ ConcordConfiguration TestConfiguration(
   nodeTemplate.declareScope("client_proxy", "Client proxy scope",
                             ClientProxyScopeSizer, &proxies_per_replica);
   nodeTemplate.declareParameter("time_source_id", "Time Source ID");
+  nodeTemplate.declareParameter("enable_histograms_or_summaries", "");
 
   auto& replicaTemplate = nodeTemplate.subscope("replica");
   replicaTemplate.declareParameter("private_key", "Private RSA key");
@@ -105,6 +107,8 @@ ConcordConfiguration TestConfiguration(
     auto& node_scope = config.subscope("node", i);
 
     node_scope.loadValue("time_source_id", "time_source_" + std::to_string(i));
+    node_scope.loadValue("enable_histograms_or_summaries",
+                         summaries_or_histograms_enabled ? "true" : "false");
 
     node_scope.instantiateScope("replica");
     auto& replica_scope = node_scope.subscope("replica", 0);
