@@ -55,10 +55,10 @@ object RetryStrategy {
       exponentialBackoffProgression)
 
   def exponentialBackoffProgression(duration: Duration): Duration =
-    duration * 2
+    duration * ExponentialBackoffMultiplier
 
   def exponentialBackoffWaitTimeCap(retries: Int, firstWaitTime: Duration): Duration =
-    firstWaitTime * math.pow(2.0, retries.toDouble)
+    firstWaitTime * math.pow(ExponentialBackoffMultiplier.toDouble, retries.toDouble)
 
   def constant(shouldRetry: Throwable => Boolean, retries: Int, waitTime: Duration): RetryStrategy =
     new RetryStrategy(shouldRetry, retries, waitTime, waitTime, identity)
@@ -72,7 +72,10 @@ object RetryStrategy {
     progression(1.milli) == 1.milli
 
   def isExponential(retryStrategy: RetryStrategy): Boolean =
-    retryStrategy.progression(1.milli) == 2.milli
+    retryStrategy.progression(1.milli) == ExponentialBackoffMultiplier.millis
+
+  val ExponentialBackoffMultiplier = 2
+
 }
 
 final case class RetryStrategy(

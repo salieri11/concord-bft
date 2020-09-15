@@ -259,11 +259,13 @@ object ExtraConfig {
         println(
           s"""The supported BFT client request timeout strategies are:
             |
-            | * Constant timeout (default); key: $ConstantTimeoutKey (default value: ${durationToCommandlineText(ConstantRequestTimeout.ReasonableDefault.defaultTimeout)})
-            | * Linear transform in the estimated interpretation cost as milliseconds; keys:
+            | * Linear transform in the estimated interpretation cost as milliseconds (default); keys:
             |   - $LinearTimeoutSlopeKey (default value: ${linearDefault.slope})
             |   - $LinearTimeoutInterceptKey (default value: ${linearDefault.intercept})
-            |   - $LinearTimeoutDefaultKey  (default value: ${durationToCommandlineText(linearDefault.defaultTimeout)})""".stripMargin)
+            |   - $LinearTimeoutDefaultKey (default value: ${durationToCommandlineText(linearDefault.defaultTimeout)})
+            |
+            | * Constant timeout; keys:
+            |   - $ConstantTimeoutKey (default value: ${durationToCommandlineText(ConstantRequestTimeout.ReasonableDefault.defaultTimeout)})""".stripMargin)
         sys.exit(0)
       })
       .text("Prints the BFT client request timeout strategies and exits.")
@@ -273,10 +275,12 @@ object ExtraConfig {
       .optional()
       .action((_, _) => {
         println(
-          s"""BFT client send retry strategies can be selected through the $SendRetryStrategyKey key and support the $SendRetryFirstWaitKey (default value: ${durationToCommandlineText(BftClientConfig.ReasonableDefault.sendRetryStrategy.firstWaitTime)}) and $SendRetriesKey (default value: ${BftClientConfig.ReasonableDefault.sendRetryStrategy.retries}) keys; they are:
+          s"""BFT client send retry strategies determine how the Ledger API Server retries sending through the BFT client if its resources are exhausted. They can be selected through the '$SendRetryStrategyKey' key that supports the following values:
              |
-             | * Exponential back-off (default); value: $ConstantWaitTime
-             | * Constant wait time; value: $ExponentialBackOff""".stripMargin)
+             | * $ExponentialBackOff (default; the multiplier is fixed to ${RetryStrategy.ExponentialBackoffMultiplier})
+             | * $ConstantWaitTime
+             |
+             |All strategies also support the additional '$SendRetryFirstWaitKey' (default value: ${durationToCommandlineText(BftClientConfig.ReasonableDefault.sendRetryStrategy.firstWaitTime)}) and '$SendRetriesKey' (default value: ${BftClientConfig.ReasonableDefault.sendRetryStrategy.retries}) keys.""".stripMargin)
         sys.exit(0)
       })
       .text("Prints the BFT client send retry strategies and exits.")
@@ -434,7 +438,7 @@ object ExtraConfig {
     }
   }
 
-  private def durationToCommandlineText(defaultTimeout: Duration) = s"${defaultTimeout.toSeconds}s"
+  private def durationToCommandlineText(defaultTimeout: Duration) = s"${defaultTimeout.toMillis}ms"
 
   def throwRequestStrategyKeysCannotBeMixed(): Nothing =
     throw new IllegalArgumentException("Request timeout strategy keys cannot be mixed.")
