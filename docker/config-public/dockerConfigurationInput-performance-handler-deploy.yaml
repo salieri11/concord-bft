@@ -9,16 +9,20 @@ perf_enable: true
 eth_enable: false
 tee_enable: false
 preexecution_enabled: true
+trs_tls_enable: true
+thin_replica_tls_cert_path: /concord/trs_trc_tls_certs
 concord-bft_communication_buffer_length: 16777216
 concord-bft_max_external_message_size: 2000000
 concord-bft_max_reply_message_size: 16384
 concord-bft_max_num_of_reserved_pages: 145
 node__TEMPLATE:
-  logger_config: /concord/config-public/log4cplus.properties
+  logger_config: /concord/config-local/log4cplus.properties
   genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000
   concord-bft_enable_debug_statistics: true
+  blockchain_db_impl: rocksdb
+  blockchain_storage_type: merkle
 node:
   - service_host: 0.0.0.0
     service_port: 5458
@@ -28,13 +32,13 @@ node:
         replica_port: 3501
         principal_id: 0
     client_proxy:
-      - client_host: concord1
+      - client_host: 127.0.0.1
         client_port: 3502
-      - client_host: concord1
+      - client_host: 127.0.0.1
         client_port: 3503
-      - client_host: concord1
+      - client_host: 127.0.0.1
         client_port: 3504
-      - client_host: concord1
+      - client_host: 127.0.0.1
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
@@ -42,14 +46,15 @@ node:
     replica:
       - replica_host: concord2
         replica_port: 3501
+        principal_id: 1
     client_proxy:
-      - client_host: concord2
+      - client_host: 127.0.0.1
         client_port: 3502
-      - client_host: concord2
+      - client_host: 127.0.0.1
         client_port: 3503
-      - client_host: concord2
+      - client_host: 127.0.0.1
         client_port: 3504
-      - client_host: concord2
+      - client_host: 127.0.0.1
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
@@ -57,14 +62,15 @@ node:
     replica:
       - replica_host: concord3
         replica_port: 3501
+        principal_id: 2
     client_proxy:
-      - client_host: concord3
+      - client_host: 127.0.0.1
         client_port: 3502
-      - client_host: concord3
+      - client_host: 127.0.0.1
         client_port: 3503
-      - client_host: concord3
+      - client_host: 127.0.0.1
         client_port: 3504
-      - client_host: concord3
+      - client_host: 127.0.0.1
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
@@ -72,12 +78,13 @@ node:
     replica:
       - replica_host: concord4
         replica_port: 3501
+        principal_id: 2
     client_proxy:
-      - client_host: concord4
+      - client_host: 127.0.0.1
         client_port: 3502
-      - client_host: concord4
+      - client_host: 127.0.0.1
         client_port: 3503
-      - client_host: concord4
+      - client_host: 127.0.0.1
         client_port: 3504
-      - client_host: concord4
+      - client_host: 127.0.0.1
         client_port: 3505

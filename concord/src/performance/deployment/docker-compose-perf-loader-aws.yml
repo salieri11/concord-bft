@@ -1,0 +1,16 @@
+# for running local concord with Test Execution Engine
+#
+# ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-tee.yaml
+# docker-compose -f docker-compose-tee.yml up
+#
+version: '3'
+services:
+  perf_loader:
+    image: "DOCKER_USERNAME/DOCKER_REPO:LOADER_TAG"
+    privileged: true
+    volumes:
+      - ./config-local:/perf_loader/config
+      - ./tls_certs:/perf_loader/tls_certs:ro
+    command: LOADER_COMMAND
+    labels:
+      custom_name: concord_perf_loader
