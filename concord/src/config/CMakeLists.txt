@@ -6,5 +6,4 @@ target_link_libraries(concord_config PUBLIC
     ${yaml-cpp_LIBRARIES}
     ${Boost_LIBRARIES}
     threshsign
-    corebft
 )

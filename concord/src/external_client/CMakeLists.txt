@@ -1,6 +1,5 @@
-#
-# TODO [TK] - BAD PRACTICE - SHOULD LINK AGAINST LIBRARIES NOT INDIVIDUAL FILES. 
-# 
+
+
 file (GLOB util_headers "../../submodules/concord-bft/util/include/*.h"
         "../../submodules/concord-bft/util/include/*.hpp")
 file (GLOB logging_headers "../../submodules/concord-bft/logging/include/*.hpp")
@@ -63,6 +62,7 @@ include_directories(../../submodules/concord-bft/threshsign/include/)
 include_directories(../../submodules/concord-bft/bftengine/include/bcstatetransfer/)
 add_library(concord_external_client STATIC
         ${concord_external_client_sources}
+        ../config/configuration_manager.cpp
         )
 get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 target_include_directories(concord_external_client PRIVATE ${thresh_include})
@@ -71,15 +71,13 @@ target_include_directories(concord_external_client PRIVATE ${thresh_include})
 target_link_libraries(concord_external_client PUBLIC
         ${Boost_LIBRARIES}
         ${yaml-cpp_LIBRARIES}
-        logging
+        log4cplus
         concord_utils
         bftclient
         bftclient_new
         kvbc
         util
-        threshsign
-        concord_config)
-
+        threshsign)
 
 add_library(concord_external_client_shared SHARED
         ${concord_external_client_sources}
@@ -88,13 +86,14 @@ add_library(concord_external_client_shared SHARED
         ../config/configuration_manager.cpp
         ../../submodules/concord-bft/threshsign/src/ThresholdSignaturesTypes.cpp
         ../../submodules/concord-bft/threshsign/src/bls/relic/BlsNumTypes.cpp
+        ../../submodules/concord-bft/logging/src/Logger.cpp
         ../../submodules/concord-bft/threshsign/src/bls/relic/BlsThresholdFactory.cpp
         )
 target_include_directories(concord_external_client_shared PRIVATE ${thresh_include})
 target_link_libraries(concord_external_client_shared PUBLIC
         ${Boost_LIBRARIES}
         ${CRYPTOPP_LIBRARIES}
-		logging
+        log4cplus
         concord_utils_shared
         bftclient_shared
         bftclient_new
