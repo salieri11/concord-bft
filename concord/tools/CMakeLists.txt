@@ -67,7 +67,6 @@ target_link_libraries(conc_reconfig
 
 add_executable(conc_time
                "conc_time.cpp"
-               ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_time
                       concmdutil
@@ -77,7 +76,8 @@ target_link_libraries(conc_time
                       protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES}
-                      logging)
+                      logging
+                      concord_config)
 
 # ecrecover and ecsign need to find src/common/concord_eth_sign.h
 include_directories("../src")
@@ -115,6 +115,7 @@ add_executable(conc_genconfig
                "conc_genconfig.cpp"
                ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp)
 
+
 # Note we explicitly clear conc_genconfig's LINK_LIBRARIES value here so that
 # conc_genconfig will ignore any LINK_LIBRARIES appended globaly or otherwise to
 # a scope containing conc_genconfig. This may be necessary as other parts of
@@ -130,7 +131,8 @@ find_package(StaticLibraries REQUIRED)
 target_link_libraries(conc_genconfig PUBLIC
                       ${boost_program_options_STATIC_LIBRARY}
                       ${yaml-cpp_STATIC_LIBRARY}
-                      logging)
+                      logging
+                      corebft)
 
 # Note we specifically target a shared version of pthread here. We do not think
 # it to significantly matter for binary correctness purposes whether pthread is
