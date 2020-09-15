@@ -798,8 +798,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // Start the diagnostics server
     concord::diagnostics::Server diagnostics_server;
     diagnostics_server.start(
-        concord::diagnostics::RegistrarSingleton::getInstance(),
-        INADDR_LOOPBACK, 6888);  // TODO [TK] tmp
+        concord::diagnostics::RegistrarSingleton::getInstance());
 
     // Clients
 
@@ -986,7 +985,7 @@ int main(int argc, char **argv) {
     result = run_service(config, nodeConfig, mainLogger);
 
     LOG_INFO(mainLogger, "VMware Project concord halting");
-  } catch (const std::exception &ex) {
+  } catch (const error &ex) {
     LOG_FATAL(mainLogger, ex.what());
     result = -1;
   }
