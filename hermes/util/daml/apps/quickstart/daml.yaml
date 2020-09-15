@@ -1,0 +1,18 @@
+sdk-version: 1.1.1
+name: quickstart
+source: daml
+init-script: Setup:initialize
+parties:
+  - Alisson
+version: 0.0.1
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+sandbox-options:
+  - --wall-clock-time
+codegen:
+  java:
+    package-prefix: com.daml.quickstart.model
+    output-directory: target/generated-sources/iou
+    decoderClass: com.daml.quickstart.iou.TemplateDecoder

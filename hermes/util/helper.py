@@ -496,7 +496,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command, verbose=True, timeout=None):
+def execute_ext_command(command, verbose=True, timeout=None, working_dir=None):
    '''
    Helper method to execute an external command
    :param command: command to be executed
@@ -504,12 +504,14 @@ def execute_ext_command(command, verbose=True, timeout=None):
    :return: True if command exit status is 0, else False
    '''
    log.debug("Executing external command: {}".format(command))
+   completedProcess = None
 
    try:
       completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
                                      universal_newlines=True,
-                                     timeout=timeout)
+                                     timeout=timeout,
+                                     cwd=working_dir)
 
       completedProcess.check_returncode()
 
@@ -1280,6 +1282,20 @@ def waitForTask(request, taskId, expectSuccess=True, timeout=600):
             log.info("Task did not finish as expected.  Details: {}".format(response))
 
    return (success, response)
+
+
+def getDefaultParticipantContainers():
+   '''
+   Return an array of the default DAML participant docker container names.
+   '''
+   names = []
+   config = loadConfigFile()
+   participant_images = config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]["daml_participant"]
+
+   for k in participant_images:
+      names.append(participant_images[k])
+
+   return names
 
 
 def loadConfigFile(args=None, filepath=None):
@@ -2169,29 +2185,26 @@ def getClientNodes(num_groups, client_zone_ids):
    if num_groups <= 0:
       return client_nodes
 
-   group_map = {}
-   for group_id in range(0, num_groups):
-      group_map[str(group_id)] = "Group " + str(group_id)
+   group_names = []
+   for i in range(0, num_groups):
+      group_names.append("Group {}".format(i))
 
-   log.debug("group_map is {}".format(group_map))
-
-   client_group_map = {}
-   # Create clients
-   client_zone_index = 0
+   current_zone_idx = 0
+   current_group_idx = 0
 
    for client in client_nodes:
-      zone_id = client["zone_id"]
-      if client_group_map.get(zone_id):
-         group_name = client_group_map[zone_id]
-         client["group_name"] = group_name
+      client["zone_id"] = client_zone_ids[current_zone_idx]
+      client["group_name"] = group_names[current_group_idx]
+
+      if current_zone_idx + 1 < len(client_zone_ids):
+         current_zone_idx += 1
       else:
-         if client_zone_index >= num_groups:
-            client_zone_index = 0
-         group_name = group_map[str(client_zone_index)]
-         client_group_map[zone_id] = group_name
-         log.debug("group name {}".format(group_name))
-         client["group_name"] = group_name
-         client_zone_index += 1
+         current_zone_idx = 0
+
+      if current_group_idx + 1 < len(group_names):
+         current_group_idx += 1
+      else:
+         current_group_idx = 0
 
    log.debug("client nodes {}".format(client_nodes))
    return client_nodes

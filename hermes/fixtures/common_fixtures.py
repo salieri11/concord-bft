@@ -193,13 +193,11 @@ def getZoneIds(conAdminRequest, newZones, blockchainLocation):
 
       for existingZone in existingZones:
          if validZoneDetails(existingZone) and newZoneEqualsExistingZone(existingZone, newZone):
-            log.debug("We do not need to add zone {} because one just like it is already there".format(newZone))
             found = True
             returnZoneIds.append(existingZone["id"])
             break
 
       if not found:
-         log.info("We need to add zone {}".format(newZone))
          newZonesToAdd.append(newZone)
 
    newZoneIds = conAdminRequest.addUserConfigZones(newZonesToAdd, blockchainLocation)
@@ -289,8 +287,9 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
        # We know how many groups, how many clients/participants.
        client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
        log.debug("client_nodes after getClientNodes {}".format(client_nodes))
-   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
 
+   # numNodes is the number of committers and does not include participants.
+   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
    response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
    log.debug("client nodes in common fixtures {}".format(client_nodes))
 
@@ -619,6 +618,9 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    Otherwise, the default consortium and blockchain pre-added to Helen for R&D, will be returned.
    The accepted parameter, "request", is an internal PyTest name and must be that.  It contains
    information about the PyTest invocation.
+
+   WARNING: The blockchain "replicas" field is an array of IPs if passing in replicasConfig,
+            but an array of objects if a blockchain is deployed.
    '''
    blockchainId = None
    conId = None

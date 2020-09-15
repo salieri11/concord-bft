@@ -14,7 +14,7 @@ import yaml
 
 from util.daml.customer.exceptions import TransactionCreationError, TransactionReadError
 import util.daml.bombardier
-
+import util.daml.daml_helper
 import util.hermes_logging as hermes_logging_util
 log = hermes_logging_util.getMainLogger()
 
@@ -27,6 +27,7 @@ class Parties:
     '''
     names = []
     base_daml_app_path = "util/daml/apps/quickstart"
+    daml_sdk_path = None # Set after installing the DAML SDK.
 
     def __init__(self, ppool, count, test_name):
         '''
@@ -60,7 +61,7 @@ class Parties:
             })
         else:
             log.info("Starting bombardier fleet")
-            self._bombardier_fleet = util.daml.bombardier.BombardierFleet(test_name, count, check_install=False)
+            self._bombardier_fleet = util.daml.bombardier.BombardierFleet(test_name, count, check_install=True)
 
         # Organize our group list such that we can distribute parties
         # among groups evenly, and parties within groups among nodes in that
@@ -229,6 +230,8 @@ class Party:
         self._participant = initial_participant
         self._original_participant = initial_participant
         self._bombardier_client = bombardier_client
+        self._daml_sdk_version = util.daml.daml_helper.get_ledger_api_version(self._participant.ip)
+        self._install_daml_sdk()
         self._initialize_daml_project(base_daml_app_path)
         self._party_project_dir = None
         self._vm = None
@@ -240,6 +243,11 @@ class Party:
     def __str__(self):
        return "Party {}:\n group: {}\n participants: {}\n original_participant: {}". \
             format(self._name, self._group, self._participants, self._original_participant)
+
+
+    def _install_daml_sdk(self):
+        if not Parties.daml_sdk_path:
+            Parties.daml_sdk_path = util.daml.daml_helper.install_daml_sdk(self._daml_sdk_version)
 
 
     def _initialize_daml_project(self, base_daml_app_path):
@@ -256,7 +264,7 @@ class Party:
         node it has been associated with.
         Note: Requires the DAML SDK.
         '''
-        cmd = ["daml", "deploy", "--host", self._participant.ip, "--port", str(self._participant.port)]
+        cmd = [Parties.daml_sdk_path, "deploy", "--host", self._participant.ip, "--port", str(self._participant.port)]
 
         success, output = util.helper.execute_ext_command(cmd, timeout=120,
                                                           working_dir=self._party_project_dir,
@@ -283,6 +291,7 @@ class Party:
             daml_config = yaml.load(f, Loader=yaml.Loader)
 
         daml_config["parties"] = [self._name]
+        daml_config["sdk-version"] = self._daml_sdk_version
 
         with open(daml_config_file, "w+") as f:
             yaml.dump(daml_config, f)

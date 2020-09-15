@@ -2,14 +2,18 @@
 # DAML util file to perform daml tests
 
 from distutils.version import LooseVersion
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 import glob
 import json
 import os
 import requests
+import ssl
+import stat
 import subprocess
 import sys
 import time
-from tempfile import NamedTemporaryFile
+import urllib
 import util.auth
 import util.json_helper
 
@@ -488,3 +492,55 @@ def download_spider_app(tag):
 
    if not success:
       raise Exception("Failed to pull digitalasset/spider-application:{}".format(spider_version))
+
+
+def install_daml_sdk(sdk_version=None):
+   '''
+   sdk_version: Version to install.  If None, installs the latest according to DA's web site.
+   Returns a path to the DAML SDK executable.
+   Call this first to get the version: daml_sdk_version = daml_helper.get_ledger_api_version(participant_ip)
+   '''
+   home = str(Path.home())
+   daml_path = os.path.join(home, ".daml", "bin", "daml")
+
+   if os.path.isfile(daml_path) and sdk_version:
+      cmd = [daml_path, "version"]
+      success, output = util.helper.execute_ext_command(cmd, timeout=10, verbose=True)
+
+      if success and sdk_version in output:
+         log.info("DAML SDK version {} is already installed at {}".format(sdk_version, daml_path))
+         return daml_path
+
+   ssl._create_default_https_context = ssl._create_unverified_context
+   url = "https://get.daml.com/"
+   response = urllib.request.urlopen(url)
+   data = response.read()
+   text = data.decode("utf-8")
+   script_file = os.path.join(os.getcwd(), "get-daml.sh")
+
+   log.info("script_file: {}".format(script_file))
+
+   with open(script_file, "w") as f:
+      f.write(text)
+
+   stat_info = os.stat(script_file)
+   os.chmod(script_file, stat_info.st_mode | stat.S_IEXEC)
+   cmd = [script_file]
+   msg = "Installing DAML SDK: "
+
+   if sdk_version:
+      cmd.append(sdk_version)
+      msg += sdk_version
+   else:
+      msg += "Latest available"
+
+   log.info(msg)
+   success, output = util.helper.execute_ext_command(cmd, timeout=600, verbose=True)
+
+   if not success:
+      raise Exception("Unable to install the DAML SDK. Details: {}".format(output))
+
+   if os.path.isfile(daml_path):
+      return daml_path
+   else:
+      raise Exception("Unable to find daml installation at {}".format(daml_path))
