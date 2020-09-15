@@ -71,7 +71,8 @@ public class ConcordConfigUtil {
      */
     public Map<String, Map<String, String>> getConcordConfig(List<String> nodeIds, List<String> hostIps,
                                                 BlockchainType blockchainType, int bftClients,
-                                                boolean isSplitConfig, boolean isPreexecutionDeployment) {
+                                                boolean isSplitConfig, boolean isPreexecutionDeployment)
+            throws IOException {
         try {
             var outputPath = Files.createTempDirectory(null);
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
@@ -114,8 +115,8 @@ public class ConcordConfigUtil {
             return result;
         } catch (IOException e) {
             log.error("Exception while generating concord config for session id : {} \n{}",
-                    sessionId, e.getLocalizedMessage());
-            return null;
+                    sessionId, e);
+            throw e;
         }
     }
 

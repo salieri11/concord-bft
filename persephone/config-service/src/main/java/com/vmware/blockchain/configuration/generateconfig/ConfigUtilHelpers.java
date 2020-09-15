@@ -189,14 +189,23 @@ public class ConfigUtilHelpers {
 
         if (splitconfig) {
             for (int num = 0; num < nodeIds.size(); num++) {
+                var deploy = Files.readString(outputPath.resolve(DEPLOY + (num + 1) + ".config"));
+                var secret = Files.readString(outputPath.resolve(SECRET + (num + 1) + ".config"));
+                if (deploy.isBlank() || deploy.isEmpty() || secret.isBlank() || secret.isEmpty()) {
+                    throw new IOException("deployment.config or secret.config not generated.");
+                }
                 Map<String, String> configs = Map.of(
-                        DEPLOY, Files.readString(outputPath.resolve(DEPLOY + (num + 1) + ".config")),
-                        SECRET, Files.readString(outputPath.resolve(SECRET + (num + 1) + ".config")));
+                        DEPLOY, deploy,
+                        SECRET, secret);
                 result.put(nodeIds.get(num), configs);
             }
         } else {
             for (int num = 0; num < nodeIds.size(); num++) {
                 var path = outputPath.resolve(CONCORD + (num + 1) + ".config");
+                var value = Files.readString(path);
+                if (value.isEmpty() || value.isBlank()) {
+                    throw new IOException("concord.config not generated.");
+                }
                 var config = Map.of(CONCORD, Files.readString(path));
                 result.put(nodeIds.get(num), config);
             }
