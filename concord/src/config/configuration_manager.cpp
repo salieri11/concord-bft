@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <nlohmann/json.hpp>
 
+#include "bftengine/CryptoManager.hpp"
 #include "configuration_manager.hpp"
 
 using std::cerr;
@@ -2425,7 +2426,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
   try {
     *output = (*cryptosystemPointer)->getSystemPublicKey();
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }
@@ -2730,7 +2732,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
 
     *output = (*cryptosystemPointer)->getPrivateKey(signer);
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }
@@ -2778,7 +2781,8 @@ static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
 
     *output = ((*cryptosystemPointer)->getSystemVerificationKeys())[signer];
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }
@@ -4962,6 +4966,13 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
             "for required parameter(s): ",
             parameters_missing));
   }
+
+  bftEngine::ReplicaConfig repConfig;
+  repConfig.fVal = fVal;
+  repConfig.cVal = cVal;
+  repConfig.numReplicas = numSigners;
+  bftEngine::CryptoManager::instance(
+      &repConfig, auxState->optimisticCommitCryptosys.release());
 }
 
 // Note the current implementaion of this function assumes all Concord-BFT

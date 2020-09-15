@@ -55,7 +55,7 @@ login: ## Login to the container
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it ${CONCORD_BUILD_CONTAINER} \
+	docker exec ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL};exit 0
 
 .PHONY: stop-c
@@ -75,7 +75,7 @@ build: ## Build Concord source. Note: this command is mostly for developers
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -89,7 +89,7 @@ operator:
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -103,7 +103,7 @@ format: ## Format Concord source
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  ${CONCORD_USER_GROUP} --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -117,7 +117,7 @@ test: ## Run all tests
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
@@ -127,7 +127,7 @@ single-test: ## Run single test `make single-test TEST_NAME=<test name>`
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest -R ${TEST_NAME} --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
@@ -137,7 +137,7 @@ clean: ## Clean Concord build directory
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
 		make run-c; \
 	fi
-	docker exec -it --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
+	docker exec  --workdir=${CONCORD_WORK_DIR} ${CONCORD_BUILD_CONTAINER} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"rm -rf ${CONCORD_BUILD_DIR}"
 
