@@ -71,7 +71,7 @@ target_include_directories(concord_external_client PRIVATE ${thresh_include})
 target_link_libraries(concord_external_client PUBLIC
         ${Boost_LIBRARIES}
         ${yaml-cpp_LIBRARIES}
-        log4cplus
+        logging
         concord_utils
         bftclient
         bftclient_new
@@ -86,14 +86,13 @@ add_library(concord_external_client_shared SHARED
         ../config/configuration_manager.cpp
         ../../submodules/concord-bft/threshsign/src/ThresholdSignaturesTypes.cpp
         ../../submodules/concord-bft/threshsign/src/bls/relic/BlsNumTypes.cpp
-        ../../submodules/concord-bft/logging/src/Logger.cpp
         ../../submodules/concord-bft/threshsign/src/bls/relic/BlsThresholdFactory.cpp
         )
 target_include_directories(concord_external_client_shared PRIVATE ${thresh_include})
 target_link_libraries(concord_external_client_shared PUBLIC
         ${Boost_LIBRARIES}
         ${CRYPTOPP_LIBRARIES}
-        log4cplus
+		logging
         concord_utils_shared
         bftclient_shared
         bftclient_new

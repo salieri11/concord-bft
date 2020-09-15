@@ -8,121 +8,17 @@
 
 #include <set>
 #include <string>
-#include "IThresholdFactory.h"
-#include "IThresholdSigner.h"
-#include "IThresholdVerifier.h"
+
 #include "KVBCInterfaces.h"
+#include "bftengine/CryptoManager.hpp"
 #include "config/communication.hpp"
 #include "config/configuration_manager.hpp"
+
 namespace concord {
 namespace consensus {
 
 const size_t MAX_ITEM_LENGTH = 4096;
 const std::string MAX_ITEM_LENGTH_STR = std::to_string(MAX_ITEM_LENGTH);
-
-void InitializeSbftThresholdPublicKeys(
-    concord::config::ConcordConfiguration& config, bool isClient, uint16_t f,
-    uint16_t c, IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
-    IThresholdVerifier*& thresholdVerifierForCommit,
-    IThresholdVerifier*& thresholdVerifierForOptimisticCommit) {
-  concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
-  assert(auxState = dynamic_cast<
-             concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
-             config.getAuxiliaryState()));
-
-  // The Client class only needs the f+1 parameters
-  if (isClient) {
-    return;
-  }
-
-  assert(auxState->slowCommitCryptosys);
-  thresholdVerifierForSlowPathCommit =
-      auxState->slowCommitCryptosys->createThresholdVerifier();
-
-  if (c > 0) {
-    assert(auxState->commitCryptosys);
-    thresholdVerifierForCommit =
-        auxState->commitCryptosys->createThresholdVerifier();
-  }
-
-  assert(auxState->optimisticCommitCryptosys);
-  thresholdVerifierForOptimisticCommit =
-      auxState->optimisticCommitCryptosys->createThresholdVerifier();
-}
-
-/*
- * Reads the secret keys for the multisig and threshold schemes!
- */
-void InitializeSbftThresholdPrivateKeys(
-    concord::config::ConcordConfiguration& config, uint16_t myReplicaId,
-    uint16_t f, uint16_t c, IThresholdSigner*& thresholdSignerForSlowPathCommit,
-    IThresholdSigner*& thresholdSignerForCommit,
-    IThresholdSigner*& thresholdSignerForOptimisticCommit) {
-  concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
-  assert(auxState = dynamic_cast<
-             concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
-             config.getAuxiliaryState()));
-
-  // 2f + c + 1
-  assert(auxState->slowCommitCryptosys);
-  thresholdSignerForSlowPathCommit =
-      auxState->slowCommitCryptosys->createThresholdSigner();
-
-  // 3f + c + 1
-  if (c > 0) {
-    assert(auxState->commitCryptosys);
-    thresholdSignerForCommit =
-        auxState->commitCryptosys->createThresholdSigner();
-  }
-
-  // Reading multisig secret keys for the case where everybody sign case where
-  // everybody signs
-  assert(auxState->optimisticCommitCryptosys);
-  thresholdSignerForOptimisticCommit =
-      auxState->optimisticCommitCryptosys->createThresholdSigner();
-}
-
-inline bool InitializeSbftCrypto(
-    uint16_t nodeId, uint16_t numOfReplicas, uint16_t maxFaulty,
-    uint16_t maxSlow, concord::config::ConcordConfiguration& config,
-    concord::config::ConcordConfiguration& replicaConfig,
-    std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas,
-    bftEngine::ReplicaConfig* outConfig) {
-  // Threshold signatures
-  IThresholdSigner* thresholdSignerForSlowPathCommit;
-  IThresholdVerifier* thresholdVerifierForSlowPathCommit;
-
-  IThresholdSigner* thresholdSignerForCommit;
-  IThresholdVerifier* thresholdVerifierForCommit;
-
-  IThresholdSigner* thresholdSignerForOptimisticCommit;
-  IThresholdVerifier* thresholdVerifierForOptimisticCommit;
-
-  InitializeSbftThresholdPublicKeys(
-      config, false, maxFaulty, maxSlow, thresholdVerifierForSlowPathCommit,
-      thresholdVerifierForCommit, thresholdVerifierForOptimisticCommit);
-
-  InitializeSbftThresholdPrivateKeys(
-      config, nodeId + 1, maxFaulty, maxSlow, thresholdSignerForSlowPathCommit,
-      thresholdSignerForCommit, thresholdSignerForOptimisticCommit);
-
-  outConfig->publicKeysOfReplicas = publicKeysOfReplicas;
-
-  outConfig->thresholdSignerForSlowPathCommit =
-      thresholdSignerForSlowPathCommit;
-  outConfig->thresholdVerifierForSlowPathCommit =
-      thresholdVerifierForSlowPathCommit;
-
-  outConfig->thresholdSignerForCommit = nullptr;
-  outConfig->thresholdVerifierForCommit = nullptr;
-
-  outConfig->thresholdSignerForOptimisticCommit =
-      thresholdSignerForOptimisticCommit;
-  outConfig->thresholdVerifierForOptimisticCommit =
-      thresholdVerifierForOptimisticCommit;
-
-  return true;
-}
 
 inline bool initializeSBFTPrincipals(
     concord::config::ConcordConfiguration& config, uint16_t selfNumber,
@@ -187,7 +83,7 @@ inline bool InitializeSbftConfiguration(
     concord::config::ConcordConfiguration& nodeConfig,
     concord::config::CommConfig* commConfig,
     concord::kvbc::ClientConfig* clConf, uint16_t clientIndex,
-    bftEngine::ReplicaConfig* repConf) {
+    bftEngine::ReplicaConfig* repConf, Cryptosystem* cryptosystem = nullptr) {
   assert(!clConf != !repConf);
 
   // Initialize random number generator
@@ -214,11 +110,6 @@ inline bool InitializeSbftConfiguration(
   if (repConf) {
     repConf->replicaPrivateKey =
         replicaConfig.getValue<std::string>("private_key");
-
-    bool res = InitializeSbftCrypto(selfNumber, numOfReplicas, maxFaulty,
-                                    maxSlow, config, replicaConfig,
-                                    publicKeysOfReplicas, repConf);
-    if (!res) return false;
 
     repConf->publicKeysOfReplicas = publicKeysOfReplicas;
     repConf->viewChangeTimerMillisec =
@@ -256,6 +147,15 @@ inline bool InitializeSbftConfiguration(
     // TODO(IG): add to config file
     repConf->viewChangeProtocolEnabled = true;
 
+    // Cryptosystem
+    repConf->thresholdSystemType_ = cryptosystem->getType();
+    repConf->thresholdSystemSubType_ = cryptosystem->getSubtype();
+    repConf->thresholdPrivateKey_ =
+        cryptosystem->getPrivateKey(repConf->replicaId + 1);
+    repConf->thresholdPublicKey_ = cryptosystem->getSystemPublicKey();
+    repConf->thresholdVerificationKeys_ =
+        cryptosystem->getSystemVerificationKeys();
+
 #define DEFAULT(field, userCfg)                            \
   {                                                        \
     if (config.hasValue<uint32_t>(userCfg)) {              \
@@ -272,6 +172,8 @@ inline bool InitializeSbftConfiguration(
     clConf->fVal = maxFaulty;
     clConf->cVal = maxSlow;
   }
+
+  if (cryptosystem) bftEngine::CryptoManager::instance(repConf, cryptosystem);
 
   return true;
 }

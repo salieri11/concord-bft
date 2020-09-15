@@ -1667,7 +1667,8 @@ const std::string kConcordExternalClientConfigurationStateLabel =
 // configuration (ex: concord --help), and returns false otherwise.
 bool initialize_config(int agrc, char** argv,
                        concord::config::ConcordConfiguration& config_out,
-                       boost::program_options::variables_map& opts_out);
+                       boost::program_options::variables_map& opts_out,
+                       std::unique_ptr<Cryptosystem>&);
 
 // Returns a YAML node with the result of merging "a" with "b"
 // resolving conflicts by taking the values in "b" to overwrite
