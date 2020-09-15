@@ -7,14 +7,15 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
   "vmc_url": "https://vmc.vmware.com",
   "refresh_token": "<VMC_API_TOKEN>",
   "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-  "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
+  "datacenter": "8128e6b3-8a87-430a-85a1-386cefae66e3",
   "resource_pool": "Compute-ResourcePool",
   "storage": "WorkloadDatastore",
-  "folder": "HermesTesting",
+  "folder": "HelenTesting",
   "network": {
-    "name": "vmware-vpn",
-    "gateway": "10.69.105.1",
-    "subnet": "24"
+    "name": "sddc6-vmware-vpn-cloud-5",
+    "gateway": "10.72.217.1",
+    "subnet": 24,
+    "name_servers": ["10.78.1.132", "10.78.1.133"]
   },
   "wavefront": {
     "url": "https://vmware.wavefront.com",
