@@ -30,7 +30,6 @@ sealed trait RequestTimeoutStrategy {
 case class LinearAffineInterpretationCostTransform(
     slope: Double,
     intercept: Double,
-    doubleToDuration: Double => Duration = Math.ceil(_).millis,
     defaultTimeout: Duration,
 ) extends RequestTimeoutStrategy {
 
@@ -43,6 +42,8 @@ case class LinearAffineInterpretationCostTransform(
   override def withDefaultTimeout(
       defaultTimeout: Duration): LinearAffineInterpretationCostTransform =
     copy(defaultTimeout = defaultTimeout)
+
+  private def doubleToDuration(input: Double): Duration = Math.ceil(input).nanos
 }
 
 object LinearAffineInterpretationCostTransform {
@@ -51,7 +52,7 @@ object LinearAffineInterpretationCostTransform {
       // The current working assumption is: give a BFT client twice the estimation for the request to complete;
       // the latter is currently assumed to be capped by thrice the interpretation cost (wild guess being:
       // non-interpretation, e.g. network, costs being at most twice the interpretation cost).
-      slope = 2 * 3.0,
+      slope = 2.0 * 3.0,
       intercept = 0.0,
       defaultTimeout = 30.seconds,
     )
