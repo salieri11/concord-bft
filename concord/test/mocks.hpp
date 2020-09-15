@@ -130,7 +130,8 @@ ConcordConfiguration TestConfiguration(
     std::size_t replica_count, std::size_t proxies_per_replica,
     std::uint64_t num_blocks_to_keep = 0,
     std::uint32_t duration_to_keep_minutes = 0, bool pruning_enabled = true,
-    bool time_service_enabled = true);
+    bool time_service_enabled = true,
+    bool summaries_or_histograms_enabled = false);
 
 const ConcordConfiguration& GetNodeConfig(const ConcordConfiguration& config,
                                           int index);
