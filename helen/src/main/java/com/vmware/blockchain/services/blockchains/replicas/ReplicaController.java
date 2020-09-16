@@ -160,7 +160,7 @@ public class ReplicaController {
         if (b.getType() == Blockchain.BlockchainType.DAML) {
             Integer i = 0;
             for (Replica each : replicas) {
-                String replicaName = (Strings.isNullOrEmpty(each.getHostName()) ? "Committer" : each.getHostName())
+                String replicaName = (Strings.isNullOrEmpty(each.getHostName()) ? "Replica" : each.getHostName())
                                      + "" + i++;
                 response.put(replicaName, ReplicaGetResponse.builder()
                         .id(each.getId())

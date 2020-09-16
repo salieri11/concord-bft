@@ -52,7 +52,7 @@ describe('concord-ui Onboarding Flow', () => {
     browser.sleep(300);
     appPage.getTourNextButton().click();
     browser.sleep(300);
-    expect(appPage.getTourTitle().getText()).toEqual('Committer List');
+    expect(appPage.getTourTitle().getText()).toEqual('Replica List');
     appPage.getTourNextButton().click();
     browser.sleep(300);
     expect(appPage.getTourTitle().getText()).toEqual('Organizations');

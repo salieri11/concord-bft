@@ -189,9 +189,9 @@
     "blockchainId": "Blockchain ID",
     "organization": "Organization",
     "organizationId": "Organization ID",
-    "totalActiveNodes": "Total Active Committers",
-    "inactiveNodes": "Inactive Committers",
-    "nodeHealth": "Committer Health",
+    "totalActiveNodes": "Total Active Replicas",
+    "inactiveNodes": "Inactive Replicas",
+    "nodeHealth": "Replica Health",
     "nodeId": "Replica ID",
     "deployedContracts": "Contracts",
     "transactionsPerSecond": "Transactions/second",
@@ -211,10 +211,10 @@
     "apply": "Apply"
   },
   "nodes": {
-    "title": "Committer",
+    "title": "Replica",
     "nodes": "Nodes",
-    "committer": "Committer",
-    "committers": "Committers",
+    "committer": "Replica",
+    "committers": "Replicas",
     "client": "Client",
     "clients": "Clients",
     "deployClient": "Deploy Client Node",
@@ -222,8 +222,8 @@
     "deployingClientDesc": "Client node deploying to zone:",
     "deployClientSuccess": "Client node deployment success!",
     "deployClientFailed": "Client node deployment failed. Task ID:",
-    "nodeActivity": "Committer Activity",
-    "overallNodeHealth": "Overall Committer Health",
+    "nodeActivity": "Replica Activity",
+    "overallNodeHealth": "Overall Replica Health",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>",
@@ -234,8 +234,8 @@
     "status": "Status",
     "live": "Live",
     "offline": "Offline",
-    "totalActiveNodes": "Total Active Committers",
-    "inactiveNodes": "Inactive Committers",
+    "totalActiveNodes": "Total Active Replicas",
+    "inactiveNodes": "Inactive Replicas",
     "searchPlaceholder": "Search...",
     "filters": "Filters",
     "hostname": "Name",
@@ -257,12 +257,12 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "paginationSummary": "{{start}} - {{finish}} of {{total}} committers",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} replicas",
     "clientPaginationSummary": "{{start}} - {{finish}} of {{total}} clients",
     "confirmModal": {
-      "title": "Confirm Committer Action",
+      "title": "Confirm Replica Action",
       "confirm": "REPLICA STOP",
-      "body": "Please type REPLICA STOP to confirm committer stoppage.",
+      "body": "Please type REPLICA STOP to confirm replica stoppage.",
       "placeholder": "Type confirmation here"
     },
     "deployClientModal": {
@@ -313,7 +313,7 @@
     "success": "Success",
     "failure": "Failure",
     "none": "null",
-    "nodes": "Committers",
+    "nodes": "Replicas",
     "hash": "Hash",
     "txhash": "Tx Hash",
     "from": "From",
@@ -526,7 +526,7 @@
       }
     },
     "help": {
-      "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
+      "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
     },
     "navTitle": "On Premises",
     "pageTitle": "New On Premises Zone",
@@ -1109,7 +1109,7 @@
     "common": {
       "consortiumDescription": "Description",
       "consortiumName": "Consortium Name",
-      "numberOfNodes": "Number of Committers"
+      "numberOfNodes": "Number of Replicas"
     },
     "engine": {
       "pageTitle": "Choose Contract Engine",
@@ -1123,7 +1123,7 @@
     },
     "details": {
       "help": {
-        "numberOfNodes": "Committers options are optimized for ConcordBFT consensus engine."
+        "numberOfNodes": "Replicas options are optimized for ConcordBFT consensus engine."
       },
       "pageTitle": "Consortium Details",
       "navTitle": "Details",
@@ -1132,7 +1132,7 @@
     },
     "sizing": {
       "title": "Node Sizing",
-      "committerTitle": "Committer Sizing",
+      "committerTitle": "Replica Sizing",
       "clientTitle": "Client Sizing",
       "back": "Back to templates",
       "custom": "Custom Sizing",
@@ -1146,21 +1146,21 @@
     },
     "nodes": {
       "help": {
-        "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
+        "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
       },
-      "pageTitle": "Configure Committer Nodes",
-      "navTitle": "Committer Nodes",
+      "pageTitle": "Configure Replica Nodes",
+      "navTitle": "Replica Nodes",
       "onPremTitle": "On Premises Zone Distribution",
       "cloudTitle": "Cloud Zone Distribution",
       "regionalTitle": "Selected Zones",
-      "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
+      "regionInfo": "Even distribution of replicas across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of replicas to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
       "add": "Add On Premises Region",
       "distributionHelper": "Current distribution does not match the total number of nodes specified."
     },
     "committers": {
-      "singular": "Committer",
-      "plural": "Committers"
+      "singular": "Replica",
+      "plural": "Replicas"
     },
     "clients": {
       "singular": "Client",
@@ -1218,7 +1218,7 @@
       "pageTitle": "Review and Deploy",
       "navTitle": "Deploy",
       "consortiumName": "Consortium Name",
-      "consortiumSetup": "Committers",
+      "consortiumSetup": "Replicas",
       "users": "Users"
     }
   },
@@ -1226,7 +1226,7 @@
     "waiting": "Waiting for deployment task...",
     "initial": "Deploy consortium started...",
     "first": "Creating VMs...",
-    "second": "Deploying concord committers...",
+    "second": "Deploying concord replicas...",
     "third": "Distributing keys...",
     "fourth": "Starting up Concord trust network...",
     "ending": "Deployment successful!"
@@ -1250,12 +1250,12 @@
         "text": "Here you can see the general status of nodes, contracts, blocks and transactions.  Dashboard stats and lists refresh automatically, so no need to reload the page."
       },
       "nodeStatus": {
-        "title": "Committer Status",
-        "text": "Hover over a committer on the map to see its health and status."
+        "title": "Replica Status",
+        "text": "Hover over a replica on the map to see its health and status."
       },
       "nodes": {
-        "title": "Committer List",
-        "text": "Here you can see the committers' name, IP address (with port), and their general health status."
+        "title": "Replica List",
+        "text": "Here you can see the replicas' name, IP address (with port), and their general health status."
       },
       "organization": {
         "title": "Organizations",
@@ -1338,7 +1338,7 @@
     "createdBy": "Created By",
     "tabs": {
       "blockchain": "About This Blockchain",
-      "committers": "Committers",
+      "committers": "Replicas",
       "clients": "Clients"
     },
     "nodeMetrics": "Metrics",
@@ -1352,7 +1352,7 @@
       "close": "close"
     },
     "committer": {
-      "name" : "Committer",
+      "name" : "Replica",
       "ethrpc": "RPC URL"
     },
     "client":{
