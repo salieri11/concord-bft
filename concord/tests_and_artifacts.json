@@ -8,7 +8,8 @@
     "daml-execution-engine",
     "daml-index-db",
     "client-pool-lib",
-    "participant-lib"
+    "participant-lib",
+    "persephone-configuration"
   ],
   "test_suites": [
     "ChessPlusTests",
@@ -21,6 +22,7 @@
     "HlfTests",
     "PerformanceTests",
     "PersephoneTestsNew",
+    "HelenDeployDAMLToSDDC",
     "SampleSuite",
     "SimpleStateTransferTest",
     "ThinReplicaServerTests",
