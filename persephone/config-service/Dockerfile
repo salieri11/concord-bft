@@ -42,7 +42,7 @@ RUN mvn -f ./persephone/config-service/pom.xml install
 # image.
 
 FROM ${concord_repo}:${concord_tag} as concord_image
-#FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:0.6.0.968 as concord_image
+#FROM vmware-docker-blockchainsaas.bintray.io/vmwblockchain/concord-core:0.0.0.2158 as concord_image
 
 # Runtime image (Metadata Service).
 FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.2

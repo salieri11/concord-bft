@@ -4,9 +4,11 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -136,6 +138,7 @@ public class ConfigUtilHelpers {
                                                           Path outputPath,
                                                           boolean isSplitConfig) throws IOException {
         List<CompletableFuture<Process>> cmd = new ArrayList<>();
+        var configGenOutputPath = Paths.get(outputPath.toString(), "configGenOutput.txt").toString();
         if (isSplitConfig) {
             cmd.add(new ProcessBuilder("/app/conc_genconfig",
                     "--configuration-input",
@@ -147,6 +150,7 @@ public class ConfigUtilHelpers {
                     "--output-name",
                     DEPLOY)
                     .directory(outputPath.toFile())
+                            .redirectError(new File(configGenOutputPath))
                     .start()
                     .onExit());
             cmd.add(new ProcessBuilder("/app/conc_genconfig",
@@ -159,6 +163,7 @@ public class ConfigUtilHelpers {
                     "--output-name",
                     SECRET)
                     .directory(outputPath.toFile())
+                            .redirectError(new File(configGenOutputPath))
                     .start()
                     .onExit());
         } else {
@@ -168,6 +173,7 @@ public class ConfigUtilHelpers {
                     "--report-principal-locations",
                     principalsMapFile)
                     .directory(outputPath.toFile())
+                            .redirectError(new File(configGenOutputPath))
                     .start()
                     .onExit());
         }
