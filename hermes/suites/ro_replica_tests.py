@@ -1,0 +1,247 @@
+# Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
+
+"""Test RO replica"""
+import sys
+import os
+import subprocess
+import importlib.util
+import time
+
+# BEGIN - Fix conflicting 'util' module names between Apollo and Hermes
+sys.modules['hermes_util'] = __import__('util')
+apollo_util_spec = importlib.util.spec_from_file_location(
+    name="util",
+    location="../concord/submodules/concord-bft/tests/apollo/util/__init__.py")
+apollo_util = importlib.util.module_from_spec(apollo_util_spec)
+apollo_util_spec.loader.exec_module(apollo_util)
+sys.modules['util'] = apollo_util
+# END - Fix conflicting 'util' module names between Apollo and Hermes
+
+sys.path.append(os.path.abspath("../concord/submodules/concord-bft/tests/apollo"))
+sys.path.append(os.path.abspath("../concord/submodules/concord-bft/tests/apollo/util"))
+sys.path.append(os.path.abspath("../concord/submodules/concord-bft/util/pyclient"))
+
+import pytest
+
+import trio
+from bft import with_trio
+
+from fixtures.common_fixtures import fxProduct
+from suites.case import describe
+import hermes_util.helper as helper
+from hermes_util.apollo_helper import with_timeout
+from hermes_util.apollo_helper import start_replica_cmd
+from hermes_util.apollo_helper import stop_replica_cmd
+from hermes_util.apollo_helper import create_bft_network
+import hermes_util.hermes_logging as logging
+
+from util import skvbc as kvbc
+
+log = logging.getMainLogger()
+
+# Read by the fxProduct fixture.
+productType = helper.TYPE_TEE
+
+@pytest.fixture(scope="module")
+@describe("fixture; bft network")
+@with_trio
+async def bft_network():
+    return await create_bft_network(num_ro_replicas=1)
+
+
+class MinioContainer:
+    """
+    This is an abstraction for the S3 service. Uses docker commands
+    to provide convenient methods for starting and stopping minio
+    """
+    def start(self):
+        subprocess.run(
+            ["docker", "start", "docker_minio_1"],
+            check=True
+        )
+
+    def stop(self):
+        subprocess.run(
+            ["docker", "kill", "docker_minio_1"],
+            check=True
+        )
+
+    def cleanup(self):
+        pass
+
+async def _wait_for_st(bft_network, ro_replica_id, lastExecutedSeqNumThreshold):
+    # TODO replace the below function with the library function:
+    # await tracker.skvbc.tracked_fill_and_wait_for_checkpoint(
+    # initial_nodes=bft_network.all_replicas(),
+    # num_of_checkpoints_to_add=1)
+    with trio.fail_after(seconds=70):
+        # the ro replica should be able to survive these failures
+        while True:
+            with trio.move_on_after(seconds=.5):
+                try:
+                    key = ['replica', 'Gauges', 'lastExecutedSeqNum']
+                    lastExecutedSeqNum = await bft_network.metrics.get(ro_replica_id, *key)
+                except KeyError:
+                    continue
+                else:
+                    # success!
+                    if lastExecutedSeqNum >= lastExecutedSeqNumThreshold:
+                        print("Replica" + str(ro_replica_id) + " : lastExecutedSeqNum:" + str(lastExecutedSeqNum))
+                        break
+@describe()
+def test_ro_replica_happy_case(fxProduct, bft_network):
+    trio.run(_test_ro_replica_happy_case, bft_network)
+
+@with_timeout
+async def _test_ro_replica_happy_case(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    ro_replica_id = bft_network.config.n
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    print(f"Verify state transfer for replica {ro_replica_id}")
+    await _wait_for_st(bft_network, ro_replica_id, 150)
+
+@describe()
+def test_ro_replica_no_obj_store(fxProduct, bft_network):
+   trio.run(_test_ro_replica_no_obj_store, bft_network)
+
+@with_timeout
+async def _test_ro_replica_no_obj_store(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    ro_replica_id = bft_network.config.n
+
+    s3 = MinioContainer()
+
+    # curr_checkpoint = await bft_network.wait_for_checkpoint(1)
+    # ro_checkpoint = await bft_network.wait_for_checkpoint(ro_replica_id)
+
+    # assert curr_checkpoint == ro_checkpoint
+
+    print("Stop RO and S3")
+    bft_network.stop_replica(ro_replica_id)
+    s3.stop()
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    key = ['replica', 'Gauges', 'lastStableSeqNum']
+    target_seq_num = await bft_network.metrics.get(1, *key)
+    print(f"New lastStableSeqNum is {target_seq_num}")
+
+    print("Start RO replica")
+    bft_network.start_replica(ro_replica_id)
+    time.sleep(3)
+
+    print("Start S3")
+    s3.start()
+
+    print("Verify state transfer")
+    await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
+
+@describe()
+def test_ro_replica_flaky_obj_store(fxProduct, bft_network):
+   trio.run(_test_ro_replica_flaky_obj_store, bft_network)
+
+@with_timeout
+async def _test_ro_replica_flaky_obj_store(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    ro_replica_id = bft_network.config.n
+
+    s3 = MinioContainer()
+
+    # curr_checkpoint = await bft_network.wait_for_checkpoint(1)
+    # ro_checkpoint = await bft_network.wait_for_checkpoint(ro_replica_id)
+
+    # assert curr_checkpoint == ro_checkpoint
+
+    print("Stop RO")
+    bft_network.stop_replica(ro_replica_id)
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=2,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    key = ['replica', 'Gauges', 'lastStableSeqNum']
+    target_seq_num = await bft_network.metrics.get(1, *key)
+    print(f"New lastStableSeqNum is {target_seq_num}")
+
+    print("Start RO replica")
+    bft_network.start_replica(ro_replica_id)
+    
+    # simulate flaky s3 
+    for _ in range(5):
+        s3.stop()
+        time.sleep(1)
+        s3.start()
+        time.sleep(1)
+
+    print("Verify state transfer")
+    await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
+
+@describe()
+def test_ro_replica_not_enough_replies(fxProduct, bft_network):
+   trio.run(_test_ro_replica_not_enough_replies, bft_network)
+
+@with_timeout
+async def _test_ro_replica_not_enough_replies(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    ro_replica_id = bft_network.config.n
+    
+    print("Stop RO")
+    bft_network.stop_replica(ro_replica_id)
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    key = ['replica', 'Gauges', 'lastStableSeqNum']
+    target_seq_num = await bft_network.metrics.get(1, *key)
+    print(f"New lastStableSeqNum is {target_seq_num}")
+
+    # Leave only f replicas alive
+    # The purpose is to leave f alive replicas and not to kill primary
+    print("Leave only f replicas alive")
+    primary = await bft_network.get_current_primary()
+    replicas_to_stop = bft_network.all_replicas(without={primary})[0:bft_network.config.f-1]
+    bft_network.stop_replicas(replicas_to_stop)
+
+    print("Start RO replica")
+    bft_network.start_replica(ro_replica_id)
+    
+    time.sleep(5)
+
+    # State is not fetched, because there are not enough replcias
+    with trio.move_on_after(seconds=.5):
+        try:
+            key = ['replica', 'Gauges', 'lastExecutedSeqNum']
+            lastExecutedSeqNum = await bft_network.metrics.get(ro_replica_id, *key)
+        except KeyError:
+            pass
+        else:
+            assert(lastExecutedSeqNum < target_seq_num) 
+
+    print("Start all stopped replicas")
+    bft_network.start_replicas(replicas_to_stop)
+
+    print("Verify state transfer")
+    await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
