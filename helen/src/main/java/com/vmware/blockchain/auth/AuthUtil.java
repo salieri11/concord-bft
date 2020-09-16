@@ -4,13 +4,13 @@
 
 package com.vmware.blockchain.auth;
 
+import java.util.Enumeration;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.authentication.BearerTokenExtractor;
 
 import com.vmware.blockchain.common.Constants;
 
@@ -37,22 +37,40 @@ public class AuthUtil {
             logger.info("No session present");
         }
 
-        // Add support for standard Authorization: Bearer xxx token type
-        // This uses Spring's Oauth2 BearerTokenExtractor
-        BearerTokenExtractor extractor = new BearerTokenExtractor();
-        Authentication auth = extractor.extract(request);
+        // Spring BearerToken extractor has been depreicated.  Replace
+        // with equivalent code
 
-        if (auth != null) {
-            return (String) auth.getPrincipal();
+        token = extractHeaderToken(request);
+        if (token != null) {
+            return token;
         }
 
         // API calls use csp-auth-token in a header
         token = request.getHeader(Constants.AUTH_HEADER_NAME);
-        if (token == null) {
-            // websocket calls use token in a query paramater
-            token = request.getParameter(Constants.AUTH_HEADER_NAME);
-        }
 
+        // BC-3654: We are not currently using websockets, so there is no
+        // need for the code to look at a query param.  Use Sec-WebSocket-Protocol
+        // if we need to add it.
         return token;
     }
+
+    private static String extractHeaderToken(HttpServletRequest request) {
+        Enumeration headers = request.getHeaders("Authorization");
+        // There is a small but finite chance this will be a null
+        if (headers == null) {
+            return null;
+        }
+
+        String value;
+        do {
+            if (!headers.hasMoreElements()) {
+                return null;
+            }
+
+            value = (String) headers.nextElement();
+        } while (!value.toLowerCase().startsWith("Bearer".toLowerCase()));
+
+        return value.substring("Bearer".length()).trim();
+    }
+
 }
