@@ -5,6 +5,7 @@
 package com.vmware.blockchain.configuration.generateconfig;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -64,19 +65,21 @@ public class BftClientConfigUtil {
             var outputPath = Files.createTempDirectory(null);
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
+            var configGenOutputPath = Paths.get(outputPath.toString(), "configGenOutput.txt").toString();
 
             generateConfigYaml(hostIps, participantIps, inputYamlPath);
 
             // TODO: Dependency on config-gen tool can be avoided here.
             // Config gen tool is only giving the principal ids
             var configFuture = new ProcessBuilder("/app/conc_genconfig",
-                    "--configuration-input",
-                    inputYamlPath,
-                    "--report-principal-locations",
-                    principalsMapFile,
-                    "--client-conf",
-                    "true")
+                                                    "--configuration-input",
+                                                    inputYamlPath,
+                                                    "--report-principal-locations",
+                                                    principalsMapFile,
+                                                    "--client-conf",
+                                                    "true")
                     .directory(outputPath.toFile())
+                    .redirectError(new File(configGenOutputPath))
                     .start()
                     .onExit();
 
