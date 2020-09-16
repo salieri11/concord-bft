@@ -9,15 +9,6 @@
           "--logLevel",
           "DEBUG"
         ]
-      },
-      {
-        "testname": "Participant Node Interruption Tests",
-        "test_command": [
-          "./main.py",
-          "NodeInterruptionTests",
-          "--tests",
-          "-m participant_node_interruption_longrun"
-        ]
       }
     ],
     "participant_node_interruption_tests": [
