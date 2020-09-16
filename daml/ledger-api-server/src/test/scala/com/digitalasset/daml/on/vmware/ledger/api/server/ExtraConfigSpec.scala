@@ -154,7 +154,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
             "enable=true," +
               "config-path=/conf," +
               "linear-timeout-slope=2.0," +
-              "linear-timeout-intercept=2.0," +
+              "linear-timeout-intercept=2.0s," +
               "linear-timeout-default=2.0s"
           ))
       config.extra.bftClient should be(
@@ -162,7 +162,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
           enable = true,
           configPath = Some(Paths.get("/conf")),
           requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
-            .copy(slope = 2.0, intercept = 2.0, defaultTimeout = 2.seconds),
+            .copy(slope = 2.0, intercept = 2.seconds, defaultTimeout = 2.seconds),
         ))
     }
 

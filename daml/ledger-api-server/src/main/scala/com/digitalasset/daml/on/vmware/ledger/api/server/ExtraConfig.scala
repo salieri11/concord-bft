@@ -355,7 +355,7 @@ object ExtraConfig {
       verifyBftClientConfigurationKeysOrThrow(keyValuePairs)
       readBftClientTimeoutKeys(
         keyValuePairs,
-        readNonBftClientNonTimeoutKeys(
+        readOtherParameters(
           keyValuePairs,
           ExtraConfig.ReasonableDefault.bftClient,
         ),
@@ -370,7 +370,7 @@ object ExtraConfig {
           case (strategy, (LinearTimeoutSlopeKey, value)) =>
             strategy.copy(slope = Read.doubleRead.reads(value))
           case (strategy, (LinearTimeoutInterceptKey, value)) =>
-            strategy.copy(intercept = Read.doubleRead.reads(value))
+            strategy.copy(intercept = Read.durationRead.reads(value))
           case (strategy, (LinearTimeoutDefaultKey, value)) =>
             strategy.copy(defaultTimeout = Read.durationRead.reads(value))
         }
@@ -385,7 +385,7 @@ object ExtraConfig {
     }
   }
 
-  private def readNonBftClientNonTimeoutKeys(keyValuePairs: Map[String, String], config: BftClientConfig): BftClientConfig =
+  private def readOtherParameters(keyValuePairs: Map[String, String], config: BftClientConfig): BftClientConfig =
     keyValuePairs.filterKeys(GeneralParametersKeySet.contains)
       .foldLeft(config) {
         case (config, (EnableKey, value)) => config.copy(enable = Read.booleanRead.reads(value))

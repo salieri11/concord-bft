@@ -12,7 +12,7 @@ class RequestTimeoutStrategySpec extends WordSpec with Matchers {
     "assume estimated interpretation cost to be nanoseconds" in {
       val instance = LinearAffineInterpretationCostTransform(
         slope = 1.0,
-        intercept = 0.0,
+        intercept = 0.second,
         defaultTimeout = 30.seconds)
       val inputNanos = 123.millis.toNanos
       val commitMetadata = SimpleCommitMetadata(Some(inputNanos))
@@ -20,10 +20,21 @@ class RequestTimeoutStrategySpec extends WordSpec with Matchers {
       instance.calculate(commitMetadata) shouldBe 123.millis
     }
 
+    "calculate time-out based on slope and intercept" in {
+      val instance = LinearAffineInterpretationCostTransform(
+        slope = 2.0,
+        intercept = 3.second,
+        defaultTimeout = 30.seconds)
+      val inputNanos = 123.millis.toNanos
+      val commitMetadata = SimpleCommitMetadata(Some(inputNanos))
+
+      instance.calculate(commitMetadata) shouldBe (123.millis * 2.0 + 3.second)
+    }
+
     "return default time-out in case no interpretation cost is available" in {
       val instance = LinearAffineInterpretationCostTransform(
         slope = 1.0,
-        intercept = 0.0,
+        intercept = 0.second,
         defaultTimeout = 123.seconds)
       val noCommitMetadata = SimpleCommitMetadata(None)
 

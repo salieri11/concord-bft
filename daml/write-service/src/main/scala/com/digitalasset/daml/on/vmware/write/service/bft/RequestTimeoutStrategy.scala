@@ -29,21 +29,19 @@ sealed trait RequestTimeoutStrategy {
   */
 case class LinearAffineInterpretationCostTransform(
     slope: Double,
-    intercept: Double,
+    intercept: Duration,
     defaultTimeout: Duration,
 ) extends RequestTimeoutStrategy {
 
   override def calculate(metadata: CommitMetadata): Duration =
     metadata.estimatedInterpretationCost
-      .map(_ * slope + intercept)
-      .map(doubleToDuration)
+      .map(_.nanos)
+      .map(cost => cost * slope + intercept)
       .getOrElse(defaultTimeout)
 
   override def withDefaultTimeout(
       defaultTimeout: Duration): LinearAffineInterpretationCostTransform =
     copy(defaultTimeout = defaultTimeout)
-
-  private def doubleToDuration(input: Double): Duration = Math.ceil(input).nanos
 }
 
 object LinearAffineInterpretationCostTransform {
@@ -53,7 +51,7 @@ object LinearAffineInterpretationCostTransform {
       // the latter is currently assumed to be capped by thrice the interpretation cost (wild guess being:
       // non-interpretation, e.g. network, costs being at most twice the interpretation cost).
       slope = 2.0 * 3.0,
-      intercept = 0.0,
+      intercept = 1.second,
       defaultTimeout = 30.seconds,
     )
 }
