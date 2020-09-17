@@ -18,4 +18,5 @@ target_link_libraries(operator_server
   bftclient_new
   proto
   concord_utils
+  cmf_messages
 )

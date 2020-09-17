@@ -1,0 +1,31 @@
+Msg GetVersionCommand 2 {
+  bytes place_holder
+}
+
+Msg DownloadCommand 3 {
+  bytes place_holder
+}
+
+Msg WedgeCommand 4 {
+  optional int64 stop_seq_num
+}
+
+Msg UpgradeCommand 5 {
+  bytes place_holder
+}
+
+Msg TestCommand 6 {
+  string test
+}
+
+Msg ReconfigurationRequest 1 {
+  bytes signature
+  oneof {
+    TestCommand
+    GetVersionCommand
+    DownloadCommand
+    WedgeCommand
+    UpgradeCommand
+  } command
+  bytes additional_data
+}

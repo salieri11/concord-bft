@@ -5,6 +5,7 @@
 
 #include <Logger.hpp>
 #include <bftengine/ControlStateManager.hpp>
+#include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "reconfiguration/concord_control_handler.hpp"
@@ -18,19 +19,13 @@ class ReconfigurationSMOpen : public IReconfigurationHandler {
   ReconfigurationSMOpen();
 
   virtual bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::WedgeCommand& cmd,
-      uint64_t sequence_num, bool readOnly,
+      const concord::messages::WedgeCommand& cmd, uint64_t sequence_num,
+      bool readOnly,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       opentracing::Span& parent_span) override;
-  virtual bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::GetVersionCommand&)
-      override;
-  virtual bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::DownloadCommand&)
-      override;
-  virtual bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::UpgradeCommand&)
-      override;
+  virtual bool handle(const concord::messages::GetVersionCommand&) override;
+  virtual bool handle(const concord::messages::DownloadCommand&) override;
+  virtual bool handle(const concord::messages::UpgradeCommand&) override;
 
   virtual void setControlStateManager(
       std::shared_ptr<bftEngine::ControlStateManager> control_state_manager)

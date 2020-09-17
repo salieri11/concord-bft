@@ -4,6 +4,7 @@
 
 #include "concord_commands_handler.hpp"
 #include "OpenTracing.hpp"
+#include "concord.cmf.hpp"
 #include "reconfiguration/ireconfiguration.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
@@ -419,9 +420,13 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
     if (request.has_reconfiguration_sm_request()) {
+      // Deserilize protobuf bytes into cmf
+      concord::messages::ReconfigurationRequest rreq;
+      auto data = request.reconfiguration_sm_request().data();
+      deserialize(std::vector<uint8_t>(data.begin(), data.end()), rreq);
+
       result = reconfiguration_sm_->dispatch(
-          request.reconfiguration_sm_request(), response, sequence_num,
-          read_only, rsi_response, *execute_span);
+          rreq, response, sequence_num, read_only, rsi_response, *execute_span);
     }
   } else {
     ErrorResponse *err = response.add_error_response();

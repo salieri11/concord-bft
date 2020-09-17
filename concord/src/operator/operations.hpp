@@ -22,6 +22,7 @@
 #include "Logger.hpp"
 #include "bftclient/bft_client.h"
 #include "bftclient/seq_num_generator.h"
+#include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "config.h"
 #include "utils/openssl_crypto_utils.hpp"
@@ -54,7 +55,7 @@ class Operations {
    * This method sign on a reconfiguration message and set the
    * ReconfigurationSmRequest signature to that signature.
    */
-  void signRequest(com::vmware::concord::ReconfigurationSmRequest& request);
+  void signRequest(concord::messages::ReconfigurationRequest& request);
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPrivateKey>
       priv_key_;
   bft::client::Client& client_;

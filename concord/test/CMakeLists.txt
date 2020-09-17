@@ -173,9 +173,10 @@ target_link_libraries(ReconfigurationSMTest
 		${GTEST_LIBRARY}
 		${yaml-cpp_LIBRARIES}
 		proto
+		cmf_messages
 		concord_utils
 		concord_common
-    concord_reconfiguration
+		concord_reconfiguration
 		logging)
 
 add_executable(ThinReplicaTest

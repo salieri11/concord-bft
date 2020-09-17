@@ -9,6 +9,7 @@
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/openssl_crypto_utils.hpp>
 #include "bftengine/Replica.hpp"
+#include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "concord_control_handler.hpp"
 #include "config/configuration_manager.hpp"
@@ -44,7 +45,7 @@ class ReconfigurationSMDispatcher : public IReconfigurationDispatcher {
   // blockchain and document it as part of the state. This will be under the
   // responsibility of each handler to write its own commands to the blockchain.
   bool dispatch(
-      const com::vmware::concord::ReconfigurationSmRequest& request,
+      const concord::messages::ReconfigurationRequest& request,
       com::vmware::concord::ConcordResponse& response, uint64_t sequence_num,
       bool readOnly,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
@@ -60,7 +61,7 @@ class ReconfigurationSMDispatcher : public IReconfigurationDispatcher {
   std::shared_ptr<ConcordControlHandler> control_handlers_;
 
   bool validateReconfigurationSmRequest(
-      const com::vmware::concord::ReconfigurationSmRequest& request);
+      const concord::messages::ReconfigurationRequest& request);
 };
 
 }  // namespace reconfiguration

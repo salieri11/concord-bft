@@ -10,6 +10,14 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ReconfigurationSmRequest;
 using com::vmware::concord::ReconfigurationSmResponse;
 
+using concord::messages::DownloadCommand;
+using concord::messages::GetVersionCommand;
+using concord::messages::ReconfigurationRequest;
+using concord::messages::UpgradeCommand;
+using concord::messages::WedgeCommand;
+
+using std::holds_alternative;
+
 namespace concord::reconfiguration {
 
 ReconfigurationSMDispatcher::ReconfigurationSMDispatcher(
@@ -45,7 +53,7 @@ ReconfigurationSMDispatcher::ReconfigurationSMDispatcher(
 }
 
 bool ReconfigurationSMDispatcher::dispatch(
-    const ReconfigurationSmRequest& request, ConcordResponse& response,
+    const ReconfigurationRequest& request, ConcordResponse& response,
     uint64_t sequence_num, bool read_only,
     com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
     opentracing::Span& parent_span) {
@@ -59,17 +67,18 @@ bool ReconfigurationSMDispatcher::dispatch(
   }
 
   bool success = false;
-  if (request.has_wedge_cmd()) {
-    success = handler_->handle(request.wedge_cmd(), sequence_num, read_only,
-                               rsi_response, parent_span);
-  } else if (request.has_get_version_cmd()) {
-    success = handler_->handle(request.get_version_cmd());
+  if (holds_alternative<WedgeCommand>(request.command)) {
+    success =
+        handler_->handle(std::get<WedgeCommand>(request.command), sequence_num,
+                         read_only, rsi_response, parent_span);
+  } else if (holds_alternative<GetVersionCommand>(request.command)) {
+    success = handler_->handle(std::get<GetVersionCommand>(request.command));
     reconf_response->set_additionaldata("Version");
-  } else if (request.has_download_cmd()) {
-    success = handler_->handle(request.download_cmd());
+  } else if (holds_alternative<DownloadCommand>(request.command)) {
+    success = handler_->handle(std::get<DownloadCommand>(request.command));
     reconf_response->set_additionaldata("Downloading");
-  } else if (request.has_upgrade_cmd()) {
-    success = handler_->handle(request.upgrade_cmd());
+  } else if (holds_alternative<UpgradeCommand>(request.command)) {
+    success = handler_->handle(std::get<UpgradeCommand>(request.command));
     reconf_response->set_additionaldata("Upgrading");
   }
   reconf_response->set_success(success);
@@ -90,27 +99,36 @@ void ReconfigurationSMDispatcher::setControlStateManager(
 }
 
 bool ReconfigurationSMDispatcher::validateReconfigurationSmRequest(
-    const ReconfigurationSmRequest& request) {
-  if (request.command_case() ==
-          ReconfigurationSmRequest::CommandCase::COMMAND_NOT_SET ||
-      !request.has_signature() || operator_public_key_ == nullptr) {
+    const ReconfigurationRequest& request) {
+  if (!holds_alternative<GetVersionCommand>(request.command) &&
+      !holds_alternative<DownloadCommand>(request.command) &&
+      !holds_alternative<WedgeCommand>(request.command) &&
+      !holds_alternative<UpgradeCommand>(request.command)) {
     LOG_WARN(logger_,
-             "Reconfiguration request validation failed" << KVLOG(
-                 request.command_case() ==
-                     ReconfigurationSmRequest::CommandCase::COMMAND_NOT_SET,
-                 request.has_signature(), operator_public_key_ == nullptr));
+             "Reconfiguration request validation failed: No command set");
     return false;
   }
-  ReconfigurationSmRequest request_without_sig;
-  request_without_sig.CopyFrom(request);
-  request_without_sig.clear_signature();
-  auto serialized_cmd = request_without_sig.SerializeAsString();
-  auto valid =
-      operator_public_key_->Verify(serialized_cmd, request.signature());
-  if (!valid)
+  if (request.signature.empty() || operator_public_key_ == nullptr) {
+    LOG_WARN(logger_,
+             "Reconfiguration request validation failed" << KVLOG(
+                 request.signature.empty(), operator_public_key_ == nullptr));
+    return false;
+  }
+
+  ReconfigurationRequest request_without_sig = request;
+  request_without_sig.signature = {};
+  std::vector<uint8_t> serialized_cmd;
+  concord::messages::serialize(serialized_cmd, request_without_sig);
+
+  auto valid = operator_public_key_->Verify(
+      std::string(serialized_cmd.begin(), serialized_cmd.end()),
+      std::string(request.signature.begin(), request.signature.end()));
+  if (!valid) {
     LOG_WARN(logger_,
              "Reconfiguration request validation failed" << KVLOG(valid));
-  return valid;
+    return false;
+  }
+  return true;
 }
 
 }  // namespace concord::reconfiguration

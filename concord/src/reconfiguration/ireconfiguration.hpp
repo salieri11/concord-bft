@@ -5,6 +5,7 @@
 
 #include <opentracing/tracer.h>
 #include "bftengine/ControlStateManager.hpp"
+#include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "concord_control_handler.hpp"
 
@@ -20,16 +21,13 @@ class IReconfigurationHandler {
 
   // Message handler
   virtual bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::WedgeCommand& cmd,
-      uint64_t sequence_num, bool readOnly,
+      const concord::messages::WedgeCommand& cmd, uint64_t sequence_num,
+      bool readOnly,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
       opentracing::Span& parent_span) = 0;
-  virtual bool handle(const com::vmware::concord::ReconfigurationSmRequest::
-                          GetVersionCommand&) = 0;
-  virtual bool handle(const com::vmware::concord::ReconfigurationSmRequest::
-                          DownloadCommand&) = 0;
-  virtual bool handle(const com::vmware::concord::ReconfigurationSmRequest::
-                          UpgradeCommand&) = 0;
+  virtual bool handle(const concord::messages::GetVersionCommand&) = 0;
+  virtual bool handle(const concord::messages::DownloadCommand&) = 0;
+  virtual bool handle(const concord::messages::UpgradeCommand&) = 0;
 
   // The reconfiguration state machine can communicate with the BFT engine via
   // the control state manager. The dipatcher will call this function.
@@ -53,7 +51,7 @@ class IReconfigurationDispatcher {
   // Concord's commands handler will forward any reconfiguration request to this
   // function. Return true if the request was handled successfully.
   virtual bool dispatch(
-      const com::vmware::concord::ReconfigurationSmRequest& request,
+      const concord::messages::ReconfigurationRequest& request,
       com::vmware::concord::ConcordResponse& response, uint64_t sequence_num,
       bool readOnly,
       com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
