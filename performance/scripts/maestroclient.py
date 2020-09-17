@@ -79,6 +79,8 @@ class MaestroClient:
                     "clusterType": "Intel",
                     "vCPUCommitter": 8,
                     "vHDDCommitter": 64,
+                    "updateCommitterConfig": True,
+                    "updateParticipantConfig": True,
                     "vMemoryCommitter": 64,
                     "vCPUParticipant": 16,
                     "vHDDParticipant": 64,
