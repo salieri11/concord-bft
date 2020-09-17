@@ -89,7 +89,7 @@ public class NodeComponentController {
         try {
             log.info("Stopping healthchecks...");
             healthCheckScheduler.stopHealthCheck();
-            nodeComponentHealthFactory.tearDownHealthChecks(nodeStartupOrchestrator.getContainerNetworkName());
+            nodeComponentHealthFactory.tearDownHealthChecks();
         } catch (Exception ex) {
             log.error("Exception in stopping healthchecks on node components.\n{}", ex);
             log.info("Node component stop activity will continue..");

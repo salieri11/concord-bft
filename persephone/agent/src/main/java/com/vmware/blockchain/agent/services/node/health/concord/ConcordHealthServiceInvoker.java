@@ -4,18 +4,20 @@
 
 package com.vmware.blockchain.agent.services.node.health.concord;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +51,7 @@ public class ConcordHealthServiceInvoker {
     private final MetricsAgent metricsAgent;
 
     private AtomicBoolean disposed;
+    private volatile String host;
 
     @Autowired
     ConcordHealthServiceInvoker(MetricsAgent metricsAgent) {
@@ -58,19 +61,31 @@ public class ConcordHealthServiceInvoker {
     }
 
     /**
-     * Creates socket.
-     * @param host string host
+     * populates host ip of container.
+     * @param host ip of container.
      */
-    public synchronized void createSocket(String host) {
+    public synchronized void registerHost(String host) {
+        this.host = host;
+    }
+
+    /**
+     * Creates socket.
+     */
+    void createSocket() {
 
         disposed = new AtomicBoolean(false);
         try {
-            this.socket = new Socket(host, this.concordPort);
-            log.info("Connected to host: {} :: port: {}", host, this.concordPort);
+            if (this.socket != null && !this.socket.isClosed()) {
+                String msg = "Socket already exists and open";
+                log.error(msg);
+                throw new IOException(msg);
+            }
+            this.socket = new Socket(this.host, this.concordPort);
         } catch (IOException ex) {
             log.error("Error creating TCP connection with Concord. Host={}, port={}. \nException: {}",
                     host, this.concordPort, ex.getLocalizedMessage());
             log.error("********************** Concord health check will not be unavailable ************************\n");
+            logMetrics(-1);
         }
     }
 
@@ -80,26 +95,39 @@ public class ConcordHealthServiceInvoker {
      */
     public synchronized HealthStatusResponse getConcordHealth() {
         try {
-            ObjectOutputStream outputStream = new ObjectOutputStream(this.socket.getOutputStream());
+            String cmd = "status get replica\n";
             log.info("Sending request to concord socker server");
-            outputStream.writeObject("status get replica");
-            ObjectInputStream inputStream = new ObjectInputStream(this.socket.getInputStream());
-            String response = (String) inputStream.readObject();
-            log.info("Message received from concord: {}", response);
-            inputStream.close();
-            outputStream.close();
-
+            // NOTE: there is a timeout of 1second on concord server code. Time taken by the log flushes and
+            // variable instantiations are causing to get past the timeout. To be safe, logging everything later.
+            createSocket();
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(this.socket.getOutputStream(),
+                    StandardCharsets.UTF_8);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            outputStreamWriter.write(cmd, 0, cmd.length());
+            outputStreamWriter.flush();
+            String response = bufferedReader.lines().collect(Collectors.joining());
+            log.info("Message received from concord:\n{}", response);
+            bufferedReader.close();
+            outputStreamWriter.close();
             return getHealthStatus(response);
         } catch (Exception ex) {
-            log.error("Exception in socket response: {}", ex.getLocalizedMessage());
+            log.error("Exception in socket response:\n{}", ex);
             logMetrics(-1);
             return HealthStatusResponse.builder()
                     .status(HealthStatusResponse.HealthStatus.SERVICE_UNAVAILABLE)
                     .exception(ex.getLocalizedMessage())
                     .build();
+        } finally {
+            log.info("Client socket host: {}, port: {}", this.socket.getLocalAddress(), this.socket.getLocalPort());
+            closeSocket();
         }
     }
 
+    /**
+     * gets health status.
+     * @param response socket response string
+     * @return {@link HealthStatusResponse}
+     */
     HealthStatusResponse getHealthStatus(String response) {
         try {
             HealthStatusResponse healthStatusResponse = null;
@@ -109,8 +137,9 @@ public class ConcordHealthServiceInvoker {
             for (Object obj : json.entrySet()) {
                 Map.Entry<String, Object> entry = (Map.Entry<String, Object>) obj;
                 if (entry.getKey().equalsIgnoreCase("Sequence Numbers ")) {
-                    Map<String, Long> value = (Map<String, Long>) entry.getValue();
-                    var seqNum = value.get("lastStableSeqNum");
+                    Map<String, String> value = (Map<String, String>) entry.getValue();
+                    var seqNum = Long.parseLong(value.get("lastStableSeqNum"));
+                    log.info("lastStableSeqNum: {}", seqNum);
                     if (seqNum <= this.stableSeqNum) {
                         healthStatusResponse = HealthStatusResponse.builder()
                                 .status(HealthStatusResponse.HealthStatus.UNHEALTHY)
@@ -127,7 +156,7 @@ public class ConcordHealthServiceInvoker {
                 }
             }
             return healthStatusResponse;
-        } catch (ParseException ex) {
+        } catch (Exception ex) {
             log.error("JSON Parse exception from concord: {}", ex.getLocalizedMessage());
             logMetrics(-1);
             return HealthStatusResponse.builder()
@@ -137,6 +166,10 @@ public class ConcordHealthServiceInvoker {
         }
     }
 
+    /**
+     * logs metrics.
+     * @param value value to gauge
+     */
     void logMetrics(int value) {
         List<Tag> tags = Arrays.asList(ComponentHealth.tag,
                 Tag.of(MetricsConstants.MetricsTags.TAG_NODE_TYPE.metricsTagName, "concord"));
@@ -148,7 +181,7 @@ public class ConcordHealthServiceInvoker {
     /**
      * close concord socket.
      */
-    public synchronized void closeSocket() {
+    public void closeSocket() {
         if (disposed.get()) {
             return;
         }
@@ -163,5 +196,4 @@ public class ConcordHealthServiceInvoker {
             }
         }
     }
-
 }

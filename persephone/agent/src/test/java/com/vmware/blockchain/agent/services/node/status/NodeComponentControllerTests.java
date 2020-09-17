@@ -121,13 +121,13 @@ public class NodeComponentControllerTests {
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
         doNothing().when(healthCheckScheduler).stopHealthCheck();
-        doNothing().when(nodeComponentHealthFactory).tearDownHealthChecks(any());
+        doNothing().when(nodeComponentHealthFactory).tearDownHealthChecks();
         mockMvc.perform(post("/api/node/stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 
         verify(healthCheckScheduler, times(1)).stopHealthCheck();
-        verify(nodeComponentHealthFactory, times(1)).tearDownHealthChecks(any());
+        verify(nodeComponentHealthFactory, times(1)).tearDownHealthChecks();
         verify(agentDockerClient, times(1)).inspectContainer(any(), any());
         verify(agentDockerClient, times(1)).stopComponent(any(), any(), any());
     }
