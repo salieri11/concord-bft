@@ -29,6 +29,15 @@ endif()
 add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
 add_test(NAME OpenSSLCryptoWrapperTest COMMAND OpenSSLCryptoWrapperTest)
 
+add_executable(agent_test_server
+        agent_test_server.cpp)
+
+target_link_libraries(agent_test_server
+  logging
+  Threads::Threads
+  nlohmann_json::nlohmann_json
+)
+
 add_executable(UtilsTests
         utils_test.cpp)
 
