@@ -32,6 +32,11 @@ LABEL description="Blockchain On-prem Shell (Castor)"
 
 COPY ./helen/wait-for-it.sh ./castor/wait-for-it.sh
 
+# Copy on-prem deployment product (Orchestrator) runtime files. 
+# This is mostly the docker-compose files required for Castor.
+COPY ./castor/orchestrator-runtime ./orchestrator-runtime
+
+
 WORKDIR /castor
 COPY ./castor/src/main/resources/application.properties ./application.properties
 COPY --from=0 /home/test/castor/target/castor*.jar ./castor.jar
