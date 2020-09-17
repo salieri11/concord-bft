@@ -2,26 +2,23 @@
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 '''
-DAML Scenario runner
+DAML Scenario class
 
-Send DAML requests to a ledger API specified by http://host:port
+Use the ledger API to create simple assets or to run a trading scenario
+that includes multiple assets, parties, actions and permissions.
+Based on the dazl Python network stack.
 '''
 
-from logging import WARN, info
-from argparse import ArgumentParser
 from asyncio import sleep as async_sleep
-from yaml import load, FullLoader
-from time import time, sleep as time_sleep
-from sys import path as sys_path
+from logging import info
 from os import path as os_path
+from sys import path as sys_path
 
 # Submodule location for resources
 script_dirname = os_path.dirname(os_path.abspath(__file__))
 sys_path.insert(0, os_path.join(script_dirname, 'dazl-client/python'))
-DEFAULT_DATA_FILE = os_path.join(script_dirname, 'request_tool/data.yaml')
-DEFAULT_POLLING_INTERVAL = 0.01     # 10ms
 
-import dazl
+from dazl import create as dazl_create, exercise as dazl_exercise
 
 class Scenario():
     '''
@@ -43,7 +40,9 @@ class Scenario():
                  'Asset.Request',
                  'AssetCheck.FetchCmd',
                  'AssetCheck.DiscloseCmd']
-    DEFAULT_TIMEOUT = 10            # 10s default timeout for requests
+    DEFAULT_TIMEOUT = 10                # 10s default timeout for requests
+    DEFAULT_POLLING_INTERVAL = 0.01     # 10ms
+    DEFAULT_DATA_FILE = os_path.join(script_dirname, 'request_tool/data.yaml')
 
     def __init__(self, parties, data, action, **kwargs):
         '''
@@ -71,37 +70,37 @@ class Scenario():
         Entry method for starting a scenario run
         '''
         self.cid = {}
-        action = [dazl.create('Asset.Quote', self.data['quote_bank']) for n in range(0, self.batch_size)]
+        action = [dazl_create('Asset.Quote', self.data['quote_bank']) for n in range(0, self.batch_size)]
 
         if self.action == 'scenario' and self.full_scenario:
             party = self.data['parties']
-            action.extend([dazl.create('Asset.Trader', dict(issuer=party['issuer'], trader=party['trader'])),
-                           dazl.create('Asset.Agent', dict(issuer=party['issuer'], agent=party['agent'])),
-                           dazl.create('AssetCheck.DiscloseCmd', dict(issuer=party['issuer']))])
+            action.extend([dazl_create('Asset.Trader', dict(issuer=party['issuer'], trader=party['trader'])),
+                           dazl_create('Asset.Agent', dict(issuer=party['issuer'], agent=party['agent'])),
+                           dazl_create('AssetCheck.DiscloseCmd', dict(issuer=party['issuer']))])
 
-            client_action = [dazl.create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor'])),
-                             dazl.create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
+            client_action = [dazl_create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor'])),
+                             dazl_create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
             await self.party['client'].submit(client_action)
 
         await self.party['issuer'].submit(action)
 
-    async def verify_quotes(self, num):
+    async def asset_count(self, asset='Asset.Quote', party='issuer', filter={}):
         '''
         Check if the actual number of valid assets corresponds to the expected number
 
         Args:
-            num (int): Number of expected valid (not archived) assets
+            asset (str): which contract template to search for
+            party (str): the role of the user whose assets we're counting
+            filter (dict): filter by DAML template properties
         '''
-        cash = await self.party['issuer'].find_nonempty('Asset.Quote',
-                                                        {},
-                                                        min_count=0,
-                                                        timeout=self.DEFAULT_TIMEOUT)
-        info('Expected %s Quote records, found %s: ', num, len(cash))
-        for cid in cash.keys():
-            data = cash[cid]
-            info('%s from %s to %s for %s', cid, data['issuer'], data['client'], data['price'])
+        cash = await self.party[party].find_nonempty(asset,
+                                                     filter,
+                                                     min_count=0,
+                                                     timeout=self.DEFAULT_TIMEOUT)
+        items = len(cash)
+        info('Found %d %s records for %s', items, asset, party)
 
-        return num == len(cash)
+        return items
 
     async def cleanup(self):
         '''
@@ -118,7 +117,7 @@ class Scenario():
                     continue
 
                 for cid_str, cid in {str(k):k for k in assets.keys()}.items():
-                    await party.submit(dazl.exercise(cid, 'Archive'))
+                    await party.submit(dazl_exercise(cid, 'Archive'))
                     await self._wait_for(cid_str, self.archived_cid, self.DEFAULT_TIMEOUT)
 
     def _register_triggers(self):
@@ -158,7 +157,7 @@ class Scenario():
         self.archived_cid.add(archived)
 
     async def _wait_for(self, item, container, seconds):
-        wait_step = DEFAULT_POLLING_INTERVAL
+        wait_step = self.DEFAULT_POLLING_INTERVAL
         for _ in range(0, int(seconds / wait_step)):
             if item in container:
                 return
@@ -187,7 +186,7 @@ class Scenario():
                     # Asset scenario ends here
                     return
 
-                return dazl.exercise(event.cid, 'Fill')
+                return dazl_exercise(event.cid, 'Fill')
 
             # Complex scenario continues with a trader Quote
             params = dict(quoteCid=event.cid, price=self.data['quote_bank']['price'])
@@ -204,7 +203,7 @@ class Scenario():
             self.cid['Option'] = event.exercise_result['_1']
             self.cid['CashEntry_1'] = event.exercise_result['_2']
             info('Filled Quote: %s', event.cid)
-            return dazl.create('Asset.Fixing', self.data['fixing'])
+            return dazl_create('Asset.Fixing', self.data['fixing'])
 
         info('Could not Fill: %s', event)
 
@@ -214,7 +213,7 @@ class Scenario():
             info('Created Fixing: %s', event.cid)
             await self._wait_for('Option', self.cid, self.DEFAULT_TIMEOUT)
 
-            return dazl.exercise(self.cid['Option'], 'Expire', dict(fixingCid=event.cid))
+            return dazl_exercise(self.cid['Option'], 'Expire', dict(fixingCid=event.cid))
 
         info('Could not create Fixing: %s', event)
 
@@ -243,7 +242,7 @@ class Scenario():
                                trader=self.data['parties']['trader'],
                                observers=[])
 
-            return dazl.exercise(event.cid, 'Agent_Quote', agent_quote)
+            return dazl_exercise(event.cid, 'Agent_Quote', agent_quote)
 
         info('Could not create Agent: %s', event)
 
@@ -280,7 +279,7 @@ class Scenario():
 
             observers = [self.data['parties']['clerk'], self.data['parties']['supervisor']]
             params = dict(quoteCid=self.cid['Trader_Quote'], observers=observers)
-            return dazl.exercise(event.cid, 'Disclose', params)
+            return dazl_exercise(event.cid, 'Disclose', params)
 
         info('Could not create Disclose helper: %s', event)
 
@@ -292,7 +291,7 @@ class Scenario():
 
             observers = [self.data['parties']['supervisor']]
             params = dict(quoteCid=event.cid, observers=observers)
-            return dazl.exercise(self.cid['Clerk'], 'Clerk_Request', params)
+            return dazl_exercise(self.cid['Clerk'], 'Clerk_Request', params)
         else:
             info('Could not Disclose: %s', event)
 
@@ -301,7 +300,7 @@ class Scenario():
             self.cid['Request'] = event.cid
             info('Created Clerk Request: %s', event.cid)
             params = dict(requestCid=self.cid['Request'])
-            return dazl.exercise(self.cid['Supervisor'], 'Supervisor_Accept', params)
+            return dazl_exercise(self.cid['Supervisor'], 'Supervisor_Accept', params)
 
         info('Could not create Clerk Request: %s', event)
 
@@ -310,183 +309,3 @@ class Scenario():
             info('Complex scenario completed successfully')
         else:
             info('Could not complete complex scenario: %s', event)
-
-class Remote:
-    '''
-    Manage remote API connection and configuration
-    '''
-    def __init__(self, url):
-        self.url = url
-        self.network = None
-        self.parties = {}
-
-    def connect(self):
-        '''
-        Establish connection with the remote API (client node)
-        '''
-        if self.network:
-            self.network.shutdown()
-            self.network.join()
-
-        self.network = dazl.Network()
-        self.network.set_config(url=self.url, poll_interval=DEFAULT_POLLING_INTERVAL)
-
-    def create_clients(self, parties):
-        '''
-        Create asynchronous clients to connect to the API
-
-        Args:
-            parties(dict): a role:name data mapping for parties
-        '''
-        if not self.network:
-            self.connect()
-
-        self.parties = {k:self.network.aio_party(v) for k, v in parties.items()}
-        return self.parties
-
-def simple_request(url, minutes, wait=1):
-    '''
-    Invoke DAML requests with minimal parameters
-
-    Args:
-        url(string): Ledger API in the format http://host:port
-        minutes(float): duration (minutes) for which perform the requests
-        wait(float): timeout (seconds) before running each request
-    '''
-    with open(DEFAULT_DATA_FILE, "r") as yaml_file:
-        data = load(yaml_file, Loader=FullLoader)
-
-    def create_objects(url, data):
-        remote = Remote(url)
-        remote.connect()
-        remote.create_clients(data['parties'])
-
-        scenario = Scenario(remote.parties, data, 'asset')
-        return remote, scenario
-
-    remote, scenario = create_objects(url, data)
-
-    end_time = time() + minutes * 60
-
-    while time() < end_time:
-        try:
-            daml_request(remote, scenario, int((end_time - time()) / wait) + 1, wait)
-        except Exception as e:
-            # Network error; event loop was broken
-            # Create a new network connection and a scenario with new clients
-            info('Retrying because of network failure: %s', e)
-            remote, scenario = create_objects(url, data)
-            time_sleep(1)
-            return
-
-def daml_request(remote, scenario, repeat=1, wait=1, cleanup=False):
-    '''
-    Invoke a DAML request with custom parameters
-
-    Args:
-        remote(object): a valid Remote object
-        scenario(object): a valid Scenario object
-        repeat(int): number of iterations to run the Scenario
-        wait(float): seconds to wait before starting a new iteration
-        cleanup(bool): if True, archive accessible assets from previous runs
-    '''
-    async def run_once():
-        await async_sleep(wait)
-        await scenario.run()
-        remote.network.join()
-
-    async def run_request():
-        # Wait for all agents to be fully initialized
-        for agent in remote.parties.values():
-            await agent.ready()
-
-        if cleanup:
-            # Archive accessible assets from previous runs
-            await scenario.cleanup()
-
-        if repeat > 0:
-            for _ in range(0, repeat):
-                await run_once()
-        else:
-            while True:
-                await run_once()
-
-    remote.network.run_until_complete(run_request())
-
-def parse_args():
-    '''
-    Create a parser and process user input
-
-    Invoked in case the request tool is used standalone
-    '''
-    parser = ArgumentParser(description='Run a DAML scenario')
-    parser.add_argument('-u', '--url',
-                        default='http://localhost:6865',
-                        help='Endpoint URL for the DAML API, format http://host:port')
-    parser.add_argument('-d', '--data-file',
-                        default=DEFAULT_DATA_FILE,
-                        help='YAML file with party and asset data')
-    subparser = parser.add_subparsers(dest='action',
-                                      required=True,
-                                      help='Create an asset or run a trade scenario')
-    asset = subparser.add_parser('asset',
-                                 help='Create an asset')
-    asset.add_argument('--batch',
-                       type=int,
-                       default=1,
-                       help='Number of assets batched in a single transaction')
-    scenario = subparser.add_parser('scenario',
-                                    help='Run trade scenario - create, transfer and archive assets')
-    scenario.add_argument('--complex',
-                          default=False,
-                          action='store_true',
-                          help='Run a more complex version of the scenario with additional steps')
-    parser.add_argument('-r', '--repeat',
-                        type=int,
-                        default='1',
-                        help='Run the command this many times in sequence')
-    parser.add_argument('-w', '--wait',
-                        type=float,
-                        default=1,
-                        help='Seconds to wait between each DAML request')
-    parser.add_argument('--cleanup',
-                        default=False,
-                        action='store_true',
-                        help='Do not archive issuer assets from previous runs')
-    return parser.parse_args()
-
-def main():
-    '''
-    Run a scenario as a standalone tool
-
-    Actions:
-     - Create parser
-     - Load data
-     - Connect to remote API and allocate parties
-     - Run scenario
-
-    Preconditions:
-     - DAR should be uploaded beforehand
-     - Ledger parties should be allocated beforehand
-    '''
-    args = parse_args()
-
-    with open(args.data_file, "r") as yaml_file:
-        data = load(yaml_file, Loader=FullLoader)
-
-    dazl.setup_default_logger(WARN)
-
-    remote = Remote(args.url)
-    remote.connect()
-    remote.create_clients(data['parties'])
-
-    scenario = Scenario(remote.parties,
-                        data,
-                        args.action,
-                        batch_size=args.batch if args.action == 'asset' else 1,
-                        complex=args.complex if args.action == 'scenario' else False)
-
-    daml_request(remote, scenario, args.repeat, args.wait, args.cleanup)
-
-if __name__ == '__main__':
-    main()
