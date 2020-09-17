@@ -314,6 +314,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
 
 @describe("Node Interruption - crash containers for all containers of participant nodes")
 @pytest.mark.participant_container_crash
+@pytest.mark.participant_node_interruption_longrun
 def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -358,6 +359,7 @@ def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - crash containers for user defined containers of participant nodes")
 @pytest.mark.participant_container_crash
+@pytest.mark.participant_node_interruption_longrun
 def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -402,6 +404,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
 @describe("Node Interruption - simulate read/write failure index db through permission change")
 @pytest.mark.index_db_read_write_fail
+@pytest.mark.participant_node_interruption_longrun
 def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
