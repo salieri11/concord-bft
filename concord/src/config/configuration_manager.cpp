@@ -144,7 +144,8 @@ YAML::Node yaml_merge(const YAML::Node& a, const YAML::Node& b,
 }
 
 bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
-                       variables_map& opts_out) {
+                       variables_map& opts_out,
+                       std::unique_ptr<Cryptosystem>& cryptosys_out) {
   // Holds the file name of path of the configuration file for Concordthis is
   // NOT same as logger configuration file. Logger configuration file can be
   // specified as a property in configuration file.
@@ -298,6 +299,11 @@ bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
 
   concord::config::loadSBFTCryptosystems(config_out);
 
+  concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState =
+      dynamic_cast<concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
+          config_out.getAuxiliaryState());
+
+  cryptosys_out.reset(auxState->optimisticCommitCryptosys.release());
   return true;
 }
 
@@ -2425,7 +2431,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
   try {
     *output = (*cryptosystemPointer)->getSystemPublicKey();
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }
@@ -2730,7 +2737,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
 
     *output = (*cryptosystemPointer)->getPrivateKey(signer);
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }
@@ -2778,7 +2786,8 @@ static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
 
     *output = ((*cryptosystemPointer)->getSystemVerificationKeys())[signer];
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (UninitializedCryptosystemException& e) {
+  } catch (const std::exception& e) {
+    LOG_FATAL(THRESHSIGN_LOG, e.what());
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
 }

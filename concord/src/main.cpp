@@ -138,6 +138,8 @@ static unique_ptr<grpc::Server> tee_grpc_server = nullptr;
 static unique_ptr<grpc::Server> perf_grpc_server = nullptr;
 static unique_ptr<concordMetrics::Server> bft_metrics_server = nullptr;
 
+std::unique_ptr<Cryptosystem> cryptosys;
+
 static void signalHandler(int signum) {
   try {
     Logger logger = Logger::getInstance("com.vmware.concord.main");
@@ -639,8 +641,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     ReplicaConfig replicaConfig;
 
-    bool success = InitializeSbftConfiguration(config, nodeConfig, &commConfig,
-                                               nullptr, 0, &replicaConfig);
+    bool success =
+        InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
+                                    &replicaConfig, cryptosys.release());
     assert(success);
 
     LOG_INFO(logger,
@@ -798,7 +801,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // Start the diagnostics server
     concord::diagnostics::Server diagnostics_server;
     diagnostics_server.start(
-        concord::diagnostics::RegistrarSingleton::getInstance());
+        concord::diagnostics::RegistrarSingleton::getInstance(), INADDR_ANY,
+        6888);
 
     // Clients
 
@@ -955,7 +959,7 @@ int main(int argc, char **argv) {
     // config parameters or command line parameters directly
     // always use po::variables_map interface for that.
     variables_map opts;
-    if (!initialize_config(argc, argv, config, opts)) {
+    if (!initialize_config(argc, argv, config, opts, cryptosys)) {
       return -1;
     }
 
@@ -985,7 +989,7 @@ int main(int argc, char **argv) {
     result = run_service(config, nodeConfig, mainLogger);
 
     LOG_INFO(mainLogger, "VMware Project concord halting");
-  } catch (const error &ex) {
+  } catch (const std::exception &ex) {
     LOG_FATAL(mainLogger, ex.what());
     result = -1;
   }
