@@ -7,16 +7,16 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       "items":
       [
         {
-          "type": "committer",
+          "type": "replica",
           "no_of_cpus": "4",
           "storage_in_gigs": "1024",
-          "memory_in_gigs": "32"
+          "memory_in_gigs": "8"
         },
         {
           "type": "client",
           "no_of_cpus": "4",
           "storage_in_gigs": "1024",
-          "memory_in_gigs": "32"
+          "memory_in_gigs": "8"
         }
       ]
     },
@@ -25,7 +25,7 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       "items": 
       [
         {
-          "type": "committer",
+          "type": "replica",
           "no_of_cpus": "8",
           "storage_in_gigs": "1024",
           "memory_in_gigs": "32"
@@ -43,14 +43,14 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       "items": 
       [
         {
-          "type": "committer",
-          "no_of_cpus": "1",
+          "type": "replica",
+          "no_of_cpus": "16",
           "storage_in_gigs": "1024",
           "memory_in_gigs": "64"
         },
         {
-          "type": "committer",
-          "no_of_cpus": "1",
+          "type": "client",
+          "no_of_cpus": "16",
           "storage_in_gigs": "1024",
           "memory_in_gigs": "64"
         }
