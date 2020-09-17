@@ -1,0 +1,14 @@
+version: '3'
+services:
+  castor:
+    image: "${castor_repo}:${castor_tag}"
+    volumes:
+      - ${CASTOR_DESCRIPTORS_LOC}:/descriptors:ro
+      - ${CASTOR_OUTPUT_DIR}:/output
+    environment:
+      - "castor.infrastructure.descriptor.location=/descriptors/test01_infrastructure_descriptor.json"
+      - "castor.deployment.descriptor.location=/descriptors/test01_deployment_descriptor.json"
+      - "castor.output.directory.location=/output"
+    entrypoint: ['./wait-for-it.sh', 'persephone-provisioning:9002', '-t', '60', '--',
+             "java", "-Dspring.config.location=/config/app/profiles/,./",
+             "-jar", "castor.jar"]
