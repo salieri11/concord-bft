@@ -1,0 +1,120 @@
+{
+    "configuration": {
+        "cap_version": "0.1",
+        "appliance_name": "dinkar-castor-appliance",
+        "delivery_format": "OVF",
+        "parking_directory": "images",
+        "repositories": {
+            "local": [],
+            "rpm": [
+                {
+                    "csc-photon-vmbase": {
+                        "repo": []
+                    }
+                }
+            ]
+        },
+        "OVFCustomization": "sample-customizations.json"
+    },
+    "hardware": {
+        "cpu_count": 2,
+        "ram_size": 4,
+        "storage": {
+            "disks": {},
+            "arrays": {},
+            "lvm_layout": [
+                {
+                    "size": 10,
+                    "volume_group_name": "vg_root_0",
+                    "logical_volume_name": "lv_root_0",
+                    "mount_point": "/",
+                    "filesystem_type": "ext4"
+                },
+                {
+                    "size": 5,
+                    "volume_group_name": "vg_rpm_0",
+                    "logical_volume_name": "lv_rpm_0",
+                    "mount_point": "/rpms",
+                    "filesystem_type": "ext4"
+                },
+                {
+                    "size": 2,
+                    "volume_group_name": "swap_vg",
+                    "logical_volume_name": "swap1",
+                    "mount_point": "",
+                    "filesystem_type": "swap"
+                }
+            ]
+        },
+        "network": {
+            "interface_name_1": {
+                "type": "dhcp",
+                "version": "v4",
+                "mode": "simplex"
+            }
+        }
+    },
+    "build-appliance": {
+        "remote": {
+            "personalization": {
+                "image": "http://dl.bintray.com/vmware/photon/3.0/Rev2/iso/Update1/photon-3.0-a0f216d.iso",
+                "root_password": "vmware",
+                "existing_password": "previous"
+            },
+            "machine": {
+                "datastore": "datastore1",
+                "datacenter": "Datacenter",
+                "vcenter_address": "10.186.208.57",
+                "password": "Admin!23",
+                "username": "administrator@vsphere.local",
+                "hostname": "10.192.193.5",
+                "network": "VM Network"
+            }
+        },
+        "after-appliance-ready-script": "post-install-castor.sh"
+    },
+    "software": {
+        "download": {
+            "misc-files": [
+            ],
+            "rpm": [
+            ]
+        },
+        "exclude": {
+            "rpm": [
+            ]
+        },
+        "install": {
+            "iso": [
+                "acl",
+                "cloud-init",
+                "coreutils",
+                "curl",
+                "diffutils",
+                "docker",
+                "iproute",
+                "libtool",
+                "net-tools",
+                "rsync",
+                "sudo",
+                "time",
+                "wget",
+                "unzip",
+                "tar"
+            ],
+            "local": {
+                "files": [
+                ],
+                "target": "/tmp/repos"
+            }
+        },
+        "copy-to-appliance": {
+            "rpm": [],
+            "misc-files": []
+        },
+        "copy-from-appliance": [],
+        "remove": {
+            "rpm": []
+        }
+    }
+}
