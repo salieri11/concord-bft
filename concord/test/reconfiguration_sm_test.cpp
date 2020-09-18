@@ -8,7 +8,7 @@
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
-#include "reconfiguration/upgrade_plugin.hpp"
+#include "reconfiguration/reconfiguration_sm_dispatcher.hpp"
 #include "status.hpp"
 #include "utils/concord_prometheus_metrics.hpp"
 
@@ -16,8 +16,9 @@ using com::vmware::concord::ConcordReplicaSpecificInfoResponse;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ReconfigurationResponse;
 using com::vmware::concord::ReconfigurationSmRequest;
-using concord::reconfiguration::IReconfigurationPlugin;
+using concord::config::ConcordConfiguration;
 using concord::reconfiguration::ReconfigurationSM;
+using concord::reconfiguration::ReconfigurationSMDispatcher;
 using concord::utils::openssl_crypto::AsymmetricPrivateKey;
 using concord::utils::openssl_crypto::AsymmetricPublicKey;
 using concord::utils::openssl_crypto::GenerateAsymmetricCryptoKeyPair;
@@ -56,55 +57,17 @@ void sign_message(
   request.set_signature(sig);
 }
 
-class MockPlugin : public IReconfigurationPlugin {
- public:
-  virtual com::vmware::concord::ReconfigurationSmRequest::CommandCase
-  GetPluginId() const override {
-    return com::vmware::concord::ReconfigurationSmRequest::CommandCase::
-        kTestCmd;
-  }
-  bool Handle(
-      const com::vmware::concord::ReconfigurationSmRequest& command,
-      uint64_t sequence_num, bool readOnly, opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response,
-      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
-      bftEngine::ControlStateManager& control_state_manager,
-      concord::reconfiguration::ConcordControlHandler& control_handlers)
-      override {
-    auto& cmd = command.test_cmd();
-    auto res = concord_response.mutable_reconfiguration_sm_response();
-    res->set_success(true);
-    res->set_additionaldata(cmd + "-world");
-    return true;
-  }
-};
-
 auto test_span =
     opentracing::Tracer::Global() -> StartSpan("reconfiguration_sm_test");
 
 /*
  * Test successful creation of the reconfiguration state machine.
  */
-TEST(reconfiguration_sm_test, create_rsm) {
+TEST(reconfiguration_sm_test, create_dispatcher_and_rsm) {
   auto config = defaultTestConfig();
   ConfigureOperatorKey(config);
-  EXPECT_NO_THROW(ReconfigurationSM rsm(config, registry));
-}
-
-/*
- * Test that the state machine return error if the plugin is not loaded
- */
-TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
-  auto config = defaultTestConfig();
-  ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
-
-  ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_test_cmd("hello");
-  ConcordResponse res;
-  ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
-  ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
+  EXPECT_NO_THROW(ReconfigurationSMDispatcher d(
+      std::make_unique<ReconfigurationSM>(), config, registry));
 }
 
 /*
@@ -113,10 +76,10 @@ TEST(reconfiguration_sm_test, reject_invalid_pluginId) {
 TEST(reconfiguration_sm_test, reject_invalid_command) {
   auto config = defaultTestConfig();
   ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
+  auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
+      std::make_unique<ReconfigurationSM>(), config, registry);
   auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
       "./resources/signing_keys/operator_priv.pem", "secp256r1");
-  rsm.LoadPlugin(std::make_unique<MockPlugin>());
 
   ReconfigurationSmRequest reconfig_sm_req;
   reconfig_sm_req.set_test_cmd("hello");
@@ -124,104 +87,78 @@ TEST(reconfiguration_sm_test, reject_invalid_command) {
   // Test that an empty reconfiguration request will be rejected
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command without signature will be rejected
   reconfig_sm_req.set_test_cmd("hello");
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 
   // Test that a command with invalid signature will be rejected
   reconfig_sm_req.set_signature("xxx");
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_FALSE(res.mutable_reconfiguration_sm_response()->success());
 }
 
-/*
- * Test a basic mock command
- */
-TEST(reconfiguration_sm_test, run_basic_ro_mock_plugin) {
-  auto config = defaultTestConfig();
-  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
-      "resources/signing_keys/operator_priv.pem", "secp256r1");
-  ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(std::make_unique<MockPlugin>());
-
-  ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.set_test_cmd("hello");
-  sign_message(reconfig_sm_req, priv_key.get());
-
-  ConcordResponse res;
-  ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
-  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
-  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
-            "hello-world");
-}
-
-TEST(reconfiguration_sm_test, test_get_version_upgrade_plugin_command) {
+TEST(reconfiguration_sm_test, test_download_command) {
   auto config = defaultTestConfig();
   auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
       "./resources/signing_keys/operator_priv.pem", "secp256r1");
   ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(
-      std::make_unique<concord::reconfiguration::DownLoadSwVersionPlugin>());
+  auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
+      std::make_unique<ReconfigurationSM>(), config, registry);
 
   ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.mutable_download_sw_version_cmd();
+  reconfig_sm_req.mutable_download_cmd();
   sign_message(reconfig_sm_req, priv_key.get());
 
   ConcordResponse res;
   ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
+  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
+            "Downloading");
+}
+
+TEST(reconfiguration_sm_test, test_get_version_command) {
+  auto config = defaultTestConfig();
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
+  auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
+      std::make_unique<ReconfigurationSM>(), config, registry);
+
+  ReconfigurationSmRequest reconfig_sm_req;
+  reconfig_sm_req.mutable_get_version_cmd();
+  sign_message(reconfig_sm_req, priv_key.get());
+
+  ConcordResponse res;
+  ConcordReplicaSpecificInfoResponse rsi_response;
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
+  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
+  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
+            "Version");
+}
+
+TEST(reconfiguration_sm_test, test_upgrade_command) {
+  auto config = defaultTestConfig();
+  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
+      "./resources/signing_keys/operator_priv.pem", "secp256r1");
+  ConfigureOperatorKey(config);
+  auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
+      std::make_unique<ReconfigurationSM>(), config, registry);
+
+  ReconfigurationSmRequest reconfig_sm_req;
+  reconfig_sm_req.mutable_upgrade_cmd();
+  sign_message(reconfig_sm_req, priv_key.get());
+
+  ConcordResponse res;
+  ConcordReplicaSpecificInfoResponse rsi_response;
+  rsm->dispatch(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
   ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgrading");
-}
-
-TEST(reconfiguration_sm_test, test_validate_version_upgrade_plugin_command) {
-  auto config = defaultTestConfig();
-  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
-      "./resources/signing_keys/operator_priv.pem", "secp256r1");
-  ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(
-      std::make_unique<concord::reconfiguration::HasSwVersionPlugin>());
-
-  ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.mutable_has_sw_version_cmd();
-  sign_message(reconfig_sm_req, priv_key.get());
-
-  ConcordResponse res;
-  ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
-  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
-  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
-            "Valid");
-}
-
-TEST(reconfiguration_sm_test, test_execute_upgrade_upgrade_plugin_command) {
-  auto config = defaultTestConfig();
-  auto priv_key = concord::utils::openssl_crypto::DeserializePrivateKeyFromPem(
-      "./resources/signing_keys/operator_priv.pem", "secp256r1");
-  ConfigureOperatorKey(config);
-  ReconfigurationSM rsm(config, registry);
-  rsm.LoadPlugin(
-      std::make_unique<concord::reconfiguration::UpgradeSwVersionPlugin>());
-
-  ReconfigurationSmRequest reconfig_sm_req;
-  reconfig_sm_req.mutable_upgrade_sw_version_cmd();
-  sign_message(reconfig_sm_req, priv_key.get());
-
-  ConcordResponse res;
-  ConcordReplicaSpecificInfoResponse rsi_response;
-  rsm.handle(reconfig_sm_req, res, 0, true, rsi_response, *test_span);
-  ASSERT_TRUE(res.mutable_reconfiguration_sm_response()->success());
-  ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
-            "Upgraded");
 }
 
 }  // anonymous namespace

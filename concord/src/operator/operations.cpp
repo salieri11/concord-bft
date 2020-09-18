@@ -69,7 +69,7 @@ concord::op::Response concord::op::Operations::initiateSwDownload(
   // Prepare the reconfiguration request
   com::vmware::concord::ConcordRequest conc_req;
   auto reconfiguration_req = conc_req.mutable_reconfiguration_sm_request();
-  reconfiguration_req->mutable_download_sw_version_cmd();
+  reconfiguration_req->mutable_download_cmd();
   signRequest(*reconfiguration_req);
   std::string cid = "operator-download-sw-version-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
@@ -115,7 +115,7 @@ concord::op::Response concord::op::Operations::initiateHasSwVersion(
       opentracing::Tracer::Global()->StartSpan("OperatorHasSwVersionCommand");
   com::vmware::concord::ConcordRequest conc_req;
   auto recong_req = conc_req.mutable_reconfiguration_sm_request();
-  recong_req->mutable_has_sw_version_cmd();
+  recong_req->mutable_get_version_cmd();
   signRequest(*recong_req);
   std::string cid = "operator-has-sw-version-command";
   return initiateReadRequest(conc_req, All{}, timeout, cid, "");
@@ -127,7 +127,7 @@ concord::op::Response concord::op::Operations::initiateInstallSwVersion(
   // Prepare the reconfiguration request
   com::vmware::concord::ConcordRequest conc_req;
   auto reconfiguration_req = conc_req.mutable_reconfiguration_sm_request();
-  reconfiguration_req->mutable_upgrade_sw_version_cmd();
+  reconfiguration_req->mutable_upgrade_cmd();
   signRequest(*reconfiguration_req);
   std::string cid = "operator-upgrade-sw_version-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");

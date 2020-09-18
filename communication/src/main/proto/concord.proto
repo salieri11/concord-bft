@@ -63,7 +63,10 @@ message ConcordResponse {
 }
 
 message ConcordReplicaSpecificInfoResponse {
-   optional ReconfigurationSmResponse.WedgeResponse wedge_response = 1;
+   message WedgeResponse {
+      required bool stopped = 1;
+   }
+   optional WedgeResponse wedge_response = 1;
 }
 
 // ----------------------------------------------------------------------------
@@ -335,29 +338,27 @@ message PruneResponse {
 }
 
 message ReconfigurationSmRequest {
-   message DownloadSwVersion {}
-   message HasSwVersion {}
-   message UpgradeSwVersion {}
+   message GetVersionCommand {}
+   message DownloadCommand {}
+   message UpgradeCommand {}
    message WedgeCommand {
-      optional int64 seqNumToStopAt = 1;
+      // Replicas should stop at a specific sequence number
+      optional int64 stop_seq_num = 1;
    }
-   oneof command {
-      string test_cmd = 1;
-      WedgeCommand wedge_cmd= 2;
-      DownloadSwVersion download_sw_version_cmd = 3;
-      HasSwVersion has_sw_version_cmd = 4;
-      UpgradeSwVersion upgrade_sw_version_cmd = 5;
-   }
-   required bytes signature = 6;
 
+   required bytes signature = 1;
+   oneof command {
+      string test_cmd = 2;
+      WedgeCommand wedge_cmd= 3;
+      GetVersionCommand get_version_cmd = 4;
+      DownloadCommand download_cmd = 5;
+      UpgradeCommand upgrade_cmd = 6;
+   }
 }
 
 message ReconfigurationSmResponse {
    required bool success = 1;
    optional bytes additionalData = 2;
-   message WedgeResponse {
-      required bool stopped = 1;
-   }
 }
 
 message ReconfigureTimePusherPeriodRequest {

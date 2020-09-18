@@ -61,7 +61,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     concord::kvbc::IBlocksDeleter &deleter,
     bftEngine::IStateTransfer &state_transfer,
     concord::thin_replica::SubBufferList &subscriber_list,
-    std::unique_ptr<concord::reconfiguration::IReconfiguration>
+    std::unique_ptr<concord::reconfiguration::IReconfigurationDispatcher>
         reconfiguration_sm,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
     concord::time::TimeContract *time_contract)
@@ -419,9 +419,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       pruning_sm_->Handle(request, response, read_only, *execute_span);
     }
     if (request.has_reconfiguration_sm_request()) {
-      result = reconfiguration_sm_->handle(request.reconfiguration_sm_request(),
-                                           response, sequence_num, read_only,
-                                           rsi_response, *execute_span);
+      result = reconfiguration_sm_->dispatch(
+          request.reconfiguration_sm_request(), response, sequence_num,
+          read_only, rsi_response, *execute_span);
     }
   } else {
     ErrorResponse *err = response.add_error_response();
