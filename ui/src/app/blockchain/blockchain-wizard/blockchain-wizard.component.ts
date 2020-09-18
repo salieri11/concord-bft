@@ -18,9 +18,9 @@ import { PersonaService } from '../../shared/persona.service';
 
 import { BlockchainService } from '../shared/blockchain.service';
 import { AuthenticationService } from '../../shared/authentication.service';
-import { BlockchainRequestParams, ContractEngines, NodeClientParam } from '../shared/blockchain.model';
-import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
-import { NodeTemplateFormResponse } from '../../nodes/shared/nodes.model';
+import { BlockchainRequestParams, ContractEngines } from '../shared/blockchain.model';
+import { mainRoutes } from '../../shared/urls.model';
+import { NodeTemplateFormResponse, NodeClientParam } from '../../nodes/shared/nodes.model';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
@@ -96,6 +96,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   nodeSizingTemplate: NodeTemplateFormResponse;
 
+  submitting: boolean;
+  submitErrorMessage: string;
+  submitError: boolean;
+
   constructor(
     private blockchainService: BlockchainService,
     private authService: AuthenticationService,
@@ -136,7 +140,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.isOpen = true;
     this.showOnPrem = false;
     this.selectedEngine = undefined;
-    // this.filterZones();
+    this.submitErrorMessage = undefined;
 
     if (this.form && this.wizard) {
       this.wizard.reset();
@@ -196,6 +200,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
     return total;
   }
+
   clientNodesValidator(fa: FormArray): ValidationErrors | null {
     let currentClientIndex = 0;
     const errors = [];
@@ -226,6 +231,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
     return { messages: errors };
   }
+
   groupNameUniqueValidator(fc: FormControl): ValidationErrors | null  {
     const groupName = fc.value;
     if (!groupName) { return null; }
@@ -274,6 +280,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   onSubmit() {
+    this.submitting = true;
     const params = new BlockchainRequestParams();
     params.consortium_name = this.form.value.details.consortium_name;
     params.blockchain_type = this.selectedEngine;
@@ -285,6 +292,23 @@ export class BlockchainWizardComponent implements AfterViewInit {
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
     params.replica_zone_ids = zoneIds;
 
+    // Node Sizing for replica nodes
+    if (this.selectedEngine === ContractEngines.DAML) {
+      params.replica_zones = [];
+      const committerSizing = this.nodeSizingTemplate.clientSizing;
+
+      for (const zone of zoneIds) {
+        params.replica_zones.push({
+          zone_id: zone,
+          sizing_info: {
+            no_of_cpus: committerSizing.no_of_cpus,
+            storage_in_gigs: committerSizing.storage_in_gigs,
+            memory_in_gigs: committerSizing.memory_in_gigs
+          }
+        });
+      }
+    }
+
     // Handle client nodes
     const clients: NodeClientParam[] = [];
     for (let g = 0; g < this.clientGroups.length; ++g) {
@@ -295,29 +319,32 @@ export class BlockchainWizardComponent implements AfterViewInit {
         const clientNode = memberClients.at(c) as FormGroup;
         const zoneId = clientNode.controls.zone_id as FormControl;
         const authUrl = clientNode.controls.auth_url_jwt as FormControl;
+        const clientSizing = this.nodeSizingTemplate.clientSizing;
+
         clients.push({
           // should be groupName.value in the future
           group_name: groupName.value,
           zone_id: zoneId.value,
           auth_url_jwt: authUrl.value,
+          // Node sizing for client nodes
+          sizing_info: {
+            no_of_cpus: clientSizing.no_of_cpus,
+            storage_in_gigs: clientSizing.storage_in_gigs,
+            memory_in_gigs: clientSizing.memory_in_gigs
+          }
         });
       }
     }
     params.client_nodes = clients;
 
-    /**
-     * Sometimes API request takes seconds to return, then, UI will hang at a blank
-     * template (with wizard closed/submitted) which is likely to throw off the user.
-     * So route user right away to deploying page before response, and once the
-     * response returns :taskId will overridden by response task_id.
-     * */
-    this.routeService.goToDeploying(ConsortiumStates.waiting);
-
     this.blockchainService.deploy(params, isOnlyOnPrem).subscribe(response => {
       this.routeService.goToDeploying(response['task_id']);
+      this.submitting = false;
+      this.wizard.forceFinish();
     }, error => {
-      this.events.emit({ type: 'error', data: error });
-      console.log(error);
+      this.submitError = true;
+      this.submitErrorMessage = error.message;
+      this.submitting = false;
     });
   }
 

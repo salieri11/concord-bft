@@ -1,6 +1,6 @@
 <div class="sizing-detail" *ngIf="form">
   <section *ngIf="showTemplates">
-    <div *ngFor="let size of sizingOptions?.templates" class="card clickable sideways" (click)="selectSize(size.name)"
+    <div *ngFor="let size of sizingOptions?.templates" [id]="size.name" class="card clickable sideways" (click)="selectSize(size.name)"
         [ngClass]="{'active': selectedSizing === size.name}">
         <div class="card-icon">
           <div>

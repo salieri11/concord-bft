@@ -59,6 +59,22 @@ export interface ClientNodeDeployParams {
   client_jwt: string;
 }
 
+export interface NodeCommitter {
+  cert: string;
+  ip: string;
+  node_id: string;
+  zone_id: string;
+  region: string;
+  url: string;
+}
+
+export interface NodeClientParam {
+  zone_id: string;
+  auth_url_jwt: string;
+  group_name: string;
+  sizing_info: TemplateItem;
+}
+
 export enum GeoCoordinate {
   longitude = 0,
   latitude = 1,
