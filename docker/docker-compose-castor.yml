@@ -1,13 +1,29 @@
+# Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
+#
+# Usage: Set the following environment variables:
+# ORCHESTRATOR_DESCRIPTORS_DIR: The directory containing the infrastructure and deployment descriptor files
+# ORCHESTRATOR_OUTPUT_DIR: The directory where the information about the deployment will be logged
+# INFRA_DESC_FILENAME: The name of the infrastructure descriptor file inside the $ORCHESTRATOR_DESCRIPTORS_DIR directory
+# DEPLOY_DESC_FILENAME: The name of the deployment descriptor file inside the $ORCHESTRATOR_DESCRIPTORS_DIR directory
+# E.g.
+# $ ORCHESTRATOR_DESCRIPTORS_DIR=/tmp/descriptors \
+#   ORCHESTRATOR_OUTPUT_DIR=/tmp/output \
+#   INFRA_DESC_FILENAME=infra-input001.json \
+#   DEPLOY_DESC_FILENAME=depl-input001.json \
+#   docker-compose -f docker-compose-castor.yml up
+#
+# After the container terminates, the output is stored under $ORCHESTRATOR_OUTPUT_DIR/<consortium-name>-<timestamp>.
+
 version: '3'
 services:
   castor:
     image: "${castor_repo}:${castor_tag}"
     volumes:
-      - ${CASTOR_DESCRIPTORS_LOC}:/descriptors:ro
-      - ${CASTOR_OUTPUT_DIR}:/output
+      - ${ORCHESTRATOR_DESCRIPTORS_DIR}:/descriptors:ro
+      - ${ORCHESTRATOR_OUTPUT_DIR}:/output
     environment:
-      - "castor.infrastructure.descriptor.location=/descriptors/test01_infrastructure_descriptor.json"
-      - "castor.deployment.descriptor.location=/descriptors/test01_deployment_descriptor.json"
+      - "castor.infrastructure.descriptor.location=/descriptors/$INFRA_DESC_FILENAME"
+      - "castor.deployment.descriptor.location=/descriptors/$DEPLOY_DESC_FILENAME"
       - "castor.output.directory.location=/output"
     entrypoint: ['./wait-for-it.sh', 'persephone-provisioning:9002', '-t', '60', '--',
              "java", "-Dspring.config.location=/config/app/profiles/,./",
