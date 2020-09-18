@@ -1,0 +1,18 @@
+#Configuration file for metrics extraction from logs
+
+#logpath : <File path of the log>
+#delimiter: default is '|', can be changed as per user requirement
+#subdelimiter: default is ' ', can be changes as per user requirement 
+logpath: ""
+delimiter: '|'
+subdelimiter: ' ' 
+
+#Fortmat of each metrics
+#< metrics name>:
+#       Keyword:
+#       - <pattern>   //multiple pattern can be added
+#       Value Index:
+#       - <log position based on delimiter>  //only one log position is supported
+#       Value SubIndex:
+#       - <metric position bases on sub-delimiter> // only one metric position is supported per log  
+
