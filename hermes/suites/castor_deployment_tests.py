@@ -28,11 +28,14 @@ log = util.hermes_logging.getMainLogger()
 _productType = helper.TYPE_NO_VERIFY
 
 # NOTE: These need to match the docker-compose-castor.yml file
-_CASTOR_DESCRIPTORS_LOC_KEY = "CASTOR_DESCRIPTORS_LOC"
-_CASTOR_DESCRIPTORS_LOC_VALUE = "../docker/config-castor/descriptors"
-_CASTOR_INFRA_DESCRIPTOR_FILE = "test01_infrastructure_descriptor.json"
-_CASTOR_OUTPUT_DIR_KEY = "CASTOR_OUTPUT_DIR"
-_CASTOR_CONFIG_SERVICE_IP = "CONFIG_SERVICE_IP"
+_ORCHESTRATOR_DESCRIPTORS_DIR_KEY = "ORCHESTRATOR_DESCRIPTORS_DIR"
+_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE = "../docker/config-castor/descriptors"
+_INFRA_DESC_FILENAME_KEY = "INFRA_DESC_FILENAME"
+_INFRA_DESC_FILENAME_VALUE = "test01_infrastructure_descriptor.json"
+_DEPLOY_DESC_FILENAME_KEY = "DEPLOY_DESC_FILENAME"
+_DEPLOY_DESC_FILENAME_VALUE = "test01_deployment_descriptor.json"
+_ORCHESTRATOR_OUTPUT_DIR_KEY = "ORCHESTRATOR_OUTPUT_DIR"
+_CONFIG_SERVICE_IP = "CONFIG_SERVICE_IP"
 
 _COMPOSE_CASTOR_LOG = "docker-compose-castor.log"
 _DEPLOYMENT_SUCCESS_MSG = "Deployment completed with status: SUCCESS"
@@ -66,7 +69,7 @@ def _populateDescriptorFiles(fxHermesRunSettings):
     nameServers = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem'][0]['vsphere']['network']['nameServers']
 
     # Read the infra descriptor file
-    infraFilePath = os.path.join(_CASTOR_DESCRIPTORS_LOC_VALUE, _CASTOR_INFRA_DESCRIPTOR_FILE)
+    infraFilePath = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)
 
     with open(infraFilePath, "r") as infraFile:
         data = infraFile.read()
@@ -138,9 +141,13 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
     # Set up the descriptor and output directories as env variables picked up by docker-compose
     # NOTE: These need to match the docker-compose-castor.yml file
     newEnv = os.environ.copy()
-    newEnv[_CASTOR_DESCRIPTORS_LOC_KEY] = _CASTOR_DESCRIPTORS_LOC_VALUE
-    newEnv[_CASTOR_OUTPUT_DIR_KEY] = castorOutputDir
-    newEnv[_CASTOR_CONFIG_SERVICE_IP] = helper.getNetworkIPAddress()
+    newEnv[_ORCHESTRATOR_DESCRIPTORS_DIR_KEY] = _ORCHESTRATOR_DESCRIPTORS_DIR_VALUE
+    newEnv[_ORCHESTRATOR_OUTPUT_DIR_KEY] = castorOutputDir
+
+    newEnv[_INFRA_DESC_FILENAME_KEY] = _INFRA_DESC_FILENAME_VALUE
+    newEnv[_DEPLOY_DESC_FILENAME_KEY] = _DEPLOY_DESC_FILENAME_VALUE
+
+    newEnv[_CONFIG_SERVICE_IP] = helper.getNetworkIPAddress()
 
     castorComposeOutputLogFilePath = os.path.join(castorOutputDir, _COMPOSE_CASTOR_LOG)
     with open(castorComposeOutputLogFilePath, "a") as composeOutputLogFile:
