@@ -124,20 +124,18 @@ public class NodeComponentHealthFactory {
                 damlHealthServiceInvoker.start(host);
                 host = getHost(concordHealthServiceInvoker.getContainer(),
                         containerNetworkName);
-                concordHealthServiceInvoker.createSocket(host);
+                concordHealthServiceInvoker.registerHost(host);
             }
         } else {
-            concordHealthServiceInvoker.createSocket(getHost(concordHealthServiceInvoker.getContainer(),
+            concordHealthServiceInvoker.registerHost(getHost(concordHealthServiceInvoker.getContainer(),
                     containerNetworkName));
         }
     }
 
     /**
      * tears down component health checks.
-     * TODO: this is never used. To be used for node stop workflow.
-     * @param containerNetworkName container network name.
      */
-    public void tearDownHealthChecks(String containerNetworkName) throws InterruptedException {
+    public void tearDownHealthChecks() throws InterruptedException {
         if (getConcordAgentConfiguration()
                 .getModel().getBlockchainType() == ConcordModelSpecification.BlockchainType.DAML) {
             if (getConcordAgentConfiguration().getModel().getNodeType()

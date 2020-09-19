@@ -60,11 +60,11 @@ public class NodeComponentHealthFactoryTest {
         doNothing().when(damlHealthServiceInvoker).shutdown();
         doNothing().when(damlHealthServiceInvoker).start(isA(String.class));
         doNothing().when(concordHealthServiceInvoker).closeSocket();
-        doNothing().when(concordHealthServiceInvoker).createSocket(isA(String.class));
+        doNothing().when(concordHealthServiceInvoker).registerHost(isA(String.class));
 
         when(nodeComponentHealthFactory.getHealthComponent(any())).thenCallRealMethod();
         doCallRealMethod().when(nodeComponentHealthFactory).initHealthChecks(any());
-        doCallRealMethod().when(nodeComponentHealthFactory).tearDownHealthChecks(any());
+        doCallRealMethod().when(nodeComponentHealthFactory).tearDownHealthChecks();
 
         ReflectionTestUtils.setField(nodeComponentHealthFactory,
                 "damlHealthServiceInvoker", damlHealthServiceInvoker);
@@ -182,7 +182,7 @@ public class NodeComponentHealthFactoryTest {
         when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.DAML_COMMITTER);
         nodeComponentHealthFactory.initHealthChecks(any());
         verify(damlHealthServiceInvoker, times(1)).start("daml_execution_engine");
-        verify(concordHealthServiceInvoker, times(1)).createSocket("concord");
+        verify(concordHealthServiceInvoker, times(1)).registerHost("concord");
     }
 
     @Test
@@ -191,7 +191,7 @@ public class NodeComponentHealthFactoryTest {
         when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
         nodeComponentHealthFactory.initHealthChecks(any());
         verify(damlHealthServiceInvoker, times(1)).start("daml_ledger_api");
-        verify(concordHealthServiceInvoker, never()).createSocket(any());
+        verify(concordHealthServiceInvoker, never()).registerHost(any());
     }
 
     @Test
@@ -199,14 +199,14 @@ public class NodeComponentHealthFactoryTest {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.ETHEREUM);
         nodeComponentHealthFactory.initHealthChecks(any());
         verify(damlHealthServiceInvoker, never()).start(any());
-        verify(concordHealthServiceInvoker, times(1)).createSocket("concord");
+        verify(concordHealthServiceInvoker, times(1)).registerHost("concord");
     }
 
     @Test
     void tearDownHealthChecksDamlCommitter() throws InterruptedException {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.DAML);
         when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.DAML_COMMITTER);
-        nodeComponentHealthFactory.tearDownHealthChecks(any());
+        nodeComponentHealthFactory.tearDownHealthChecks();
         verify(damlHealthServiceInvoker, times(1)).shutdown();
         verify(concordHealthServiceInvoker, times(1)).closeSocket();
     }
@@ -215,7 +215,7 @@ public class NodeComponentHealthFactoryTest {
     void tearDownHealthChecksDamlParticipant() throws InterruptedException {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.DAML);
         when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
-        nodeComponentHealthFactory.tearDownHealthChecks(any());
+        nodeComponentHealthFactory.tearDownHealthChecks();
         verify(damlHealthServiceInvoker, times(1)).shutdown();
         verify(concordHealthServiceInvoker, never()).closeSocket();
     }
@@ -223,7 +223,7 @@ public class NodeComponentHealthFactoryTest {
     @Test
     void tearDownHealthChecksEthereum() throws InterruptedException {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.ETHEREUM);
-        nodeComponentHealthFactory.tearDownHealthChecks(any());
+        nodeComponentHealthFactory.tearDownHealthChecks();
         verify(damlHealthServiceInvoker, never()).shutdown();
         verify(concordHealthServiceInvoker, times(1)).closeSocket();
     }
