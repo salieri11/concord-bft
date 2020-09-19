@@ -15,6 +15,7 @@ import tarfile
 import tempfile
 import time
 
+DEFAULT_SUPPORT_LOG_PREFIX = "support"
 files_folders_to_backup = [
    "/config",
    "/var/log/healthd.log",
@@ -175,6 +176,8 @@ if __name__ == '__main__':
                        help="Support bundle base path on blockchain nodes/replicas")
    parser.add_argument("--concordIP", required=True,
                        help="concord node/replica IP")
+   parser.add_argument("--nodeType", default=DEFAULT_SUPPORT_LOG_PREFIX,
+                       help="node type(committer/participant)")
    parser.add_argument("--dockerContainers", nargs='+', required=True,
                        help="list of expected docker containers to be running on concord node")
 
@@ -189,8 +192,8 @@ if __name__ == '__main__':
    deployment_support_bundle_base_dir = args.supportBundleBaseDir
    if not os.path.exists(deployment_support_bundle_base_dir):
       os.makedirs(deployment_support_bundle_base_dir)
-   deployment_support_bundle_name = "deployment-support-bundle_{}_{}".format(
-      args.concordIP, time_stamp)
+   deployment_support_bundle_name = "{}-logs_{}_{}".format(
+      args.nodeType, args.concordIP, time_stamp)
    deployment_support_bundle_dir_path = os.path.join(
       deployment_support_bundle_base_dir, deployment_support_bundle_name)
    deployment_support_bundle_path = os.path.join(

@@ -1,5 +1,14 @@
 {
-  "daml": {
+  "long_running_tests": {
+    "smoke_framework": [
+      {
+        "testname": "Sample Suite",
+        "test_command": [
+          "./main.py",
+          "SampleSuite"
+        ]
+      }
+    ],
     "basic_tests": [
       {
         "testname": "Daml Test",

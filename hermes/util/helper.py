@@ -49,6 +49,9 @@ else:
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
 
+hermes_testrun_info_filename = "hermes_testrun_info.json"
+testrun_info_results_dir_key_name = "resultsDir"
+
 # Command line args in dictionary format, set by `main.py` after argparse
 CMDLINE_ARGS = {}
 
@@ -872,14 +875,25 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    overall_run_status = None
    replica_status = None
    while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
+      run_count += 1
       fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None,
                                        replicas=all_replicas_and_type,
                                        clientNodes=None)
       log.info("************************************************************")
-      crashed_committers, crashed_participants = blockchain_ops.get_all_crashed_nodes(
+      log.info("Iteration: {}".format(run_count).center(60))
+      log.info("************************************************************")
+
+      crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
          fxBlockchain, log_dir)
 
       status = False if len(crashed_committers + crashed_participants) > 0 else True
+      nodes_status = {
+         0: {
+            'test_result': status,
+            'test_results_dir': os.path.basename(unexpected_crash_results_dir)
+         }
+      }
+
       if not status:
          f = blockchain_ops.get_f_count(fxBlockchain)
          overall_run_status = False
@@ -892,37 +906,40 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                   crashed_committers, len(crashed_committers), f))
             replica_status = True
 
+      testset_result_dict = {}
       if status or replica_status:
          replica_status = True
          for blockchain_type, replica_ips in all_replicas_and_type.items():
             if blockchain_type == TYPE_DAML_PARTICIPANT or blockchain_type == TYPE_ETHEREUM:
                testset_result_dict = run_long_running_tests(tests, replica_config, log_dir)
+               iteration_result, all_tests_failed = parse_long_running_test_result(testset_result_dict)
 
-               result, all_tests_failed = parse_long_running_test_result(testset_result_dict)
-               result_details = {}
-               run_count += 1
-               result_details[run_count] = testset_result_dict
-               overall_result.append(result_details)
-
-               if result:
+               if iteration_result:
                   log.info("**** All tests passed in this iteration")
                   if overall_run_status is None:
                      overall_run_status = True
                else:
-                  log.warning(
-                     "**** Testsuites have failed, but continuing to monitor...")
+                  log.info("")
+                  log.warning("**** There are failed tests in this iteration")
                   overall_run_status = False
 
-                  if all_tests_failed:
-                     no_of_times_all_tests_failed += 1
-                  else:
-                     no_of_times_all_tests_failed = 0
+               if all_tests_failed:
+                  no_of_times_all_tests_failed += 1
+               else:
+                  no_of_times_all_tests_failed = 0
+
+               log.debug("**** Testrun status for this iteration: {}".format(iteration_result))
 
                if no_of_times_all_tests_failed == 3:
+                  log.info("************************************************************")
+                  log.info("")
                   log.error("All testsuites have failed consecutively for the 3rd time; aborting the entire run")
                   replica_status = False
 
-               log.info("**** Testrun status for this iteration: {}".format(result))
+      result_details = {}
+      testset_result_dict["iteration_summary"].insert(0, nodes_status)
+      result_details[run_count] = testset_result_dict
+      overall_result.append(result_details)
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
@@ -949,15 +966,13 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
            target=notify_target,
            message=endingMessage,
            jobNameShort=notify_job)
-         return False
 
-      log.info("")
-      log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
-      time.sleep(load_interval*60)
+      if replica_status:
+         log.info("")
+         log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
+         time.sleep(load_interval*60)
 
-   log.info("Overall run summary: ")
-   for res in overall_result:
-      log.info(json.dumps(res))
+   print_long_runtest_result(overall_result, tests)
 
    if not overall_run_status:
       duration = str(int((time.time() - start_time) / 3600))
@@ -976,23 +991,64 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    return True
 
 
+def print_long_runtest_result(overall_result, tests):
+   '''
+   Print a formatted tabular summary of run status for node health status, and
+   each test included in longrun test, along with log directory
+   :param overall_result: List of results from all iteration
+   :param tests: list of all tests for longrun test
+   '''
+   title = [" Iteration ", " Node Status "]
+   for test_count in range(len(tests)):
+      test_name = tests[test_count]["testname"]
+      title.append(" {} ".format(test_name[:45]))
+
+   result_table_data = [title]
+   for result_set in overall_result:
+      for iteration_count, iteration_result_set in result_set.items():
+         iteration_summary = iteration_result_set["iteration_summary"]
+         result_data =[iteration_count]
+         for result_set in iteration_summary:
+            for test_count, result_info in result_set.items():
+               test_result = " PASS " if result_info[
+                  "test_result"] else " * FAIL ({}) ".format(
+                  os.path.basename(result_info["test_results_dir"]))
+               result_data.append(test_result)
+         result_table_data.append(result_data)
+
+   log.info("")
+   log.info("Overall Run Summary")
+   log.info("===================")
+   for index, item in enumerate(result_table_data):
+      line = []
+      for i, status in enumerate(item):
+         col_width = len(result_table_data[0][i])
+         if i != 0: col_width += 30
+         line.append(str(status).center(col_width))
+
+      log.info('|'.join(line))
+      if index == 0:
+         log.info('-' * len(''.join(str(status) for status in line)))
+
+
 def parse_long_running_test_result(testset_result_dict):
    '''
    Parse log running test results
-   :param testset_result_dict: run results from  various tests
-   :return: test result, and True if all tests failed, else False
+   :param testset_result_dict: run results from various tests
+   :return: iteration result, and True if all tests failed, else False
    '''
    all_tests_failed = True
-   test_result = True
-   for res in testset_result_dict["results"]:
-      if False in res.values():
-         test_result = False
-      if True in res.values():
-         all_tests_failed = False
+   test_result = None
+   for test_result_set in testset_result_dict["iteration_summary"]:
+      for test_count, result_set in test_result_set.items():
+         if result_set["test_result"]:
+            all_tests_failed = False
+            if test_result is not False:
+               test_result = True
+            else:
+               test_result = False
 
-   if not testset_result_dict:
-      test_result = False
-   return test_result, all_tests_failed
+   return test_result == True, all_tests_failed
 
 
 def get_long_running_tests(all_replicas_and_type, test_list_json_file, testset):
@@ -1004,24 +1060,19 @@ def get_long_running_tests(all_replicas_and_type, test_list_json_file, testset):
    :return: set of tests to be run
    '''
    tests = []
-   general_blockchain_type = None
-   for blockchain_type, replica_ips in all_replicas_and_type.items():
-      if blockchain_type == TYPE_DAML_PARTICIPANT:
-         general_blockchain_type = TYPE_DAML
-      elif blockchain_type == TYPE_ETHEREUM:
-         general_blockchain_type = TYPE_ETHEREUM
-
    with open(test_list_json_file, "r", encoding="utf-8") as fp:
       data = json.load(fp)
 
       for test_set in testset.split(','):
          try:
-            tests += data[general_blockchain_type][test_set]
+            tests += data["long_running_tests"][test_set]
          except KeyError as e:
             log.error("Error finding testset '{}' in {}".format(test_set, test_list_json_file))
             raise
 
-   log.info("Tests for this run: {}".format(json.dumps(tests, indent=True)))
+   log.info("")
+   log.info("Tests for this run:")
+   for test in tests: log.info("  * {}".format(test["testname"] ))
    return tests
 
 
@@ -1048,13 +1099,19 @@ def run_long_running_tests(tests, replica_config, log_dir):
    for test_count, test_set in enumerate(tests):
       log.debug("Test set: {}".format(test_set))
       test_results = {}
+      run_id = get_time_now_in_milliseconds()
       try:
-         results_dir = os.path.join(log_dir, "{}_{}".format(test_count + 1,
+         test_result_base_dir = os.path.join(log_dir, "{}_{}".format(test_count + 1,
                                                             test_set["testname"].replace(' ', '_')))
-         if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
+         if not os.path.exists(test_result_base_dir):
+            os.makedirs(test_result_base_dir)
 
-         test_cmd = [python] + test_set["test_command"] + ["--replicasConfig", replica_config, "--resultsDir", results_dir]
+         test_cmd = [python] + test_set["test_command"] + \
+                    [
+                       "--replicasConfig", replica_config,
+                       "--resultsDir", test_result_base_dir,
+                       "--runID", run_id
+                    ]
 
          log.info("{}. {}...".format(test_count+1, test_set["testname"]))
          status, msg = execute_ext_command(test_cmd, verbose=False)
@@ -1064,11 +1121,27 @@ def run_long_running_tests(tests, replica_config, log_dir):
          log.error("Error running testsuite: {}".format(e))
          test_result = False
 
-      log.info("   ** {}".format("PASS" if test_result else "FAIL"))
-      test_results[test_count+1] = test_result
+      test_results_dir = ""
+      hermes_testrun_info_file = os.path.join(test_result_base_dir, hermes_testrun_info_filename)
+      if os.path.isfile(hermes_testrun_info_file):
+         with open(hermes_testrun_info_file) as json_fp:
+            json_data = json.load(json_fp)
+            try:
+               test_results_dir = json_data[run_id][testrun_info_results_dir_key_name]
+            except KeyError as e:
+               log.debug("Unable to retrieve results dir from {}".format(hermes_testrun_info_file))
+
+      test_summary = {
+         "test_result": test_result,
+         "test_results_dir": test_results_dir
+      }
+      log.info("   ** {}".format("PASS" if test_result else "FAIL ({})".format(
+         os.path.basename(test_summary["test_results_dir"]))))
+
+      test_results[test_count+1] = test_summary
       testset_result.append(test_results)
 
-   testset_result_dict["results"] = testset_result
+   testset_result_dict["iteration_summary"] = testset_result
    result_data = json.dumps(testset_result_dict, indent=True, sort_keys=True)
    log.debug(result_data)
 
@@ -1170,10 +1243,12 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
             if verbose: log.debug("  Saved at '{}:{}'".format(concord_ip,
                                                  remote_support_bundle_binary_path))
 
-            cmd_execute_collect_support_bundle = "python3 {} --supportBundleBaseDir {} --concordIP {} " \
+            cmd_execute_collect_support_bundle = "python3 {} --supportBundleBaseDir {} " \
+                                                 "--concordIP {} --nodeType {} " \
                                                  "--dockerContainers {}".format(
-               remote_support_bundle_binary_path, DEPLOYMENT_SUPPORT_BUNDLE_BASE_DIR, concord_ip,
-               ' '.join(expected_docker_containers))
+               remote_support_bundle_binary_path,
+               DEPLOYMENT_SUPPORT_BUNDLE_BASE_DIR, concord_ip,
+               concord_type.lower(), ' '.join(expected_docker_containers))
 
             if verbose: log.info("  Gathering deployment support logs...")
             ssh_output = ssh_connect(concord_ip, concord_username,
@@ -2266,3 +2341,11 @@ def getNetworkIPAddress(interface="ens160"):
             host_ip = fields[1]
          break
    return host_ip
+
+def get_time_now_in_milliseconds():
+   '''
+   Get time now in milliseconds
+   :return: time now in milliseconds
+   '''
+   milli_sec = int(round(time.time() * 1000))
+   return str(milli_sec)
