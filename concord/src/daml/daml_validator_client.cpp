@@ -156,7 +156,7 @@ void DamlValidatorClient::SwapWriteSet(
   toHash.reserve(1000);
   int i = 0;
 
-  for (auto kv : *write_set) {
+  for (auto& kv : *write_set) {
     ValueWithTrids value_with_thin_replica_ids;
     currKV = kv.key();
     currKV += kv.value();
