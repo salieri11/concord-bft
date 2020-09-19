@@ -194,9 +194,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "False")
                 .equalsIgnoreCase("True");
 
-        int preexecutionThreshold = Integer.parseInt(request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0"));
-
         Map<String, Map<String, String>> concordConfig = null;
         try {
             concordConfig = configUtil.getConcordConfig(committerIds, committerIps,

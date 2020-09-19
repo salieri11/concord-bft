@@ -22,6 +22,7 @@ public class Constants {
     public static final String ORG_PREEXECUTION_ENABLED = "preexecution_enabled";
     public static final String ORG_PREEXECUTION_THRESHOLD = "preexecution_threshold";
     public static final String ORG_DECENTRALIZED_KEYS = "decentralized_keys";
+    public static final String ORG_SPLIT_CONFIG = "split_config";
 
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
