@@ -407,6 +407,14 @@ public class BlockchainController {
                         organization.getOrganizationProperties()
                                 .get(Constants.ORG_DECENTRALIZED_KEYS));
             }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_SPLIT_CONFIG)) {
+                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.ORG_SPLIT_CONFIG));
+            } else {
+                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(), "True");
+            }
         }
 
         zoneIds
