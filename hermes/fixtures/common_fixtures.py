@@ -330,6 +330,14 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
          daml_committer_replicas = [{**replica_entry, **id_dict} for replica_entry in replica_details]
          success = verify_daml_committers_deployment(replica_details, credentials)
          if success:
+            # verify_daml_committers_deployment() waits for docker containers to come up, which can take longer
+            # than the CSP auth token is good for.
+            conAdminRequest = Request(logDir,
+                                      "fxBlockchain",
+                                      hermesData["hermesCmdlineArgs"].deploymentService,
+                                      hermesData["hermesUserConfig"],
+                                      tokenDescriptor=tokenDescriptor,
+                                      service=hermesData["hermesCmdlineArgs"].deploymentService)
             success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
                                                                             num_participants)
             daml_participant_replicas = [{**replica_entry, **id_dict} for replica_entry in daml_participant_replicas]
