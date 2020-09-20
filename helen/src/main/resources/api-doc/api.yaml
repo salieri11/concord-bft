@@ -2049,7 +2049,7 @@ components:
       additionalProperties:
         type: string
         example:
-          type: committer
+          type: replica
           no_of_cpus: 1
           storage_in_gigs: 1024
           memory_in_gigs: 64
@@ -2073,7 +2073,7 @@ components:
       additionalProperties:
         type: string
         example:
-          type: committer
+          type: replica
           no_of_cpus: 1
           storage_in_gigs: 1024
           memory_in_gigs: 64
