@@ -37,7 +37,7 @@ public class NodeSizeTemplateUtil {
         items.add(item1);
 
         NodeSizeTemplate.Item item2 = new NodeSizeTemplate.Item();
-        item2.put(NodeSizeTemplate.Parameter.TYPE, "Committer");
+        item2.put(NodeSizeTemplate.Parameter.TYPE, "replica");
         item2.put(NodeSizeTemplate.Parameter.NO_OF_CPUS, "2");
         item2.put(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS, "32");
         item2.put(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS, "250");
@@ -58,7 +58,7 @@ public class NodeSizeTemplateUtil {
         items.add(item3);
 
         NodeSizeTemplate.Item item4 = new NodeSizeTemplate.Item();
-        item4.put(NodeSizeTemplate.Parameter.TYPE, "Committer");
+        item4.put(NodeSizeTemplate.Parameter.TYPE, "replica");
         item4.put(NodeSizeTemplate.Parameter.NO_OF_CPUS, "2");
         item4.put(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS, "32");
         item4.put(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS, "250");
@@ -77,7 +77,7 @@ public class NodeSizeTemplateUtil {
         items.add(item5);
 
         NodeSizeTemplate.Item item6 = new NodeSizeTemplate.Item();
-        item6.put(NodeSizeTemplate.Parameter.TYPE, "Committer");
+        item6.put(NodeSizeTemplate.Parameter.TYPE, "replica");
         item6.put(NodeSizeTemplate.Parameter.NO_OF_CPUS, "2");
         item6.put(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS, "32");
         item6.put(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS, "250");
