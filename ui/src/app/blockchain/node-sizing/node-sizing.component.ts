@@ -39,7 +39,7 @@ export class NodeSizingComponent {
     this.form.valueChanges.subscribe(() => {
       this.isValid.emit(this.isValidSelection());
 
-      if (this.isValidSelection()) {
+      if (this.form.valid) {
         const value = this.form.value;
         // Convert numbers to string for API
         // Useful to keep as numbers in form so that we can use built in

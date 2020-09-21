@@ -73,7 +73,7 @@ describe('concord-ui Deployment Flow', () => {
     waitFor(progressEl);
     waitForText(element(by.cssContainingText(progMessageEl, `Deploy consortium started...`)));
     waitForText(element(by.cssContainingText(progMessageEl, `Creating VMs...`)));
-    waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord committers...`)));
+    waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord replicas...`)));
     waitForText(element(by.cssContainingText(progPerceEl, `100%`)));
     expect(deployWiz.getPercentage()).toBe('100%');
     browser.sleep(10000);
