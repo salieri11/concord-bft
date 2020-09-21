@@ -14,11 +14,18 @@ fi
 API_SERVER=/doc/daml/ledger-api-server/target/universal/stage/bin/daml-on-vmware-ledger-api-server
 DATE_CMD="date --iso-8601=seconds | awk -F'+' '{print \$1}'"
 
-# Check for --version and, if present, print the version and exit
+INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER"
+
+# Check for --version or --dump-index-metadata.
+# If present, print the required information and exit.
 while test $# -gt 0
 do
   case "$1" in
-    --version) $API_SERVER "$1" && exit 0
+    --version)
+      $API_SERVER "$1" && exit 0
+      ;;
+    --dump-index-metadata)
+      $API_SERVER dump-index-metadata ${INDEXDB_JDBC_URL} && exit 0
       ;;
   esac
   shift
@@ -34,8 +41,6 @@ until psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
 done
 
 >&2 echo $(eval $DATE_CMD) "Postgres is up - starting ledger api server"
-
-INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER"
 
 # Pre-execution cost threshold parameter.
 if [ -z "$PRE_EXECUTION_COST_THRESHOLD" ]; then
