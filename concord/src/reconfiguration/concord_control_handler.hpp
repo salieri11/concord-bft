@@ -9,14 +9,16 @@ namespace concord {
 namespace reconfiguration {
 class ConcordControlHandler : public bftEngine::ControlHandlers {
   bool onNoutOfNCheckpoint = false;
+  bool onNMinusFOutOfNCheckpoint = false;
 
  public:
-  virtual void onSuperStableCheckpoint() override {
-    onNoutOfNCheckpoint = true;
-  };
+  void onSuperStableCheckpoint() override { onNoutOfNCheckpoint = true; };
+
+  void onStableCheckpoint() override { onNMinusFOutOfNCheckpoint = true; }
   virtual ~ConcordControlHandler() {}
 
   bool isOnNOutOfNCheckpoint() { return onNoutOfNCheckpoint; }
+  bool isOnStableCheckpoint() { return onNMinusFOutOfNCheckpoint; }
 };
 }  // namespace reconfiguration
 }  // namespace concord
