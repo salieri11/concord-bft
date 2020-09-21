@@ -32,6 +32,10 @@ export class DeployWizard {
     return element(by.css('#deploy-page-clients-group-0-name-input'));
   }
 
+  selectSmallNodeSizing() {
+    return element(by.css('#Small'));
+  }
+
   getTitle() {
     return element(by.css('.consortium-title')).getText();
   }

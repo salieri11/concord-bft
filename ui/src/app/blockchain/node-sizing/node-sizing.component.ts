@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { NodeTemplates, NodeTemplate, NodeTemplateFormResponse } from '../../nodes/shared/nodes.model';
 import { NodesService } from '../../nodes/shared/nodes.service';
 import {
@@ -16,7 +16,7 @@ import {
   templateUrl: './node-sizing.component.html',
   styleUrls: ['./node-sizing.component.scss']
 })
-export class NodeSizingComponent implements OnInit {
+export class NodeSizingComponent {
   @Output() sizeChange = new EventEmitter<NodeTemplateFormResponse>();
   @Output() isValid = new EventEmitter<boolean>();
 
@@ -28,20 +28,29 @@ export class NodeSizingComponent implements OnInit {
   range: any;
   hasClients: any;
 
-  constructor(private nodesService: NodesService) {}
+  constructor(private nodesService: NodesService) {
+    this.nodesService.getSizingOptions().subscribe(options => this.init(options));
+  }
 
-  ngOnInit() {
-    this.nodesService.getSizingOptions().subscribe(options => {
-      this.sizingOptions = options;
-      this.hasClients = options.templates[0].items.some(a => a.type === 'client');
-      this.form = this.initForm();
-    });
-
+  init(options: NodeTemplates): void {
+    this.sizingOptions = options;
+    this.hasClients = options.templates[0].items.some(a => a.type === 'client');
+    this.form = this.initForm();
     this.form.valueChanges.subscribe(() => {
       this.isValid.emit(this.isValidSelection());
 
       if (this.isValidSelection()) {
-        this.sizeChange.emit(this.form.value);
+        const value = this.form.value;
+        // Convert numbers to string for API
+        // Useful to keep as numbers in form so that we can use built in
+        // validators
+        for (const [key, val] of Object.entries(value.committerSizing)) {
+          value.committerSizing[key] = val.toString();
+        }
+        for (const [key, val] of Object.entries(value.clientSizing)) {
+          value.clientSizing[key] = val.toString();
+        }
+        this.sizeChange.emit(value);
       }
     });
   }

@@ -2,28 +2,18 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
+import { NodeClientParam, TemplateItem } from '../../nodes/shared/nodes.model';
+
+
 export class BlockchainRequestParams {
   consortium_id?: string;
   consortium_name: string;
   replica_zone_ids: string[];
+  replica_zones: {zone_id: string, sizing_info: TemplateItem}[];
   blockchain_type: string;
   client_nodes: NodeClientParam[];
 }
 
-export interface NodeCommitter {
-  cert: string;
-  ip: string;
-  node_id: string;
-  zone_id: string;
-  region: string;
-  url: string;
-}
-
-export interface NodeClientParam {
-  zone_id: string;
-  auth_url_jwt: string;
-  group_name: string;
-}
 
 export enum BlockchainStates {
   // As specified in api.yaml (/blockchains)

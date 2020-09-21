@@ -54,6 +54,10 @@ describe('concord-ui Deployment Flow', () => {
     browser.sleep(100);
     deployWiz.next();
     browser.sleep(100);
+    deployWiz.selectSmallNodeSizing().click();
+    browser.sleep(100);
+    deployWiz.next();
+    browser.sleep(100);
 
     expect(deployWiz.getTitle()).toBe(title);
     expect(deployWiz.getEngine()).toBe('DAML');

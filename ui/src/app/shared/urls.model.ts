@@ -80,9 +80,12 @@ export const mainRoutes = {
   welcome: 'welcome',
   deploy: 'deploy',
   deploying: 'deploying',
-  get blockchainChildren() { return [ // allowed paths under /blockchain/*
-    this.welcome, this.deploy, this.deploying, this.zones
-  ]; },
+
+  get blockchainChildren() {
+    return [ // allowed paths under /blockchain/*
+      this.welcome, this.deploy, this.deploying, this.zones
+    ];
+  },
 
   // Deploying flow URLs
   get deployingBaseRoute() { return [mainRoutes.blockchain, mainRoutes.deploying]; },
@@ -139,7 +142,10 @@ export const Apis = {
   // Metrics
   get metricsWavefront() { return `${this.base}/metrics/wavefront`; },
 
-
+  // Node Size Template
+  get nodeSizeTemplate() {
+    return `${this.blockchains}/nodesizetemplate`;
+  },
 
   /**
    * API that requires `blockchainId` already resolved.

@@ -1,5 +1,5 @@
 <form *ngIf="form" [formGroup]="form" class="clr-form-horizontal">
-  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()"
+  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen"
     (clrWizardOnCancel)="onCancel()" class="blockchain-wizard extra-wide">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
@@ -172,7 +172,7 @@
       </div>
     </clr-wizard-page>
 
-    <clr-wizard-page #clientsPage [formGroup]="clientGroups" *ngIf="pastContractEngineStep && selectedEngine === 'DAML'"
+    <clr-wizard-page #clientsPage [formGroup]="clientGroups" *ngIf="pastContractEngineStep && selectedEngine === engines.DAML"
       [clrWizardPageNextDisabled]="clientGroups.errors?.messages?.length > 0">
 
       <ng-template clrPageTitle>
@@ -328,7 +328,9 @@
       </div>
     </clr-wizard-page>
 
-    <clr-wizard-page *concordFeatureFlag="'node_sizing'" #replicaSizing [clrWizardPageNextDisabled]="!sizingIsValid">
+    <clr-wizard-page #replicaSizing
+                     [clrWizardPageNextDisabled]="!sizingIsValid"
+                     *ngIf="pastContractEngineStep && selectedEngine === engines.DAML">
 
       <ng-template clrPageTitle>
         {{'blockchainWizard.sizing.title' | translate}}
@@ -338,9 +340,23 @@
       <concord-node-sizing (sizeChange)="addReplicaSize($event)" (isValid)="sizingIsValid = $event"></concord-node-sizing>
     </clr-wizard-page>
 
-    <clr-wizard-page>
+    <clr-wizard-page clrWizardPagePreventDefault="true"
+                     (clrWizardPageOnCommit)="onSubmit()"
+                     (clrWizardPageOnCancel)="doCancel()"
+                     (clrWizardPagePrevious)="wizard.previous()"
+                     [clrWizardPageNextDisabled]="submitting || submitError">
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
+      <clr-alert *ngIf="submitError" [clrAlertType]="'danger'" [clrAlertClosable]="false">
+        <clr-alert-item>
+          <span class="alert-text">
+            {{ submitErrorMessage }}
+          </span>
+        </clr-alert-item>
+      </clr-alert>
+      <clr-spinner *ngIf="submitting">
+        {{'common.loading' | translate}}
+      </clr-spinner>
       <div class="clr-row review">
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.engine.navTitle' | translate}}
@@ -368,7 +384,7 @@
         <div class="clr-col-8 summary-value number-of-replicas">
           {{ form.value.nodes.numberOfNodes }}
         </div>
-        <ng-container *concordFeatureFlag="'node_sizing'">
+        <ng-container *ngIf="selectedEngine === engines.DAML">
           <div class="clr-col-4 summary-label">
             {{'blockchainWizard.sizing.noOfCPU' | translate}}
           </div>
@@ -387,8 +403,6 @@
           <div class="clr-col-8 summary-value number-of-replicas">
             {{ nodeSizingTemplate?.committerSizing.storage_in_gigs }} GB
           </div>
-        </ng-container>
-        <ng-container *ngIf="selectedEngine === engines.DAML">
           <h6  class="sub-title">
             {{'blockchainWizard.clients.navTitle' | translate}}
           </h6>
@@ -398,26 +412,24 @@
           <div class="clr-col-8 summary-value number-of-replicas">
             {{ totalClientsCount() }}
           </div>
-          <ng-container *concordFeatureFlag="'node_sizing'">
-            <div class="clr-col-4 summary-label">
-              {{'blockchainWizard.sizing.noOfCPU' | translate}}
-            </div>
-            <div class="clr-col-8 summary-value number-of-replicas">
-              {{ nodeSizingTemplate?.clientSizing.no_of_cpus }}
-            </div>
-            <div class="clr-col-4 summary-label">
-              {{'blockchainWizard.sizing.memory' | translate}}
-            </div>
-            <div class="clr-col-8 summary-value number-of-replicas">
-              {{ nodeSizingTemplate?.clientSizing.memory_in_gigs }} GB
-            </div>
-            <div class="clr-col-4 summary-label">
-              {{'blockchainWizard.sizing.storage' | translate}}
-            </div>
-            <div class="clr-col-8 summary-value number-of-replicas">
-              {{ nodeSizingTemplate?.clientSizing.storage_in_gigs }} GB
-            </div>
-          </ng-container>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.noOfCPU' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.clientSizing.no_of_cpus }}
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.memory' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.clientSizing.memory_in_gigs }} GB
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.sizing.storage' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ nodeSizingTemplate?.clientSizing.storage_in_gigs }} GB
+          </div>
         </ng-container>
 
         <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>

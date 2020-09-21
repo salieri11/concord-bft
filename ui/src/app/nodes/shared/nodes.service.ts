@@ -259,7 +259,7 @@ export class NodesService {
 
   getSizingOptions(): Observable<NodeTemplates> {
     const icons = { Small: 'hard-disk', Medium: 'host', Large: 'cluster' };
-    return of(nodeSizingOptionsBase)
+    return this.http.get<NodeTemplates>(Apis.nodeSizeTemplate)
       .pipe(
         map(templ => {
           templ.templates.forEach(item => {

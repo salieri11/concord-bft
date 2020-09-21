@@ -4,6 +4,5 @@
   "deploy_HLF": false,
   "node_dashboard": false,
 
-  "daml_contracts_explorer": false,
-  "node_sizing": false
+  "daml_contracts_explorer": false
 }
