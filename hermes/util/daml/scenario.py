@@ -84,17 +84,17 @@ class Scenario():
 
         await self.party['issuer'].submit(action)
 
-    async def asset_count(self, asset='Asset.Quote', party='issuer', filter={}):
+    async def asset_count(self, asset='Asset.Quote', party='issuer', match={}):
         '''
         Check if the actual number of valid assets corresponds to the expected number
 
         Args:
             asset (str): which contract template to search for
             party (str): the role of the user whose assets we're counting
-            filter (dict): filter by DAML template properties
+            match (dict): filter by DAML template properties
         '''
         cash = await self.party[party].find_nonempty(asset,
-                                                     filter,
+                                                     match,
                                                      min_count=0,
                                                      timeout=self.DEFAULT_TIMEOUT)
         items = len(cash)
