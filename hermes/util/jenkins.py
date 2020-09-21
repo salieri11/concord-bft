@@ -644,7 +644,8 @@ def run_cmd_over_all_workers(cmd, tracker={}, timeout=30, eligible_name=None, bu
   
   if "counter" not in tracker: tracker["counter"] = 0
   if "results" not in tracker: tracker["results"] = []
-  
+  ip_responded = {} # did individual worker respond
+
   def run_on_node(node_name, ip, cmd):
     try_count = 0
     max_tries = 3
@@ -654,6 +655,7 @@ def run_cmd_over_all_workers(cmd, tracker={}, timeout=30, eligible_name=None, bu
         output = helper.ssh_connect(ip, "builder", builder_password, cmd)
         tracker["results"].append({ "nodeName": node_name, "ip": ip, "output": output })
         tracker["counter"] += 1
+        if ip in ip_responded: ip_responded[ip] = True
         if auto_output:
           log.info("[ {} :: {} ] exec output: {}".format(node_name, ip, output))
         break
@@ -672,6 +674,7 @@ def run_cmd_over_all_workers(cmd, tracker={}, timeout=30, eligible_name=None, bu
         if not eligible_name(node_name):
           continue
         ip = node_name.split("-")[-1] # worker node name always ends in IP (e.g. onecloud-build-NN-10.78.20.34)
+        ip_responded[ip] = False # didn't respond yet
         thd = threading.Thread(
             target = lambda node_name, ip, cmd: run_on_node(node_name, ip, cmd),
             args = (node_name, ip, cmd, ))
@@ -680,6 +683,9 @@ def run_cmd_over_all_workers(cmd, tracker={}, timeout=30, eligible_name=None, bu
       except Exception as e:
         traceback.print_exc()
     for thd in threads: thd.join(timeout=timeout) # wait for all exec calls to return
+    for ip in ip_responded:
+      if not ip_responded[ip]:
+        log.error("{} did not respond in time (timeout={})".format(ip, timeout))
     return True
   else:
     log.error("Unable to fetch worker nodes list from Jenkins. (Status Code: {})".format(response.status_code))
