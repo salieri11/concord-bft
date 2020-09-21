@@ -27,21 +27,21 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-docker run -it \
+docker run -it --rm \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
                           --configuration-type application \
                           --output-name ${MOUNT_POINT}/config-public/application
 
-docker run -it \
+docker run -it --rm \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
                           --configuration-type deployment \
                           --output-name ${MOUNT_POINT}/config-public/deployment
 
-docker run -it \
+docker run -it --rm \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
