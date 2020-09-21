@@ -68,7 +68,11 @@ public class BlockchainApiObjects {
         private String authUrlJwt;
         private String groupName;
         private HashMap<NodeSizeTemplate.Parameter, String> sizingInfo;
+
         // TLS fields.
+        private String pem;     // The pem file to be used as the private key.
+        private String crt;     // The crt file to be used as the cert chain.
+        private String cacrt;   // The crt file to be used as the the trusted root CA.
     }
 
     @Getter
