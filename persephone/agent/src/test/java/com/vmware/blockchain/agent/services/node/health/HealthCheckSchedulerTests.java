@@ -71,38 +71,39 @@ public class HealthCheckSchedulerTests {
         }
     }
 
-
     @Test
-    void testStartHealthCheck() throws InterruptedException {
-        Thread.sleep(5000);
+    void testAll() throws InterruptedException {
+        // Collated to reduce UT run time
+        Thread.sleep(70000);
+        testStartHealthCheck();
+        testRestartWithoutStopThrowsException();
+        testStopHealthCheck();
+        testStopAgainThrowsException();
+        testRestartHealthCheck();
+    }
+
+    void testStartHealthCheck() {
         verify(mockComponentHealth, atLeastOnce()).getHealth();
     }
 
-    @Test
-    void testStopHealthCheck() throws InterruptedException {
-        Thread.sleep(5000);
+    void testStopHealthCheck() {
         verify(mockComponentHealth, atLeastOnce()).getHealth();
         healthCheckScheduler.stopHealthCheck();
         Assertions.assertTrue(healthCheckScheduler.getScheduledFuture().isCancelled());
     }
 
-    @Test
     void testRestartWithoutStopThrowsException() {
         Assertions.assertThrows(IllegalStateException.class, () -> healthCheckScheduler.startHealthCheck());
     }
 
-    @Test
-    void stopAgainThrowsException() {
-        healthCheckScheduler.stopHealthCheck();
+    void testStopAgainThrowsException() {
         Assertions.assertThrows(IllegalStateException.class, () -> healthCheckScheduler.stopHealthCheck());
     }
 
-    @Test
-    void stopAndRestartHealthCheck() throws InterruptedException {
-        healthCheckScheduler.stopHealthCheck();
+    void testRestartHealthCheck() throws InterruptedException {
         Assertions.assertTrue(healthCheckScheduler.getScheduledFuture().isCancelled());
         healthCheckScheduler.startHealthCheck();
-        Thread.sleep(5000);
+        Thread.sleep(70000);
         verify(mockComponentHealth, atLeastOnce()).getHealth();
     }
 

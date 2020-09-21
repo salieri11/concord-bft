@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.agent.services.node.health;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.ScheduledFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +68,8 @@ public class HealthCheckScheduler {
     public synchronized void startHealthCheck() throws IllegalStateException {
         if (scheduledFuture == null || scheduledFuture.isDone()) {
             log.info("Scheduling periodic healthcheck with interval of 30 seconds.");
-            scheduledFuture = taskScheduler.scheduleAtFixedRate(this::runHealthCheck, 30000);
+            scheduledFuture = taskScheduler.scheduleAtFixedRate(this::runHealthCheck,
+                    addSecondsToCurrentDate(new Date(), 60), 30000);
         } else {
             var msg = "Periodic healthcheck is already running.";
             log.info(msg);
@@ -87,5 +90,12 @@ public class HealthCheckScheduler {
         }
         log.info("Stoping periodic healthcheck...");
         scheduledFuture.cancel(false);
+    }
+
+    Date addSecondsToCurrentDate(Date date, int seconds) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.SECOND, seconds);
+        return calendar.getTime();
     }
 }

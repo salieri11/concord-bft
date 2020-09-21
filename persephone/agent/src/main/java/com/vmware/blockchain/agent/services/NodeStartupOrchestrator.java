@@ -144,7 +144,6 @@ public class NodeStartupOrchestrator {
                 } catch (ConflictException e) {
                     log.warn("Did not launch the container again. Container already present", e);
                 }
-                Thread.sleep(60000);
                 log.info("Initializing health check components...");
                 nodeComponentHealthFactory.initHealthChecks(containerNetworkName);
                 log.info("Starting periodic healthchecks per minute...");
