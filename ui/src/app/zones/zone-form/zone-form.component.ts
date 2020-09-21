@@ -30,6 +30,7 @@ export class ZoneFormComponent implements AfterViewInit {
   onPremConnectionInProgress: boolean = false;
   onPremConnectionLastTested: string = '';
   otherValidationsFailed: boolean = false;
+  canDelete: boolean;
   settingZone: boolean = false;
   inputUpdateLocker = {};
   enableRealtimeValidation = true;
@@ -72,15 +73,16 @@ export class ZoneFormComponent implements AfterViewInit {
     private route: ActivatedRoute,
   ) {
     this.initForm();
+
+    this.route.params.subscribe(params => {
+      this.zoneId = params['zoneId'];
+      this.zonesService.canDelete(this.zoneId).subscribe(canDelete =>   this.canDelete = canDelete);
+    });
   }
 
   ngAfterViewInit() {
     // Dummy call
     if (this.handleOnPremTesting) { this.onPremConnectionInProgress = false; }
-
-    this.route.params.subscribe(params => {
-      this.zoneId = params['zoneId'];
-    });
 
     this.form.controls.onPremLocation.get('location')
       .valueChanges.pipe(

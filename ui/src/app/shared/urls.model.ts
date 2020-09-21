@@ -136,6 +136,7 @@ export const Apis = {
 
   // Zone Family
   get zones() { return `${this.blockchains}/zones`; },
+  get zonesDep() { return `${this.blockchains}/zones/dependencies`; },
   get zonesReload() { return `${this.zones}?action=reload`; },
   get zonesTestConnection() { return `${this.zones}?action=test`; },
 
