@@ -288,7 +288,7 @@ def test_pause_replica(request, fxSstSetup, fxHermesRunSettings, fxBlockchain, f
          send_async(hermesSettings, fxSstSetup, fxBlockchain.blockchainId, transactions_2, contractAddress, 3)
 
          assert fxProduct.product.resume_concord_replica(3), "Failed to resume replica"
-         assert sleep_and_check(90, 10, 200, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
+         assert sleep_and_check(120, 30, 360, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
 
          # check all blocks
          assert check_data(path, 0, transactions_1 + transactions_2 + fxSstSetup.existing_transactions), "Data check failed"
