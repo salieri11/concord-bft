@@ -632,7 +632,7 @@ def parseTargetsString(targetSegsStr):
     if segCategoryName == "*":
       zoneType = "*" if len(targetStrSplit) == 2 else targetStrSplit[2].upper()
       categoryKeys = list(sddcsMap[sddcName]["segments"].keys())
-      categoryKeys.remove("_key")
+      if "_key" in categoryKeys: categoryKeys.remove("_key")
     else:
       zoneType = targetStrSplit[2].upper()
       categoryKeys = [segCategoryName]
