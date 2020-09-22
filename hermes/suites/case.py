@@ -14,6 +14,9 @@ import base64
 import urllib.parse
 import os
 import re
+import requests
+import time
+import datetime
 from util import jenkins
 from inspect import getframeinfo, stack
 from enum import Enum
@@ -23,6 +26,7 @@ from util import hermes_logging, helper, wavefront, racetrack
 
 log = hermes_logging.getMainLogger()
 
+ELK_LOGSTASH_ENDPOINT = "http://10.78.20.23:5959"
 FAILURE_SUMMARY_FILENAME = "failure_summary"
 FAILURE_FOLDER = "otherFailures"
 SUITENAME_OVERRIDE = {
@@ -436,7 +440,10 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       "filtered_url": artifactFilteredLogPath,
       "test_folder_url": artifactTestFolderPath,
       "product_folder_url": artifactProductFolderPath,
-      "results_html_url": artifactTestFolderPath + '/results.html'
+      "results_html_url": artifactTestFolderPath + '/results.html',
+      "jobName": helper.getJenkinsJobNameAndBuildNumber()["jobName"],
+      "buildNumber": helper.getJenkinsJobNameAndBuildNumber()["buildNumber"],
+      "timestamp": time.time()
     }
 
     # There may be multiple failures per run or test suite
@@ -458,6 +465,8 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
         f.write(failureSummaryLog)
       with open(outputFileName + '.json', "w+") as f:
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
+      if helper.thisHermesIsFromJenkins():
+        reportSummaryToLogstash(failureSummaryJson)
 
   except Exception as e:
     helper.hermesNonCriticalTrace(e)
@@ -563,11 +572,16 @@ def extractAndSavePipelineFailurePoint(pipelineError):
         "line_number": lineNumber,
         "stack_trace": stackTrace,
         "stack_trace_original": stackTraceOriginal,
+        "jobName": helper.getJenkinsJobNameAndBuildNumber()["jobName"],
+        "buildNumber": helper.getJenkinsJobNameAndBuildNumber()["buildNumber"],
+        "timestamp": time.time()
       }
       with open(outputFileName + '.log', "w+") as f:
         f.write(failureSummaryLog)
       with open(outputFileName + '.json', "w+") as f:
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
+      if helper.thisHermesIsFromJenkins():
+        reportSummaryToLogstash(failureSummaryJson)
     
     # Other Pipeline Failures
     else:
@@ -608,11 +622,16 @@ def extractAndSavePipelineFailurePoint(pipelineError):
         "line_number": lineNumber,
         "stack_trace": stackTrace,
         "stack_trace_original": stackTraceOriginal,
+        "jobName": helper.getJenkinsJobNameAndBuildNumber()["jobName"],
+        "buildNumber": helper.getJenkinsJobNameAndBuildNumber()["buildNumber"],
+        "timestamp": time.time()
       }
       with open(outputFileName + '.log', "w+") as f:
         f.write(failureSummaryLog)
       with open(outputFileName + '.json', "w+") as f:
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
+      if helper.thisHermesIsFromJenkins():
+        reportSummaryToLogstash(failureSummaryJson)
 
   except Exception as e:
     helper.hermesNonCriticalTrace(e)
@@ -731,6 +750,25 @@ def cleanBashColors(line):
   bashColorRegExp = r'[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]'
   line = re.sub(bashColorRegExp, '', line) # remove bash colors
   return line
+
+
+def reportSummaryToLogstash(summaryJson, timeOverride=None):
+  '''
+    :param: `summaryJson` full summary json dict for failure
+    :param: `timeOverride` float UNIX timestamp for retroactive publish
+  '''
+  try:
+    if timeOverride: # retroactive publish to override timestamp
+      summaryJson['@timestamp'] = datetime.datetime.utcfromtimestamp(timeOverride)\
+                                    .isoformat(timespec='milliseconds')+'Z'
+    res = requests.post(
+      ELK_LOGSTASH_ENDPOINT,
+      headers={'Content-Type': 'application/json'},
+      data=json.dumps(summaryJson))
+    if res.content.decode('UTF-8') == 'ok':
+      return True
+  except Exception as e:
+    helper.hermesNonCriticalTrace(e)
 
 
 def filterErrorsInLogs(logFilePath, lookFor, ignoreFor=[], 
