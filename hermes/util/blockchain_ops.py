@@ -51,8 +51,8 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
   current_active_view_match = 'concord_concordbft_currentActiveView{source="concordbft",component="replica"} '
   cmd = ';'.join([
-    "curl 127.0.0.1:9891/metrics > tmp; grep -a -m 1 -h -r '{}'".format(current_primary_match),
-    "curl 127.0.0.1:9891/metrics > tmp; grep -a -m 1 -h -r '{}'".format(current_active_view_match),
+    "docker exec -t telegraf /bin/bash -c 'curl concord:9891/metrics' > tmp; grep -a -m 1 -h -r '{}'".format(current_primary_match),
+    "docker exec -t telegraf /bin/bash -c 'curl concord:9891/metrics' > tmp; grep -a -m 1 -h -r '{}'".format(current_active_view_match),
   ])
   results = helper.ssh_parallel(target_committers, cmd, verbose=verbose)
   primary_indexes = {}; last_added_index = None
