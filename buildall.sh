@@ -158,8 +158,12 @@ memleak_concord() {
 }
 
 ui() {
-    info "Build UI..."
-    docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
+    # info "Build UI..."
+    # docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
+    # ! temp pivot to pulling (See BC-4634)
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/ui "0.0.0.2217" # latest good UI image
+    waitForProcesses # docker_pull is async; below re-tagging cmd will not work if it's not awaited.
+    docker tag athena-docker-local.artifactory.eng.vmware.com/ui:0.0.0.2217 "${ui_repo}:${ui_tag}"
 }
 
 fluentd() {
