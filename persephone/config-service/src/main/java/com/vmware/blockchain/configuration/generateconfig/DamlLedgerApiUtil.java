@@ -54,7 +54,9 @@ public class DamlLedgerApiUtil {
         builder.append(System.lineSeparator());
 
         addProperties(builder, nodeInfo);
-        addBftClient(builder, nodeInfo.getProperties());
+        builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
+                       + BftClientConfigUtil.configPath + "\"");
+        builder.append(System.lineSeparator());
         addPreexecutionThreshold(builder, nodeInfo.getProperties());
 
         return builder.toString().trim();
@@ -66,16 +68,6 @@ public class DamlLedgerApiUtil {
             return "concord:50051";
         } else {
             return replicas;
-        }
-    }
-
-    private void addBftClient(StringBuilder builder, Properties properties) {
-        if (properties.getValuesMap()
-                .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
-                .equalsIgnoreCase("True")) {
-            builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
-                    + BftClientConfigUtil.configPath + "\"");
-            builder.append(System.lineSeparator());
         }
     }
 

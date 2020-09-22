@@ -15,7 +15,6 @@ public class Constants {
     public static final String DAML_SDK_INFO_OVERRIDE = "daml_sdk_info";
     public static final String ORG_TEMPLATE_ID_OVERRIDE = "org_template_id_override";
     public static final String ORG_MAX_CHAINS = "max_chains";
-    public static final String ORG_ENABLE_BFT_CLIENT = "enable-bft-client";
     public static final String ORG_GENERATE_PASSWORD = "secure-password";
     public static final String ORG_VM_CPU_OVERRIDE = "org_vm_cpu_override";
     public static final String ORG_VM_MEMORY_OVERRIDE = "org_vm_memory_override";
