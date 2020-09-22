@@ -116,6 +116,12 @@ def resetBlockchain(args, options, secret):
   fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
   ops.reset_blockchain(fxBlockchain)
 
+def showPrimary(args, options, secret):
+  a = prepareArgs(args)
+  replicas = helper.parseReplicasConfig(replicas=a[0])
+  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
+  ops.get_primary_rid(fxBlockchain)
+
 def moveVMs(args, options, secret):
   a = prepareArgs(args)
   blockchain_id = args[0]
@@ -328,6 +334,7 @@ DISPATCH = {
   "resetBlockchain" : resetBlockchain,
   "deregisterBlockchain": deregisterBlockchain,
   "getBlockchainNodes": getBlockchainNodes,
+  "showPrimary" : showPrimary,
 
   # Patch an org
   "patchOrg": patchOrg,
