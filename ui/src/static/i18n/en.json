@@ -1131,7 +1131,7 @@
     },
     "sizing": {
       "title": "Node Sizing",
-      "committerTitle": "Replica Sizing",
+      "replicaTitle": "Replica Sizing",
       "clientTitle": "Client Sizing",
       "back": "Back to templates",
       "custom": "Custom Sizing",
