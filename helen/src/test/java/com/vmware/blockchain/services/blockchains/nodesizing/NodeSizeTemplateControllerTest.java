@@ -95,7 +95,7 @@ class NodeSizeTemplateControllerTest {
 
     @Test
     void testGet() throws Exception {
-        MvcResult result =  mockMvc.perform(get("/api/blockchains/nodesizetemplate")
+        MvcResult result =  mockMvc.perform(get("/api/blockchains/node-size-template")
                                                     .with(authentication(adminAuth)))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
@@ -110,7 +110,7 @@ class NodeSizeTemplateControllerTest {
 
     @Test
     void testGetTemplateBadAction() throws Exception {
-        mockMvc.perform(get("/api/blockchains/nodesizetemplate").with(authentication(userAuth)))
+        mockMvc.perform(get("/api/blockchains/node-size-template").with(authentication(userAuth)))
                 .andExpect(status().isForbidden());
     }
 
