@@ -382,14 +382,6 @@ public class BlockchainController {
                 basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
             }
 
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_ENABLE_BFT_CLIENT)) {
-                basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(),
-                                          organization.getOrganizationProperties()
-                                                  .get(Constants.ORG_ENABLE_BFT_CLIENT));
-            } else {
-                basePropBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
-            }
-
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_ENABLED)) {
                 basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_ENABLED.name(),
                         organization.getOrganizationProperties()
@@ -412,8 +404,6 @@ public class BlockchainController {
                 basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(),
                         organization.getOrganizationProperties()
                                 .get(Constants.ORG_SPLIT_CONFIG));
-            } else {
-                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(), "True");
             }
         }
 

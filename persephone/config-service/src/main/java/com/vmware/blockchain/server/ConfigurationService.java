@@ -167,13 +167,13 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
 
-        boolean isSplitConfig = request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.toString(), "False")
-                .equalsIgnoreCase("True");
+        // TODO remove post 1.0
+        var isSplitConfigString = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.toString(), "True");
 
-        if (request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "False")
-                .equalsIgnoreCase("True") && request.getBlockchainType().equals(BlockchainType.DAML)) {
+        boolean isSplitConfig = !isSplitConfigString.equalsIgnoreCase("False");
+
+        if (request.getBlockchainType().equals(BlockchainType.DAML)) {
             isBftEnabled = true;
             try {
                 bftClientConfig.putAll(bftClientConfigUtil
