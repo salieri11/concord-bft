@@ -25,7 +25,6 @@ $topbar-height: 75px;
   height: calc(#{$topbar-height} + 4px);
   position: fixed;
   z-index: 100;
-  overflow: hidden;
   .card-footer {
     border-bottom: $soft-border-bottom;
     width: calc(100% - 240px);

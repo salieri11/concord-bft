@@ -8,7 +8,7 @@ import { map, catchError } from 'rxjs/operators';
 
 import { Observable } from 'rxjs';
 
-import { Zone, OnPremZone } from './zones.model';
+import { Zone, OnPremZone, ZoneDependencies } from './zones.model';
 import { Apis } from '../../shared/urls.model';
 
 @Injectable({
@@ -77,4 +77,13 @@ export class ZonesService {
     );
   }
 
+  dependencies(zone_id: string): Observable<ZoneDependencies> {
+    return this.http.get<ZoneDependencies>(`${Apis.zonesDep}/${zone_id}`);
+  }
+
+  canDelete(zone_id: string): Observable<boolean> {
+    return this.dependencies(zone_id).pipe(
+        map(res => res.replica_list.length === 0 && res.client_list.length === 0)
+    );
+  }
 }

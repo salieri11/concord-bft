@@ -76,6 +76,11 @@ export enum ZoneType {
   ON_PREM = 'ON_PREM'
 }
 
+export interface ZoneDependencies {
+  replica_list: string[];
+  client_list: string[];
+}
+
 export const mockZones: Zone[] = [{
   name: 'US West - Oregon',
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -102,3 +107,4 @@ export const mockZones: Zone[] = [{
   longitude: 0,
   type: ZoneType.VMC_AWS
 }];
+

@@ -1,5 +1,5 @@
 <div class="card-footer-container">
-  <div [ngClass]="{'card-footer':true, 'bg-dark':themeDark, 'bg-light':!themeDark}" 
+  <div [ngClass]="{'card-footer':true, 'bg-dark':themeDark, 'bg-light':!themeDark}"
     *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
     <div class="bar-title">
       {{ (isNewZoneState ? 'onPrem.pageTitle' : 'zones.titleDetail') | translate }} {{ zoneName }}
@@ -18,10 +18,21 @@
           {{ 'onPrem.updateZone' | translate }}
         </button>
         <div *ngIf="!isNewZoneState" class="delete-button-container">
-          <button (click)="openConfirmDelete()" [clrLoading]="deleting" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" 
+
+          <button (click)="openConfirmDelete()"
+                  [clrLoading]="deleting"
+                  *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]"
+                  [disabled]="!canDelete"
+
                     class="btn btn-outline-danger" id="deleteZone">
             {{ 'onPrem.deleteZone' | translate }}
           </button>
+          <clr-tooltip>
+            <clr-icon clrTooltipTrigger shape="info-circle" size="24" [attr.ariaLabel]="'zones.actions.cantDelete' | translate"></clr-icon>
+            <clr-tooltip-content clrPosition="left" clrSize="lg" *clrIfOpen>
+              <span>{{ 'zones.actions.cantDelete' | translate }}</span>
+            </clr-tooltip-content>
+          </clr-tooltip>
         </div>
       </div>
     </div>
