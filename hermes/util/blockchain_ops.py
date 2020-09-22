@@ -70,7 +70,7 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
       if current_primary not in primary_indexes: primary_indexes[current_primary] = []
       primary_indexes[current_primary].append(result["ip"])
       last_added_index = current_primary
-    if current_primary != current_active_view % len(all_committers):
+    if current_active_view and (current_primary != current_active_view % len(all_committers)):
       # Active view strictly iterates according to next rid
       # If active view % total replica count is not matching with current primary,
       # it's a sign that view change is happening.
