@@ -144,7 +144,7 @@ export const Apis = {
 
   // Node Size Template
   get nodeSizeTemplate() {
-    return `${this.blockchains}/nodesizetemplate`;
+    return `${this.blockchains}/node-size-template`;
   },
 
   /**

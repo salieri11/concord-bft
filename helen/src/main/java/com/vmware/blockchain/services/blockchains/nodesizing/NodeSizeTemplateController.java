@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
  * Rest controller for node sizing API.
  */
 @RestController
-@RequestMapping(path = "/api/blockchains/nodesizetemplate")
+@RequestMapping(path = "/api/blockchains/node-size-template")
 public class NodeSizeTemplateController {
 
     private final NodeSizeTemplateService nodeSizeTemplateService;
@@ -41,7 +41,7 @@ public class NodeSizeTemplateController {
     }
 
     /**
-     * Response object for nodesizetemplates request.
+     * Response object for node-size-template request.
      */
     @Data
     @NoArgsConstructor

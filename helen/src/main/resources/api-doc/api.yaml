@@ -1674,7 +1674,7 @@ paths:
                     description: Last login time
 
 
-  /blockchains/nodesizetemplate:
+  /blockchains/node-size-template:
     summary: API to get and set node sizing templates.
     get:
       tags:

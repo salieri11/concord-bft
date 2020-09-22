@@ -737,7 +737,7 @@ class Request():
       '''
       Get the node sizing template for the system.
       '''
-      self._subPath = "/api/blockchains/nodesizetemplate"
-      self._endpointName = "nodesizetemplate"
+      self._subPath = "/api/blockchains/node-size-template"
+      self._endpointName = "node-size-template"
 
       return self._send()
