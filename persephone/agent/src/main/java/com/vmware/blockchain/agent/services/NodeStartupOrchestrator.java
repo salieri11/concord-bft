@@ -42,6 +42,7 @@ import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
+import com.vmware.blockchain.deployment.v1.AgentAttributes;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -87,6 +88,8 @@ public class NodeStartupOrchestrator {
     private final Tag classTag = Tag.of(MetricsConstants.MetricsTags.TAG_SERVICE.metricsTagName,
             NodeStartupOrchestrator.class.getName());
 
+    private final boolean launchComponents;
+
     /**
      * Default constructor.
      */
@@ -103,6 +106,10 @@ public class NodeStartupOrchestrator {
         this.nodeComponentHealthFactory = nodeComponentHealthFactory;
         this.healthCheckScheduler = healthCheckScheduler;
         this.metricsAgent = metricsAgent;
+
+        this.launchComponents = configuration.getProperties().getValuesOrDefault(AgentAttributes.COMPONENT_NO_LAUNCH
+                                                                                         .name(), "False")
+                .equalsIgnoreCase("True");
     }
 
     /**
@@ -133,7 +140,7 @@ public class NodeStartupOrchestrator {
                 try {
                     containerConfigList.forEach(container ->  {
                         var containerResponse = createContainer(dockerClient, container);
-                        if (configuration.getNoLaunch()) {
+                        if (launchComponents) {
                             log.info("Not Launching {}: Id {} ",
                                     container.getContainerName(), containerResponse.getId());
                         } else {
