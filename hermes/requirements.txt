@@ -54,6 +54,7 @@ slackclient==2.5.0
 toolz==0.9.0
 toposort==1.5
 trio==0.13.0
+eliot==1.12.0
 typing-extensions==3.7.4.3
 urllib3==1.24.1
 wavefront-sdk-python==1.6.3
