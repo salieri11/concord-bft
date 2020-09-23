@@ -72,6 +72,9 @@ import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import com.vmware.blockchain.services.blockchains.clients.Client;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplate;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplateService;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplateUtil;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
@@ -637,6 +640,8 @@ public class BlockchainControllerTest {
     private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
     private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
     private static final String CLIENT_GROUP_NAME = "Test Group";
+    private static final UUID DEFAULT_TEMPLATE_ID = UUID.fromString("dab730c9-c82d-436a-8b71-38076f061093");
+    private static final String DEFAULT_TEMPLATE_NAME = "Default Template";
 
 
     @Autowired
@@ -673,6 +678,9 @@ public class BlockchainControllerTest {
 
     @MockBean
     OrganizationService organizationService;
+
+    @MockBean
+    NodeSizeTemplateService nodeSizeTemplateService;
 
     @Autowired
     TaskService taskService;
@@ -892,6 +900,10 @@ public class BlockchainControllerTest {
         vmcAwsZone.setRefreshToken("rt");
         vmcAwsZone.setOrganization("org");
         when(zoneService.get(SITE_2)).thenReturn(vmcAwsZone);
+
+        NodeSizeTemplate nst = NodeSizeTemplateUtil.createNodeSizeTemplate(DEFAULT_TEMPLATE_ID, DEFAULT_TEMPLATE_NAME);
+
+        when(nodeSizeTemplateService.getTemplate()).thenReturn(nst);
     }
 
     @Test
@@ -1239,7 +1251,7 @@ public class BlockchainControllerTest {
     }
 
     @Test
-    void clientNumberCheck() throws Exception {
+    void correctClientNumberCheck() throws Exception {
         ArgumentCaptor<DeploymentRequest> captor = ArgumentCaptor.forClass(DeploymentRequest.class);
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)

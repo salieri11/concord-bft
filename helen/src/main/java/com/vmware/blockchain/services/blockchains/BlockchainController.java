@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
@@ -72,6 +73,7 @@ import com.vmware.blockchain.deployment.v1.Sites;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
+import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplate;
 import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplateService;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
@@ -366,18 +368,6 @@ public class BlockchainController {
                                                   .get(Constants.ORG_TEMPLATE_ID_OVERRIDE));
             }
 
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_VM_CPU_OVERRIDE)) {
-                basePropBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_VM_CPU_OVERRIDE));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_VM_MEMORY_OVERRIDE)) {
-                basePropBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_VM_MEMORY_OVERRIDE));
-            }
-
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_GENERATE_PASSWORD)) {
                 basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
             }
@@ -407,6 +397,7 @@ public class BlockchainController {
             }
         }
 
+        //remove this after replicaZoneIds is deprecated
         zoneIds
                 .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                                                 .setType(NodeType.REPLICA)
@@ -414,6 +405,29 @@ public class BlockchainController {
                                                                 .setSite(
                                                                         OrchestrationSiteIdentifier.newBuilder()
                                                                                 .setId(k.toString()).build())));
+
+        if (body.getReplicaNodes() != null) {
+            body.getReplicaNodes()
+                    .forEach(k -> {
+                        Properties.Builder propBuilder = Properties.newBuilder();
+                        if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
+                            // Validate sizing info, if the input is invalid throw a BadRequestException.
+                            validateSizingInfo(k.getSizingInfo(), "Replica");
+                            // Add Sizing Info to Properties.
+                            addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
+                        }
+                        nodeAssignment.addEntries(NodeAssignment.Entry
+                                                  .newBuilder()
+                                                          .setType(NodeType.REPLICA)
+                                                          .setNodeId(UUID.randomUUID().toString())
+                                                          .setSite(
+                                                                  OrchestrationSiteIdentifier
+                                                                          .newBuilder()
+                                                                          .setId(k.getZoneId().toString())
+                                                                          .build())
+                                                          .setProperties(propBuilder));
+                    });
+        }
 
         if (body.getClientNodes() != null) {
             // A map to hold groupIndex to groupId (UUID) mapping.
@@ -439,6 +453,12 @@ public class BlockchainController {
                             }
                             propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId.toString());
                             propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+                        }
+                        if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
+                            // Validate sizing info, if the input is invalid throw a BadRequestException.
+                            validateSizingInfo(k.getSizingInfo(), "Client");
+                            // Add Sizing Info to Properties.
+                            addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
                         }
 
                         nodeAssignment.addEntries(NodeAssignment.Entry
@@ -468,6 +488,8 @@ public class BlockchainController {
                 //.putAllNodeProperties()
                 .setProperties(basePropBuilder)
                 .build();
+
+        logger.debug("deployment spec {}", deploymentSpec);
 
         var request = DeploymentRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder()
@@ -556,5 +578,73 @@ public class BlockchainController {
                                        .build())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Validate SizingInfo for all types of nodes.
+     * @param sizingInfo Sizing info object
+     * @param mode A string representing the node type.
+     * @return True in case of valid input, an exception otherwise.
+     * @throws BadRequestException when SizingInfo parameters are invalid.
+     */
+    private boolean validateSizingInfo(HashMap<NodeSizeTemplate.Parameter, String> sizingInfo, String mode)
+            throws BadRequestException {
+        String modeVal = mode != null ? mode + ": " : "";
+        if (sizingInfo == null || sizingInfo.isEmpty()) {
+            logger.error(modeVal + "Sizing Info is not available. Quit validation.");
+            throw new BadRequestException(modeVal + "Sizing Info is not available.");
+        }
+        NodeSizeTemplate nst = nodeSizeTemplateService.getTemplate();
+        NodeSizeTemplate.Range range = nst.getRange();
+        NodeSizeTemplate.RangeVal rangeValCpu = range.get(NodeSizeTemplate.Parameter.NO_OF_CPUS);
+        NodeSizeTemplate.RangeVal rangeValStorage = range.get(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS);
+        NodeSizeTemplate.RangeVal rangeValMemory = range.get(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS);
+        int cpuMax = rangeValCpu.get(NodeSizeTemplate.RangeProperty.MAX);
+        int cpuMin = rangeValCpu.get(NodeSizeTemplate.RangeProperty.MIN);
+        int storageMax = rangeValStorage.get(NodeSizeTemplate.RangeProperty.MAX);
+        int storageMin = rangeValStorage.get(NodeSizeTemplate.RangeProperty.MIN);
+        int memoryMax = rangeValMemory.get(NodeSizeTemplate.RangeProperty.MAX);
+        int memoryMin = rangeValMemory.get(NodeSizeTemplate.RangeProperty.MIN);
+
+        String cpuCount = sizingInfo.get(NodeSizeTemplate.Parameter.NO_OF_CPUS);
+        Integer cpuCountInt = Pattern.matches("\\d+", cpuCount) ? Integer.parseInt(cpuCount) : 0;
+        if (cpuCountInt < cpuMin || cpuCountInt > cpuMax) {
+            throw new BadRequestException(String.format(modeVal + "Expected value of cpu's is between"
+                                                        + " %s and %s", cpuMin, cpuMax));
+        }
+        String vmMemory = sizingInfo.get(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS);
+        Integer vmMemoryInt = Pattern.matches("\\d+", vmMemory) ? Integer.parseInt(vmMemory) : 0;
+        if (vmMemoryInt < memoryMin || vmMemoryInt > memoryMax) {
+            throw new BadRequestException(String.format(modeVal + "Expected value of memory in Gigs is "
+                                                        + "between %s and %s", memoryMin, memoryMax));
+        }
+        String vmStorage = sizingInfo.get(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS);
+        Integer vmStorageInt = Pattern.matches("\\d+", vmStorage) ? Integer.parseInt(vmStorage) : 0;
+        if (vmStorageInt < storageMin || vmStorageInt > storageMax) {
+            throw new BadRequestException(String.format(modeVal + "Expected value of storage in Gigs is"
+                                                        + " between %s and %s", storageMin, storageMax));
+        }
+        return true;
+    }
+
+    /**
+     * Add node sizing parameters to Deployment properties, if available.
+     * @param sizingInfo Sizing info parameters
+     * @param propBuilder Properties
+     */
+    private void addSizingInfoToProperties(HashMap<NodeSizeTemplate.Parameter, String> sizingInfo,
+                                           Properties.Builder propBuilder) {
+        if (sizingInfo == null || propBuilder == null) {
+            logger.error("Either SizingInfo or Properties is null. Quit.");
+            return;
+        }
+        String cpuCount = sizingInfo.get(NodeSizeTemplate.Parameter.NO_OF_CPUS);
+        propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), cpuCount);
+
+        String vmMemory = sizingInfo.get(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS);
+        propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), vmMemory);
+
+        String vmStorage = sizingInfo.get(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS);
+        propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), vmStorage);
     }
 }
