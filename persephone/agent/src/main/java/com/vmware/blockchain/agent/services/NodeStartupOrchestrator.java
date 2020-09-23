@@ -36,6 +36,7 @@ import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
 import com.vmware.blockchain.agent.services.configuration.HlfConfig;
 import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
+import com.vmware.blockchain.agent.services.configuration.VolumeBindHelper;
 import com.vmware.blockchain.agent.services.exceptions.AgentException;
 import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
@@ -51,7 +52,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-
 import lombok.Getter;
 
 /**
@@ -130,6 +130,7 @@ public class NodeStartupOrchestrator {
                 // Pull and order images
                 List<BaseContainerSpec> containerConfigList = pullImages();
                 containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
+                transform(containerConfigList);
                 components = containerConfigList;
 
                 agentDockerClient.createNetwork(containerNetworkName);
@@ -162,6 +163,23 @@ public class NodeStartupOrchestrator {
                                          "Failure during launch sequence " + e.getMessage(), e);
             }
         });
+    }
+
+    // Hack to support secondary mounting.
+    private void transform(List<BaseContainerSpec> input) {
+        if (configuration.getProperties().getValuesOrDefault(AgentAttributes.NEW_DATA_DISK.name(), "False")
+                .equalsIgnoreCase("True")) {
+            for (var each : input) {
+                // Concord hack
+                if (each.getContainerName().equalsIgnoreCase("concord")) {
+                    each.setVolumeBindings(VolumeBindHelper.getConcordVolBindsDataDisk());
+                }
+                // Indexdb hack
+                if (each.getContainerName().equalsIgnoreCase("daml_index_db")) {
+                    each.setVolumeBindings(VolumeBindHelper.getIndexdbVolBindsDataDisk());
+                }
+            }
+        }
     }
 
     /**

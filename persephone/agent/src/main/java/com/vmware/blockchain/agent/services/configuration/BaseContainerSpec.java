@@ -29,6 +29,9 @@ public interface BaseContainerSpec {
 
     List<Bind> getVolumeBindings();
 
+    @Deprecated
+    void setVolumeBindings(List<Bind> input);
+
     List<Link> getLinks();
 
     @Deprecated

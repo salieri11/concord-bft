@@ -191,13 +191,17 @@ public class CloudInitConfiguration {
         if (noLaunch) {
             propBuilder.putValues(AgentAttributes.COMPONENT_NO_LAUNCH.name(), "True");
         }
+        if (newDisk) {
+            propBuilder.putValues(AgentAttributes.NEW_DATA_DISK.name(), "True");
+        }
         var builder = ConcordAgentConfiguration.newBuilder()
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
                 .setModel(model)
                 .setConfigService(configServiceRestEndpoint)
                 .setConfigurationSession(configGenId)
-                .setOutboundProxyInfo(outboundProxy);
+                .setOutboundProxyInfo(outboundProxy)
+                .setProperties(propBuilder);
 
         if (!Strings.isNullOrEmpty(nodeIdString)) {
             builder.setNodeId(nodeIdString);

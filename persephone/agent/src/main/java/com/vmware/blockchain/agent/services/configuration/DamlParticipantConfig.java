@@ -23,7 +23,7 @@ import lombok.Setter;
 public enum DamlParticipantConfig implements BaseContainerSpec {
 
     DAML_INDEX_DB("daml_index_db", null,
-                  List.of(Bind.parse("/config/daml-index-db/db:/var/lib/postgresql/data")),
+                  VolumeBindHelper.getIndexdbVolBinds(),
                   null),
 
     DAML_LEDGER_API("daml_ledger_api", List.of(
@@ -36,6 +36,8 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
 
     private String containerName;
     private List<PortBinding> portBindings;
+
+    @Setter
     private List<Bind> volumeBindings;
     private List<Link> links;
     private int ordinal;
