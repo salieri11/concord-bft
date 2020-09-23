@@ -11,18 +11,21 @@
     <clr-dg-row *clrDgItems="let item of items">
       <clr-dg-cell *ngFor="let prop of listConfig?.displayProperties; let i = index;">
         <div *ngIf="i === 0 && listConfig.itemLink; else textProp">
-          <a [routerLink]="listConfig.itemLink(item)" [innerHTML]="getItemProp(item, prop)"></a>
+          <a [routerLink]="listConfig.itemLink(item)">{{item[prop]}}</a>
         </div>
         <ng-template #textProp>
-          <div class="dash-item" [innerHTML]="getItemProp(item, prop)"></div>
-          <concord-copy-to-clipboard-button
-            *ngIf="item[prop] && ['public_ip', 'private_ip', 'url'].indexOf(prop) !== -1"
-            classList="ctc-btn-inline dash-list"
-            [tooltip]="'common.copyToClip' | translate"
-            tooltipDirection="top-right"
-            [value]="item[prop]"
-            [size]="12">
-          </concord-copy-to-clipboard-button>
+          <div [ngSwitch]="prop">
+            <span *ngSwitchCase="'status'">
+              <div class="label-container"><span class="label {{ item.healthy ? 'label-success' : 'label-danger' }}">{{item[prop]}}</span></div>
+            </span>
+            <span *ngSwitchDefault>
+              <div class="dash-item">{{item[prop]}}</div>
+              <concord-copy-to-clipboard-button *ngIf="item[prop] && ['public_ip', 'private_ip', 'url'].indexOf(prop) !== -1"
+                classList="ctc-btn-inline dash-list" [tooltip]="'common.copyToClip' | translate" tooltipDirection="top-right"
+                [value]="item[prop]" [size]="12">
+              </concord-copy-to-clipboard-button>
+            </span>
+          </div>
         </ng-template>
       </clr-dg-cell>
     </clr-dg-row>

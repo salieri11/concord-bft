@@ -265,19 +265,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.nodesService.committersWithOnlyPublicIP) {
       this.commitersConfig = { // Only public_ips (cloud)
         headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
-        displayProperties: ['name', 'public_ip', 'healthHTML'],
+        displayProperties: ['name', 'public_ip', 'status'],
         tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
       };
     } else if (this.nodesService.committersWithOnlyPrivateIP) {
       this.commitersConfig = { // Only private_ips (on-prem)
         headers: ['nodes.hostname', 'nodes.addressPrivate', 'nodes.health'],
-        displayProperties: ['name', 'private_ip', 'healthHTML'],
+        displayProperties: ['name', 'private_ip', 'status'],
         tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
       };
     } else {
       this.commitersConfig =  { // Has both private & public IP (hybrid)
         headers: ['nodes.hostname', 'nodes.address', 'nodes.addressPrivate', 'nodes.health'],
-        displayProperties: ['name', 'public_ip', 'private_ip', 'healthHTML'],
+        displayProperties: ['name', 'public_ip', 'private_ip', 'status'],
         tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
       };
     }
