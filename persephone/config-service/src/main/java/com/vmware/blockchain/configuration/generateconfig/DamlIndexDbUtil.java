@@ -22,13 +22,6 @@ public class DamlIndexDbUtil {
     private static final Logger log = LoggerFactory.getLogger(DamlIndexDbUtil.class);
 
     /**
-     * file path.
-     */
-    public static final String envVarPath = "/daml-index-db/environment-vars";
-
-    public static final String postGresConfig = "/daml-index-db/postgresql.conf";
-
-    /**
      * Utility to daml ledger api config.
      * @return json string
      */
@@ -48,7 +41,8 @@ public class DamlIndexDbUtil {
         builder.append(System.lineSeparator());
         builder.append("export BUFFER_SIZE=4096MB");
         builder.append(System.lineSeparator());
-        builder.append("export POSTGRES_CONFIG_FILE_OPT=\"-c config_file=/config" + postGresConfig + "\"");
+        builder.append("export POSTGRES_CONFIG_FILE_OPT=\"-c config_file=/config"
+                       + Constants.DAML_DB_POSTGRES_CONFIG_PATH + "\"");
         return builder.toString();
     }
 

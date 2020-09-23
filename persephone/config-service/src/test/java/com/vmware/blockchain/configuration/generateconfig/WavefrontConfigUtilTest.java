@@ -287,6 +287,6 @@ public class WavefrontConfigUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(WavefrontConfigUtil.configPath.equals("/wavefront-proxy/wavefront.conf")).isTrue();
+        Assertions.assertThat(Constants.WAVEFRONT_CONFIG_PATH.equals("/wavefront-proxy/wavefront.conf")).isTrue();
     }
 }

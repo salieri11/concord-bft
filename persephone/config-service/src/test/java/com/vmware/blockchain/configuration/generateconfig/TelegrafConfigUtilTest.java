@@ -159,6 +159,6 @@ public class TelegrafConfigUtilTest {
 
     @Test
     public void testPaths() {
-        Assertions.assertThat(TelegrafConfigUtil.configPath.equals("/telegraf/telegraf.conf")).isTrue();
+        Assertions.assertThat(Constants.TELEGRAF_CONFIG_PATH.equals("/telegraf/telegraf.conf")).isTrue();
     }
 }

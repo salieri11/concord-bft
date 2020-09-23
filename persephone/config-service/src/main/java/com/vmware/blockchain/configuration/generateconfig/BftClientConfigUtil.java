@@ -45,11 +45,6 @@ public class BftClientConfigUtil {
     }
 
     /**
-     * file path.
-     */
-    public static final String configPath = "/daml-ledger-api/config-public/bftclient.config";
-
-    /**
      * persistence.
      */
     public final Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();

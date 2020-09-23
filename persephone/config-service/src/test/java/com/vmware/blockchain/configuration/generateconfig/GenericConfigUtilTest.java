@@ -132,6 +132,6 @@ public class GenericConfigUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(GenericConfigUtil.configPath.equals("/generic/identifiers.env")).isTrue();
+        Assertions.assertThat(Constants.GENERIC_IDENTIFIERS_PATH.equals("/generic/identifiers.env")).isTrue();
     }
 }

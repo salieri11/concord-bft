@@ -36,11 +36,6 @@ public class TelegrafConfigUtil {
     }
 
     /**
-     * telegraf config path.
-     */
-    public static final String configPath = "/telegraf/telegraf.conf";
-
-    /**
      * Generate telegraf configurations.
      * @param consortiumId id
      * @param blockchainId id

@@ -25,6 +25,7 @@ vmware-toolbox-cmd timesync enable
 # Output the node's model specification.
 mkdir -p /config/agent
 echo '{{agentConfig}}' > /config/agent/config.json
+chmod 600 /config/agent/config.json
 
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf

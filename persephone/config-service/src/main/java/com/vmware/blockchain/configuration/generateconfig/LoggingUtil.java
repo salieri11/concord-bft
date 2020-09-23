@@ -35,11 +35,6 @@ public class LoggingUtil {
 
     private String loggingEnvTemplatePath;
 
-    /**
-     * file path.
-     */
-    public static final String envVarPath = "/fluentd/logging.env";
-
     public LoggingUtil(String loggingEnvTemplatePath) {
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
     }

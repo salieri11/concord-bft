@@ -45,21 +45,6 @@ public class ConcordConfigUtil {
     }
 
     /**
-     * file path.
-     */
-    public static final String configPath = "/concord/config-local/concord.config";
-
-    /**
-     * deploy file path.
-     */
-    public static final String deployConfigPath = "/concord/config-local/deployment.config";
-
-    /**
-     * secrets file path.
-     */
-    public static final String secretsConfigPath = "/concord/config-local/secrets.config";
-
-    /**
      * persistence.
      */
     public final Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
