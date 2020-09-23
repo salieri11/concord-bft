@@ -23,11 +23,6 @@ public class GenericConfigUtil {
     private static final Logger log = LoggerFactory.getLogger(GenericConfigUtil.class);
 
     /**
-     * generic config path.
-     */
-    public static String configPath = "/generic/identifiers.env";
-
-    /**
      * Generates the generic config file with node ids.
      *
      * @param nodeProperties Map of node properties.

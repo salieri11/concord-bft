@@ -10,11 +10,6 @@ package com.vmware.blockchain.configuration.generateconfig;
 public class DamlExecutionEngineUtil {
 
     /**
-     * file path.
-     */
-    public static final String envVarPath = "/daml-execution-engine/environment-vars";
-
-    /**
      * Utility to daml execution engine config.
      *
      * @return json string

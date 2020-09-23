@@ -30,7 +30,8 @@ public class DamlExecutionEngineUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(DamlExecutionEngineUtil.envVarPath.equals("/daml-execution-engine/environment-vars"))
+        Assertions.assertThat(Constants.DAML_ENV_VARS_PATH
+                                      .equals("/daml-execution-engine/environment-vars"))
                 .isTrue();
     }
 }

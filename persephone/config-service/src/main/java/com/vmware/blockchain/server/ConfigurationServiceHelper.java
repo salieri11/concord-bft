@@ -16,14 +16,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
-import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
-import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
+import com.vmware.blockchain.configuration.generateconfig.Constants;
 import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
-import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.WavefrontConfigUtil;
@@ -106,7 +104,7 @@ public class ConfigurationServiceHelper {
     ConfigurationComponent createGenesisComponent(@NotNull String genesis) {
         return ConfigurationComponent.newBuilder()
                 .setType(ServiceType.CONCORD)
-                .setComponentUrl(GenesisUtil.genesisPath)
+                .setComponentUrl(Constants.GENESIS_CONFIG_PATH)
                 .setComponent(genesis)
                 .setIdentityFactors(IdentityFactors.newBuilder().build())
                 .build();
@@ -123,7 +121,7 @@ public class ConfigurationServiceHelper {
                     DamlExecutionEngineUtil executionEngineUtil = new DamlExecutionEngineUtil();
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                             .setType(serviceType)
-                            .setComponentUrl(DamlExecutionEngineUtil.envVarPath)
+                            .setComponentUrl(Constants.DAML_ENV_VARS_PATH)
                             .setComponent(executionEngineUtil.generateConfig())
                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                             .build());
@@ -143,14 +141,14 @@ public class ConfigurationServiceHelper {
                     DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(serviceType)
-                                                          .setComponentUrl(DamlIndexDbUtil.envVarPath)
+                                                          .setComponentUrl(Constants.DAML_DB_ENV_VARS_PATH)
                                                           .setComponent(
                                                                   damlIndexDbUtil.generateConfig(nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(serviceType)
-                                                          .setComponentUrl(DamlIndexDbUtil.postGresConfig)
+                                                          .setComponentUrl(Constants.DAML_DB_POSTGRES_CONFIG_PATH)
                                                           .setComponent(
                                                                   damlIndexDbUtil.getPostGresConfig())
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
@@ -172,7 +170,7 @@ public class ConfigurationServiceHelper {
                                                                               serviceTypes);
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(ServiceType.TELEGRAF)
-                                                          .setComponentUrl(TelegrafConfigUtil.configPath)
+                                                          .setComponentUrl(Constants.TELEGRAF_CONFIG_PATH)
                                                           .setComponent(telegrafConfig)
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
@@ -182,21 +180,25 @@ public class ConfigurationServiceHelper {
                     LoggingUtil loggingUtil = new LoggingUtil(loggingEnvTemplatePath);
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(ServiceType.LOGGING)
-                                                          .setComponentUrl(LoggingUtil.envVarPath)
+                                                          .setComponentUrl(Constants.LOGGING_CONFIG_PATH)
                                                           .setComponent(loggingUtil.generateConfig(
                                                                   consortiumId, blockchainId, nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                          .setFilePermissions(
+                                                                  Constants.LOGGING_CONFIG_FILE_PERMISSIONS)
                                                           .build());
                     break;
                 case WAVEFRONT_PROXY:
                     var wavefrontConfigUtil = new WavefrontConfigUtil(wavefrontConfigPath);
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(ServiceType.WAVEFRONT_PROXY)
-                                                          .setComponentUrl(WavefrontConfigUtil.configPath)
+                                                          .setComponentUrl(Constants.WAVEFRONT_CONFIG_PATH)
                                                           .setComponent(
                                                                   wavefrontConfigUtil.getWavefrontConfig(blockchainId,
                                                                                                          nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                          .setFilePermissions(
+                                                                  Constants.WAVEFRONT_CONFIG_FILE_PERMISSIONS)
                                                           .build());
                     break;
                 default:
@@ -206,7 +208,7 @@ public class ConfigurationServiceHelper {
         nodeIsolatedConfiguration.add(
                 ConfigurationComponent.newBuilder()
                         .setType(ServiceType.GENERIC)
-                        .setComponentUrl(GenericConfigUtil.configPath)
+                        .setComponentUrl(Constants.GENERIC_IDENTIFIERS_PATH)
                         .setComponent(new GenericConfigUtil().getGenericConfig(consortiumId, blockchainId, nodeInfo))
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
@@ -230,7 +232,7 @@ public class ConfigurationServiceHelper {
                 if (key.equalsIgnoreCase(ConfigUtilHelpers.DEPLOY)) {
                     output.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.CONCORD)
-                            .setComponentUrl(ConcordConfigUtil.deployConfigPath)
+                            .setComponentUrl(Constants.CONCORD_DEPLOY_CONFIG_PATH)
                             .setComponent(value)
                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                             .build());
@@ -238,7 +240,7 @@ public class ConfigurationServiceHelper {
                 if (key.equalsIgnoreCase(ConfigUtilHelpers.SECRET)) {
                     output.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.CONCORD)
-                            .setComponentUrl(ConcordConfigUtil.secretsConfigPath)
+                            .setComponentUrl(Constants.CONCORD_SECRETS_CONFIG_PATH)
                             .setComponent(value)
                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                             .build());
@@ -246,9 +248,10 @@ public class ConfigurationServiceHelper {
                 if (key.equalsIgnoreCase(ConfigUtilHelpers.CONCORD)) {
                     output.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.CONCORD)
-                            .setComponentUrl(ConcordConfigUtil.configPath)
+                            .setComponentUrl(Constants.CONCORD_CONFIG_PATH)
                             .setComponent(value)
                             .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .setFilePermissions(Constants.CONCORD_CONFIG_FILE_PERMISSIONS)
                             .build());
                 }
             });
@@ -279,7 +282,7 @@ public class ConfigurationServiceHelper {
         if (bftClientConfig.containsKey(nodeId)) {
             output.add(ConfigurationComponent.newBuilder()
                     .setType(ServiceType.DAML_LEDGER_API)
-                    .setComponentUrl(BftClientConfigUtil.configPath)
+                    .setComponentUrl(Constants.DAML_BFT_CLIENT_CONFIG_PATH)
                     .setComponent(bftClientConfig.get(nodeId))
                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                     .build());

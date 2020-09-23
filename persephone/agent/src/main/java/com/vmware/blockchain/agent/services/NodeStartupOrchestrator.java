@@ -9,11 +9,15 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -199,6 +203,12 @@ public class NodeStartupOrchestrator {
 
             try {
                 Files.createDirectories(filepath.getParent());
+                //change access permissions for some of the files
+                if (!artifact.getFilePermissions().isEmpty()) {
+                    Set<PosixFilePermission> ownerRw = PosixFilePermissions.fromString(artifact.getFilePermissions());
+                    FileAttribute<?> permissions = PosixFilePermissions.asFileAttribute(ownerRw);
+                    filepath = Files.createFile(filepath, permissions);
+                }
 
                 // Use synchronous IO (can be changed if this becomes a performance bottleneck).
                 var outputStream = new FileOutputStream(filepath.toFile(), false);

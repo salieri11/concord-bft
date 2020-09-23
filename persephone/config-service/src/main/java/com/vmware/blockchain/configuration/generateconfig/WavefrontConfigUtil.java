@@ -36,11 +36,6 @@ public class WavefrontConfigUtil {
 
     private String wavefrontTemplatePath;
 
-    /**
-     * wavefront config path.
-     */
-    public static final String configPath = "/wavefront-proxy/wavefront.conf";
-
     public WavefrontConfigUtil(String wavefrontTemplatePath) {
         this.wavefrontTemplatePath = wavefrontTemplatePath;
     }

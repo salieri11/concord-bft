@@ -33,6 +33,6 @@ public class DamlIndexDbUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(DamlIndexDbUtil.envVarPath.equals("/daml-index-db/environment-vars")).isTrue();
+        Assertions.assertThat(Constants.DAML_DB_ENV_VARS_PATH.equals("/daml-index-db/environment-vars")).isTrue();
     }
 }

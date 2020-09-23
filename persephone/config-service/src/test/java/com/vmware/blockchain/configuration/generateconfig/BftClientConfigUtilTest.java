@@ -58,7 +58,8 @@ public class BftClientConfigUtilTest {
 
     @Test
     void testPath() {
-        Assertions.assertThat(BftClientConfigUtil.configPath.equals("/daml-ledger-api/config-public/bftclient.config"))
+        Assertions.assertThat(Constants.DAML_BFT_CLIENT_CONFIG_PATH
+                                      .equals("/daml-ledger-api/config-public/bftclient.config"))
                 .isTrue();
     }
 }

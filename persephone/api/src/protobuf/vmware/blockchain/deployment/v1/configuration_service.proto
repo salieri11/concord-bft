@@ -36,6 +36,7 @@ message ConfigurationComponent {
     string component_url = 2;
     string component = 3;
     IdentityFactors identity_factors = 4;
+    string file_permissions = 5;
 }
 
 /**

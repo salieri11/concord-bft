@@ -26,6 +26,7 @@ vmware-toolbox-cmd timesync enable
 mkdir -p /config/agent
 echo '{
 }' > /config/agent/config.json
+chmod 600 /config/agent/config.json
 
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf
