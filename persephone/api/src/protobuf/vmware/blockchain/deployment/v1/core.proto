@@ -188,6 +188,9 @@ message NodeProperty {
         ELASTICSEARCH_PWD = 18;
         VM_IP = 19;
         CLIENT_GROUP_NAME = 20;
+        TLS_PEM = 21;
+        TLS_CRT = 22;
+        TLS_CACRT = 23;
     }
 
     Name name = 1;
