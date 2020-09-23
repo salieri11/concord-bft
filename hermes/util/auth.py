@@ -297,9 +297,8 @@ tokens = {
       "vmbc_test_org_admin": {
          ROLE_ORG_ADMIN: {
             # Name in console-stg: hermes-test-org-token
-            # Last updated: Mar. 26, 2020.
-            # Expires Sep 22, 2020.
-               "api_key": "6nwaP6VuLdezUKX0l0iCufO9GdDmCg50ifrMCzE1F6ovpogjZGY61KjYdjBV7UXo",
+            # Never expires.
+            "api_key": "TCkMl5Eby6IUQcazQgZydk0fxK9QRxyWZ3rPCcBgeES7PXD8bq4RZ8SoIcCn2pC8",
             "access_token": None,
             "last_retrieved": 0
          }
