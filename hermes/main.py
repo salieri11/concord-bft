@@ -12,15 +12,12 @@ from time import strftime, localtime, sleep
 
 import event_recorder
 from suites import (
-  contract_compiler_tests,
   eth_core_vm_tests,
   eth_regression_tests,
   performance_tests,
   persistency_tests,
   pytest_suite,
-  sample_dapp_tests,
-  ui_tests,
-  websocket_rpc_tests
+  sample_dapp_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
 from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings
@@ -31,21 +28,6 @@ sys.path.append("lib/persephone")
 
 log = None
 # Add new test suite in suiteList.
-# If new test suite is a pytest suite, add it in pyTestSuiteList also
-
-pyTestSuiteList = ["ChessPlusTests", "ClientGroupTests", "EthCoreVmTests", "DamlTests", "ClientPoolDamlTests",
-              "HelenAPITests", "HelenBlockTests", "HelenBlockchainTests", "HelenClientTests",
-              "HelenConsortiumTests", "HelenContractTests", "HelenMemberTests",
-              "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
-              "HelenRoleTests", "NodeInterruptionTests", "LoggingTests", "PersephoneTestsNew",
-              "SampleSuite", "ThinReplicaServerTests","TimeTests", "EvilTimeTests", 
-              "PrivacyTeeTests", "ApolloBftTests", "SkvbcPreexecutionTests",
-              "SkvbcLinearizabilityTests", "SkvbcLinearizabilityWithCrashesTests",
-              "SkvbcStateTransferTests", "DamlPreexecutionTests", "SimpleStateTransferTest", 
-              "ContractCompilerTests", "CastorDeploymentTests", "PerformanceTests", "EthRegressionTests",
-              "MetadataPersistencyTests", "UiTests", "SampleDAppTests", "HelenNodeSizeTemplateTests",
-	      "EthJsonRpcTests", "DeployDamlTests"
-             ]
 
 suiteList = {
    "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
@@ -386,7 +368,7 @@ def main():
          args.resultsDir = createResultsDir(suiteName,
                                             parent_results_dir=parent_results_dir)
          log.info("Results directory: {}".format(args.resultsDir))
-         suite = createTestSuite(args, pyTestSuiteList, suiteList,  suiteName, product)
+         suite = pytest_suite.PytestSuite(args, suiteList[suiteName], product)
          if suite is None:
             try: raise Exception("Unknown test suite")
             except Exception as e: log.error(e); addExceptionToSummary(e)
@@ -493,14 +475,6 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
                                  'test_status.{0}'.format(result))
       log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
       open(result_file, 'a').close()
-
-
-def createTestSuite(args, pyTestSuiteList, suiteList, suiteName, product):
-     # Reaching this far implies we have known test suite at hand
-     if suiteName in pyTestSuiteList:
-        return pytest_suite.PytestSuite(args, suiteList[suiteName], product)
-     else:
-        return suiteList.get(suiteName)(args, product)
 
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
