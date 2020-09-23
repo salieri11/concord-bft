@@ -441,6 +441,7 @@ public class BlockchainController {
                             propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
                                                   k.getAuthUrlJwt());
                         }
+
                         if (!Strings.isNullOrEmpty(k.getGroupName())) {
                             // Did we see this groupName earlier?
                             // If yes, then get the Id from the map.
@@ -461,6 +462,32 @@ public class BlockchainController {
                             validateSizingInfo(k.getSizingInfo(), "Client");
                             // Add Sizing Info to Properties.
                             addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
+                        }
+
+                        // All credentials have to be provided to enable TLS
+                        boolean tlsEnabled = !Strings.isNullOrEmpty(k.getPem())
+                                && !Strings.isNullOrEmpty(k.getCrt())
+                                && !Strings.isNullOrEmpty(k.getCacrt());
+
+
+                        if (tlsEnabled) {
+                            // Propagate TLS details if and only if all details are provided
+                            String pem = k.getPem();
+                            String crt = k.getCrt();
+                            String cacrt = k.getCacrt();
+                            propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), pem);
+                            propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), crt);
+                            propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), cacrt);
+                        } else {
+                            // If some credentials are present while others are absent, throw BAD REQUEST exception.
+                            boolean incompleteDetails = !Strings.isNullOrEmpty(k.getPem())
+                                    || !Strings.isNullOrEmpty(k.getCrt())
+                                    || !Strings.isNullOrEmpty(k.getCacrt());
+
+                            if (incompleteDetails) {
+                                throw new BadRequestException(ErrorCodeType.BAD_REQUEST,
+                                        "Missing TLS credentials. Please provide all credentials");
+                            }
                         }
 
                         nodeAssignment.addEntries(NodeAssignment.Entry
