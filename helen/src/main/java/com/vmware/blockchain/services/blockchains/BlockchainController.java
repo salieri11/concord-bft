@@ -415,7 +415,9 @@ public class BlockchainController {
                             validateSizingInfo(k.getSizingInfo(), "Replica");
                             // Add Sizing Info to Properties.
                             addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
+
                         }
+
                         nodeAssignment.addEntries(NodeAssignment.Entry
                                                   .newBuilder()
                                                           .setType(NodeType.REPLICA)
