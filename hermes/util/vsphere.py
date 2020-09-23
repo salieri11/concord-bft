@@ -781,8 +781,20 @@ class ConnectionToSDDC:
     log.info("{} Trying to delete VMs in network segment '{}'".format(
               self.sddcName, networkName))
     def destroySingleVMInTheNetwork(vmHandle):
-      cond = lambda vmHandle: vmHandle["entity"].network and \
-                              vmHandle["entity"].network[0].name == networkName
+      if "networkName" not in vmHandle:
+        tryCount = 0; maxTries = 3
+        while tryCount < maxTries:
+          try:
+            networkList = vmHandle["entity"].network
+            if len(networkList) == 0:
+              log.info("networkName not found for {}".format(vmHandle["name"]))
+              return
+            vmHandle["networkName"] = networkList[0].name
+            break
+          except Exception as e:
+            log.debug("networkName fetch failed for {}, retrying...".format(vmHandle["name"]))
+            tryCount += 1
+      cond = lambda vmHandle: vmHandle["networkName"] == networkName
       self.destroySingleVMByHandle(vmHandle, cond, info, dryRun)
     threads = []
     for vmName in self.allEntityHandlesByName:
