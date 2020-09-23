@@ -1,6 +1,6 @@
 {
   "test_suites": ["HelenAPITests","HelenBlockTests", "HelenBlockchainTests", "HelenClientTests", "HelenConsortiumTests",
-    "HelenContractTests", "HelenMemberTests", "HelenReplicaTests", "HelenZoneTests",
+    "HelenContractTests", "HelenMemberTests", "HelenOrganizationTests", "HelenReplicaTests", "HelenZoneTests",
     "HelenRoleTests","HelenDeployEthereumToSDDC","HelenDeployDAMLToSDDC", "HelenDeployToSDDCTemplate",
     "UiTests","UiDAMLDeploy", "HelenNodeSizeTemplateTests"],
   "build_targets": ["helen"]
