@@ -173,9 +173,9 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         // Build committer and client nodes
         NodeAssignment.Builder nodeAssignmentBuilder = NodeAssignment.newBuilder();
         // Build Committers
-        buildCommitters(deploymentDescriptorModel, nodeAssignmentBuilder);
+        buildCommitters(infrastructureDescriptorModel, deploymentDescriptorModel, nodeAssignmentBuilder);
         // Build Clients
-        buildClients(deploymentDescriptorModel, nodeAssignmentBuilder);
+        buildClients(infrastructureDescriptorModel, deploymentDescriptorModel, nodeAssignmentBuilder);
 
         // Build sites
         List<OrchestrationSite> orchestrationSites =
@@ -227,6 +227,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     }
 
     private void buildClients(
+            InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
             NodeAssignment.Builder nodeAssignmentBuilder) {
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
@@ -238,6 +239,12 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             if (StringUtils.hasText(client.getProvidedIp())) {
                 propBuilder.putValues(NodeProperty.Name.VM_IP.name(), client.getProvidedIp());
             }
+            int clientDiskSize = infrastructureDescriptorModel.getOrganization().getClientDiskGb();
+            if (clientDiskSize > 0) {
+                String clientDiskSizeString = String.valueOf(clientDiskSize);
+                propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+            }
+
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder().setType(NodeType.CLIENT)
                             .setNodeId(UUID.randomUUID().toString())
@@ -249,6 +256,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     }
 
     private void buildCommitters(
+            InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel,
             NodeAssignment.Builder nodeAssignmentBuilder) {
         List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptorModel.getCommitters();
@@ -257,6 +265,12 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             if (StringUtils.hasText(committer.getProvidedIp())) {
                 propBuilder.putValues(NodeProperty.Name.VM_IP.name(), committer.getProvidedIp());
             }
+            int committerDiskSize = infrastructureDescriptorModel.getOrganization().getCommitterDiskGb();
+            if (committerDiskSize > 0) {
+                String committerDiskSizeString = String.valueOf(committerDiskSize);
+                propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), committerDiskSizeString);
+            }
+
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder()
                             .setType(NodeType.REPLICA)
@@ -300,11 +314,8 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         if (generatePassword) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "True");
         }
-
-        boolean enableBftClient = infrastructureDescriptorModel.getOrganization().isEnableBftClient();
-        if (enableBftClient) {
-            propertiesBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
-        }
+        // enable bft client is always true
+        propertiesBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
 
         return propertiesBuilder.build();
     }

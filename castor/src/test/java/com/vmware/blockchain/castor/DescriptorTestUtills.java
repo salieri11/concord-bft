@@ -59,10 +59,9 @@ public class DescriptorTestUtills {
                 // .templateId(UUID.randomUUID())
                 .cpuCount(4)
                 .memoryGb(4)
-
-                .enableBftClient(true)
+                .clientDiskGb(12)
+                .committerDiskGb(12)
                 .generatePassword(true)
-
                 .build();
 
         return organization;

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -49,7 +50,15 @@ public class InfrastructureDescriptorModel {
         @Min(value = 0, message = "invalid.minmemory")
         private int memoryGb;
 
-        private boolean enableBftClient;
+        // Blockchain VM storage specs - these are per kind
+        @Min(value = 0, message = "invalid.mindisk")
+        @Max(value = 62 * 1024, message = "invalid.maxdisk")
+        private int clientDiskGb;
+
+        @Min(value = 0, message = "invalid.mindisk")
+        @Max(value = 62 * 1024, message = "invalid.maxdisk")
+        private int committerDiskGb;
+
         private boolean generatePassword;
     }
 
