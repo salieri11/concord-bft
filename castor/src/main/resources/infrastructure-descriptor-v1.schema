@@ -27,14 +27,22 @@
           "type": "integer",
           "minimum": 0
         },
-        "memoryGB": {
+        "memoryGb": {
           "description": "Memory in GB for the deployed blockchain VM",
           "type": "integer",
           "minimum": 0
         },
-        "enableBftClient": {
-          "description": "Whether BFT client should be enabled",
-          "type": "boolean"
+        "clientDiskGb": {
+          "description": "Disk size in GB for the deployed blockchain client VM",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63488
+        },
+        "committerDiskGb": {
+          "description": "Disk size in GB for the deployed blockchain committer VM",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 63488
         },
         "generatePassword": {
           "description": "Whether a root password should be generated",

@@ -80,14 +80,16 @@ public class JsonSchemaTest {
                     () -> infraDescriptorSchema.validate(infraModel),
                     "Errors should have been caught");
 
+        validationException.getAllMessages().forEach(System.out::println);
         String[] expectedMessages = new String[]{
+            "#/organization/memoryGb: -4 is not greater or equal to 0",
             "#/organization/cpuCount: -4 is not greater or equal to 0",
             "#/zones/0/vCenter: required key [password] not found",
             "#/zones/0/network: required key [name] not found"
         };
 
         List<String> actualMessages = validationException.getAllMessages();
-        assertEquals(3, actualMessages.size(), "Expected validation count mismatch");
+        assertEquals(4, actualMessages.size(), "Expected validation count mismatch");
         assertThat(actualMessages, containsInAnyOrder(expectedMessages));
     }
 
@@ -104,7 +106,13 @@ public class JsonSchemaTest {
                 () -> infraDescriptorSchema.validate(infraModel),
                 "Errors should have been caught");
 
-        String[] expectedMessages = new String[]{
+        List<String> actualMessages = validationException.getAllMessages();
+        System.out.printf("ERRORS:");
+        actualMessages.forEach(System.out::println);
+        assertEquals(6, actualMessages.size(), "Expected validation count mismatch");
+
+        String[] expectedMessages = new String[] {
+            "#/organization/committerDiskGb: -12 is not greater than 0",
             "#/zones/0/vCenter: required key [storage] not found",
             "#/zones/0/outboundProxy: required key [httpPort] not found",
             "#/zones/0/outboundProxy: required key [httpsHost] not found",
@@ -112,9 +120,6 @@ public class JsonSchemaTest {
             "#/zones/0/logManagement/0/type: INVALID_LOG_MANAGEMENT is not a valid enum value",
         };
 
-        List<String> actualMessages = validationException.getAllMessages();
-        actualMessages.forEach(System.out::println);
-        assertEquals(5, actualMessages.size(), "Expected validation count mismatch");
         assertThat(actualMessages, containsInAnyOrder(expectedMessages));
     }
 
