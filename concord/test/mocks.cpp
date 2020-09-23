@@ -8,6 +8,8 @@ using namespace concordUtils;
 
 namespace da_kvbc = com::digitalasset::kvbc;
 
+using std::make_shared;
+
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::DamlRequest;
 using concord::config::ConcordConfiguration;
@@ -22,26 +24,47 @@ const auto NUM_BLOCKS_TO_KEEP = 30;
 const auto REPLICA_PRINCIPAL_ID_START = 0;
 const auto CLIENT_PRINCIPAL_ID_START = 20000;
 
-ConcordConfiguration::ParameterStatus NodeScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = *reinterpret_cast<const int*>(state);
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class NodeScopeSizer : public ConcordConfiguration::ScopeSizer {
+ private:
+  const size_t& numReplicas;
 
-ConcordConfiguration::ParameterStatus ReplicaScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = 1;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+ public:
+  NodeScopeSizer(const size_t& numReplicas) : numReplicas(numReplicas) {}
+  virtual ~NodeScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = numReplicas;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
 
-ConcordConfiguration::ParameterStatus ClientProxyScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = *reinterpret_cast<const int*>(state);
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class ReplicaScopeSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ReplicaScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = 1;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ClientProxyScopeSizer : public ConcordConfiguration::ScopeSizer {
+ private:
+  const size_t& clientProxiesPerReplica;
+
+ public:
+  ClientProxyScopeSizer(const size_t& clientProxiesPerReplica)
+      : clientProxiesPerReplica(clientProxiesPerReplica) {}
+  virtual ~ClientProxyScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = clientProxiesPerReplica;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
 
 ConcordConfiguration TestConfiguration(
     std::size_t replica_count, std::size_t proxies_per_replica,
@@ -51,7 +74,8 @@ ConcordConfiguration TestConfiguration(
     bool summaries_or_histograms_enabled = true) {
   ConcordConfiguration config;
 
-  config.declareScope("node", "Node scope", NodeScopeSizer, &replica_count);
+  config.declareScope("node", "Node scope",
+                      make_shared<NodeScopeSizer>(replica_count));
   config.declareParameter("pruning_enabled",
                           "A flag indicating if pruning is enabled");
   config.declareParameter("pruning_num_blocks_to_keep",
@@ -70,10 +94,11 @@ ConcordConfiguration TestConfiguration(
   }
 
   auto& nodeTemplate = config.subscope("node");
-  nodeTemplate.declareScope("replica", "Replica scope", ReplicaScopeSizer,
-                            nullptr);
-  nodeTemplate.declareScope("client_proxy", "Client proxy scope",
-                            ClientProxyScopeSizer, &proxies_per_replica);
+  nodeTemplate.declareScope("replica", "Replica scope",
+                            make_shared<ReplicaScopeSizer>());
+  nodeTemplate.declareScope(
+      "client_proxy", "Client proxy scope",
+      make_shared<ClientProxyScopeSizer>(proxies_per_replica));
   nodeTemplate.declareParameter("time_source_id", "Time Source ID");
   nodeTemplate.declareParameter("enable_histograms_or_summaries", "");
 

@@ -11,6 +11,7 @@
 #include "config/configuration_manager.hpp"
 #include "sliver.hpp"
 
+using std::make_shared;
 using std::unordered_set;
 using std::vector;
 
@@ -146,13 +147,17 @@ const std::map<string, TimeContract::SampleBody> &TimeContract::GetSamples() {
 }
 
 // Find node[*].time_source_id fields in the config.
-static bool TimeSourceIdSelector(const ConcordConfiguration &config,
-                                 const ConfigurationPath &path, void *state) {
-  // isScope: the parameter is inside "node" scope
-  // useInstance: we don't care about the template
-  return path.isScope && path.useInstance &&
-         path.subpath->name == "time_source_id";
-}
+class TimeSourceIdSelector : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~TimeSourceIdSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration &config,
+                                const ConfigurationPath &path) override {
+    // isScope: the parameter is inside "node" scope
+    // useInstance: we don't care about the template
+    return path.isScope && path.useInstance &&
+           path.subpath->name == "time_source_id";
+  }
+};
 
 void TimeContract::LoadSamplesFromStorageImpl() {
   if (samples_.has_value()) {
@@ -177,8 +182,8 @@ void TimeContract::LoadSamplesFromStorageImpl() {
           // values, but the iterator registers itself with the config object,
           // so the reference can't be const.
           ParameterSelection time_source_ids(
-              const_cast<ConcordConfiguration &>(config_), TimeSourceIdSelector,
-              nullptr);
+              const_cast<ConcordConfiguration &>(config_),
+              make_shared<TimeSourceIdSelector>());
           unordered_set<string> valid_id_set;
           for (auto id : time_source_ids) {
             valid_id_set.emplace(config_.getValue<string>(id));
@@ -240,8 +245,8 @@ void TimeContract::LoadSamplesFromStorageImpl() {
     // the iterator registers itself with the config object, so the reference
     // can't be const.
     ParameterSelection time_source_ids(
-        const_cast<ConcordConfiguration &>(config_), TimeSourceIdSelector,
-        nullptr);
+        const_cast<ConcordConfiguration &>(config_),
+        make_shared<TimeSourceIdSelector>());
     for (auto id : time_source_ids) {
       LOG_DEBUG(logger_, "source id: " << config_.getValue<string>(id));
       samples_->emplace(config_.getValue<string>(id), SampleBody());
