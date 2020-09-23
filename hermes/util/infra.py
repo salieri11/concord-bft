@@ -443,6 +443,8 @@ def resetIPAM(targetSegsStr, dryRun=True):
       # to prevent race condition with ongoing deployment jobs
       counter = 0; startTime = time.time()
       while time.time() - startTime < 300:
+        log.info("Deleting any new VMs on the segment for 5 minutes to prevent "
+                "race condition with ongoing deployments... ({})".format(counter))
         for sddcName in sddcs:
           sddc = getConnection(sddcName)
           newlyAddedVMHandles = sddc.checkForNewEntities()
@@ -452,9 +454,8 @@ def resetIPAM(targetSegsStr, dryRun=True):
             if vm.network and vm.network[0].name and vm.network[0].name in targetNetworkNames:
               sddc.destroySingleVMByHandle(handle, dryRun=dryRun)
         counter += 1
-        log.info("Deleting any new VMs on the segment for 5 minutes to prevent "
-                "race condition with ongoing deployments... ({})".format(counter))
         time.sleep(30)
+    log.info("IPAM reset completed.")
   except Exception as e:
     traceback.print_exc()
 
