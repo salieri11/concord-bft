@@ -3736,8 +3736,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("preexec_requests_status_check_period_millisec",
                           "Time interval for a periodic detection of timed out "
                           "pre-execution requests "
-                          "(5000 milliseconds by default).",
-                          "5000");
+                          "(1000 milliseconds by default).",
+                          "1000");
   config.tagParameter("preexec_requests_status_check_period_millisec",
                       publicDefaultableTags);
   config.tagParameter("preexec_requests_status_check_period_millisec",
