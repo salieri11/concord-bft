@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 //
 // Unit tests the configuration management classes defined in
 // src/configuration_manager.hpp.
@@ -9,7 +9,9 @@
 #include "gtest/gtest.h"
 
 using std::endl;
+using std::make_shared;
 using std::ostringstream;
+using std::shared_ptr;
 using std::string;
 using std::to_string;
 using std::unique_ptr;
@@ -398,28 +400,41 @@ TEST(config_test, configuration_state) {
 }
 
 static size_t mockScopeSizerResult = 0;
-static ConcordConfiguration::ParameterStatus mockScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  if (state) {
-    bool* wasCalled = static_cast<bool*>(state);
-    *wasCalled = true;
-  }
-  *output = mockScopeSizerResult;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
 
-static ConcordConfiguration::ParameterStatus mockScopeSizerThatNeverWorks(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = 144;
-  return ConcordConfiguration::ParameterStatus::INVALID;
-}
+class MockScopeSizer : public ConcordConfiguration::ScopeSizer {
+ private:
+  bool* calledFlag;
+
+ public:
+  MockScopeSizer(bool* calledFlag = nullptr) : calledFlag(calledFlag) {}
+  virtual ~MockScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    if (calledFlag) {
+      *calledFlag = true;
+    }
+    output = mockScopeSizerResult;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class MockScopeSizerThatNeverWorks : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~MockScopeSizerThatNeverWorks() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = 144;
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+};
 
 TEST(config_test, configuration_scope_creation) {
   ConcordConfiguration config;
   try {
-    config.declareScope("inexistent_scope", "description", nullptr, &config);
+    config.declareScope("inexistent_scope", "description",
+                        shared_ptr<MockScopeSizer>(nullptr));
     FAIL() << "ConcordConfiguration::declareScope failed to reject the creation"
               " of a scope with a null scope sizer function.";
   } catch (std::invalid_argument e) {
@@ -429,20 +444,20 @@ TEST(config_test, configuration_scope_creation) {
          " given invalid input.";
 
   bool mockScopeSizerCalled = false;
-  config.declareScope("scope", "description", mockScopeSizer,
-                      &mockScopeSizerCalled);
+  config.declareScope("scope", "description",
+                      make_shared<MockScopeSizer>(&mockScopeSizerCalled));
   EXPECT_TRUE(config.containsScope("scope"))
       << "ConcordConfiguration::declareScope fails to create the requested"
          " scope.";
 
-  config.declareScope("otherScope", "description", mockScopeSizer, nullptr);
+  config.declareScope("otherScope", "description",
+                      make_shared<MockScopeSizer>());
   EXPECT_TRUE(config.containsScope("otherScope"))
-      << "ConcordConfiguration::declareScope fails to accept a scope with no"
-         " state for the scope sizer function.";
+      << "ConcordConfiguration::declareScope fails to accept a valid scope.";
 
   try {
-    config.declareScope("otherScope", "description", mockScopeSizer,
-                        &mockScopeSizerCalled);
+    config.declareScope("otherScope", "description",
+                        make_shared<MockScopeSizer>(&mockScopeSizerCalled));
     FAIL() << "ConcordConfiguration::declareScope fails to reject a new"
               " declaration for a scope that was already declared.";
   } catch (ConfigurationRedefinitionException e) {
@@ -455,8 +470,8 @@ TEST(config_test, configuration_scope_creation) {
   } catch (ConfigurationResourceNotFoundException e) {
   }
 
-  config.declareScope("new_scope", "New description.", mockScopeSizer,
-                      &mockScopeSizerCalled);
+  config.declareScope("new_scope", "New description.",
+                      make_shared<MockScopeSizer>(&mockScopeSizerCalled));
   ConcordConfiguration& newScope = config.subscope("new_scope");
   newScope.declareParameter("parameter_a", "A parameter.");
   newScope.declareParameter("parameter_b", "A parameter.", "B");
@@ -507,7 +522,7 @@ TEST(config_test, configuration_scope_creation) {
   }
 
   config.declareScope("unsizable_scope", "description",
-                      mockScopeSizerThatNeverWorks, nullptr);
+                      make_shared<MockScopeSizerThatNeverWorks>());
   ConcordConfiguration::ParameterStatus sizeStatus =
       config.instantiateScope("unsizable_scope");
   EXPECT_EQ(sizeStatus, ConcordConfiguration::ParameterStatus::INVALID)
@@ -526,18 +541,23 @@ TEST(config_test, configuration_scope_creation) {
 
 TEST(config_test, configuration_scope_access) {
   ConcordConfiguration config;
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
-  config.declareScope("scope_b", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
+  config.declareScope("scope_b", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeB = config.subscope("scope_b");
-  scopeB.declareScope("scope_ba", "A description.", mockScopeSizer, nullptr);
-  scopeB.declareScope("scope_bb", "A description.", mockScopeSizer, nullptr);
+  scopeB.declareScope("scope_ba", "A description.",
+                      make_shared<MockScopeSizer>());
+  scopeB.declareScope("scope_bb", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeBA = scopeB.subscope("scope_ba");
   ConcordConfiguration& scopeBB = scopeB.subscope("scope_bb");
   mockScopeSizerResult = 4;
   scopeB.instantiateScope("scope_ba");
   ConcordConfiguration& scopeBA0 = scopeB.subscope("scope_ba", 0);
   ConcordConfiguration& scopeBA2 = scopeB.subscope("scope_ba", 2);
-  scopeBA2.declareScope("scope_baa", "A description.", mockScopeSizer, nullptr);
+  scopeBA2.declareScope("scope_baa", "A description.",
+                        make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeBAA = scopeBA2.subscope("scope_baa");
   scopeBA.setConfigurationStateLabel("marked BA");
   scopeBB.setConfigurationStateLabel("marked BB");
@@ -688,8 +708,8 @@ TEST(config_test, configuration_scope_access) {
   } catch (ConfigurationResourceNotFoundException e) {
   }
 
-  config.declareScope("instanceless_scope", "A description.", mockScopeSizer,
-                      nullptr);
+  config.declareScope("instanceless_scope", "A description.",
+                      make_shared<MockScopeSizer>());
   mockScopeSizerResult = 0;
   config.instantiateScope("instanceless_scope");
   EXPECT_TRUE(config.scopeIsInstantiated("instanceless_scope"))
@@ -760,7 +780,8 @@ TEST(config_test, configuration_parameter_creation) {
   EXPECT_TRUE(config.isTagged("parameter_a", ""))
       << "ConcordConfiguration fails to handle an empty string as a tag.";
 
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   try {
     config.declareParameter("scope_a", "A description.");
     FAIL() << "ConcordConfiguration fails to disallow naming conflicts between "
@@ -768,8 +789,8 @@ TEST(config_test, configuration_parameter_creation) {
   } catch (ConfigurationRedefinitionException e) {
   }
   try {
-    config.declareScope("parameter_a", "A description.", mockScopeSizer,
-                        nullptr);
+    config.declareScope("parameter_a", "A description.",
+                        make_shared<MockScopeSizer>());
     FAIL() << "ConcordConfiguration fails to disallow naming conflicts between "
               "scopes and parameters.";
   } catch (ConfigurationRedefinitionException e) {
@@ -782,11 +803,13 @@ TEST(config_test, configuration_parameter_access) {
   config.declareParameter("parameter_a", "A description.");
   config.declareParameter("parameter_b", "A description.");
   config.loadValue("parameter_b", "A value.");
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   mockScopeSizerResult = 3;
   config.instantiateScope("scope_a");
   ConcordConfiguration& scopeA2 = config.subscope("scope_a", 2);
-  scopeA2.declareScope("scope_a2a", "A description.", mockScopeSizer, nullptr);
+  scopeA2.declareScope("scope_a2a", "A description.",
+                       make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA2A = scopeA2.subscope("scope_a2a");
   scopeA2A.declareParameter("parameter_a2aa", "A description.");
   scopeA2A.declareParameter("parameter_a2ab", "A description.");
@@ -941,18 +964,6 @@ TEST(config_test, configuration_parameter_access) {
   EXPECT_EQ(config.getValue<std::string>("parameter_b"), "A new value.")
       << "ConcordConfiguration::loadValue fails to overwrite existing value "
          "even when overwrite is requested.";
-  std::string prevValue;
-  config.loadValue("parameter_b", "An even newer value.", nullptr, true,
-                   &prevValue);
-  EXPECT_EQ(prevValue, "A new value.")
-      << "ConcordConfiguration::loadValue fails to write back the overwritten "
-         "value when a pointer to receive it is given.";
-  prevValue = "prevValue";
-  config.loadValue("parameter_b", "A still newer value.", nullptr, false,
-                   &prevValue);
-  EXPECT_EQ(prevValue, "prevValue")
-      << "ConcordConfiguration::loadValue writes back an overwritten value "
-         "even when it does not overwrite a value.";
 
   config.eraseValue("parameter_a");
   EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
@@ -964,17 +975,6 @@ TEST(config_test, configuration_parameter_access) {
               "erase the value of a parameter which has not been defined.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
-
-  config.loadValue("parameter_b", "A replacement value.");
-  config.eraseValue("parameter_b", &prevValue);
-  EXPECT_EQ(prevValue, "A replacement value.")
-      << "ConcordConfiguration::eraseValue fails to write back the erased "
-         "value when a pointer to receive it is given.";
-  prevValue = "prevValue";
-  config.eraseValue("parameter_b", &prevValue);
-  EXPECT_EQ(prevValue, "prevValue")
-      << "ConcordConfiguration::eraseValue writes back an erased value even "
-         "when it does not erase a value.";
 
   config.loadValue("parameter_b", "A replacement value.");
   config.eraseAllValues();
@@ -1130,52 +1130,69 @@ TEST(config_test, type_interpretation) {
 
 static ConcordConfiguration::ParameterStatus mockValidatorResult;
 static std::string mockValidatorFailureMessage;
-static ConcordConfiguration::ParameterStatus mockValidator(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
-  if (state) {
-    bool* wasCalled = static_cast<bool*>(state);
-    *wasCalled = true;
-  }
-  if (failureMessage &&
-      (mockValidatorResult != ConcordConfiguration::ParameterStatus::VALID)) {
-    *failureMessage = mockValidatorFailureMessage;
-  }
-  return mockValidatorResult;
-}
 
-static ConcordConfiguration::ParameterStatus mockValidatorRequireNoSpaces(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
-  if (value.find(" ") == std::string::npos) {
-    return ConcordConfiguration::ParameterStatus::VALID;
-  } else {
-    if (failureMessage) {
-      *failureMessage =
-          "Spaces are not allowed in parameter " + path.toString() + ".";
+class MockValidator : public ConcordConfiguration::ParameterValidator {
+ private:
+  bool* calledFlag;
+
+ public:
+  MockValidator(bool* calledFlag = nullptr) : calledFlag(calledFlag) {}
+  virtual ~MockValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failureMessage) override {
+    if (calledFlag) {
+      *calledFlag = true;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    if (mockValidatorResult != ConcordConfiguration::ParameterStatus::VALID) {
+      failureMessage = mockValidatorFailureMessage;
+    }
+    return mockValidatorResult;
   }
-}
+};
+
+class NoSpacesMockValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~NoSpacesMockValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failureMessage) override {
+    if (value.find(" ") == std::string::npos) {
+      return ConcordConfiguration::ParameterStatus::VALID;
+    } else {
+      failureMessage =
+          "Spaces are not allowed in parameter " + path.toString() + ".";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+  }
+};
 
 static ConcordConfiguration::ParameterStatus mockGeneratorStatus;
 static std::string mockGeneratorOutput;
-static ConcordConfiguration::ParameterStatus mockGenerator(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
-  if (state) {
-    bool* wasCalled = static_cast<bool*>(state);
-    *wasCalled = true;
+
+class MockGenerator : public ConcordConfiguration::ParameterGenerator {
+ private:
+  bool* calledFlag;
+
+ public:
+  MockGenerator(bool* calledFlag = nullptr) : calledFlag(calledFlag) {}
+  virtual ~MockGenerator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      std::string& output) override {
+    if (calledFlag) {
+      *calledFlag = true;
+    }
+    output = mockGeneratorOutput;
+    return mockGeneratorStatus;
   }
-  *output = mockGeneratorOutput;
-  return mockGeneratorStatus;
-}
+};
 
 TEST(config_test, configuration_parameter_validation) {
   ConcordConfiguration config;
 
   config.declareParameter("parameter_a", "A description.");
-  config.addValidator("parameter_a", mockValidatorRequireNoSpaces, nullptr);
+  config.addValidator("parameter_a", make_shared<NoSpacesMockValidator>());
   EXPECT_EQ(config.loadValue("parameter_a", "has spaces"),
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration fails to correctly use a parameter's validator "
@@ -1196,7 +1213,8 @@ TEST(config_test, configuration_parameter_validation) {
          "parameter.";
 
   bool mockValidatorCalled = false;
-  config.addValidator("parameter_a", mockValidator, &mockValidatorCalled);
+  config.addValidator("parameter_a",
+                      make_shared<MockValidator>(&mockValidatorCalled));
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
   EXPECT_EQ(config.loadValue("parameter_a", "has spaces"),
             ConcordConfiguration::ParameterStatus::VALID)
@@ -1263,13 +1281,13 @@ TEST(config_test, configuration_parameter_validation) {
          "failureMessage when the validator fails.";
 
   try {
-    config.addValidator("parameter_c", mockValidator, nullptr);
+    config.addValidator("parameter_c", make_shared<MockValidator>());
     FAIL() << "ConcordConfiguration::addValidator fails to reject a request to "
               "add a validator to a parameter which is not defined.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
   try {
-    config.addValidator("parameter_a", nullptr, nullptr);
+    config.addValidator("parameter_a", shared_ptr<MockValidator>(nullptr));
     FAIL() << "ConcordConfiguration::addValidator fails to reject a request to "
               "add a null validator to a parameter.";
   } catch (std::invalid_argument e) {
@@ -1283,13 +1301,14 @@ TEST(config_test, configuration_parameter_validation) {
   }
 
   config.eraseAllValues();
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.");
   scopeA.declareParameter("parameter_ab", "A description.");
-  scopeA.addValidator("parameter_aa", mockValidator, nullptr);
+  scopeA.addValidator("parameter_aa", make_shared<MockValidator>());
   scopeA.loadValue("parameter_ab", "hasn spaces");
-  scopeA.addValidator("parameter_ab", mockValidatorRequireNoSpaces, nullptr);
+  scopeA.addValidator("parameter_ab", make_shared<NoSpacesMockValidator>());
   mockScopeSizerResult = 1;
   config.instantiateScope("scope_a");
   ConcordConfiguration& scopeA0 = config.subscope("scope_a", 0);
@@ -1319,7 +1338,7 @@ TEST(config_test, configuration_parameter_validation) {
          "parameters even when this is not requested.";
   config.loadValue("parameter_a", "hasn't_spaces");
   scopeA.loadValue("parameter_aa", "has spaces");
-  scopeA.addValidator("parameter_aa", mockValidatorRequireNoSpaces, nullptr);
+  scopeA.addValidator("parameter_aa", make_shared<NoSpacesMockValidator>());
   EXPECT_EQ(config.validateAll(true, false),
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration::validateAll validates instance templates even "
@@ -1373,19 +1392,8 @@ TEST(config_test, configuration_parameter_defaults) {
       << "ConcordConfiguration::loadDefault fails to overwrite existing value "
          "even when overwrite is specified.";
 
-  std::string prevValue = "prevValue";
   config.loadValue("parameter_a", "a value");
-  config.loadDefault("parameter_a", nullptr, false, &prevValue);
-  EXPECT_EQ(prevValue, "prevValue")
-      << "ConcordConfiguration::loadDefault writes an overwritten value back "
-         "even if it does not overwrite a value.";
-  config.loadDefault("parameter_a", nullptr, true, &prevValue);
-  EXPECT_EQ(prevValue, "a value")
-      << "ConcordConfiguration::loadDefault fails to correctly write back the "
-         "value it overwrote when appropriate.";
-
-  config.loadValue("parameter_a", "a value");
-  config.addValidator("parameter_a", mockValidator, nullptr);
+  config.addValidator("parameter_a", make_shared<MockValidator>());
   mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
   EXPECT_EQ(config.loadDefault("parameter_a", nullptr, true),
             ConcordConfiguration::ParameterStatus::INVALID)
@@ -1422,7 +1430,8 @@ TEST(config_test, configuration_parameter_defaults) {
   config.clear();
   config.declareParameter("parameter_a", "A description.", "default_value");
   config.declareParameter("parameter_b", "A description.");
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.",
                           "different_default_value");
@@ -1474,7 +1483,8 @@ TEST(config_test, configuration_parameter_generation) {
   config.declareParameter("parameter_a", "A description.");
   config.declareParameter("parameter_b", "A description.");
   bool mockGeneratorCalled = false;
-  config.addGenerator("parameter_a", mockGenerator, &mockGeneratorCalled);
+  config.addGenerator("parameter_a",
+                      make_shared<MockGenerator>(&mockGeneratorCalled));
 
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::VALID;
   mockGeneratorOutput = "generated value";
@@ -1492,7 +1502,8 @@ TEST(config_test, configuration_parameter_generation) {
   config.eraseValue("parameter_a");
   mockGeneratorCalled = false;
   bool mockGeneratorCalledAgain = false;
-  config.addGenerator("parameter_a", mockGenerator, &mockGeneratorCalledAgain);
+  config.addGenerator("parameter_a",
+                      make_shared<MockGenerator>(&mockGeneratorCalledAgain));
   mockGeneratorOutput = "new generated value";
   config.generate("parameter_a");
   EXPECT_EQ(config.getValue<std::string>("parameter_a"), "new generated value")
@@ -1505,7 +1516,7 @@ TEST(config_test, configuration_parameter_generation) {
       << "ConcordConfiguration::addGenerator fails to replace a generator with "
          "a new generator.";
 
-  config.addGenerator("parameter_a", mockGenerator, nullptr);
+  config.addGenerator("parameter_a", make_shared<MockGenerator>());
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::VALID;
   mockGeneratorOutput = "generated value";
   config.loadValue("parameter_a", "a value");
@@ -1518,21 +1529,8 @@ TEST(config_test, configuration_parameter_generation) {
       << "ConcordConfiguration::generate fails to overwrite existing value "
          "even when this is requested.";
 
-  std::string prevValue = "prevValue";
-  config.loadValue("parameter_a", "a value");
-  config.generate("parameter_a", nullptr, true, &prevValue);
-  EXPECT_EQ(prevValue, "a value")
-      << "ConcordConfiguration::generate fails to write back the overwritten "
-         "value even when a pointer is provided to do so.";
-  prevValue = "prevValue";
-  config.loadValue("parameter_a", "a value");
-  config.generate("parameter_a", nullptr, false, &prevValue);
-  EXPECT_EQ(prevValue, "prevValue")
-      << "ConcordConfiguration::generate writes back a value to the "
-         "overwritten value pointer even when it does not overwrite a value.";
-
   config.eraseValue("parameter_a");
-  config.addValidator("parameter_a", mockValidator, nullptr);
+  config.addValidator("parameter_a", make_shared<MockValidator>());
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
   mockGeneratorOutput = "generated value";
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::INVALID;
@@ -1596,13 +1594,13 @@ TEST(config_test, configuration_parameter_generation) {
          "failureMessage when the validator fails.";
 
   try {
-    config.addGenerator("parameter_c", mockGenerator, nullptr);
+    config.addGenerator("parameter_c", make_shared<MockGenerator>());
     FAIL() << "ConcordConfiguration::addGenerator fails to reject a request to "
               "add a generator to a parameter which is not defined.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
   try {
-    config.addGenerator("parameter_a", nullptr, nullptr);
+    config.addGenerator("parameter_a", shared_ptr<MockGenerator>(nullptr));
     FAIL() << "ConcordConfiguration::addGenerator fails to reject a request to "
               "add a null generator to a parameter.";
   } catch (std::invalid_argument e) {
@@ -1622,10 +1620,11 @@ TEST(config_test, configuration_parameter_generation) {
 
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
   config.eraseAllValues();
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.");
-  scopeA.addGenerator("parameter_aa", mockGenerator, nullptr);
+  scopeA.addGenerator("parameter_aa", make_shared<MockGenerator>());
   mockScopeSizerResult = 1;
   config.instantiateScope("scope_a");
   ConcordConfiguration& scopeA0 = config.subscope("scope_a", 0);
@@ -1690,19 +1689,24 @@ TEST(config_test, configuration_iteration) {
   config.declareParameter("parameter_c", "A description.");
   ConfigurationPath pathParameterC("parameter_c", false);
 
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeA("scope_a", true);
-  config.declareScope("scope_b", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_b", "A description.",
+                      make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeB("scope_b", true);
-  config.declareScope("scope_c", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_c", "A description.",
+                      make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeC("scope_c", true);
 
   ConcordConfiguration& scopeA = config.subscope("scope_a");
-  scopeA.declareScope("scope_aa", "A description", mockScopeSizer, nullptr);
+  scopeA.declareScope("scope_aa", "A description",
+                      make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeAA(pathScopeA);
   pathScopeAA.subpath.reset(new ConfigurationPath("scope_aa", true));
   ConcordConfiguration& scopeAA = scopeA.subscope("scope_aa");
-  scopeA.declareScope("scope_ab", "A description", mockScopeSizer, nullptr);
+  scopeA.declareScope("scope_ab", "A description",
+                      make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeAB(pathScopeA);
   pathScopeAB.subpath.reset(new ConfigurationPath("scope_ab", true));
   ConcordConfiguration& scopeAB = scopeA.subscope("scope_ab");
@@ -1816,10 +1820,12 @@ TEST(config_test, configuration_iteration) {
   ConfigurationPath pathScopeC2("scope_c", (size_t)2);
 
   ConcordConfiguration& scopeC1 = config.subscope("scope_c", 1);
-  scopeC1.declareScope("scope_ca", "A description.", mockScopeSizer, nullptr);
+  scopeC1.declareScope("scope_ca", "A description.",
+                       make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeC1A(pathScopeC1);
   pathScopeC1A.subpath.reset(new ConfigurationPath("scope_ca", true));
-  scopeC1.declareScope("scope_cb", "A description.", mockScopeSizer, nullptr);
+  scopeC1.declareScope("scope_cb", "A description.",
+                       make_shared<MockScopeSizer>());
   ConfigurationPath pathScopeC1B(pathScopeC1);
   pathScopeC1B.subpath.reset(new ConfigurationPath("scope_cb", true));
   scopeC1.declareParameter("parameter_ca", "A description.");
@@ -2063,7 +2069,8 @@ TEST(config_test, configuration_iteration) {
   }
 
   iterator = config.begin();
-  config.declareScope("scope_d", "A description", mockScopeSizer, nullptr);
+  config.declareScope("scope_d", "A description",
+                      make_shared<MockScopeSizer>());
   try {
     ++iterator;
     FAIL() << "ConcordConfiguration::declareScope fails to invalidate "
@@ -2100,23 +2107,29 @@ TEST(config_test, configuration_iteration) {
   }
 }
 
-static bool relevantParameterSelector(const ConcordConfiguration& config,
-                                      const ConfigurationPath& path,
-                                      void* state) {
-  if (state) {
-    bool* wasCalled = static_cast<bool*>(state);
-    *wasCalled = true;
-  }
+class RelevantParameterSelector : public ParameterSelection::ParameterSelector {
+ private:
+  bool* wasCalled;
 
-  if (!config.contains(path)) {
-    return false;
+ public:
+  RelevantParameterSelector(bool* wasCalled = nullptr) : wasCalled(wasCalled) {}
+  virtual ~RelevantParameterSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    if (wasCalled) {
+      *wasCalled = true;
+    }
+
+    if (!config.contains(path)) {
+      return false;
+    }
+    const ConcordConfiguration* containingScope = &(config);
+    if (path.isScope && path.subpath) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+    return containingScope->isTagged(path.getLeaf().name, "relevant");
   }
-  const ConcordConfiguration* containingScope = &(config);
-  if (path.isScope && path.subpath) {
-    containingScope = &(config.subscope(path.trimLeaf()));
-  }
-  return containingScope->isTagged(path.getLeaf().name, "relevant");
-}
+};
 
 TEST(config_test, parameter_selection) {
   ConcordConfiguration config;
@@ -2126,8 +2139,10 @@ TEST(config_test, parameter_selection) {
   config.declareParameter("parameter_a", "A description.");
   config.declareParameter("parameter_b", "A description.");
   config.declareParameter("parameter_c", "A description.");
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
-  config.declareScope("scope_b", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
+  config.declareScope("scope_b", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.");
   scopeA.declareParameter("parameter_ab", "A description.");
@@ -2142,8 +2157,8 @@ TEST(config_test, parameter_selection) {
   config.instantiateScope("scope_b");
 
   bool selectorCalled = false;
-  ParameterSelection selection(config, relevantParameterSelector,
-                               &selectorCalled);
+  ParameterSelection selection(
+      config, make_shared<RelevantParameterSelector>(&selectorCalled));
 
   auto iterator = config.begin(ConcordConfiguration::kIterateAllParameters);
   auto end = config.end(ConcordConfiguration::kIterateAllParameters);
@@ -2195,19 +2210,22 @@ TEST(config_test, yaml_configuration_io) {
   config.declareParameter("parameter_c", "A description.");
   ConfigurationPath pathParameterB("parameter_b", false);
   ConfigurationPath pathParameterC("parameter_c", false);
-  config.addValidator("parameter_b", mockValidator, nullptr);
+  config.addValidator("parameter_b", make_shared<MockValidator>());
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
 
-  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.");
   scopeA.declareParameter("parameter_ab", "A description.");
 
-  config.declareScope("scope_b", "A description.", mockScopeSizer, nullptr);
+  config.declareScope("scope_b", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeB = config.subscope("scope_b");
   scopeB.declareParameter("parameter_ba", "A description.");
   scopeB.declareParameter("parameter_bb", "A description.");
-  scopeB.declareScope("scope_ba", "A description.", mockScopeSizer, nullptr);
+  scopeB.declareScope("scope_ba", "A description.",
+                      make_shared<MockScopeSizer>());
   ConcordConfiguration& scopeBA = scopeB.subscope("scope_ba");
   scopeBA.declareParameter("parameter_baa", "A description.");
   mockScopeSizerResult = 3;
@@ -2486,7 +2504,7 @@ TEST(config_test, yaml_configuration_io) {
 
   try {
     config.declareScope("scope_d" + kYAMLScopeTemplateSuffix, "A description.",
-                        mockScopeSizer, nullptr);
+                        make_shared<MockScopeSizer>());
     FAIL() << "ConcordConfiguration::declareScope fails to reject scope names "
               "ending in the YAML scope template suffix.";
   } catch (std::invalid_argument) {
@@ -2508,7 +2526,7 @@ TEST(config_test, regression_config_copy_invalidates_original_iterator) {
 
   ConcordConfiguration config;
   config.declareParameter("parameter_a", "A parameter.");
-  config.declareScope("scope_a", "A scope", mockScopeSizer, nullptr);
+  config.declareScope("scope_a", "A scope", make_shared<MockScopeSizer>());
   ConcordConfiguration& scope_a = config.subscope("scope_a");
   scope_a.declareParameter("parameter_aa", "A parameter.");
   mockScopeSizerResult = 3;

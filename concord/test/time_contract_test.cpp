@@ -108,27 +108,45 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   }
 };
 
-static ConcordConfiguration::ParameterStatus NodeScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = ((std::vector<string>*)state)->size();
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-static ConcordConfiguration::ParameterStatus ReplicaScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = 1;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class NodeScopeSizer : public ConcordConfiguration::ScopeSizer {
+ private:
+  const vector<string>& timeSources;
+
+ public:
+  NodeScopeSizer(const vector<string>& timeSources)
+      : timeSources(timeSources) {}
+  virtual ~NodeScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = timeSources.size();
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ReplicaScopeSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ReplicaScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = 1;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
 
 static const size_t kClientProxiesPerReplica = 4;
 
-static ConcordConfiguration::ParameterStatus ClientProxyScopeSizer(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  *output = kClientProxiesPerReplica;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class ClientProxyScopeSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ClientProxyScopeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = kClientProxiesPerReplica;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
 
 // The time contract initializes itself with default values for all known
 // sources. This function generates a configuration object with the test sources
@@ -148,12 +166,13 @@ ConcordConfiguration TestConfiguration(
                           "Time verification scheme to use.");
   config.loadValue("time_verification", time_verification);
 
-  config.declareScope("node", "Node scope", NodeScopeSizer, &sourceIDs);
+  config.declareScope("node", "Node scope",
+                      make_shared<NodeScopeSizer>(sourceIDs));
   ConcordConfiguration& nodeTemplate = config.subscope("node");
-  nodeTemplate.declareScope("replica", "Replica scope", ReplicaScopeSizer,
-                            nullptr);
+  nodeTemplate.declareScope("replica", "Replica scope",
+                            make_shared<ReplicaScopeSizer>());
   nodeTemplate.declareScope("client_proxy", "Client proxy scope.",
-                            ClientProxyScopeSizer, nullptr);
+                            make_shared<ClientProxyScopeSizer>());
   nodeTemplate.declareParameter("time_source_id", "Time Source ID");
   ConcordConfiguration& replica_template = nodeTemplate.subscope("replica");
   replica_template.declareParameter("time_source_id", "Time Source ID");

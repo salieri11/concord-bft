@@ -1,4 +1,4 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2018-2020 VMware, all rights reserved
 //
 // Definitions used by configuration management system.
 // The most central component of this system is the ConcordConfiguration class,
@@ -355,76 +355,95 @@ class ConcordConfiguration {
       APPLICATION, DEPLOYMENT, SECRETS, ALL};
   mutable std::string confType_;
 
-  // Type for parameter validator functions.
-  // A validator should return VALID if it finds the parameter's value valid,
-  // INVALID if it confirms the value is definitevely invalid, and
-  // INSUFFICIENT_INFORMATION if it lacks the information to definitively
-  // confirm the parameter's validity. When a ConcordConfiguration calls a
-  // parameter validator, it gives the following arguments:
-  //   - value: The value to assess the validity of.
-  //   - config: The ConcordConfiguration calling this function; note validator
-  //   functions will always be given a reference to the root config for this
-  //   parameter (as opposed to the ConcordConfiguration representing the scope
-  //   in which the parameter being validated exists).
-  //   - path: The path to the parameter within this configuration for which
-  //   this value is to be validated.
-  //   - failureMessage: If the validator does not find value to be valid, it
-  //   may choose to write back a message to failureMessage reporting the reason
-  //   it did not find value to be valid.
-  //   - state: An arbitrary pointer provided at the time this validator was
-  //   added to the configuration. It is anticipated this will be used if this
-  //   validator requires additional state.
-  typedef ParameterStatus (*Validator)(const std::string& value,
-                                       const ConcordConfiguration& config,
-                                       const ConfigurationPath& path,
-                                       std::string* failureMessage,
-                                       void* state);
+  // Interface type for parameter validator objects; parameter validators should
+  // be implemented as extensions of this class.
+  class ParameterValidator {
+   public:
+    virtual ~ParameterValidator() {}
 
-  // Type for parameter generation functions.
-  // A parameter generator should return VALID if it was able to successfully
-  // generate a valid value, INSUFFICIENT_INFORMATION if it information needed
-  // by the generator (such as other parameters) is missing, and INVALID if it
-  // is not possible to generate a valid value under the current state or the
-  // generator otherwise fails. When a ConcordConfiguration calls a parameter
-  // generator, it gives the following arguments:
-  //   - config: The ConcordConfiguration calling this function. Note parameter
-  //   generators will always be given a reference to the root config for this
-  //   parameter (as opposed to the ConcordConfiguration representing the scope
-  //   in which the parameter being generated exists).
-  //   - path: Path to the parameter for which a value should be generated.
-  //   - output: String pointer to output the generated value to if generation
-  //   is successful (Note any value written to this pointer will be ignored by
-  //   the ConcordConfiguration if the generator does not return VALID).
-  //   - state: An arbitrary pointer provided at the time this generator was
-  //   added to the configuration. It is anticipated this will be used if the
-  //   generator requires additional state.
-  typedef ParameterStatus (*Generator)(const ConcordConfiguration& config,
-                                       const ConfigurationPath& path,
-                                       std::string* output, void* state);
+    // Validate a given parameter value; a ParameterValidator implementation's
+    // validate function should return VALID if it finds the given value valid,
+    // INVALID if it confirms the value is definitely invalid, and
+    // INSUFFICIENT_INFORMATION if it lacks the information to definitively
+    // confirm the parameter's validity. When a ConcordConfiguration calls
+    // validate for a ParameterValidator it has been given, it gives the
+    // following arguments:
+    // - value: The value to assess the validity of.
+    // - config: The root ConcordConfiguration for which this parameter is being
+    // validated. A root ConcordConfiguration object is one which is not a
+    // subscope of another ConcordConfiguration object (if the parameter being
+    // validated is not directly contained in the root scope, the scope directly
+    // containing the parameter will recursively look at its parent scope(s)
+    // until the root scope is found).
+    // - path: The path, relative to the configuration referenced by config, for
+    // which this value is to be validated.
+    // - failureMessage: If the validator does not find the value to be valid,
+    // it may choose to write back a message to failureMessage reporting the
+    // reason validation did not succeed.
+    virtual ParameterStatus validate(const std::string& value,
+                                     const ConcordConfiguration& config,
+                                     const ConfigurationPath& path,
+                                     std::string& failureMessage) = 0;
+  };
 
-  // Type for a scope sizer function. A scope sizer function is called by the
-  // ConcordConfiguration when instantiation of a scope is requested to
-  // determine the appropriate size for it under the current configuration. A
-  // scope sizer should return VALID if it was able to successfully determine
-  // the correct size for the requested scope, INSUFFICIENT_INFORMATION if needs
-  // information that is currently not available, and INVALID if it is not
-  // possible to get a valid size for this scope under the current state or if
-  // the sizer otherwise fails. When a ConcordConfiguration calls a scope sizer,
-  // it gives the following arguments:
-  //   - config: The ConcordConfiguration calling this function. Note scope
-  //   sizer functioons will always be called with a reference to the root
-  //   config for this parameter, even if the scope being instantiated itself
-  //   exists in a subscope of the configuration.
-  //   - path: Path to the scope for which a size is being requested.
-  //   - output: size_t pointer to which to output the appropriate size for
-  //   the requested scope (Note the ConcordConfiguration will ignore any value
-  //   written here if the sizer does not return VALID).
-  //   - state: An arbitrary pointer provided at the time the scope being sized
-  //   was declared. It is anticipated this pointer will be used if the scope
-  //   sizer requires any additional state.
-  typedef ParameterStatus (*ScopeSizer)(const ConcordConfiguration& config,
-                                        const ConfigurationPath& path,
-                                        size_t* output, void* state);
+  // Interface type for parameter generator objects; parameter generators should
+  // be implemented as extensions of this class.
+  class ParameterGenerator {
+   public:
+    virtual ~ParameterGenerator() {}
+
+    // Generate a value for a given parameter; a ParameterGenerator
+    // implementation's generate function should return VALID if it was
+    // successful, INSUFFICIENT_INFORMATION if information needed by the
+    // generator (such as values of other parameters) is missing, and INVALID if
+    // it is not possible to generate a valid value under the current state or
+    // if generation otherwise fails. When a ConcordConfiguration calls a
+    // parameter generator, it gives the following arguments:
+    // - config: The root ConcordConfiguration for which a value for this
+    // parameter is being validated. A root ConcordConfiguration object is one
+    // which is not a subscope of another ConcordConfiguration object (if the
+    // parameter being generated is not directly contained in the root scope,
+    // the scope directly containing the parameter will recursively look at
+    // its parent scope(s) until the root scope is found).
+    // - path: The path, relative to the configuration referenced by config, for
+    // which a value is being generated.
+    // - output: String reference to which the generated value should be written
+    // if generation is successful (note any value written will be ignored by
+    // the ConcordConfiguration if generate did not return VALID).
+    virtual ParameterStatus generate(const ConcordConfiguration& config,
+                                     const ConfigurationPath& path,
+                                     std::string& output) = 0;
+  };
+
+  // Interface type for scope sizer objects; scope sizers should be implemented
+  // as extensions of this class.
+  class ScopeSizer {
+   public:
+    virtual ~ScopeSizer() {}
+
+    // Determine the appropriate size for a given scope that is being
+    // instantiated. sizeScope should return VALID if it was able to
+    // successfully determine the correct size for the requested scope,
+    // INSUFFICIENT_INFORMATION if information (for example, values of certain
+    // parameters) required to correctly size the scope is not available, and
+    // INVALID if it is not possible to get a valid size for this scope under
+    // the current state or if the sizer otherwise fails. When a
+    // ConcordConfiguration calls sizeScope, it gives the following arguments:
+    // - config: The root ConcordConfiguration under which a scope is being
+    // sized. A root ConcordConfiguration object is one which is not a subscope
+    // of another ConcordConfiguration object (if the scope being sized is not
+    // directly contained in the root scope, the scope directly containing the
+    // parameter will recursively look at its parent scope(s) until the root
+    // scope is found).
+    // - path: The path, relative to the configuration referenced by config, at
+    // which a scope is being sized.
+    // - output: size_t reference to which the appropriate scope size should be
+    // written if sizing is successful (note any value written will be ignored
+    // by the ConcordConfiguration if sizeScope did not return VALID).
+    virtual ParameterStatus sizeScope(const ConcordConfiguration& config,
+                                      const ConfigurationPath& path,
+                                      size_t& output) = 0;
+  };
 
  private:
   struct ConfigurationScope {
@@ -433,8 +452,7 @@ class ConcordConfiguration {
     bool instantiated;
     std::vector<ConcordConfiguration> instances;
     std::string description;
-    ScopeSizer size;
-    void* sizerState;
+    std::shared_ptr<ScopeSizer> size;
 
     ConfigurationScope() {}
     ConfigurationScope(const ConfigurationScope& original);
@@ -447,10 +465,8 @@ class ConcordConfiguration {
     bool initialized;
     std::string value;
     std::unordered_set<std::string> tags;
-    Validator validator;
-    void* validatorState;
-    Generator generator;
-    void* generatorState;
+    std::shared_ptr<ParameterValidator> validator;
+    std::shared_ptr<ParameterGenerator> generator;
 
     ConfigurationParameter() {}
     ConfigurationParameter(const ConfigurationParameter& original);
@@ -478,7 +494,7 @@ class ConcordConfiguration {
                                        const std::string& failureMessage);
   const ConfigurationParameter& getParameter(
       const std::string& parameter, const std::string& failureMessage) const;
-  const ConcordConfiguration* getRootConfig() const;
+  const ConcordConfiguration& getRootConfig() const;
 
   template <typename T>
   bool interpretAs(std::string value, T& output) const;
@@ -612,14 +628,11 @@ class ConcordConfiguration {
   //   (defined below). This function will throw an std::invalid_argument if
   //   scope is not a valid scope name.
   //   - description: a description for this scope.
-  //   - size: pointer to a scope sizer function to be used to get the
+  //   - size: shared pointer to a scope sizer object to be used to get the
   //   appropriate size for this scope when it is instantiated. An
   //   std::invalid_argument will be thrown if a nullptr is given.
-  //   - sizerState: an arbitrary pointer to be passed to the scope sizer
-  //   whenever it is called. It is anticipated this pointer will be used if the
-  //   sizer requires any additional state.
   void declareScope(const std::string& scope, const std::string& description,
-                    ScopeSizer size, void* sizerState);
+                    std::shared_ptr<ScopeSizer> size);
 
   // Gets the description the scope named by the parameter was constructed with.
   // Throws a ConfigurationResourceNotFoundException if the requested scope does
@@ -727,37 +740,31 @@ class ConcordConfiguration {
   // exists in this ConcordConfiguration with the given name.
   std::string getDescription(const std::string& name) const;
 
-  // Adds a validation function to a configuration parameter in this
-  // ConcordConfiguration. Note that we allow only one validation function per
+  // Adds a validator object to a configuration parameter in this
+  // ConcordConfiguration. Note that we allow only one validator object per
   // parameter. Calling this function for a parameter that already has a
   // validator will cause the existing validator to be replaced. Arguments:
   //   - name: The name of the parameter to add the validator to. Throws a
   //   ConfigurationResourceNotFoundException if no parameter exists in this
   //   ConcordConfiguration with this name.
-  //   - validator: Function pointer to the validation function to add to this
+  //   - validator: Shared pointer to the validator object to add to this
   //   parameter. Throws an std::invalid_argument if this is a null pointer.
-  //   - validatorState: Arbitrary pointer to pass to the validator each time it
-  //   is called; it is expected this pointer will be used if the validator
-  //   requires any additional state.
-  void addValidator(const std::string& name, Validator validator,
-                    void* validatorState);
+  void addValidator(const std::string& name,
+                    std::shared_ptr<ParameterValidator> validator);
 
-  // Adds a generation function to a configuration parameter in this
+  // Adds a generator object to a configuration parameter in this
   // ConcordConfiguration. Note that a parameter can only have a single
-  // generator function; calling this function for a parameter that already has
+  // generator object; calling this function for a parameter that already has
   // a generator function will replace the existing generator if this function
   // is successful. Arguments:
   //   - name: The name of the parameter to add the generator to. Throws a
   //   ConfigurationResourceNotFoundException if no parameter exists in this
   //   ConcordConfiguration with this name.
-  //   - generator: Function pointer to the generator function to be added. An
+  //   - generator: Shared pointer to the generator object to be added. An
   //   std::invalid_argument will be thrown if a nullptr is given for this
   //   parameter.
-  //   - generatorState: An arbitrary pointer to pass to the generator each time
-  //   it is called; it is expected this pointer will be used if the generator
-  //   requires additional state.
-  void addGenerator(const std::string& name, Generator generator,
-                    void* generatorState);
+  void addGenerator(const std::string& name,
+                    std::shared_ptr<ParameterGenerator> generator);
 
   // Returns true if this ConcordConfiguration contains a parameter with the
   // given name and false otherwise.
@@ -881,24 +888,18 @@ class ConcordConfiguration {
   //   provides will be written back to failureMessage.
   //   - overwrite: If the requested parameter already has a value loaded,
   //   loadValue will not overwrite it unless true is given for this parameter.
-  //   - prevValue: If loadValue successfully overwrites an existing value and
-  //   prevValue is non-null, the existing value that was overwritten will be
-  //   written to prevValue.
   // Returns: the result of running the validator (if any) for this parameter
   // for the requested value. If the parameter has no validator, VALID will be
   // returned.
   ParameterStatus loadValue(const std::string& name, const std::string& value,
                             std::string* failureMessage = nullptr,
-                            bool overwrite = true,
-                            std::string* prevValue = nullptr);
+                            bool overwrite = true);
 
   // Erases the value currently loaded (if any) for a parameter with the given
   // name in this ConcordConfiguration. The parameter will have no value loaded
-  // after this function runs. If a non-null pointer is provided for prevValue
-  // and this function does erase a value, then the erased value will be written
-  // back to prevValue. Throws a ConfigurationResourceNotFoundException if no
-  // parameter exists with the given name.
-  void eraseValue(const std::string& name, std::string* prevValue = nullptr);
+  // after this function runs. Throws a ConfigurationResourceNotFoundException
+  // if no parameter exists with the given name.
+  void eraseValue(const std::string& name);
 
   // Erases any and all values currently loaded in this ConcordConfiguration. No
   // parameter in this configuraiton (including in any subscope of this
@@ -919,16 +920,12 @@ class ConcordConfiguration {
   //   - overwrite: If the selected parameter already has a value loaded, that
   //   value will only be overwritten if true is given for the overwrite
   //   parameter.
-  //   - prevValue: If a non-null pointer is given for prevValue and loadDefault
-  //   does successfully overwrite an existing value, the existing value will be
-  //   written back to prevValue.
   // Returns: the result of running the validator (if any) for the default value
   // for this parameter. If the parameter has no validators, VALID will be
   // returned.
   ParameterStatus loadDefault(const std::string& name,
                               std::string* failureMessage = nullptr,
-                              bool overwrite = false,
-                              std::string* prevValue = nullptr);
+                              bool overwrite = false);
 
   // Load the default values for all parameters within this
   // ConcordConfiguration, including in any subscopes, that have default values.
@@ -989,9 +986,6 @@ class ConcordConfiguration {
   //   - overwrite: If the requested parameter is already initialized, the
   //   existing value will only be overwritten if true is given for
   //   overwrite.
-  //   - prevValue: If generate does successfully overwrite an existing
-  //   value and a non-null pointer was given for prevValue, the existing
-  //   value will be written back to prevValue.
   // Returns:
   // If the parameter's generation function returns a value other than
   // VALID, then that value will be returned; otherwise, generate returns
@@ -1000,8 +994,7 @@ class ConcordConfiguration {
   // no validators, VALID will be returned.
   ParameterStatus generate(const std::string& name,
                            std::string* failureMessage = nullptr,
-                           bool overwrite = false,
-                           std::string* prevValue = nullptr);
+                           bool overwrite = false);
 
   // Runs the generation functions for any and all parameters in this
   // ConcordConfiguration that have generation functions and loads the generated
@@ -1109,19 +1102,20 @@ class ConcordConfiguration {
 // synchronization.
 class ParameterSelection {
  public:
-  // Type for parameter selector functions that this ParameterSelection wraps. a
-  // ParameterSelector is to accept the following parameters:
-  //   - config: The ConcordConfiguration to which the parameter assessed
-  //   belongs.
-  //   - path: Path to a parameter within the provided conviguration to be
-  //   evaluated. The ParameterSelector should return true if the specified
-  //   parameter is within this selection and false otherwise.
-  //   - state: An arbitrary pointer provided at the time the ParameterSelection
-  //   was constructed with this ParameterSelector. It is anticipated this
-  //   pointer will be used if the ParameterSelector requires any additional
-  //   state.
-  typedef bool (*ParameterSelector)(const ConcordConfiguration& config,
-                                    const ConfigurationPath& path, void* state);
+  // Interface time for parameter selector objects that a ParameterSelector
+  // wraps. Parameter selectors should be implemented by extending
+  // ParameterSelector.
+  class ParameterSelector {
+   public:
+    virtual ~ParameterSelector() {}
+
+    // Determine whether the given parameter at path in the ConcordConfiguration
+    // config should be included in the ParameterSelection this
+    // ParameterSelector implementation defines, returning true if the parameter
+    // should be included and false if it should not be.
+    virtual bool includeParameter(const ConcordConfiguration& config,
+                                  const ConfigurationPath& path) = 0;
+  };
 
  private:
   class ParameterSelectionIterator
@@ -1151,8 +1145,7 @@ class ParameterSelection {
   };
 
   ConcordConfiguration* config;
-  ParameterSelector selector;
-  void* selectorState;
+  std::shared_ptr<ParameterSelector> selector;
 
   // Set for keeping track of any iterators over this ParameterSelection so
   // they can be invalidated in the event of a concurrent modification of this
@@ -1184,15 +1177,11 @@ class ParameterSelection {
   // Parameters:
   //   - config: ConcordConfiguration that this ParameterSelection should select
   //   its parameters from.
-  //   - selector: Function pointer of the ParameterSelector type defined above
-  //   that decides whether given parameters are within this selection. This
-  //   constructor will throw an std::invalid_argument if selector is a null
-  //   pointer.
-  //   - selectorState: Arbitrary pointer to be passed to selector each time it
-  //   is called. It is anticipated this pointer will be used for any
-  //   additioinal state the selector requires.
-  ParameterSelection(ConcordConfiguration& config, ParameterSelector selector,
-                     void* selectorState);
+  //   - selector: Shared pointer to a ParameterSelector object that decides
+  //   whether given parameters are within this selection. This constructor will
+  //   throw an std::invalid_argument if selector is a null pointer.
+  ParameterSelection(ConcordConfiguration& config,
+                     std::shared_ptr<ParameterSelector> selector);
 
   ParameterSelection(const ParameterSelection& original);
   ~ParameterSelection();
@@ -1576,30 +1565,41 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
                                          std::ostream& output,
                                          bool client_flag);
 
-// Declaration and implementation of various functions used by
-// specifyConfiguration to specify how to size scopes and validatate and
-// generate parameters. Pointers to these functions are given to the
-// ConcordConfiguration object specifyConfiguration builds so that the
-// configuration system can call them at the appropriate time (for example,
-// parameter validators are called automatically when parameters are loaded).
 // Computes the total number of Concord nodes. Note we currently assume there is
 // one Concord node per SBFT replica, and the SBFT algorithm specifies that the
 // cluster size in terms of its F and C parameters is (3F + 2C + 1) replicas.
-ConcordConfiguration::ParameterStatus sizeNodes(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state);
+class NodesSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~NodesSizer() override;
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override;
+};
 
 // Computes the number of SBFT replicas per Concord node. Note that, at the time
 // of this writing, we assume there is exactly one SBFT replica per Concord
 // node.
-ConcordConfiguration::ParameterStatus sizeReplicas(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state);
+class ReplicasSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ReplicasSizer() override;
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override;
+};
 
-// Validate an unsigned integer.
-ConcordConfiguration::ParameterStatus validateUInt(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state);
+// Validator type for unsigned integers.
+class UIntValidator : public ConcordConfiguration::ParameterValidator {
+ private:
+  unsigned long long lowerBound;
+  unsigned long long upperBound;
+
+ public:
+  UIntValidator(unsigned long long lowerBound, unsigned long long upperBound);
+  virtual ~UIntValidator() override;
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failureMessage) override;
+};
 
 void specifyClientConfiguration(ConcordConfiguration& config);
 
@@ -1611,32 +1611,14 @@ void specifySimpleClientParams(ConcordConfiguration& config);
 
 void specifyExternalClientConfiguration(config::ConcordConfiguration& config);
 
-inline const std::pair<unsigned long long, unsigned long long>
-    kPositiveIntLimits({1, INT_MAX});
-inline const std::pair<unsigned long long, unsigned long long>
-    kPositiveUInt16Limits({1, UINT16_MAX});
-inline const std::pair<unsigned long long, unsigned long long>
-    kPositiveUInt64Limits({1, UINT64_MAX});
-inline const std::pair<unsigned long long, unsigned long long>
-    kPositiveULongLongLimits({1, ULLONG_MAX});
-inline const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
-    {0, UINT16_MAX});
-inline const std::pair<unsigned long long, unsigned long long> kUInt32Limits(
-    {0, UINT32_MAX});
-inline const std::pair<unsigned long long, unsigned long long> kUInt64Limits(
-    {0, UINT64_MAX});
-inline const std::pair<long long, long long> kInt32Limits({INT32_MIN,
-                                                           INT32_MAX});
-
 // We enforce a minimum size on communication buffers to ensure at least
 // minimal error responses can be passed through them.
-inline const std::pair<unsigned long long, unsigned long long>
-    kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
+inline const unsigned long long kMinConcordBFTCommunicationBufferSize = 512;
+inline const unsigned long long kMaxConcordBFTCommunicationBufferSize =
+    UINT32_MAX;
 
-// We enforce a minimum size on communication buffers to ensure at least
-// minimal error responses can be passed through them.
-inline const std::pair<unsigned long long, unsigned long long>
-    kParticipantNodeNumOfClients({1, 4096});
+inline const unsigned long long kMinParticipantNodeNumOfClients = 1;
+inline const unsigned long long kMaxParticipantNodeNumOfClients = 4096;
 
 // Configuration state label to be applied to a ConcordConfiguration object (via
 // that object's setConfigurationStateLabel function) to track that it is

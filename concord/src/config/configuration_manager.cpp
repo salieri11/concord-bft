@@ -10,10 +10,15 @@
 
 using std::cerr;
 using std::endl;
+using std::exception;
 using std::invalid_argument;
+using std::make_shared;
+using std::make_unique;
 using std::ostream;
+using std::shared_ptr;
 using std::string;
 using std::to_string;
+using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
 
@@ -442,8 +447,7 @@ ConcordConfiguration::ConfigurationScope::ConfigurationScope(
     : instantiated(original.instantiated),
       instances(original.instances),
       description(original.description),
-      size(original.size),
-      sizerState(original.sizerState) {
+      size(original.size) {
   if (original.instanceTemplate) {
     instanceTemplate.reset(
         new ConcordConfiguration(*(original.instanceTemplate)));
@@ -457,7 +461,6 @@ ConcordConfiguration::ConfigurationScope::operator=(
   instances = original.instances;
   description = original.description;
   size = original.size;
-  sizerState = original.sizerState;
   if (original.instanceTemplate) {
     instanceTemplate.reset(
         new ConcordConfiguration(*(original.instanceTemplate)));
@@ -474,9 +477,7 @@ ConcordConfiguration::ConfigurationParameter::ConfigurationParameter(
       value(other.value),
       tags(other.tags),
       validator(other.validator),
-      validatorState(other.validatorState),
-      generator(other.generator),
-      generatorState(other.generatorState) {}
+      generator(other.generator) {}
 
 ConcordConfiguration::ConfigurationParameter&
 ConcordConfiguration::ConfigurationParameter::operator=(
@@ -487,9 +488,7 @@ ConcordConfiguration::ConfigurationParameter::operator=(
   value = other.value;
   tags = other.tags;
   validator = other.validator;
-  validatorState = other.validatorState;
   generator = other.generator;
-  generatorState = other.generatorState;
   return *this;
 }
 
@@ -559,12 +558,12 @@ ConcordConfiguration::getParameter(const string& parameter,
   return parameters.at(parameter);
 }
 
-const ConcordConfiguration* ConcordConfiguration::getRootConfig() const {
+const ConcordConfiguration& ConcordConfiguration::getRootConfig() const {
   const ConcordConfiguration* rootConfig = this;
   while (rootConfig->parentScope) {
     rootConfig = rootConfig->parentScope;
   }
-  return rootConfig;
+  return *rootConfig;
 }
 
 template <>
@@ -1186,7 +1185,7 @@ string ConcordConfiguration::getConfigurationStateLabel() const {
 
 void ConcordConfiguration::declareScope(const string& scope,
                                         const string& description,
-                                        ScopeSizer size, void* sizerState) {
+                                        shared_ptr<ScopeSizer> size) {
   ConfigurationPath requestedScope(scope, true);
   if (scope.size() < 1) {
     throw invalid_argument(
@@ -1216,7 +1215,7 @@ void ConcordConfiguration::declareScope(const string& scope,
   if (!size) {
     throw invalid_argument("Unable to create configuration scope " +
                            printCompletePath(requestedScope) +
-                           ": provided scope sizer function is null.");
+                           ": provided scope sizer object is null.");
   }
   invalidateIterators();
   scopes[scope] = ConfigurationScope();
@@ -1225,7 +1224,6 @@ void ConcordConfiguration::declareScope(const string& scope,
   scopes[scope].instantiated = false;
   scopes[scope].description = description;
   scopes[scope].size = size;
-  scopes[scope].sizerState = sizerState;
 
   scopes[scope].instanceTemplate->parentScope = this;
   ConfigurationPath relativeScopePath(scope, true);
@@ -1264,8 +1262,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
   }
   std::unique_ptr<ConfigurationPath> fullPath(getCompletePath(relativePath));
   size_t scopeSize{};
-  ParameterStatus result = scopeEntry.size(*(getRootConfig()), *fullPath,
-                                           &scopeSize, scopeEntry.sizerState);
+  ParameterStatus result =
+      scopeEntry.size->sizeScope(getRootConfig(), *fullPath, scopeSize);
   if (result != ParameterStatus::VALID) {
     return result;
   }
@@ -1423,10 +1421,8 @@ void ConcordConfiguration::declareParameter(const string& name,
   parameter.initialized = false;
   parameter.value = "";
   parameter.tags = std::unordered_set<string>();
-  parameter.validator = nullptr;
-  parameter.validatorState = nullptr;
-  parameter.generator = nullptr;
-  parameter.generatorState = nullptr;
+  parameter.validator = shared_ptr<ParameterValidator>(nullptr);
+  parameter.generator = shared_ptr<ParameterGenerator>(nullptr);
 }
 
 void ConcordConfiguration::declareParameter(const string& name,
@@ -1460,8 +1456,9 @@ string ConcordConfiguration::getDescription(const string& name) const {
   return parameter.description;
 }
 
-void ConcordConfiguration::addValidator(const string& name, Validator validator,
-                                        void* validatorState) {
+void ConcordConfiguration::addValidator(
+    const string& name,
+    shared_ptr<ConcordConfiguration::ParameterValidator> validator) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot add validator to parameter ");
   if (!validator) {
@@ -1470,11 +1467,11 @@ void ConcordConfiguration::addValidator(const string& name, Validator validator,
                            ": validator given points to null.");
   }
   parameter.validator = validator;
-  parameter.validatorState = validatorState;
 }
 
-void ConcordConfiguration::addGenerator(const string& name, Generator generator,
-                                        void* generatorState) {
+void ConcordConfiguration::addGenerator(
+    const string& name,
+    shared_ptr<ConcordConfiguration::ParameterGenerator> generator) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot add generator to parameter ");
   if (!generator) {
@@ -1483,7 +1480,6 @@ void ConcordConfiguration::addGenerator(const string& name, Generator generator,
                            ": generator given points to null.");
   }
   parameter.generator = generator;
-  parameter.generatorState = generatorState;
 }
 
 bool ConcordConfiguration::contains(const string& name) const {
@@ -1512,7 +1508,7 @@ bool ConcordConfiguration::contains(const ConfigurationPath& path) const {
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
     const string& name, const string& value, string* failureMessage,
-    bool overwrite, string* prevValue) {
+    bool overwrite) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not load value for parameter ");
   std::unique_ptr<ConfigurationPath> path(
@@ -1520,8 +1516,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
   ParameterStatus status = ParameterStatus::VALID;
   string message;
   if (parameter.validator) {
-    status = parameter.validator(value, *(getRootConfig()), *path, &message,
-                                 parameter.validatorState);
+    status =
+        parameter.validator->validate(value, getRootConfig(), *path, message);
   }
   if (failureMessage && (status != ParameterStatus::VALID)) {
     *failureMessage = message;
@@ -1530,9 +1526,6 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
   if (status != ParameterStatus::INVALID) {
     if (parameter.initialized) {
       if (overwrite) {
-        if (prevValue) {
-          *prevValue = parameter.value;
-        }
         parameter.value = value;
       }
     } else {
@@ -1544,12 +1537,9 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
   return status;
 }
 
-void ConcordConfiguration::eraseValue(const string& name, string* prevValue) {
+void ConcordConfiguration::eraseValue(const string& name) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not erase value for parameter ");
-  if (prevValue && parameter.initialized) {
-    *prevValue = parameter.value;
-  }
   parameter.value = "";
   parameter.initialized = false;
 }
@@ -1569,8 +1559,7 @@ void ConcordConfiguration::eraseAllValues() {
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadDefault(
-    const string& name, string* failureMessage, bool overwrite,
-    string* prevValue) {
+    const string& name, string* failureMessage, bool overwrite) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not load default value for parameter ");
 
@@ -1580,8 +1569,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadDefault(
         printCompletePath(name) +
         ": this parameter does not have a default value.");
   }
-  return loadValue(name, parameter.defaultValue, failureMessage, overwrite,
-                   prevValue);
+  return loadValue(name, parameter.defaultValue, failureMessage, overwrite);
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadAllDefaults(
@@ -1625,8 +1613,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validate(
   ParameterStatus status = ParameterStatus::VALID;
   string message;
   if (parameter.validator) {
-    status = parameter.validator(parameter.value, *(getRootConfig()), *path,
-                                 &message, parameter.validatorState);
+    status = parameter.validator->validate(parameter.value, getRootConfig(),
+                                           *path, message);
   }
   if (failureMessage && (status != ParameterStatus::VALID)) {
     *failureMessage = message;
@@ -1682,8 +1670,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validateAll(
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::generate(
-    const string& name, string* failureMessage, bool overwrite,
-    string* prevValue) {
+    const string& name, string* failureMessage, bool overwrite) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot generate value for parameter ");
   std::unique_ptr<ConfigurationPath> path(
@@ -1692,25 +1679,22 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::generate(
   if (!parameter.generator) {
     throw ConfigurationResourceNotFoundException(
         "Cannot generate value for parameter " + printCompletePath(*path) +
-        ": no generator function has been specified for this parameter.");
+        ": no generator object has been specified for this parameter.");
   }
   string generatedValue;
-  ParameterStatus status = parameter.generator(
-      *(getRootConfig()), *path, &generatedValue, parameter.generatorState);
+  ParameterStatus status =
+      parameter.generator->generate(getRootConfig(), *path, generatedValue);
   if (status == ParameterStatus::VALID) {
     string message;
     if (parameter.validator) {
-      status = parameter.validator(generatedValue, *(getRootConfig()), *path,
-                                   &message, parameter.validatorState);
+      status = parameter.validator->validate(generatedValue, getRootConfig(),
+                                             *path, message);
     }
     if (failureMessage && (status != ParameterStatus::VALID)) {
       *failureMessage = message;
     }
     if ((status != ParameterStatus::INVALID) &&
         (!parameter.initialized || overwrite)) {
-      if (prevValue && parameter.initialized) {
-        *prevValue = parameter.value;
-      }
       parameter.value = generatedValue;
       parameter.initialized = true;
     }
@@ -1914,12 +1898,8 @@ void ParameterSelection::invalidateIterators() {
 }
 
 ParameterSelection::ParameterSelection(ConcordConfiguration& config,
-                                       ParameterSelector selector,
-                                       void* selectorState)
-    : config(&config),
-      selector(selector),
-      selectorState(selectorState),
-      iterators() {
+                                       shared_ptr<ParameterSelector> selector)
+    : config(&config), selector(selector), iterators() {
   if (!selector) {
     throw invalid_argument(
         "Attempting to construct a ParameterSelection with a null parameter "
@@ -1928,15 +1908,13 @@ ParameterSelection::ParameterSelection(ConcordConfiguration& config,
 }
 
 ParameterSelection::ParameterSelection(const ParameterSelection& original)
-    : config(original.config),
-      selector(original.selector),
-      selectorState(original.selectorState) {}
+    : config(original.config), selector(original.selector) {}
 
 ParameterSelection::~ParameterSelection() { invalidateIterators(); }
 
 bool ParameterSelection::contains(const ConfigurationPath& parameter) const {
   return (config->contains(parameter)) &&
-         (selector(*config, parameter, selectorState));
+         (selector->includeParameter(*config, parameter));
 }
 
 ParameterSelection::Iterator ParameterSelection::begin() {
@@ -2122,7 +2100,7 @@ std::pair<string, string> generateRSAKeyPair(
 
 static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
     uint16_t fVal, uint16_t cVal, uint16_t clientProxiesPerReplica,
-    string* failureMessage) {
+    string& failureMessage) {
   // Conditions which should have been validated before this function was
   // called.
 #ifdef ALLOW_0_FAULT_TOLERANCE
@@ -2137,16 +2115,13 @@ static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
       numPrincipals + ((uint64_t)clientProxiesPerReplica) * numPrincipals;
 
   if (numPrincipals > UINT16_MAX) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid combination of values for f_val (" + to_string(fVal) +
-          "), c_val (" + to_string(cVal) +
-          "), and client_proxies_per_replica (" +
-          to_string(clientProxiesPerReplica) +
-          "): these parameters imply too many (" + to_string(numPrincipals) +
-          ") SBFT principals; a maximum of " + to_string(UINT16_MAX) +
-          " principals are currently supported.";
-    }
+    failureMessage =
+        "Invalid combination of values for f_val (" + to_string(fVal) +
+        "), c_val (" + to_string(cVal) + "), and client_proxies_per_replica (" +
+        to_string(clientProxiesPerReplica) +
+        "): these parameters imply too many (" + to_string(numPrincipals) +
+        ") SBFT principals; a maximum of " + to_string(UINT16_MAX) +
+        " principals are currently supported.";
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
   return ConcordConfiguration::ParameterStatus::VALID;
@@ -2165,11 +2140,11 @@ static std::pair<string, string> parseCryptosystemSelection(string selection) {
   return parseRes;
 }
 
-ConcordConfiguration::ParameterStatus sizeNodes(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
+NodesSizer::~NodesSizer() {}
 
+ConcordConfiguration::ParameterStatus NodesSizer::sizeScope(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t& output) {
   if (!(config.hasValue<uint16_t>("f_val") &&
         config.hasValue<uint16_t>("c_val"))) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
@@ -2187,829 +2162,844 @@ ConcordConfiguration::ParameterStatus sizeNodes(
   if (numNodes > (size_t)UINT16_MAX) {
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
-  *output = numNodes;
+  output = numNodes;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration::ParameterStatus sizeReplicas(
+ReplicasSizer::~ReplicasSizer() {}
+
+ConcordConfiguration::ParameterStatus ReplicasSizer::sizeScope(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
-
-  *output = 1;
+    size_t& output) {
+  output = 1;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-static ConcordConfiguration::ParameterStatus sizeClientProxies(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
+class ClientProxiesSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ClientProxiesSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    if (!config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    if (config.validate("client_proxies_per_replica") !=
+        ConcordConfiguration::ParameterStatus::VALID) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
 
-  if (!config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  if (config.validate("client_proxies_per_replica") !=
-      ConcordConfiguration::ParameterStatus::VALID) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-
-  *output = config.getValue<uint16_t>("client_proxies_per_replica");
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus validateBoolean(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(), value) !=
-          kValidBooleansTrue.end() ||
-      std::find(kValidBooleansFalse.begin(), kValidBooleansFalse.end(),
-                value) != kValidBooleansFalse.end()) {
+    output = config.getValue<uint16_t>("client_proxies_per_replica");
     return ConcordConfiguration::ParameterStatus::VALID;
   }
+};
 
-  if (failureMessage) {
-    *failureMessage = "Invalid value for parameter " + path.toString() +
-                      ": \"" + value +
-                      "\". A boolean (e.g. \"true\" or \"false\") is required.";
+class BooleanValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~BooleanValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(),
+                  value) != kValidBooleansTrue.end() ||
+        std::find(kValidBooleansFalse.begin(), kValidBooleansFalse.end(),
+                  value) != kValidBooleansFalse.end()) {
+      return ConcordConfiguration::ParameterStatus::VALID;
+    }
+
+    failureMessage = "Invalid value for parameter " + path.toString() + ": \"" +
+                     value +
+                     "\". A boolean (e.g. \"true\" or \"false\") is required.";
+    return ConcordConfiguration::ParameterStatus::INVALID;
   }
-  return ConcordConfiguration::ParameterStatus::INVALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateInt(
+class IntValidator : public ConcordConfiguration::ParameterValidator {
+ private:
+  long long lowerBound;
+  long long upperBound;
+
+ public:
+  IntValidator(long long lowerBound, long long upperBound)
+      : lowerBound(lowerBound), upperBound(upperBound) {}
+  virtual ~IntValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    long long intVal;
+    try {
+      intVal = std::stoll(value);
+    } catch (invalid_argument& e) {
+      failureMessage = "Invalid value for parameter " + path.toString() +
+                       ": \"" + value + "\". An integer is required.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    } catch (std::out_of_range& e) {
+      failureMessage = "Invalid value for parameter " + path.toString() +
+                       ": \"" + value + "\". An integer in the range (" +
+                       to_string(lowerBound) + ", " + to_string(upperBound) +
+                       "), inclusive, is required.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    if ((intVal < lowerBound) || (intVal > upperBound)) {
+      failureMessage = "Invalid value for parameter " + path.toString() +
+                       ": \"" + value + "\". An integer in the range (" +
+                       to_string(lowerBound) + ", " + to_string(upperBound) +
+                       "), inclusive, is required.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+UIntValidator::UIntValidator(unsigned long long lowerBound,
+                             unsigned long long upperBound)
+    : lowerBound(lowerBound), upperBound(upperBound) {}
+
+UIntValidator::~UIntValidator() {}
+
+ConcordConfiguration::ParameterStatus UIntValidator::validate(
     const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  const std::pair<long long, long long>* limits =
-      static_cast<std::pair<long long, long long>*>(state);
-  assert(limits->first <= limits->second);
-
-  long long intVal;
-  try {
-    intVal = std::stoll(value);
-  } catch (invalid_argument& e) {
-    if (failureMessage) {
-      *failureMessage = "Invalid value for parameter " + path.toString() +
-                        ": \"" + value + "\". An integer is required.";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  } catch (std::out_of_range& e) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + to_string(limits->first) + ", " +
-          to_string(limits->second) + "), inclusive, is required.";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  if ((intVal < limits->first) || (intVal > limits->second)) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + to_string(limits->first) + ", " +
-          to_string(limits->second) + "), inclusive, is required.";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-ConcordConfiguration::ParameterStatus validateUInt(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  const std::pair<unsigned long long, unsigned long long>* limits =
-      static_cast<std::pair<unsigned long long, unsigned long long>*>(state);
-  assert(limits->first <= limits->second);
-
+    const ConfigurationPath& path, string& failureMessage) {
   unsigned long long intVal;
   try {
     intVal = std::stoull(value);
   } catch (invalid_argument& e) {
-    if (failureMessage) {
-      *failureMessage = "Invalid value for parameter " + path.toString() +
-                        ": \"" + value + "\". An integer is required.";
-    }
+    failureMessage = "Invalid value for parameter " + path.toString() + ": \"" +
+                     value + "\". An integer is required.";
     return ConcordConfiguration::ParameterStatus::INVALID;
   } catch (std::out_of_range& e) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + to_string(limits->first) + ", " +
-          to_string(limits->second) + "), inclusive, is required.";
-    }
+    failureMessage = "Invalid value for parameter " + path.toString() + ": \"" +
+                     value + "\". An integer in the range (" +
+                     to_string(lowerBound) + ", " + to_string(upperBound) +
+                     "), inclusive, is required.";
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
-  if ((intVal < limits->first) || (intVal > limits->second)) {
-    if (failureMessage) {
-      *failureMessage =
-          "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + to_string(limits->first) + ", " +
-          to_string(limits->second) + "), inclusive, is required.";
-    }
+  if ((intVal < lowerBound) || (intVal > upperBound)) {
+    failureMessage = "Invalid value for parameter " + path.toString() + ": \"" +
+                     value + "\". An integer in the range (" +
+                     to_string(lowerBound) + ", " + to_string(upperBound) +
+                     "), inclusive, is required.";
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-static ConcordConfiguration::ParameterStatus validateClientProxiesPerReplica(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  } else {
-    if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val")) {
-      if (failureMessage) {
-        *failureMessage =
+class ClientProxiesPerReplicaValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~ClientProxiesPerReplicaValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(1, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    } else {
+      if (!config.hasValue<uint16_t>("f_val") ||
+          !config.hasValue<uint16_t>("c_val")) {
+        failureMessage =
             "Cannot fully validate client_proxies_per_replica: value is in "
             "range, but f_val and c_val must both also be known to veriy that "
             "the total number of SBFT principals needed is in range.";
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
       }
+      uint16_t clientProxiesPerReplica = (uint16_t)(std::stoull(value));
+      return validateNumberOfPrincipalsInBounds(
+          config.getValue<uint16_t>("f_val"),
+          config.getValue<uint16_t>("c_val"), clientProxiesPerReplica,
+          failureMessage);
+    }
+  }
+};
+
+class PublicKeyValidator : public ConcordConfiguration::ParameterValidator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  PublicKeyValidator(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~PublicKeyValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!cryptosystem) {
+      failureMessage = "Cannot assess validity of threshold public key " +
+                       path.toString() +
+                       ": corresponding cryptosystem is not initialized.";
       return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    uint16_t clientProxiesPerReplica = (uint16_t)(std::stoull(value));
-    return validateNumberOfPrincipalsInBounds(
-        config.getValue<uint16_t>("f_val"), config.getValue<uint16_t>("c_val"),
-        clientProxiesPerReplica, failureMessage);
-  }
-}
 
-static ConcordConfiguration::ParameterStatus validateCryptosys(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  std::pair<string, string> cryptoSelection = parseCryptosystemSelection(value);
-
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val")) {
-    if (failureMessage) {
-      *failureMessage = "Cannot fully validate cryptosystem selection for " +
-                        path.toString() +
-                        ": f_val and c_val must be known to determine the "
-                        "threshold and total number of signers.";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  uint16_t fVal = config.getValue<uint16_t>("f_val");
-  uint16_t cVal = config.getValue<uint16_t>("c_val");
-  uint64_t unvalidatedNumSigners =
-      3 * ((uint64_t)fVal) + 2 * ((uint64_t)cVal) + 1;
-  if (unvalidatedNumSigners > UINT16_MAX) {
-    if (failureMessage) {
-      *failureMessage =
-          "Cryptosystem selection for " + path.toString() +
-          " cannot be valid: f_val(" + to_string(fVal) + ") and c_val(" +
-          to_string(cVal) + ") imply the number of SBFT replicas(" +
-          to_string(unvalidatedNumSigners) +
-          "), and by extension the number of threshold signers for this "
-          "cryptosystem, exceeds the currently supported limit of " +
-          to_string(UINT16_MAX) + ".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-
-  uint16_t threshold;
-
-  // Compute the threshold, which is different for each of the three
-  // cryptosystems we are currently using. The code specific to each
-  // cryptosystem here will hopefully be factored out into its own function in a
-  // futre round of code cleanup in which we intend to replace
-  // validator/generator/scopesizer function pointers with objects.
-  string sysName = path.getLeaf().name;
-  if (sysName == "slow_commit_cryptosys") {
-    threshold = 2 * fVal + cVal + 1;
-  } else if (sysName == "commit_cryptosys") {
-    threshold = 3 * fVal + cVal + 1;
-  } else if (sysName == "optimistic_commit_cryptosys") {
-    threshold = 3 * fVal + 2 * cVal + 1;
-  } else {
-    if (failureMessage) {
-      *failureMessage =
-          "Cannot determine validity of cryptosystem selection for " +
-          path.toString() +
-          ": The validator lacks knowledge of the correct threshold for this "
-          "cryptosystem.";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus validatePublicKey(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    if (failureMessage) {
-      *failureMessage = "Cannot assess validity of threshold public key " +
-                        path.toString() +
-                        ": corresponding cryptosystem is not initialized.";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  try {
-    *output = (*cryptosystemPointer)->getSystemPublicKey();
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (const std::exception& e) {
-    LOG_FATAL(THRESHSIGN_LOG, e.what());
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateCVal(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  } else {
-    if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-      if (failureMessage) {
-        *failureMessage =
+class ThresholdPublicKeyLoader
+    : public ConcordConfiguration::ParameterGenerator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  ThresholdPublicKeyLoader(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~ThresholdPublicKeyLoader() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!cryptosystem) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    try {
+      output = cryptosystem->getSystemPublicKey();
+      return ConcordConfiguration::ParameterStatus::VALID;
+    } catch (const exception& e) {
+      LOG_FATAL(THRESHSIGN_LOG, e.what());
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+  }
+};
+
+class CValValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~CValValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(0, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    } else {
+      if (!config.hasValue<uint16_t>("f_val") ||
+          !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+        failureMessage =
             "Cannot fully validate c_val: value is in range, but f_val and "
             "client_proxies_per_replica must both also be known to veriy that "
             "the total number of SBFT principals needed is in range.";
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
       }
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      uint16_t cVal = (uint16_t)(std::stoull(value));
+      return validateNumberOfPrincipalsInBounds(
+          config.getValue<uint16_t>("f_val"), cVal,
+          config.getValue<uint16_t>("client_proxies_per_replica"),
+          failureMessage);
     }
-    uint16_t cVal = (uint16_t)(std::stoull(value));
-    return validateNumberOfPrincipalsInBounds(
-        config.getValue<uint16_t>("f_val"), cVal,
-        config.getValue<uint16_t>("client_proxies_per_replica"),
-        failureMessage);
   }
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateFVal(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
+class FValValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~FValValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(
 #ifdef ALLOW_0_FAULT_TOLERANCE
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+        0,
 #else
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+        1,
 #endif
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    if (failureMessage) {
-      *failureMessage =
+        UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      failureMessage =
           "Cannot fully validate f_val: value is in range, but c_val and "
           "client_proxies_per_replica must both also be known to veriy that "
           "the total number of SBFT principals needed is in range.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    uint16_t fVal = (uint16_t)(std::stoull(value));
+    return validateNumberOfPrincipalsInBounds(
+        fVal, config.getValue<uint16_t>("c_val"),
+        config.getValue<uint16_t>("client_proxies_per_replica"),
+        failureMessage);
   }
-  uint16_t fVal = (uint16_t)(std::stoull(value));
-  return validateNumberOfPrincipalsInBounds(
-      fVal, config.getValue<uint16_t>("c_val"),
-      config.getValue<uint16_t>("client_proxies_per_replica"), failureMessage);
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateNumClientProxies(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    if (failureMessage) {
-      *failureMessage =
+class NumClientProxiesValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~NumClientProxiesValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(1, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      failureMessage =
           "Cannot validate num_client_proxies: values for f_val, c_val and "
           "client_proxies_per_replica are required to determine expected value "
           "of num_client_proxies.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  uint16_t expectedNumClientProxies =
-      config.getValue<uint16_t>("client_proxies_per_replica") *
-      (3 * config.getValue<uint16_t>("f_val") +
-       2 * config.getValue<uint16_t>("c_val") + 1);
-  if ((uint16_t)(std::stoull(value)) != expectedNumClientProxies) {
-    if (failureMessage) {
-      *failureMessage =
+    uint16_t expectedNumClientProxies =
+        config.getValue<uint16_t>("client_proxies_per_replica") *
+        (3 * config.getValue<uint16_t>("f_val") +
+         2 * config.getValue<uint16_t>("c_val") + 1);
+    if ((uint16_t)(std::stoull(value)) != expectedNumClientProxies) {
+      failureMessage =
           "Invalid valud for num_client_proxies: " + value +
           "; num_client_proxies must be equal to client_proxies_per_replica * "
           "(3 * f_val + 2 * c_val + 1).";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus computeNumClientProxies(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+class NumClientProxiesCalculator
+    : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~NumClientProxiesCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    output = to_string(config.getValue<uint16_t>("client_proxies_per_replica") *
+                       (3 * config.getValue<uint16_t>("f_val") +
+                        2 * config.getValue<uint16_t>("c_val") + 1));
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  *output = to_string(config.getValue<uint16_t>("client_proxies_per_replica") *
-                      (3 * config.getValue<uint16_t>("f_val") +
-                       2 * config.getValue<uint16_t>("c_val") + 1));
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateNumPrincipals(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    if (failureMessage) {
-      *failureMessage =
+class NumPrincipalsValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~NumPrincipalsValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(1, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      failureMessage =
           "Cannot validate num_principals: values for f_val, c_val and "
           "client_proxies_per_replica are required to determine expected value "
           "of num_principals.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  uint16_t expectedNumPrincipals =
-      (config.getValue<uint16_t>("client_proxies_per_replica") + 1) *
-      (3 * config.getValue<uint16_t>("f_val") +
-       2 * config.getValue<uint16_t>("c_val") + 1);
-  if ((uint16_t)(std::stoull(value)) != expectedNumPrincipals) {
-    if (failureMessage) {
-      *failureMessage =
+    uint16_t expectedNumPrincipals =
+        (config.getValue<uint16_t>("client_proxies_per_replica") + 1) *
+        (3 * config.getValue<uint16_t>("f_val") +
+         2 * config.getValue<uint16_t>("c_val") + 1);
+    if ((uint16_t)(std::stoull(value)) != expectedNumPrincipals) {
+      failureMessage =
           "Invalid value for num_principals: " + value +
           "; num_principals must be equal to (1 + client_proxies_per_replica) "
           "* (3 * f_val + 2 * c_val + 1).";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus computeNumPrincipals(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  *output =
-      to_string((1 + config.getValue<uint16_t>("client_proxies_per_replica")) *
-                (3 * config.getValue<uint16_t>("f_val") +
-                 2 * config.getValue<uint16_t>("c_val") + 1));
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus validateNumReplicas(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    if (failureMessage) {
-      *failureMessage =
-          "Cannot validate num_replicas: values for f_val, c_val and "
-          "client_proxies_per_replica are required to determine expected value "
-          "of num_replicas.";
+class NumPrincipalsCalculator
+    : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~NumPrincipalsCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    output = to_string(
+        (1 + config.getValue<uint16_t>("client_proxies_per_replica")) *
+        (3 * config.getValue<uint16_t>("f_val") +
+         2 * config.getValue<uint16_t>("c_val") + 1));
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  uint16_t expectedNumReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                                 2 * config.getValue<uint16_t>("c_val") + 1;
-  if ((uint16_t)(std::stoull(value)) != expectedNumReplicas) {
-    if (failureMessage) {
-      *failureMessage =
+};
+
+class NumReplicasValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~NumReplicasValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(1, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val")) {
+      failureMessage =
+          "Cannot validate num_replicas: values for f_val and c_val are "
+          "required to determine expected value of num_replicas.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    uint16_t expectedNumReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                                   2 * config.getValue<uint16_t>("c_val") + 1;
+    if ((uint16_t)(std::stoull(value)) != expectedNumReplicas) {
+      failureMessage =
           "Invalid value for num_replicas: " + value +
           "; num_replicas must be equal to 3 * f_val + 2 * c_val + 1.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus computeNumReplicas(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+class NumReplicasCalculator : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~NumReplicasCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    output = to_string(3 * config.getValue<uint16_t>("f_val") +
+                       2 * config.getValue<uint16_t>("c_val") + 1);
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  *output = to_string(3 * config.getValue<uint16_t>("f_val") +
-                      2 * config.getValue<uint16_t>("c_val") + 1);
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus validatePositiveReplicaInt(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  const std::pair<unsigned long long, unsigned long long>* limits;
+class PositiveReplicaIntValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~PositiveReplicaIntValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    // Note we can only truly validate that this parameter fits in an int on an
+    // actual Concord replica, and not in conc_genconfig, as int's size may vary
+    // between different builds and machines; in conc_genconfig this function
+    // will enforce as loose a bound as possible because it does not
+    // necessarilly know how big an int will be on the nodes being configured.
+    auto limits = make_unique<UIntValidator>(1, ULLONG_MAX);
+    if (config.getConfigurationStateLabel() ==
+        kConcordNodeConfigurationStateLabel) {
+      limits = make_unique<UIntValidator>(1, INT_MAX);
+    }
 
-  // Note we can only truly validate that this parameter fits in an int on an
-  // actual Concord replica, and not in conc_genconfig, as int's size may vary
-  // between different builds and machines; in conc_genconfig this function will
-  // enforce as loose a bound as possible because it does not necessarilly know
-  // how big an int will be on the nodes being configured.
-  if (config.getConfigurationStateLabel() ==
-      kConcordNodeConfigurationStateLabel) {
-    limits = &kPositiveIntLimits;
-  } else {
-    limits = &kPositiveULongLongLimits;
+    return limits->validate(value, config, path, failureMessage);
   }
+};
 
-  return validateUInt(value, config, path, failureMessage,
-                      const_cast<void*>(reinterpret_cast<const void*>(limits)));
-}
-
-static ConcordConfiguration::ParameterStatus validateDatabaseImplementation(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  if (!((value == "memory") || (value == "rocksdb"))) {
-    if (failureMessage) {
-      *failureMessage =
+class DatabaseImplementationValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~DatabaseImplementationValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!((value == "memory") || (value == "rocksdb"))) {
+      failureMessage =
           "Unrecognized database implementation: \"" + value + "\".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus validateStorageType(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void*) {
-  if (value != "basic" && value != "merkle") {
-    if (failureMessage) {
-      *failureMessage = "Unrecognized storage type: \"" + value + "\".";
-    }
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus validatePortNumber(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  return validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
-}
-
-static ConcordConfiguration::ParameterStatus validatePrivateKey(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    if (failureMessage) {
-      *failureMessage = "Cannot assess validity of threshold private key " +
-                        path.toString() +
-                        ": corresponding cryptosystem is not initialized.";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  try {
-    // This validator should only be called with paths of the form:
-    //
-    // node[i]/replica[0]/..._private_key
-    //
-    // We infer which replica the key is for from this path. Note the
-    // Cryptosystem class considers signers 1-indexed.
-    if ((path.name != "node") || !path.isScope || !path.useInstance ||
-        (path.index >= UINT16_MAX)) {
       return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    uint16_t signer = path.index + 1;
-
-    *output = (*cryptosystemPointer)->getPrivateKey(signer);
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (const std::exception& e) {
-    LOG_FATAL(THRESHSIGN_LOG, e.what());
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateVerificationKey(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    if (failureMessage) {
-      *failureMessage =
-          "Cannot assess validity of threshold verification key " +
-          path.toString() + ": corresponding cryptosystem is not initialized.";
-    }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  assert(state);
-  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
-      static_cast<std::unique_ptr<Cryptosystem>*>(state);
-
-  if (!(*cryptosystemPointer)) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  try {
-    // This validator should only be called with paths of the form:
-    //
-    // node[i]/replica[0]/..._verification_key
-    //
-    // We infer which replica the key is for from this path. Note the
-    // Cryptosystem class considers signers 1-indexed.
-    if ((path.name != "node") || !path.isScope || !path.useInstance ||
-        (path.index >= UINT16_MAX)) {
+class StorageTypeValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~StorageTypeValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (value != "basic" && value != "merkle") {
+      failureMessage = "Unrecognized storage type: \"" + value + "\".";
       return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    uint16_t signer = path.index + 1;
-
-    *output = ((*cryptosystemPointer)->getSystemVerificationKeys())[signer];
     return ConcordConfiguration::ParameterStatus::VALID;
-  } catch (const std::exception& e) {
-    LOG_FATAL(THRESHSIGN_LOG, e.what());
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-}
+};
 
-static ConcordConfiguration::ParameterStatus validatePrincipalId(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
+class PortNumberValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~PortNumberValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(0, UINT16_MAX);
+    return boundsCheck.validate(value, config, path, failureMessage);
   }
-  uint16_t principalID = (uint16_t)(std::stoull(value));
+};
 
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val") ||
-      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-    if (failureMessage) {
-      *failureMessage =
+class PrivateKeyValidator : public ConcordConfiguration::ParameterValidator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  PrivateKeyValidator(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~PrivateKeyValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!cryptosystem) {
+      failureMessage = "Cannot assess validity of threshold private key " +
+                       path.toString() +
+                       ": corresponding cryptosystem is not initialized.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ThresholdPrivateKeyLoader
+    : public ConcordConfiguration::ParameterGenerator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  ThresholdPrivateKeyLoader(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~ThresholdPrivateKeyLoader() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!cryptosystem) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    try {
+      // This generator should only be called with paths of the form:
+      //
+      // node[i]/replica[0]/..._private_key
+      //
+      // We infer which replica the key is for from this path. Note the
+      // Cryptosystem class considers signers 1-indexed.
+      if ((path.name != "node") || !path.isScope || !path.useInstance ||
+          (path.index >= UINT16_MAX)) {
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+      uint16_t signer = path.index + 1;
+
+      output = cryptosystem->getPrivateKey(signer);
+      return ConcordConfiguration::ParameterStatus::VALID;
+    } catch (const exception& e) {
+      LOG_FATAL(THRESHSIGN_LOG, e.what());
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+  }
+};
+
+class VerificationKeyValidator
+    : public ConcordConfiguration::ParameterValidator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  VerificationKeyValidator(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~VerificationKeyValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!cryptosystem) {
+      failureMessage = "Cannot assess validity of threshold verification key " +
+                       path.toString() +
+                       ": corresponding cryptosystem is not initialized.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ThresholdVerificationKeyLoader
+    : public ConcordConfiguration::ParameterGenerator {
+ private:
+  const unique_ptr<Cryptosystem>& cryptosystem;
+
+ public:
+  ThresholdVerificationKeyLoader(const unique_ptr<Cryptosystem>& cryptosystem)
+      : cryptosystem(cryptosystem) {}
+  virtual ~ThresholdVerificationKeyLoader() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    if (!cryptosystem) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    try {
+      // This generator should only be called with paths of the form:
+      //
+      // node[i]/replica[0]/..._verification_key
+      //
+      // We infer which replica the key is for from this path. Note the
+      // Cryptosystem class considers signers 1-indexed.
+      if ((path.name != "node") || !path.isScope || !path.useInstance ||
+          (path.index >= UINT16_MAX)) {
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+      uint16_t signer = path.index + 1;
+
+      output = (cryptosystem->getSystemVerificationKeys())[signer];
+      return ConcordConfiguration::ParameterStatus::VALID;
+    } catch (const exception& e) {
+      LOG_FATAL(THRESHSIGN_LOG, e.what());
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+  }
+};
+
+class PrincipalIdValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~PrincipalIdValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    UIntValidator boundsCheck(0, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    uint16_t principalID = (uint16_t)(std::stoull(value));
+
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      failureMessage =
           "Cannot fully validate Concord-BFT principal ID for " +
           path.toString() +
           ": f_val, c_val, and client_proxies_per_replica are required to "
           "determine bounds for maximum principal ID.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  uint16_t fVal = config.getValue<uint16_t>("f_val");
-  uint16_t cVal = config.getValue<uint16_t>("c_val");
-  uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
-  uint16_t clientProxiesPerReplica =
-      config.getValue<uint16_t>("client_proxies_per_replica");
-  uint16_t numPrincipals = numReplicas * (1 + clientProxiesPerReplica);
+    uint16_t fVal = config.getValue<uint16_t>("f_val");
+    uint16_t cVal = config.getValue<uint16_t>("c_val");
+    uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
+    uint16_t clientProxiesPerReplica =
+        config.getValue<uint16_t>("client_proxies_per_replica");
+    uint16_t numPrincipals = numReplicas * (1 + clientProxiesPerReplica);
 
-  // The path to a principal Id should be of one of these forms:
-  //   node[i]/replica[0]/principal_id
-  //   node[i]/client_proxy[j]/principal_id
-  assert(path.isScope && path.subpath);
+    // The path to a principal Id should be of one of these forms:
+    //   node[i]/replica[0]/principal_id
+    //   node[i]/client_proxy[j]/principal_id
+    assert(path.isScope && path.subpath);
 
-  if (path.subpath->name == "replica") {
-    if (principalID >= numReplicas) {
-      if (failureMessage) {
-        *failureMessage =
+    if (path.subpath->name == "replica") {
+      if (principalID >= numReplicas) {
+        failureMessage =
             "Invalid principal ID for " + path.toString() + ": " +
             to_string(principalID) +
             ". Principal IDs for replicas must be less than num_replicas.";
+        return ConcordConfiguration::ParameterStatus::INVALID;
       }
-      return ConcordConfiguration::ParameterStatus::INVALID;
-    }
 
-  } else {
-    assert(path.subpath->name == "client_proxy");
+    } else {
+      assert(path.subpath->name == "client_proxy");
 
-    if ((principalID < numReplicas) || (principalID >= numPrincipals)) {
-      if (failureMessage) {
-        *failureMessage =
+      if ((principalID < numReplicas) || (principalID >= numPrincipals)) {
+        failureMessage =
             "Invalid principal ID for " + path.toString() + ": " +
             to_string(principalID) +
             ". Principal IDs for client proxies should be in the range "
             "(num_replicas, num_principals - 1), inclusive.";
+        return ConcordConfiguration::ParameterStatus::INVALID;
       }
-      return ConcordConfiguration::ParameterStatus::INVALID;
-    }
-  }
-
-  res = ConcordConfiguration::ParameterStatus::VALID;
-  for (size_t i = 0; i < numReplicas; ++i) {
-    ConfigurationPath replicaPath("node", (size_t)i);
-    replicaPath.subpath.reset(new ConfigurationPath("replica", (size_t)0));
-    replicaPath.subpath->subpath.reset(
-        new ConfigurationPath("principal_id", false));
-    if (!config.hasValue<uint16_t>(replicaPath)) {
-      if (replicaPath != path) {
-        res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-      }
-    } else if ((config.getValue<uint16_t>(replicaPath) == principalID) &&
-               (replicaPath != path)) {
-      if (failureMessage) {
-        *failureMessage = "Invalid principal ID for " + path.toString() + ": " +
-                          to_string(principalID) +
-                          ". This ID is non-unique; it duplicates the ID for " +
-                          replicaPath.toString() + ".";
-      }
-      return ConcordConfiguration::ParameterStatus::INVALID;
     }
 
-    for (size_t j = 0; j < clientProxiesPerReplica; ++j) {
-      ConfigurationPath clientProxyPath("node", (size_t)i);
-      clientProxyPath.subpath.reset(new ConfigurationPath("client_proxy", j));
-      clientProxyPath.subpath->subpath.reset(
+    res = ConcordConfiguration::ParameterStatus::VALID;
+    for (size_t i = 0; i < numReplicas; ++i) {
+      ConfigurationPath replicaPath("node", (size_t)i);
+      replicaPath.subpath.reset(new ConfigurationPath("replica", (size_t)0));
+      replicaPath.subpath->subpath.reset(
           new ConfigurationPath("principal_id", false));
-      if (!config.hasValue<uint16_t>(clientProxyPath)) {
-        if (clientProxyPath != path) {
+      if (!config.hasValue<uint16_t>(replicaPath)) {
+        if (replicaPath != path) {
           res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
         }
-      } else if ((config.getValue<uint16_t>(clientProxyPath) == principalID) &&
-                 (clientProxyPath != path)) {
-        if (failureMessage) {
-          *failureMessage =
+      } else if ((config.getValue<uint16_t>(replicaPath) == principalID) &&
+                 (replicaPath != path)) {
+        failureMessage = "Invalid principal ID for " + path.toString() + ": " +
+                         to_string(principalID) +
+                         ". This ID is non-unique; it duplicates the ID for " +
+                         replicaPath.toString() + ".";
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+
+      for (size_t j = 0; j < clientProxiesPerReplica; ++j) {
+        ConfigurationPath clientProxyPath("node", (size_t)i);
+        clientProxyPath.subpath.reset(new ConfigurationPath("client_proxy", j));
+        clientProxyPath.subpath->subpath.reset(
+            new ConfigurationPath("principal_id", false));
+        if (!config.hasValue<uint16_t>(clientProxyPath)) {
+          if (clientProxyPath != path) {
+            res =
+                ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+          }
+        } else if ((config.getValue<uint16_t>(clientProxyPath) ==
+                    principalID) &&
+                   (clientProxyPath != path)) {
+          failureMessage =
               "Invalid principal ID for " + path.toString() + ": " +
               to_string(principalID) +
               ". This ID is non-unique; it duplicates the ID for " +
               clientProxyPath.toString() + ".";
+          return ConcordConfiguration::ParameterStatus::INVALID;
         }
-        return ConcordConfiguration::ParameterStatus::INVALID;
       }
     }
-  }
 
-  if (failureMessage &&
-      (res ==
-       ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)) {
-    *failureMessage = "Cannot fully validate principal ID for " +
-                      path.toString() +
-                      ": Not all other principal IDs are known, but are "
-                      "required to check for uniqueness.";
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus computePrincipalId(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  // The path to a principal Id should be of one of these forms:
-  //   node[i]/replica[0]/principal_id
-  //   node[i]/client_proxy[j]/principal_id
-
-  assert(path.isScope && path.subpath && path.useInstance);
-
-  if (path.subpath->name == "replica") {
-    *output = to_string(path.index);
-  } else {
-    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
-           path.subpath->useInstance);
-
-    if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val")) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    if (res ==
+        ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION) {
+      failureMessage = "Cannot fully validate principal ID for " +
+                       path.toString() +
+                       ": Not all other principal IDs are known, but are "
+                       "required to check for uniqueness.";
     }
-    uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                           2 * config.getValue<uint16_t>("c_val") + 1;
-
-    *output = to_string(path.index + numReplicas * (1 + path.subpath->index));
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
+};
 
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class PrincipalIdCalculator : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~PrincipalIdCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    // The path to a principal Id should be of one of these forms:
+    //   node[i]/replica[0]/principal_id
+    //   node[i]/client_proxy[j]/principal_id
+    assert(path.isScope && path.subpath && path.useInstance);
 
-static ConcordConfiguration::ParameterStatus computeTimeSourceId(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  *output = "time-source" + to_string(path.index);
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+    if (path.subpath->name == "replica") {
+      output = to_string(path.index);
+    } else {
+      assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
+             path.subpath->useInstance);
+
+      if (!config.hasValue<uint16_t>("f_val") ||
+          !config.hasValue<uint16_t>("c_val")) {
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+      uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                             2 * config.getValue<uint16_t>("c_val") + 1;
+
+      output = to_string(path.index + numReplicas * (1 + path.subpath->index));
+    }
+
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class TimeSourceIdCalculator : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~TimeSourceIdCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    output = "time-source" + to_string(path.index);
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
 
 const size_t kRSAPublicKeyHexadecimalLength = 584;
 // Note we do not have a correpsonding kRSAPrivateKeyHexadecimalLength constant
 // because the hexadecimal length of RSA private keys actually seems to vary a
 // little in the current serialization of them.
 
-static ConcordConfiguration::ParameterStatus validateRSAPrivateKey(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  if (!(std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
+class RSAPrivateKeyValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~RSAPrivateKeyValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!(std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  // The path to an RSA private key should be of the form:
-  //   node[i]/replica[0]/private_key
-  // We infer what replica the key is for from the path.
-  assert(path.isScope && path.useInstance && path.subpath &&
-         (path.subpath->name == "replica"));
-  const ConcordPrimaryConfigurationAuxiliaryState* auxState =
-      dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
-          config.getAuxiliaryState());
-  assert(auxState);
+class RSAPrivateKeyLoader : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~RSAPrivateKeyLoader() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    // The path to an RSA private key should be of the form:
+    //   node[i]/replica[0]/private_key
+    // We infer what replica the key is for from the path.
+    assert(path.isScope && path.useInstance && path.subpath &&
+           (path.subpath->name == "replica"));
+    const ConcordPrimaryConfigurationAuxiliaryState* auxState =
+        dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
+            config.getAuxiliaryState());
+    assert(auxState);
 
-  size_t nodeIndex = path.index;
+    size_t nodeIndex = path.index;
 
-  if (nodeIndex >= auxState->replicaRSAKeys.size()) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    output = auxState->replicaRSAKeys[nodeIndex].first;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  *output = auxState->replicaRSAKeys[nodeIndex].first;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateRSAPublicKey(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  if (!((value.length() == kRSAPublicKeyHexadecimalLength) &&
-        std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
+class RSAPublicKeyValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~RSAPublicKeyValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (!((value.length() == kRSAPublicKeyHexadecimalLength) &&
+          std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus getRSAPublicKey(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  // The path to an RSA public key should be of this form:
-  //   node[i]/replica[0]/public_key
-  // We infer what replica the key is for from the path.
-  assert(path.isScope && path.useInstance && path.subpath &&
-         (path.subpath->name == "replica"));
-  const ConcordPrimaryConfigurationAuxiliaryState* auxState =
-      dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
-          config.getAuxiliaryState());
-  assert(auxState);
+class RSAPublicKeyLoader : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~RSAPublicKeyLoader() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
+    // The path to an RSA public key should be of this form:
+    //   node[i]/replica[0]/public_key
+    // We infer what replica the key is for from the path.
+    assert(path.isScope && path.useInstance && path.subpath &&
+           (path.subpath->name == "replica"));
+    const ConcordPrimaryConfigurationAuxiliaryState* auxState =
+        dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
+            config.getAuxiliaryState());
+    assert(auxState);
 
-  size_t nodeIndex = path.index;
+    size_t nodeIndex = path.index;
 
-  if (nodeIndex >= auxState->replicaRSAKeys.size()) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    output = auxState->replicaRSAKeys[nodeIndex].second;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  *output = auxState->replicaRSAKeys[nodeIndex].second;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
 // We generally do not validate hosts as we want to allow use of either
 // hostnames or IP addresses in the configuration files in various contexts
@@ -3017,78 +3007,88 @@ static ConcordConfiguration::ParameterStatus getRSAPublicKey(
 // however, one constraint we do want to validate is that, when a node reads its
 // configuration file, node-local hosts are set to loopback if the
 // "use_loopback_for_local_hosts" option is enabled.
-static ConcordConfiguration::ParameterStatus validatePrincipalHost(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  // Enforcing that loopback is expected for node-local hosts does not make
-  // sense unless we have a specific node's configuration and this principal
-  // host belongs to a particular node.
-  if ((config.getConfigurationStateLabel() !=
-       kConcordNodeConfigurationStateLabel) ||
-      !path.isScope || !path.useInstance || (path.name != "node")) {
+class PrincipalHostValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~PrincipalHostValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    // Enforcing that loopback is expected for node-local hosts does not make
+    // sense unless we have a specific node's configuration and this principal
+    // host belongs to a particular node.
+    if ((config.getConfigurationStateLabel() !=
+         kConcordNodeConfigurationStateLabel) ||
+        !path.isScope || !path.useInstance || (path.name != "node")) {
+      return ConcordConfiguration::ParameterStatus::VALID;
+    }
+
+    // We make a copy of the configuration to use for determining which node is
+    // local because this process may require iteration of the configuration,
+    // and, under the implementations at the time of this writing, a const
+    // ConcordConfiguration cannot be iterated.
+    ConcordConfiguration nonConstConfig = config;
+
+    if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
+        config.getValue<bool>("use_loopback_for_local_hosts") &&
+        (value != "127.0.0.1")) {
+      // Note that, depending on the order order in which parameters are loaded,
+      // we may not yet be able to tell which node is local in this
+      // configuration at the time this validator is called when first loading
+      // hosts into the config. To handle this case, we return
+      // INSUFFICIENT_INFORMATION if detectLocalNode throws an exception.
+      size_t local_node_index;
+      try {
+        local_node_index = detectLocalNode(nonConstConfig);
+      } catch (const ConfigurationResourceNotFoundException& e) {
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+      if (path.index == local_node_index) {
+        failureMessage =
+            "Invalid host address for " + path.toString() + ": " + value +
+            "; the value 127.0.0.1 (i.e. loopback) is expected for "
+            "this host since it is local to this node and "
+            "use_loopback_for_local_hosts is enabled.";
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+    }
     return ConcordConfiguration::ParameterStatus::VALID;
   }
-
-  // We make a copy of the configuration to use for determining which node is
-  // local because this process may require iteration of the configuration, and,
-  // under the implementations at the time of this writing, a const
-  // ConcordConfiguration cannot be iterated.
-  ConcordConfiguration nonConstConfig = config;
-
-  if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
-      config.getValue<bool>("use_loopback_for_local_hosts") &&
-      (value != "127.0.0.1")) {
-    // Note that, depending on the order order in which parameters are loaded,
-    // we may not yet be able to tell which node is local in this configuration
-    // at the time this validator is called when first loading hosts into the
-    // config. To handle this case, we return INSUFFICIENT_INFORMATION if
-    // detectLocalNode throws an exception.
-    size_t local_node_index;
-    try {
-      local_node_index = detectLocalNode(nonConstConfig);
-    } catch (const ConfigurationResourceNotFoundException& e) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    if (path.index == local_node_index) {
-      *failureMessage = "Invalid host address for " + path.toString() + ": " +
-                        value +
-                        "; the value 127.0.0.1 (i.e. loopback) is expected for "
-                        "this host since it is local to this node and "
-                        "use_loopback_for_local_hosts is enabled.";
-      return ConcordConfiguration::ParameterStatus::INVALID;
-    }
-  }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
 const unordered_set<string> timeVerificationOptions({"rsa-time-signing",
                                                      "bft-client-proxy-id",
                                                      "none"});
 
-static ConcordConfiguration::ParameterStatus validateEnumeratedOption(
-    const string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, string* failureMessage, void* state) {
-  assert(state);
-  const unordered_set<string>* options =
-      const_cast<const unordered_set<string>*>(
-          static_cast<unordered_set<string>*>(state));
-  if (options->count(value) < 1) {
-    *failureMessage = "Unrecognized or unsupported value for " +
-                      path.toString() + ": \"" + value +
-                      "\". Recognized values include: ";
-    bool was_first = true;
-    for (const auto& option : *options) {
-      if (!was_first) {
-        *failureMessage += ", ";
+class EnumeratedOptionValidator
+    : public ConcordConfiguration::ParameterValidator {
+ private:
+  const unordered_set<string>& options;
+
+ public:
+  EnumeratedOptionValidator(const unordered_set<string>& options)
+      : options(options) {}
+  virtual ~EnumeratedOptionValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, string& failureMessage) override {
+    if (options.count(value) < 1) {
+      failureMessage = "Unrecognized or unsupported value for " +
+                       path.toString() + ": \"" + value +
+                       "\". Recognized values include: ";
+      bool was_first = true;
+      for (const auto& option : options) {
+        if (!was_first) {
+          failureMessage += ", ";
+        }
+        failureMessage += "\"" + option + "\"";
+        was_first = false;
       }
-      *failureMessage += "\"" + option + "\"";
-      was_first = false;
+      failureMessage += ".";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    *failureMessage += ".";
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
 // Implementation of specifyConfiguration and other utility functions that
 // encode knowledge about the current configuration.
@@ -3113,7 +3113,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "and, in a production deployment, each node should be on a different "
       "machine. Ideally, the nodes should also be split up into different "
       "fault domains.",
-      sizeNodes, nullptr);
+      make_shared<NodesSizer>());
   ConcordConfiguration& node = config.subscope("node");
 
   node.declareScope(
@@ -3123,7 +3123,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "writing, there generally should be no more than one SBFT replica per "
       "Concord node, and ideally the SBFT replicas should be split up into "
       "separate fault domains.",
-      sizeReplicas, nullptr);
+      make_shared<ReplicasSizer>());
   ConcordConfiguration& replica = node.subscope("replica");
 
   node.declareScope(
@@ -3135,7 +3135,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "fetch information from the blockchain to be served externally, but the "
       "client proxies are not \"voting\" participants in establishing "
       "consensus.",
-      sizeClientProxies, nullptr);
+      make_shared<ClientProxiesSizer>());
   ConcordConfiguration& clientProxy = node.subscope("client_proxy");
 
   vector<string> privateGeneratedTags(
@@ -3168,7 +3168,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("client_proxies_per_replica", publicInputTags);
   config.tagParameter("client_proxies_per_replica", deploymentTag);
   config.addValidator("client_proxies_per_replica",
-                      validateClientProxiesPerReplica, nullptr);
+                      make_shared<ClientProxiesPerReplicaValidator>());
 
   config.declareParameter(
       "commit_cryptosys",
@@ -3181,17 +3181,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "threshold-bls BN-P254");
   config.tagParameter("commit_cryptosys", defaultableByUtilityTags);
   config.tagParameter("commit_cryptosys", secretsTag);
-  config.addValidator("commit_cryptosys", validateCryptosys, nullptr);
 
   config.declareParameter(
       "commit_public_key",
       "Public key for the general path commit cryptosystem.");
   config.tagParameter("commit_public_key", publicGeneratedTags);
   config.tagParameter("commit_public_key", secretsTag);
-  config.addValidator("commit_public_key", validatePublicKey,
-                      &(auxState->commitCryptosys));
-  config.addGenerator("commit_public_key", getThresholdPublicKey,
-                      &(auxState->commitCryptosys));
+  config.addValidator("commit_public_key", make_shared<PublicKeyValidator>(
+                                               auxState->commitCryptosys));
+  config.addGenerator(
+      "commit_public_key",
+      make_shared<ThresholdPublicKeyLoader>(auxState->commitCryptosys));
 
   config.declareParameter(
       "concord-bft_communication_buffer_length",
@@ -3204,9 +3204,10 @@ void specifyConfiguration(ConcordConfiguration& config) {
                       defaultableByUtilityTags);
   config.tagParameter("concord-bft_communication_buffer_length",
                       applicationTag);
-  config.addValidator("concord-bft_communication_buffer_length", validateUInt,
-                      const_cast<void*>(reinterpret_cast<const void*>(
-                          &kConcordBFTCommunicationBufferSizeLimits)));
+  config.addValidator(
+      "concord-bft_communication_buffer_length",
+      make_shared<UIntValidator>(kMinConcordBFTCommunicationBufferSize,
+                                 kMaxConcordBFTCommunicationBufferSize));
 
   config.declareParameter(
       "num_of_external_clients",
@@ -3224,33 +3225,29 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "Maximum external message size");
   config.tagParameter("concord-bft_max_external_message_size", optionalTags);
   config.tagParameter("concord-bft_max_external_message_size", applicationTag);
-  config.addValidator(
-      "concord-bft_max_external_message_size", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+  config.addValidator("concord-bft_max_external_message_size",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter("concord-bft_max_reply_message_size",
                           "Maximum reply message size");
   config.tagParameter("concord-bft_max_reply_message_size", optionalTags);
   config.tagParameter("concord-bft_max_reply_message_size", applicationTag);
-  config.addValidator(
-      "concord-bft_max_reply_message_size", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+  config.addValidator("concord-bft_max_reply_message_size",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter("concord-bft_max_num_of_reserved_pages",
                           "Maximum number of reserved pages");
   config.tagParameter("concord-bft_max_num_of_reserved_pages", optionalTags);
   config.tagParameter("concord-bft_max_num_of_reserved_pages", applicationTag);
-  config.addValidator(
-      "concord-bft_max_num_of_reserved_pages", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+  config.addValidator("concord-bft_max_num_of_reserved_pages",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter("concord-bft_size_of_reserved_page",
                           "Size of a reserved page");
   config.tagParameter("concord-bft_size_of_reserved_page", optionalTags);
   config.tagParameter("concord-bft_size_of_reserved_page", applicationTag);
-  config.addValidator(
-      "concord-bft_size_of_reserved_page", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+  config.addValidator("concord-bft_size_of_reserved_page",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter("concurrency_level",
                           "Number of consensus operations that Concord-BFT may "
@@ -3258,9 +3255,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "3");
   config.tagParameter("concurrency_level", defaultableByUtilityTags);
   config.tagParameter("concurrency_level", applicationTag);
-  config.addValidator(
-      "concurrency_level", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  config.addValidator("concurrency_level",
+                      make_shared<UIntValidator>(1, UINT16_MAX));
 
   config.declareParameter(
       "c_val",
@@ -3269,7 +3265,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "before having to fall back on a slow path for consensus.");
   config.tagParameter("c_val", publicInputTags);
   config.tagParameter("c_val", deploymentTag);
-  config.addValidator("c_val", validateCVal, nullptr);
+  config.addValidator("c_val", make_shared<CValValidator>());
 
   config.declareParameter(
       "f_val",
@@ -3278,7 +3274,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "safety guarantees are lost.");
   config.tagParameter("f_val", publicInputTags);
   config.tagParameter("f_val", deploymentTag);
-  config.addValidator("f_val", validateFVal, nullptr);
+  config.addValidator("f_val", make_shared<FValValidator>());
 
   config.declareParameter(
       "gas_limit",
@@ -3288,32 +3284,32 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "10000000");
   config.tagParameter("gas_limit", defaultableByUtilityTags);
   config.tagParameter("gas_limit", applicationTag);
-  config.addValidator(
-      "gas_limit", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
+  config.addValidator("gas_limit", make_shared<UIntValidator>(1, UINT64_MAX));
 
   config.declareParameter(
       "num_client_proxies",
       "Total number of Concord-BFT client proxies in this deployment.");
   config.tagParameter("num_client_proxies", publicGeneratedTags);
   config.tagParameter("num_client_proxies", deploymentTag);
-  config.addValidator("num_client_proxies", validateNumClientProxies, nullptr);
-  config.addGenerator("num_client_proxies", computeNumClientProxies, nullptr);
+  config.addValidator("num_client_proxies",
+                      make_shared<NumClientProxiesValidator>());
+  config.addGenerator("num_client_proxies",
+                      make_shared<NumClientProxiesCalculator>());
 
   config.declareParameter("num_principals",
                           "Combined total number of replicas and Concord-BFT "
                           "client proxies in this deployment.");
   config.tagParameter("num_principals", publicGeneratedTags);
   config.tagParameter("num_principals", deploymentTag);
-  config.addValidator("num_principals", validateNumPrincipals, nullptr);
-  config.addGenerator("num_principals", computeNumPrincipals, nullptr);
+  config.addValidator("num_principals", make_shared<NumPrincipalsValidator>());
+  config.addGenerator("num_principals", make_shared<NumPrincipalsCalculator>());
 
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");
   config.tagParameter("num_replicas", publicGeneratedTags);
   config.tagParameter("num_replicas", deploymentTag);
-  config.addValidator("num_replicas", validateNumReplicas, nullptr);
-  config.addGenerator("num_replicas", computeNumReplicas, nullptr);
+  config.addValidator("num_replicas", make_shared<NumReplicasValidator>());
+  config.addGenerator("num_replicas", make_shared<NumReplicasCalculator>());
 
   config.declareParameter(
       "optimistic_commit_cryptosys",
@@ -3326,18 +3322,18 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "multisig-bls BN-P254");
   config.tagParameter("optimistic_commit_cryptosys", defaultableByUtilityTags);
   config.tagParameter("optimistic_commit_cryptosys", secretsTag);
-  config.addValidator("optimistic_commit_cryptosys", validateCryptosys,
-                      nullptr);
 
   config.declareParameter(
       "optimistic_commit_public_key",
       "Public key for the optimistic fast path commit cryptosystem.");
   config.tagParameter("optimistic_commit_public_key", publicGeneratedTags);
-  config.addValidator("optimistic_commit_public_key", validatePublicKey,
-                      &(auxState->optimisticCommitCryptosys));
+  config.addValidator(
+      "optimistic_commit_public_key",
+      make_shared<PublicKeyValidator>(auxState->optimisticCommitCryptosys));
   config.tagParameter("optimistic_commit_public_key", secretsTag);
-  config.addGenerator("optimistic_commit_public_key", getThresholdPublicKey,
-                      &(auxState->optimisticCommitCryptosys));
+  config.addGenerator("optimistic_commit_public_key",
+                      make_shared<ThresholdPublicKeyLoader>(
+                          auxState->optimisticCommitCryptosys));
 
   config.declareParameter(
       "pruning_enabled",
@@ -3347,14 +3343,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "error. If not specified, a value of false is assumed.");
   config.tagParameter("pruning_enabled", publicOptionalTags);
   config.tagParameter("pruning_enabled", applicationTag);
-  config.addValidator("pruning_enabled", validateBoolean, nullptr);
+  config.addValidator("pruning_enabled", make_shared<BooleanValidator>());
 
   config.declareParameter(
       "key_exchange_on_start",
       "A flag to indicate if key exchange on start is required.", "false");
   config.tagParameter("key_exchange_on_start", publicDefaultableTags);
   config.tagParameter("key_exchange_on_start", applicationTag);
-  config.addValidator("key_exchange_on_start", validateBoolean, nullptr);
+  config.addValidator("key_exchange_on_start", make_shared<BooleanValidator>());
 
   config.declareParameter(
       "pruning_num_blocks_to_keep",
@@ -3364,9 +3360,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "one that prunes less blocks).");
   config.tagParameter("pruning_num_blocks_to_keep", publicOptionalTags);
   config.tagParameter("pruning_num_blocks_to_keep", applicationTag);
-  config.addValidator(
-      "pruning_num_blocks_to_keep", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
+  config.addValidator("pruning_num_blocks_to_keep",
+                      make_shared<UIntValidator>(0, UINT64_MAX));
 
   config.declareParameter(
       "pruning_duration_to_keep_minutes",
@@ -3379,9 +3374,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "be enabled.");
   config.tagParameter("pruning_duration_to_keep_minutes", publicOptionalTags);
   config.tagParameter("pruning_duration_to_keep_minutes", applicationTag);
-  config.addValidator(
-      "pruning_duration_to_keep_minutes", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+  config.addValidator("pruning_duration_to_keep_minutes",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter(
       "pruning_operator_public_key",
@@ -3403,16 +3397,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "threshold-bls BN-P254");
   config.tagParameter("slow_commit_cryptosys", defaultableByUtilityTags);
   config.tagParameter("slow_commit_cryptosys", secretsTag);
-  config.addValidator("slow_commit_cryptosys", validateCryptosys, nullptr);
 
   config.declareParameter("slow_commit_public_key",
                           "Public key for the slow path commit cryptosystem.");
   config.tagParameter("slow_commit_public_key", publicGeneratedTags);
   config.tagParameter("slow_commit_public_key", secretsTag);
-  config.addValidator("slow_commit_public_key", validatePublicKey,
-                      &(auxState->slowCommitCryptosys));
-  config.addGenerator("slow_commit_public_key", getThresholdPublicKey,
-                      &(auxState->slowCommitCryptosys));
+  config.addValidator(
+      "slow_commit_public_key",
+      make_shared<PublicKeyValidator>(auxState->slowCommitCryptosys));
+  config.addGenerator(
+      "slow_commit_public_key",
+      make_shared<ThresholdPublicKeyLoader>(auxState->slowCommitCryptosys));
 
   config.declareParameter(
       "status_time_interval",
@@ -3421,9 +3416,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "3000");
   config.tagParameter("status_time_interval", defaultableByUtilityTags);
   config.tagParameter("status_time_interval", applicationTag);
-  config.addValidator(
-      "status_time_interval", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  config.addValidator("status_time_interval",
+                      make_shared<UIntValidator>(1, UINT16_MAX));
 
   config.declareParameter(
       "use_loopback_for_local_hosts",
@@ -3442,7 +3436,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("use_loopback_for_local_hosts", defaultableByUtilityTags);
   config.tagParameter("use_loopback_for_local_hosts", applicationTag);
-  config.addValidator("use_loopback_for_local_hosts", validateBoolean, nullptr);
+  config.addValidator("use_loopback_for_local_hosts",
+                      make_shared<BooleanValidator>());
 
   config.declareParameter(
       "view_change_timeout",
@@ -3451,16 +3446,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "20000");
   config.tagParameter("view_change_timeout", applicationTag);
   config.tagParameter("view_change_timeout", defaultableByUtilityTags);
-  config.addValidator(
-      "view_change_timeout", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  config.addValidator("view_change_timeout",
+                      make_shared<UIntValidator>(1, UINT16_MAX));
 
   config.declareParameter(
       "FEATURE_time_service",
       "Enable the Time Service, and switch Ethereum to using it.", "false");
   config.tagParameter("FEATURE_time_service", applicationTag);
   config.tagParameter("FEATURE_time_service", publicDefaultableTags);
-  config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
+  config.addValidator("FEATURE_time_service", make_shared<BooleanValidator>());
 
   config.declareParameter(
       "time_verification",
@@ -3482,9 +3476,9 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "none");
   config.tagParameter("time_verification", publicDefaultableTags);
   config.tagParameter("time_verification", applicationTag);
-  config.addValidator("time_verification", validateEnumeratedOption,
-                      const_cast<void*>(reinterpret_cast<const void*>(
-                          &timeVerificationOptions)));
+  config.addValidator(
+      "time_verification",
+      make_shared<EnumeratedOptionValidator>(timeVerificationOptions));
 
   config.declareParameter(
       "eth_enable",
@@ -3493,7 +3487,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "true");
   config.tagParameter("eth_enable", publicDefaultableTags);
   config.tagParameter("eth_enable", deploymentTag);
-  config.addValidator("eth_enable", validateBoolean, nullptr);
+  config.addValidator("eth_enable", make_shared<BooleanValidator>());
 
   config.declareParameter(
       "daml_enable",
@@ -3502,13 +3496,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("daml_enable", publicDefaultableTags);
   config.tagParameter("daml_enable", deploymentTag);
-  config.addValidator("daml_enable", validateBoolean, nullptr);
+  config.addValidator("daml_enable", make_shared<BooleanValidator>());
 
   config.declareParameter("pre_execute_all_requests",
                           "Enable pre-execution for all requests", "false");
   config.tagParameter("pre_execute_all_requests", publicDefaultableTags);
   config.tagParameter("pre_execute_all_requests", applicationTag);
-  config.addValidator("pre_execute_all_requests", validateBoolean, nullptr);
+  config.addValidator("pre_execute_all_requests",
+                      make_shared<BooleanValidator>());
 
   node.declareParameter("daml_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
@@ -3531,9 +3526,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "32");
   node.tagParameter("daml_service_threads", defaultableByReplicaTags);
   node.tagParameter("daml_service_threads", applicationTag);
-  node.addValidator(
-      "daml_service_threads", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  node.addValidator("daml_service_threads",
+                    make_shared<UIntValidator>(0, UINT16_MAX));
 
   node.declareParameter("FEATURE_daml_pipelined_commits",
                         "Enable support for pipelined commits, i.e., "
@@ -3541,7 +3535,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "true");
   node.tagParameter("FEATURE_daml_pipelined_commits", publicOptionalTags);
   node.tagParameter("FEATURE_daml_pipelined_commits", applicationTag);
-  node.addValidator("FEATURE_daml_pipelined_commits", validateBoolean, nullptr);
+  node.addValidator("FEATURE_daml_pipelined_commits",
+                    make_shared<BooleanValidator>());
 
   // Test Execution Engine (TEE) Parameters
   config.declareParameter(
@@ -3551,7 +3546,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("tee_enable", publicDefaultableTags);
   config.tagParameter("tee_enable", deploymentTag);
-  config.addValidator("tee_enable", validateBoolean, nullptr);
+  config.addValidator("tee_enable", make_shared<BooleanValidator>());
 
   config.declareParameter(
       "create_tee_genesis_block",
@@ -3561,7 +3556,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "true");
   config.tagParameter("create_tee_genesis_block", publicDefaultableTags);
   config.tagParameter("create_tee_genesis_block", deploymentTag);
-  config.addValidator("create_tee_genesis_block", validateBoolean, nullptr);
+  config.addValidator("create_tee_genesis_block",
+                      make_shared<BooleanValidator>());
 
   node.declareParameter("tee_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
@@ -3576,9 +3572,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "32");
   node.tagParameter("tee_service_threads", defaultableByReplicaTags);
   node.tagParameter("tee_service_threads", applicationTag);
-  node.addValidator(
-      "tee_service_threads", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  node.addValidator("tee_service_threads",
+                    make_shared<UIntValidator>(0, UINT16_MAX));
 
   // Performance handler parameters
   config.declareParameter(
@@ -3588,7 +3583,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("perf_enable", publicDefaultableTags);
   config.tagParameter("perf_enable", deploymentTag);
-  config.addValidator("perf_enable", validateBoolean, nullptr);
+  config.addValidator("perf_enable", make_shared<BooleanValidator>());
 
   node.declareParameter("perf_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
@@ -3603,9 +3598,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "32");
   node.tagParameter("perf_service_threads", defaultableByReplicaTags);
   node.tagParameter("perf_service_threads", applicationTag);
-  node.addValidator(
-      "perf_service_threads", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  node.addValidator("perf_service_threads",
+                    make_shared<UIntValidator>(0, UINT16_MAX));
 
   node.declareParameter(
       "bft_client_timeout_ms",
@@ -3613,9 +3607,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       to_string(UINT32_MAX));
   node.tagParameter("bft_client_timeout_ms", defaultableByReplicaTags);
   node.tagParameter("bft_client_timeout_ms", applicationTag);
-  node.addValidator(
-      "bft_client_timeout_ms", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
+  node.addValidator("bft_client_timeout_ms",
+                    make_shared<UIntValidator>(0, UINT64_MAX));
 
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
@@ -3623,8 +3616,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "3");
   node.tagParameter("api_worker_pool_size", defaultableByReplicaTags);
   node.tagParameter("api_worker_pool_size", applicationTag);
-  node.addValidator("api_worker_pool_size", validatePositiveReplicaInt,
-                    nullptr);
+  node.addValidator("api_worker_pool_size",
+                    make_shared<PositiveReplicaIntValidator>());
 
   node.declareParameter("blockchain_db_impl",
                         "Database implementation to be used by this replica to "
@@ -3632,8 +3625,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "rocksdb");
   node.tagParameter("blockchain_db_impl", defaultableByReplicaTags);
   node.tagParameter("blockchain_db_impl", applicationTag);
-  node.addValidator("blockchain_db_impl", validateDatabaseImplementation,
-                    nullptr);
+  node.addValidator("blockchain_db_impl",
+                    make_shared<DatabaseImplementationValidator>());
 
   node.declareParameter(
       "blockchain_db_path",
@@ -3650,7 +3643,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "merkle");
   node.tagParameter("blockchain_storage_type", publicOptionalTags);
   node.tagParameter("blockchain_storage_type", applicationTag);
-  node.addValidator("blockchain_storage_type", validateStorageType, nullptr);
+  node.addValidator("blockchain_storage_type",
+                    make_shared<StorageTypeValidator>());
 
   node.declareParameter(
       "concord-bft_enable_debug_statistics",
@@ -3661,8 +3655,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("concord-bft_enable_debug_statistics",
                     defaultableByReplicaTags);
   node.tagParameter("concord-bft_enable_debug_statistics", applicationTag);
-  node.addValidator("concord-bft_enable_debug_statistics", validateBoolean,
-                    nullptr);
+  node.addValidator("concord-bft_enable_debug_statistics",
+                    make_shared<BooleanValidator>());
 
   node.declareParameter(
       "genesis_block",
@@ -3695,8 +3689,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "60000");
   node.tagParameter("logger_reconfig_time", defaultableByReplicaTags);
   node.tagParameter("logger_reconfig_time", applicationTag);
-  node.addValidator("logger_reconfig_time", validatePositiveReplicaInt,
-                    nullptr);
+  node.addValidator("logger_reconfig_time",
+                    make_shared<PositiveReplicaIntValidator>());
 
   node.declareParameter(
       "jaeger_agent",
@@ -3731,7 +3725,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("preexecution_enabled", publicDefaultableTags);
   config.tagParameter("preexecution_enabled", applicationTag);
-  config.addValidator("preexecution_enabled", validateBoolean, nullptr);
+  config.addValidator("preexecution_enabled", make_shared<BooleanValidator>());
 
   config.declareParameter("preexec_requests_status_check_period_millisec",
                           "Time interval for a periodic detection of timed out "
@@ -3742,9 +3736,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                       publicDefaultableTags);
   config.tagParameter("preexec_requests_status_check_period_millisec",
                       applicationTag);
-  config.addValidator(
-      "preexec_requests_status_check_period_millisec", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
+  config.addValidator("preexec_requests_status_check_period_millisec",
+                      make_shared<UIntValidator>(1, UINT64_MAX));
 
   config.declareParameter("preexec_concurrency_level",
                           "A number of threads to be used to "
@@ -3752,9 +3745,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
                           "0");
   config.tagParameter("preexec_concurrency_level", publicDefaultableTags);
   config.tagParameter("preexec_concurrency_level", applicationTag);
-  config.addValidator(
-      "preexec_concurrency_level", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  config.addValidator("preexec_concurrency_level",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "
@@ -3767,13 +3759,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Port on which this replica's external API service can be reached.");
   node.tagParameter("service_port", privateInputTags);
   node.tagParameter("service_port", deploymentTag);
-  node.addValidator("service_port", validatePortNumber, nullptr);
+  node.addValidator("service_port", make_shared<PortNumberValidator>());
 
   node.declareParameter("bft_metrics_udp_port",
                         "Port for reading BFT metrics (JSON payload) via UDP.");
   node.tagParameter("bft_metrics_udp_port", privateOptionalTags);
   node.tagParameter("bft_metrics_udp_port", deploymentTag);
-  node.addValidator("bft_metrics_udp_port", validatePortNumber, nullptr);
+  node.addValidator("bft_metrics_udp_port", make_shared<PortNumberValidator>());
 
   node.declareParameter(
       "transaction_list_max_count",
@@ -3782,8 +3774,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "10");
   node.tagParameter("transaction_list_max_count", defaultableByReplicaTags);
   node.tagParameter("transaction_list_max_count", applicationTag);
-  node.addValidator("transaction_list_max_count", validatePositiveReplicaInt,
-                    nullptr);
+  node.addValidator("transaction_list_max_count",
+                    make_shared<PositiveReplicaIntValidator>());
 
   node.declareParameter(
       "time_source_id",
@@ -3791,7 +3783,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Ignored unless FEATURE_time_service is \"true\".");
   node.tagParameter("time_source_id", publicGeneratedTags);
   node.tagParameter("time_source_id", deploymentTag);
-  node.addGenerator("time_source_id", computeTimeSourceId, nullptr);
+  node.addGenerator("time_source_id", make_shared<TimeSourceIdCalculator>());
 
   node.declareParameter(
       "time_pusher_period_ms",
@@ -3800,19 +3792,19 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "time_source_id is given.");
   node.tagParameter("time_pusher_period_ms", publicOptionalTags);
   node.tagParameter("time_pusher_period_ms", applicationTag);
-  node.addValidator(
-      "time_pusher_period_ms", validateInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kInt32Limits)));
+  node.addValidator("time_pusher_period_ms",
+                    make_shared<IntValidator>(INT32_MIN, INT32_MAX));
 
   replica.declareParameter("commit_private_key",
                            "Private key for this replica under the general "
                            "case commit cryptosystem.");
   replica.tagParameter("commit_private_key", privateGeneratedTags);
   replica.tagParameter("commit_private_key", secretsTag);
-  replica.addValidator("commit_private_key", validatePrivateKey,
-                       &(auxState->commitCryptosys));
-  replica.addGenerator("commit_private_key", getThresholdPrivateKey,
-                       &(auxState->commitCryptosys));
+  replica.addValidator("commit_private_key", make_shared<PrivateKeyValidator>(
+                                                 auxState->commitCryptosys));
+  replica.addGenerator(
+      "commit_private_key",
+      make_shared<ThresholdPrivateKeyLoader>(auxState->commitCryptosys));
 
   replica.declareParameter(
       "commit_verification_key",
@@ -3820,20 +3812,24 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "case commit cryptosystem.");
   replica.tagParameter("commit_verification_key", publicGeneratedTags);
   replica.tagParameter("commit_verification_key", secretsTag);
-  replica.addValidator("commit_verification_key", validateVerificationKey,
-                       &(auxState->commitCryptosys));
-  replica.addGenerator("commit_verification_key", getThresholdVerificationKey,
-                       &(auxState->commitCryptosys));
+  replica.addValidator(
+      "commit_verification_key",
+      make_shared<VerificationKeyValidator>(auxState->commitCryptosys));
+  replica.addGenerator(
+      "commit_verification_key",
+      make_shared<ThresholdVerificationKeyLoader>(auxState->commitCryptosys));
 
   replica.declareParameter("optimistic_commit_private_key",
                            "Private key for this replica under the optimistic "
                            "fast path commit cryptosystem.");
   replica.tagParameter("optimistic_commit_private_key", privateGeneratedTags);
   replica.tagParameter("optimistic_commit_private_key", secretsTag);
-  replica.addValidator("optimistic_commit_private_key", validatePrivateKey,
-                       &(auxState->optimisticCommitCryptosys));
-  replica.addGenerator("optimistic_commit_private_key", getThresholdPrivateKey,
-                       &(auxState->optimisticCommitCryptosys));
+  replica.addValidator(
+      "optimistic_commit_private_key",
+      make_shared<PrivateKeyValidator>(auxState->optimisticCommitCryptosys));
+  replica.addGenerator("optimistic_commit_private_key",
+                       make_shared<ThresholdPrivateKeyLoader>(
+                           auxState->optimisticCommitCryptosys));
 
   replica.declareParameter(
       "optimistic_commit_verification_key",
@@ -3843,11 +3839,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
                        publicGeneratedTags);
   replica.tagParameter("optimistic_commit_verification_key", secretsTag);
   replica.addValidator("optimistic_commit_verification_key",
-                       validateVerificationKey,
-                       &(auxState->optimisticCommitCryptosys));
+                       make_shared<VerificationKeyValidator>(
+                           auxState->optimisticCommitCryptosys));
   replica.addGenerator("optimistic_commit_verification_key",
-                       getThresholdVerificationKey,
-                       &(auxState->optimisticCommitCryptosys));
+                       make_shared<ThresholdVerificationKeyLoader>(
+                           auxState->optimisticCommitCryptosys));
 
   replica.declareParameter(
       "principal_id",
@@ -3857,24 +3853,24 @@ void specifyConfiguration(ConcordConfiguration& config) {
   replica.tagParameter("principal_id", publicGeneratedTags);
   replica.tagParameter("principal_id", deploymentTag);
   replica.tagParameter("principal_id", secretsTag);
-  replica.addValidator("principal_id", validatePrincipalId, nullptr);
-  replica.addGenerator("principal_id", computePrincipalId, nullptr);
+  replica.addValidator("principal_id", make_shared<PrincipalIdValidator>());
+  replica.addGenerator("principal_id", make_shared<PrincipalIdCalculator>());
 
   replica.declareParameter(
       "private_key",
       "RSA private key for this replica to use for general communication.");
   replica.tagParameter("private_key", privateGeneratedTags);
   replica.tagParameter("private_key", secretsTag);
-  replica.addValidator("private_key", validateRSAPrivateKey, nullptr);
-  replica.addGenerator("private_key", getRSAPrivateKey, nullptr);
+  replica.addValidator("private_key", make_shared<RSAPrivateKeyValidator>());
+  replica.addGenerator("private_key", make_shared<RSAPrivateKeyLoader>());
 
   replica.declareParameter(
       "public_key",
       "RSA public key corresponding to this replica's RSA private key.");
   replica.tagParameter("public_key", publicGeneratedTags);
   replica.tagParameter("public_key", secretsTag);
-  replica.addValidator("public_key", validateRSAPublicKey, nullptr);
-  replica.addGenerator("public_key", getRSAPublicKey, nullptr);
+  replica.addValidator("public_key", make_shared<RSAPublicKeyValidator>());
+  replica.addGenerator("public_key", make_shared<RSAPublicKeyLoader>());
 
   replica.declareParameter(
       "replica_host",
@@ -3882,24 +3878,26 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "one for consensus communication.");
   replica.tagParameter("replica_host", principalHostTags);
   replica.tagParameter("replica_host", deploymentTag);
-  replica.addValidator("replica_host", validatePrincipalHost, nullptr);
+  replica.addValidator("replica_host", make_shared<PrincipalHostValidator>());
 
   replica.declareParameter("replica_port",
                            "Port number on which other replicas can reach this "
                            "one for consensus communication.");
   replica.tagParameter("replica_port", publicInputTags);
   replica.tagParameter("replica_port", deploymentTag);
-  replica.addValidator("replica_port", validatePortNumber, nullptr);
+  replica.addValidator("replica_port", make_shared<PortNumberValidator>());
 
   replica.declareParameter(
       "slow_commit_private_key",
       "Private key for this replica under the slow path commit cryptosystem.");
   replica.tagParameter("slow_commit_private_key", privateGeneratedTags);
   replica.tagParameter("slow_commit_private_key", secretsTag);
-  replica.addValidator("slow_commit_private_key", validatePrivateKey,
-                       &(auxState->slowCommitCryptosys));
-  replica.addGenerator("slow_commit_private_key", getThresholdPrivateKey,
-                       &(auxState->slowCommitCryptosys));
+  replica.addValidator(
+      "slow_commit_private_key",
+      make_shared<PrivateKeyValidator>(auxState->slowCommitCryptosys));
+  replica.addGenerator(
+      "slow_commit_private_key",
+      make_shared<ThresholdPrivateKeyLoader>(auxState->slowCommitCryptosys));
 
   replica.declareParameter(
       "slow_commit_verification_key",
@@ -3908,24 +3906,26 @@ void specifyConfiguration(ConcordConfiguration& config) {
   replica.tagParameter("slow_commit_verification_key", publicGeneratedTags);
   replica.tagParameter("slow_commit_verification_key", secretsTag);
 
-  replica.addValidator("slow_commit_verification_key", validateVerificationKey,
-                       &(auxState->slowCommitCryptosys));
+  replica.addValidator(
+      "slow_commit_verification_key",
+      make_shared<VerificationKeyValidator>(auxState->slowCommitCryptosys));
   replica.addGenerator("slow_commit_verification_key",
-                       getThresholdVerificationKey,
-                       &(auxState->slowCommitCryptosys));
+                       make_shared<ThresholdVerificationKeyLoader>(
+                           auxState->slowCommitCryptosys));
 
   clientProxy.declareParameter("client_host",
                                "Public IP address or host name with which this "
                                "client proxy can be reached.");
   clientProxy.tagParameter("client_host", principalHostTags);
   clientProxy.tagParameter("client_host", deploymentTag);
-  clientProxy.addValidator("client_host", validatePrincipalHost, nullptr);
+  clientProxy.addValidator("client_host",
+                           make_shared<PrincipalHostValidator>());
 
   clientProxy.declareParameter(
       "client_port", "Port on which this client proxy can be reached.");
   clientProxy.tagParameter("client_port", publicInputTags);
   clientProxy.tagParameter("client_port", deploymentTag);
-  clientProxy.addValidator("client_port", validatePortNumber, nullptr);
+  clientProxy.addValidator("client_port", make_shared<PortNumberValidator>());
 
   clientProxy.declareParameter(
       "principal_id",
@@ -3935,8 +3935,9 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.tagParameter("principal_id", publicGeneratedTags);
   clientProxy.tagParameter("principal_id", deploymentTag);
   clientProxy.tagParameter("principal_id", secretsTag);
-  clientProxy.addValidator("principal_id", validatePrincipalId, nullptr);
-  clientProxy.addGenerator("principal_id", computePrincipalId, nullptr);
+  clientProxy.addValidator("principal_id", make_shared<PrincipalIdValidator>());
+  clientProxy.addGenerator("principal_id",
+                           make_shared<PrincipalIdCalculator>());
 
   // Configuration of HLF
   config.declareParameter(
@@ -3946,7 +3947,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "false");
   config.tagParameter("hlf_enable", publicDefaultableTags);
   config.tagParameter("hlf_enable", deploymentTag);
-  config.addValidator("hlf_enable", validateBoolean, nullptr);
+  config.addValidator("hlf_enable", make_shared<BooleanValidator>());
 
   node.declareParameter("hlf_peer_command_tool_path",
                         "Location of peer command tool.", "/concord/peer");
@@ -4060,48 +4061,64 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   }
 }
 
-// Functions used by instantiateTemplatedConfiguration to select subsets of
-// parameter paths in order to correctly load template contents before
-// instantiating templates.
-static bool selectStrictlyTemplatedParameters(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  if (!path.isScope || path.useInstance) {
-    return false;
-  }
-  const ConfigurationPath* pathStep = &path;
-  while (pathStep->isScope && pathStep->subpath) {
-    if (pathStep->useInstance) {
+// ParameterSelectors used by instantiateTemplatedConfiguration to select
+// subsets of parameter paths in order to correctly load template contents
+// before instantiating templates.
+class StrictlyTemplatedParametersSelector
+    : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~StrictlyTemplatedParametersSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    if (!path.isScope || path.useInstance) {
       return false;
     }
-    pathStep = pathStep->subpath.get();
+    const ConfigurationPath* pathStep = &path;
+    while (pathStep->isScope && pathStep->subpath) {
+      if (pathStep->useInstance) {
+        return false;
+      }
+      pathStep = pathStep->subpath.get();
+    }
+    return true;
   }
-  return true;
-}
+};
 
-static bool selectTemplatedInstancedParameters(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  return (path.isScope && !path.useInstance && path.subpath &&
-          path.subpath->isScope && path.subpath->useInstance &&
-          path.subpath->subpath && !(path.subpath->subpath->isScope));
-}
+class TemplatedInstancedParametersSelector
+    : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~TemplatedInstancedParametersSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    return (path.isScope && !path.useInstance && path.subpath &&
+            path.subpath->isScope && path.subpath->useInstance &&
+            path.subpath->subpath && !(path.subpath->subpath->isScope));
+  }
+};
 
-static bool selectInstancedTemplatedParameters(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  return (path.isScope && path.useInstance && path.subpath &&
-          path.subpath->isScope && !(path.subpath->useInstance) &&
-          path.subpath->subpath && !(path.subpath->subpath->isScope));
-}
+class InstancedTemplatedParametersSelector
+    : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~InstancedTemplatedParametersSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    return (path.isScope && path.useInstance && path.subpath &&
+            path.subpath->isScope && !(path.subpath->useInstance) &&
+            path.subpath->subpath && !(path.subpath->subpath->isScope));
+  }
+};
 
-static bool selectInstancedInstancedParameters(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  return (path.isScope && path.useInstance && path.subpath &&
-          path.subpath->isScope && path.subpath->useInstance &&
-          path.subpath->subpath && !(path.subpath->subpath->isScope));
-}
+class InstancedInstancedParametersSelector
+    : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~InstancedInstancedParametersSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    return (path.isScope && path.useInstance && path.subpath &&
+            path.subpath->isScope && path.subpath->useInstance &&
+            path.subpath->subpath && !(path.subpath->subpath->isScope));
+  }
+};
 
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config) {
@@ -4129,8 +4146,8 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
 
   // First, load any parameters in purely templated scopes, then instantiate the
   // scopes within the node template.
-  ParameterSelection selection(config, selectStrictlyTemplatedParameters,
-                               nullptr);
+  ParameterSelection selection(
+      config, make_shared<StrictlyTemplatedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   node.instantiateScope("replica");
@@ -4138,15 +4155,15 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
 
   // Next, load values for parameters in instances of scopes within the node
   // template. After that node can be instantiated.
-  selection =
-      ParameterSelection(config, selectTemplatedInstancedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<TemplatedInstancedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   config.instantiateScope("node");
 
   // Now, we load values to parameters in scope templates within node instances.
-  selection =
-      ParameterSelection(config, selectInstancedTemplatedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<InstancedTemplatedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
 
@@ -4155,8 +4172,8 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
   // parameters that are contained in errrinstances of scopes within node
   // instances, and write to them any values their node instance's template has
   // for the same parameter.
-  selection =
-      ParameterSelection(config, selectInstancedInstancedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<InstancedInstancedParametersSelector>());
   for (auto iterator = selection.begin(); iterator != selection.end();
        ++iterator) {
     ConfigurationPath instancePath = *iterator;
@@ -4208,8 +4225,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
 
   // First, load any parameters in purely templated scopes, then instantiate the
   // scopes within the node template.
-  ParameterSelection selection(config, selectStrictlyTemplatedParameters,
-                               nullptr);
+  ParameterSelection selection(
+      config, make_shared<StrictlyTemplatedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   clients.instantiateScope("client");
@@ -4217,8 +4234,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
 
   // Next, load values for parameters in instances of scopes within the node
   // template. After that node can be instantiated.
-  selection =
-      ParameterSelection(config, selectTemplatedInstancedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<TemplatedInstancedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
   part_node.instantiateScope("external_clients");
@@ -4227,8 +4244,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
   config.instantiateScope("participant_nodes");
 
   // Now, we load values to parameters in scope templates within node instances.
-  selection =
-      ParameterSelection(config, selectInstancedTemplatedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<InstancedTemplatedParametersSelector>());
   input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
                           true);
 
@@ -4237,8 +4254,8 @@ void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
   // parameters that are contained in errrinstances of scopes within node
   // instances, and write to them any values their node instance's template has
   // for the same parameter.
-  selection =
-      ParameterSelection(config, selectInstancedInstancedParameters, nullptr);
+  selection = ParameterSelection(
+      config, make_shared<InstancedInstancedParametersSelector>());
   for (auto iterator = selection.begin(); iterator != selection.end();
        ++iterator) {
     ConfigurationPath instancePath = *iterator;
@@ -4285,27 +4302,31 @@ static string getErrorMessageListingParameters(
   return error_message;
 }
 
-// Parameter selection function used by loadConfigurationInputParameters.
-static bool selectInputParameters(const ConcordConfiguration& config,
-                                  const ConfigurationPath& path, void* state) {
-  assert(config.contains(path));
-  const ConcordConfiguration* containingScope = &config;
-  if (path.isScope) {
-    containingScope = &(config.subscope(path.trimLeaf()));
-  }
-  string name = path.getLeaf().name;
+// Parameter selector object used by loadConfigurationInputParameters.
+class InputParametersSelector : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~InputParametersSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    assert(config.contains(path));
+    const ConcordConfiguration* containingScope = &config;
+    if (path.isScope) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+    string name = path.getLeaf().name;
 
-  return containingScope->isTagged(name, "input") ||
-         containingScope->isTagged(name, "defaultable") ||
-         containingScope->isTagged(name, "optional");
-}
+    return containingScope->isTagged(name, "input") ||
+           containingScope->isTagged(name, "defaultable") ||
+           containingScope->isTagged(name, "optional");
+  }
+};
 
 void loadConfigurationInputParameters(YAMLConfigurationInput& input,
                                       ConcordConfiguration& config) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
-  ParameterSelection inputParameterSelection(config, selectInputParameters,
-                                             nullptr);
+  ParameterSelection inputParameterSelection(
+      config, make_shared<InputParametersSelector>());
   input.loadConfiguration(config, inputParameterSelection.begin(),
                           inputParameterSelection.end(), &logger, true);
 
@@ -4432,36 +4453,44 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   }
 }
 
-static bool selectParametersRequiredAtConfigurationGeneration(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  // The configuration generator does not output tempalted parameters, as it
-  // outputs specific values for each instance of a parameter.
-  auto type = (const char*)state;
-  const ConfigurationPath* pathStep = &path;
-  while (pathStep->isScope && pathStep->subpath) {
-    if (!(pathStep->useInstance)) {
-      return false;
-    }
-    pathStep = pathStep->subpath.get();
-  }
+class ParametersRequiredAtConfigurationGenerationSelector
+    : public ParameterSelection::ParameterSelector {
+ private:
+  const string& type;
 
-  const ConcordConfiguration* containingScope = &config;
-  if (path.isScope) {
-    containingScope = &(config.subscope(path.trimLeaf()));
+ public:
+  ParametersRequiredAtConfigurationGenerationSelector(const string& type)
+      : type(type) {}
+  virtual ~ParametersRequiredAtConfigurationGenerationSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    // The configuration generator does not output tempalted parameters, as it
+    // outputs specific values for each instance of a parameter.
+    const ConfigurationPath* pathStep = &path;
+    while (pathStep->isScope && pathStep->subpath) {
+      if (!(pathStep->useInstance)) {
+        return false;
+      }
+      pathStep = pathStep->subpath.get();
+    }
+
+    const ConcordConfiguration* containingScope = &config;
+    if (path.isScope) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+    return (containingScope->isTagged(path.getLeaf().name,
+                                      "config_generation_time") &&
+            containingScope->isTagged(path.getLeaf().name, type));
   }
-  return (containingScope->isTagged(path.getLeaf().name,
-                                    "config_generation_time") &&
-          containingScope->isTagged(path.getLeaf().name, type));
-}
+};
 
 bool hasAllParametersRequiredAtConfigurationGeneration(
     ConcordConfiguration& config) {
   Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ParameterSelection requiredConfiguration(
-      config, selectParametersRequiredAtConfigurationGeneration,
-      (void*)&config.confType_);
+      config, make_shared<ParametersRequiredAtConfigurationGenerationSelector>(
+                  config.confType_));
 
   bool hasAllRequired = true;
   for (auto iterator = requiredConfiguration.begin();
@@ -4476,51 +4505,59 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
   return hasAllRequired;
 }
 
-static bool selectHostsToMakeLoopback(const ConcordConfiguration& config,
-                                      const ConfigurationPath& path,
-                                      void* state) {
-  assert(state);
-  size_t node = *(static_cast<size_t*>(state));
+class HostsToMakeLoopbackSelector
+    : public ParameterSelection::ParameterSelector {
+ private:
+  const size_t node;
 
-  if (!path.isScope || !path.subpath || !path.useInstance ||
-      (path.index != node)) {
-    return false;
-  }
-
-  const ConcordConfiguration& containing_scope =
-      config.subscope(path.trimLeaf());
-  return containing_scope.isTagged(path.getLeaf().name, "could_be_loopback");
-}
-
-static bool selectNodeConfiguration(const ConcordConfiguration& config,
-                                    const ConfigurationPath& path,
-                                    void* state) {
-  assert(state);
-
-  // The configuration generator does not output tempalted parameters, as it
-  // outputs specific values for each instance of a parameter.
-  const ConfigurationPath* pathStep = &path;
-  while (pathStep->isScope && pathStep->subpath) {
-    if (!(pathStep->useInstance)) {
+ public:
+  HostsToMakeLoopbackSelector(size_t node) : node(node) {}
+  virtual ~HostsToMakeLoopbackSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    if (!path.isScope || !path.subpath || !path.useInstance ||
+        (path.index != node)) {
       return false;
     }
-    pathStep = pathStep->subpath.get();
+
+    const ConcordConfiguration& containing_scope =
+        config.subscope(path.trimLeaf());
+    return containing_scope.isTagged(path.getLeaf().name, "could_be_loopback");
   }
+};
 
-  size_t node = *(static_cast<size_t*>(state));
+class NodeConfigurationSelector : public ParameterSelection::ParameterSelector {
+ private:
+  const size_t node;
 
-  if (path.isScope && (path.name == "node") && path.useInstance &&
-      (path.index == node)) {
-    return true;
+ public:
+  NodeConfigurationSelector(size_t node) : node(node) {}
+  virtual ~NodeConfigurationSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    // The configuration generator does not output tempalted parameters, as it
+    // outputs specific values for each instance of a parameter.
+    const ConfigurationPath* pathStep = &path;
+    while (pathStep->isScope && pathStep->subpath) {
+      if (!(pathStep->useInstance)) {
+        return false;
+      }
+      pathStep = pathStep->subpath.get();
+    }
+
+    if (path.isScope && (path.name == "node") && path.useInstance &&
+        (path.index == node)) {
+      return true;
+    }
+
+    const ConcordConfiguration* containingScope = &config;
+    if (path.isScope) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+
+    return !(containingScope->isTagged(path.getLeaf().name, "private"));
   }
-
-  const ConcordConfiguration* containingScope = &config;
-  if (path.isScope) {
-    containingScope = &(config.subscope(path.trimLeaf()));
-  }
-
-  return !(containingScope->isTagged(path.getLeaf().name, "private"));
-}
+};
 
 void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
@@ -4529,8 +4566,8 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
   ConcordConfiguration node_config = config;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts")) {
-    ParameterSelection node_local_hosts(node_config, selectHostsToMakeLoopback,
-                                        &(node));
+    ParameterSelection node_local_hosts(
+        node_config, make_shared<HostsToMakeLoopbackSelector>(node));
     for (auto& path : node_local_hosts) {
       ConcordConfiguration* containing_scope = &node_config;
       if (path.isScope && path.subpath) {
@@ -4548,43 +4585,47 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
     }
   }
 
-  ParameterSelection node_config_params(node_config, selectNodeConfiguration,
-                                        &(node));
+  ParameterSelection node_config_params(
+      node_config, make_shared<NodeConfigurationSelector>(node));
   output.outputConfiguration(node_config, node_config_params.begin(),
                              node_config_params.end());
 }
 
-static bool selectParticipantNodeConfiguration(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    void* state) {
-  assert(state);
+class ParticipantNodeConfigurationSelector
+    : public ParameterSelection::ParameterSelector {
+ private:
+  const size_t node;
 
-  // The configuration generator does not output tempalted parameters, as it
-  // outputs specific values for each instance of a parameter.
-  const ConfigurationPath* pathStep = &path;
-  while (pathStep->isScope && pathStep->subpath) {
-    if (!(pathStep->useInstance)) {
-      return false;
+ public:
+  ParticipantNodeConfigurationSelector(size_t node) : node(node) {}
+  virtual ~ParticipantNodeConfigurationSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    // The configuration generator does not output tempalted parameters, as it
+    // outputs specific values for each instance of a parameter.
+    const ConfigurationPath* pathStep = &path;
+    while (pathStep->isScope && pathStep->subpath) {
+      if (!(pathStep->useInstance)) {
+        return false;
+      }
+      pathStep = pathStep->subpath.get();
     }
-    pathStep = pathStep->subpath.get();
+
+    if (path.isScope && (path.name == "participant_nodes") &&
+        path.useInstance && (path.index == node)) {
+      return true;
+    } else if (path.isScope && (path.name == "participant_nodes") &&
+               path.useInstance && (path.index != node))
+      return false;
+
+    const ConcordConfiguration* containingScope = &config;
+    if (path.isScope) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+
+    return !(containingScope->isTagged(path.getLeaf().name, "private"));
   }
-
-  size_t node = *(static_cast<size_t*>(state));
-
-  if (path.isScope && (path.name == "participant_nodes") && path.useInstance &&
-      (path.index == node)) {
-    return true;
-  } else if (path.isScope && (path.name == "participant_nodes") &&
-             path.useInstance && (path.index != node))
-    return false;
-
-  const ConcordConfiguration* containingScope = &config;
-  if (path.isScope) {
-    containingScope = &(config.subscope(path.trimLeaf()));
-  }
-
-  return !(containingScope->isTagged(path.getLeaf().name, "private"));
-}
+};
 
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
@@ -4596,8 +4637,8 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
   nodeId = 0;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts")) {
-    ParameterSelection node_local_hosts(node_config, selectHostsToMakeLoopback,
-                                        &(nodeId));
+    ParameterSelection node_local_hosts(
+        node_config, make_shared<HostsToMakeLoopbackSelector>(nodeId));
     for (auto& path : node_local_hosts) {
       ConcordConfiguration* containing_scope = &node_config;
       if (path.isScope && path.subpath) {
@@ -4615,7 +4656,7 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
     }
   }
   ParameterSelection node_config_params(
-      node_config, selectParticipantNodeConfiguration, &(nodeId));
+      node_config, make_shared<ParticipantNodeConfigurationSelector>(nodeId));
   output.outputConfiguration(node_config, node_config_params.begin(),
                              node_config_params.end());
 }
@@ -4639,8 +4680,8 @@ void loadNodeConfiguration(ConcordConfiguration& config,
       config.end(ConcordConfiguration::kIterateAllInstanceParameters), &logger);
 
   size_t localNode = detectLocalNode(config);
-  ParameterSelection nodeConfiguration(config, selectNodeConfiguration,
-                                       &localNode);
+  ParameterSelection nodeConfiguration(
+      config, make_shared<NodeConfigurationSelector>(localNode));
 
   // Try loading defaults and running generators for optional parameters and
   // parameters that can be implicit in the node configuration, excluding those
@@ -5005,261 +5046,248 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
   output << principal_map;
 }
 
-ConcordConfiguration::ParameterStatus ValidateNumReplicas(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state) {
-  if (const auto res = config::validateUInt(
-          value, config, path, failure_message,
-          const_cast<void*>(
-              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
-      res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
+class ParticipantsNodesSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ParticipantsNodesSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    uint16_t num_participants = 0;
+    if (!(config.hasValue<uint16_t>("num_of_participant_nodes"))) {
+      num_participants = 1;
+    } else
+      num_participants = config.getValue<uint16_t>("num_of_participant_nodes");
+    size_t numParticipants = (size_t)num_participants;
+    output = numParticipants;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
+};
 
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val")) {
-    if (failure_message) {
-      *failure_message =
-          "Cannot validate num_replicas: values for f_val and c_val are "
-          "required to determine expected value of num_replicas.";
+class SingleParticipantNodeSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~SingleParticipantNodeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    size_t numParticipants = (size_t)1;
+    output = numParticipants;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ExternalClientsSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~ExternalClientsSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    if (!(config.hasValue<uint16_t>("clients_per_participant_node"))) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-
-  const auto expected = 3 * config.getValue<uint16_t>("f_val") +
-                        2 * config.getValue<uint16_t>("c_val") + 1;
-
-  if (std::stoll(value) != expected) {
-    if (failure_message) {
-      *failure_message =
-          "Invalid value for num_replicas: " + value +
-          "; num_replicas must be equal to 3 * f_val + 2 * c_val + 1.";
+    if (!((config.validate("clients_per_participant_node") ==
+           ConcordConfiguration::ParameterStatus::VALID))) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+
+    uint16_t num_clients_proxies =
+        config.getValue<uint16_t>("clients_per_participant_node");
+    size_t numExternal = (size_t)num_clients_proxies;
+    output = numExternal;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-ConcordConfiguration::ParameterStatus sizeParticipantsNodes(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
-  uint16_t num_participants = 0;
-  if (!(config.hasValue<uint16_t>("num_of_participant_nodes"))) {
-    num_participants = 1;
-  } else
-    num_participants = config.getValue<uint16_t>("num_of_participant_nodes");
-  size_t numParticipants = (size_t)num_participants;
-  *output = numParticipants;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+class TimeoutMillisecondsValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~TimeoutMillisecondsValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failure_message) override {
+    UIntValidator boundsCheck(1, UINT16_MAX);
+    if (const auto res =
+            boundsCheck.validate(value, config, path, failure_message);
+        res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
 
-ConcordConfiguration::ParameterStatus numOfParticipantNodes(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
-  size_t numParticipants = (size_t)1;
-  *output = numParticipants;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-ConcordConfiguration::ParameterStatus numOfExternalClients(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t* output, void* state) {
-  assert(output);
-  if (!(config.hasValue<uint16_t>("clients_per_participant_node"))) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  if (!((config.validate("clients_per_participant_node") ==
-         ConcordConfiguration::ParameterStatus::VALID))) {
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  }
-
-  uint16_t num_clients_proxies =
-      config.getValue<uint16_t>("clients_per_participant_node");
-  size_t numExternal = (size_t)num_clients_proxies;
-  *output = numExternal;
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-ConcordConfiguration::ParameterStatus ValidateTimeOutMilli(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failure_message, void* state) {
-  if (const auto res = validateUInt(
-          value, config, path, failure_message,
-          const_cast<void*>(
-              reinterpret_cast<const void*>(&config::kPositiveUInt16Limits)));
-      res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-
-  if (!config.hasValue<uint16_t>("client_initial_retry_timeout_milli") ||
-      !config.hasValue<uint16_t>("client_max_retry_timeout_milli")) {
-    if (failure_message) {
-      *failure_message =
+    if (!config.hasValue<uint16_t>("client_initial_retry_timeout_milli") ||
+        !config.hasValue<uint16_t>("client_max_retry_timeout_milli")) {
+      failure_message =
           "Cannot validate timeouts milli- some field not initialized";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
 
-  auto initial =
-      config.getValue<uint16_t>("client_initial_retry_timeout_milli");
-  auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
-  auto min = std::stoull(value);
-  if (min < 1) return ConcordConfiguration::ParameterStatus::INVALID;
-  if (max < 1) return ConcordConfiguration::ParameterStatus::INVALID;
-  if (initial < min || initial > max) {
-    if (failure_message) {
-      *failure_message =
+    auto initial =
+        config.getValue<uint16_t>("client_initial_retry_timeout_milli");
+    auto max = config.getValue<uint16_t>("client_max_retry_timeout_milli");
+    auto min = std::stoull(value);
+    if (min < 1) return ConcordConfiguration::ParameterStatus::INVALID;
+    if (max < 1) return ConcordConfiguration::ParameterStatus::INVALID;
+    if (initial < min || initial > max) {
+      failure_message =
           "Invalid value , value has to be between min to max retry timeout "
           "milli";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus validateClientPrincipalId(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
-  ConcordConfiguration::ParameterStatus res = validateUInt(
-      value, config, path, failureMessage,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
-  if (res != ConcordConfiguration::ParameterStatus::VALID) {
-    return res;
-  }
-  uint16_t principalID = (uint16_t)(std::stoull(value));
+class ClientPrincipalIdValidator
+    : public ConcordConfiguration::ParameterValidator {
+ public:
+  virtual ~ClientPrincipalIdValidator() override {}
+  virtual ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failureMessage) override {
+    UIntValidator boundsCheck(0, UINT16_MAX);
+    ConcordConfiguration::ParameterStatus res =
+        boundsCheck.validate(value, config, path, failureMessage);
+    if (res != ConcordConfiguration::ParameterStatus::VALID) {
+      return res;
+    }
+    uint16_t principalID = (uint16_t)(std::stoull(value));
 
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val")) {
-    if (failureMessage) {
-      *failureMessage =
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val")) {
+      failureMessage =
           "Cannot fully validate Concord-BFT principal ID for " +
           path.toString() +
           ": f_val, c_val, and client_proxies_per_replica are required to "
           "determine bounds for maximum principal ID.";
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  uint16_t fVal = config.getValue<uint16_t>("f_val");
-  uint16_t cVal = config.getValue<uint16_t>("c_val");
-  uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
+    uint16_t fVal = config.getValue<uint16_t>("f_val");
+    uint16_t cVal = config.getValue<uint16_t>("c_val");
+    uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
 
-  // The path to a principal Id should be of one of these forms:
-  //   node[i]/replica[0]/principal_id
-  //   participant_node[i]/external_client[j]/client[0]/principal_id
-  assert(path.isScope && path.subpath);
-  assert(path.subpath->subpath->subpath->name == "client");
+    // The path to a principal Id should be of one of these forms:
+    //   node[i]/replica[0]/principal_id
+    //   participant_node[i]/external_client[j]/client[0]/principal_id
+    assert(path.isScope && path.subpath);
+    assert(path.subpath->subpath->subpath->name == "client");
 
-  if ((principalID < numReplicas)) {
-    if (failureMessage) {
-      *failureMessage =
+    if ((principalID < numReplicas)) {
+      failureMessage =
           "Invalid principal ID for " + path.toString() + ": " +
           std::to_string(principalID) +
           ". Principal IDs for client proxies should be in the range "
           "(num_replicas, num_principals - 1), inclusive.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
     }
-    return ConcordConfiguration::ParameterStatus::INVALID;
+
+    res = ConcordConfiguration::ParameterStatus::VALID;
+    if (res ==
+        ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION) {
+      failureMessage = "Cannot fully validate principal ID for " +
+                       path.toString() +
+                       ": Not all other principal IDs are known, but are "
+                       "required to check for uniqueness.";
+    }
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
+};
 
-  res = ConcordConfiguration::ParameterStatus::VALID;
-  if (failureMessage &&
-      (res ==
-       ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)) {
-    *failureMessage = "Cannot fully validate principal ID for " +
-                      path.toString() +
-                      ": Not all other principal IDs are known, but are "
-                      "required to check for uniqueness.";
+class ClientPrincipalIdCalculator
+    : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~ClientPrincipalIdCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      std::string& output) override {
+    // The path to a principal Id should be of one of these forms:
+    //   node[i]/replica[0]/principal_id
+    //   participant_node[i]/external_client[j]/client[0]/principal_id
+    assert(path.isScope && path.subpath && path.useInstance);
+
+    if (path.subpath->name == "replica") {
+      output = std::to_string(path.index);
+    } else {
+      assert((path.subpath->subpath->subpath->name == "client") &&
+             path.subpath->subpath->subpath->isScope &&
+             path.subpath->subpath->subpath->useInstance);
+
+      if (!config.hasValue<uint16_t>("f_val") ||
+          !config.hasValue<uint16_t>("c_val") ||
+          !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+      auto numOfInternalClientsPerReplica =
+          config.getValue<uint16_t>("client_proxies_per_replica");
+      auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                           2 * config.getValue<uint16_t>("c_val") + 1;
+      uint16_t numOfAllCommitterNodePrincipals =
+          numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
+
+      uint16_t numParticipants =
+          config.getValue<uint16_t>("clients_per_participant_node");
+
+      output = std::to_string(path.index * numParticipants +
+                              numOfAllCommitterNodePrincipals +
+                              (path.subpath->subpath->index));
+    }
+
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
-static ConcordConfiguration::ParameterStatus computeClientPrincipalId(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
-  // The path to a principal Id should be of one of these forms:
-  //   node[i]/replica[0]/principal_id
-  //   participant_node[i]/external_client[j]/client[0]/principal_id
+class OperatorPrincipalIdCalculator
+    : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~OperatorPrincipalIdCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      std::string& output) override {
+    // The path to a principal Id should be of one of these forms:
+    //   node[i]/replica[0]/principal_id
+    //   participant_node[i]/external_client[j]/client[0]/principal_id
+    assert(path.isScope && path.subpath && path.useInstance);
 
-  assert(path.isScope && path.subpath && path.useInstance);
+    if (path.subpath->name == "replica") {
+      output = std::to_string(path.index);
+    } else {
+      if (!config.hasValue<uint16_t>("f_val") ||
+          !config.hasValue<uint16_t>("c_val") ||
+          !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+      auto numParticipantsNodes =
+          config.getValue<uint16_t>("num_of_participant_nodes");
+      auto numOfInternalClientsPerReplica =
+          config.getValue<uint16_t>("client_proxies_per_replica");
+      auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                           2 * config.getValue<uint16_t>("c_val") + 1;
+      uint16_t numOfAllCommitterNodePrincipals =
+          numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
 
-  if (path.subpath->name == "replica") {
-    *output = std::to_string(path.index);
-  } else {
-    assert((path.subpath->subpath->subpath->name == "client") &&
-           path.subpath->subpath->subpath->isScope &&
-           path.subpath->subpath->subpath->useInstance);
+      uint16_t numParticipants =
+          config.getValue<uint16_t>("clients_per_participant_node");
 
+      output = std::to_string(path.index + numOfAllCommitterNodePrincipals +
+                              (numParticipantsNodes * numParticipants));
+    }
+
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
+class ClientNumReplicasCalculator
+    : public ConcordConfiguration::ParameterGenerator {
+ public:
+  virtual ~ClientNumReplicasCalculator() override {}
+  virtual ConcordConfiguration::ParameterStatus generate(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      string& output) override {
     if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val") ||
-        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+        !config.hasValue<uint16_t>("c_val")) {
       return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
     }
-    auto numOfInternalClientsPerReplica =
-        config.getValue<uint16_t>("client_proxies_per_replica");
-    auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                         2 * config.getValue<uint16_t>("c_val") + 1;
-    uint16_t numOfAllCommitterNodePrincipals =
-        numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
-
-    uint16_t numParticipants =
-        config.getValue<uint16_t>("clients_per_participant_node");
-
-    *output = std::to_string(path.index * numParticipants +
-                             numOfAllCommitterNodePrincipals +
-                             (path.subpath->subpath->index));
+    output = to_string(3 * config.getValue<uint16_t>("f_val") +
+                       2 * config.getValue<uint16_t>("c_val") + 1);
+    return ConcordConfiguration::ParameterStatus::VALID;
   }
-
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus computeOperatorPrincipalId(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
-  // The path to a principal Id should be of one of these forms:
-  //   node[i]/replica[0]/principal_id
-  //   participant_node[i]/external_client[j]/client[0]/principal_id
-
-  assert(path.isScope && path.subpath && path.useInstance);
-
-  if (path.subpath->name == "replica") {
-    *output = std::to_string(path.index);
-  } else {
-    if (!config.hasValue<uint16_t>("f_val") ||
-        !config.hasValue<uint16_t>("c_val") ||
-        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    auto numParticipantsNodes =
-        config.getValue<uint16_t>("num_of_participant_nodes");
-    auto numOfInternalClientsPerReplica =
-        config.getValue<uint16_t>("client_proxies_per_replica");
-    auto numOfReplicas = 3 * config.getValue<uint16_t>("f_val") +
-                         2 * config.getValue<uint16_t>("c_val") + 1;
-    uint16_t numOfAllCommitterNodePrincipals =
-        numOfReplicas * numOfInternalClientsPerReplica + numOfReplicas;
-
-    uint16_t numParticipants =
-        config.getValue<uint16_t>("clients_per_participant_node");
-
-    *output = std::to_string(path.index + numOfAllCommitterNodePrincipals +
-                             (numParticipantsNodes * numParticipants));
-  }
-
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
-
-static ConcordConfiguration::ParameterStatus computeClientNumReplicas(
-    const ConcordConfiguration& config, const ConfigurationPath& path,
-    string* output, void* state) {
-  if (!config.hasValue<uint16_t>("f_val") ||
-      !config.hasValue<uint16_t>("c_val")) {
-    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  }
-  *output = to_string(3 * config.getValue<uint16_t>("f_val") +
-                      2 * config.getValue<uint16_t>("c_val") + 1);
-  return ConcordConfiguration::ParameterStatus::VALID;
-}
+};
 
 void specifyClientConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
@@ -5279,14 +5307,15 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
       "clients_per_participant_node",
       "Max number of clients that each participant node can have");
   config.tagParameter("clients_per_participant_node", publicInputTags);
-  config.addValidator("clients_per_participant_node", validateUInt,
-                      const_cast<void*>(reinterpret_cast<const void*>(
-                          &config::kParticipantNodeNumOfClients)));
+  config.addValidator(
+      "clients_per_participant_node",
+      make_shared<UIntValidator>(kMinParticipantNodeNumOfClients,
+                                 kMaxParticipantNodeNumOfClients));
   config.declareScope("participant_nodes", "Participant nodes scope",
-                      sizeParticipantsNodes, nullptr);
+                      make_shared<ParticipantsNodesSizer>());
   auto& participant_nodes = config.subscope("participant_nodes");
   participant_nodes.declareScope("participant_node", "One node",
-                                 numOfParticipantNodes, nullptr);
+                                 make_shared<SingleParticipantNodeSizer>());
   auto& participant_node = participant_nodes.subscope("participant_node");
   participant_node.declareParameter(
       "participant_node_host",
@@ -5295,23 +5324,22 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
   participant_node.declareParameter(
       "operator_id", "The ID the operator of this specific participant node");
   participant_node.tagParameter("operator_id", publicGeneratedTags);
-  participant_node.addGenerator("operator_id", computeOperatorPrincipalId,
-                                nullptr);
+  participant_node.addGenerator("operator_id",
+                                make_shared<OperatorPrincipalIdCalculator>());
   participant_node.declareParameter(
       "operator_port",
       "Port number this operator participant_node can be reached at.");
   participant_node.tagParameter("operator_port", publicInputTags);
-  participant_node.addValidator(
-      "operator_port", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  participant_node.addValidator("operator_port",
+                                make_shared<UIntValidator>(0, UINT16_MAX));
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "
       "scope holds port number and principal id for each client",
-      numOfExternalClients, nullptr);
+      make_shared<ExternalClientsSizer>());
   auto& external_clients = participant_node.subscope("external_clients");
   external_clients.declareScope("client", "One external client params",
-                                config::sizeReplicas, nullptr);
+                                make_shared<ReplicasSizer>());
   auto& client = external_clients.subscope("client");
   client.declareParameter(
       "principal_id",
@@ -5320,15 +5348,15 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
       "replicas, clients and client proxies to be principals, each of which "
       "must have a unique ID.");
   client.tagParameter("principal_id", publicGeneratedTags);
-  client.addValidator("principal_id", validateClientPrincipalId, nullptr);
-  client.addGenerator("principal_id", computeClientPrincipalId, nullptr);
+  client.addValidator("principal_id",
+                      make_shared<ClientPrincipalIdValidator>());
+  client.addGenerator("principal_id",
+                      make_shared<ClientPrincipalIdCalculator>());
 
   client.declareParameter("client_port",
                           "Port number this client can be reached at.");
   client.tagParameter("client_port", publicInputTags);
-  client.addValidator(
-      "client_port", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  client.addValidator("client_port", make_shared<UIntValidator>(0, UINT16_MAX));
 }
 
 void specifyGeneralConfiguration(ConcordConfiguration& config) {
@@ -5354,13 +5382,14 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
                           "4");
   config.tagParameter("client_proxies_per_replica", defaultableByUtilityTags);
   config.addValidator("client_proxies_per_replica",
-                      validateClientProxiesPerReplica, nullptr);
+                      make_shared<ClientProxiesPerReplicaValidator>());
   // Validation is based on f_val and c_val .
   config.declareParameter(
       "num_replicas", "Total number of Concord replicas in this deployment.");
   config.tagParameter("num_replicas", publicGeneratedTags);
-  config.addValidator("num_replicas", &config::ValidateNumReplicas, nullptr);
-  config.addGenerator("num_replicas", computeClientNumReplicas, nullptr);
+  config.addValidator("num_replicas", make_shared<NumReplicasValidator>());
+  config.addGenerator("num_replicas",
+                      make_shared<ClientNumReplicasCalculator>());
   config.declareParameter("prometheus_port",
                           "Port of prometheus client to publish metrics on");
   config.tagParameter("prometheus_port", publicInputTags);
@@ -5383,10 +5412,10 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
       "64000");
   config.tagParameter("concord-bft_communication_buffer_length",
                       defaultableByUtilityTags);
-  config.addValidator("concord-bft_communication_buffer_length",
-                      config::validateUInt,
-                      const_cast<void*>(reinterpret_cast<const void*>(
-                          &config::kConcordBFTCommunicationBufferSizeLimits)));
+  config.addValidator(
+      "concord-bft_communication_buffer_length",
+      make_shared<UIntValidator>(kMinConcordBFTCommunicationBufferSize,
+                                 kMaxConcordBFTCommunicationBufferSize));
 }
 
 void specifyReplicaConfiguration(ConcordConfiguration& config) {
@@ -5402,7 +5431,7 @@ void specifyReplicaConfiguration(ConcordConfiguration& config) {
   config.declareScope("node",
                       "Concord nodes that form the distributed system that "
                       "maintains a blockchain in Concord.",
-                      sizeNodes, nullptr);
+                      make_shared<NodesSizer>());
 
   ConcordConfiguration& node = config.subscope("node");
 
@@ -5410,7 +5439,7 @@ void specifyReplicaConfiguration(ConcordConfiguration& config) {
       "replica",
       "SBFT replicas, which serve as the core replicas for Byzantine fault "
       "tolerant consensus in a Concord deployment.",
-      sizeReplicas, nullptr);
+      make_shared<ReplicasSizer>());
   ConcordConfiguration& replica = node.subscope("replica");
 
   replica.declareParameter(
@@ -5419,8 +5448,9 @@ void specifyReplicaConfiguration(ConcordConfiguration& config) {
       "replicas, clients and client proxies to be principals, each of which "
       "must have a unique ID.");
   replica.tagParameter("principal_id", publicGeneratedTags);
-  // replica.addValidator("principal_id", validatePrincipalId, nullptr);
-  replica.addGenerator("principal_id", computeClientPrincipalId, nullptr);
+  // replica.addValidator("principal_id", make_shared<PrincipalIdValidator>());
+  replica.addGenerator("principal_id",
+                       make_shared<ClientPrincipalIdCalculator>());
 
   replica.declareParameter(
       "replica_host",
@@ -5429,9 +5459,8 @@ void specifyReplicaConfiguration(ConcordConfiguration& config) {
   replica.declareParameter("replica_port",
                            "Port number this replica can be reached at.");
   replica.tagParameter("replica_port", publicInputTags);
-  replica.addValidator(
-      "replica_port", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  replica.addValidator("replica_port",
+                       make_shared<UIntValidator>(0, UINT16_MAX));
 }
 
 void specifySimpleClientParams(ConcordConfiguration& config) {
@@ -5448,9 +5477,8 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
                           "50");
   config.tagParameter("client_min_retry_timeout_milli",
                       defaultableByUtilityTags);
-  config.addValidator(
-      "client_min_retry_timeout_milli", ValidateTimeOutMilli,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_min_retry_timeout_milli",
+                      make_shared<TimeoutMillisecondsValidator>());
 
   config.declareParameter("client_max_retry_timeout_milli",
                           "The maximum dynamically settable request timeout.",
@@ -5464,9 +5492,8 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
                           "2");
   config.tagParameter("client_number_of_standard_deviations_to_tolerate",
                       defaultableByUtilityTags);
-  config.addValidator(
-      "client_number_of_standard_deviations_to_tolerate", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_number_of_standard_deviations_to_tolerate",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   config.declareParameter("client_samples_per_evaluation",
                           "The number of replies we sample before we attempt "
@@ -5474,9 +5501,8 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
                           "32");
   config.tagParameter("client_samples_per_evaluation",
                       defaultableByUtilityTags);
-  config.addValidator(
-      "client_samples_per_evaluation", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_samples_per_evaluation",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   config.declareParameter(
       "client_samples_until_reset",
@@ -5484,9 +5510,8 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
       "to its empty state.",
       "1000");
   config.tagParameter("client_samples_until_reset", defaultableByUtilityTags);
-  config.addValidator(
-      "client_samples_until_reset", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_samples_until_reset",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   config.declareParameter(
       "client_sends_request_to_all_replicas_first_thresh",
@@ -5496,9 +5521,8 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
       "2");
   config.tagParameter("client_sends_request_to_all_replicas_first_thresh",
                       defaultableByUtilityTags);
-  config.addValidator(
-      "client_sends_request_to_all_replicas_first_thresh", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_sends_request_to_all_replicas_first_thresh",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   config.declareParameter(
       "client_sends_request_to_all_replicas_period_thresh",
@@ -5508,18 +5532,15 @@ void specifySimpleClientParams(ConcordConfiguration& config) {
       "2");
   config.tagParameter("client_sends_request_to_all_replicas_period_thresh",
                       defaultableByUtilityTags);
-  config.addValidator(
-      "client_sends_request_to_all_replicas_period_thresh",
-      config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_sends_request_to_all_replicas_period_thresh",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 
   config.declareParameter("client_periodic_reset_thresh",
                           "The client periodic reset thresh configuration.",
                           "30");
   config.tagParameter("client_periodic_reset_thresh", defaultableByUtilityTags);
-  config.addValidator(
-      "client_periodic_reset_thresh", config::validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&config::kUInt16Limits)));
+  config.addValidator("client_periodic_reset_thresh",
+                      make_shared<UIntValidator>(0, UINT16_MAX));
 }
 
 void specifyExternalClientConfiguration(config::ConcordConfiguration& config) {
