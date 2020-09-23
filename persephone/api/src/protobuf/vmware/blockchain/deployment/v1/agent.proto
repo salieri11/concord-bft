@@ -31,5 +31,6 @@ message ConcordAgentConfiguration {
 
 enum AgentAttributes {
     COMPONENT_NO_LAUNCH = 0;
+    NEW_DATA_DISK = 1;
 }
 /* [END messages] */

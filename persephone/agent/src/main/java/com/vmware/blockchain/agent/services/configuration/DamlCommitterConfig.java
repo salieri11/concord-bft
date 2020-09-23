@@ -31,14 +31,16 @@ public enum DamlCommitterConfig implements BaseContainerSpec {
             new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
             new PortBinding(Ports.Binding.bindPort(9891), ExposedPort.tcp(9891)),
             new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 6888), ExposedPort.tcp(6888))),
-                 ConcordHelper.getDefaultVolBinds(),
-            List.of(new Link("daml_execution_engine", "daml_execution_engine")));
+                 VolumeBindHelper.getConcordVolBinds(),
+                 List.of(new Link("daml_execution_engine", "daml_execution_engine")));
 
     @Setter
     private String imageId;
 
     private String containerName;
     private List<PortBinding> portBindings;
+
+    @Setter
     private List<Bind> volumeBindings;
     private List<Link> links;
     private int ordinal;

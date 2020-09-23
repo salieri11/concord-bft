@@ -56,6 +56,7 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
 
     private String containerName;
     private List<PortBinding> portBindings;
+    @Setter
     private List<Bind> volumeBindings;
     private List<Link> links;
     private List<String> cmds;
