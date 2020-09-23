@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
+import com.vmware.blockchain.deployment.v1.AgentAttributes;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -28,6 +29,7 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 
 import lombok.Data;
@@ -185,6 +187,10 @@ public class CloudInitConfiguration {
      * Concord agent startup configuration parameters.
      */
     ConcordAgentConfiguration getConfiguration() {
+        Properties.Builder propBuilder = Properties.newBuilder();
+        if (noLaunch) {
+            propBuilder.putValues(AgentAttributes.COMPONENT_NO_LAUNCH.name(), "True");
+        }
         var builder = ConcordAgentConfiguration.newBuilder()
                 .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
@@ -196,9 +202,7 @@ public class CloudInitConfiguration {
         if (!Strings.isNullOrEmpty(nodeIdString)) {
             builder.setNodeId(nodeIdString);
         }
-        if (noLaunch) {
-            builder.setNoLaunch(true);
-        }
+
         return builder.build();
     }
 
