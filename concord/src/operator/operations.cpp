@@ -14,6 +14,8 @@
 #include "operations.hpp"
 #include <opentracing/tracer.h>
 #include "bftclient/exception.h"
+#include "concord.cmf.hpp"
+
 using namespace bft::client;
 
 concord::op::Operations::Operations(const concord::op::Config& config,
@@ -34,30 +36,49 @@ concord::op::Response concord::op::Operations::WedgeStatus(
     std::chrono::milliseconds timeout) {
   auto span =
       opentracing::Tracer::Global()->StartSpan("OperatorWedgeStatusCommand");
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::WedgeCommand{};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+
   com::vmware::concord::ConcordRequest conc_req;
-  auto recong_req = conc_req.mutable_reconfiguration_sm_request();
-  recong_req->mutable_wedge_cmd();
-  signRequest(*recong_req);
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
   std::string cid = "operator-wedge-status-command";
   return initiateReadRequest(conc_req, All{}, timeout, cid, "");
 }
 
 void concord::op::Operations::signRequest(
-    com::vmware::concord::ReconfigurationSmRequest& request) {
-  auto str_req = request.SerializeAsString();
-  auto sig = std::string();
-  if (priv_key_) sig = priv_key_->Sign(str_req);
-  request.set_signature(sig);
+    concord::messages::ReconfigurationRequest& request) {
+  if (!priv_key_) {
+    return;
+  }
+
+  std::vector<uint8_t> serialized_req;
+  request.signature = {};
+  serialize(serialized_req, request);
+
+  auto sig = priv_key_->Sign(
+      std::string(serialized_req.begin(), serialized_req.end()));
+  request.signature = std::vector<uint8_t>(sig.begin(), sig.end());
 }
 
 concord::op::Response concord::op::Operations::initiateWedge(
     std::chrono::milliseconds timeout) {
   auto span = opentracing::Tracer::Global()->StartSpan("OperatorWedgeCommand");
   // Prepare the reconfiguration request
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::WedgeCommand{};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+
   com::vmware::concord::ConcordRequest conc_req;
-  auto reconfiguration_req = conc_req.mutable_reconfiguration_sm_request();
-  reconfiguration_req->mutable_wedge_cmd();
-  signRequest(*reconfiguration_req);
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
   std::string cid = "operator-wedge-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
 }
@@ -67,10 +88,16 @@ concord::op::Response concord::op::Operations::initiateSwDownload(
   auto span = opentracing::Tracer::Global()->StartSpan(
       "OperatorDownloadSwVersionCommand");
   // Prepare the reconfiguration request
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::DownloadCommand{};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+
   com::vmware::concord::ConcordRequest conc_req;
-  auto reconfiguration_req = conc_req.mutable_reconfiguration_sm_request();
-  reconfiguration_req->mutable_download_cmd();
-  signRequest(*reconfiguration_req);
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
   std::string cid = "operator-download-sw-version-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
 }
@@ -92,6 +119,7 @@ concord::op::Response concord::op::Operations::initiateWriteRequest(
   }
   return Response(res);
 }
+
 concord::op::Response concord::op::Operations::initiateReadRequest(
     const com::vmware::concord::ConcordRequest& request,
     const ReadQuorum& quorum, std::chrono::milliseconds timeout,
@@ -109,29 +137,44 @@ concord::op::Response concord::op::Operations::initiateReadRequest(
   }
   return Response(res);
 }
+
 concord::op::Response concord::op::Operations::initiateHasSwVersion(
     std::chrono::milliseconds timeout) {
   auto span =
       opentracing::Tracer::Global()->StartSpan("OperatorHasSwVersionCommand");
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::GetVersionCommand{};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+
   com::vmware::concord::ConcordRequest conc_req;
-  auto recong_req = conc_req.mutable_reconfiguration_sm_request();
-  recong_req->mutable_get_version_cmd();
-  signRequest(*recong_req);
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
   std::string cid = "operator-has-sw-version-command";
   return initiateReadRequest(conc_req, All{}, timeout, cid, "");
 }
+
 concord::op::Response concord::op::Operations::initiateInstallSwVersion(
     std::chrono::milliseconds timeout) {
   auto span = opentracing::Tracer::Global()->StartSpan(
       "OperatorUpgradeSwVersionCommand");
   // Prepare the reconfiguration request
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::UpgradeCommand{};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+
   com::vmware::concord::ConcordRequest conc_req;
-  auto reconfiguration_req = conc_req.mutable_reconfiguration_sm_request();
-  reconfiguration_req->mutable_upgrade_cmd();
-  signRequest(*reconfiguration_req);
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
   std::string cid = "operator-upgrade-sw_version-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
 }
+
 concord::op::Response::Response(const bft::client::Reply& reply) {
   for (auto& rsi : reply.rsi) {
     com::vmware::concord::ConcordReplicaSpecificInfoResponse rsi_res;

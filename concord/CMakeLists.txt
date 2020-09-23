@@ -89,6 +89,7 @@ include_directories(${yaml-cpp_INCLUDE_DIRS})
 
 find_package(OpenSSL REQUIRED)
 
+add_subdirectory("cmf")
 add_subdirectory("submodules")
 add_subdirectory("proto")
 add_subdirectory("src")

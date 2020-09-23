@@ -338,22 +338,8 @@ message PruneResponse {
 }
 
 message ReconfigurationSmRequest {
-   message GetVersionCommand {}
-   message DownloadCommand {}
-   message UpgradeCommand {}
-   message WedgeCommand {
-      // Replicas should stop at a specific sequence number
-      optional int64 stop_seq_num = 1;
-   }
-
-   required bytes signature = 1;
-   oneof command {
-      string test_cmd = 2;
-      WedgeCommand wedge_cmd= 3;
-      GetVersionCommand get_version_cmd = 4;
-      DownloadCommand download_cmd = 5;
-      UpgradeCommand upgrade_cmd = 6;
-   }
+   // ReconfigurationRequest CMF message
+   required bytes data = 1;
 }
 
 message ReconfigurationSmResponse {

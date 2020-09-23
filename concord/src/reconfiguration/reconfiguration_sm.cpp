@@ -10,19 +10,17 @@ namespace concord {
 namespace reconfiguration {
 
 bool ReconfigurationSM::handle(
-    const ReconfigurationSmRequest::GetVersionCommand& cmd) {
+    const concord::messages::GetVersionCommand& cmd) {
   LOG_INFO(logger_, "In GetVersionCommand handler");
   return true;
 }
 
-bool ReconfigurationSM::handle(
-    const ReconfigurationSmRequest::DownloadCommand& cmd) {
+bool ReconfigurationSM::handle(const concord::messages::DownloadCommand& cmd) {
   LOG_INFO(logger_, "In DownloadCommand handler");
   return true;
 }
 
-bool ReconfigurationSM::handle(
-    const ReconfigurationSmRequest::UpgradeCommand& cmd) {
+bool ReconfigurationSM::handle(const concord::messages::UpgradeCommand& cmd) {
   LOG_INFO(logger_, "In UpgradeCommand handler");
   return true;
 }

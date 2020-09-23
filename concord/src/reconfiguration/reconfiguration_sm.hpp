@@ -5,7 +5,7 @@
 
 #include "reconfiguration_sm_open.hpp"
 
-#include "concord.pb.h"
+#include "concord.cmf.hpp"
 
 namespace concord {
 namespace reconfiguration {
@@ -13,15 +13,9 @@ namespace reconfiguration {
 class ReconfigurationSM : public ReconfigurationSMOpen {
  public:
   // Use WedgeCommand handler from parent class but implement the others
-  bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::GetVersionCommand&)
-      override;
-  bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::DownloadCommand&)
-      override;
-  bool handle(
-      const com::vmware::concord::ReconfigurationSmRequest::UpgradeCommand&)
-      override;
+  bool handle(const concord::messages::GetVersionCommand&) override;
+  bool handle(const concord::messages::DownloadCommand&) override;
+  bool handle(const concord::messages::UpgradeCommand&) override;
 };
 
 }  // namespace reconfiguration
