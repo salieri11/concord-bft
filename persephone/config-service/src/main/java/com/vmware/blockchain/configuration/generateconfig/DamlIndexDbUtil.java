@@ -27,7 +27,7 @@ public class DamlIndexDbUtil {
      */
     public String generateConfig(NodesInfo.Entry nodeInfo) {
         var clientGroupId =
-                nodeInfo.getProperties().getValuesMap().getOrDefault(NodeProperty.Name.CLIENT_GROUP_ID.toString(),
+                nodeInfo.getProperties().getValuesMap().getOrDefault(NodeProperty.Name.CLIENT_GROUP_ID.name(),
                                                                      nodeInfo.getId());
         var nodeName = DamlLedgerApiUtil.convertToParticipantId(clientGroupId);
 

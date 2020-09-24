@@ -49,9 +49,9 @@ public class GenericConfigUtil {
         });
 
         String blockchainId = properties.getValuesMap()
-                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), "");
+                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.name(), "");
         String consortiumId = properties.getValuesMap().getOrDefault(
-                NodeProperty.Name.CONSORTIUM_ID.toString(), "");
+                NodeProperty.Name.CONSORTIUM_ID.name(), "");
 
         nodeIds.forEach((node, value) -> {
             StringBuilder builder = new StringBuilder();
