@@ -169,7 +169,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         // TODO remove post 1.0
         var isSplitConfigString = request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.toString(), "True");
+                .getOrDefault(DeploymentAttributes.SPLIT_CONFIG.name(), "True");
 
         boolean isSplitConfig = !isSplitConfigString.equalsIgnoreCase("False");
 
@@ -191,7 +191,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "False")
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
                 .equalsIgnoreCase("True");
 
         Map<String, Map<String, String>> concordConfig = null;
