@@ -54,7 +54,7 @@ public class DamlLedgerApiUtil {
         builder.append(System.lineSeparator());
 
         addProperties(builder, nodeInfo);
-        builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
+        builder.append("export BFT_CLIENT_SETTINGS=\"--bft-client enable=true,config-path=/config"
                        + Constants.DAML_BFT_CLIENT_CONFIG_PATH + "\"");
         builder.append(System.lineSeparator());
 

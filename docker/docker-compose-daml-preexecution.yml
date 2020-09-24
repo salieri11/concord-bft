@@ -85,7 +85,7 @@ services:
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
       - PRE_EXECUTION_COST_THRESHOLD=0s
-      - BFT_CLIENT_SETTINGS=--use-bft-client --bft-client-config-path=/concord/config-public/participant.config # --bft-client-request-timeout=600s
+      - BFT_CLIENT_SETTINGS=--bft-client enable=true,config-path=/concord/config-public/participant.config
     depends_on:
       - concord1
       - index_db

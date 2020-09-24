@@ -89,7 +89,7 @@ services:
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
       - ENABLE_BATCHING=false
-      - BFT_CLIENT_SETTINGS=--use-bft-client --bft-client-config-path=/concord/config-public/bftclient.config # --bft-client-request-timeout=600s
+      - BFT_CLIENT_SETTINGS=--bft-client enable=true,config-path=/concord/config-public/participant.config
     depends_on:
       - concord1
       - index_db
@@ -101,7 +101,7 @@ services:
       - "6861:6865"
       - "55002:55001" # http server for prometheus metrics
     volumes:
-      - ./config-public:/concord/config-public:ro
+      - ./config-participant0:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
 
   daml_execution_engine1:
