@@ -5,7 +5,11 @@ package com.digitalasset.daml.on.vmware.execution.engine.replay
 import java.util
 import java.util.concurrent.TimeUnit
 
-import com.daml.ledger.participant.state.kvutils.export.{LedgerDataImporter, SubmissionInfo, WriteSet}
+import com.daml.ledger.participant.state.kvutils.export.{
+  LedgerDataImporter,
+  SubmissionInfo,
+  WriteSet
+}
 import com.daml.ledger.validator.LedgerStateOperations.Key
 import com.digitalasset.kvbc.daml_validator.ValidationServiceGrpc.ValidationServiceStub
 import com.google.protobuf.ByteString
@@ -63,8 +67,9 @@ trait ReplayFromLedgerExport {
       .read()
       .map {
         case (submissionInfo, expectedWriteSet) =>
-          val actualWriteSets = decorateWithNewSpan(validationService) { (decoratedStub, spanContext) =>
-            runValidation(decoratedStub, spanContext, submissionInfo, state)
+          val actualWriteSets = decorateWithNewSpan(validationService) {
+            (decoratedStub, spanContext) =>
+              runValidation(decoratedStub, spanContext, submissionInfo, state)
           }
           validateResults(Seq(expectedWriteSet), actualWriteSets)
       }

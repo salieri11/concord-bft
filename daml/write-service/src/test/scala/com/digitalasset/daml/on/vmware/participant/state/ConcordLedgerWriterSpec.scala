@@ -5,7 +5,7 @@ package com.digitalasset.daml.on.vmware.participant.state
 import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.daml.on.vmware.testing.MockitoScala
-import com.digitalasset.kvbc.daml_commit.CommitRequest
+import com.digitalasset.daml.on.vmware.write.service.CommitRequest
 import com.google.protobuf.ByteString
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when

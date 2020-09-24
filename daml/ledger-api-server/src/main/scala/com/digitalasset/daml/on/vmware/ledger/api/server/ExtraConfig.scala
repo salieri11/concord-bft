@@ -29,19 +29,21 @@ sealed trait WriteClientsConfig {
 }
 
 final case class BftClientConfig(
-    enable: Boolean, // Whether to use the BFT Concord Client Pool in the writer.
-    configPath: Option[Path],
+    configPath: Path,
     requestTimeoutStrategy: RequestTimeoutStrategy,
     sendRetryStrategy: RetryStrategy,
 )
 
 object BftClientConfig {
-  val ReasonableDefault: BftClientConfig = BftClientConfig(
-    enable = false,
-    configPath = None,
-    requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault,
-    sendRetryStrategy =
-      ConcordWriteClient.exponentialBackOff(_ == BftConcordClientPool.OverloadedException)()
+  val DefaultRequestTimeoutStrategy: LinearAffineInterpretationCostTransform =
+    LinearAffineInterpretationCostTransform.ReasonableDefault
+  val DefaultSendRetryStrategy: RetryStrategy =
+    ConcordWriteClient.exponentialBackOff(_ == BftConcordClientPool.OverloadedException)()
+
+  def withReasonableDefaults(configPath: Path): BftClientConfig = BftClientConfig(
+    configPath = configPath,
+    requestTimeoutStrategy = DefaultRequestTimeoutStrategy,
+    sendRetryStrategy = DefaultSendRetryStrategy
   )
 }
 
@@ -65,6 +67,7 @@ final case class ExtraConfig(
 object ExtraConfig {
   val DefaultParticipantId: IdString.ParticipantId =
     ParticipantId.assertFromString("standalone-participant")
+  val DefaultBftClientConfigPath: Path = Paths.get("/concord/config-public/bftclient.config")
 
   val ReasonableDefault: ExtraConfig = ExtraConfig(
     replicas = Seq("localhost:50051"),
@@ -80,7 +83,7 @@ object ExtraConfig {
     maxBatchConcurrentCommits = 5,
     maxTrcReadDataTimeout = 0,
     maxTrcReadHashTimeout = 0,
-    bftClient = BftClientConfig.ReasonableDefault,
+    bftClient = BftClientConfig.withReasonableDefaults(DefaultBftClientConfigPath),
   )
 
   def addCommandLineArguments(parser: OptionParser[Config[ExtraConfig]]): Unit = {
@@ -234,7 +237,7 @@ object ExtraConfig {
     //
     // BFT concord client pool
     //
-    val bftClientDefaultConfig = BftClientConfig.ReasonableDefault
+    val bftClientDefaultConfig = ExtraConfig.ReasonableDefault.bftClient
     parser
       .opt[BftClientConfig]("bft-client")
       .optional()
@@ -242,12 +245,8 @@ object ExtraConfig {
         config.withBftClientConfig(bftClientConfig)
       }
       .text(
-        s"Enable and configure the BFT Client. " +
-          s"The optional keys are '$EnableKey' (default = ${bftClientDefaultConfig.enable}), " +
-          s"'$ConfigPathKey' (default = ${
-            bftClientDefaultConfig.configPath
-              .getOrElse("<not defined>")
-          }) " +
+        s"Configure the BFT Client. The accepted keys are " +
+          s"'$ConfigPathKey' (default = ${bftClientDefaultConfig.configPath}) " +
           s"as well as timeout strategy and send retry strategy keys " +
           s"(use --bft-timeout-strategies or --bft-send-retry-strategies for more info).")
 
@@ -255,7 +254,7 @@ object ExtraConfig {
       .opt[Unit]("bft-timeout-strategies")
       .optional()
       .action((_, _) => {
-        val linearDefault = LinearAffineInterpretationCostTransform.ReasonableDefault
+        val linearDefault = BftClientConfig.DefaultRequestTimeoutStrategy
         println(
           s"""The supported BFT client request timeout strategies are:
             |
@@ -280,7 +279,7 @@ object ExtraConfig {
              | * $ExponentialBackOff (default; the multiplier is fixed to ${RetryStrategy.ExponentialBackoffMultiplier})
              | * $ConstantWaitTime
              |
-             |All strategies also support the additional '$SendRetryFirstWaitKey' (default value: ${durationToCommandlineText(BftClientConfig.ReasonableDefault.sendRetryStrategy.firstWaitTime)}) and '$SendRetriesKey' (default value: ${BftClientConfig.ReasonableDefault.sendRetryStrategy.retries}) keys.""".stripMargin)
+             |All strategies also support the additional '$SendRetryFirstWaitKey' (default value: ${durationToCommandlineText(BftClientConfig.DefaultSendRetryStrategy.firstWaitTime)}) and '$SendRetriesKey' (default value: ${BftClientConfig.DefaultSendRetryStrategy.retries}) keys.""".stripMargin)
         sys.exit(0)
       })
       .text("Prints the BFT client send retry strategies and exits.")
@@ -292,15 +291,13 @@ object ExtraConfig {
     parser
       .opt[Unit]("use-bft-client")
       .optional()
-      .action { (_, config) =>
-        config.withBftClientConfig(enable = true)
-      }
-      .text("Deprecated parameter -- please use --bft-client instead.")
+      .action { (_, config) => config }
+      .text("Deprecated parameter -- BFT client is enabled by default.")
     parser
       .opt[Path]("bft-client-config-path")
       .optional()
       .action { (path, config) =>
-        config.withBftClientConfig(configPath = Some(path))
+        config.withBftClientConfig(configPath = path)
       }
       .text("Deprecated parameter -- please use --bft-client instead.")
     parser
@@ -316,12 +313,11 @@ object ExtraConfig {
 
   implicit class WithBftClientConfig(val config: Config[ExtraConfig]) extends AnyVal {
     def withBftClientConfig(
-      enable: Boolean = config.extra.bftClient.enable,
-      configPath: Option[Path] = config.extra.bftClient.configPath,
+      configPath: Path = config.extra.bftClient.configPath,
       requestTimeoutComputation: RequestTimeoutStrategy = config.extra.bftClient.requestTimeoutStrategy,
     ): Config[ExtraConfig] =
       config.copy(
-        extra = config.extra.copy(bftClient = config.extra.bftClient.copy(enable = enable, configPath = configPath, requestTimeoutStrategy = requestTimeoutComputation)))
+        extra = config.extra.copy(bftClient = config.extra.bftClient.copy(configPath = configPath, requestTimeoutStrategy = requestTimeoutComputation)))
 
     def withBftClientConfig(bftClientConfig: BftClientConfig): Config[ExtraConfig] =
       config.copy(
@@ -388,9 +384,11 @@ object ExtraConfig {
   private def readOtherParameters(keyValuePairs: Map[String, String], config: BftClientConfig): BftClientConfig =
     keyValuePairs.filterKeys(GeneralParametersKeySet.contains)
       .foldLeft(config) {
-        case (config, (EnableKey, value)) => config.copy(enable = Read.booleanRead.reads(value))
+        case (config, (EnableKey, _)) =>
+          println(s"'$EnableKey' key for --bft-client parameter is deprecated as BFT client is enabled by default.")
+          config
         case (config, (ConfigPathKey, value)) =>
-          config.copy(configPath = Some(pathReader.reads(value)))
+          config.copy(configPath = pathReader.reads(value))
         case (config, (SendRetriesKey, value)) =>
           val retries = Read.intRead.reads(value)
           config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, retries = Some(retries)))
