@@ -67,8 +67,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
       s"""Initializing vDAML ledger api server: version=${BuildInfo.Version}
          |participantId=${config.participants.head.participantId} replicas=${config.extra.replicas}
          |jdbcUrl=${config.participants.head.serverJdbcUrl}
-         |darFileList=${config.archiveFiles.mkString("(", ";", ")")}
-         |useBftClient=${config.extra.bftClient.enable}""".stripMargin
+         |darFileList=${config.archiveFiles.mkString("(", ";", ")")}""".stripMargin
         .replaceAll("\n", " "))
     val metrics = createMetrics(participantConfig, config)
     val thinReplicaClient =
@@ -119,8 +118,8 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val concordWriter =
       new ConcordLedgerWriter(
         participantId = participantId,
-        commitTransaction = (commitRequest, commitMedatata) =>
-          concordWriteClient.commitTransaction(commitRequest, commitMedatata)(executionContext),
+        commitTransaction = (commitRequest, commitMetadata) =>
+          concordWriteClient.commitTransaction(commitRequest, commitMetadata)(executionContext),
         fetchCurrentHealth = () => concordWriteClient.currentHealth
       )
     lazy val batchingWriter =
