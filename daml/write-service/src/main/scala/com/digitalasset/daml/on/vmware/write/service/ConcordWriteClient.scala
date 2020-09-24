@@ -5,7 +5,6 @@ package com.digitalasset.daml.on.vmware.write.service
 import com.daml.ledger.api.health.HealthStatus
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
-import com.digitalasset.kvbc.daml_commit.CommitRequest
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,28 +29,14 @@ trait ConcordWriteClient extends AutoCloseable {
     * This function will be polled at regular intervals and needs to return immediately.
     */
   def currentHealth: HealthStatus
-
-  /**
-    * This function will be called at initialization time and needs to return immediately.
-    */
-  def ready: Boolean
 }
 
 object ConcordWriteClient {
-  // The below flags may be used for 'flags' field in [[CommitRequest]].
-  object MessageFlags {
-    val EmptyFlag = 0
-    val ReadOnlyFlag = 1
-    val PreExecuteFlag = 2
-  }
-
   def markRequestForPreExecution(
       delegate: (CommitRequest, CommitMetadata) => Future[SubmissionResult])(
       request: CommitRequest,
       commitMetadata: CommitMetadata): Future[SubmissionResult] = {
-    val flaggedRequest = request.copy(
-      flags = request.flags | MessageFlags.PreExecuteFlag
-    )
+    val flaggedRequest = request.copy(preExecute = true)
     delegate(flaggedRequest, commitMetadata)
   }
 

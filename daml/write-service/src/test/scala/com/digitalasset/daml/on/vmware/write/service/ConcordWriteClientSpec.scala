@@ -5,8 +5,6 @@ package com.digitalasset.daml.on.vmware.write.service
 import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
 import com.daml.ledger.participant.state.v1.SubmissionResult.Acknowledged
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
-import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient.MessageFlags
-import com.digitalasset.kvbc.daml_commit.CommitRequest
 import com.google.protobuf.ByteString
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
@@ -36,7 +34,7 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
           submission = commitRequest.submission,
           participantId = commitRequest.participantId,
           correlationId = commitRequest.correlationId,
-          flags = MessageFlags.PreExecuteFlag
+          preExecute = true
         )
         requestArgumentCaptor.getValue shouldBe expectedCommitRequest
         succeed
@@ -49,17 +47,14 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentCaptor.forClass[CommitRequest, CommitRequest](classOf[CommitRequest])
       when(mockDelegate.commitTransaction(requestArgumentCaptor.capture(), any()))
         .thenReturn(Future.successful(Acknowledged))
-      val commitRequest = CommitRequest(
-        anEnvelope,
-        aParticipantId,
-        aCorrelationId,
-        flags = MessageFlags.PreExecuteFlag)
+      val commitRequest =
+        CommitRequest(anEnvelope, aParticipantId, aCorrelationId, preExecute = true)
 
       val instance = ConcordWriteClient.markRequestForPreExecution(mockDelegate.commitTransaction) _
 
       instance(commitRequest, aCommitMetadata).map { _ =>
         requestArgumentCaptor.getAllValues should have size 1
-        requestArgumentCaptor.getValue.flags shouldBe MessageFlags.PreExecuteFlag
+        requestArgumentCaptor.getValue.preExecute shouldBe true
         succeed
       }
     }
