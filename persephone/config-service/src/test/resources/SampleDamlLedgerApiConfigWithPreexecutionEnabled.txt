@@ -6,4 +6,4 @@ export JAVA_OPTS="-XX:+UseG1GC -Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cor
 export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831"
 export PARTICIPANT_ID=pTEST_NODE
 export BFT_CLIENT_SETTINGS="--use-bft-client --bft-client-config-path=/config/daml-ledger-api/config-public/bftclient.config"
-export PRE_EXECUTION_COST_THRESHOLD=100
+export PRE_EXECUTION_COST_THRESHOLD=100ms

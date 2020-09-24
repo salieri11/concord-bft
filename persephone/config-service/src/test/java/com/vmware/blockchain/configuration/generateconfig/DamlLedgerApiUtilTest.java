@@ -134,7 +134,7 @@ public class DamlLedgerApiUtilTest {
     public void testHappyPathWithPreexecutionThreshold() throws IOException {
         Properties properties = Properties.newBuilder()
                 .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "True",
-                        DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "100")).build();
+                        DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "100ms")).build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
 

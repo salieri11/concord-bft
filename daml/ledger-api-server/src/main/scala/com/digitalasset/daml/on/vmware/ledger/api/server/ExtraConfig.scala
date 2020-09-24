@@ -51,7 +51,7 @@ final case class ExtraConfig(
     override val maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
     authService: Option[AuthService],
-    preExecutionCostThreshold: Option[Long],
+    preExecutionCostThreshold: Option[Duration],
     enableBatching: Boolean, // Whether we're batching requests or not.
     maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
@@ -102,7 +102,7 @@ object ExtraConfig {
     addAuthCommandLineArguments(parser)
 
     parser
-      .opt[Long]("pre-execution-cost-threshold")
+      .opt[Duration]("pre-execution-cost-threshold")
       .optional()
       .text("Controls the interpretation cost threshold based on which requests are marked or not for pre-execution. Default is that we don't pre-execute any transactions.")
       .action((preExecutionCostThreshold, config) => {
