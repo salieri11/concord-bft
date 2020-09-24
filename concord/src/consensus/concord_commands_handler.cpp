@@ -559,7 +559,8 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   LOG_INFO(logger_,
            "ConcordCommandsHandler::addBlock, exit, updates: "
-               << updates.size() << ", dur: " << dur.count() << ", clock: "
+               << updates.size() << ", dur: " << dur.count()
+               << ", block_id: " << out_block_id << ", clock: "
                << std::chrono::steady_clock::now().time_since_epoch().count());
   return status;
 }
