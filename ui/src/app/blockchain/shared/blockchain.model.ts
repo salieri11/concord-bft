@@ -9,7 +9,7 @@ export class BlockchainRequestParams {
   consortium_id?: string;
   consortium_name: string;
   replica_zone_ids: string[];
-  replica_zones: {zone_id: string, sizing_info: TemplateItem}[];
+  replica_nodes: {zone_id: string, sizing_info: TemplateItem}[];
   blockchain_type: string;
   client_nodes: NodeClientParam[];
 }

@@ -294,11 +294,11 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
     // Node Sizing for replica nodes
     if (this.selectedEngine === ContractEngines.DAML) {
-      params.replica_zones = [];
+      params.replica_nodes = [];
       const committerSizing = this.nodeSizingTemplate.clientSizing;
 
       for (const zone of zoneIds) {
-        params.replica_zones.push({
+        params.replica_nodes.push({
           zone_id: zone,
           sizing_info: {
             no_of_cpus: committerSizing.no_of_cpus,
