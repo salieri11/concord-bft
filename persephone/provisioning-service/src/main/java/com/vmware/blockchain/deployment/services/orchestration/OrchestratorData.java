@@ -49,6 +49,7 @@ public class OrchestratorData {
         @AllArgsConstructor
         public static class CloudInitData {
             Endpoint containerRegistry;
+            Endpoint notaryServer;
             ConcordModelSpecification model;
             String privateIp;
             ConfigurationSessionIdentifier configGenId;

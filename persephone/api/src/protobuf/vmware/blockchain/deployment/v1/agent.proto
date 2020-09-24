@@ -27,6 +27,7 @@ message ConcordAgentConfiguration {
     OutboundProxyInfo outbound_proxy_info = 8;
     string node_id = 9;
     Properties properties = 10;
+    Endpoint notary_server = 11;
 }
 
 enum AgentAttributes {

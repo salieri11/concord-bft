@@ -55,6 +55,7 @@ public class NodeConfigurationTest {
     @Test
     void testDefault() {
         var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeAssignment);
+
         Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
         for (var eachNodeType : nodeAssignment.getEntriesList()) {
 
@@ -109,6 +110,21 @@ public class NodeConfigurationTest {
             Assert.assertNotNull("ServiceType component missing for node type",
                                  output.get(UUID.fromString(eachNodeType.getNodeId())));
             assertResponse(output.get(UUID.fromString(eachNodeType.getNodeId())), "dummy");
+        }
+    }
+
+    // Tests the presence of NotaryVerificationRequired in each component for each node
+    @Test
+    void testNotaryVerificationRequirementField() {
+        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeAssignment);
+
+        Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
+
+        for (var eachNode : nodeAssignment.getEntriesList()) {
+            output.get(UUID.fromString(eachNode.getNodeId())).forEach(component -> {
+                Assert.assertNotNull("NotaryVerificationRequired field missing for component",
+                                     component.getNotaryVerificationRequired());
+            });
         }
     }
 
