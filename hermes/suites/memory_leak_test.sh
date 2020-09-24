@@ -214,6 +214,11 @@ then
     rm -f "${NONLEAK_ALERT_FILE}"
 fi
 
+# skip if pipeline is only doing a dry run without testing
+if test -f "${WORKSPACE}/summary/dry_run.json"; then
+    exit 0
+fi
+
 launch_memory_test 2>&1 | tee "${MEMORY_INFO_LOG_FILE}"
 
 check_nonleak_warnings

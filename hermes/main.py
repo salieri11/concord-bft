@@ -378,6 +378,9 @@ def main():
          if i < len(suitesRealname) and suitesRealname[i]: helper.CURRENT_SUITE_NAME = suitesRealname[i]
          helper.CURRENT_SUITE_LOG_FILE = suite._testLogFile
 
+         if helper.pipelineDryRun(): # CI dry run does not have to run the suite
+           helper.pipelineDryRunSaveArgs(); continue
+
          try:
             log.info("Running {}".format(suiteName))
             resultFile, product = suite.run()
@@ -429,6 +432,11 @@ def main():
 
       if args.eventsFile:
          event_recorder.record_event(suiteName, "End", args.eventsFile)
+
+   # CI dry run does not have to actually run the suites
+   if helper.pipelineDryRun():
+     helper.hermesPreexitWrapUp()
+     exit(0)
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
    printAllResults(allResults)
@@ -485,7 +493,7 @@ def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    '''
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
    results_dir = os.path.join(suiteName, parent_results_dir, prefix)
-   os.makedirs(results_dir)
+   if not os.path.exists(results_dir): os.makedirs(results_dir)
    return results_dir
 
 def processResults(resultFile):

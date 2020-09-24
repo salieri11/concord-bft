@@ -1729,6 +1729,44 @@ def thisHermesIsFromJenkins():
   return True if getUserConfig()["metainf"]["env"]["name"] == "JENKINS" else False
 
 
+def getContentSignature(content):
+  '''Given string content returns long, short signature in a tuple'''
+  longSignature = hashlib.sha256(content.encode()) 
+  shortSignature = base64.b64encode(longSignature.digest()[:6]) # short, 6-byte
+  longSignature = longSignature.hexdigest().upper()[:32] # 32-hex = 16-byte (e.g. F4E9A7CADAF8A0B9359740D5F84D118E)
+  shortSignature = shortSignature.decode("utf-8").replace("+", "A").replace("/", "A") # (e.g. F9Omnytr4)
+  return (longSignature, shortSignature)
+
+
+def pipelineDryRun():
+  '''
+    PipelineWorks CI does not need to actually run the test suite.
+    This is used to skip actual testing.
+  '''
+  if not thisHermesIsFromJenkins(): return False
+  return os.path.exists(getJenkinsWorkspace() + '/summary/dry_run.json')
+
+
+def pipelineDryRunSaveArgs():
+  '''Save cmdline arguments metadata and signature for troubleshooting'''
+  try:
+    metadataJson = {}
+    if os.path.exists(getJenkinsWorkspace() + '/summary/dry_run.json'):
+      with open(getJenkinsWorkspace() + '/summary/dry_run.json', 'r') as f:
+        metadataJson = json.load(f)
+    if 'hermes' not in metadataJson:
+      metadataJson['hermes'] = {}
+    argstr = ' '.join(sys.argv)
+    jobName = getJenkinsJobNameAndBuildNumber()["jobName"]
+    argstr = argstr.replace(jobName, '<JOB_NAME_REDACTED>')
+    longSig, shortSig = getContentSignature(argstr)
+    metadataJson['hermes'][CURRENT_SUITE_NAME] = {'sig': shortSig, 'args': argstr}
+    with open(getJenkinsWorkspace() + '/summary/dry_run.json', 'w+') as f:
+      f.write(json.dumps(metadataJson, indent=4))
+  except Exception as e:
+    hermesNonCriticalTrace(e)
+
+
 def hermesNonCriticalTrace(e, message=None):
   NON_CRITICAL_HERMES_EXCEPTIONS.append({
     "error": e, "message": message, "argv":sys.argv,
@@ -1853,7 +1891,7 @@ def longRunningTestDashboardLink(replicas=None):
   )
 
 
-def installHealthDaemon(replicasInfoObject):
+def installHealthDaemon(replicasInfoObject, sleepAfter=True):
   '''
       Installs local, small-footprint health daemon on the nodes:
       replicasInfoObject = {
@@ -1934,8 +1972,9 @@ def installHealthDaemon(replicasInfoObject):
 
     for thd in threads: thd.join() # wait for all installations to return
     for result in results: log.info(result)
-    log.info("Sleeping for 30 second for health daemon to initialize...")
-    time.sleep(30)
+    if sleepAfter:
+      log.info("Sleeping for 30 second for health daemon to initialize...")
+      time.sleep(30)
     return True
 
   except Exception as e:

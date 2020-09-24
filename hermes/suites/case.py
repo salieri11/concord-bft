@@ -351,10 +351,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       # Otherwise, HASH(suiteName + caseName + returnCodeLineString)
       # to uniquely identify the failure return code line
       ingested = "hermes::" + suiteAndCase + "::" + returnCodeLine
-    longSignature = hashlib.sha256(ingested.encode()) 
-    shortSignature = base64.b64encode(longSignature.digest()[:6]) # short, 6-byte
-    longSignature = longSignature.hexdigest().upper()[:32] # 32-hex = 16-byte (e.g. F4E9A7CADAF8A0B9359740D5F84D118E)
-    shortSignature = shortSignature.decode("utf-8").replace("+", "A").replace("/", "A") # (e.g. F9Omnytr4)
+    longSignature, shortSignature = helper.getContentSignature(ingested)
     
     stackTraceList = traceback.format_stack(limit=10)
     stackTraceList.reverse()
