@@ -7,12 +7,26 @@
 import json
 import subprocess
 import traceback
-
-# Update when we branch.
-DIFF_BRANCH = 'master'
+import argparse
+import os
 
 def main():
   try:
+
+    # First get which ToT branch to compared to
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--totConfig",
+                        help="File path of build_info.json",
+                        default="build_info.json")
+    cmdlineArgs = parser.parse_args()
+
+    DIFF_BRANCH = "master"
+    if os.path.exists(cmdlineArgs.totConfig):
+      with open(cmdlineArgs.totConfig, 'r') as f:
+        DIFF_BRANCH = json.load(f)["tot_branch"]
+    else:
+      print("WARNING: target ToT branch cannot be parsed; using 'master'")
+
     print("Comparing against branch '{}' to detect file changes in this MR.".format(DIFF_BRANCH))
     # Get utf8 string output of `git diff` of this MR compared to origin/master
     # --name-only gets only the affected file paths

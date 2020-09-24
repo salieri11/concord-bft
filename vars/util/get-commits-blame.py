@@ -7,9 +7,26 @@
 import json
 import subprocess
 import traceback
+import argparse
+import os
 
 def main():
   try:
+
+    # First get which ToT branch to compared to
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--totConfig",
+                        help="File path of build_info.json",
+                        default="build_info.json")
+    cmdlineArgs = parser.parse_args()
+
+    DIFF_BRANCH = "master"
+    if os.path.exists(cmdlineArgs.totConfig):
+      with open(cmdlineArgs.totConfig, 'r') as f:
+        DIFF_BRANCH = json.load(f)["tot_branch"]
+    else:
+      print("WARNING: target ToT branch cannot be parsed; using 'master'")
+
     print("Detecting commits and who changed things in this MR...")
     # Get utf8 string output of `git log` of current local branch
     # against origin/master to fetch commits and authors (recent commits first)
@@ -17,7 +34,7 @@ def main():
     # 4bda290d71e0391b8cc862134aff68895ef31b94   John Doe   user@vmware.com   Tue, 10 Mar 2020 22:42:21 -0700   commit 2
     # 7817802fc3f1ec7aabcf306c4d7ee1e37f2f64f7   John Doe   user@vmware.com   Tue, 10 Mar 2020 23:22:27 -0700   commit 1
     commitsOutput = subprocess.run([
-        'git', 'log', 'origin/master..',
+        'git', 'log', 'origin/' + DIFF_BRANCH + '..',
         '--pretty=format:"%H%x09%aN%x09%aE%x09%aD%x09%s"'
         # More info: https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-log.html
         # %H = Full Commit Hash
