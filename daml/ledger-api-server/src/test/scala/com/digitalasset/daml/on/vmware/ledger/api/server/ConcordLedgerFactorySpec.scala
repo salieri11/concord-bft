@@ -17,6 +17,7 @@ import com.digitalasset.daml.on.vmware.participant.state.ConcordLedgerWriter
 import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import org.scalatest.{AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
+import scala.concurrent.duration._
 
 class ConcordLedgerFactorySpec
     extends AsyncWordSpec
@@ -27,7 +28,8 @@ class ConcordLedgerFactorySpec
     "create a writer chooser in case pre-execution threshold is specified" in {
       val config =
         Config.createDefault(
-          ExtraConfig.ReasonableDefault.copy(preExecutionCostThreshold = Some(123L)))
+          ExtraConfig.ReasonableDefault.copy(
+            preExecutionCostThreshold = Some(Duration(123, MILLISECONDS))))
       createInstance(config) shouldBe a[InterpretationCostBasedLedgerWriterChooser]
     }
 
@@ -37,9 +39,8 @@ class ConcordLedgerFactorySpec
     }
 
     "create a batching ledger writer in case batching is enabled and pre-execution threshold is specified" in {
-      val config = Config.createDefault(
-        ExtraConfig.ReasonableDefault
-          .copy(enableBatching = true, preExecutionCostThreshold = Some(123L)))
+      val config = Config.createDefault(ExtraConfig.ReasonableDefault
+        .copy(enableBatching = true, preExecutionCostThreshold = Some(Duration(123, MILLISECONDS))))
       createInstance(config) shouldBe a[InterpretationCostBasedLedgerWriterChooser]
     }
 
