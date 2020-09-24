@@ -129,6 +129,43 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
     }
   }
 
+  "pre-execution command-line parsers" should {
+    "parse a cost threshold parameter expressed in seconds" in {
+      val config = parseExtraConfig(
+        Array(
+          "--pre-execution-cost-threshold",
+          "3s"
+        )
+      )
+      config.extra.preExecutionCostThreshold should be(
+        Some(Duration(3, SECONDS))
+      )
+    }
+
+    "parse a cost threshold parameter expressed in milliseconds" in {
+      val config = parseExtraConfig(
+        Array(
+          "--pre-execution-cost-threshold",
+          "3ms"
+        )
+      )
+      config.extra.preExecutionCostThreshold should be(
+        Some(Duration(3, MILLISECONDS))
+      )
+    }
+
+    "not parse a cost threshold parameter expressed without unit" in {
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--pre-execution-cost-threshold",
+            "3"
+          )
+        )
+      }
+    }
+  }
+
   "BFT client command-line parsers" should {
     "parse a BFT client config with a linear timeout by default" in {
       val config =

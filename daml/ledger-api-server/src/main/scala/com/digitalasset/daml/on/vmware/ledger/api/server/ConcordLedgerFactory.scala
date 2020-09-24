@@ -138,7 +138,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
         val preExecutingConcordWriter =
           createPreExecutingLedgerWriter(participantId, concordWriteClient)
         InterpretationCostBasedLedgerWriterChooser(
-          preExecutionCostThreshold,
+          preExecutionCostThreshold.toNanos,
           batchingWriter,
           preExecutingConcordWriter,
           metrics)

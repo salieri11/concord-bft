@@ -77,7 +77,7 @@ public class DamlLedgerApiUtil {
                 .equalsIgnoreCase("True")) {
             builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
             builder.append(properties.getValuesMap()
-                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0"));
+                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0s"));
             builder.append(System.lineSeparator());
         }
     }
