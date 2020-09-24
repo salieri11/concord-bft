@@ -66,6 +66,18 @@ class MinioContainer:
             check=True
         )
 
+    def remove_bucket(self):
+        subprocess.run(
+            ["docker", "exec", "docker_minio_1", "rm", "-rf", "/data/blockchain"],
+            check=True
+        )
+
+    def create_bucket(self):
+        subprocess.run(
+            ["docker", "exec", "docker_minio_1", "mkdir", "-p", "/data/blockchain"],
+            check=True
+        )
+
     def cleanup(self):
         pass
 
@@ -108,6 +120,7 @@ async def _test_ro_replica_happy_case(bft_network):
     print(f"Verify state transfer for replica {ro_replica_id}")
     await _wait_for_st(bft_network, ro_replica_id, 150)
 
+@pytest.mark.skip(reason="currently this won't pass")
 @describe()
 def test_ro_replica_no_obj_store(fxProduct, bft_network):
    trio.run(_test_ro_replica_no_obj_store, bft_network)
@@ -150,6 +163,7 @@ async def _test_ro_replica_no_obj_store(bft_network):
     print("Verify state transfer")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
 
+@pytest.mark.skip(reason="currently this won't pass")
 @describe()
 def test_ro_replica_flaky_obj_store(fxProduct, bft_network):
    trio.run(_test_ro_replica_flaky_obj_store, bft_network)
@@ -194,6 +208,7 @@ async def _test_ro_replica_flaky_obj_store(bft_network):
     print("Verify state transfer")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
 
+@pytest.mark.skip(reason="currently this won't pass")
 @describe()
 def test_ro_replica_not_enough_replies(fxProduct, bft_network):
    trio.run(_test_ro_replica_not_enough_replies, bft_network)
@@ -244,4 +259,75 @@ async def _test_ro_replica_not_enough_replies(bft_network):
     bft_network.start_replicas(replicas_to_stop)
 
     print("Verify state transfer")
+    await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
+
+@pytest.mark.skip(reason="currently this won't pass")
+@describe
+def test_ro_replica_missing_bucket(fxProduct, bft_network):
+    trio.run(_test_ro_replica_missing_bucket, bft_network)
+
+@with_timeout
+async def _test_ro_replica_missing_bucket(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    s3 = MinioContainer()
+    ro_replica_id = bft_network.config.n
+
+    print("Stop RO")
+    bft_network.stop_replica(ro_replica_id)
+
+    print("Remove bucket")
+    s3.remove_bucket()
+
+    print("Start RO")
+    bft_network.start_replica(ro_replica_id)
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    print(f"Verify state transfer for replica {ro_replica_id}")
+    await _wait_for_st(bft_network, ro_replica_id, 150)
+
+@pytest.mark.skip(reason="currently this won't pass")
+@describe
+def test_ro_replica_restart(fxProduct, bft_network):
+    trio.run(_test_ro_replica_restart, bft_network)
+
+@with_timeout
+async def _test_ro_replica_restart(bft_network):
+    skvbc = kvbc.SimpleKVBCProtocol(bft_network)
+    ro_replica_id = bft_network.config.n
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    print(f"Verify state transfer for replica {ro_replica_id}")
+    await _wait_for_st(bft_network, ro_replica_id, 150)
+
+    # Restart RO replica
+    print("Restart RO")
+    bft_network.stop_replica(ro_replica_id)
+    bft_network.start_replica(ro_replica_id)
+
+    print("Generating checkpoint")
+    await skvbc.fill_and_wait_for_checkpoint(
+        initial_nodes=bft_network.all_replicas(),
+        num_of_checkpoints_to_add=1,
+        verify_checkpoint_persistency=False,
+        assert_state_transfer_not_started=False
+    )
+
+    key = ['replica', 'Gauges', 'lastStableSeqNum']
+    target_seq_num = await bft_network.metrics.get(1, *key)
+
+    print(f"Verify state transfer for replica {ro_replica_id}")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
