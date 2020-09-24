@@ -314,9 +314,6 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         if (generatePassword) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "True");
         }
-        // enable bft client is always true
-        propertiesBuilder.putValues(DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True");
-
         return propertiesBuilder.build();
     }
 
