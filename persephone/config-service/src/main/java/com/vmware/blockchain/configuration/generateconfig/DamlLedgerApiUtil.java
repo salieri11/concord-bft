@@ -63,7 +63,7 @@ public class DamlLedgerApiUtil {
     }
 
     private String getReplicas(Properties properties) {
-        String replicas = properties.getValuesMap().get(NodeProperty.Name.COMMITTERS.toString());
+        String replicas = properties.getValuesMap().get(NodeProperty.Name.COMMITTERS.name());
         if (Strings.isNullOrEmpty(replicas)) {
             return "concord:50051";
         } else {
@@ -73,11 +73,11 @@ public class DamlLedgerApiUtil {
 
     private void addPreexecutionThreshold(StringBuilder builder, Properties properties) {
         if (properties.getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "False")
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
                 .equalsIgnoreCase("True")) {
             builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
             builder.append(properties.getValuesMap()
-                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "0s"));
+                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "0s"));
             builder.append(System.lineSeparator());
         }
     }
@@ -91,7 +91,7 @@ public class DamlLedgerApiUtil {
     private void addProperties(StringBuilder builder, NodesInfo.Entry nodeInfo) {
         Properties properties = nodeInfo.getProperties();
         // Add auth token
-        var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.toString());
+        var authToken = properties.getValuesMap().get(NodeProperty.Name.CLIENT_AUTH_JWT.name());
         if (!Strings.isNullOrEmpty(authToken)) {
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
             builder.append(System.lineSeparator());
@@ -101,7 +101,7 @@ public class DamlLedgerApiUtil {
 
     private void addClientGroupId(StringBuilder builder, NodesInfo.Entry nodeInfo, Properties properties) {
         // Add client group id
-        var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.toString());
+        var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.name());
         if (!Strings.isNullOrEmpty(clientGroupId)) {
             // TODO Remove the convertor after new release.
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(clientGroupId));

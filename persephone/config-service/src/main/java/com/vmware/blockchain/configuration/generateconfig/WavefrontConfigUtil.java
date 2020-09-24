@@ -106,7 +106,7 @@ public class WavefrontConfigUtil {
 
         content = content
                 .replace("$BLOCKCHAIN_ID",
-                         properties.getValuesOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""));
+                         properties.getValuesOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.name(), ""));
 
         for (Map.Entry<Integer, String> nodeIp : nodeIps.entrySet()) {
             String hostConfigCopy = content
