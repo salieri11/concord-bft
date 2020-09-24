@@ -1045,8 +1045,8 @@ def parse_long_running_test_result(testset_result_dict):
             all_tests_failed = False
             if test_result is not False:
                test_result = True
-            else:
-               test_result = False
+         else:
+            test_result = False
 
    return test_result == True, all_tests_failed
 

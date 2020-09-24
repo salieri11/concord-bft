@@ -576,7 +576,7 @@ def map_run_id_to_this_run(args, parent_results_dir):
    '''
    Map a run ID for each run. This helps mapping iterations and log directorey
    in long running test runs
-   :param args: all command lone args
+   :param args: all command line args
    :param parent_results_dir: base results diir
    '''
    hermes_testrun_info_file = os.path.join(parent_results_dir,
@@ -598,7 +598,8 @@ def map_run_id_to_this_run(args, parent_results_dir):
    if not os.path.exists(hermes_testrun_info_lock_file):
       try:
          # create lock file if we have parallel runs in future
-         open(hermes_testrun_info_lock_file, 'x')
+         with open(hermes_testrun_info_lock_file, 'x') as f:
+            pass
 
          if os.path.exists(hermes_testrun_info_file):
             with open(hermes_testrun_info_file) as json_fp:
