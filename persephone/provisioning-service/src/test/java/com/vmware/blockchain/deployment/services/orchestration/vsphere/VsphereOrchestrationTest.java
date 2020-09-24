@@ -280,6 +280,7 @@ class VsphereOrchestrationTest {
         OrchestratorData.CreateComputeResourceRequestV2.CloudInitData cloudInitData =
                 new OrchestratorData.CreateComputeResourceRequestV2.CloudInitData(
                         Endpoint.newBuilder().build(),
+                        Endpoint.newBuilder().build(),
                         ConcordModelSpecification.newBuilder().build(),
                         "privateIp",
                         ConfigurationSessionIdentifier.newBuilder().build(),

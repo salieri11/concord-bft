@@ -44,6 +44,7 @@ import lombok.val;
 public class CloudInitConfiguration {
 
     private Endpoint containerRegistry;
+    private Endpoint notaryServer;
     private ConcordModelSpecification model;
     private String ipAddress;
     private String gateway;
@@ -105,6 +106,7 @@ public class CloudInitConfiguration {
                                   String vmPassword) {
 
         this.containerRegistry = request.getCloudInitData().getContainerRegistry();
+        this.notaryServer = request.getCloudInitData().getNotaryServer();
         this.model = request.getCloudInitData().getModel();
         this.ipAddress = request.getCloudInitData().getPrivateIp();
         this.gateway = getGateway(datacenterInfo);
@@ -169,6 +171,24 @@ public class CloudInitConfiguration {
         }
     }
 
+    private String setDockerContentTrustServerCommand() {
+        if (notaryServer != null && !notaryServer.getAddress().equals("")) {
+            log.info("Notary Server Endpoint received is " + this.notaryServer.getAddress());
+            return "export DOCKER_CONTENT_TRUST_SERVER=" + this.notaryServer.getAddress();
+        } else {
+            log.info("Notary Server Address is not provided");
+            return "export DOCKER_CONTENT_TRUST_SERVER=\"\"";
+        }
+    }
+
+    private String enableDockerContentTrustCommand() {
+        if (notaryServer != null && !notaryServer.getAddress().equals("")) {
+            return "export DOCKER_CONTENT_TRUST=1";
+        } else {
+            return "export DOCKER_CONTENT_TRUST=0";
+        }
+    }
+
     private String setupOutboundProxy() {
         if (outboundProxy != null && !Strings.isNullOrEmpty(outboundProxy.getHttpsHost())) {
             return "export http_proxy=" + outboundProxy.getHttpHost() + ":" + outboundProxy.getHttpPort()
@@ -206,7 +226,9 @@ public class CloudInitConfiguration {
         if (!Strings.isNullOrEmpty(nodeIdString)) {
             builder.setNodeId(nodeIdString);
         }
-
+        if (this.notaryServer != null) {
+            builder = builder.setNotaryServer(this.notaryServer);
+        }
         return builder.build();
     }
 
@@ -273,6 +295,8 @@ public class CloudInitConfiguration {
 
             content = content.replace("{{vmPassword}}", this.vmPassword)
                     .replace("{{dockerLoginCommand}}", toRegistryLoginCommand(containerRegistry))
+                    .replace("{{setDockerContentTrustServerCommand}}", setDockerContentTrustServerCommand())
+                    .replace("{{enableDockerContentTrustCommand}}", enableDockerContentTrustCommand())
                     .replace("{{agentImage}}",
                              URI.create(containerRegistry.getAddress()).getAuthority()
                              + "/" + agentImageName())

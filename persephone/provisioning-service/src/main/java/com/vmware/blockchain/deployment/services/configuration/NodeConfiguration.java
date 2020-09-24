@@ -104,6 +104,22 @@ public class NodeConfiguration {
                     .put(ETHEREUM_API, "vmwblockchain/ethrpc")
                     .put(TELEGRAF, "vmwblockchain/telegraf").build();
 
+    // A Map to identify which component is to notary verified if the notary verification is enabled
+    private static final Map<ConcordComponent.ServiceType, Boolean>
+            componentToNotaryVerificationRequirement =
+            ImmutableMap.<ConcordComponent.ServiceType, Boolean>builder()
+                    .put(GENERIC, true)
+                    .put(LOGGING, true)
+                    .put(WAVEFRONT_PROXY, false)
+                    .put(JAEGER_AGENT, false)
+                    .put(DAML_EXECUTION_ENGINE, true)
+                    .put(DAML_INDEX_DB, true)
+                    .put(DAML_LEDGER_API, true)
+                    .put(CONCORD, true)
+                    .put(DAML_CONCORD, true)
+                    .put(ETHEREUM_API, true)
+                    .put(TELEGRAF, false).build();
+
     private String getImageTag(final ConcordComponent.ServiceType componentName, final String imageTag) {
         log.debug("componentName: {}", componentName);
 
@@ -135,6 +151,7 @@ public class NodeConfiguration {
                                      .setServiceType(k)
                                      .setName(getImageTag(k, properties.getValuesOrDefault(k.name(),
                                                                                            dockerVersionToUse)))
+                                     .setNotaryVerificationRequired(componentToNotaryVerificationRequirement.get(k))
                                      .build()
                 ).collect(Collectors.toList());
     }

@@ -66,6 +66,9 @@ public class ComputeHelperTest {
     @Mock
     Endpoint registry;
 
+    @Mock
+    Endpoint notaryServer;
+
     /**
      * Initialize various mocks.
      */
@@ -94,7 +97,8 @@ public class ComputeHelperTest {
                                               orchestrator,
                                               model,
                                               configGenId,
-                                              registry);
+                                              registry,
+                                              notaryServer);
         Assert.assertNotNull(output);
 
         verify(orchestrator, times(1)).createDeploymentV2(any());
