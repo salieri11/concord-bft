@@ -153,6 +153,7 @@ message VmcOrchestrationSiteInfo {
     repeated LogManagement log_managements = 7 [packed=false];
     Wavefront wavefront = 8;
     ElasticSearch elasticsearch = 9;
+    Endpoint notary_server = 10;
 }
 
 /**
@@ -174,6 +175,7 @@ message VSphereOrchestrationSiteInfo {
     repeated LogManagement log_managements = 4 [packed=false];
     Wavefront wavefront = 5;
     ElasticSearch elasticsearch = 6;
+    Endpoint notary_server = 7;
 }
 
 /**

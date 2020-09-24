@@ -58,6 +58,9 @@ public class CloudInitConfigurationTest {
     private Endpoint containerRegistry;
 
     @Mock
+    private Endpoint notaryServer;
+
+    @Mock
     private ConcordModelSpecification model;
 
     @Mock
@@ -147,7 +150,6 @@ public class CloudInitConfigurationTest {
     void testDefault() throws IOException {
         String output = cloudInitConfiguration.userData();
         Assert.assertNotNull(output);
-
         File file = new File(getClass().getClassLoader().getResource("userdata/default-user-data.txt").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
 
@@ -196,9 +198,75 @@ public class CloudInitConfigurationTest {
         Assert.assertEquals(expected, output);
     }
 
+    // Test to check if the environment variables for notary verification for agent image are set correctly
+    // This test handles the case where notary server is provided
+    // All other tests inherently test the scenario of notary server not being provided
+    @Test
+    void testNotaryServer() throws IOException {
+        when(notaryServer.getAddress()).thenReturn("\"https://notary.example.com\"");
+
+        // mock cloudInitData details with above change to notaryServer Address
+        CreateComputeResourceRequestV2.CloudInitData cloudInitData =
+                mock(CreateComputeResourceRequestV2.CloudInitData.class);
+        when(cloudInitData.getContainerRegistry()).thenReturn(containerRegistry);
+        when(cloudInitData.getNotaryServer()).thenReturn(notaryServer);
+        when(cloudInitData.getModel()).thenReturn(model);
+        when(cloudInitData.getPrivateIp()).thenReturn("10.0.0.10");
+        when(cloudInitData.getConfigGenId()).thenReturn(configGenId);
+        when(cloudInitData.getConfigServiceRestEndpoint()).thenReturn(configServiceRestEndpoint);
+        when(request.getCloudInitData()).thenReturn(cloudInitData);
+
+        cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
+        cloudInitConfiguration = spy(cloudInitConfiguration);
+        doReturn(ConcordAgentConfiguration.getDefaultInstance()).when(cloudInitConfiguration).getConfiguration();
+
+        String output = cloudInitConfiguration.userData();
+        Assert.assertNotNull(output);
+
+        File file = new File(
+                getClass().getClassLoader().getResource("userdata/user-data-with-notary-server.txt").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assert.assertEquals(expected, output);
+    }
+
     @Test
     void testConcordAgentConfig() {
         doCallRealMethod().when(cloudInitConfiguration).getConfiguration();
+        Assert.assertNotNull(cloudInitConfiguration.getConfiguration());
+    }
+
+    // Test to check if Agent Config contains notary server address, if notary server address is provided
+    @Test
+    void testConcordAgentConfigWithNotaryServer() {
+        when(notaryServer.getAddress()).thenReturn("\"https://notary.new.example.com\"");
+        // mock cloudInitData details with above change to notaryServer Address
+        CreateComputeResourceRequestV2.CloudInitData cloudInitData =
+                mock(CreateComputeResourceRequestV2.CloudInitData.class);
+        when(cloudInitData.getContainerRegistry()).thenReturn(containerRegistry);
+        when(cloudInitData.getNotaryServer()).thenReturn(notaryServer);
+        when(cloudInitData.getModel()).thenReturn(model);
+        when(cloudInitData.getPrivateIp()).thenReturn("10.0.0.10");
+        when(cloudInitData.getConfigGenId()).thenReturn(configGenId);
+        when(cloudInitData.getConfigServiceRestEndpoint()).thenReturn(configServiceRestEndpoint);
+        when(request.getCloudInitData()).thenReturn(cloudInitData);
+
+        cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
+        cloudInitConfiguration = spy(cloudInitConfiguration);
+
+        doCallRealMethod().when(cloudInitConfiguration).getConfiguration();
+        Assert.assertEquals(cloudInitConfiguration.getConfiguration().getNotaryServer().getAddress(), "\"https://notary.new.example.com\"");
+        Assert.assertNotNull(cloudInitConfiguration.getConfiguration());
+    }
+
+    // Test to check if Agent Config contains empty notary server address, if notary server address is not provided
+    @Test
+    void testConcordAgentConfigWithoutNotaryServer() {
+        cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
+        cloudInitConfiguration = spy(cloudInitConfiguration);
+
+        doCallRealMethod().when(cloudInitConfiguration).getConfiguration();
+        Assert.assertEquals("", cloudInitConfiguration.getConfiguration().getNotaryServer().getAddress());
         Assert.assertNotNull(cloudInitConfiguration.getConfiguration());
     }
 

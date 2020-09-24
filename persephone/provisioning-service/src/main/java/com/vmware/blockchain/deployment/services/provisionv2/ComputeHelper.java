@@ -57,7 +57,8 @@ public class ComputeHelper {
             Orchestrator orchestrator,
             List<ConcordComponent> model,
             ConfigurationSessionIdentifier configGenId,
-            Endpoint registry) {
+            Endpoint registry,
+            Endpoint notaryServer) {
 
         var modelSpecBuilder = ConcordModelSpecification.newBuilder()
                 .addAllComponents(model)
@@ -78,6 +79,7 @@ public class ComputeHelper {
                                                                                          .CreateComputeResourceRequestV2
                                                                                          .CloudInitData(
                                                                                          registry,
+                                                                                         notaryServer,
                                                                                          modelSpecBuilder.build(),
                                                                                          nodeDetails
                                                                                                  .privateIp,
@@ -101,15 +103,19 @@ public class ComputeHelper {
                     var registry = session.deploymentType == OrchestrationSiteInfo.Type.VSPHERE
                                    ? siteInfo.getVsphere().getContainerRegistry()
                                    : siteInfo.getVmc().getContainerRegistry();
+                    var notaryServer = session.deploymentType == OrchestrationSiteInfo.Type.VSPHERE
+                                       ? siteInfo.getVsphere().getNotaryServer()
+                                       : siteInfo.getVmc().getNotaryServer();
                     var computeEvent = deployNode(nodeId,
-                                                                session.blockchainId,
-                                                                session.blockchainType,
-                                                                placement,
-                                                                session.localNodeDetailsMap.get(nodeId),
-                                                                session.orchestrators.get(placement.getSite()),
-                                                                session.componentsByNode.get(nodeId),
-                                                                configGenerated,
-                                                  registry);
+                                                    session.blockchainId,
+                                                    session.blockchainType,
+                                                    placement,
+                                                    session.localNodeDetailsMap.get(nodeId),
+                                                    session.orchestrators.get(placement.getSite()),
+                                                    session.componentsByNode.get(nodeId),
+                                                    configGenerated,
+                                                    registry,
+                                                    notaryServer);
                     var resource = DeployedResource.newBuilder()
                             .setNodeId(placement.getNodeId())
                             .setSiteId(placement.getSite().getId())
