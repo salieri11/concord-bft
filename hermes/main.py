@@ -35,6 +35,7 @@ suiteList = {
    "ClientGroupTests": "suites/st_client_group_tests.py",
    "EthCoreVmTests": "suites/eth_core_vm_tests.py",
    "DamlTests": "suites/daml_tests.py",
+   "DamlRegressionTests": "suites/daml_regression_tests.py",
    "ClientPoolDamlTests": "suites/daml_tests.py",
    "HelenAPITests": "suites/helen/api_test.py",
    "HelenBlockTests": "suites/helen/block_test.py",
