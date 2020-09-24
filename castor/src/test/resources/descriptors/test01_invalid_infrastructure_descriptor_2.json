@@ -1,6 +1,5 @@
 {
   "organization": {
-    "sddcUrl": "https://vcenter.vmware.com",
     "damlSdk": "1.0.1",
     "cpuCount": -4,
     "memoryGb": -4,

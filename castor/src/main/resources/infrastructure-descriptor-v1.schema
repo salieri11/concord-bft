@@ -9,11 +9,6 @@
       "description": "Organization properties",
       "type": "object",
       "properties": {
-        "sddcUrl": {
-          "description": "SDDC URL",
-          "type": "string",
-          "format": "url"
-        },
         "damlSdk": {
           "description": "DAML SDK",
           "type": "string"
@@ -49,7 +44,7 @@
           "type": "boolean"
         }
       },
-      "required": ["sddcUrl"]
+      "required": []
     },
     "vCenter": {
       "description": "vCenter properties",
