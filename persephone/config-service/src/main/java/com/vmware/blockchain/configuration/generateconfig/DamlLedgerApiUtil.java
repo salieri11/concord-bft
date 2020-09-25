@@ -106,7 +106,7 @@ public class DamlLedgerApiUtil {
         if (properties.getValuesMap()
                 .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
                 .equalsIgnoreCase("True")) {
-            builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
+            builder.append("export PRE_EXECUTION_TIME_THRESHOLD=");
             builder.append(properties.getValuesMap()
                     .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "0s"));
             builder.append(System.lineSeparator());

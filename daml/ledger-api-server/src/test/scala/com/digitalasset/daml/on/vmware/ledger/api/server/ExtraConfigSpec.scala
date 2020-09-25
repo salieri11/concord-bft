@@ -133,7 +133,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
     "parse a cost threshold parameter expressed in seconds" in {
       val config = parseExtraConfig(
         Array(
-          "--pre-execution-cost-threshold",
+          "--pre-execution-time-threshold",
           "3s"
         )
       )
@@ -142,23 +142,11 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
       )
     }
 
-    "parse a cost threshold parameter expressed in milliseconds" in {
-      val config = parseExtraConfig(
-        Array(
-          "--pre-execution-cost-threshold",
-          "3ms"
-        )
-      )
-      config.extra.preExecutionCostThreshold should be(
-        Some(Duration(3, MILLISECONDS))
-      )
-    }
-
     "not parse a cost threshold parameter expressed without unit" in {
       a[TestFailedException] should be thrownBy {
         parseExtraConfig(
           Array(
-            "--pre-execution-cost-threshold",
+            "--pre-execution-time-threshold",
             "3"
           )
         )
