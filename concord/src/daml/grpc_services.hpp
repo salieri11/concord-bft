@@ -29,7 +29,7 @@ class CommitServiceImpl final
   explicit CommitServiceImpl(
       concord::consensus::KVBClientPool& p,
       const concord::config::ConcordConfiguration& config)
-      : logger_(logging::getLogger("com.vmware.concord.daml.commit")),
+      : logger_(logging::getLogger("concord.daml.commit")),
         pool(p),
         pre_execute_all_requests(IsPreExecuteAllRequestsEnabled(config)) {}
 

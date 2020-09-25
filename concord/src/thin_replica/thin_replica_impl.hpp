@@ -46,7 +46,7 @@ class ThinReplicaImpl {
       SubBufferList& subscriber_list,
       std::optional<std::shared_ptr<concord::utils::PrometheusRegistry>>
           prometheus_registry = {})
-      : logger_(logging::getLogger("com.vmware.concord.thin_replica")),
+      : logger_(logging::getLogger("concord.thin_replica")),
         rostorage_(rostorage),
         subscriber_list_(subscriber_list) {
     if (prometheus_registry) {

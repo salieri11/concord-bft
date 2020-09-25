@@ -143,7 +143,7 @@ std::unique_ptr<Cryptosystem> cryptosys;
 
 static void signalHandler(int signum) {
   try {
-    Logger logger = Logger::getInstance("com.vmware.concord.main");
+    Logger logger = Logger::getInstance("concord.main");
     LOG_INFO(logger, "Signal received (" << signum << ")");
 
     if (api_service) {
@@ -431,7 +431,7 @@ static concordUtils::Status create_tee_genesis_block(
  * and passing the requests to KVBClient.
  */
 void start_worker_threads(int number) {
-  Logger logger = Logger::getInstance("com.vmware.concord.main");
+  Logger logger = Logger::getInstance("concord.main");
   LOG_INFO(logger, "Starting " << number << " new API worker threads");
   assert(api_service);
   for (int i = 0; i < number; i++) {
@@ -447,7 +447,7 @@ void RunDamlGrpcServer(
     const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
-  Logger logger = Logger::getInstance("com.vmware.concord.daml");
+  Logger logger = Logger::getInstance("concord.daml");
 
   auto commitService = std::make_unique<CommitServiceImpl>(pool, config);
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
@@ -474,7 +474,7 @@ void RunDamlGrpcServer(
 void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
                       const ILocalKeyValueStorageReadOnly *ro_storage,
                       SubBufferList &subscriber_list, int max_num_threads) {
-  Logger logger = Logger::getInstance("com.vmware.concord.tee");
+  Logger logger = Logger::getInstance("concord.tee");
 
   auto teeService = std::make_unique<TeeServiceImpl>(pool);
   auto thinReplicaServiceImpl =
@@ -950,7 +950,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 int main(int argc, char **argv) {
   bool tracingInitialized = false;
   int result = 0;
-  Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
+  Logger mainLogger = Logger::getInstance("concord.main");
   try {
     ConcordConfiguration config;
 
@@ -979,7 +979,7 @@ int main(int argc, char **argv) {
                             nodeConfig.getValue<int>("logger_reconfig_time"));
 
     // re-initialize logger after configuration
-    mainLogger = Logger::getInstance("com.vmware.concord.main");
+    mainLogger = Logger::getInstance("concord.main");
     // say hello
     LOG_INFO(mainLogger, "VMware Project concord starting");
 

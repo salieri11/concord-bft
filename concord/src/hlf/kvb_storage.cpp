@@ -39,14 +39,14 @@ const int64_t KHlfStateStorageVersion = 1;
 HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage)
     : ro_storage_(ro_storage),
       ptr_block_appender_(nullptr),
-      logger_(logging::getLogger("com.vmware.concord.hlf.storage")) {}
+      logger_(logging::getLogger("concord.hlf.storage")) {}
 
 // read-write mode
 HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage,
                              IBlocksAppender *ptr_block_appender)
     : ro_storage_(ro_storage),
       ptr_block_appender_(ptr_block_appender),
-      logger_(logging::getLogger("com.vmware.concord.hlf.storage")) {}
+      logger_(logging::getLogger("concord.hlf.storage")) {}
 
 HlfKvbStorage::~HlfKvbStorage() {}
 

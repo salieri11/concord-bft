@@ -173,7 +173,7 @@ struct EthTransaction EthTransaction::deserialize(Sliver &input) {
               outtx.block_hash.bytes);
 
     if (intx.from().size() != sizeof(outtx.from)) {
-      LOG_ERROR(logging::getLogger("com.vmware.concord"),
+      LOG_ERROR(logging::getLogger("concord.common"),
                 "Invalid address length " << intx.from().size());
       throw EVMException("Invalid from address length");
     }
@@ -263,7 +263,7 @@ struct EthTransaction EthTransaction::deserialize(Sliver &input) {
 
     return outtx;
   } else {
-    LOG_ERROR(logging::getLogger("com.vmware.concord"),
+    LOG_ERROR(logging::getLogger("concord.common"),
               "Unknown transaction storage version " << intx.version());
     throw EVMException("Unkown transaction storage version");
   }
@@ -337,7 +337,7 @@ struct EthBlock EthBlock::deserialize(Sliver &input) {
     for (int i = 0; i < inblk.transaction_size(); i++) {
       std::string txhashstr = inblk.transaction(i);
       if (txhashstr.size() != sizeof(evm_uint256be)) {
-        LOG_ERROR(logging::getLogger("com.vmware.concord"),
+        LOG_ERROR(logging::getLogger("concord.common"),
                   "Invalid hash length " << txhashstr.size());
         throw EVMException("Invalid transaction hash length");
       }
@@ -360,7 +360,7 @@ struct EthBlock EthBlock::deserialize(Sliver &input) {
 
     return outblk;
   } else {
-    LOG_ERROR(logging::getLogger("com.vmware.concord"),
+    LOG_ERROR(logging::getLogger("concord.common"),
               "Unknown block storage version " << inblk.version());
     throw EVMException("Unkown block storage version");
   }

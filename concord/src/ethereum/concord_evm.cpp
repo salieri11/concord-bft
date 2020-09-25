@@ -45,7 +45,7 @@ namespace ethereum {
  * Initialize the concord/evm context and start the evm instance.
  */
 EVM::EVM(EVMInitParams params)
-    : logger(Logger::getInstance("com.vmware.concord.evm")),
+    : logger(Logger::getInstance("concord.evm")),
       chainId(params.get_chainID()) {
 #ifdef USE_HERA
   evminst = hera_create();

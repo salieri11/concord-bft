@@ -50,7 +50,7 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
                                blocks_deleter, state_transfer, subscriber_list,
                                std::move(reconfiguration_sm),
                                prometheus_registry),
-        logger_(logging::getLogger("com.vmware.concord.tee")),
+        logger_(logging::getLogger("concord.tee")),
         skvbc_commands_handler_(&ros, &blocks_appender, &metadata_storage_,
                                 internal_logger_),
         write_ops_{prometheus_registry->createCounter(
