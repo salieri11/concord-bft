@@ -48,14 +48,11 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain):
 
     f_count = intr_helper.get_f_count(fxBlockchain)
 
-    # Install DAML SDK and deploy dar file
     client_hosts = {}
     for ledger_api_host in ledger_api_hosts:
         if ledger_api_host == 'localhost':
             upload_port = '6861'
         else:
-            # Default client_port 80 stops working every now and then
-            # upload_port = str(helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
             upload_port = '6865'
         client_hosts[ledger_api_host] = upload_port
     return LocalSetupFixture(client_hosts=client_hosts,
@@ -79,6 +76,7 @@ def install_sdk_deploy_daml(client_host, client_port):
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
         cmd, timeout=120, working_dir=party_project_dir, verbose=True)
+
     assert success or "Party already exists" in output, \
         "Unable to deploy DAML app for one/more parties"
 
@@ -101,7 +99,6 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     node_interruption_details = {
         intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
         intr_helper.NODE_TYPE_TO_INTERRUPT: node_type,
-        intr_helper.NO_OF_NODES_TO_INTERRUPT: 1,
         intr_helper.SKIP_MASTER_REPLICA: True,
     }
     if custom_params is None:
@@ -113,8 +110,8 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
         fxHermesRunSettings, node, node_interruption_details, mode)
 
 
-@describe("daml smoke test")
-def test_daml_smoke(fxLocalSetup):
+@describe("daml test for single transaction")
+def test_daml_single_transaction(fxLocalSetup):
     '''
     Verify case by submitting sequential client requests using DAML tool.
     - Connect to a blockchain network.
@@ -135,7 +132,7 @@ def test_daml_smoke(fxLocalSetup):
             assert False, excp
 
 
-@describe("fault tolerance test when 1-f replicas are stopped")
+@describe("fault tolerance when f replicas are stopped/started")
 def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings,
                                   fxNodeInterruption):
     '''
@@ -143,10 +140,11 @@ def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings,
     - Connect to a blockchain network.
     - Submit valid requests to it.
     - Verify that requests are processed correctly.
-    - Stop 1-f replicas
-    - Continuously submit requests.
-    - Verify that new requests are processed correctly.
-    - Restart the stopped replica.
+    - Crash f concord containers (It will recover automatically).
+    - Continuously submit and verify requests.
+    - Stop the f replicas.
+    - Continuously submit and verify requests.
+    - Restart the stopped replicas.
     - Verify that new requests are processed correctly.
     Args:
         fxLocalSetup: Local fixture
@@ -163,26 +161,25 @@ def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings,
                 "DAML request submission/verification failed for participant \
                 [{}]".format(client_host)
 
-            node_intr_cont_crash = intr_helper.NODE_INTERRUPT_CONTAINER_CRASH
-            node_interrupt = intr_helper.NODE_INTERRUPT
-
             # Crash/Recover concord containers
             for i in range(fxLocalSetup.f_count):
                 concord_host = fxLocalSetup.concord_hosts[i]
                 custom_params = {
-                    "CONTAINERS_TO_CRASH": ["concord"]
+                    intr_helper.CONTAINERS_TO_CRASH: ["concord"]
                 }
 
                 assert interrupt_node(fxHermesRunSettings, concord_host,
                                       helper.TYPE_DAML_COMMITTER,
-                                      node_intr_cont_crash,
-                                      node_interrupt, custom_params),\
+                                      intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
+                                      intr_helper.NODE_INTERRUPT,
+                                      custom_params),\
                     "Failed to crash container [{}]".format(concord_host)
 
-            # Create & verify transactions after 1-f crash/recovery of concord
+            # Create & verify transactions after f crash/recovery of concord
             assert simple_request(url, no_of_txns), \
                 "DAML request submission/verification failed after \
-                crash/recovery of concord"
+                crash/recovery of {} concord containers"\
+                .format(fxLocalSetup.f_count)
 
             # Power off f committer nodes
             for i in range(fxLocalSetup.f_count):
@@ -197,7 +194,7 @@ def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings,
             # Create & verify transactions after powering off f committer nodes
             assert simple_request(url, no_of_txns), \
                 "DAML request submission/verification failed after \
-                powering off committers"
+                powering off {} committers".format(fxLocalSetup.f_count)
 
             # Power on f committer nodes
             for i in range(fxLocalSetup.f_count):
@@ -212,7 +209,7 @@ def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings,
             # Create & verify transactions after powering on f committer nodes
             assert simple_request(url, no_of_txns), \
                 "DAML request submission/verification failed after powering \
-                on committer nodes"
+                on {} committer nodes".format(fxLocalSetup.f_count)
 
         except Exception as excp:
             assert False, excp
@@ -239,15 +236,17 @@ def test_fault_tolerance_participant_restart(fxLocalSetup,
     for client_host, client_port in fxLocalSetup.client_hosts.items():
         try:
             install_sdk_deploy_daml(client_host, client_port)
+
             # Create & verify transactions
-            no_of_txns, wait_time = 5, 1
+            no_of_txns, wait_time = 2, 1
             url = 'http://{}:{}'.format(client_host, client_port)
+
             assert simple_request(url, no_of_txns, wait_time), \
                 "DAML request submission/verification failed for participant \
                 [{}]".format(client_host)
 
             custom_params = {
-                "CONTAINERS_TO_CRASH": ["daml_ledger_api"]
+                intr_helper.CONTAINERS_TO_CRASH: ["daml_ledger_api"]
             }
             assert interrupt_node(fxHermesRunSettings, client_host,
                                   helper.TYPE_DAML_PARTICIPANT,
