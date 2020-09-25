@@ -397,12 +397,12 @@ public class VSphereHttpClient {
         } catch (Exception e) {
             log.warn(e.toString());
         }
-
-        var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
-        if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException(MessageFormat.format(ErrorCode.VM_MEMORY_UPGRADE_ERROR, name));
+        try {
+            var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
+            return responseEntity.getStatusCode() == HttpStatus.OK;
+        } catch (Exception e) {
+            throw new PersephoneException(e, ErrorCode.VM_MEMORY_UPGRADE_ERROR, name);
         }
-        return responseEntity.getStatusCode() == HttpStatus.OK;
     }
 
     /**
@@ -428,12 +428,12 @@ public class VSphereHttpClient {
         } catch (Exception e) {
             log.warn(e.toString());
         }
-
-        var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
-        if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException(MessageFormat.format(ErrorCode.VM_CPU_UPGRADE_ERROR, name));
+        try {
+            var responseEntity = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
+            return responseEntity.getStatusCode() == HttpStatus.OK;
+        } catch (Exception e) {
+            throw new PersephoneException(e, ErrorCode.VM_CPU_UPGRADE_ERROR, name);
         }
-        return responseEntity.getStatusCode() == HttpStatus.OK;
     }
 
     /**
@@ -469,12 +469,12 @@ public class VSphereHttpClient {
         try {
             responseEntity = restTemplate.exchange(uri, HttpMethod.POST, requests, Void.class);
             if (responseEntity == null || responseEntity.getStatusCode() != HttpStatus.OK) {
-                throw new PersephoneException(MessageFormat.format(ErrorCode.VM_DISK_CREATE_ERROR,  name));
+                throw new PersephoneException(ErrorCode.VM_DISK_CREATE_ERROR, name);
             }
             return responseEntity.getStatusCode() == HttpStatus.OK;
         } catch (Exception e) {
             log.error(MessageFormat.format(ErrorCode.VM_DISK_CREATE_ERROR, e));
-            throw new PersephoneException(MessageFormat.format(ErrorCode.VM_DISK_CREATE_ERROR,  name + " " + e), e);
+            throw new PersephoneException(e, ErrorCode.VM_DISK_CREATE_ERROR, name);
         }
     }
 
@@ -519,12 +519,11 @@ public class VSphereHttpClient {
             ResponseEntity responseEntity
                     = restTemplate.exchange(uri, HttpMethod.POST, requests, Void.class);
             if (responseEntity.getStatusCode() != HttpStatus.OK) {
-                throw new PersephoneException(MessageFormat.format(ErrorCode.VM_POWER_STATE_UPDATE_ERROR, name));
+                throw new PersephoneException(ErrorCode.VM_POWER_STATE_UPDATE_ERROR, name);
             }
             return true;
         } catch (Exception ex) {
-            throw new PersephoneException(MessageFormat.format(ErrorCode.VM_POWER_STATE_UPDATE_ERROR, name
-                                                                                                      + " " + ex), ex);
+            throw new PersephoneException(ex, ErrorCode.VM_POWER_STATE_UPDATE_ERROR, name);
         }
     }
 
@@ -540,7 +539,7 @@ public class VSphereHttpClient {
         String uri = VsphereEndpoints.VSPHERE_VM_POWER.getPath().replace("{vm}", name);
 
         HttpEntity requests = new HttpEntity<>(httpHeaders);
-        try {
+        try { //todo
             ResponseEntity<VirtualMachinePowerResponse> responseEntity
                     = restTemplate.exchange(uri, HttpMethod.GET, requests, VirtualMachinePowerResponse.class);
             return Objects.requireNonNull(responseEntity.getBody()).getValue().getState();
