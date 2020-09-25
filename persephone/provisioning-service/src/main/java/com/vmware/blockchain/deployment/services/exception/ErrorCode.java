@@ -37,6 +37,6 @@ public final class ErrorCode {
     public static final String VM_POWER_OFF_ERROR = "Unable to power off VM: {0}";
     public static final String VM_POWER_STATE_UPDATE_ERROR = "Unable to update VM power state: {0}";
     public static final String VM_START_ERROR = "Error creating/starting the VM";
-    public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator";
+    public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator: {0}";
 
 }

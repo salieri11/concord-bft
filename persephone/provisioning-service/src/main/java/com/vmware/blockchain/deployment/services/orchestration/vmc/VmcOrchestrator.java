@@ -82,7 +82,7 @@ public class VmcOrchestrator implements Orchestrator {
                     .build();
             internalOrchestrator = new VSphereOrchestrator(info.getVsphere(), vsphereEndpoint, ipamClient);
         } catch (Exception e) {
-            throw new PersephoneException(e, ErrorCode.VMC_ORCHESTRATION_CREATION_FAILURE);
+            throw new PersephoneException(e, ErrorCode.VMC_ORCHESTRATION_CREATION_FAILURE, e.getMessage());
         }
     }
 
