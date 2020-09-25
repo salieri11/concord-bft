@@ -57,7 +57,6 @@ public class DamlLedgerApiUtil {
         builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
                        + Constants.DAML_BFT_CLIENT_CONFIG_PATH + "\"");
         builder.append(System.lineSeparator());
-        addPreexecutionThreshold(builder, nodeInfo.getProperties());
 
         return builder.toString().trim();
     }
@@ -68,17 +67,6 @@ public class DamlLedgerApiUtil {
             return "concord:50051";
         } else {
             return replicas;
-        }
-    }
-
-    private void addPreexecutionThreshold(StringBuilder builder, Properties properties) {
-        if (properties.getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
-                .equalsIgnoreCase("True")) {
-            builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
-            builder.append(properties.getValuesMap()
-                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "0s"));
-            builder.append(System.lineSeparator());
         }
     }
 
@@ -97,6 +85,8 @@ public class DamlLedgerApiUtil {
             builder.append(System.lineSeparator());
         }
         addClientGroupId(builder, nodeInfo, properties);
+        addPreexecutionThreshold(builder, properties);
+        addTlsCredentials(builder, properties);
     }
 
     private void addClientGroupId(StringBuilder builder, NodesInfo.Entry nodeInfo, Properties properties) {
@@ -108,6 +98,41 @@ public class DamlLedgerApiUtil {
             builder.append(System.lineSeparator());
         } else {
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeInfo.getId()));
+            builder.append(System.lineSeparator());
+        }
+    }
+
+    private void addPreexecutionThreshold(StringBuilder builder, Properties properties) {
+        if (properties.getValuesMap()
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
+                .equalsIgnoreCase("True")) {
+            builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
+            builder.append(properties.getValuesMap()
+                    .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "0s"));
+            builder.append(System.lineSeparator());
+        }
+    }
+
+    private void addTlsCredentials(StringBuilder builder, Properties properties) {
+        String pem = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_PEM.toString(), "");
+        String crt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CRT.toString(), "");
+        String cacrt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CACRT.toString(), "");
+
+        // Certificate values can either br provided or not.
+        // If they are provided, make sure they are all present.
+        // If they are not provided, take no action.
+        // This is to maintain backward compatibility.
+
+        boolean tlsEnabled = !Strings.isNullOrEmpty(pem)
+                && !Strings.isNullOrEmpty(crt)
+                && !Strings.isNullOrEmpty(cacrt);
+
+        if (tlsEnabled) {
+            builder.append("export PEM=" + pem);
+            builder.append(System.lineSeparator());
+            builder.append("export CRT=" + crt);
+            builder.append(System.lineSeparator());
+            builder.append("export CACRT=" + cacrt);
             builder.append(System.lineSeparator());
         }
     }

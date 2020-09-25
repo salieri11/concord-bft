@@ -104,6 +104,35 @@ public class DamlLedgerApiUtilTest {
     }
 
     @Test
+    public void testHappyPathWithTlsCredentials() throws IOException {
+        String pem = "PEM_VALUE";
+        String crt = "CRT_VALUE";
+        String cacrt = "CACRT_VALUE";
+
+        Properties properties = Properties.newBuilder()
+                .putAllValues(
+                        ImmutableMap.of(
+                                NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
+                                NodeProperty.Name.TLS_PEM.toString(), pem,
+                                NodeProperty.Name.TLS_CRT.toString(), crt,
+                                NodeProperty.Name.TLS_CACRT.toString(), cacrt))
+                .build();
+
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
+                .setProperties(properties).build();
+
+        String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfigWithTlsCredentials.txt")
+                .getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual.equals(expected)).isTrue();
+
+    }
+
+    @Test
     public void testHappyPathWithBftClient() throws IOException {
         String authJwtToken =
                 "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE1ODU4NTI0M"
