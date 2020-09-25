@@ -3,7 +3,7 @@
 #ifndef CONCORD_THIN_REPLICA_SUBSCRIPTION_BUFFER_HPP_
 #define CONCORD_THIN_REPLICA_SUBSCRIPTION_BUFFER_HPP_
 
-#include <boost/circular_buffer.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
@@ -14,98 +14,128 @@
 namespace concord {
 namespace thin_replica {
 
+class ConsumerTooSlow : public std::runtime_error {
+ public:
+  ConsumerTooSlow()
+      : std::runtime_error("Updates are not consumed fast enough"){};
+};
+
 // A single update from the commands handler
 typedef std::pair<kvbc::BlockId, kvbc::SetOfKeyValuePairs> SubUpdate;
 
-// Each subscriber creates its own ring buffer and puts it into the shared list
+// Each subscriber creates its own spsc queue and puts it into the shared list
 // of subscriber buffers. This is a thread-safe implementation around boost's
-// circular buffer. We expect a single producer (the commands handler) and a
-// single consumer (the subscriber thread in the thin replica gRPC service).
+// spsc queue in order to use an additional wake-up mechanism. We expect a
+// single producer (the commands handler) and a single consumer (the subscriber
+// thread in the thin replica gRPC service).
 class SubUpdateBuffer {
- private:
-  std::mutex buffer_mutex_;
-  std::condition_variable cv_;
-  boost::circular_buffer<SubUpdate> cb_;
-
  public:
-  explicit SubUpdateBuffer(size_t buffer_size) : cb_(buffer_size) {}
+  explicit SubUpdateBuffer(size_t size) : queue_(size) {}
 
   // Let's help ourselves and make sure we don't copy this buffer
   SubUpdateBuffer(const SubUpdateBuffer&) = delete;
   SubUpdateBuffer& operator=(const SubUpdateBuffer&) = delete;
 
-  // Add an update to the ring buffer and notify waiting subscribers
-  void Push(SubUpdate update) {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    cb_.push_back(update);
+  // Add an update to the queue and notify waiting subscribers
+  void Push(const SubUpdate& update) {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    if (!queue_.push(update)) {
+      // If we fail to push a new update (because the queue is full) we
+      // indicate that this queue is unusable and the reader should clean-up.
+      // Not stopping the subscription will lead to a failure on the consumer
+      // end (TRC) eventually. Therefore, let's stop it right here.
+      too_slow_ = true;
+    } else {
+      newest_block_id_ = update.first;
+    }
     cv_.notify_one();
   };
 
-  // Return the oldest update from the ring buffer and block if no update is
-  // available
-  SubUpdate Pop() {
-    // NOTE(DD): We do not use WaitUntilNonEmpty to wait
-    // because we want to leave the buffer_mutex_ locked
-    // while extracting an item
-    std::unique_lock<std::mutex> lock(buffer_mutex_);
-    cv_.wait(lock, [this] { return !cb_.empty(); });
-    auto out = cb_.front();
-    cb_.pop_front();
-    return out;
+  // Return the oldest update (block if queue is empty)
+  void Pop(SubUpdate& out) {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    if (too_slow_) {
+      // We throw an exception because we cannot handle the clean-up ourselves
+      // and it doesn't make sense to continue pushing/popping updates.
+      throw ConsumerTooSlow();
+    }
+
+    // Boost's spsc queue is wait-free but we want to block here
+    cv_.wait(lock, [this] { return queue_.read_available(); });
+    assert(queue_.pop(out));
   };
 
   void WaitUntilNonEmpty() {
-    std::unique_lock<std::mutex> lock(buffer_mutex_);
-    cv_.wait(lock, [this] { return !cb_.empty(); });
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    cv_.wait(lock, [this] { return queue_.read_available(); });
   }
 
   template <typename RepT, typename PeriodT>
   [[nodiscard]] bool WaitUntilNonEmpty(
       const std::chrono::duration<RepT, PeriodT>& duration) {
-    std::unique_lock<std::mutex> lock(buffer_mutex_);
-    return cv_.wait_for(lock, duration, [this] { return !cb_.empty(); });
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    return cv_.wait_for(lock, duration,
+                        [this] { return queue_.read_available(); });
   }
 
+  // This is not thread-safe and the caller has to make sure that there is no
+  // writer or reader active. This is a trade-off in order to stay lock-free.
   void RemoveAllUpdates() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    cb_.erase_begin(cb_.size());
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    queue_.reset();
   }
 
+  // The caller needs to make sure that the queue is not empty when calling
   kvbc::BlockId NewestBlockId() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    return cb_.back().first;
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    // We cannot reach the newest element without consuming the others. Hence,
+    // the counter is a workaround but it requires that there is at least one
+    // element in the queue.
+    assert(queue_.read_available());
+    return newest_block_id_.load();
   }
 
+  // The caller needs to make sure that the queue is not empty when calling
   kvbc::BlockId OldestBlockId() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    return cb_.front().first;
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    // Undefined behavior if the queue is empty
+    assert(queue_.read_available());
+    return queue_.front().first;
   }
 
   bool Empty() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    return cb_.empty();
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    return !queue_.read_available();
   }
 
   bool Full() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    return cb_.full();
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    return !queue_.write_available();
   }
 
+  // Return the number of elements in the queue
   size_t Size() {
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
-    return cb_.size();
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    return queue_.read_available();
   }
+
+ private:
+  boost::lockfree::spsc_queue<SubUpdate> queue_;
+  std::atomic_bool too_slow_;
+
+  // lock used for notification only
+  std::mutex queue_mutex_;
+  std::condition_variable cv_;
+
+  // Workaround variable (see Push() and NewestBlockId())
+  std::atomic_uint64_t newest_block_id_;
 };
 
-// Thread-safe list implementation which manages subscribers' ring buffers. You
-// can think of this list as the list of subscribers whereby each subscriber is
-// represented by its ring buffer. The presence or absence of a buffer
-// determines whether a subscriber is subscribed or unsubscribed respectively.
+// Thread-safe list implementation which manages subscriber queues. You can
+// think of this list as the list of subscribers whereby each subscriber is
+// represented by its spsc queue. The presence or absence of a buffer determines
+// whether a subscriber is subscribed or unsubscribed respectively.
 class SubBufferList {
- protected:
-  std::list<std::shared_ptr<SubUpdateBuffer>> subscriber_;
-  std::mutex mutex_;
-
  public:
   SubBufferList() {}
 
@@ -126,6 +156,9 @@ class SubBufferList {
   }
 
   // Populate updates to all subscribers
+  // Note: This is potentially expensive depending on the update size and the
+  // number of subscribers. If TRC/TRS stays then we might want to think about
+  // an optimization.
   virtual void UpdateSubBuffers(SubUpdate update) {
     std::lock_guard<std::mutex> lock(mutex_);
     for (const auto& it : subscriber_) {
@@ -133,6 +166,10 @@ class SubBufferList {
     }
   }
   virtual ~SubBufferList() = default;
+
+ protected:
+  std::list<std::shared_ptr<SubUpdateBuffer>> subscriber_;
+  std::mutex mutex_;
 };
 
 }  // namespace thin_replica
