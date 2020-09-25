@@ -35,8 +35,10 @@ NODE_INTERRUPT_NETWORK_DISCONNECT = "Network disconnect"
 NETWORK_DISCONNECT_VM_LEVEL = "VM network disconnect"
 NETWORK_DISCONNECT_CONTAINER_LEVEL = "Container network disconnect"
 CONTAINER_BLOCKCHAIN_NETWORK = "blockchain-fabric"
+NODE_INTERRUPT_NETWORK_PARTITION = "Network partition"
 EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST = [NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL,
-                                                 NODE_INTERRUPT_NETWORK_DISCONNECT]
+                                                 NODE_INTERRUPT_NETWORK_DISCONNECT,
+                                                 NODE_INTERRUPT_NETWORK_PARTITION]
 
 # Preset keys for NODE_INTERRUPTION_DETAILS
 NODE_TYPE_TO_INTERRUPT = "NODE_TYPE_TO_INTERRUPT"
@@ -219,12 +221,13 @@ def workaround_to_rejoin_node(node):
          ssh_output))
 
 def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
-                                         node_interruption_details, mode):
+                                         node_interruption_details, nodes_not_to_interrupt, mode):
    '''
    Method to perform node interruption and recovery operation
    :param fxHermesRunSettings: hermes run settings (fixture)
    :param node: node to be interrupted/recovered
    :param node_interruption_details: Interruption/recovery details
+   :param nodes_not_to_interrupt: nodes which are not to be partitioned
    :param mode: Interruption/recovery mode
    :return: Success status
    '''
@@ -404,6 +407,35 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
             else:
                log.debug("Network reconnect successful for VM: {}".format(node))
 
+   elif node_interruption_type == NODE_INTERRUPT_NETWORK_PARTITION:
+      username, password = helper.getNodeCredentials()
+      if mode == NODE_INTERRUPT:
+         for node_of_second_partition in nodes_not_to_interrupt:
+            log.info("Begin network partition for: {}".format(node_of_second_partition))
+            command_to_create_partition = "iptables -I FORWARD -s {} -m state --state ESTABLISHED,RELATED -j DROP"\
+               .format(node)
+            helper.ssh_connect(node_of_second_partition, username, password, command_to_create_partition)
+            command_to_get_iptables_info = "iptables -L | grep '{}'".format(node)
+            iptables_info = helper.ssh_connect(node_of_second_partition, username, password, command_to_get_iptables_info)
+            if node in iptables_info:
+               log.debug("Partition completed for node: {}".format(node_of_second_partition))
+            else:
+               log.error("Failed to create partition")
+               sys.exit(1)
+      elif mode == NODE_RECOVER:
+         for node_of_second_partition in nodes_not_to_interrupt:
+            log.info("Revert network partition for: {}".format(node_of_second_partition))
+            command_to_revert_partition = "iptables -D FORWARD -s {} -m state --state ESTABLISHED,RELATED -j DROP"\
+               .format(node)
+            helper.ssh_connect(node_of_second_partition, username, password, command_to_revert_partition)
+            command_to_get_iptables_info = "iptables -L | grep '{}'".format(node)
+            iptables_info = helper.ssh_connect(node_of_second_partition, username, password, command_to_get_iptables_info)
+            if node in iptables_info:
+               log.error("Failed to revert partition")
+               sys.exit(1)
+            else:
+               log.debug("Partition reverted successfully for node: {}".format(node_of_second_partition))
+
    log.info("Wait for a min... (** THIS SHOULD BE REMOVED AFTER A STABLE RUN **)")
    time.sleep(60)
    log.info("{}".format(vm_handle["entity"].runtime.powerState))
@@ -412,7 +444,8 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, node,
 
 def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                             nodes_to_interrupt, node_interruption_details,
-                            daml_txn_result_queue=None):
+                            daml_txn_result_queue=None,
+                            nodes_not_to_interrupt=None):
    '''
    Util to trigger crash & recovery operations
    :param fxBlockchain: blockchain
@@ -420,6 +453,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
    :param nodes_to_interrupt: node to interrupt
    :param node_interruption_details: interruptions/recovery details
    :param daml_txn_result_queue: flag to notify main thread about background daml test thread status
+   :param nodes_not_to_interrupt: set of nodes which are not to be interrupted
    :return: success status
    '''
    custom_interruption_params = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS]
@@ -453,6 +487,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          log.info("** Interrupting node: {}...".format(node))
          if perform_interrupt_recovery_operation(fxHermesRunSettings, node,
                                                  node_interruption_details,
+                                                 nodes_not_to_interrupt,
                                                  mode=NODE_INTERRUPT):
             if not node_interruption_details[NODE_INTERRUPTION_TYPE] == NODE_INTERRUPT_CONTAINER_CRASH:
                interrupted_nodes.append(node)
@@ -481,6 +516,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
          log.info("** Restoring node: {}...".format(node))
          perform_interrupt_recovery_operation(fxHermesRunSettings, node,
                                               node_interruption_details,
+                                              nodes_not_to_interrupt,
                                               mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
    # Run Daml test for the period of time_remaining_before_next_interruption
@@ -529,11 +565,10 @@ def run_daml_sanity(fxBlockchain,
          and node_type_to_interrupt == helper.TYPE_DAML_PARTICIPANT \
          and node_interruption_type in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
       if not status:
-         log.info("DAML transactions failed as expected (db failure/network disconnect for participant simulated)")
+         log.info("DAML transactions failed as expected for test type: {}".format(node_interruption_type))
          status = True
       else:
-         log.error("DAML transactions succeeded, whereas db has read/write error or participant is disconnected"
-                   " from the network")
+         log.error("DAML transactions succeeded, whereas test type is: {}".format(node_interruption_type))
          status = False
    if not status:
       log.info(
