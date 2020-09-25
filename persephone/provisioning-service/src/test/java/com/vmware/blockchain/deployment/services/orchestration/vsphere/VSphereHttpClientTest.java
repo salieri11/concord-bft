@@ -451,6 +451,22 @@ class VSphereHttpClientTest {
     }
 
     @Test
+    void updateVirtualMachineMemoryBad() {
+        String name = "skyv2008";
+
+        server.stubFor(patch(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_MEMORY_UPDATE.getPath().replace("{vm}", name)))
+                               .willReturn(aResponse()
+                                                   .withHeader("Content-Type", "application/json")
+                                                   .withStatus(500)));
+        long memory = 1000;
+        PersephoneException pe = Assertions.assertThrows(PersephoneException.class,
+            () -> vSphereHttpClient.updateVirtualMachineMemory(name, 5)
+        );
+        Assertions.assertTrue(pe.getCause() instanceof PersephoneException);
+        Assertions.assertTrue(pe.getMessage().startsWith(ErrorCode.VM_MEMORY_UPGRADE_ERROR.substring(0, 25)));
+    }
+
+    @Test
     void updateVirtualMachineCpu() {
         String name = "Jumpin";
         server.stubFor(patch(urlPathEqualTo(VsphereEndpoints.VSPHERE_VM_CPU_UPDATE.getPath().replace("{vm}", name)))
