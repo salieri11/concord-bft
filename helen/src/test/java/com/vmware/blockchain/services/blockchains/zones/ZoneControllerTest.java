@@ -804,7 +804,7 @@ class ZoneControllerTest {
         doNothing().when(zoneService).delete(DELETE_EMPTY_ZONE);
 
         c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
-                DELETE_ZONE_WITH_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
+                DELETE_ZONE_WITH_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         c1.setId(CLIENT_ID_1);
 
         r1 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
@@ -812,7 +812,7 @@ class ZoneControllerTest {
         r1.setId(REPLICA_ID_1);
 
         c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
-                DELETE_ZONE_WITH_REPLICA_AND_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME);
+                DELETE_ZONE_WITH_REPLICA_AND_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         c2.setId(CLIENT_ID_2);
 
         r2 = new Replica("publicIp", "privateIp", "hostname", "url", "cert",
