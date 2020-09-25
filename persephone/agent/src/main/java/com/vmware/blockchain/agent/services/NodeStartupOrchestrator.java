@@ -232,6 +232,7 @@ public class NodeStartupOrchestrator {
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getPassword();
+        final var notaryServerAddress = configuration.getNotaryServer().getAddress();
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
 
@@ -246,8 +247,19 @@ public class NodeStartupOrchestrator {
                     containerSpec = getCoreContainerSpec(
                             configuration.getModel().getBlockchainType(), component);
                 }
+
+                // Notary Signature Verification is enabled/disabled based on the presence
+                // of notary server in Agent Config
+                if (notaryServerAddress.equals("")) {
+                    log.info("Notary signature verification is disabled");
+                } else {
+                    log.info("Notary signature verification is enabled");
+                }
+
+                // Get NotaryVerificationRequirement from model
                 futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
-                        registryUsername, registryPassword, component.getName())));
+                        registryUsername, registryPassword, component.getName(), notaryServerAddress,
+                        component.getNotaryVerificationRequired())));
             }
         }
 
