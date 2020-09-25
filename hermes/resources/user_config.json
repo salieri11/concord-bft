@@ -8,32 +8,10 @@
       "workspace": "<METAINF_ENV_WORKSPACE>"
     }
   },
-  "gitlab":{ "token": "<GITLAB_API_ONLY_TOKEN>" },
-  "jenkins":{ "username": "svc.blockchain_1", "token": "<JENKINS_JSON_API_KEY>", "builderPassword": "<JENKINS_BUILDER_PASSWORD>" },
-  "communication":{
-    "slack": {
-      "workspaces":{
-        "vmware": { "name": "VMware Internal Workspace", "teamId": "T024JFTN4", "appToken": "<SLACK_BOT_API_TOKEN>" },
-        "vmw-da":{ "name": "VMW-DA Joint Workspace", "teamId": "TGG9FQXCK", "appToken": "<VMW_DA_SLACK_BOT_API_TOKEN>" }
-      },
-      "channels": {
-        "vdaml-devops":{ "workspace": "vmw-da", "channelId": "CR94YNQPQ" },
-        "vmwathena": { "workspace": "vmware", "channelId": "G9AC1C9E0" },
-        "blockchain-build-fail": { "workspace": "vmware", "channelId": "C010S8DQF5Y" },
-        "blockchain-build-fail-mr": { "workspace": "vmware", "channelId": "C017ASAQG81" },
-        "blockchain-build-fail-other": { "workspace": "vmware", "channelId": "C017MM4LL5Q" },
-        "blockchain-build-fail-release": { "workspace": "vmware", "channelId": "C017XG47PD3" },
-        "blockchain-long-tests-status": { "workspace": "vmware", "channelId": "C0109M6JQKE" },
-        "blockchain-concierge": { "workspace": "vmware", "channelId": "C012X0T8N0G" },
-        "blockchain-status": { "workspace": "vmware", "channelId": "GUA5WCCSC" }
-      }
-    }
-  },
-  "dashboard": {
-    "devops": {
-      "wavefront": { "url": "https://vmware.wavefront.com", "token": "<DASHBOARD_WAVEFRONT_TOKEN>" }
-    }
-  },
+  "gitlab": { "token": "<vault.GitLab.svc_account_api_only>" },
+  "jenkins": "+<vault.Jenkins.hermes>",
+  "communication": "+<vault.DevOps-Communucation>",
+  "dashboard": { "devops": { "wavefront": "+<vault.DevOps-Dashboard.wavefront>" } },
   "product": {
     "launch": [
       {
