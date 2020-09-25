@@ -734,7 +734,7 @@ def verify_dar_upload(fxHermesRunSettings, ps_helper, ip, username, password, de
             log.info("Starting DAR upload on {}:{}".format(ip, src_port))
             daml_helper.upload_test_tool_dars(host=ip, port=str(src_port))
             log.info("Starting DAML verification tests on {}:{}".format(ip, src_port))
-            daml_helper.verify_ledger_api_test_tool(host=ip, port=str(src_port))
+            daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(ip, str(src_port))])
             status = True
         except Exception as e:
             error_msg = "DAR upload/verification failed with exception: {}".format(e)

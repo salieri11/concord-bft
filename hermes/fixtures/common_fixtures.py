@@ -438,7 +438,7 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
             log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
             daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
             log.info("Starting DAR upload verification test on participant {}".format(public_ip))
-            daml_helper.verify_ledger_api_test_tool(host=public_ip, port=str(src_port))
+            daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(public_ip, str(src_port))])
             log.info("DAR upload and verification successful on participant {}".format(public_ip))
             success = True
 

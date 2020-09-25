@@ -56,8 +56,7 @@ def test_ledger_api_test_tool(fxProduct, fxHermesRunSettings):
                                            "hermesCmdlineArgs"].resultsDir)
 
       log.info("Starting DAML verification tests on {}:{}".format(ledger_api_host, test_port))
-      daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
-                                              port=test_port,
+      daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(ledger_api_host,test_port)],
                                               run_all_tests=True,
                                               results_dir=fxHermesRunSettings[
                                                  "hermesCmdlineArgs"].resultsDir)

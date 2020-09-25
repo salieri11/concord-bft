@@ -879,7 +879,7 @@ class PersephoneTests(test_suite.TestSuite):
                         try:
                            log.info("dar upload/verification...")
                            daml_helper.upload_test_tool_dars(host=concord_ip, port=str(src_port))
-                           daml_helper.verify_ledger_api_test_tool(host=concord_ip, port=str(src_port))
+                           daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(concord_ip, str(src_port))])
                            log.info("dar upload/verification passed.")
                         except Exception as e:
                            log.error(e)

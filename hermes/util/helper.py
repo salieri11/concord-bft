@@ -2166,8 +2166,7 @@ def run_daml_sanity(ledger_api_hosts, results_dir, run_all_tests=True, verbose=T
       try:
          daml_helper.upload_test_tool_dars(host=ledger_api_host,
                                            port=upload_port, verbose=verbose)
-         daml_helper.verify_ledger_api_test_tool(host=ledger_api_host,
-                                                 port=test_port,
+         daml_helper.verify_ledger_api_test_tool(ledger_endpointst=[(ledger_api_host, test_port)],
                                                  run_all_tests=run_all_tests,
                                                  results_dir=results_dir,
                                                  verbose=verbose)
