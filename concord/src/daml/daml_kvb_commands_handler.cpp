@@ -10,7 +10,7 @@
 #include <string>
 #include "Logger.hpp"
 #include "concord_storage.pb.h"
-#include "sha3_256.h"
+#include "sha_hash.hpp"
 #include "sparse_merkle/base_types.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
