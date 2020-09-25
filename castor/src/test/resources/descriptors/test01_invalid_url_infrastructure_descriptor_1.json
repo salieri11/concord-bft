@@ -1,6 +1,5 @@
 {
   "organization": {
-    "sddcUrl": "invalid-url",
     "damlSdk": "1.0.1",
     "cpuCount": -4,
     "memoryGb": -4,
