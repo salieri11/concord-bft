@@ -96,13 +96,14 @@ services:
       - INDEXDB_USER=indexdb
       - INDEX_DB_SCHEMA=daml_ledger_api1
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
-      - ENABLE_BATCHING=true
+      - ENABLE_BATCHING=false
       - PARTICIPANT_ID=daml_ledger_api1
       - MAX_BATCH_QUEUE_SIZE=4
       - MAX_BATCH_SIZE_BYTES=18874368
       - MAX_BATCH_WAIT_MILLIS=100
       - MAX_CONCURRENT_COMMITS=2
       - JAVA_OPTS=-XX:+UseG1GC -Xmx8G
+      - PRE_EXECUTION_COST_THRESHOLD=0s
       - BFT_CLIENT_SETTINGS=--bft-client enable=true,config-path=/concord/config-public/participant.config
     depends_on:
       - concord1
