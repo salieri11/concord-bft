@@ -3,7 +3,11 @@
 set -e
 
 DATE_CMD="date --iso-8601=seconds | awk -F'+' '{print \$1}'"
-echo $(eval $DATE_CMD) "$0 $@"
+function log {
+  echo $(eval $DATE_CMD) $@
+}
+
+log $0 $@
 
 chown concord /concord/rocksdbdata
 chown concord /concord/log
@@ -19,40 +23,43 @@ fi
 # For backward compatibility the monolithic file get precedence.
 # The application configuration can be generated dynamically if an input file exists.
 if [ "$#" -eq 0  ]; then
-	sysctl kernel.core_pattern=/concord/cores/core.%e.%h.%s.%t >/dev/null
-	ulimit -c unlimited
-	# If uniform file exists, start with it.
-	if [ -f "/concord/config-local/concord.config" ]; then
-		echo "Using monolithic configuration file"
-    		exec gosu concord /concord/concord -c /concord/config-local/concord.config
-		exit
-	fi
-	# Split configuration - application, deployment and secrets.
+  sysctl kernel.core_pattern=/concord/cores/core.%e.%h.%s.%t >/dev/null
+  ulimit -c unlimited
 
-	# Generate applicaiton configuration if input file exists
-	APP_INPUT=/concord/config-local/appconf_input.yaml
-	if [ -f $APP_INPUT ]; then
-		echo "Generating application configurarion from $APP_INPUT"
-    	/concord/conc_genconfig  --configuration-type application --output-name app --configuration-input $APP_INPUT
-		#E.L check if file created and if not user should know.
-		if [ ! -f /concord/app1.config ]; then
-    		echo "Failed to generate application configuration from $APP_INPUT"
-			exit
-		fi
-		cp -f /concord/app1.config /concord/config-local/application.config
-	fi 
-	# Give precedence to an application configuration that was dynamically generated 
-	APP_CONF=/concord/config/application.config
-	if [ -f "/concord/config-local/application.config" ]; then
-    	APP_CONF=/concord/config-local/application.config
-	fi 
-	DEPLOYMENT_CONF=/concord/config-local/deployment.config
-	SECRETS=/concord/config-local/secrets.config
-	echo "Split file configuration {-a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS}"
-		exec gosu concord /concord/concord -a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS
-	
+  # If uniform file exists, start with it.
+  if [ -f "/concord/config-local/concord.config" ]; then
+    log "Using monolithic configuration file"
+    exec gosu concord /concord/concord -c /concord/config-local/concord.config
+    exit
+  fi
+
+  # Split configuration - application, deployment and secrets.
+  # Generate applicaiton configuration if input file exists
+  APP_INPUT=/concord/config-local/appconf_input.yaml
+  if [ -f $APP_INPUT ]; then
+    log "Generating application configurarion from $APP_INPUT"
+    /concord/conc_genconfig  --configuration-type application --output-name app --configuration-input $APP_INPUT
+
+    #E.L check if file created and if not user should know.
+    if [ ! -f /concord/app1.config ]; then
+      log "Failed to generate application configuration from $APP_INPUT"
+      exit
+    fi
+    cp -f /concord/app1.config /concord/config-local/application.config
+  fi
+
+  # Give precedence to an application configuration that was dynamically generated
+  APP_CONF=/concord/config/application.config
+  if [ -f "/concord/config-local/application.config" ]; then
+    APP_CONF=/concord/config-local/application.config
+  fi
+
+  DEPLOYMENT_CONF=/concord/config-local/deployment.config
+  SECRETS=/concord/config-local/secrets.config
+  log "Split file configuration {-a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS}"
+  exec gosu concord /concord/concord -a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS
 elif [ "$1" = 'debug' ]; then
-	exec gdb
+  exec gdb
 else
-	exec "$@"	
+  exec "$@"
 fi
