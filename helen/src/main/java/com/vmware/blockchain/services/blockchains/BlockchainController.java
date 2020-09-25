@@ -332,15 +332,7 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
-        List<UUID> zoneIds = new ArrayList<>();
-        if (body.getReplicaZoneIds() != null) {
-            zoneIds.addAll(body.getReplicaZoneIds());
-        }
-        if (body.getReplicaNodes() != null) {
-            zoneIds.addAll(body.getReplicaNodes().stream().map(k -> k.getZoneId())
-                                                       .collect(Collectors.toList()));
-        }
-
+        // Validate number of replicas and clients.
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
             throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
                                          "user input replicas %s", body.getReplicaZoneIds().size(),
@@ -396,30 +388,25 @@ public class BlockchainController {
                                 .get(Constants.ORG_SPLIT_CONFIG));
             }
         }
-
-        //remove this after replicaZoneIds is deprecated
-        zoneIds
-                .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
-                                                                .setType(NodeType.REPLICA)
-                                                                .setNodeId(UUID.randomUUID().toString())
-                                                                .setSite(
-                                                                        OrchestrationSiteIdentifier.newBuilder()
-                                                                                .setId(k.toString()).build())));
-
+        // Collect a list of zones from replicas and clients.
+        List<UUID> zoneIds = new ArrayList<>();
+        // Process the replica nodes.
         if (body.getReplicaNodes() != null) {
             body.getReplicaNodes()
                     .forEach(k -> {
+                        // Add the zoneId to zoneIds.
+                        zoneIds.add(k.getZoneId());
+
                         Properties.Builder propBuilder = Properties.newBuilder();
                         if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
                             // Validate sizing info, if the input is invalid throw a BadRequestException.
                             validateSizingInfo(k.getSizingInfo(), "Replica");
                             // Add Sizing Info to Properties.
                             addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
-
                         }
 
                         nodeAssignment.addEntries(NodeAssignment.Entry
-                                                  .newBuilder()
+                                                          .newBuilder()
                                                           .setType(NodeType.REPLICA)
                                                           .setNodeId(UUID.randomUUID().toString())
                                                           .setSite(
@@ -429,13 +416,36 @@ public class BlockchainController {
                                                                           .build())
                                                           .setProperties(propBuilder));
                     });
+            logger.debug("zoneIds from replica nodes parameter: {}", zoneIds);
+            logger.debug("nodeAssignmentEntries from replica nodes parameter {}",
+                         nodeAssignment.getEntriesList());
+        } else if (body.getReplicaZoneIds() != null) {
+            // Not a big fan of big if-else statements but this is an exception because code will go soon.
+            // Get the replica zone ids from "replica_zone_ids" parameter.
+            zoneIds.addAll(body.getReplicaZoneIds());
+
+            //remove this after replicaZoneIds is deprecated
+            zoneIds
+                    .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                                                    .setType(NodeType.REPLICA)
+                                                                    .setNodeId(UUID.randomUUID().toString())
+                                                                    .setSite(
+                                                                            OrchestrationSiteIdentifier.newBuilder()
+                                                                                    .setId(k.toString()).build())));
+            logger.debug("zoneIds from replica zone ids parameter: {}", zoneIds);
+            logger.debug("nodeAssignmentEntries from replica zone ids parameter {}",
+                         nodeAssignment.getEntriesList());
         }
 
+        // Process client nodes.
         if (body.getClientNodes() != null) {
             // A map to hold groupIndex to groupId (UUID) mapping.
             final Map<String, UUID> groupMap = new HashMap<String, UUID>();
             body.getClientNodes()
                     .forEach(k -> {
+                        // Add the zoneId to zoneIds.
+                        zoneIds.add(k.getZoneId());
+
                         Properties.Builder propBuilder = Properties.newBuilder();
                         if (!Strings.isNullOrEmpty(k.getAuthUrlJwt())) {
                             propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
@@ -500,9 +510,10 @@ public class BlockchainController {
                                                                           .setId(k.getZoneId().toString())
                                                                           .build())
                                                           .setProperties(propBuilder));
+                        logger.debug("nodeAssignmentEntries from client nodes {}",
+                                     nodeAssignment.getEntriesList());
                     });
-
-            zoneIds.addAll(body.getClientNodes().stream().map(k -> k.getZoneId()).collect(Collectors.toList()));
+            logger.debug("zoneIds collected so far, from replicas and client nodes {}", zoneIds);
         }
 
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
@@ -552,17 +563,31 @@ public class BlockchainController {
     }
 
     private boolean validateNumberofReplicas(BlockchainPost body) {
-        if (body.getReplicaZoneIds() == null || body.getReplicaZoneIds().isEmpty()) {
-            if (body.getReplicaNodes() != null) {
-                int m = body.getReplicaNodes().size();
-                return (replicaNumber.contains(m));
-            }
+        if (body.getReplicaNodes() == null && body.getReplicaZoneIds() == null) {
+            logger.error("Both parameters replica_nodes and replica_zone_ids are missing.");
+            return false;
         }
-        return replicaNumber.contains(body.getReplicaZoneIds().size());
+
+        // Always look for replica nodes.
+        // There is no need to check emptiness condition here, because size is 0 when list is empty.
+        if (body.getReplicaNodes() != null) {
+            int m = body.getReplicaNodes().size();
+            logger.info("Found {} Replica nodes.", m);
+            return (replicaNumber.contains(m));
+        }
+        // Check replica_zone_ids
+        int n = body.getReplicaZoneIds().size();
+        logger.info("Found {} Replica zone ids ", n);
+        return replicaNumber.contains(n);
     }
 
     private boolean validateNumberOfClients(BlockchainPost body) {
+        if (body.getClientNodes() == null || body.getClientNodes().isEmpty()) {
+            logger.error("No client nodes available.");
+            return false;
+        }
         int m = body.getClientNodes().size();
+        logger.info("Found {} client nodes.", m);
         return m <= clientNumber;
     }
 
