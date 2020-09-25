@@ -123,10 +123,10 @@ class DamlKvbCommandsHandler
       const google::protobuf::RepeatedPtrField<string>& keys);
 
  private:
-  bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
+  bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& read_cmd,
                    com::vmware::concord::ConcordResponse& concord_response);
 
-  bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
+  bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commit_req,
                      uint8_t flags, concord::time::TimeContract* time_contract,
                      const opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
@@ -142,9 +142,6 @@ class DamlKvbCommandsHandler
   void WriteSetToRawUpdates(
       const com::digitalasset::kvbc::WriteSet& input_write_set,
       kvbc::SetOfKeyValuePairs& updates) const;
-
-  com::vmware::concord::ReadSet ReadSetToRaw(
-      const com::vmware::concord::ReadSet& input_read_set) const;
 
   bool DoCommitPipelined(const std::string& submission,
                          const google::protobuf::Timestamp& record_time,
