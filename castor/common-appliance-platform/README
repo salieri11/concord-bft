@@ -1,0 +1,37 @@
+To build the VMware Blockchain Orchestrator appliance:
+
+1. Prepare a Common Appliance Platform (CAP) environment as described here:
+https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP+-+Getting+Started
+
+2. The following assumes you have your CAP environment under the $CommonAppliancePlatform directory.
+
+3. Copy the following files from this directory to $CommonAppliancePlatform
+
+    blockchain.service
+    orchestrator-appliance-customizations.json
+    orchestrator-appliance-remote.json
+    orchestrator-prereqs-launcher.sh
+    post-install-castor.sh
+
+4. Modify the configuration/repositories/local json 
+   entry in orchestrator-appliance-remote.json to point to the absolute path for $CommonAppliancePlatform.
+
+5. Update the docker containers version for Castor services in 
+    ONPREM_BLOCKCHAIN_VERSION
+   in post-install-castor.sh
+
+6. cd $CommonAppliancePlatform
+
+7. Init the cap tool:
+    ./cap init
+
+8. Remove any previously built images, and old log files:
+    rm -rf images/* logs/*
+
+9. Remove any vmware-blockchain-appliance VMs on the target vCenter.
+
+10. Build the OVF:
+    ./cap build -f orchestrator-appliance-remote.json
+
+11. The new OVF should be available under $CommonAppliancePlatform/images.
+
