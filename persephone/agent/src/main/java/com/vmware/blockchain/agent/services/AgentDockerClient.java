@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,8 +111,7 @@ public class AgentDockerClient {
 
     BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
                                         String registryUsername, String registryPassword,
-                                        String imageName, String notaryServerAddress,
-                                        Boolean notaryVerificationRequired) {
+                                        String imageName, String notaryServerAddress) {
 
         var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         log.info("Pulling image {}", imageName);
@@ -132,10 +133,12 @@ public class AgentDockerClient {
                     componentImage.getRepository()
             );
 
-            // If the notary verification feature is enabled and
-            // Notary Verification is required for the component, then perform notary verification
-            if (!notaryServerAddress.equals("") && notaryVerificationRequired) {
-                checkNotarySignatureVerification(notaryServerAddress, componentImageName, componentImage.getTag());
+            // If the notary verification feature is enabled then perform notary verification
+            String repoDigestFromNotary = "";
+            if (!StringUtils.isEmpty(notaryServerAddress)) {
+                repoDigestFromNotary = checkNotarySignatureVerification(notaryServerAddress, componentImageName,
+                                                                        componentImage.getTag());
+                log.info("RepoDigest from Notary: " + repoDigestFromNotary);
             }
 
             log.info("Component image name {} tag {}", componentImageName, componentImage.getTag());
@@ -172,6 +175,28 @@ public class AgentDockerClient {
                     .exec();
             containerConfig.setImageId(inspectResponse.getId());
             log.info("Container image ID: {}", containerConfig.getImageId());
+
+            // Check if the Repo Digest from Docker matches the Digest provided by notary CLI
+            if (!StringUtils.isEmpty(notaryServerAddress)) {
+                List<String> repoDigestListFromDocker = inspectResponse.getRepoDigests();
+                Boolean matchedRepoDigest = false;
+                for (String repoDigestFromDockerWithRepo: repoDigestListFromDocker) {
+                    String repoDigestFromDocker = StringUtils.substringAfter(repoDigestFromDockerWithRepo,
+                                                                               "sha256:");
+                    log.info("Repo Digest from Docker: " + repoDigestFromDocker);
+                    if (repoDigestFromDocker.equals(repoDigestFromNotary)) {
+                        matchedRepoDigest = true;
+                        log.info("The Repo Digest of Container Image pulled matched Digest provided by notary");
+                        break;
+                    }
+                }
+                if (!matchedRepoDigest) {
+                    log.error("The Repo Digest of Container Image pulled does not match Digest provided by notary");
+                    throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
+                                             "Error while matching Digest for Notary Verification",
+                                             new RuntimeException());
+                }
+            }
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", imageName, error);
             throw new AgentException(ErrorCode.DOCKER_CLIENT_PULLING_IMAGE_FAILURE,
@@ -193,11 +218,10 @@ public class AgentDockerClient {
         return containerConfig;
     }
 
-    // Performs the notary verification for a docker image using Notary CLI
-    void checkNotarySignatureVerification(String notaryServerAddress, String imageName, String imageTag) {
+    // Performs the notary verification for a docker image using Notary CLI and returns the digest provided by notary
+    String checkNotarySignatureVerification(String notaryServerAddress, String imageName, String imageTag) {
         log.info("Performing notary signature verification for image {} with tag {}", imageName, imageTag);
         int notaryVerificationRetryCount = 3;
-        Boolean notaryTrustVerificationSuccess = false;
 
         String notaryCommandOutput = "";
         while (notaryVerificationRetryCount-- > 0) {
@@ -234,7 +258,7 @@ public class AgentDockerClient {
             }
 
             // Handling case of error of no valid trust and make agent exit gracefully
-            // Note: This scenario should be tested before positive scenario, as in the case of the image already
+            // Note: This scenario should be checked before positive scenario, as in the case of the image already
             // been pulled, the notary CLI gives error along with the cached sha256 as stale verification
             if (notaryCommandOutput.contains("fatal: No valid trust data")) {
                 log.error("No valid trust data found for the image {} with tag {}", imageName, imageTag);
@@ -244,22 +268,22 @@ public class AgentDockerClient {
 
             // Handling the positive scenario of getting the required trust data from notary server
             if (notaryCommandOutput.contains(imageTag) && notaryCommandOutput.contains("sha256")) {
+                // Extracting the digest from Notary command output
+                String repoDigestFromNotary = StringUtils.substringBetween(notaryCommandOutput,
+                                                                           "sha256:", " ");
                 log.info("Received trust data successfully for image {} with tag {}", imageName, imageTag);
-                notaryTrustVerificationSuccess = true;
-                break;
+                return repoDigestFromNotary;
             }
         }
 
         // Handling all negative cases to make agent exit gracefully
-        if (!notaryTrustVerificationSuccess) {
-            if (notaryCommandOutput.contains("could not reach")) {
-                log.error("Cloud not reach notary server {}", notaryServerAddress);
-            } else {
-                log.error("Cloud not verify trust data for the image {} with tag {}", imageName, imageTag);
-            }
-            throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
-                                     "Error while verifying notary signature", new RuntimeException());
+        if (notaryCommandOutput.contains("could not reach")) {
+            log.error("Cloud not reach notary server {}", notaryServerAddress);
+        } else {
+            log.error("Cloud not verify trust data for the image {} with tag {}", imageName, imageTag);
         }
+        throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
+                                 "Error while verifying notary signature", new RuntimeException());
     }
 
     void createNetwork(String networkName) {

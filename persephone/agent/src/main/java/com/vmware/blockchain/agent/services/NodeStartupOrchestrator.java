@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -250,16 +251,14 @@ public class NodeStartupOrchestrator {
 
                 // Notary Signature Verification is enabled/disabled based on the presence
                 // of notary server in Agent Config
-                if (notaryServerAddress.equals("")) {
+                if (StringUtils.isEmpty(notaryServerAddress)) {
                     log.info("Notary signature verification is disabled");
                 } else {
                     log.info("Notary signature verification is enabled");
                 }
 
-                // Get NotaryVerificationRequirement from model
                 futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
-                        registryUsername, registryPassword, component.getName(), notaryServerAddress,
-                        component.getNotaryVerificationRequired())));
+                        registryUsername, registryPassword, component.getName(), notaryServerAddress)));
             }
         }
 
