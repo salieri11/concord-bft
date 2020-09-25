@@ -325,15 +325,26 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
 
                     // CLIENT_GROUP_ID is available regardless of the resource type.
                     String clientGroupId = attributes.get(NodeProperty.Name.CLIENT_GROUP_ID.name());
-                    if (clientGroupId != null && !clientGroupId.isEmpty()) {
+                    if (!Strings.isNullOrEmpty(clientGroupId)) {
                         clientNode.setGroupId(UUID.fromString(clientGroupId));
                     }
 
                     // CLIENT_GROUP_NAME is available regardless of the resource type.
                     String clientGroupName = attributes.get(NodeProperty.Name.CLIENT_GROUP_NAME.name());
-                    if (clientGroupName != null && !clientGroupName.isEmpty()) {
+                    if (!Strings.isNullOrEmpty(clientGroupName)) {
                         clientNode.setGroupName(clientGroupName);
                     }
+
+                    // Setting mTLS credentials
+                    // If mTLS credentials are available, set them.
+                    // If not, set an empty string.
+                    String pem = attributes.getOrDefault(NodeProperty.Name.TLS_PEM.name(), "");
+                    String crt = attributes.getOrDefault(NodeProperty.Name.TLS_CRT.name(), "");
+                    String cacrt = attributes.getOrDefault(NodeProperty.Name.TLS_CACRT.name(), "");
+
+                    clientNode.setPem(pem);
+                    clientNode.setCrt(crt);
+                    clientNode.setCacrt(cacrt);
 
                     switch (each.getType()) {
                         case COMPUTE_RESOURCE:

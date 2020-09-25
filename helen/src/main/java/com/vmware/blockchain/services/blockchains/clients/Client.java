@@ -39,4 +39,9 @@ public class Client extends AbstractEntity implements NodeInterface {
     UUID groupId;
     // User supplied name for the group.
     String groupName;
+
+    // mTLS credentials
+    String pem;
+    String crt;
+    String cacrt;
 }
