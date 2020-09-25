@@ -4,7 +4,10 @@
 
 package com.vmware.blockchain.agent.services;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -106,7 +109,8 @@ public class AgentDockerClient {
 
     BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
                                         String registryUsername, String registryPassword,
-                                        String imageName) {
+                                        String imageName, String notaryServerAddress,
+                                        Boolean notaryVerificationRequired) {
 
         var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         log.info("Pulling image {}", imageName);
@@ -127,6 +131,13 @@ public class AgentDockerClient {
                     registryUrl.getAuthority(),
                     componentImage.getRepository()
             );
+
+            // If the notary verification feature is enabled and
+            // Notary Verification is required for the component, then perform notary verification
+            if (!notaryServerAddress.equals("") && notaryVerificationRequired) {
+                checkNotarySignatureVerification(notaryServerAddress, componentImageName, componentImage.getTag());
+            }
+
             log.info("Component image name {} tag {}", componentImageName, componentImage.getTag());
             int pullTryCount = 3;
             boolean imagePullPending = true;
@@ -180,6 +191,75 @@ public class AgentDockerClient {
                         Tag.of(MetricsConstants.MetricsTags.TAG_IMAGE.metricsTagName, imageName)));
         timer.record(stopMillis - startMillis, TimeUnit.MILLISECONDS);
         return containerConfig;
+    }
+
+    // Performs the notary verification for a docker image using Notary CLI
+    void checkNotarySignatureVerification(String notaryServerAddress, String imageName, String imageTag) {
+        log.info("Performing notary signature verification for image {} with tag {}", imageName, imageTag);
+        int notaryVerificationRetryCount = 3;
+        Boolean notaryTrustVerificationSuccess = false;
+
+        String notaryCommandOutput = "";
+        while (notaryVerificationRetryCount-- > 0) {
+            ProcessBuilder builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
+                                                        notaryServerAddress, "-d", "~/.docker/trust", "lookup",
+                                                        imageName, imageTag);
+            log.info("notaryCommand is {}", builder.command());
+            builder.redirectErrorStream(true);
+            try {
+                Process process = builder.start();
+                InputStream is = process.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    notaryCommandOutput += line;
+                }
+            } catch (IOException error) {
+                log.error("Error while executing notary CLI command", error);
+            }
+            log.info("notaryCommandOutput is {}", notaryCommandOutput);
+
+            // Handling case of error reaching the notary server
+            // As this could be intermittent, retrying to recover from this situation
+            // Note: This scenario should be tested before positive scenario, as in the case of the image already
+            // been pulled, the notary CLI gives error along with the cached sha256 as stale verification
+            if (notaryCommandOutput.contains("could not reach")) {
+                if (notaryVerificationRetryCount-- > 0) {
+                    log.warn("Cloud not reach notary server {}", notaryServerAddress);
+                    log.info("Retrying to verify trust data for image {} with tag {}", imageName, imageTag);
+                } else {
+                    log.error("Cloud not reach notary server {}", notaryServerAddress);
+                }
+                continue;
+            }
+
+            // Handling case of error of no valid trust and make agent exit gracefully
+            // Note: This scenario should be tested before positive scenario, as in the case of the image already
+            // been pulled, the notary CLI gives error along with the cached sha256 as stale verification
+            if (notaryCommandOutput.contains("fatal: No valid trust data")) {
+                log.error("No valid trust data found for the image {} with tag {}", imageName, imageTag);
+                throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
+                                         "Error while verifying notary signature", new RuntimeException());
+            }
+
+            // Handling the positive scenario of getting the required trust data from notary server
+            if (notaryCommandOutput.contains(imageTag) && notaryCommandOutput.contains("sha256")) {
+                log.info("Received trust data successfully for image {} with tag {}", imageName, imageTag);
+                notaryTrustVerificationSuccess = true;
+                break;
+            }
+        }
+
+        // Handling all negative cases to make agent exit gracefully
+        if (!notaryTrustVerificationSuccess) {
+            if (notaryCommandOutput.contains("could not reach")) {
+                log.error("Cloud not reach notary server {}", notaryServerAddress);
+            } else {
+                log.error("Cloud not verify trust data for the image {} with tag {}", imageName, imageTag);
+            }
+            throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
+                                     "Error while verifying notary signature", new RuntimeException());
+        }
     }
 
     void createNetwork(String networkName) {

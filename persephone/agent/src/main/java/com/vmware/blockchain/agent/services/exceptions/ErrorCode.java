@@ -36,6 +36,8 @@ public enum ErrorCode {
     INVALID_BLOCKCHAIN_NETWORK_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "Invalid blockchain network type", null),
     //General
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not found", null),
+    NOTARY_SIGNATURE_VERIFICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,
+                                         "Notary Signature Verification Failed", null),
     FORBIDDEN(HttpStatus.FORBIDDEN, "Forbidden", AccessDeniedException.class),
     WRONG_ARG_REQUEST(HttpStatus.BAD_REQUEST, "Bad request", IllegalArgumentException.class),
     PROTO_BUF_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error",
