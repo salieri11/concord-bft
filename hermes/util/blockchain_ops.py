@@ -626,7 +626,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   :param fxBlockchain: blockchain fixture
   :param results_dir: results dir
   :param interrupted_nodes: test interrupted nodes
-  :return: list of all crashed nodes
+  :return: list of all crashed nodes, and crash log directory
   '''
   log.info("")
   log.info("** Verifying health of all nodes...")
@@ -684,6 +684,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   log.info("  Total no. of crashed participant nodes: {}".format(
     len(crashed_participants)))
 
+  unexpected_crash_results_dir = ""
   if len(unexpected_interrupted_committers) > 0:
     unexpected_crash_results_dir = helper.create_results_sub_dir(results_dir,
                                                                  "unexpected_crash")
@@ -701,4 +702,4 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   if total_no_of_committers_crashed > get_f_count(fxBlockchain):
     log.error("**** System is unhealthy")
 
-  return crashed_committers, crashed_participants
+  return crashed_committers, crashed_participants, unexpected_crash_results_dir

@@ -141,7 +141,7 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
    '''
    global interrupted_nodes
    run_txn_in_background = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS].get(RUN_TXNS_IN_BACKGROUND)
-   crashed_committers, crashed_participants = blockchain_ops.get_all_crashed_nodes(
+   crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
       fxBlockchain, results_dir, node_interruption_details[NODE_TYPE_TO_INTERRUPT], interrupted_nodes)
    crashed_committer_count = len(crashed_committers)
 
