@@ -190,15 +190,13 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
                 PopulateWriteSet(expected_key_value_pairs, &expected_write_set);
                 pre_execution_output.mutable_success_write_set()->CopyFrom(
                     expected_write_set);
-                expected_read_set_.Clear();
+                auto read_set = pre_execution_result->mutable_read_set();
                 for (const auto& read_key : this->expected_read_keys_) {
                   auto* key_with_fingerprint =
-                      expected_read_set_.add_keys_with_fingerprints();
+                      read_set->add_keys_with_fingerprints();
                   key_with_fingerprint->set_key(read_key);
                   key_with_fingerprint->set_fingerprint(read_key);
                 }
-                pre_execution_result->mutable_read_set()->CopyFrom(
-                    expected_read_set_);
                 pre_execution_result->set_output(
                     pre_execution_output.SerializeAsString());
                 pre_execution_result->set_request_correlation_id(
@@ -289,7 +287,8 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
     auto* read_set = pre_execution_result.mutable_read_set();
     auto* key_with_fingerprint = read_set->add_keys_with_fingerprints();
-    key_with_fingerprint->set_key(kReadKey);
+    auto prefixed_key = CreateDamlKvbKey(kReadKey);
+    key_with_fingerprint->set_key(prefixed_key.toString());
     key_with_fingerprint->set_fingerprint(
         ConcordCommandsHandler::SerializeFingerprint(read_set_block_height));
 
@@ -345,7 +344,6 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
   const std::string kCorrelationId = "correlation_id";
 
   std::vector<std::string> expected_read_keys_;
-  com::vmware::concord::ReadSet expected_read_set_;
   Sliver time_update_key_;
 
   uint32_t reply_size_;
@@ -631,6 +629,15 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutePopulatesResponse) {
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
+  // Expect some keys to be read.
+  expected_read_keys_ = {"key-1", "key-2"};
+  com::vmware::concord::ReadSet expected_read_set;
+  for (const auto& read_key : expected_read_keys_) {
+    auto* key_with_fingerprint = expected_read_set.add_keys_with_fingerprints();
+    auto prefixed_key = CreateDamlKvbKey(read_key);
+    key_with_fingerprint->set_key(prefixed_key.toString());
+    key_with_fingerprint->set_fingerprint(read_key);
+  }
   std::string request_string = BuildCommitRequest();
   auto instance = CreateInstance(true);
 
@@ -643,7 +650,7 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
   actual_response.ParseFromArray(reply_buffer_, reply_size_);
   ASSERT_TRUE(actual_response.has_pre_execution_result());
   EXPECT_TRUE(MessageDifferencer::Equals(
-      expected_read_set_, actual_response.pre_execution_result().read_set()));
+      expected_read_set, actual_response.pre_execution_result().read_set()));
   EXPECT_NE("", actual_response.pre_execution_result().output());
   EXPECT_EQ(kCorrelationId,
             actual_response.pre_execution_result().request_correlation_id());
