@@ -99,6 +99,8 @@ public class LibraryItemDeploy {
         @Builder.Default
         List<NetworkMapping> networkMappings = emptyList();
         @Builder.Default
+        List<StorageMapping> storageMappings = emptyList();
+        @Builder.Default
         List<OvfParameter> additionalParameters = emptyList();
     }
 }

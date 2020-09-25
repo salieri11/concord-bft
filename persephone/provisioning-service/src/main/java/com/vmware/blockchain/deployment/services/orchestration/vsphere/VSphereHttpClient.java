@@ -45,6 +45,7 @@ import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.Lib
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.NetworkMapping;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.OvfParameter;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.OvfProperty;
+import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.StorageMapping;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachineDiskCreate;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerResponse;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VirtualMachinePowerState;
@@ -293,6 +294,10 @@ public class VSphereHttpClient {
                                 .defaultDatastoreId(datastore)
                                 .networkMappings(
                                         Arrays.asList(new NetworkMapping(networks.getKey(), networks.getValue())))
+                                .storageMappings(
+                                        Arrays.asList(new StorageMapping("group1",
+                                                                         new StorageMapping.StorageGroupMapping(
+                                                                                 "DATASTORE", datastore))))
                                 .additionalParameters(
                                         Arrays.asList(
                                                 OvfParameter.builder().atClass(
