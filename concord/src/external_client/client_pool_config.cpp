@@ -51,6 +51,12 @@ void ClientPoolConfig::ParseConfig(std::istream& config_stream,
   config.subscope(PARTICIPANT_NODES).instantiateScope(PARTICIPANT_NODE);
   config.instantiateScope(PARTICIPANT_NODES);
 
+  // num_ro_replicas is required for validating principal id, but it should be
+  // optional for backward compatibility. For this reason its default value is
+  // loaded to cover the cases where the parameter is not set in the
+  // configuration.
+  config.loadDefault("num_ro_replicas", nullptr, false);
+
   // Next, load all features.
   yaml.loadConfiguration(config,
                          config.begin(ConcordConfiguration::kIterateAll),

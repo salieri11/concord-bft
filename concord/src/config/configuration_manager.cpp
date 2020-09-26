@@ -4191,6 +4191,12 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   ConfigurationPath fValPath("f_val", false);
   ConfigurationPath cValPath("c_val", false);
   ConfigurationPath roReplicasValPath("num_ro_replicas", false);
+
+  // For backward compatibility of the config generation tool the
+  // num_ro_replicas parameter has got default value. If this is required for
+  // more cluster size params a new tag might be created.
+  config.loadDefault("num_ro_replicas", nullptr, false);
+
   vector<ConfigurationPath> requiredParameters(
       {fValPath, cValPath, roReplicasValPath});
   if (isClient) {
