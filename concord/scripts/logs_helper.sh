@@ -21,7 +21,7 @@ if  [[ $1 = "-h" ]] || [ -z $1 ]; then
 	echo "params: \${logger_name} \${level}"
 	echo "logger_name - full qualified name e.g:"
 	echo "* concord.bft.consensus"
-	echo "* com.vmware.concord.KVBClientPool"
+	echo "* concord.KVBClientPool"
 	echo "* concord.tls"
 	echo "level: \"TRACE\" \"DEBUG\" \"INFO\" \"WARN\" \"ERROR\" \"FATAL\" \"OFF\""
 	echo "example: PRP_PATH=. ./logs_helper.sh -a concord.bft.consensus DEBUG"
@@ -30,7 +30,7 @@ if  [[ $1 = "-h" ]] || [ -z $1 ]; then
 	echo "params: \${logger_name}"
 	echo "logger_name - full qualified name e.g:"
 	echo "* concord.bft.consensus"
-	echo "* com.vmware.concord.KVBClientPool"
+	echo "* concord.KVBClientPool"
 	echo "* concord.tls"
 	echo "example: PRP_PATH=. ./logs_helper.sh -d concord.bft.newlogger"
 	exit

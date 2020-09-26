@@ -106,14 +106,14 @@ const int64_t code_storage_version = 1;
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage)
     : roStorage_(roStorage),
       blockAppender_(nullptr),
-      logger(logging::getLogger("com.vmware.concord.kvb")) {}
+      logger(logging::getLogger("concord.kvb")) {}
 
 // read-write mode
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage,
                              IBlocksAppender *blockAppender)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
-      logger(logging::getLogger("com.vmware.concord.kvb")) {}
+      logger(logging::getLogger("concord.kvb")) {}
 
 EthKvbStorage::~EthKvbStorage() {
   // Any Slivers in updates will release their memory automatically.

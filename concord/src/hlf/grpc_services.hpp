@@ -32,7 +32,7 @@ class HlfKeyValueServiceImpl final
 
   HlfKeyValueServiceImpl(concord::hlf::HlfKvbStorage& kvb_storage)
       : kvb_storage_(kvb_storage),
-        logger_(logging::getLogger("com.vmware.concord.hlf.grpc")) {}
+        logger_(logging::getLogger("concord.hlf.grpc")) {}
 
   ~HlfKeyValueServiceImpl() {}
 
@@ -57,8 +57,7 @@ class HlfChaincodeServiceImpl final
 
  public:
   HlfChaincodeServiceImpl(concord::consensus::KVBClientPool& pool)
-      : pool_(pool),
-        logger_(logging::getLogger("com.vmware.concord.hlf.grpc")) {}
+      : pool_(pool), logger_(logging::getLogger("concord.hlf.grpc")) {}
 
   ~HlfChaincodeServiceImpl() {}
 

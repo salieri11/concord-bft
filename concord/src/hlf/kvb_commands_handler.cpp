@@ -58,7 +58,7 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
                              block_deleter, state_transfer, subscriber_list,
                              std::move(reconfiguration_sm),
                              prometheus_registry),
-      logger_(logging::getLogger("com.vmware.concord.hlf.handler")),
+      logger_(logging::getLogger("concord.hlf")),
       chaincode_invoker_(chaincode_invoker),
       node_config_(node_config) {}
 

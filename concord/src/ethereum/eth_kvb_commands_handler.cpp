@@ -73,7 +73,7 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     : ConcordCommandsHandler(
           config, nodeConfig, storage, appender, deleter, state_transfer,
           subscriber_list, std::move(reconfiguration_sm), prometheus_registry),
-      logger(logging::getLogger("com.vmware.concord")),
+      logger(logging::getLogger("concord.eth")),
       concevm_(concevm),
       verifier_(verifier),
       nodeConfiguration(nodeConfig),

@@ -81,7 +81,7 @@ KVBClientPool::KVBClientPool(
     std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
     std::shared_ptr<TimePusher> time_pusher,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
-    : logger_(logging::getLogger("com.vmware.concord.KVBClientPool")),
+    : logger_(logging::getLogger("concord.KVBClientPool")),
       time_pusher_(time_pusher),
       client_count_{clients.size()},
       clients_(),

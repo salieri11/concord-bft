@@ -262,7 +262,7 @@ void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,
                       string chaincode_service_address) {
   logging::Logger logger;
 
-  logger = Logger::getInstance("com.vmware.concord.hlf");
+  logger = Logger::getInstance("concord.hlf");
 
   // build key value grpc service
   ServerBuilder key_value_service_builder;
