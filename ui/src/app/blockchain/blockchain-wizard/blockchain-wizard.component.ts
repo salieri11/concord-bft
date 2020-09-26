@@ -290,7 +290,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const isOnlyOnPrem = this.zones.some(zone => zone.type === ZoneType.ON_PREM);
     let zoneIds = [];
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
-    params.replica_zone_ids = zoneIds;
 
     // Node Sizing for replica nodes
     if (this.selectedEngine === ContractEngines.DAML) {
@@ -307,6 +306,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
           }
         });
       }
+    } else {
+      params.replica_zone_ids = zoneIds;
     }
 
     // Handle client nodes

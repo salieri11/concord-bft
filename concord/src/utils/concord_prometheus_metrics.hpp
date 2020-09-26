@@ -29,7 +29,7 @@ class ConcordCustomCollector : public prometheus::Collectable {
 
  public:
   ConcordCustomCollector(std::chrono::seconds dumpInterval)
-      : logger_(logging::getLogger("com.vmware.concord.prometheus")),
+      : logger_(logging::getLogger("concord.utils.prometheus")),
         dumpInterval_(dumpInterval),
         last_dump_time_(0) {}
   std::vector<prometheus::MetricFamily> Collect() override;

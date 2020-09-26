@@ -24,7 +24,7 @@ ApiAcceptor::ApiAcceptor(
     const concord::config::ConcordConfiguration &nodeConfig)
     : acceptor_(io_service, endpoint),
       clientPool_(clientPool),
-      logger_(logging::getLogger("com.vmware.concord.ApiAcceptor")),
+      logger_(logging::getLogger("concord.ApiAcceptor")),
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),

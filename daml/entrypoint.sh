@@ -43,12 +43,12 @@ done
 >&2 echo $(eval $DATE_CMD) "Postgres is up - starting ledger api server"
 
 # Pre-execution cost threshold parameter.
-if [ -z "$PRE_EXECUTION_COST_THRESHOLD" ]; then
+if [ -z "$PRE_EXECUTION_TIME_THRESHOLD" ]; then
   echo "Disabling pre-execution"
-  PRE_EXECUTION_COST_THRESHOLD_PARAMETER=""
+  PRE_EXECUTION_TIME_THRESHOLD_PARAMETER=""
 else
-  echo "Enabling pre-execution with cost threshold $PRE_EXECUTION_COST_THRESHOLD"
-  PRE_EXECUTION_COST_THRESHOLD_PARAMETER="--pre-execution-cost-threshold $PRE_EXECUTION_COST_THRESHOLD"
+  echo "Enabling pre-execution with time threshold $PRE_EXECUTION_TIME_THRESHOLD"
+  PRE_EXECUTION_TIME_THRESHOLD_PARAMETER="--pre-execution-time-threshold $PRE_EXECUTION_TIME_THRESHOLD"
 fi
 
 # Batching parameters. These are all overridable from the outside.
@@ -78,7 +78,7 @@ $API_SERVER \
   --maxTrcReadDataTimeout ${MAX_TRC_READ_DATA_TIMEOUT} \
   --maxTrcReadHashTimeout ${MAX_TRC_READ_HASH_TIMEOUT} \
   --ledger-id KVBC \
-  $PRE_EXECUTION_COST_THRESHOLD_PARAMETER \
+  $PRE_EXECUTION_TIME_THRESHOLD_PARAMETER \
   $THIN_REPLICA_SETTINGS \
   $BFT_CLIENT_SETTINGS \
   $AUTH_SETTINGS

@@ -35,7 +35,7 @@ public class DamlLedgerApiUtilTest {
         Assertions.assertThat(actual.equals(expected));
 
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051")).build();
+                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051")).build();
         nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE").setProperties(properties).build();
         actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
 
@@ -55,8 +55,8 @@ public class DamlLedgerApiUtilTest {
                 + "lt6bdHcgOeRWuhY";
 
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
-                                              NodeProperty.Name.CLIENT_AUTH_JWT.toString(), authJwtToken)).build();
+                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
+                                              NodeProperty.Name.CLIENT_AUTH_JWT.name(), authJwtToken)).build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
 
@@ -84,9 +84,9 @@ public class DamlLedgerApiUtilTest {
         Properties properties = Properties.newBuilder()
                 .putAllValues(
                         ImmutableMap.of(
-                                NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
-                                NodeProperty.Name.CLIENT_AUTH_JWT.toString(), authJwtToken,
-                                NodeProperty.Name.CLIENT_GROUP_ID.toString(), clientGroupId))
+                                NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
+                                NodeProperty.Name.CLIENT_AUTH_JWT.name(), authJwtToken,
+                                NodeProperty.Name.CLIENT_GROUP_ID.name(), clientGroupId))
                 .build();
 
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
@@ -112,10 +112,10 @@ public class DamlLedgerApiUtilTest {
         Properties properties = Properties.newBuilder()
                 .putAllValues(
                         ImmutableMap.of(
-                                NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
-                                NodeProperty.Name.TLS_PEM.toString(), pem,
-                                NodeProperty.Name.TLS_CRT.toString(), crt,
-                                NodeProperty.Name.TLS_CACRT.toString(), cacrt))
+                                NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
+                                NodeProperty.Name.TLS_PEM.name(), pem,
+                                NodeProperty.Name.TLS_CRT.name(), crt,
+                                NodeProperty.Name.TLS_CACRT.name(), cacrt))
                 .build();
 
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
@@ -141,9 +141,9 @@ public class DamlLedgerApiUtilTest {
                         + "20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.lOZceSXpHdKYzZsGS8koNdb_I_1o"
                         + "lt6bdHcgOeRWuhY";
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
-                        NodeProperty.Name.CLIENT_AUTH_JWT.toString(), authJwtToken,
-                        DeploymentAttributes.ENABLE_BFT_CLIENT.toString(), "True"))
+                .putAllValues(ImmutableMap.of(NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
+                        NodeProperty.Name.CLIENT_AUTH_JWT.name(), authJwtToken,
+                        DeploymentAttributes.ENABLE_BFT_CLIENT.name(), "True"))
                 .build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
@@ -162,8 +162,8 @@ public class DamlLedgerApiUtilTest {
     @Test
     public void testHappyPathWithPreexecutionThreshold() throws IOException {
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "True",
-                        DeploymentAttributes.PREEXECUTION_THRESHOLD.toString(), "100ms")).build();
+                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True",
+                        DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "100ms")).build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
 
@@ -180,7 +180,7 @@ public class DamlLedgerApiUtilTest {
     @Test
     public void testHappyPathWithDefaultPreexecutionThreshold() throws IOException {
         Properties properties = Properties.newBuilder()
-                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "True")).build();
+                .putAllValues(ImmutableMap.of(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")).build();
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
                 .setProperties(properties).build();
 
@@ -198,8 +198,8 @@ public class DamlLedgerApiUtilTest {
     public void testHappyPathWithPreexecutionDeploymentDisabled() throws IOException {
         Properties properties = Properties.newBuilder()
                 .putAllValues(
-                        ImmutableMap.of(NodeProperty.Name.COMMITTERS.toString(), "10.0.0.1:50051",
-                                DeploymentAttributes.PREEXECUTION_ENABLED.toString(), "false"))
+                        ImmutableMap.of(NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
+                                DeploymentAttributes.PREEXECUTION_ENABLED.name(), "false"))
                 .build();
 
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE").setProperties(properties).build();

@@ -105,9 +105,9 @@ object ExtraConfig {
     addAuthCommandLineArguments(parser)
 
     parser
-      .opt[Duration]("pre-execution-cost-threshold")
+      .opt[Duration]("pre-execution-time-threshold")
       .optional()
-      .text("Controls the interpretation cost threshold based on which requests are marked or not for pre-execution. Default is that we don't pre-execute any transactions.")
+      .text("Controls the interpretation time threshold based on which requests are marked or not for pre-execution. Default is that we don't pre-execute any transactions.")
       .action((preExecutionCostThreshold, config) => {
         config.copy(
           extra = config.extra.copy(preExecutionCostThreshold = Some(preExecutionCostThreshold)))

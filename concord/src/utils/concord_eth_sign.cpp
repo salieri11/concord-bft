@@ -16,7 +16,7 @@ namespace utils {
 // TODO: sort out build structure, to pull this from concord_types
 const evm_address zero_address{{0}};
 
-EthSign::EthSign() : logger(logging::getLogger("com.vmware.concord.eth_sign")) {
+EthSign::EthSign() : logger(logging::getLogger("concord.eth_sign")) {
   ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
                                  SECP256K1_CONTEXT_VERIFY);
 }

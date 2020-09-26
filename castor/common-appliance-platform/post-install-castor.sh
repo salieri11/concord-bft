@@ -4,7 +4,7 @@ set -x -v
 #/* **************************************************************************** *
 #* Copyright (c) 2020 VMware, Inc.  All rights reserved. -- VMware Confidential *
 #* **************************************************************************** */
-# This script does post processing task
+# This script does post install tasks for the blockchain appliance.
 
 # blockchain user
 BLOCKCHAIN_USER=blockchain
@@ -12,11 +12,14 @@ ONPREM_BLOCKCHAIN_ARTIFACTORY=athena-docker-local.artifactory.eng.vmware.com
 CONFIG_SERVICE_NAME=persephone-configuration
 PROVISIONING_SERVICE_NAME=persephone-provisioning
 CASTOR_SERVICE_NAME=castor
-ONPREM_BLOCKCHAIN_VERSION=0.0.0.2170
+ONPREM_BLOCKCHAIN_VERSION=0.0.0.2252
 
 CONFIG_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CONFIG_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
 PROVISIONING_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$PROVISIONING_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
 CASTOR_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CASTOR_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
+
+# This needs to match the /software/copy-to-appliance/misc-files/local/target value in the CAP appliance json
+APPLIANCE_FILES=/root/blockchain
 
 # Add user blockchain
 useradd -s /bin/bash -m -G docker $BLOCKCHAIN_USER
@@ -53,18 +56,32 @@ castor_repo=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CASTOR_SERVICE_NAME
 castor_tag=$ONPREM_BLOCKCHAIN_VERSION
 EOF
 
-# Get the IP address of this appliance. It is required for startring up the config service container,
-# so that the agent can talk to the config service running on this appliance.
-IP_ADDRESS=$(python3 -c 'import netifaces as nif; print(nif.ifaddresses("eth0")[2][0]["addr"], end="")')
-echo "Config Service IP address: " $IP_ADDRESS
-
 # Change permissions  to their correct values
 chmod -R 744 $CASTOR_ARTIFACTS_DIR
 chown -R $BLOCKCHAIN_USER:users /home/$BLOCKCHAIN_USER
 
-# Launch the prereqs file: This launches the provisioning and config services, and keeps them
-# around for as long as the appliance is up.
-pushd $CASTOR_ARTIFACTS_DIR
-CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-castor-prereqs.yml up -d
-popd
+# Set up the systemd service to launch the docker-compose-orchestrator-prereqs.yml file.
+# This launch requires the IP address of the appliance that it is running on (CONFIG_SERVICE_IP). So it
+# is set up and launched as a systemd service.
+
+mkdir -p /opt/vmware/blockchain
+cp $APPLIANCE_FILES/orchestrator-prereqs-launcher.sh /opt/vmware/blockchain
+chmod 744 /opt/vmware/blockchain/orchestrator-prereqs-launcher.sh
+
+cp $APPLIANCE_FILES/blockchain.service /lib/systemd/system
+chmod 644 /lib/systemd/system/blockchain.service
+
+ln -s /lib/systemd/system/blockchain.service /etc/systemd/system
+
+systemctl daemon-reload
+
+systemctl enable blockchain.service
+
+# Make sure it is set up
+systemctl status blockchain.service
+
+# The last statement needs to return code 0 for CAP to assume success.
+echo "Finished setting up the castor blockchain prerequisite service"
+
+# End blockchain service setup. This will be started by systemd when the system starts up.
 

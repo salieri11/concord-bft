@@ -46,7 +46,7 @@ class KVBClient {
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
         timePusher_(timePusher),
-        logger_(logging::getLogger("com.vmware.concord.kvbclient")) {}
+        logger_(logging::getLogger("concord.kvbclient")) {}
 
   ~KVBClient() { client_->stop(); }
 

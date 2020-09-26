@@ -11,7 +11,7 @@ using std::string;
 namespace concord {
 namespace hlf {
 ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
-    : logger_(Logger::getInstance("com.vmware.concord.hlf.invoker")) {
+    : logger_(Logger::getInstance("concord.hlf.invoker")) {
   // Make sure all following parameters exist
 
   hlf_peer_tool_ = node_config.getValue<string>("hlf_peer_command_tool_path");
@@ -39,7 +39,7 @@ ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
 
 ChaincodeInvoker::ChaincodeInvoker(string hlf_peer_tool_Path)
     : hlf_peer_tool_(hlf_peer_tool_Path),
-      logger_(Logger::getInstance("com.vmware.concord.hlf.invoker")) {}
+      logger_(Logger::getInstance("concord.hlf.invoker")) {}
 
 ChaincodeInvoker::~ChaincodeInvoker() {}
 
