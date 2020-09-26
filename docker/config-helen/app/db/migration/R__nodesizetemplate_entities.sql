@@ -8,15 +8,15 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       [
         {
           "type": "replica",
-          "no_of_cpus": "4",
-          "storage_in_gigs": "1024",
-          "memory_in_gigs": "8"
+          "no_of_cpus": "2",
+          "storage_in_gigs": "64",
+          "memory_in_gigs": "16"
         },
         {
           "type": "client",
-          "no_of_cpus": "4",
-          "storage_in_gigs": "1024",
-          "memory_in_gigs": "8"
+          "no_of_cpus": "2",
+          "storage_in_gigs": "64",
+          "memory_in_gigs": "16"
         }
       ]
     },
@@ -26,15 +26,15 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       [
         {
           "type": "replica",
-          "no_of_cpus": "8",
-          "storage_in_gigs": "1024",
-          "memory_in_gigs": "32"
+          "no_of_cpus": "16",
+          "storage_in_gigs": "256",
+          "memory_in_gigs": "64"
         },
         {
           "type": "client",
-          "no_of_cpus": "8",
-          "storage_in_gigs": "1024",
-          "memory_in_gigs": "32"
+          "no_of_cpus": "16",
+          "storage_in_gigs": "256",
+          "memory_in_gigs": "64"
         }
       ]
     },
@@ -44,15 +44,15 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       [
         {
           "type": "replica",
-          "no_of_cpus": "16",
+          "no_of_cpus": "32",
           "storage_in_gigs": "1024",
-          "memory_in_gigs": "64"
+          "memory_in_gigs": "128"
         },
         {
           "type": "client",
-          "no_of_cpus": "16",
+          "no_of_cpus": "32",
           "storage_in_gigs": "1024",
-          "memory_in_gigs": "64"
+          "memory_in_gigs": "128"
         }
       ]
     }
@@ -61,18 +61,18 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
   {
     "no_of_cpus": 
     {
-      "min": 1,
-      "max": 18
+      "min": 2,
+      "max": 32
     },
     "storage_in_gigs": 
     {
-      "min": 1,
-      "max": 16384
+      "min": 64,
+      "max": 1024
     },
     "memory_in_gigs": 
     {
-      "min": 1,
-      "max": 3024
+      "min": 16,
+      "max": 128
     }
   }
 }'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'svc.blockchain_1@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
