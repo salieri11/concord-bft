@@ -81,8 +81,8 @@ def getConnection(sddcName, skipMapping=False):
            log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
            return None
          sddcInfo = zoneConfigObject["infra"][sddcName]
-         if not sddcInfo["active"]:
-           log.debug("Cannot open session to {}, this SDDC is inactive".format(sddcName))
+         if "active" not in sddcInfo or not sddcInfo["active"]:
+           log.debug("Cannot open session to {}, this SDDC is set to inactive".format(sddcName))
            return None
          if not credentialsAreGood(sddcName, sddcInfo):
            log.debug("Cannot open session to {}, credentials are bad".format(sddcName))

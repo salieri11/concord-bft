@@ -51,6 +51,7 @@
       "segments": "+<vault.VMware-Blockchain-SDDC-4-Segments>"
     },
     "SDDC5":{
+      "num": "5", "type": "vSphere", "active": true,
       "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.name>", 
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.az>",
@@ -63,6 +64,7 @@
       "segments": "+<vault.VMware-Blockchain-SDDC-5-Segments>"
     },
     "SDDC6":{
+      "num": "6", "type": "vSphere", "active": true,
       "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.name>", 
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.az>",
