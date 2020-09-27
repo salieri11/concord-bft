@@ -29,15 +29,16 @@ REPORT = "report.json"
 
 class PytestSuite():
 
-    def __init__(self, passedArgs, testFile, product):
+    def __init__(self, passedArgs, suiteName, testFile, product):
+        self._suiteName = suiteName
         self._testFile = testFile
         self._args = passedArgs
         self._testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR)
         self._reportFile = os.path.join(self._testLogDir, REPORT)
         self._testLogFile = os.path.join(
-            self._args.resultsDir, self.getName() + ".log")
+            self._args.resultsDir, self._suiteName + ".log")
         self._resultFile = os.path.join(passedArgs.resultsDir,
-                                        self.getName() + ".json")
+                                        self._suiteName + ".json")
         self._userConfig = util.helper.loadConfigFile(self._args)
         self._zoneConfig = util.helper.loadZoneConfig(self._args)
         self._ethereumMode = self._args.ethereumMode
@@ -82,7 +83,7 @@ class PytestSuite():
         self._hermes_home = self._args.hermes_dir
 
     def getName(self):
-        return self._testFile.replace(os.sep, "_")
+        return self._suiteName
 
     def run(self):
         '''

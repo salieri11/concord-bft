@@ -739,7 +739,9 @@ def filterOutUnnecessaryArguments(testArgsMap):
   # run settings are just too long to display on top; display separately later.
   if "fxHermesRunSettings" in testArgsMap:
     testArgsMap["fxHermesRunSettings"] = "<HermesRunSettings object; displayed at the bottom>"
-
+  if "set_hermes_info" in testArgsMap:
+    testArgsMap["set_hermes_info"] = ("<set_hermes_info object; cmdline args, "
+                                      "user & zone info at the bottom>")
   return testArgsMap
 
 

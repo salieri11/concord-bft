@@ -1419,7 +1419,7 @@ def loadConfigFile(args=None, filepath=None):
         configs = jenkins.getConfigFromLatestGoodMaster()
         if configs:
           CONFIG_CACHED["zoneConfigOverrideFromSU"] = configs["zoneConfig"]
-          configObject = jenkins.overrideOnlyDefaultConfig(configObject, configs["userConfig"])
+          configObject = configs["userConfig"]
           configObject["metainf"]["env"]["name"] = "LOCAL"
           configObject["metainf"]["env"]["jobName"] = "None" if not jenkins.JENKINS_USER_OVERRIDE else jenkins.JENKINS_USER_OVERRIDE
           configObject["metainf"]["env"]["buildNumber"] = "Local"
@@ -1470,8 +1470,7 @@ def loadZoneConfig(args=None, filepath=None):
 
    if "zoneConfigOverrideFromSU" in CONFIG_CACHED:
      from . import jenkins
-     zone_config_object = jenkins.overrideOnlyDefaultConfig(
-       zone_config_object, CONFIG_CACHED["zoneConfigOverrideFromSU"])
+     zone_config_object = CONFIG_CACHED["zoneConfigOverrideFromSU"]
 
    CONFIG_CACHED['zones'] = zone_config_object
    return zone_config_object
@@ -1811,35 +1810,6 @@ def getContentSignature(content):
   longSignature = longSignature.hexdigest().upper()[:32] # 32-hex = 16-byte (e.g. F4E9A7CADAF8A0B9359740D5F84D118E)
   shortSignature = shortSignature.decode("utf-8").replace("+", "A").replace("/", "A") # (e.g. F9Omnytr4)
   return (longSignature, shortSignature)
-
-
-def pipelineDryRun():
-  '''
-    PipelineWorks CI does not need to actually run the test suite.
-    This is used to skip actual testing.
-  '''
-  if not thisHermesIsFromJenkins(): return False
-  return os.path.exists(getJenkinsWorkspace() + '/summary/dry_run.json')
-
-
-def pipelineDryRunSaveArgs():
-  '''Save cmdline arguments metadata and signature for troubleshooting'''
-  try:
-    metadataJson = {}
-    if os.path.exists(getJenkinsWorkspace() + '/summary/dry_run.json'):
-      with open(getJenkinsWorkspace() + '/summary/dry_run.json', 'r') as f:
-        metadataJson = json.load(f)
-    if 'hermes' not in metadataJson:
-      metadataJson['hermes'] = {}
-    argstr = ' '.join(sys.argv)
-    jobName = getJenkinsJobNameAndBuildNumber()["jobName"]
-    argstr = argstr.replace(jobName, '<JOB_NAME_REDACTED>')
-    longSig, shortSig = getContentSignature(argstr)
-    metadataJson['hermes'][CURRENT_SUITE_NAME] = {'sig': shortSig, 'args': argstr}
-    with open(getJenkinsWorkspace() + '/summary/dry_run.json', 'w+') as f:
-      f.write(json.dumps(metadataJson, indent=4))
-  except Exception as e:
-    hermesNonCriticalTrace(e)
 
 
 def hermesNonCriticalTrace(e, message=None):
