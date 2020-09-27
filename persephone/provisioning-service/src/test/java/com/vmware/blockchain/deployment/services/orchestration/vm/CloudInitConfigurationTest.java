@@ -292,8 +292,8 @@ public class CloudInitConfigurationTest {
 
         String commentDiskCmd = "# Partition, format, and mount additional disk, if any";
         String expectedDiskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;sleep 2;"
-                + "mkfs.ext4 /dev/sdb1;sleep 5;mkdir /mnt/sdb;mount /dev/sdb1 /mnt/sdb;"
-                + "echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` /mnt/sdb ext4 defaults 0 0\" >> /etc/fstab;";
+                + "mkfs.ext4 /dev/sdb1;sleep 5;mkdir /mnt/data;mount /dev/sdb1 /mnt/data;"
+                + "echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` /mnt/data ext4 defaults 0 0\" >> /etc/fstab;";
 
         String actualDiskCmd = null;
         for (int i = 0; i < userDataLines.length; ++i) {
