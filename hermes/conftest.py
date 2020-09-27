@@ -186,14 +186,6 @@ def set_hermes_info(request, hermes_info):
     hermes_info["hermesTestLogDir"] = resultsDir
     hermes_info["hermesModuleLogDir"] = resultsDir
 
-    # Set some helpers - update for each module
-    helper.CURRENT_SUITE_NAME = request.module.__name__
-    helper.CURRENT_SUITE_LOG_FILE = os.path.join(
-        resultsDir, request.module.__name__, ".log")
-
-    # Set Real Name same as Current Name
-    hermes_info["hermesCmdlineArgs"].suitesRealname = request.module.__name__
-
     return hermes_info
 
 

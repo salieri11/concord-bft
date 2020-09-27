@@ -21,7 +21,8 @@ from suites import (
   sample_dapp_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
-from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings
+from util import (auth, csp, helper, hermes_logging, html, json_helper,
+                 numbers_strings, generate_grpc_bindings, pipeline)
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
 
@@ -372,7 +373,7 @@ def main():
          args.resultsDir = createResultsDir(suiteName,
                                             parent_results_dir=parent_results_dir)
          log.info("Results directory: {}".format(args.resultsDir))
-         suite = pytest_suite.PytestSuite(args, suiteList[suiteName], product)
+         suite = pytest_suite.PytestSuite(args, suiteName, suiteList[suiteName], product)
          map_run_id_to_this_run(args, parent_results_dir)
          if suite is None:
             try: raise Exception("Unknown test suite")
@@ -380,11 +381,24 @@ def main():
             exit(3)
 
          helper.CURRENT_SUITE_NAME = suiteName
-         if i < len(suitesRealname) and suitesRealname[i]: helper.CURRENT_SUITE_NAME = suitesRealname[i]
+         if i < len(suitesRealname) and suitesRealname[i]:
+            helper.CURRENT_SUITE_NAME = suitesRealname[i]
          helper.CURRENT_SUITE_LOG_FILE = suite._testLogFile
 
-         if helper.pipelineDryRun(): # CI dry run does not have to run the suite
-           helper.pipelineDryRunSaveArgs(); continue
+         if pipeline.isDryRun():
+            # CI dry run might not have to run the suite
+            # if invocation signatures didn't change
+            if pipeline.isQualifiedToSkip():
+               pipeline.dryRunSaveInvocation()
+               continue
+            else:
+               pipeline.dryRunSaveInvocation(runSuite=True)
+         elif helper.thisHermesIsFromJenkins():
+            pipeline.saveInvocationSignature(runSuite=True)
+         
+         # at this point, the suite is going to run; mark as executed
+         if helper.thisHermesIsFromJenkins():
+            pipeline.markInvocationAsExecuted()
 
          try:
             log.info("Running {}".format(suiteName))
@@ -439,7 +453,8 @@ def main():
          event_recorder.record_event(suiteName, "End", args.eventsFile)
 
    # CI dry run does not have to actually run the suites
-   if helper.pipelineDryRun():
+   if pipeline.isDryRun() and pipeline.isQualifiedToSkip():
+     pipeline.markInvocationAsNotExecuted()
      helper.hermesPreexitWrapUp()
      exit(0)
 

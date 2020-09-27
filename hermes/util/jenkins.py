@@ -366,6 +366,14 @@ def own_all_jenkins_nodes_workspace():
   log.info("Total of {} nodes are affected.".format(tracker["counter"]))
 
 
+def getJobDescription(jobName):
+  '''Get raw text or html value of jenkins run description'''
+  res = treeQuery(jobName, None, 'description')
+  if not res or 'description' not in res:
+    return None
+  return str(res['description'])
+
+
 def autoSetRunDescription():
   metadata = getRunMetadata()
   prevDesc = metadata["description"]
@@ -596,30 +604,6 @@ def queueToAllTimeIndexes(name, value, ts, baseTags):
         # 1h, 4h, 12h, 1d, 1w, 1mo
         wavefront.WF_TAGNAME_TIMESCOPE: timeScope
       }))
-
-def overrideOnlyDefaultConfig(target, src):
-  '''
-    Default config without sed replace is usually "<SOME_CONFIG_NAME>"
-    Recursively find and replace with matching configs from src
-  '''
-  if not target or not src: return
-  if isinstance(target, dict) and isinstance(src, dict):
-    for key, value in target.items():
-      if not value: continue
-      if isinstance(value, str):
-        if value.startswith("<") and value.endswith(">"):
-          if key in src: target[key] = src[key]
-      if isinstance(value, dict) or isinstance(value, list): 
-        if key in src: overrideOnlyDefaultConfig(value, src[key])
-  elif isinstance(target, list) and isinstance(src, list):
-    for idx, value in enumerate(target):
-      if not value: continue
-      if isinstance(value, str):
-        if value.startswith("<") and value.endswith(">"):
-          if idx < len(src): target[idx] = src[idx]
-      if isinstance(value, dict) or isinstance(value, list):
-        if idx < len(src): overrideOnlyDefaultConfig(value, src[idx])
-  return target
 
 def is_builder_node():
   '''Default condition used for filtering out worker nodes by name pattern'''
