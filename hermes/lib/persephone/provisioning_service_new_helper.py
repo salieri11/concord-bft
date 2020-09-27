@@ -141,7 +141,7 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         """
         site_ids, site_infos = self.get_orchestration_site_ids_and_infos(zone_type, zone_config)
         sites = self.create_sites(site_ids, site_infos)
-        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents, "ENABLE_BFT_CLIENT": "True" }
+        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents}
         for property_name in helper.DEPLOYMENT_PROPERTIES:
             property_value = helper.DEPLOYMENT_PROPERTIES[property_name]
             properties_dict[property_name.upper()] = property_value
