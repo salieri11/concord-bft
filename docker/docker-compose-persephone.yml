@@ -13,9 +13,3 @@ services:
       - 9002:9002
     volumes:
       - ../hermes/resources/persephone/provisioning:/config:ro
-  persephone-provisioning-2:
-    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
-    ports:
-      - 9102:9002
-    volumes:
-      - ../hermes/resources/persephone/provisioning:/config:ro
