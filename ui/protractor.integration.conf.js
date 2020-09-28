@@ -61,7 +61,7 @@ exports.config = {
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,
-    defaultTimeoutInterval: 8 * 60 * 1000, // 8 minutes, needed for deploying.
+    defaultTimeoutInterval: 12 * 60 * 1000, // 12 minutes, needed for deploying.
     print: function() { }
   },
   beforeLaunch: function() {

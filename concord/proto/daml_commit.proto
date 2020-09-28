@@ -8,11 +8,6 @@ syntax = "proto3";
 package com.digitalasset.kvbc;
 option java_package = "com.digitalasset.kvbc";
 
-service CommitService {
-  // Commit a transaction.
-  rpc CommitTransaction (CommitRequest) returns (CommitResponse) {}
-}
-
 message CommitRequest {
   bytes submission = 1;
   reserved 2; // was input_log_entries

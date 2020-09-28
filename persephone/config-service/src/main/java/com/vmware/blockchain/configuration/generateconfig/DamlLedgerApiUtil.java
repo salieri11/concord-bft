@@ -106,7 +106,7 @@ public class DamlLedgerApiUtil {
         if (properties.getValuesMap()
                 .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
                 .equalsIgnoreCase("True")) {
-            builder.append("export PRE_EXECUTION_COST_THRESHOLD=");
+            builder.append("export PRE_EXECUTION_TIME_THRESHOLD=");
             builder.append(properties.getValuesMap()
                     .getOrDefault(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(), "0s"));
             builder.append(System.lineSeparator());
@@ -114,9 +114,9 @@ public class DamlLedgerApiUtil {
     }
 
     private void addTlsCredentials(StringBuilder builder, Properties properties) {
-        String pem = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_PEM.toString(), "");
-        String crt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CRT.toString(), "");
-        String cacrt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CACRT.toString(), "");
+        String pem = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_PEM.name(), "");
+        String crt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CRT.name(), "");
+        String cacrt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CACRT.name(), "");
 
         // Certificate values can either br provided or not.
         // If they are provided, make sure they are all present.

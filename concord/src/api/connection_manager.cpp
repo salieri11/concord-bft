@@ -8,8 +8,7 @@ namespace concord {
 namespace api {
 
 /* statoc logger per class */
-static logging::Logger logger_(
-    logging::getLogger("com.vmware.concord.ConnectionManager"));
+static logging::Logger logger_(logging::getLogger("concord.ConnectionManager"));
 
 void ConnectionManager::start_connection(ApiConnection::pointer pConn) {
   LOG_TRACE(logger_, "start_connection enter");

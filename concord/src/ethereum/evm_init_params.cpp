@@ -21,10 +21,10 @@ namespace concord {
 namespace ethereum {
 
 EVMInitParams::EVMInitParams()
-    : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {}
+    : logger(Logger::getInstance("concord.evm_init_params")) {}
 
 EVMInitParams::EVMInitParams(const std::string genesis_file_path)
-    : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {
+    : logger(Logger::getInstance("concord.evm_init_params")) {
   json genesis_block = parse_genesis_block(genesis_file_path);
 
   if (genesis_block.find("config") != genesis_block.end()) {

@@ -852,7 +852,7 @@ ApiConnection::ApiConnection(
     uint64_t chainID, bool ethEnabled,
     const concord::config::ConcordConfiguration &nodeConfig)
     : socket_(io_service),
-      logger_(logging::getLogger("com.vmware.concord.ApiConnection")),
+      logger_(logging::getLogger("concord.ApiConnection")),
       connManager_(manager),
       clientPool_(clientPool),
       sag_(sag),

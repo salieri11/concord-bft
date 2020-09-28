@@ -218,7 +218,7 @@ int outputConfig(ConcordConfiguration& config,
 
 int main(int argc, char** argv) {
   logging::Logger concGenconfigLogger =
-      logging::getLogger("com.vmware.concord.conc_genconfig");
+      logging::getLogger("concord.conc_genconfig");
 
   std::string inputFilename;
   std::string outputPrefix;

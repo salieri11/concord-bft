@@ -108,7 +108,7 @@ def main(args):
    status = helper.installHealthDaemon(all_replicas_and_type)
    start_time = time.time()
    if status:
-      log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
+      log.info("Successfuly instantiated health monitoring daemon on all replicas")
       if helper.monitor_replicas(replicas_config,
                                  args.runDuration,
                                  args.loadInterval,
@@ -117,17 +117,20 @@ def main(args):
                                  args.testset,
                                  args.notifyTarget,
                                  args.notifyJobName):
+         log.info("")
          log.info("**** Blockchain successfully active for {} hrs".format(
             args.runDuration))
          if args.replicasConfig:
             log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
       else:
          end_time = time.time()
+         log.info("")
          log.error("**** Blockchain FAILED to be active for {} hrs".format(
             args.runDuration))
          log.error("**** Blockchain sustained only for {} hrs".format(
             (end_time - start_time) / 3600))
          if args.replicasConfig:
+            log.info("")
             log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
          sys.exit(1)
    else:

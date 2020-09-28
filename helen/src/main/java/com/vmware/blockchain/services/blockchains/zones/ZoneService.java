@@ -123,8 +123,10 @@ public class ZoneService {
         Organization org = organizationService.get(authHelper.getOrganizationId());
         if (getAuthorizedTypes(org).contains(zone.getType())) {
             // next, if this is an ON_PREM zone, see if this belongs to our org
+            // BC-4644:If this zone was created by an admin account, the org in the zone is null
+            // TODO: Need to nail down the real use case for this.
             if (zone.getType().equals(ON_PREM)) {
-                if (!((OnPremZone) zone).getOrgId().equals(org.getId())) {
+                if (!org.getId().equals(zone.getOrgId())) {
                     throw new NotFoundException(ErrorCode.NOT_FOUND);
                 }
             }

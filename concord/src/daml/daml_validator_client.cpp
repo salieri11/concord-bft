@@ -6,7 +6,7 @@
 #include <opentracing/tracer.h>
 #include <chrono>
 #include <sstream>
-#include "sha3_256.h"
+#include "sha_hash.hpp"
 #include "sparse_merkle/base_types.h"
 #include "utils/open_tracing_utils.hpp"
 

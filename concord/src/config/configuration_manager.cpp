@@ -4027,7 +4027,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
                                ConcordConfiguration& config, bool isClient) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   ConfigurationPath fValPath("f_val", false);
   ConfigurationPath cValPath("c_val", false);
@@ -4122,7 +4122,7 @@ class InstancedInstancedParametersSelector
 
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
@@ -4199,7 +4199,7 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
 
 void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
                                              ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
@@ -4323,7 +4323,7 @@ class InputParametersSelector : public ParameterSelection::ParameterSelector {
 
 void loadConfigurationInputParameters(YAMLConfigurationInput& input,
                                       ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   ParameterSelection inputParameterSelection(
       config, make_shared<InputParametersSelector>());
@@ -4364,7 +4364,7 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
 }
 
 void generateConfigurationKeys(ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
@@ -4486,7 +4486,7 @@ class ParametersRequiredAtConfigurationGenerationSelector
 
 bool hasAllParametersRequiredAtConfigurationGeneration(
     ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   ParameterSelection requiredConfiguration(
       config, make_shared<ParametersRequiredAtConfigurationGenerationSelector>(
@@ -4562,7 +4562,7 @@ class NodeConfigurationSelector : public ParameterSelection::ParameterSelector {
 void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
   ConcordConfiguration node_config = config;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts")) {
@@ -4630,7 +4630,7 @@ class ParticipantNodeConfigurationSelector
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
                                         size_t nodeId) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
   ConcordConfiguration node_config = config;
   node_config.subscope("participant_nodes", 0) =
       config.subscope("participant_nodes", nodeId);
@@ -4663,7 +4663,7 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
 
 void loadNodeConfiguration(ConcordConfiguration& config,
                            YAMLConfigurationInput& input) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   loadClusterSizeParameters(input, config);
   instantiateTemplatedConfiguration(input, config);
@@ -4828,7 +4828,7 @@ size_t detectLocalNode(ConcordConfiguration& config) {
 }
 
 void loadSBFTCryptosystems(ConcordConfiguration& config) {
-  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("concord.configuration");
 
   // Note we do not validate that the cryptosystem selections here are valid as
   // long as they exist, as we expect this has been handled by the parameter

@@ -111,7 +111,6 @@ add_executable(DamlTest
         mocks.cpp
         ../src/daml/daml_kvb_commands_handler.cpp
         ../src/daml/daml_validator_client.cpp
-        ../src/daml/grpc_services.cpp
         ../src/config/configuration_manager.cpp
         )
 

@@ -20,9 +20,6 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
  */
 public class DescriptorTestUtills {
 
-    private static final String SDDC_URL_STRING = "https://console-stg.cloud.vmware.com/";
-    private static final URL sddcUrl;
-
     private static final String CONSORTIUM_NAME = "consortium-1";
     private static final String ZONE_1_NAME = "test-zone-1 - A";
 
@@ -39,11 +36,6 @@ public class DescriptorTestUtills {
     private static Map<String, UUID> consortiumNameToUUIDMap = new HashMap<>();
 
     static {
-        try {
-            sddcUrl = new URL(SDDC_URL_STRING);
-        } catch (MalformedURLException e) {
-            throw new Error(e);
-        }
         consortiumNameToUUIDMap.put(CONSORTIUM_NAME, UUID.randomUUID());
     }
 
@@ -53,7 +45,6 @@ public class DescriptorTestUtills {
      */
     public static InfrastructureDescriptorModel.Organization buildOrganization() {
         InfrastructureDescriptorModel.Organization organization = InfrastructureDescriptorModel.Organization.builder()
-                .sddcUrl(sddcUrl)
                 // .dockerImage("dockerImage v1")
                 .damlSdk("1.0.1")
                 // .templateId(UUID.randomUUID())

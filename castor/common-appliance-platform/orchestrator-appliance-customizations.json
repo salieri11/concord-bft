@@ -4,13 +4,13 @@
             "ovf:required": "false"
         },
         "Info": "Appliance ISV branding information",
-        "Product": "VMware Sample Appliance",
+        "Product": "VMware Blockchain Appliance",
         "Vendor": "VMware Inc.",
-        "Version": "9.0",
-        "FullVersion": "9.0 build XXX",
+        "Version": "1.0",
+        "FullVersion": "1.0",
         "ProductUrl": "",
         "VendorUrl": "http://www.vmware.com",
-
+ 
         "categories": [{
             "name": "Application",
             "attributes": {
@@ -50,17 +50,17 @@
                 },
                 {
                     "attributes": {
-                        "ovf:key": "vaadmin-password",
+                        "ovf:key": "blockchain-password",
                         "ovf:type": "string",
                         "ovf:userConfigurable": "true",
                         "ovf:password": "true",
                         "ovf:qualifiers": "MinLen(8),MaxLen(32)"
                     },
                     "Label": {
-                        "value" : "Initial admin user password"
+                        "value" : "Initial blockchain user password"
                     },
                     "Description": {
-                        "value" : "This will be used as an initial password for the admin user account."
+                        "value" : "This will be used as an initial password for the blockchain user account."
                     }
                 },
                 {
@@ -90,65 +90,13 @@
                     "Description": {
                         "value" : "The hostname for this VM. Leave blank to try to reverse lookup the IP address."
                     }
-                },
-                {
-                    "attributes": {
-                        "ovf:key": "dbpassword",
-                        "ovf:value": "",
-                        "ovf:type": "string",
-                        "ovf:userConfigurable": "true",
-                        "ovf:password": "true",
-                        "ovf:qualifiers": "MinLen(8),MaxLen(32)",
-                        "ovf:required": "false"
-                    },
-                    "Label": {
-                        "ovf:msgid": "dbpassword.label",
-                        "value" : "Initial database password"
-                    },
-                    "Description": {
-                        "ovf:msgid": "dbpassword.description",
-                        "value" : "This will be used as initial database password."
-                    }
-                },
-                {
-                    "attributes": {
-                        "ovf:key": "enableFileIntegrity",
-                        "ovf:value": "False",
-                        "ovf:type": "boolean",
-                        "ovf:userConfigurable": "true",
-                        "ovf:required": "false"
-                    },
-                    "Label": {
-                        "ovf:msgid": "enableFileIntegrity.label",
-                        "value" : "File Integrity Flag"
-                    },
-                    "Description": {
-                        "ovf:msgid": "enableFileIntegrity.description",
-                        "value" : "This will be used as flag whether to enable file integrity."
-                    }
-                },
-                {
-                    "attributes": {
-                        "ovf:key": "HCX",
-                        "ovf:value": "False",
-                        "ovf:type": "boolean",
-                        "ovf:userConfigurable": "true",
-                        "ovf:required": "false"
-                    },
-                    "Label": {
-                        "ovf:msgid": "HCX.label",
-                        "value" : "HCX Flag"
-                    },
-                    "Description": {
-                        "ovf:msgid": "HCX.description",
-                        "value" : "This will be used as flag whether to enable HCX support."
-                    }
-                }]
+                }
+                ]
         }]
     },
     {
         "attributes": {
-            "ovf:instance": "VMware_Sample_Appliance",
+            "ovf:instance": "VMware_Blockchain_Appliance",
             "ovf:class": "network",
             "ovf:required": "false"
         },
@@ -295,14 +243,6 @@
                     }]
             }]
         },
-    {
-        "attributes": {
-            "ovf:class": "vami",
-            "ovf:instance": "VMware_Site_Recovery_Manager_Appliance",
-            "ovf:required": "false"
-        },
-        "Info": "VAMI Properties"
-    },
     {
         "attributes": {
             "ovf:class": "vm",

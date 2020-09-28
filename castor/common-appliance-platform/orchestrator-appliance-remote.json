@@ -1,11 +1,13 @@
 {
     "configuration": {
         "cap_version": "0.1",
-        "appliance_name": "dinkar-castor-appliance",
+        "appliance_name": "vmware-blockchain-appliance",
         "delivery_format": "OVF",
         "parking_directory": "images",
         "repositories": {
-            "local": [],
+            "local": [
+                "/dbc/sc-dbc1218/dinkarr/CommonAppliancePlatform"
+            ],
             "rpm": [
                 {
                     "csc-photon-vmbase": {
@@ -14,7 +16,7 @@
                 }
             ]
         },
-        "OVFCustomization": "sample-customizations.json"
+        "OVFCustomization": "orchestrator-appliance-customizations.json"
     },
     "hardware": {
         "cpu_count": 2,
@@ -31,7 +33,7 @@
                     "filesystem_type": "ext4"
                 },
                 {
-                    "size": 5,
+                    "size": 2,
                     "volume_group_name": "vg_rpm_0",
                     "logical_volume_name": "lv_rpm_0",
                     "mount_point": "/rpms",
@@ -109,8 +111,20 @@
             }
         },
         "copy-to-appliance": {
-            "rpm": [],
-            "misc-files": []
+            "rpm": [
+            ],
+            "misc-files": [
+                {
+                    "local": {
+                        "target": "/root/blockchain",
+                        "files": [
+                            "blockchain.service",
+                            "orchestrator-prereqs-launcher.sh"
+                        ]
+
+                    }
+                }
+            ]
         },
         "copy-from-appliance": [],
         "remove": {

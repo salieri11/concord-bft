@@ -9,6 +9,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -163,8 +164,6 @@ public class NodeStartupOrchestrator {
             } catch (Exception | InternalError e) {
                 log.error("Unexpected exception encountered during launch sequence", e);
                 log.warn("******Node not Functional********");
-                throw new AgentException(ErrorCode.NODE_START_FAILED,
-                                         "Failure during launch sequence " + e.getMessage(), e);
             }
         });
     }
@@ -222,7 +221,8 @@ public class NodeStartupOrchestrator {
 
         // Inserting marker file
         var filepath = Path.of(configDownloadMarker);
-        Files.createFile(filepath);
+        Files.writeString(filepath, configuration.getConfigurationSession().getId() + "\n",
+                          StandardOpenOption.APPEND);
     }
 
     private List<BaseContainerSpec> pullImages() {
@@ -232,6 +232,7 @@ public class NodeStartupOrchestrator {
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getPassword();
+        final var notaryServerAddress = configuration.getNotaryServer().getAddress();
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
 
@@ -246,8 +247,19 @@ public class NodeStartupOrchestrator {
                     containerSpec = getCoreContainerSpec(
                             configuration.getModel().getBlockchainType(), component);
                 }
+
+                // Notary Signature Verification is enabled/disabled based on the presence
+                // of notary server in Agent Config
+                if (notaryServerAddress.equals("")) {
+                    log.info("Notary signature verification is disabled");
+                } else {
+                    log.info("Notary signature verification is enabled");
+                }
+
+                // Get NotaryVerificationRequirement from model
                 futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
-                        registryUsername, registryPassword, component.getName())));
+                        registryUsername, registryPassword, component.getName(), notaryServerAddress,
+                        component.getNotaryVerificationRequired())));
             }
         }
 
@@ -310,15 +322,30 @@ public class NodeStartupOrchestrator {
     }
 
     private void setupConfig() throws Exception {
-        log.info("Reading from Config Service");
-
-        if (Files.notExists(Path.of(configDownloadMarker))) {
+        boolean pullConfig = true;
+        var downloadMarker = Path.of(configDownloadMarker);
+        if (configuration.getProperties().getValuesOrDefault(AgentAttributes.COMPONENT_NO_LAUNCH.name(),
+                                                             "False")
+                .equalsIgnoreCase("True")) {
+            pullConfig = false;
+            log.info("Do not launch...");
+        } else if (Files.exists(downloadMarker)) {
+            pullConfig = false;
+            var fileContent = Files.readString(downloadMarker);
+            if (fileContent.contains(configuration.getConfigurationSession().getId())) {
+                pullConfig = false;
+                log.info("Configurations already downloaded for id {}",
+                         configuration.getConfigurationSession().getId());
+            }
+        } else {
+            Files.createFile(downloadMarker);
+        }
+        if (pullConfig) {
+            log.info("Reading from Config Service");
             var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
                                                                         configuration.getNodeId());
             writeConfiguration(configList);
             log.info("Populated the configurations");
-        } else {
-            log.info("Configurations already downloaded.");
         }
     }
 

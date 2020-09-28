@@ -39,8 +39,6 @@ public class InfrastructureDescriptorModel {
     @Builder
     @EqualsAndHashCode(onlyExplicitlyIncluded = true)
     public static class Organization {
-        private URL sddcUrl;
-
         private String dockerImage;
         private String damlSdk;
         private UUID templateId;

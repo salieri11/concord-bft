@@ -32,7 +32,7 @@ class TeeServiceImpl final
 
  public:
   explicit TeeServiceImpl(concord::consensus::KVBClientPool& p)
-      : logger_(logging::getLogger("com.vmware.concord.tee")), pool_(p) {}
+      : logger_(logging::getLogger("concord.tee")), pool_(p) {}
 
   grpc::Status RunTest(grpc::ServerContext* context, const TestInput* request,
                        TestOutput* response) override;

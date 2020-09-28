@@ -104,18 +104,18 @@ def getBlockchainFullDetails(blockchainId, conAdminRequest):
   return blockchainFullDetails
 
 
-def getExistingBlockchainDetails(logDir, hermesData):
+def getExistingBlockchainDetails(logDir, hermes_data):
    '''
    Return the blockchain passed in, if any.
    '''
-   blockchainId = hermesData["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]
+   blockchainId = hermes_data["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]
    tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                   True,
                                                   auth.default_con_admin)
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
-                             hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                             hermesData["hermesUserConfig"],
+                             hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                             hermes_data["hermesUserConfig"],
                              tokenDescriptor=tokenDescriptor)
    blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
 
@@ -129,18 +129,18 @@ def getExistingBlockchainDetails(logDir, hermesData):
                                                          conAdminRequest))
 
 
-def getTokenDescriptor(hermesData):
+def getTokenDescriptor(hermes_data):
    '''
    If we're deploying and Hermes was given an org to use, use a con admin for that org.
    If we're deploying and no org was specified, use the default deployment org (hemes_org0).
    If we're not deploying (docker container blockchain), use the internal admin user and org.
    '''
-   if hermesData["hermesCmdlineArgs"].blockchainLocation in \
+   if hermes_data["hermesCmdlineArgs"].blockchainLocation in \
       [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
 
-      if hermesData["hermesCmdlineArgs"].deploymentOrg:
+      if hermes_data["hermesCmdlineArgs"].deploymentOrg:
          return {
-            "org": hermesData["hermesCmdlineArgs"].deploymentOrg,
+            "org": hermes_data["hermesCmdlineArgs"].deploymentOrg,
             "user": "vmbc_test_con_admin",
             "role": auth.ROLE_CON_ADMIN
          }
@@ -235,18 +235,18 @@ def newZoneEqualsExistingZone(existingZone, newZone):
       return False
 
 
-def deployToSddc(logDir, hermesData, blockchainLocation):
-   tokenDescriptor = getTokenDescriptor(hermesData)
+def deployToSddc(logDir, hermes_data, blockchainLocation):
+   tokenDescriptor = getTokenDescriptor(hermes_data)
    log.info("deployToSddc using tokenDescriptor {}".format(tokenDescriptor))
-   log.info("Deployment service: {}".format(hermesData["hermesCmdlineArgs"].deploymentService))
+   log.info("Deployment service: {}".format(hermes_data["hermesCmdlineArgs"].deploymentService))
    log.info("tokenDescriptor: {}".format(tokenDescriptor))
 
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
-                             hermesData["hermesCmdlineArgs"].deploymentService,
-                             hermesData["hermesUserConfig"],
+                             hermes_data["hermesCmdlineArgs"].deploymentService,
+                             hermes_data["hermesUserConfig"],
                              tokenDescriptor=tokenDescriptor,
-                             service=hermesData["hermesCmdlineArgs"].deploymentService)
+                             service=hermes_data["hermesCmdlineArgs"].deploymentService)
 
    # Use an existing blockchain if present?
    # blockchains = conAdminRequest.getBlockchains()
@@ -264,26 +264,26 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
          zoneIds.append(zone["id"])
    else:
       # Use the Helen API to add on prem zones.
-      onpremZones = hermesData["hermesZoneConfig"]["zones"][helper.LOCATION_ONPREM]
+      onpremZones = hermes_data["hermesZoneConfig"]["zones"][helper.LOCATION_ONPREM]
       zoneIds = getZoneIds(conAdminRequest, onpremZones, blockchainLocation)
 
    log.info("Zone IDs: {}".format(zoneIds))
 
    if not zoneIds:
        raise Exception("No zones available to proceed with deployment.")
-   numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
+   numNodes = int(hermes_data["hermesCmdlineArgs"].numReplicas)
 
    client_zone_ids = []
    # client nodes array
    client_nodes = []
    num_participants = 0
-   blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
+   blockchain_type = hermes_data["hermesCmdlineArgs"].blockchainType
 
    if blockchain_type.lower() == helper.TYPE_DAML:
-       num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
+       num_participants = int(hermes_data["hermesCmdlineArgs"].numParticipants)
        client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
        # How many groups do we have to create?
-       num_groups = int(hermesData["hermesCmdlineArgs"].numGroups)
+       num_groups = int(hermes_data["hermesCmdlineArgs"].numGroups)
        # We know how many groups, how many clients/participants.
        client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
        log.debug("client_nodes after getClientNodes {}".format(client_nodes))
@@ -304,7 +304,7 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
    if success:
       blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
       replica_details = conAdminRequest.getReplicas(blockchainId)
-      credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
+      credentials = hermes_data["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
       # VM Annotations (optional)
       blockchainFullDetails = getBlockchainFullDetails(blockchainId, conAdminRequest)
@@ -334,10 +334,10 @@ def deployToSddc(logDir, hermesData, blockchainLocation):
             # than the CSP auth token is good for.
             conAdminRequest = Request(logDir,
                                       "fxBlockchain",
-                                      hermesData["hermesCmdlineArgs"].deploymentService,
-                                      hermesData["hermesUserConfig"],
+                                      hermes_data["hermesCmdlineArgs"].deploymentService,
+                                      hermes_data["hermesUserConfig"],
                                       tokenDescriptor=tokenDescriptor,
-                                      service=hermesData["hermesCmdlineArgs"].deploymentService)
+                                      service=hermes_data["hermesCmdlineArgs"].deploymentService)
             success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
                                                                             num_participants)
             daml_participant_replicas = [{**replica_entry, **id_dict} for replica_entry in daml_participant_replicas]
@@ -522,35 +522,36 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
 
 @pytest.fixture(scope="module")
 @describe("fixture; product")
-def fxProduct(request, fxHermesRunSettings):
+def fxProduct(request, set_hermes_info):
    '''
    An fxProduct provides a launched instance of the product
    to the tests being run.
    '''
-
-   if not fxHermesRunSettings["hermesCmdlineArgs"].noLaunch:
-      logDir = os.path.join(fxHermesRunSettings["hermesTestLogDir"], "fxBlockchain")
-      if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
+   
+   hermes_data = set_hermes_info
+   if not hermes_data["hermesCmdlineArgs"].noLaunch:
+      logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
+      if hermes_data["hermesCmdlineArgs"].replicasConfig:
          all_replicas = helper.parseReplicasConfig(
-            fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig)
+            hermes_data["hermesCmdlineArgs"].replicasConfig)
 
       endpoint_hosts = ["localhost"]
       try:
          productType = getattr(request.module, "productType",
                                helper.TYPE_ETHEREUM)
 
-         deploymentService = fxHermesRunSettings["hermesCmdlineArgs"].deploymentService.lower()
+         deploymentService = hermes_data["hermesCmdlineArgs"].deploymentService.lower()
          deploymentServiceIsRemote = True not in (host in deploymentService for host in ["localhost", "127.0.0.1"])
 
          if productType == helper.TYPE_DAML:
             credentials = \
-               fxHermesRunSettings["hermesUserConfig"]["persephoneTests"][
+               hermes_data["hermesUserConfig"]["persephoneTests"][
                   "provisioningService"]["concordNode"]
 
-            if fxHermesRunSettings["hermesCmdlineArgs"].replicasConfig:
+            if hermes_data["hermesCmdlineArgs"].replicasConfig:
                endpoint_hosts = all_replicas["daml_participant"]
-            elif fxHermesRunSettings["hermesCmdlineArgs"].damlParticipantIP:
-               endpoint_hosts = fxHermesRunSettings[
+            elif hermes_data["hermesCmdlineArgs"].damlParticipantIP:
+               endpoint_hosts = hermes_data[
                   "hermesCmdlineArgs"].damlParticipantIP.split(",")
 
             endpoint_port = 6861
@@ -594,13 +595,13 @@ def fxProduct(request, fxHermesRunSettings):
 
          # Run migration generation script before starting the product
          log.info("Generating Helen DB migration")
-         migrationFile = fxHermesRunSettings["hermesCmdlineArgs"].migrationFile
-         if migration.build_migrations(fxHermesRunSettings["hermesZoneConfig"],
-                                       fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation, migrationFile):
+         migrationFile = hermes_data["hermesCmdlineArgs"].migrationFile
+         if migration.build_migrations(hermes_data["hermesZoneConfig"],
+                                       hermes_data["hermesCmdlineArgs"].blockchainLocation, migrationFile):
             log.info("Helen DB migration generated successfully in {}".format(migrationFile))
 
-         product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
-                           fxHermesRunSettings["hermesUserConfig"],
+         product = Product(hermes_data["hermesCmdlineArgs"],
+                           hermes_data["hermesUserConfig"],
                            waitForStartupFunction=waitForStartupFunction,
                            waitForStartupParams=waitForStartupParams,
                            checkProductStatusParams=checkProductStatusParams)
@@ -618,7 +619,7 @@ def fxProduct(request, fxHermesRunSettings):
 
 @pytest.fixture(scope="module")
 @describe("fixture; blockchain")
-def fxBlockchain(request, fxHermesRunSettings, fxProduct):
+def fxBlockchain(request, set_hermes_info, fxProduct):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
    If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked
@@ -634,27 +635,27 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    conId = None
    replicas = None
    clientNodes = None
-   hermesData = fxHermesRunSettings
-   logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
+   hermes_data = set_hermes_info
+   logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
 
    if not auth.tokens[auth.CUSTOM_ORG]:
-       auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
+       auth.readUsersFromConfig(set_hermes_info["hermesUserConfig"])
 
    devAdminRequest = Request(logDir,
                              "fxBlockchain",
-                             hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                             hermesData["hermesUserConfig"],
+                             hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                             hermes_data["hermesUserConfig"],
                              auth.internal_admin)
 
-   if auth.CUSTOM_BLOCKCHAIN in hermesData["hermesUserConfig"]["product"] and \
-      hermesData["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]:
-      blockchainId, conId = getExistingBlockchainDetails(logDir, hermesData)
-   elif hermesData["hermesCmdlineArgs"].blockchainLocation in \
+   if auth.CUSTOM_BLOCKCHAIN in hermes_data["hermesUserConfig"]["product"] and \
+      hermes_data["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]:
+      blockchainId, conId = getExistingBlockchainDetails(logDir, hermes_data)
+   elif hermes_data["hermesCmdlineArgs"].blockchainLocation in \
         [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
       log.warning("Some test suites do not work with remote deployments yet.")
-      blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermesData,
-                                                   hermesData["hermesCmdlineArgs"].blockchainLocation)
-   elif not hermesData["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
+      blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermes_data,
+                                                   hermes_data["hermesCmdlineArgs"].blockchainLocation)
+   elif not hermes_data["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
       # we are using the default built in test blockchain.
       # TODO: Create a hermes consortium and add the Hermes org to it, here,
@@ -662,9 +663,9 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchain = devAdminRequest.getBlockchains()[0]
       blockchainId = blockchain["id"]
       conId = blockchain["consortium_id"]
-   elif hermesData["hermesCmdlineArgs"].replicasConfig:
+   elif hermes_data["hermesCmdlineArgs"].replicasConfig:
       # Hermes was told to use a passed in blockchain
-      replicas = helper.parseReplicasConfig(hermesData["hermesCmdlineArgs"].replicasConfig)
+      replicas = helper.parseReplicasConfig(hermes_data["hermesCmdlineArgs"].replicasConfig)
       blockchainId = None
       conId = None
    else:
@@ -677,17 +678,17 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
 
 @pytest.fixture(scope="module")
 @describe("fixture; Helen with initial org registered")
-def fxInitializeOrgs(request, fxHermesRunSettings):
+def fxInitializeOrgs(request, set_hermes_info):
    '''
    Inserts some orgs used for testing into the local Helen database.  This is needed, for example,
    when adding an org to a consortium.  Helen needs to know about the org first, so we
    need to do something to generate a record about it.
    '''
-   hermesData = fxHermesRunSettings
-   request = Request(hermesData["hermesTestLogDir"],
+   hermes_data = set_hermes_info
+   request = Request(hermes_data["hermesTestLogDir"],
                      "initializeOrgs",
-                     hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                     hermesData["hermesUserConfig"])
+                     hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                     hermes_data["hermesUserConfig"])
    tokenDescriptors = [
        {
            "org": "hermes_org1",
@@ -708,7 +709,7 @@ def fxInitializeOrgs(request, fxHermesRunSettings):
 
 @pytest.fixture(scope="module")
 @describe("fixture; blockchain and run settings")
-def fxNodeInterruption(request, fxBlockchain, fxHermesRunSettings):
+def fxNodeInterruption(request, fxBlockchain, set_hermes_info):
    committers = blockchain_ops.committers_of(fxBlockchain)
    participants = blockchain_ops.participants_of(fxBlockchain)
 
@@ -720,10 +721,10 @@ def fxNodeInterruption(request, fxBlockchain, fxHermesRunSettings):
    log.info("Participants: {}".format(participants))
    vm_handles = infra.fetch_vm_handles(all_nodes)
    log.debug("vm handles: {}".format(vm_handles))
-   fxHermesRunSettings["hermesCmdlineArgs"].vm_handles = vm_handles
+   set_hermes_info["hermesCmdlineArgs"].vm_handles = vm_handles
 
    node_interruption_helper.verify_node_interruption_testing_readiness(
-      fxHermesRunSettings["hermesCmdlineArgs"])
+      set_hermes_info["hermesCmdlineArgs"])
 
 
 @pytest.fixture
@@ -734,35 +735,35 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    and RPC object.
    The accepted parameter, "request", is an internal PyTest name and must be that.
    '''
-   hermesData = fxHermesRunSettings
+   hermes_data = fxHermesRunSettings
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
 
    if not auth.tokens[auth.CUSTOM_ORG]:
        auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
 
-   tokenDescriptor = getTokenDescriptor(hermesData)
+   tokenDescriptor = getTokenDescriptor(hermes_data)
 
    # We don't do this earlier because reverseProxy... is used to monitor for
    # service startup.
-   if hermesData["hermesCmdlineArgs"].deploymentService.lower() == auth.SERVICE_STAGING:
-      hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl = auth.SERVICE_STAGING
+   if hermes_data["hermesCmdlineArgs"].deploymentService.lower() == auth.SERVICE_STAGING:
+      hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl = auth.SERVICE_STAGING
 
-   request = Request(hermesData["hermesTestLogDir"],
+   request = Request(hermes_data["hermesTestLogDir"],
                      shortName,
-                     hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                     hermesData["hermesUserConfig"],
+                     hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                     hermes_data["hermesUserConfig"],
                      tokenDescriptor=tokenDescriptor,
-                     service=hermesData["hermesCmdlineArgs"].deploymentService)
+                     service=hermes_data["hermesCmdlineArgs"].deploymentService)
 
    if fxBlockchain.blockchainId and \
-      hermesData["hermesCmdlineArgs"].blockchainType == helper.TYPE_ETHEREUM:
+      hermes_data["hermesCmdlineArgs"].blockchainType == helper.TYPE_ETHEREUM:
 
       ethrpcUrl = eth_helper.getEthrpcApiUrl(request, fxBlockchain.blockchainId)
       rpc = RPC(request.logDir,
                 request.testName,
                 ethrpcUrl,
-                hermesData["hermesUserConfig"],
+                hermes_data["hermesUserConfig"],
                 tokenDescriptor=tokenDescriptor)
    else:
        rpc = None

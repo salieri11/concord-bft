@@ -10,7 +10,7 @@
 #include <string>
 #include "Logger.hpp"
 #include "concord_storage.pb.h"
-#include "sha3_256.h"
+#include "sha_hash.hpp"
 #include "sparse_merkle/base_types.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
@@ -219,6 +219,15 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   }
 }
 
+void PrefixReadSetKeys(com::vmware::concord::ReadSet* read_set) {
+  for (int i = 0; i < read_set->keys_with_fingerprints_size(); ++i) {
+    auto element = read_set->keys_with_fingerprints(i);
+    std::string prefixed_key = PrefixDamlKey(element.key());
+    read_set->mutable_keys_with_fingerprints(i)->set_key(
+        std::move(prefixed_key));
+  }
+}
+
 bool DamlKvbCommandsHandler::PreExecute(
     const da_kvbc::CommitRequest& commit_request,
     const opentracing::Span& parent_span, ConcordResponse& concord_response) {
@@ -229,10 +238,11 @@ bool DamlKvbCommandsHandler::PreExecute(
 
   auto start = std::chrono::steady_clock::now();
 
+  auto pre_execution_result = concord_response.mutable_pre_execution_result();
   grpc::Status status = validator_client_->PreExecute(
       commit_request.submission(), commit_request.participant_id(),
       commit_request.correlation_id(), parent_span, storage_reader,
-      concord_response.mutable_pre_execution_result());
+      pre_execution_result);
 
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::steady_clock::now() - start)
@@ -244,13 +254,13 @@ bool DamlKvbCommandsHandler::PreExecute(
   if (!status.ok()) {
     LOG_ERROR(logger_, "Pre-execution failed " << status.error_code() << ": "
                                                << status.error_message());
-    concord_response.mutable_pre_execution_result()->set_request_correlation_id(
+    pre_execution_result->set_request_correlation_id(
         commit_request.correlation_id());
     return false;
   } else {
+    PrefixReadSetKeys(pre_execution_result->mutable_read_set());
     if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
-      std::string output_bytes =
-          concord_response.pre_execution_result().output();
+      std::string output_bytes = pre_execution_result->output();
       LOG_DEBUG(logger_, "Hash of pre-execution output ["
                              << Hash(SHA3_256().digest(output_bytes.c_str(),
                                                        output_bytes.size()))
@@ -399,18 +409,6 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
   }
 }
 
-com::vmware::concord::ReadSet DamlKvbCommandsHandler::ReadSetToRaw(
-    const com::vmware::concord::ReadSet& input_read_set) const {
-  com::vmware::concord::ReadSet output_read_set;
-  for (const auto& kf : input_read_set.keys_with_fingerprints()) {
-    auto output_kf = output_read_set.add_keys_with_fingerprints();
-    string prefixed_key = PrefixDamlKey(kf.key());
-    output_kf->set_key(std::move(prefixed_key));
-    output_kf->set_fingerprint(kf.fingerprint());
-  }
-  return output_read_set;
-}
-
 void HashAndLogWriteSet(
     const std::vector<KeyValuePairWithThinReplicaIds>& write_set,
     const SetOfKeyValuePairs& updates, logging::Logger& logger) {
@@ -531,8 +529,6 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
     const ConcordRequest& concord_req, const uint8_t flags,
     TimeContract* time_contract, const opentracing::Span& parent_span,
     ConcordResponse& response) {
-  DamlRequest daml_req;
-
   if (!concord_req.has_daml_request() &&
       !concord_req.has_pre_execution_result()) {
     // we have to ignore this, to allow time-only updates
@@ -549,8 +545,7 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
     if (!pre_execution_result.has_read_set()) {
       LOG_WARN(logger_, "Post-execution failed due to missing read set.");
       return false;
-    } else if (HasPreExecutionConflicts(
-                   ReadSetToRaw(pre_execution_result.read_set()))) {
+    } else if (HasPreExecutionConflicts(pre_execution_result.read_set())) {
       LOG_INFO(logger_, "Post-execution failed due to conflicts.");
       return false;
     } else {
@@ -558,7 +553,7 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
                          response);
     }
   } else {
-    daml_req = concord_req.daml_request();
+    auto daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {
       LOG_ERROR(logger_, "No Command specified in DAML request");
       return false;
@@ -591,14 +586,12 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
 
 bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
     const ConcordRequest& concord_req, ConcordResponse& response) {
-  DamlRequest daml_req;
-
   if (!concord_req.has_daml_request()) {
     LOG_ERROR(logger_, "No legit Concord / DAML request");
     return false;
   }
 
-  daml_req = concord_req.daml_request();
+  auto daml_req = concord_req.daml_request();
   if (!daml_req.has_command()) {
     LOG_ERROR(logger_, "No Command specified in DAML request");
     return false;

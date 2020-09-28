@@ -270,7 +270,7 @@ public class CloudInitConfiguration {
     private String diskSetupCommand() {
         String diskCmd = "";
         if (newDisk) {
-            String mountDir = "/mnt/sdb";
+            String mountDir = "/mnt/data";
             diskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;"
                     + "sleep 2;"
                     + "mkfs.ext4 /dev/sdb1;"

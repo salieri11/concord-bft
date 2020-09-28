@@ -119,4 +119,14 @@ public class BlockchainApiObjects {
         private UUID taskId;
     }
 
+    /**
+     * Response from regenerating config.
+     */
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class GenerateConfigResponse {
+        private UUID configId;
+    }
 }

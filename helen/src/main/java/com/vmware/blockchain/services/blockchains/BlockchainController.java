@@ -61,6 +61,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
 import com.vmware.blockchain.deployment.v1.DeploymentSpec;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
+import com.vmware.blockchain.deployment.v1.GenerateConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
@@ -264,6 +265,145 @@ public class BlockchainController {
     }
 
     /**
+     * Temp API, DO NOT publish.
+     * API which generates a new config.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}/regenerate-configuration", method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    public ResponseEntity<BlockchainApiObjects.GenerateConfigResponse> regenerateConfiguration(@PathVariable UUID bid)
+            throws NotFoundException {
+
+        Blockchain blockchain = safeGetBlockchain(bid);
+        Organization organization = organizationService.get(authHelper.getOrganizationId());
+        var replicas = replicaService.getReplicas(blockchain.getId());
+        var clients = clientService.getClientsByParentId(blockchain.getId());
+
+        Set<UUID> zoneIds = new HashSet<>();
+        NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
+
+        replicas.stream().forEach(k -> {
+            nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                    .setType(NodeType.REPLICA)
+                    .setNodeId(k.getId().toString())
+                    .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                    .setId(k.getZoneId().toString()).build())
+                    .setProperties(Properties.newBuilder()
+                            .putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.toString(),
+                                       k.getPrivateIp())
+                                           .build()));
+
+            zoneIds.add(k.getZoneId());
+        });
+
+        clients.stream().forEach(k -> {
+            var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
+                                                   k.getGroupId().toString());
+            properties.putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.toString(), k.getPrivateIp());
+            nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                              .setType(NodeType.CLIENT)
+                                              .setNodeId(k.getId().toString())
+                                              .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                                               .setId(k.getZoneId().toString()).build())
+                                              .setProperties(properties));
+
+            zoneIds.add(k.getZoneId());
+        });
+
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
+
+
+        var deploymentSpec = DeploymentSpec.newBuilder()
+                .setConsortiumId(blockchain.consortium.toString())
+                .setBlockchainId(blockchain.getId().toString())
+                .setBlockchainType(enumMapForBlockchainType.get(blockchain.type))
+                .setSites(Sites.newBuilder().addAllInfoList(sitesInfo).build())
+                .setNodeAssignment(nodeAssignment)
+                .setProperties(getPropertySpec(organization))
+                .build();
+
+        var request = DeploymentRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder()
+                                   .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
+                .setSpec(deploymentSpec)
+                .build();
+
+        var promise = new CompletableFuture<GenerateConfigurationResponse>();
+        provisioningClient.generateConfiguration(request, FleetUtils.blockedResultObserver(promise));
+        try {
+            var configId = promise.get().getId();
+            return new ResponseEntity<>(new BlockchainApiObjects.GenerateConfigResponse(UUID.fromString(configId)),
+                                        HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error1 generating new configuration for blockchain {}", bid);
+            throw new HelenException(ErrorCodeType.INTERNAL_ERROR,
+                                     "Error generating new configuration for blockchain.");
+        }
+    }
+
+    /**
+     * Temp API, DO NOT publish.
+     * API which generates a new config.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}/clone", method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    public ResponseEntity<BlockchainApiObjects.BlockchainTaskResponse> cloneBlockchain(@PathVariable UUID bid)
+            throws Exception {
+
+        Blockchain blockchain = safeGetBlockchain(bid);
+        var replicas = replicaService.getReplicas(blockchain.getId());
+        var clients = clientService.getClientsByParentId(blockchain.getId());
+
+        Task task = new Task();
+        task.setState(Task.State.RUNNING);
+        task = taskService.put(task);
+
+        NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
+        Set<UUID> zoneIds = new HashSet<>();
+
+        replicas.stream().forEach(k -> {
+            nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                              .setType(NodeType.REPLICA)
+                                              .setNodeId(UUID.randomUUID().toString())
+                                              .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                                               .setId(k.getZoneId().toString()).build())
+                                              .build());
+
+            zoneIds.add(k.getZoneId());
+        });
+
+        clients.stream().forEach(k -> {
+            var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
+                                                   k.getGroupId().toString());
+            nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                              .setType(NodeType.CLIENT)
+                                              .setNodeId(UUID.randomUUID().toString())
+                                              .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                                               .setId(k.getZoneId().toString()).build())
+                                              .setProperties(properties));
+
+            zoneIds.add(k.getZoneId());
+        });
+
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
+
+        Organization organization = organizationService.get(authHelper.getOrganizationId());
+        var genericProperties = getPropertySpec(organization);
+        genericProperties.putValues(DeploymentAttributes.NO_LAUNCH.name(), "True");
+        var deploymentSpec = DeploymentSpec.newBuilder()
+                .setConsortiumId(blockchain.consortium.toString())
+                .setBlockchainType(enumMapForBlockchainType.get(blockchain.type))
+                .setSites(Sites.newBuilder().addAllInfoList(sitesInfo).build())
+                .setNodeAssignment(nodeAssignment)
+                .setProperties(genericProperties)
+                .build();
+
+        invokeDeploymentRequest(blockchain.consortium, blockchain.type, task, nodeAssignment, deploymentSpec);
+        logger.info("Deployment scheduled");
+
+        return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
+    }
+
+    /**
      * De-register the blockchain.
      */
     @RequestMapping(path = "/api/blockchains/deregister/{bid}", method = RequestMethod.POST)
@@ -332,15 +472,7 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
-        List<UUID> zoneIds = new ArrayList<>();
-        if (body.getReplicaZoneIds() != null) {
-            zoneIds.addAll(body.getReplicaZoneIds());
-        }
-        if (body.getReplicaNodes() != null) {
-            zoneIds.addAll(body.getReplicaNodes().stream().map(k -> k.getZoneId())
-                                                       .collect(Collectors.toList()));
-        }
-
+        // Validate number of replicas and clients.
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
             throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
                                          "user input replicas %s", body.getReplicaZoneIds().size(),
@@ -348,78 +480,27 @@ public class BlockchainController {
                                          "user input clients is %s", body.getClientNodes().size()));
         }
         NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
-        Properties.Builder basePropBuilder = Properties.newBuilder();
-        if (organization.getOrganizationProperties() != null) {
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DOCKER_IMAGE_OVERRIDE)) {
-                basePropBuilder.putValues(DeploymentAttributes.IMAGE_TAG.name(),
-                                          organization.getOrganizationProperties()
-                                                  .get(Constants.ORG_DOCKER_IMAGE_OVERRIDE));
-            }
+        Properties.Builder basePropBuilder = getPropertySpec(organization);
 
-            if (organization.getOrganizationProperties().containsKey(Constants.DAML_SDK_INFO_OVERRIDE)) {
-                basePropBuilder.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(),
-                                          organization.getOrganizationProperties()
-                                                  .get(Constants.DAML_SDK_INFO_OVERRIDE));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_TEMPLATE_ID_OVERRIDE)) {
-                basePropBuilder.putValues(DeploymentAttributes.TEMPLATE_ID.name(),
-                                          organization.getOrganizationProperties()
-                                                  .get(Constants.ORG_TEMPLATE_ID_OVERRIDE));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_GENERATE_PASSWORD)) {
-                basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_ENABLED)) {
-                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_ENABLED.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_PREEXECUTION_ENABLED));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_THRESHOLD)) {
-                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_PREEXECUTION_THRESHOLD));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DECENTRALIZED_KEYS)) {
-                basePropBuilder.putValues(DeploymentAttributes.DECENTRALIZED_KEYS.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_DECENTRALIZED_KEYS));
-            }
-
-            if (organization.getOrganizationProperties().containsKey(Constants.ORG_SPLIT_CONFIG)) {
-                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(),
-                        organization.getOrganizationProperties()
-                                .get(Constants.ORG_SPLIT_CONFIG));
-            }
-        }
-
-        //remove this after replicaZoneIds is deprecated
-        zoneIds
-                .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
-                                                                .setType(NodeType.REPLICA)
-                                                                .setNodeId(UUID.randomUUID().toString())
-                                                                .setSite(
-                                                                        OrchestrationSiteIdentifier.newBuilder()
-                                                                                .setId(k.toString()).build())));
-
+        // Collect a list of zones from replicas and clients.
+        List<UUID> zoneIds = new ArrayList<>();
+        // Process the replica nodes.
         if (body.getReplicaNodes() != null) {
             body.getReplicaNodes()
                     .forEach(k -> {
+                        // Add the zoneId to zoneIds.
+                        zoneIds.add(k.getZoneId());
+
                         Properties.Builder propBuilder = Properties.newBuilder();
                         if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
                             // Validate sizing info, if the input is invalid throw a BadRequestException.
                             validateSizingInfo(k.getSizingInfo(), "Replica");
                             // Add Sizing Info to Properties.
                             addSizingInfoToProperties(k.getSizingInfo(), propBuilder);
-
                         }
 
                         nodeAssignment.addEntries(NodeAssignment.Entry
-                                                  .newBuilder()
+                                                          .newBuilder()
                                                           .setType(NodeType.REPLICA)
                                                           .setNodeId(UUID.randomUUID().toString())
                                                           .setSite(
@@ -429,34 +510,47 @@ public class BlockchainController {
                                                                           .build())
                                                           .setProperties(propBuilder));
                     });
+            logger.debug("zoneIds from replica nodes parameter: {}", zoneIds);
+            logger.debug("nodeAssignmentEntries from replica nodes parameter {}",
+                         nodeAssignment.getEntriesList());
+        } else if (body.getReplicaZoneIds() != null) {
+            // Not a big fan of big if-else statements but this is an exception because code will go soon.
+            // Get the replica zone ids from "replica_zone_ids" parameter.
+            zoneIds.addAll(body.getReplicaZoneIds());
+
+            //remove this after replicaZoneIds is deprecated
+            zoneIds
+                    .forEach(k -> nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
+                                                                    .setType(NodeType.REPLICA)
+                                                                    .setNodeId(UUID.randomUUID().toString())
+                                                                    .setSite(
+                                                                            OrchestrationSiteIdentifier.newBuilder()
+                                                                                    .setId(k.toString()).build())));
+            logger.debug("zoneIds from replica zone ids parameter: {}", zoneIds);
+            logger.debug("nodeAssignmentEntries from replica zone ids parameter {}",
+                         nodeAssignment.getEntriesList());
         }
 
+        // Process client nodes.
         if (body.getClientNodes() != null) {
             // A map to hold groupIndex to groupId (UUID) mapping.
             final Map<String, UUID> groupMap = new HashMap<String, UUID>();
             body.getClientNodes()
                     .forEach(k -> {
-                        Properties.Builder propBuilder = Properties.newBuilder();
-                        if (!Strings.isNullOrEmpty(k.getAuthUrlJwt())) {
-                            propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
-                                                  k.getAuthUrlJwt());
-                        }
 
-                        if (!Strings.isNullOrEmpty(k.getGroupName())) {
-                            // Did we see this groupName earlier?
-                            // If yes, then get the Id from the map.
-                            // Or else, generate a new one and put it in the map.
-                            String groupName = k.getGroupName();
-                            UUID groupId = null;
-                            if (groupMap.containsKey(groupName)) {
-                                groupId = groupMap.get(groupName);
-                            } else {
-                                groupId = UUID.randomUUID();
-                                groupMap.put(groupName, groupId);
-                            }
-                            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId.toString());
-                            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+                        // Add the zoneId to zoneIds.
+                        zoneIds.add(k.getZoneId());
+
+                        UUID groupId = null;
+                        if (groupMap.containsKey(k.getGroupName())) {
+                            groupId = groupMap.get(k.getGroupName());
+                        } else {
+                            groupId = UUID.randomUUID();
+                            groupMap.put(k.getGroupName(), groupId);
                         }
+                        Properties.Builder propBuilder = clientPropertyBuilder(k.getAuthUrlJwt(),
+                                                                               k.getGroupName(), groupId.toString());
+
                         if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
                             // Validate sizing info, if the input is invalid throw a BadRequestException.
                             validateSizingInfo(k.getSizingInfo(), "Client");
@@ -500,9 +594,10 @@ public class BlockchainController {
                                                                           .setId(k.getZoneId().toString())
                                                                           .build())
                                                           .setProperties(propBuilder));
+                        logger.debug("nodeAssignmentEntries from client nodes {}",
+                                     nodeAssignment.getEntriesList());
                     });
-
-            zoneIds.addAll(body.getClientNodes().stream().map(k -> k.getZoneId()).collect(Collectors.toList()));
+            logger.debug("zoneIds collected so far, from replicas and client nodes {}", zoneIds);
         }
 
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
@@ -514,11 +609,17 @@ public class BlockchainController {
                 .setBlockchainType(blockChainType)
                 .setSites(Sites.newBuilder().addAllInfoList(sitesInfo).build())
                 .setNodeAssignment(nodeAssignment)
-                //.putAllNodeProperties()
                 .setProperties(basePropBuilder)
                 .build();
 
         logger.debug("deployment spec {}", deploymentSpec);
+        invokeDeploymentRequest(body.getConsortiumId(), body.getBlockchainType(), task, nodeAssignment, deploymentSpec);
+    }
+
+    private void invokeDeploymentRequest(UUID consortiumId, BlockchainType type,
+                                         Task task, NodeAssignment.Builder nodeAssignment,
+                                         DeploymentSpec deploymentSpec)
+            throws InterruptedException, java.util.concurrent.ExecutionException {
 
         var request = DeploymentRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder()
@@ -530,11 +631,11 @@ public class BlockchainController {
         var promise = new CompletableFuture<DeploymentRequestResponse>();
         provisioningClient.createDeployment(request, FleetUtils.blockedResultObserver(promise));
         String dsId = promise.get().getId();
-        logger.info("Deployment started, id {} for the consortium id {}", dsId, body.getConsortiumId());
+        logger.info("Deployment started, id {} for the consortium id {}", dsId, consortiumId);
 
         Blockchain rawBlockchain = new Blockchain();
-        rawBlockchain.setType(body.getBlockchainType());
-        rawBlockchain.setConsortium(body.getConsortiumId());
+        rawBlockchain.setType(type);
+        rawBlockchain.setConsortium(consortiumId);
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, clientService,
@@ -551,18 +652,101 @@ public class BlockchainController {
         provisioningClient.streamDeploymentSessionEvents(streamRequest, bo);
     }
 
-    private boolean validateNumberofReplicas(BlockchainPost body) {
-        if (body.getReplicaZoneIds() == null || body.getReplicaZoneIds().isEmpty()) {
-            if (body.getReplicaNodes() != null) {
-                int m = body.getReplicaNodes().size();
-                return (replicaNumber.contains(m));
+    private Properties.Builder clientPropertyBuilder(String authJwtUrl,
+                                                     String groupName,
+                                                     String groupId) {
+        Properties.Builder propBuilder = Properties.newBuilder();
+        if (!Strings.isNullOrEmpty(authJwtUrl)) {
+            propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
+                                  authJwtUrl);
+        }
+        if (!Strings.isNullOrEmpty(groupName)) {
+            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId);
+            propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+        }
+        return propBuilder;
+    }
+
+    private Properties.Builder getPropertySpec(Organization organization) {
+        Properties.Builder basePropBuilder = Properties.newBuilder();
+        if (organization.getOrganizationProperties() != null) {
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DOCKER_IMAGE_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.IMAGE_TAG.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_DOCKER_IMAGE_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.DAML_SDK_INFO_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.DAML_SDK_VERSION.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.DAML_SDK_INFO_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_TEMPLATE_ID_OVERRIDE)) {
+                basePropBuilder.putValues(DeploymentAttributes.TEMPLATE_ID.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_TEMPLATE_ID_OVERRIDE));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_GENERATE_PASSWORD)) {
+                basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_ENABLED)) {
+                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_ENABLED.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_PREEXECUTION_ENABLED));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_THRESHOLD)) {
+                basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_THRESHOLD.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_PREEXECUTION_THRESHOLD));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_DECENTRALIZED_KEYS)) {
+                basePropBuilder.putValues(DeploymentAttributes.DECENTRALIZED_KEYS.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_DECENTRALIZED_KEYS));
+            }
+
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_SPLIT_CONFIG)) {
+                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_SPLIT_CONFIG));
+            } else {
+                basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(), "True");
             }
         }
-        return replicaNumber.contains(body.getReplicaZoneIds().size());
+        return basePropBuilder;
+    }
+
+    private boolean validateNumberofReplicas(BlockchainPost body) {
+        if (body.getReplicaNodes() == null && body.getReplicaZoneIds() == null) {
+            logger.error("Both parameters replica_nodes and replica_zone_ids are missing.");
+            return false;
+        }
+
+        // Always look for replica nodes.
+        // There is no need to check emptiness condition here, because size is 0 when list is empty.
+        if (body.getReplicaNodes() != null) {
+            int m = body.getReplicaNodes().size();
+            logger.info("Found {} Replica nodes.", m);
+            return (replicaNumber.contains(m));
+        }
+        // Check replica_zone_ids
+        int n = body.getReplicaZoneIds().size();
+        logger.info("Found {} Replica zone ids ", n);
+        return replicaNumber.contains(n);
     }
 
     private boolean validateNumberOfClients(BlockchainPost body) {
+        if (body.getClientNodes() == null || body.getClientNodes().isEmpty()) {
+            logger.error("No client nodes available.");
+            return false;
+        }
         int m = body.getClientNodes().size();
+        logger.info("Found {} client nodes.", m);
         return m <= clientNumber;
     }
 

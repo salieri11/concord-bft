@@ -104,6 +104,7 @@ public class ZoneServiceTest {
 
     private UUID onPremId;
     private UUID onPrem2Id;
+    private UUID onPremNoOrg;
 
     private Organization onpremOrg;
 
@@ -139,6 +140,10 @@ public class ZoneServiceTest {
         OnPremZone ozone2 = getOnpremZone(ORG_2);
         z = zoneService.put(ozone2);
         onPrem2Id = z.getId();
+
+        OnPremZone ozone3 = getOnpremZone(null);
+        z = zoneService.put(ozone3);
+        onPremNoOrg = z.getId();
     }
 
     @AfterEach
@@ -168,7 +173,7 @@ public class ZoneServiceTest {
     @Test
     void typeTest() throws Exception {
         List<Zone> l = zoneService.getAllZonesByType(ON_PREM);
-        Assertions.assertEquals(2, l.size());
+        Assertions.assertEquals(3, l.size());
     }
 
     @Test
@@ -223,6 +228,12 @@ public class ZoneServiceTest {
     void testGetUnauthorized() throws Exception {
         when(authHelper.isSystemAdmin()).thenReturn(false);
         Assertions.assertThrows(NotFoundException.class, () -> zoneService.getAuthorized(onPrem2Id));
+    }
+
+    @Test
+    void testGetNoOrg() throws Exception {
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        Assertions.assertThrows(NotFoundException.class, () -> zoneService.getAuthorized(onPremNoOrg));
     }
 
     @Test

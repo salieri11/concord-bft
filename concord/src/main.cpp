@@ -31,7 +31,6 @@
 #include "daml/daml_init_params.hpp"
 #include "daml/daml_kvb_commands_handler.hpp"
 #include "daml/daml_validator_client.hpp"
-#include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
 #include "diagnostics.h"
 #include "diagnostics_server.h"
@@ -114,7 +113,6 @@ using concord::hlf::RunHlfGrpcServer;
 using concord::time::TimePusher;
 using concord::utils::EthSign;
 
-using concord::daml::CommitServiceImpl;
 using concord::daml::DamlKvbCommandsHandler;
 using concord::daml::DamlValidatorClient;
 
@@ -129,7 +127,7 @@ using concord::consensus::InitializeSbftConfiguration;
 
 using concord::tee::TeeCommandsHandler;
 
-static unique_ptr<grpc::Server> daml_grpc_server = nullptr;
+static unique_ptr<grpc::Server> thin_replica_server = nullptr;
 // the Boost service hosting our Helen connections
 static io_service *api_service = nullptr;
 static boost::thread_group worker_pool;
@@ -143,16 +141,16 @@ std::unique_ptr<Cryptosystem> cryptosys;
 
 static void signalHandler(int signum) {
   try {
-    Logger logger = Logger::getInstance("com.vmware.concord.main");
+    Logger logger = Logger::getInstance("concord.main");
     LOG_INFO(logger, "Signal received (" << signum << ")");
 
     if (api_service) {
       LOG_INFO(logger, "Stopping API service");
       api_service->stop();
     }
-    if (daml_grpc_server) {
-      LOG_INFO(logger, "Stopping DAML gRPC service");
-      daml_grpc_server->Shutdown();
+    if (thin_replica_server) {
+      LOG_INFO(logger, "Stopping Thin replica service");
+      thin_replica_server->Shutdown();
     }
     if (tee_grpc_server) {
       LOG_INFO(logger, "Stopping TEE gRPC service");
@@ -431,7 +429,7 @@ static concordUtils::Status create_tee_genesis_block(
  * and passing the requests to KVBClient.
  */
 void start_worker_threads(int number) {
-  Logger logger = Logger::getInstance("com.vmware.concord.main");
+  Logger logger = Logger::getInstance("concord.main");
   LOG_INFO(logger, "Starting " << number << " new API worker threads");
   assert(api_service);
   for (int i = 0; i < number; i++) {
@@ -441,15 +439,12 @@ void start_worker_threads(int number) {
   }
 }
 
-void RunDamlGrpcServer(
-    std::string server_address, KVBClientPool &pool,
-    const ConcordConfiguration &config,
-    const ILocalKeyValueStorageReadOnly *ro_storage,
+void RunThinReplicaServer(
+    std::string server_address, const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
-  Logger logger = Logger::getInstance("com.vmware.concord.daml");
+  Logger logger = Logger::getInstance("concord.thin_replica");
 
-  auto commitService = std::make_unique<CommitServiceImpl>(pool, config);
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
       ro_storage, subscriber_list, prometheus_registry);
   auto thinReplicaService =
@@ -460,21 +455,19 @@ void RunDamlGrpcServer(
 
   grpc::ServerBuilder builder;
   builder.SetResourceQuota(quota);
-  builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(commitService.get());
   builder.RegisterService(thinReplicaService.get());
 
-  daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
+  thin_replica_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
-  LOG_INFO(logger, "DAML gRPC server listening on " << server_address);
-  daml_grpc_server->Wait();
+  LOG_INFO(logger, "Thin replica server listening on " << server_address);
+  thin_replica_server->Wait();
 }
 
 void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
                       const ILocalKeyValueStorageReadOnly *ro_storage,
                       SubBufferList &subscriber_list, int max_num_threads) {
-  Logger logger = Logger::getInstance("com.vmware.concord.tee");
+  Logger logger = Logger::getInstance("concord.tee");
 
   auto teeService = std::make_unique<TeeServiceImpl>(pool);
   auto thinReplicaServiceImpl =
@@ -869,9 +862,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Limit the amount of gRPC threads
       int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
 
-      // Spawn a thread in order to start management API server as well
-      std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), config,
-                  &replica, std::ref(subscriber_list), max_num_threads,
+      std::thread(RunThinReplicaServer, daml_addr, &replica,
+                  std::ref(subscriber_list), max_num_threads,
                   prometheus_registry)
           .detach();
     } else if (hlf_enabled) {
@@ -950,7 +942,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 int main(int argc, char **argv) {
   bool tracingInitialized = false;
   int result = 0;
-  Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
+  Logger mainLogger = Logger::getInstance("concord.main");
   try {
     ConcordConfiguration config;
 
@@ -979,7 +971,7 @@ int main(int argc, char **argv) {
                             nodeConfig.getValue<int>("logger_reconfig_time"));
 
     // re-initialize logger after configuration
-    mainLogger = Logger::getInstance("com.vmware.concord.main");
+    mainLogger = Logger::getInstance("concord.main");
     // say hello
     LOG_INFO(mainLogger, "VMware Project concord starting");
 

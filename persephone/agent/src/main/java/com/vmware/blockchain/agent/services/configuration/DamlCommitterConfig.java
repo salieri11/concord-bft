@@ -27,7 +27,7 @@ public enum DamlCommitterConfig implements BaseContainerSpec {
                           null),
     DAML_CONCORD("concord", List.of(
             new PortBinding(Ports.Binding.bindPort(50051), ExposedPort.tcp(50051)),
-            new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
+            new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 5458), ExposedPort.tcp(5458)),
             new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
             new PortBinding(Ports.Binding.bindPort(9891), ExposedPort.tcp(9891)),
             new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 6888), ExposedPort.tcp(6888))),
