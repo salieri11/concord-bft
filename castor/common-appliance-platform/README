@@ -7,31 +7,38 @@ https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP
 
 3. Copy the following files from this directory to $CommonAppliancePlatform
 
-    blockchain.service
     orchestrator-appliance-customizations.json
     orchestrator-appliance-remote.json
+    blockchain.service
+    firstboot.service
     orchestrator-prereqs-launcher.sh
+    firstboot-init.sh
+    firstboot-init
     post-install-castor.sh
 
 4. Modify the configuration/repositories/local json 
    entry in orchestrator-appliance-remote.json to point to the absolute path for $CommonAppliancePlatform.
 
 5. Update the docker containers version for Castor services in 
-    ONPREM_BLOCKCHAIN_VERSION
+       ONPREM_BLOCKCHAIN_VERSION
    in post-install-castor.sh
 
-6. cd $CommonAppliancePlatform
+6. Update the kernel version for the base image used to build the Castor OVF in
+       LINUX_KERNEL_VERSION 
+   in post-install-castor.sh
 
-7. Init the cap tool:
+7. cd $CommonAppliancePlatform
+
+8. Init the cap tool:
     ./cap init
 
-8. Remove any previously built images, and old log files:
+9. Remove any previously built images, and old log files:
     rm -rf images/* logs/*
 
-9. Remove any vmware-blockchain-appliance VMs on the target vCenter.
+10. Remove any vmware-blockchain-appliance VMs on the target vCenter.
 
-10. Build the OVF:
+11. Build the OVF:
     ./cap build -f orchestrator-appliance-remote.json
 
-11. The new OVF should be available under $CommonAppliancePlatform/images.
+12. The new OVF should be available under $CommonAppliancePlatform/images.
 

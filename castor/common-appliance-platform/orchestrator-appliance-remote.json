@@ -59,17 +59,17 @@
     "build-appliance": {
         "remote": {
             "personalization": {
-                "image": "http://dl.bintray.com/vmware/photon/3.0/Rev2/iso/Update1/photon-3.0-a0f216d.iso",
+                "image": "http://build-squid.eng.vmware.com/build/mts/release/bora-16901077/publish/sh-16901077.iso",
                 "root_password": "vmware",
                 "existing_password": "previous"
             },
             "machine": {
                 "datastore": "datastore1",
                 "datacenter": "Datacenter",
-                "vcenter_address": "10.186.208.57",
+                "vcenter_address": "10.186.55.185",
                 "password": "Admin!23",
                 "username": "administrator@vsphere.local",
-                "hostname": "10.192.193.5",
+                "hostname": "10.182.176.224",
                 "network": "VM Network"
             }
         },
@@ -107,7 +107,7 @@
             "local": {
                 "files": [
                 ],
-                "target": "/tmp/repos"
+                "target": "/root/blockchain"
             }
         },
         "copy-to-appliance": {
@@ -119,7 +119,10 @@
                         "target": "/root/blockchain",
                         "files": [
                             "blockchain.service",
-                            "orchestrator-prereqs-launcher.sh"
+                            "orchestrator-prereqs-launcher.sh",
+                            "firstboot-init",
+                            "firstboot.service",
+                            "firstboot-init.sh"
                         ]
 
                     }
