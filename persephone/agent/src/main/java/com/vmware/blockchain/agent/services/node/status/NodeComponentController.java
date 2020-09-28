@@ -102,7 +102,7 @@ public class NodeComponentController {
                         agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
                         output.componentNames.add(container.getContainerName());
                     });
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(output, HttpStatus.OK);
         } catch (Exception ex) {
             log.error("Exception in starting node components.\n{}", ex);
             return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
@@ -131,7 +131,7 @@ public class NodeComponentController {
                         agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
                         output.componentNames.add(container.getContainerName());
                     });
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(output, HttpStatus.OK);
         } catch (Exception ex) {
             log.error("Exception in stopping node components.\n{}", ex);
             return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
@@ -153,7 +153,7 @@ public class NodeComponentController {
                         agentDockerClient.deleteComponent(dockerClient, container, containerResponse.getId());
                         output.componentNames.add(container.getContainerName());
                     });
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(output, HttpStatus.OK);
         } catch (Exception ex) {
             log.error("Exception in Removing node components.\n{}", ex);
             return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
