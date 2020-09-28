@@ -7,6 +7,7 @@ import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { FeatureFlagSource, FeatureFlagRouteMapping } from './urls.model';
+import * as VERSION from './../../static/data/version.json';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +26,7 @@ export class FeatureFlagService {
     if (this.featureFlags) {
       return of(this.featureFlags);
     } else {
-      return this.http.get(FeatureFlagSource.URL).pipe(
+      return this.http.get(`${FeatureFlagSource.URL}?version=${VERSION.default.version}`).pipe(
           map((flagsFlatMap) => {
             this.featureFlags = flagsFlatMap;
             return flagsFlatMap;
