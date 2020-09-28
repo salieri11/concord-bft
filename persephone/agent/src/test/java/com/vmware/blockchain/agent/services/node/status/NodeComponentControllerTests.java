@@ -106,7 +106,7 @@ public class NodeComponentControllerTests {
         doNothing().when(healthCheckScheduler).startHealthCheck();
         doNothing().when(nodeComponentHealthFactory).initHealthChecks(any());
 
-        mockMvc.perform(post("/api/node/start")
+        mockMvc.perform(post("/api/node/management?action=start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         verify(nodeComponentHealthFactory, times(1)).initHealthChecks(any());
@@ -122,7 +122,7 @@ public class NodeComponentControllerTests {
         doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
         doNothing().when(healthCheckScheduler).stopHealthCheck();
         doNothing().when(nodeComponentHealthFactory).tearDownHealthChecks();
-        mockMvc.perform(post("/api/node/stop")
+        mockMvc.perform(post("/api/node/management?action=stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 
@@ -139,7 +139,7 @@ public class NodeComponentControllerTests {
         doNothing().when(agentDockerClient).startComponent(any(), any(), any());
         doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).startHealthCheck();
 
-        mockMvc.perform(post("/api/node/start")
+        mockMvc.perform(post("/api/node/management?action=start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         verify(agentDockerClient, times(1)).inspectContainer(any(), any());
@@ -152,7 +152,7 @@ public class NodeComponentControllerTests {
         doReturn(res).when(agentDockerClient).inspectContainer(any(), any());
         doNothing().when(agentDockerClient).stopComponent(any(), any(), any());
         doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).stopHealthCheck();
-        mockMvc.perform(post("/api/node/stop")
+        mockMvc.perform(post("/api/node/management?action=stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 

@@ -4,11 +4,15 @@
 
 package com.vmware.blockchain.agent.services.node.status;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.dockerjava.core.DockerClientBuilder;
@@ -50,10 +54,34 @@ public class NodeComponentController {
     }
 
     /**
-     * Start all the components of the node.
+     * API response for node management.
      */
-    @RequestMapping(path = "/api/node/start", method = RequestMethod.POST)
-    ResponseEntity<Void> startNodeComponents() {
+    public static class NodeManagementResponse {
+        List<String> componentNames = new ArrayList<>();
+    }
+
+    /**
+     * ACTION allowed.
+     */
+    public enum NodeManagementAction {
+        start,
+        stop,
+        remove
+    }
+
+    @RequestMapping(path = "/api/node/management", method = RequestMethod.POST)
+    ResponseEntity<NodeManagementResponse> nodeManagement(@RequestParam(required = false) NodeManagementAction action) {
+        if (NodeManagementAction.start.equals(action)) {
+            startNodeComponents();
+        } else if (NodeManagementAction.stop.equals(action)) {
+            stopNodeComponents();
+        } else if (NodeManagementAction.remove.equals(action)) {
+            removeNodeComponents();
+        }
+        return null;
+    }
+
+    private ResponseEntity<NodeManagementResponse> startNodeComponents() {
         log.info("Received request to start node components...");
         try {
             log.info("Starting healthchecks...");
@@ -65,12 +93,14 @@ public class NodeComponentController {
         }
         try {
             log.info("Starting components...");
+            NodeManagementResponse output = new NodeManagementResponse();
             nodeStartupOrchestrator.getComponents()
                     .forEach(container -> {
                         var dockerClient = DockerClientBuilder.getInstance().build();
                         var containerResponse = agentDockerClient.inspectContainer(dockerClient,
                                 container.getContainerName());
                         agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
+                        output.componentNames.add(container.getContainerName());
                     });
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
@@ -79,11 +109,7 @@ public class NodeComponentController {
         }
     }
 
-    /**
-     * Stop all the components of the node.
-     */
-    @RequestMapping(path = "/api/node/stop", method = RequestMethod.POST)
-    ResponseEntity<Void> stopNodeComponents() {
+    private ResponseEntity<NodeManagementResponse> stopNodeComponents() {
         log.info("Received request to stop node components...");
 
         try {
@@ -96,16 +122,40 @@ public class NodeComponentController {
         }
         try {
             log.info("Stopping components...");
+            NodeManagementResponse output = new NodeManagementResponse();
             nodeStartupOrchestrator.getComponents()
                     .forEach(container -> {
                         var dockerClient = DockerClientBuilder.getInstance().build();
                         var containerResponse = agentDockerClient.inspectContainer(dockerClient,
                                 container.getContainerName());
                         agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
+                        output.componentNames.add(container.getContainerName());
                     });
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             log.error("Exception in stopping node components.\n{}", ex);
+            return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+    private ResponseEntity<NodeManagementResponse> removeNodeComponents() {
+        log.info("Received request to remove node components...");
+        stopNodeComponents();
+
+        try {
+            log.info("Removing components...");
+            NodeManagementResponse output = new NodeManagementResponse();
+            nodeStartupOrchestrator.getComponents()
+                    .forEach(container -> {
+                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var containerResponse = agentDockerClient.inspectContainer(dockerClient,
+                                                                                   container.getContainerName());
+                        agentDockerClient.deleteComponent(dockerClient, container, containerResponse.getId());
+                        output.componentNames.add(container.getContainerName());
+                    });
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            log.error("Exception in Removing node components.\n{}", ex);
             return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
         }
     }
@@ -151,10 +201,10 @@ public class NodeComponentController {
 
     private ResponseEntity<HealthStatusResponse> getHealthResponse(ConcordComponent.ServiceType serviceType) {
         try {
-            return new ResponseEntity<HealthStatusResponse>(
+            return new ResponseEntity<>(
                     nodeComponentHealthFactory.getHealthComponent(serviceType).getHealth(), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<HealthStatusResponse>(
+            return new ResponseEntity<>(
                     HealthStatusResponse.builder().exception(e.getLocalizedMessage()).build(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
