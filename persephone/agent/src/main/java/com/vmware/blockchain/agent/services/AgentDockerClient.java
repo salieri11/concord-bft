@@ -338,4 +338,14 @@ public class AgentDockerClient {
             log.info("Stopped container {}: Id {} ", containerParam.getContainerName(), containerId);
         });
     }
+
+    /**
+     * Helper util to delete a container.
+     */
+    public void deleteComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
+                              String containerId) {
+        log.info("Removing {}: Id {} ", containerParam.getContainerName(), containerId);
+        dockerClient.removeContainerCmd(containerId).exec();
+        log.info("Removed container {}: Id {} ", containerParam.getContainerName(), containerId);
+    }
 }
