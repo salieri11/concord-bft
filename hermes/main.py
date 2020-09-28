@@ -51,6 +51,7 @@ suiteList = {
    "HelenZoneTests": "suites/helen/zone_test.py",
    "HelenRoleTests": "suites/helen/roles.py",
    "NodeInterruptionTests": "suites/node_interruption_tests.py",
+   "LongRunningTests": "suites/long_running_tests.py",
    "LoggingTests": "suites/logging_tests.py",
    "PersephoneTestsNew": "suites/persephone_tests_new.py",
    "SampleSuite": "suites/sample_suite.py",
