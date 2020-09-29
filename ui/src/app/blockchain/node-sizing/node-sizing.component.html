@@ -35,8 +35,8 @@
                        type="number"
                        class="clr-col-md-9 clr-col-12"
                        formControlName="no_of_cpus"
-                       [min]="range.memory_in_gigs.min"
-                       [max]="range.memory_in_gigs.max"
+                       [min]="range.no_of_cpus.min"
+                       [max]="range.no_of_cpus.max"
                        class="form-control"
                        placeholder="2">
                 <clr-control-helper>{{ 'common.minMax' | translate:({ min: range.no_of_cpus.min, max: range.no_of_cpus.max }) }}</clr-control-helper>
@@ -81,8 +81,8 @@
                        type="number"
                        class="clr-col-md-9 clr-col-12"
                        formControlName="no_of_cpus"
-                       [min]="range.memory_in_gigs.min"
-                       [max]="range.memory_in_gigs.max"
+                       [min]="range.no_of_cpus.min"
+                       [max]="range.no_of_cpus.max"
                        class="form-control"
                        placeholder="2">
                   <span></span>
