@@ -662,7 +662,7 @@ def test_f_committer_node_interruption_network_partition(fxHermesRunSettings, fx
             last_interrupted_node_index=last_interrupted_node_index)
 
       # logic to split two set of nodes
-      nodes_not_to_interrupt = [node for node in nodes_available_for_interruption if node not in nodes_to_interrupt]
+      nodes_not_interrupt = [node for node in nodes_available_for_interruption if node not in nodes_to_interrupt]
 
       log.info("************************************************************")
       log.info(
@@ -675,7 +675,7 @@ def test_f_committer_node_interruption_network_partition(fxHermesRunSettings, fx
                                                    fxHermesRunSettings,
                                                    nodes_to_interrupt,
                                                    node_interruption_details,
-                                                   nodes_not_to_interrupt=nodes_not_to_interrupt)
+                                                   nodes_not_to_interrupt=nodes_not_interrupt)
       if not status:
          log.info("")
          log.error("**** Test aborted/failed ****")
@@ -708,7 +708,7 @@ def test_participant_node_interruption_network_partition(fxHermesRunSettings, fx
             nodes_available_for_interruption, node_interruption_details,
             last_interrupted_node_index=last_interrupted_node_index)
 
-      nodes_not_to_interrupt = util.blockchain_ops.committers_of(
+      nodes_not_interrupt = util.blockchain_ops.committers_of(
             fxBlockchain)
 
       log.info("************************************************************")
@@ -722,7 +722,7 @@ def test_participant_node_interruption_network_partition(fxHermesRunSettings, fx
                                                    fxHermesRunSettings,
                                                    nodes_to_interrupt,
                                                    node_interruption_details,
-                                                   nodes_not_to_interrupt=nodes_not_to_interrupt)
+                                                   nodes_not_to_interrupt=nodes_not_interrupt)
       if not status:
          log.info("")
          log.error("**** Test aborted/failed ****")
