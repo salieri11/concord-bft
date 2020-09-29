@@ -26,9 +26,10 @@ import { MainComponent } from './main/main/main.component';
 import { AuthenticatedGuard } from './shared/authenticated-guard.service';
 import { AgreementGuard } from './shared/agreement-guard.service';
 import { BlockchainResolver } from './blockchain/shared/blockchain.resolver';
+import * as VERSION from './../static/data/version.json';
 
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, 'static/i18n/', '.json');
+  return new TranslateHttpLoader(http, 'static/i18n/', `.json?version=${VERSION.default.version}`);
 }
 
 export function langInitializerFactory(translate: TranslateService, injector: Injector, themeService: VmwClarityThemeService) {
@@ -50,7 +51,8 @@ export function langInitializerFactory(translate: TranslateService, injector: In
 
 function initLanguage(translate: TranslateService, languages: string[], resolve: any) {
   const languageMap = {
-    'zh': 'zh-CN'
+    'zh': 'zh-CN',
+    'en-US': 'en'
   };
 
   if (languages.length === 0) {

@@ -1,0 +1,11 @@
+# first boot service
+[Unit]
+After=multi-user.target
+Description=Appliance initialization script
+
+[Service]
+ExecStart=/opt/vmware/blockchain/firstboot-init
+Type=oneshot
+
+[Install]
+WantedBy=default.target

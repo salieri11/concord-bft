@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# This wrapper script launches the firstboot shell script
+
+echo "Firstboot wrapper: launching the firstboot init script"
+cd /opt/vmware/blockchain
+./firstboot-init.sh
+
+# disable firstboot service after first launch
+echo "Firstboot wrapper: disabling firstboot service"
+systemctl disable firstboot.service
+# Make sure it is disabled. This output goes to journal
+systemctl status firstboot.service
+
+echo "Firstboot wrapper: finished firstboot steps"
