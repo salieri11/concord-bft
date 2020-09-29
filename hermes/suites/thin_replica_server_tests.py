@@ -9,6 +9,9 @@
 # $ grpcurl -plaintext -d @ localhost:50051 com.vmware.concord.thin_replica.ThinReplica.ReadStateHash <<EOM
 # { "block_id" : 1337 }
 # EOM
+#
+# If thin replica server is not using TLS, set use_tls parameter to False,
+# All tests by default would try to establish a secure channel with the thin replica server.
 
 """Test the Thin Replica Server API"""
 
@@ -42,9 +45,9 @@ def setup_test_suite():
     # TODO why is only a single dar uploaded here, and why can the standard utility method
     # def upload_test_tool_dars(host='localhost', port='6861', verbose=True):
     # not be called to get dar names dynamically from the tool?
-    TEST_DAR = "model-tests.dar"    
+    TEST_DAR = "model-tests.dar"
     _, dars = daml_helper.download_ledger_api_test_tool("localhost")
-    
+
     for dar in dars:
         if TEST_DAR in dar:
             dar_to_upload = dar
@@ -53,7 +56,7 @@ def setup_test_suite():
     dar_uploaded = darutil.upload_dar(
         host="localhost", port="6861", darfile=dar_to_upload)
     assert dar_uploaded, "Failed to upload test DAR " + dar_to_upload
-    return ThinReplica("localhost", "50051")
+    return ThinReplica("localhost", "50051", "concord1", use_tls=True)
 
 def get_newest_block_id(thin_replica_list):
     """Helper
@@ -124,9 +127,9 @@ def test_compare_all_hashes(fxProduct, setup_test_suite):
     """Compare hashes from all Concord nodes at the same block id
     """
     tr1 = setup_test_suite
-    tr2 = ThinReplica("localhost", "50052")
-    tr3 = ThinReplica("localhost", "50053")
-    tr4 = ThinReplica("localhost", "50054")
+    tr2 = ThinReplica("localhost", "50052", "concord2", use_tls=True)
+    tr3 = ThinReplica("localhost", "50053", "concord3", use_tls=True)
+    tr4 = ThinReplica("localhost", "50054", "concord4", use_tls=True)
 
     # Food-for-thought: Should we implement our "own" hash function so that we
     # can easily re-compute the hash in the test instead of relying on C++
@@ -159,9 +162,9 @@ def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
     """Compare hashes from all Concord nodes at the same block id
     """
     tr1 = setup_test_suite
-    tr2 = ThinReplica("localhost", "50052")
-    tr3 = ThinReplica("localhost", "50053")
-    tr4 = ThinReplica("localhost", "50054")
+    tr2 = ThinReplica("localhost", "50052", "concord2", use_tls=True)
+    tr3 = ThinReplica("localhost", "50053", "concord3", use_tls=True)
+    tr4 = ThinReplica("localhost", "50054", "concord4", use_tls=True)
 
     bid = get_newest_block_id([tr1, tr2, tr3, tr4])
 
@@ -205,9 +208,9 @@ def test_basic_subscribe_to_update_hashes(fxProduct, setup_test_suite):
     """We should be able to continously retrieve hashes for produced updates
     """
     tr1 = setup_test_suite
-    tr2 = ThinReplica("localhost", "50052")
-    tr3 = ThinReplica("localhost", "50053")
-    tr4 = ThinReplica("localhost", "50054")
+    tr2 = ThinReplica("localhost", "50052", "concord2", use_tls=True)
+    tr3 = ThinReplica("localhost", "50053", "concord3", use_tls=True)
+    tr4 = ThinReplica("localhost", "50054", "concord4", use_tls=True)
 
     bid = get_newest_block_id([tr1, tr2, tr3, tr4])
 
