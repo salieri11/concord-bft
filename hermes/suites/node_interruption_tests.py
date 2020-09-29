@@ -33,7 +33,7 @@ daml_txn_result_queue = queue.Queue()
 productType = helper.TYPE_NO_VERIFY
 
 # skipping test from long running tests: bug BC-3861
-# @pytest.mark.skip
+@pytest.mark.skip
 @describe("Node Interruption - VM Stop/start - 1 node")
 @pytest.mark.smoke
 @pytest.mark.committer_node_interruption
@@ -47,7 +47,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 60
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
@@ -83,7 +83,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-# skipping test from long running tests: bug BC-4521
+# skipping test from long running tests: bug BC-4721
 @pytest.mark.skip
 @describe("Node Interruption - crash containers for all containers of committer nodes")
 @pytest.mark.committer_container_crash
@@ -97,7 +97,7 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.CONTAINERS_TO_CRASH: intr_helper.ALL_CONTAINERS,
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 60
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
@@ -131,8 +131,6 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-# skipping test from long running tests: bug BC-3861
-@pytest.mark.skip
 @describe("Node Interruption - crash containers for user defined containers of committer nodes")
 @pytest.mark.committer_container_crash
 @pytest.mark.committer_node_interruption_longrun
@@ -145,7 +143,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.CONTAINERS_TO_CRASH: ["concord", "daml_execution_engine"],
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 60
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
@@ -192,7 +190,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
       intr_helper.SKIP_MASTER_REPLICA: True,
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 60
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
@@ -476,7 +474,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_VM_LEVEL,
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 60
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
@@ -525,8 +523,8 @@ def test_committer_node_interruption_container_network_disconnect(fxHermesRunSet
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_CONTAINER_LEVEL,
          intr_helper.CONTAINERS_TO_DISCONNECT: ["concord"],
-         intr_helper.NODE_OFFLINE_TIME: 180,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 240
+         intr_helper.NODE_OFFLINE_TIME: 30,
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
       }
    }
 
