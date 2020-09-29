@@ -48,10 +48,9 @@ object LinearAffineInterpretationCostTransform {
   val ReasonableDefault: LinearAffineInterpretationCostTransform =
     LinearAffineInterpretationCostTransform(
       // The current working assumption is: give a BFT client twice the estimation for the request to complete;
-      // the latter is currently assumed to be capped by thrice the interpretation cost (wild guess being:
-      // non-interpretation, e.g. network, costs being at most twice the interpretation cost).
-      slope = 2.0 * 3.0,
-      intercept = 1.second,
+      // add 5s for the fixed costs, e.g. network, consensus, post-execution.
+      slope = 2.0,
+      intercept = 5.second,
       defaultTimeout = 30.seconds,
     )
 }
