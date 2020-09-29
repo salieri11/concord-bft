@@ -795,3 +795,31 @@ def validateNotFound(result, expectedPath,
     assert "op_id" in result, "Expected a field called 'op_id'"
     # opid is a uuid string
     assert len(result["op_id"]) == 36
+
+def validateRange(request, config_json):
+  '''
+     Validates the sizing template provided for the system
+     '''
+  # Validating against available node size template range
+  res = request.getNodeSizeTemplate()
+  range_template = res.get("range")
+  max_cpu = range_template.get("no_of_cpus").get("max")
+  min_cpu = range_template.get("no_of_cpus").get("min")
+  max_memory = range_template.get("memory_in_gigs").get("max")
+  min_memory = range_template.get("memory_in_gigs").get("min")
+  max_storage = range_template.get("storage_in_gigs").get("max")
+  min_storage = range_template.get("storage_in_gigs").get("min")
+  for node in ["replica", "client"]:
+     if config_json.get(node):
+        cpu = int(config_json.get(node).get("no_of_cpus"))
+        storage = int(config_json.get(node).get("storage_in_gigs"))
+        memory = int(config_json.get(node).get("memory_in_gigs"))
+
+        if cpu > max_cpu or cpu < min_cpu:
+           return ("CPU of {} is not in the range {} - {}".format(node, max_cpu, min_cpu))
+        if memory > max_memory or memory < min_memory:
+           return ("Memory of {} is not in the range {} - {}".format(node, max_memory, min_memory))
+        if storage > max_storage or storage < min_storage:
+           return ("Storage of {} is not in the range {} - {}".format(node, max_storage, min_storage))
+
+  return True

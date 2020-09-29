@@ -61,6 +61,7 @@ CMDLINE_ARGS = {}
 # command line parameters, which are about running tests.
 CONFIG_USER_FILE = "resources/user_config.json"
 CONFIG_ZONE_FILE = "resources/zone_config.json"
+CONFIG_VM_SIZE_FILE = "resources/vm_size_config.json"
 
 # list of all agent-pulled components (in-node containers)
 AGENT_PULLED_COMPONENTS_FILE = '../vars/agent_pulled_components.json'

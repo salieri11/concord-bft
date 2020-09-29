@@ -85,7 +85,8 @@ suiteList = {
    "ReconfigurationTests": "suites/reconfiguration_tests.py",
    "PreExecutionTests": "suites/sys_test_preexecution_tests.py",
    "SkvbcViewchangeTests": "suites/skvbc_viewchange_tests.py",
-   "WavefrontTests": "suites/wavefront_tests.py"
+   "WavefrontTests": "suites/wavefront_tests.py",
+   "HelenVMSizeTests": "suites/helen/vmsize_test.py"
 }
 
 local_modules = [os.path.join(".", "lib", "persephone")]
@@ -275,6 +276,9 @@ def main():
                        default=None)
    parser.add_argument("--notifyJobName",
                        help="Shortened job name running this monitoring script",
+                       default=None)
+   parser.add_argument("--vmSizeConfig",
+                       help="VM size config file to create VM of given size",
                        default=None)
 
    concordConfig = parser.add_argument_group("Concord configuration")

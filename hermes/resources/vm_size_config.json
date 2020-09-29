@@ -1,0 +1,12 @@
+{
+  "replica" : {
+    "no_of_cpus": "2",
+    "storage_in_gigs": "64",
+    "memory_in_gigs": "32"
+  },
+  "client" : {
+    "no_of_cpus": "2",
+    "storage_in_gigs": "64",
+    "memory_in_gigs": "32"
+  }
+}
