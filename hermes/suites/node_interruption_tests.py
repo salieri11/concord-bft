@@ -32,13 +32,10 @@ daml_txn_result_queue = queue.Queue()
 # Read by the fxProduct fixture
 productType = helper.TYPE_NO_VERIFY
 
-# skipping test from long running tests: bug BC-3861
-@pytest.mark.skip
 @describe("Node Interruption - VM Stop/start - 1 node")
 @pytest.mark.smoke
 @pytest.mark.committer_node_interruption
 @pytest.mark.committer_node_interruption_smoke
-@pytest.mark.committer_node_interruption_longrun
 def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -83,11 +80,8 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-# skipping test from long running tests: bug BC-4721
-@pytest.mark.skip
 @describe("Node Interruption - crash containers for all containers of committer nodes")
 @pytest.mark.committer_container_crash
-@pytest.mark.committer_node_interruption_longrun
 def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -177,11 +171,8 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-# skipping test from long running tests: bug BC-3861
-@pytest.mark.skip
 @describe("Node Interruption - VM Stop/start - upto f nodes")
 @pytest.mark.committer_node_interruption
-@pytest.mark.committer_node_interruption_longrun
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -509,11 +500,8 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
    assert status, "Node Interruption Test Failed"
    log.info("**** Test completed successfully ****")
 
-# skipping test from long running tests
-@pytest.mark.skip
 @describe("Node Interruption - disconnect committer containers from Blockchain network")
 @pytest.mark.committer_container_network_disconnect
-@pytest.mark.committer_node_interruption_longrun
 def test_committer_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    node_interruption_details = {
       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
