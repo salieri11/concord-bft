@@ -82,12 +82,16 @@ class MinioContainer:
         pass
 
 async def _wait_for_st(bft_network, ro_replica_id, lastExecutedSeqNumThreshold):
-    # TODO replace the below function with the library function:
-    # await tracker.skvbc.tracked_fill_and_wait_for_checkpoint(
-    # initial_nodes=bft_network.all_replicas(),
-    # num_of_checkpoints_to_add=1)
+    """
+    ro_replica_id - id of the replica to be queried.
+    lastExecutedSeqNumThreshold - threshold value for the lastExecutedSeqNum.
+
+    Queries the specified replica about its lastExecutedSeqNum metric and checks if
+    it is equal or bigger to the treshold specified. 
+    Silently returns on success.
+    On failure error is cause by trio.fail_after, which causes the unit test to fail.
+    """
     with trio.fail_after(seconds=70):
-        # the ro replica should be able to survive these failures
         while True:
             with trio.move_on_after(seconds=.5):
                 try:
@@ -100,12 +104,18 @@ async def _wait_for_st(bft_network, ro_replica_id, lastExecutedSeqNumThreshold):
                     if lastExecutedSeqNum >= lastExecutedSeqNumThreshold:
                         print("Replica" + str(ro_replica_id) + " : lastExecutedSeqNum:" + str(lastExecutedSeqNum))
                         break
+
 @describe()
 def test_ro_replica_happy_case(fxProduct, bft_network):
     trio.run(_test_ro_replica_happy_case, bft_network)
 
 @with_timeout
 async def _test_ro_replica_happy_case(bft_network):
+    """
+    This test represents the happy case for the RO replica. 
+    A checkpoint is generated and then the test waits for the
+    RO replica to sync it.
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     ro_replica_id = bft_network.config.n
 
@@ -127,6 +137,14 @@ def test_ro_replica_no_obj_store(fxProduct, bft_network):
 
 @with_timeout
 async def _test_ro_replica_no_obj_store(bft_network):
+    """
+    Tests the behaviour of the RO replica when the S3 service is
+    not available.
+    Initially RO and S3 are stopped. Then a checkpoint is generated 
+    and after some time - the S3 service.
+    The purpose of the test is to verify that the RO replica constantly
+    tries sto establish connection to the S3 service.
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     ro_replica_id = bft_network.config.n
 
@@ -170,6 +188,14 @@ def test_ro_replica_flaky_obj_store(fxProduct, bft_network):
 
 @with_timeout
 async def _test_ro_replica_flaky_obj_store(bft_network):
+    """
+    The test simulates flaky S3 service.
+    RO replica is intially stopped and checkpoint is generated.
+    Then RO replica is started again and the S3 service is being
+    stopped for short periods of time.
+    The purpose of the test is to verify that the RO replica
+    syncs state despite the unstable behaviour of S3.
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     ro_replica_id = bft_network.config.n
 
@@ -215,6 +241,11 @@ def test_ro_replica_not_enough_replies(fxProduct, bft_network):
 
 @with_timeout
 async def _test_ro_replica_not_enough_replies(bft_network):
+    """
+    The test verifies that the RO replica doesn't fetch blocks
+    if there are not enough honest replicas. Check the comments
+    in the test for implementation details.
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     ro_replica_id = bft_network.config.n
     
@@ -268,6 +299,11 @@ def test_ro_replica_missing_bucket(fxProduct, bft_network):
 
 @with_timeout
 async def _test_ro_replica_missing_bucket(bft_network):
+    """
+    This test is used to simulate a bug - the RO replica
+    crashes if the S3 bucket doesn't exist.
+    https://jira.eng.vmware.com/browse/BC-4616
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     s3 = MinioContainer()
     ro_replica_id = bft_network.config.n
@@ -293,12 +329,17 @@ async def _test_ro_replica_missing_bucket(bft_network):
     await _wait_for_st(bft_network, ro_replica_id, 150)
 
 @pytest.mark.skip(reason="currently this won't pass")
-@describe
+@describe()
 def test_ro_replica_restart(fxProduct, bft_network):
     trio.run(_test_ro_replica_restart, bft_network)
 
 @with_timeout
 async def _test_ro_replica_restart(bft_network):
+    """
+    This test is used to simulate a bug - the RO replica
+    crashes if it restarted after some state is fetched.
+    https://jira.eng.vmware.com/browse/BC-4617
+    """
     skvbc = kvbc.SimpleKVBCProtocol(bft_network)
     ro_replica_id = bft_network.config.n
 
