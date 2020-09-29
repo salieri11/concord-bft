@@ -13,12 +13,12 @@ from time import strftime, localtime, sleep
 
 import event_recorder
 from suites import (
-  eth_core_vm_tests,
-  eth_regression_tests,
-  performance_tests,
-  persistency_tests,
-  pytest_suite,
-  sample_dapp_tests
+    eth_core_vm_tests,
+    eth_regression_tests,
+    performance_tests,
+    persistency_tests,
+    pytest_suite,
+    sample_dapp_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
 from util import (auth, csp, helper, hermes_logging, html, json_helper,
@@ -80,14 +80,14 @@ local_modules = [os.path.join(".", "lib", "persephone")]
 
 
 def initialize():
-   '''
-   Perform necessary initialization to setup the runtime environment.
-   '''
-   # For any Python modules that is only available "locally" with respect to
-   # this Hermes installation, initialize the sys.path such that the module
-   # can be imported.
-   for path in local_modules:
-      sys.path.append(path)
+    '''
+    Perform necessary initialization to setup the runtime environment.
+    '''
+    # For any Python modules that is only available "locally" with respect to
+    # this Hermes installation, initialize the sys.path such that the module
+    # can be imported.
+    for path in local_modules:
+        sys.path.append(path)
 
 
 @summarizeExceptions
@@ -232,6 +232,9 @@ def main():
                        "Only needed if the DAML SDK version is not in {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
    parser.add_argument("--runID", default=helper.get_time_now_in_milliseconds(),
                        help="Unique ID to differentiate runs")
+   parser.add_argument("--allureDir",
+                       default=tempfile.gettempdir(),
+                       help="Location for storing data for Allure reports")
 
 
 
@@ -314,6 +317,9 @@ def main():
 
    parent_results_dir = args.resultsDir
 
+   args.allureDir = parent_results_dir if args.allureDir is tempfile.gettempdir() else args.allureDir
+   
+   
    # In future, if the location of main.py changes from hermes/,
    # update args.hermes_dir accordingly
    dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -331,6 +337,8 @@ def main():
    totalSuccess = True
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
+   log.info("Allure Reports folder: {0}, parent results dir: {1}".format(args.allureDir, parent_results_dir))
+
    suitesRealname = args.suitesRealname.split(",") if args.suites else []
    if args.su:
       helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
@@ -412,7 +420,8 @@ def main():
             product = None
          except Exception as e:
             addExceptionToSummary(e)
-            log.error("Uncaught test exception in suite {}".format(suiteName))
+            log.error(
+               "Uncaught test exception in suite {}".format(suiteName))
             log.error(e)
             traceback.print_exc()
             resultFile = suite.getResultFile()
@@ -420,37 +429,42 @@ def main():
          try:
             suiteSuccess, suiteSuccessMessage = processResults(resultFile)
 
-            #TODO Add support for localhost logs too
+            # TODO Add support for localhost logs too
             all_replicas_and_type = None
             if args.replicasConfig:
-               all_replicas_and_type = helper.parseReplicasConfig(args.replicasConfig)
+               all_replicas_and_type = helper.parseReplicasConfig(
+                  args.replicasConfig)
             elif args.damlParticipantIP != "localhost":
-               all_replicas_and_type = {helper.TYPE_DAML_PARTICIPANT: [args.damlParticipantIP]}
+               all_replicas_and_type = {
+                  helper.TYPE_DAML_PARTICIPANT: [args.damlParticipantIP]}
 
             if not suiteSuccess and all_replicas_and_type:
                log.info("*************************************")
                log.info("Collecting support bundle(s)...")
                for blockchain_type, replica_ips in all_replicas_and_type.items():
-                  helper.create_concord_support_bundle(replica_ips, blockchain_type, args.resultsDir)
+                  helper.create_concord_support_bundle(
+                        replica_ips, blockchain_type, args.resultsDir)
                log.info("*************************************")
          except Exception as e:
-            addExceptionToSummary(e)
-            suiteSuccess = False
-            suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultFile, suiteName)
+               addExceptionToSummary(e)
+               suiteSuccess = False
+               suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(
+                  resultFile, suiteName)
 
          allResults[suiteName] = {
-            "message": suiteSuccessMessage,
-            "logs": suite.getTestLogDir()
+               "message": suiteSuccessMessage,
+               "logs": suite.getTestLogDir()
          }
 
          totalSuccess = totalSuccess and suiteSuccess
 
          if not totalSuccess:
-            update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
-            break
+               update_repeated_suite_run_result(
+                  parent_results_dir, "fail", args.repeatSuiteRun)
+               break
 
       if args.eventsFile:
-         event_recorder.record_event(suiteName, "End", args.eventsFile)
+            event_recorder.record_event(suiteName, "End", args.eventsFile)
 
    # CI dry run does not have to actually run the suites
    if pipeline.isDryRun() and pipeline.isQualifiedToSkip():
@@ -469,40 +483,44 @@ def main():
 
 
 def printAllResults(allResults):
-   '''
-   Summarize the suite results on the console.
-   '''
-   longestName = 0
-   longestMessage = 0
-   longestDir = 0
+    '''
+    Summarize the suite results on the console.
+    '''
+    longestName = 0
+    longestMessage = 0
+    longestDir = 0
 
-   for suiteName in allResults:
-      longestName = len(suiteName) if len(suiteName) > longestName else longestName
+    for suiteName in allResults:
+        longestName = len(suiteName) if len(
+            suiteName) > longestName else longestName
 
-      messageLength = len(numbers_strings.stripEscapes(allResults[suiteName]["message"]))
-      longestMessage = messageLength if messageLength > longestMessage else longestMessage
+        messageLength = len(numbers_strings.stripEscapes(
+            allResults[suiteName]["message"]))
+        longestMessage = messageLength if messageLength > longestMessage else longestMessage
 
-      logPath = allResults[suiteName]["logs"]
-      longestDir = len(logPath) if len(logPath) > longestDir else longestDir
+        logPath = allResults[suiteName]["logs"]
+        longestDir = len(logPath) if len(logPath) > longestDir else longestDir
 
-   longestValues = [longestName, longestMessage, longestDir]
-   header = numbers_strings.createLogRow(["Suite", "Result", "Logs"], longestValues)
-   log.info(header)
+    longestValues = [longestName, longestMessage, longestDir]
+    header = numbers_strings.createLogRow(
+        ["Suite", "Result", "Logs"], longestValues)
+    log.info(header)
 
-   for suiteName in allResults:
-      row = numbers_strings.createLogRow([suiteName,
-                                          allResults[suiteName]["message"],
-                                          allResults[suiteName]["logs"]],
-                                         longestValues)
-      log.info(row)
+    for suiteName in allResults:
+        row = numbers_strings.createLogRow([suiteName,
+                                            allResults[suiteName]["message"],
+                                            allResults[suiteName]["logs"]],
+                                           longestValues)
+        log.info(row)
 
 
 def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
-   if no_of_runs > 1:
-      result_file = os.path.join(parent_results_dir,
-                                 'test_status.{0}'.format(result))
-      log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
-      open(result_file, 'a').close()
+    if no_of_runs > 1:
+        result_file = os.path.join(parent_results_dir,
+                                   'test_status.{0}'.format(result))
+        log.info("Repeated Suite run result: {0} [{1}]".format(
+            result, result_file))
+        open(result_file, 'a').close()
 
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
@@ -517,76 +535,77 @@ def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    return results_dir
 
 def processResults(resultFile):
-   '''
-   Process a result file, outputting an html file.  If we ever need to output
-   a file in another format (such as a CI tool), do that here.
-   '''
-   results = json_helper.readJsonFile(resultFile)
-   testCount, passCount, failCount, skippedCount = tallyResults(results)
-   fileContents = html.createResultHeader(results,
-                                          testCount,
-                                          passCount,
-                                          failCount,
-                                          skippedCount)
-   fileContents += html.createResultTable(results)
-   fileContents += html.createHtmlFooter()
-   fileLocation = os.path.join(os.path.dirname(resultFile), "results.html")
+    '''
+    Process a result file, outputting an html file.  If we ever need to output
+    a file in another format (such as a CI tool), do that here.
+    '''
+    results = json_helper.readJsonFile(resultFile)
+    testCount, passCount, failCount, skippedCount = tallyResults(results)
+    fileContents = html.createResultHeader(results,
+                                           testCount,
+                                           passCount,
+                                           failCount,
+                                           skippedCount)
+    fileContents += html.createResultTable(results)
+    fileContents += html.createHtmlFooter()
+    fileLocation = os.path.join(os.path.dirname(resultFile), "results.html")
 
-   with open(fileLocation, "w") as f:
-      f.write(fileContents)
+    with open(fileLocation, "w") as f:
+        f.write(fileContents)
 
-   log.info("Results written to '{}'".format(fileLocation))
+    log.info("Results written to '{}'".format(fileLocation))
 
-   suiteName = list(results.keys())[0]
-   red = "\033[1;31m"
-   green = "\033[1;32m"
-   yellow = "\033[1;33m"
-   reset = "\033[0m"
+    suiteName = list(results.keys())[0]
+    red = "\033[1;31m"
+    green = "\033[1;32m"
+    yellow = "\033[1;33m"
+    reset = "\033[0m"
 
-   msg = "{color}{symbol} " + suiteName + " {tests}" + reset
+    msg = "{color}{symbol} " + suiteName + " {tests}" + reset
 
-   # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
-   # will still be able to find it.
-   if failCount > 0 or passCount <= 0:
-      msg = msg.format(color=red, symbol="\u2717",
-                       tests="{} tests failed".format(failCount))
-   else:
-      msg = msg.format(color=green, symbol="\u2714",
-                       tests="{} tests succeeded".format(passCount))
+    # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
+    # will still be able to find it.
+    if failCount > 0 or passCount <= 0:
+        msg = msg.format(color=red, symbol="\u2717",
+                         tests="{} tests failed".format(failCount))
+    else:
+        msg = msg.format(color=green, symbol="\u2714",
+                         tests="{} tests succeeded".format(passCount))
 
-   if skippedCount > 0:
-      msg += " {}{} tests skipped{}".format(yellow, skippedCount, reset)
+    if skippedCount > 0:
+        msg += " {}{} tests skipped{}".format(yellow, skippedCount, reset)
 
-   log.info(msg)
+    log.info(msg)
 
-   return failCount == 0 and passCount != 0, msg
+    return failCount == 0 and passCount != 0, msg
+
 
 def tallyResults(results):
-   '''
-   Given the results structure, returns:
-   - Total number of tests run.
-   - Passes
-   - Failures
-   - Skipped
-   '''
-   suiteName = list(results.keys())[0]
-   testCases = results[suiteName]["tests"]
-   passCount = 0
-   failCount = 0
-   skippedCount = 0
-   totalCount = 0
+    '''
+    Given the results structure, returns:
+    - Total number of tests run.
+    - Passes
+    - Failures
+    - Skipped
+    '''
+    suiteName = list(results.keys())[0]
+    testCases = results[suiteName]["tests"]
+    passCount = 0
+    failCount = 0
+    skippedCount = 0
+    totalCount = 0
 
-   for test in testCases:
-      totalCount += 1
+    for test in testCases:
+        totalCount += 1
 
-      if testCases[test]["result"] == "PASS":
-         passCount += 1
-      elif testCases[test]["result"] == "FAIL":
-         failCount += 1
-      elif testCases[test]["result"] == "SKIPPED":
-         skippedCount += 1
+        if testCases[test]["result"] == "PASS":
+            passCount += 1
+        elif testCases[test]["result"] == "FAIL":
+            failCount += 1
+        elif testCases[test]["result"] == "SKIPPED":
+            skippedCount += 1
 
-   return totalCount, passCount, failCount, skippedCount
+    return totalCount, passCount, failCount, skippedCount
 
 def map_run_id_to_this_run(args, parent_results_dir):
    '''

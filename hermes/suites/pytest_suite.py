@@ -25,6 +25,9 @@ TEST_LOG_DIR = "test_logs"
 SUPPORT_BUNDLE = "support_bundles.json"
 UNINTENTIONALLY_SKIPPED = "unintentionallySkippedTests.json"
 REPORT = "report.json"
+ALLURE_DIR = "allure_results"
+# HTML_REPORT_DIR = "html-report"
+# HTML_REPORT = "test_report.html"
 
 
 class PytestSuite():
@@ -54,7 +57,14 @@ class PytestSuite():
             self._testLogDir, SUPPORT_BUNDLE)
         self._logHandler = util.hermes_logging.addFileHandler(
             self._testLogFile, self._args.logLevel)
-
+        
+        self.allure_report_dir = os.path.join(passedArgs.allureDir,
+                                              ALLURE_DIR)
+        
+        os.makedirs(self.allure_report_dir, exist_ok=True)                                
+        
+        # self.html_report = os.path.join(
+        #     passedArgs.resultsDir, HTML_REPORT)
         # If running multiple suites, just keep the same product object.
         self.product = product if product else Product(
             self._args, self._userConfig)
@@ -101,6 +111,7 @@ class PytestSuite():
 
         zoneConfigJson = json.dumps(self._zoneConfig)
         params = ["--capture=no", "--verbose", "--json", self._reportFile,
+                  "--alluredir", self.allure_report_dir,
                   "--hermesCmdlineArgs", cmdlineArgsJson,
                   "--hermesUserConfig", userConfigJson,
                   "--hermesZoneConfig", zoneConfigJson,
