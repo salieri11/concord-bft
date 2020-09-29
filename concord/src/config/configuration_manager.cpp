@@ -3724,7 +3724,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "A flag to indicate if pre-execution feature is enabled for the replica.",
       "false");
   config.tagParameter("preexecution_enabled", publicDefaultableTags);
-  config.tagParameter("preexecution_enabled", applicationTag);
+  config.tagParameter("preexecution_enabled", deploymentTag);
   config.addValidator("preexecution_enabled", make_shared<BooleanValidator>());
 
   config.declareParameter("preexec_requests_status_check_period_millisec",
