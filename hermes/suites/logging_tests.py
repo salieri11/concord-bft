@@ -222,7 +222,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 #     # Deploy some DAML contracts
 #     try:
 #         daml_helper.upload_test_tool_dars(host='localhost', port='6861')
-#         daml_helper.verify_ledger_api_test_tool(host='ledger', port='6865')
+#         daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[('ledger', '6865')])
 #     except Exception as e:
 #         log.error(e)
 #         pass

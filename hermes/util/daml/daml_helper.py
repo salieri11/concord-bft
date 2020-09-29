@@ -304,26 +304,29 @@ def get_list_of_tests(host, run_all_tests=False, verbose=True):
 
    return tests
 
-def verify_ledger_api_test_tool(host='localhost', port='6861',
-                                 run_all_tests=False, results_dir=None, verbose=True):
+def verify_ledger_api_test_tool(ledger_endpoints=[('localhost','6861')],
+                                run_all_tests=False, results_dir=None, verbose=True):
    '''
    Helper method to perform sanity check with uploaded dar files
-   :param host: daml-ledger-api host IP
-   :param port: daml-ledger-api service port
+   :param ledger_endpoints: List of 2-tuples representing ledger endpoint (host, port)
    '''
    if verbose: log.info("Performing DAML sanity checks...")
+
+   host = ledger_endpoints[0][0] # First ledger api host
 
    if results_dir:
       results_sub_dir = helper.create_results_sub_dir(results_dir, host)
 
    overall_test_status = None
    for test in get_list_of_tests(host, run_all_tests=run_all_tests, verbose=verbose):
-      cmd = ["java", "-jar", download_ledger_api_test_tool(host)[0],
-             "--include", test,
-             "--timeout-scale-factor", "20",
-             "--no-wait-for-parties",
-             "--concurrent-test-runs", "1",
-             "{}:{}".format(host, port)]
+      cmd = [
+         "java", "-jar", download_ledger_api_test_tool(host)[0],
+         "--include", test,
+         "--timeout-scale-factor", "20",
+         "--no-wait-for-parties",
+         "--concurrent-test-runs", "1",
+         " ".join(["{}:{}".format(t[0], t[1]) for t in ledger_endpoints])
+      ]
       if verbose: log.info("")
       if verbose: log.info("#### Run test '{}'... ####".format(test))
       log.debug("Command: {}".format(cmd))
