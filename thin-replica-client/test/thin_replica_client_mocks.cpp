@@ -410,11 +410,11 @@ void SetMockServerBehavior(
 }
 
 void SetMockServerBehavior(
-    vector<pair<string, unique_ptr<MockThinReplicaStub>>>& servers,
+    vector<unique_ptr<MockThinReplicaStub>>& servers,
     const shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher) {
   for (auto& server : servers) {
-    SetMockServerBehavior(server.second, data_preparer, hasher);
+    SetMockServerBehavior(server, data_preparer, hasher);
   }
 }
 
@@ -437,26 +437,24 @@ void SetMockServerUnresponsive(unique_ptr<MockThinReplicaStub>& server) {
 }
 
 void SetMockServerUnresponsive(
-    vector<pair<string, unique_ptr<MockThinReplicaStub>>>& servers) {
+    vector<unique_ptr<MockThinReplicaStub>>& servers) {
   for (auto& server : servers) {
-    SetMockServerUnresponsive(server.second);
+    SetMockServerUnresponsive(server);
   }
 }
 
 void SetSomeMockServersUnresponsive(
-    vector<pair<string, unique_ptr<MockThinReplicaStub>>>& servers,
-    size_t num_unresponsive) {
+    vector<unique_ptr<MockThinReplicaStub>>& servers, size_t num_unresponsive) {
   assert(num_unresponsive <= servers.size());
   for (size_t i = 0; i < num_unresponsive; ++i) {
-    SetMockServerUnresponsive(servers[i].second);
+    SetMockServerUnresponsive(servers[i]);
   }
 }
 
 void InstantiateMockServers(
-    vector<pair<string, unique_ptr<MockThinReplicaStub>>>& mock_servers,
-    size_t num_servers) {
+    vector<unique_ptr<MockThinReplicaStub>>& mock_servers, size_t num_servers) {
   mock_servers.clear();
   for (size_t i = 0; i < num_servers; ++i) {
-    mock_servers.push_back(make_pair("", make_unique<MockThinReplicaStub>()));
+    mock_servers.push_back(make_unique<MockThinReplicaStub>());
   }
 }

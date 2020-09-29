@@ -240,10 +240,7 @@ class TRCFFactory {
       if (!instance && converter) {
         string client_id = converter->ToString(j_client_id);
         string private_key = converter->ToString(j_private_key);
-        vector<string> addresses = converter->ToStringVect(j_servers);
-        vector<pair<string, string>> servers;
-        transform(addresses.begin(), addresses.end(), back_inserter(servers),
-                  [](auto& e) { return make_pair(string(), e); });
+        vector<string> servers = converter->ToStringVect(j_servers);
         string jaeger_agent_host_port =
             converter->ToString(j_jaeger_agent_host_port);
         instance.reset(new ThinReplicaClientFacade(

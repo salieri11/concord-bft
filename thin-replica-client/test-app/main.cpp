@@ -289,9 +289,9 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  vector<pair<string, string>> servers;
+  vector<string> servers;
   for (uint16_t i = 0; i < num_servers; ++i) {
-    servers.push_back(make_pair(string(), argv[kServersOffset + i]));
+    servers.push_back(argv[kServersOffset + i]);
   }
 
   // run

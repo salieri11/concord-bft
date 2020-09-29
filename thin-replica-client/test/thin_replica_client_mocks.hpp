@@ -250,9 +250,8 @@ void SetMockServerBehavior(
     const MockOrderedDataStreamHasher& hasher);
 
 void SetMockServerBehavior(
-    std::vector<std::pair<std::string,
-                          std::unique_ptr<com::vmware::concord::thin_replica::
-                                              MockThinReplicaStub>>>& servers,
+    std::vector<std::unique_ptr<
+        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers,
     const std::shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher);
 
@@ -261,22 +260,19 @@ void SetMockServerUnresponsive(
         server);
 
 void SetMockServerUnresponsive(
-    std::vector<std::pair<std::string,
-                          std::unique_ptr<com::vmware::concord::thin_replica::
-                                              MockThinReplicaStub>>>& servers);
+    std::vector<std::unique_ptr<
+        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers);
 
 void SetSomeMockServersUnresponsive(
-    std::vector<std::pair<std::string,
-                          std::unique_ptr<com::vmware::concord::thin_replica::
-                                              MockThinReplicaStub>>>& servers,
+    std::vector<std::unique_ptr<
+        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers,
     size_t num_unresponsive);
 
 // Clears the given vector then fills it with num_servers unique pointers to
 // newly-constructed mock servers.
 void InstantiateMockServers(
-    std::vector<std::pair<
-        std::string, std::unique_ptr<com::vmware::concord::thin_replica::
-                                         MockThinReplicaStub>>>& mock_servers,
+    std::vector<std::unique_ptr<
+        com::vmware::concord::thin_replica::MockThinReplicaStub>>& mock_servers,
     size_t num_servers);
 
 template <class DataType>

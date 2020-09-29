@@ -48,7 +48,7 @@ TEST(thin_replica_client_test, test_destructor_always_successful) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -102,7 +102,7 @@ TEST(thin_replica_client_test, test_1_parameter_subscribe_success_cases) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -147,7 +147,7 @@ TEST(thin_replica_client_test, test_2_parameter_subscribe_success_cases) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -215,7 +215,7 @@ TEST(thin_replica_client_test,
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
   size_t num_unresponsive = num_replicas - max_faulty;
@@ -258,7 +258,7 @@ TEST(thin_replica_client_test, test_unsubscribe_successful) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -302,7 +302,7 @@ TEST(thin_replica_client_test, test_pop_fetches_updates_) {
                                         delay_condition_mutex));
   MockOrderedDataStreamHasher hasher(base_stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -349,7 +349,7 @@ TEST(thin_replica_client_test, test_acknowledge_block_id_success) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -409,7 +409,7 @@ TEST(thin_replica_client_test, test_correct_data_returned_) {
                                         delay_condition_mutex));
   MockOrderedDataStreamHasher hasher(base_stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
@@ -520,7 +520,7 @@ TEST(thin_replica_client_test, test_key_filtration) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<pair<string, unique_ptr<MockThinReplicaStub>>> mock_servers;
+  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 

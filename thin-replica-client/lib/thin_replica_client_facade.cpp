@@ -56,8 +56,7 @@ const static log4cplus::ConfigureAndWatchThread kLogConfigThread(
 
 ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::string& client_id, uint16_t max_faulty,
-    const std::string& private_key,
-    const std::vector<std::pair<std::string, std::string>>& servers,
+    const std::string& private_key, const std::vector<std::string>& servers,
     const uint16_t max_read_data_timeout, const uint16_t max_read_hash_timeout,
     const std::string& jaeger_agent)
     : impl(new Impl()) {
@@ -66,8 +65,8 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     args.SetMaxReceiveMessageSize(kGrpcMaxInboundMsgSizeInBytes);
     vector<shared_ptr<Channel>> serverChannels;
     for (auto& server : servers) {
-      serverChannels.push_back(shared_ptr<Channel>(CreateCustomChannel(
-          server.second, InsecureChannelCredentials(), args)));
+      serverChannels.push_back(shared_ptr<Channel>(
+          CreateCustomChannel(server, InsecureChannelCredentials(), args)));
     }
 
     // Wait (up to a timeout) to validate the server(s) to connect to are
@@ -112,12 +111,11 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
           "> 0.");
     }
 
-    vector<pair<string, unique_ptr<ThinReplica::StubInterface>>> server_stubs;
+    vector<unique_ptr<ThinReplica::StubInterface>> server_stubs;
     assert(serverChannels.size() == servers.size());
     for (size_t i = 0; i < servers.size(); ++i) {
-      server_stubs.push_back(
-          pair<string, unique_ptr<ThinReplica::StubInterface>>{
-              servers[i].first, ThinReplica::NewStub(serverChannels[i])});
+      server_stubs.push_back(unique_ptr<ThinReplica::StubInterface>{
+          ThinReplica::NewStub(serverChannels[i])});
     }
 
     impl->trc.reset(new ThinReplicaClient(
