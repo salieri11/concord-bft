@@ -308,12 +308,10 @@ class ThinReplicaClient final {
   // - private_key: Private cryptographic key identifying and authenticating the
   //   ThinReplicaClient being constructed to the Thin Replica Servers.
   // - begin_servers: Iterator returning elements of type
-  //   std::pair<std::string,
   //   std::unique_ptr<
-  //      com::vmware::concord::thin_replica::ThinReplica::StubInterface>>
+  //      com::vmware::concord::thin_replica::ThinReplica::StubInterface>
   //   representing each server available for this ThinReplicaClient to connect
-  //   to; the string in each pair should be the public key used to identify and
-  //   validate messages from this server, and the unique pointer to a
+  //   to; the unique pointer to a
   //   com::vmware::concord::thin_replica::ThinReplica::StubInterface should
   //   point to a grpc server stub connecting to that Thin Replica Server. Note
   //   this ThinReplicaClient object will take ownership of the server stub
@@ -385,7 +383,7 @@ class ThinReplicaClient final {
     exposer_.RegisterCollectable(registry_);
     while (begin_servers != end_servers) {
       auto& server_info = *begin_servers;
-      if (!(server_info.second)) {
+      if (!(server_info)) {
         server_stubs_.clear();
         update_queue_.reset();
         throw std::invalid_argument(
@@ -393,8 +391,8 @@ class ThinReplicaClient final {
             "constructor (only non-null StubInterface pointers are valid for "
             "this purpose).");
       }
-      server_stubs_.push_back(std::move(server_info.second));
-      server_info.second.reset();
+      server_stubs_.push_back(std::move(server_info));
+      server_info.reset();
       ++begin_servers;
     }
 
