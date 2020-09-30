@@ -26,13 +26,6 @@ baseos:deb:libclang1-10:1:10.0.0-4ubuntu1~18.04.2:ubuntu:
     baseos-style: deb
     baseos-osname: 'ubuntu'
     baseos-source: 'llvm-toolchain-10'
-baseos:deb:libcurl4-openssl-dev:7.58.0-2ubuntu3.8:ubuntu:
-    repository: BaseOS
-    name: 'libcurl4-openssl-dev'
-    version: '7.58.0-2ubuntu3.8'
-    baseos-style: deb
-    baseos-osname: 'ubuntu'
-    baseos-source: 'curl'
 baseos:deb:libbz2-dev:1.0.6-8.1ubuntu0.2:ubuntu:
     repository: BaseOS
     name: 'libbz2-dev'
@@ -317,3 +310,9 @@ baseos:deb:libldb1:2:1.2.3-1ubuntu0.1:ubuntu:
     baseos-style: deb
     baseos-osname: 'ubuntu'
     baseos-source: 'ldb'
+baseos:deb:sudo:1.8.21p2-3ubuntu1.2:ubuntu:
+    repository: BaseOS
+    name: 'sudo'
+    version: '1.8.21p2-3ubuntu1.2'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
