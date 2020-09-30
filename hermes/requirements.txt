@@ -64,3 +64,4 @@ web3==4.9.1
 websockets==6.0
 websocket-client==0.56.0
 xvfbwrapper==0.2.9
+docker==4.3.1

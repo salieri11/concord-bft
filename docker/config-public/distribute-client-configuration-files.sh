@@ -19,6 +19,7 @@
 #       ./config-public/concord2.config, etc.
 #  2-N: Target paths to move the configuration files to.
 
+SUFFIX="/participant.config"
 if [[ $# -gt 0 ]]; then
     PUBPATH=$1
     shift
@@ -31,19 +32,17 @@ if [[ $# -gt 0 ]]; then
 else
     # Default
     PREFIX="./config-participant"
-    SUFFIX="/participant.config"
     for f in $(ls config-public/participant*.config); do
         # Get the replica number
         NUM=${f%.config}
         NUM=${NUM##*/participant}
 
-        # Create destination directory
-        mkdir -p ${PREFIX}${NUM}
-
-        PRIVPATHS+=("${PREFIX}${NUM}${SUFFIX}")
+        PRIVPATHS+=("${PREFIX}${NUM}")
     done
 fi
-for i in $(seq 1 ${#PRIVPATHS[@]}); do	
+for i in $(seq 1 ${#PRIVPATHS[@]}); do
+    # Create destination directory
+    mkdir -p ${PRIVPATHS[i - 1]}
     CONFIGPATH="${PUBPATH}$((i-1)).config"
-    mv -f ${CONFIGPATH} "${PRIVPATHS[i - 1]}"
+    mv -f ${CONFIGPATH} "${PRIVPATHS[i - 1]}/$SUFFIX"
 done

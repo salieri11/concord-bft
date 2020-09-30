@@ -36,13 +36,12 @@ concord_tag=latest
 
 
 ## Create configuration files
-Go to `docker/config-public/dockerClientConfigInput.yaml` and set `num_of_participant_nodes: 1`, in addition, go to 
-`docker/config-public/dockerConfigurationInput-daml-nano.yaml` and set `num_of_external_clients: 16`.
-    
-Now, generate the corresponding configuration files with
+
+Generate the corresponding configuration files with
 ```
-./gen-docker-concord-config.sh config-public/dockerConfigurationInput-daml-nano.yaml
-./gen-docker-client-config.sh config-public/dockerClientConfigInput.yaml
+./gen-docker-concord-config.sh config-public/dockerConfigurationInput-reconfiguration.yaml
+./gen-docker-client-config.sh config-public/dockerOperatorConfigInput.yaml operator ./config-operator
+./gen-docker-client-config.sh config-public/dockerOperatorConfigInput.yaml
 ```
 # Start cluster
 
