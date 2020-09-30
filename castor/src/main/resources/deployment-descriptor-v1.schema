@@ -17,6 +17,10 @@
           "description": "Blockchain type",
           "type": "string",
           "enum": ["ETHEREUM", "DAML"]
+        },
+        "blockchainId": {
+          "description": "The blockchain id required for reconfiguration",
+          "type": "string"
         }
       },
       "required": ["consortiumName", "blockchainType"]

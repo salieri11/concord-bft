@@ -18,6 +18,8 @@ import com.vmware.blockchain.castor.service.DescriptorService;
 import com.vmware.blockchain.castor.service.DescriptorServiceImpl;
 import com.vmware.blockchain.castor.service.ProvisionerService;
 import com.vmware.blockchain.castor.service.ProvisionerServiceImpl;
+import com.vmware.blockchain.castor.service.ReconfigurerService;
+import com.vmware.blockchain.castor.service.ReconfigurerServiceImpl;
 import com.vmware.blockchain.castor.service.ValidatorService;
 import com.vmware.blockchain.castor.service.ValidatorServiceImpl;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
@@ -42,6 +44,15 @@ public class CastorTestConfiguration {
     private MessageSource messageSource;
 
     /**
+     * Create a mock environment for testing.
+     * @return the Spring tests framework mock environment.
+     */
+    @Bean
+    public MockEnvironment mockEnvironment() {
+        return new MockEnvironment();
+    }
+
+    /**
      * Create a descriptor service bean.
      * @return the descriptor service singleton.
      */
@@ -59,21 +70,33 @@ public class CastorTestConfiguration {
         return new ProvisionerServiceImpl(environment, blockingProvisioningClient, asyncProvisioningClient);
     }
 
+    /**
+     * Create a reconfigurer service bean.
+     * @return the reconfigurer service singleton.
+     */
+    @Bean
+    public ReconfigurerService reconfigurerService() {
+        return new ReconfigurerServiceImpl(blockingProvisioningClient);
+
+    }
+
+    /**
+     * Create a validator service bean.
+     * @return the validator service singleton.
+     */
     @Bean
     public ValidatorService validatorService() {
         return new ValidatorServiceImpl(messageSource, environment);
     }
 
-    @Bean
-    public MockEnvironment mockEnvironment() {
-        return new MockEnvironment();
-    }
-
+    /**
+     * Create a deployer service bean.
+     * @return the deployer service singleton.
+     */
     @Bean
     public DeployerService deployerService() {
         return new DeployerServiceImpl(
-                mockEnvironment(), descriptorService(), provisionerService(), validatorService());
+                mockEnvironment(), descriptorService(), validatorService(),
+                provisionerService(), reconfigurerService());
     }
-
-
 }

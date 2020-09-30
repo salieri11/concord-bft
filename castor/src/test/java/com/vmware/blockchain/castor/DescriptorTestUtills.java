@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
 
 /**
  * Descriptor test utils.
@@ -142,7 +143,7 @@ public class DescriptorTestUtills {
      * Build the deployment descriptor model.
      * @return the model
      */
-    public static DeploymentDescriptorModel buildDeploymentDescriptorModel() {
+    public static ProvisionDescriptorDescriptorModel buildDeploymentDescriptorModel() {
         DeploymentDescriptorModel.Blockchain blockchain = DeploymentDescriptorModel.Blockchain.builder()
                 .blockchainType(DeploymentDescriptorModel.BlockchainType.DAML)
                 .consortiumName(CONSORTIUM_NAME)
@@ -170,7 +171,7 @@ public class DescriptorTestUtills {
                         .map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
                         .collect(Collectors.toList());
 
-        return DeploymentDescriptorModel.builder()
+        return ProvisionDescriptorDescriptorModel.builder()
                 .blockchain(blockchain)
                 .clients(List.of(client1, client2, client3))
                 .committers(committers)

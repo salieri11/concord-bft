@@ -32,6 +32,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
+import com.vmware.blockchain.castor.service.CastorDeploymentType;
 import com.vmware.blockchain.castor.service.DeployerService;
 import com.vmware.blockchain.castor.service.DescriptorService;
 import com.vmware.blockchain.castor.service.ValidationError;
@@ -74,9 +76,13 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test_invalid_too_many_clients_in_group_deployment_descriptor.json";
     private static final String INFRASTRUCTURE_DESCRIPTOR_2 =
             "classpath:descriptors/test02_infrastructure_descriptor.json";
+    private static final String INVALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR =
+            "classpath:descriptors/test_invalid_reconfigure_deployment_descriptor.json";
+    private static final String VALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR =
+            "classpath:descriptors/test_valid_reconfigure_deployment_descriptor.json";
 
     private InfrastructureDescriptorModel validInfra;
-    private DeploymentDescriptorModel validDeployment;
+    private ProvisionDescriptorDescriptorModel validDeployment;
 
     @Autowired
     private MockEnvironment environment;
@@ -119,8 +125,9 @@ public class CastorDescriptorTest {
 
         Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
-        DeploymentDescriptorModel readDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+        ProvisionDescriptorDescriptorModel readDeployment =
+                (ProvisionDescriptorDescriptorModel) descriptorService.readDeploymentDescriptorSpec(
+                        CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment, readDeployment, "deployment descriptor model mismatch");
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
                      "deployment descriptor blochchain model mismatch");
@@ -132,7 +139,8 @@ public class CastorDescriptorTest {
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
 
         // No errors for valid descriptors
-        List<ValidationError> constraints = validatorService.validate(validInfra, validDeployment);
+        List<ValidationError> constraints = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(0, constraints.size());
     }
 
@@ -154,7 +162,7 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment, readDeployment, "deployment descriptor model mismatch");
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
                      "deployment descriptor blochchain model mismatch");
@@ -166,7 +174,8 @@ public class CastorDescriptorTest {
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
 
         // No errors for valid descriptors
-        List<ValidationError> constraints = validatorService.validate(validInfra, validDeployment);
+        List<ValidationError> constraints = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(0, constraints.size());
     }
 
@@ -182,7 +191,8 @@ public class CastorDescriptorTest {
                                 Collectors.toList());
         validDeployment.setCommitters(unknownZoneCommitters);
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
-        List<ValidationError> errors = validatorService.validate(validInfra, validDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(1, errors.size());
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
@@ -199,7 +209,7 @@ public class CastorDescriptorTest {
 
         validDeployment.getClients().forEach(c -> c.setZoneName("unz-1"));
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
-        errors = validatorService.validate(validInfra, validDeployment);
+        errors = validatorService.validate(CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(1, errors.size());
         validationErrorCodes = errors.stream().map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -207,7 +217,7 @@ public class CastorDescriptorTest {
         // clear all required committers
         validDeployment.setCommitters(null);
         expectedErrorCodes.add("deployment.commiters.not.specified");
-        errors = validatorService.validate(validInfra, validDeployment);
+        errors = validatorService.validate(CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(2, errors.size());
         validationErrorCodes = errors.stream().map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -220,7 +230,7 @@ public class CastorDescriptorTest {
         }
 
         // Should have no validation errors since the model is good now
-        errors = validatorService.validate(validInfra, validDeployment);
+        errors = validatorService.validate(CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(0, errors.size());
     }
 
@@ -233,9 +243,11 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("blockchain.type.invalid");
         Resource deploymentResource = resourceLoader.getResource(INVALID_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
-        DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
-        List<ValidationError> errors = validatorService.validate(validInfra, readInvalidDeployment);
+        ProvisionDescriptorDescriptorModel readInvalidDeployment =
+                (ProvisionDescriptorDescriptorModel) descriptorService.readDeploymentDescriptorSpec(
+                        CastorDeploymentType.PROVISION, deploymentLocation);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -263,7 +275,8 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("invalid.mincpu");
         expectedErrorCodes.add("invalid.minmemory");
         expectedErrorCodes.add("vcenter.certificate.invalid");
-        List<ValidationError> errors = validatorService.validate(readInvalidInfra, validDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInvalidInfra, validDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -287,7 +300,7 @@ public class CastorDescriptorTest {
     @Test
     public void testValidProvidedIpAssignment() {
         InfrastructureDescriptorModel validIpsInfra = DescriptorTestUtills.buildInfraDescriptorModel();
-        DeploymentDescriptorModel validIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
+        ProvisionDescriptorDescriptorModel validIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
         // Add valid (unique, for all) IP addresses to clients and committers
         List<DeploymentDescriptorModel.Client> clients = validIpsDeployment.getClients();
         for (int i = 0; i < clients.size(); ++i) {
@@ -300,14 +313,15 @@ public class CastorDescriptorTest {
             committer.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
         }
 
-        List<ValidationError> constraints = validatorService.validate(validIpsInfra, validIpsDeployment);
+        List<ValidationError> constraints = validatorService.validate(
+                CastorDeploymentType.PROVISION, validIpsInfra, validIpsDeployment);
         assertEquals(0, constraints.size());
     }
 
     @Test
     public void testInvalidProvidedIpAssignment() {
         final InfrastructureDescriptorModel validIpsInfra = DescriptorTestUtills.buildInfraDescriptorModel();
-        DeploymentDescriptorModel invalidIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
+        ProvisionDescriptorDescriptorModel invalidIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
 
         // Check uniqueness for IPs: non-unique IPs for clients should error out
         Set<String> expectedErrorCodes = new HashSet<>();
@@ -317,7 +331,8 @@ public class CastorDescriptorTest {
         List<DeploymentDescriptorModel.Committer> committers = invalidIpsDeployment.getCommitters();
         committers.forEach(c -> c.setProvidedIp("2.2.2.2"));
 
-        List<ValidationError> errors = validatorService.validate(validIpsInfra, invalidIpsDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, validIpsInfra, invalidIpsDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -345,12 +360,10 @@ public class CastorDescriptorTest {
         expectedErrorCodes.clear();
         expectedErrorCodes.add("not.all.ips.specified.for.deployment");
 
-        errors = validatorService.validate(validIpsInfra, invalidIpsDeployment);
+        errors = validatorService.validate(CastorDeploymentType.PROVISION, validIpsInfra, invalidIpsDeployment);
         validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
-
-
     }
 
     /**
@@ -365,7 +378,7 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(INVALID_TOO_MANY_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
 
         Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
         String infraLocation = infraResource.getFile().getAbsolutePath();
@@ -376,7 +389,8 @@ public class CastorDescriptorTest {
         // For some reason, autowiring does not work for environment. Force it.
         Whitebox.setInternalState(validatorService, "environment", environment);
 
-        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -394,7 +408,7 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(INVALID_TOO_MANY_CLIENTS_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
 
         Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
         String infraLocation = infraResource.getFile().getAbsolutePath();
@@ -405,7 +419,8 @@ public class CastorDescriptorTest {
         // For some reason, autowiring does not work for environment. Force it.
         Whitebox.setInternalState(validatorService, "environment", environment);
 
-        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -424,7 +439,7 @@ public class CastorDescriptorTest {
                 INVALID_TOO_MANY_CLIENTS_IN_GROUP_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInfra =
@@ -435,7 +450,8 @@ public class CastorDescriptorTest {
         // For some reason, autowiring does not work for environment. Force it.
         Whitebox.setInternalState(validatorService, "environment", environment);
 
-        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
@@ -450,13 +466,14 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_1);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
 
-        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertEquals(0, validationErrorCodes.size());
@@ -471,15 +488,68 @@ public class CastorDescriptorTest {
         Resource deploymentResource = resourceLoader.getResource(VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_2);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         DeploymentDescriptorModel readInvalidDeployment =
-                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
-        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertEquals(0, validationErrorCodes.size());
     }
 
+    /**
+     * Test invalid "reconfigure" deployment descriptor.
+     * For reconfiguration:
+     * - all clients + committer entries must have providedIps
+     * - the blockchain Id must be specified
+     */
+    @Test
+    public void testInvalidReconfigurationDescriptor() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(INVALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.RECONFIGURE, deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.RECONFIGURE, readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+
+        // The invalid reconfigure descriptor has 2 errors:
+        // (1) missing blockchain Id (2) client ip not specified for one client
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("not.all.ips.specified.for.deployment");
+        expectedErrorCodes.add("no.blockchain.id.for.reconfiguration");
+        assertEquals(2, validationErrorCodes.size());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
+    /**
+     * Test invalid "reconfigure" deployment descriptor.
+     * For reconfiguration:
+     * - all clients + committer entries must have providedIps
+     * - the blockchain Id must be specified
+     */
+    @Test
+    public void testValidReconfigurationDescriptor() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(VALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readValidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.RECONFIGURE, deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.RECONFIGURE, readInfra, readValidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertEquals(0, validationErrorCodes.size());
+    }
 }

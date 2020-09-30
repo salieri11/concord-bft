@@ -16,4 +16,4 @@ services:
     environment:
       - provisioning.config.service.address=config-service:9003
       - provisioning.config.service.transportSecurity.type=NONE
-      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP}:8000
+      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP:?CONFIG_SERVICE_IP is required}:8000

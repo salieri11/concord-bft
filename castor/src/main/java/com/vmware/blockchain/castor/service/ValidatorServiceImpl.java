@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,6 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -31,6 +31,8 @@ import org.springframework.util.StringUtils;
 
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
+import com.vmware.blockchain.castor.model.ReconfigurationDescriptorModel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -44,14 +46,40 @@ import lombok.extern.log4j.Log4j2;
 public class ValidatorServiceImpl implements ValidatorService {
 
     private final MessageSource messageSource;
-    @Autowired
     private final Environment environment;
-
 
     @Override
     public List<ValidationError> validate(
-            InfrastructureDescriptorModel infrastructureDescriptor, DeploymentDescriptorModel deploymentDescriptor) {
+            CastorDeploymentType deploymentType,
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            DeploymentDescriptorModel deploymentDescriptor) {
+        List<ValidationError> errors = Collections.emptyList();
+        switch (deploymentType) {
+            case PROVISION:
+                ProvisionDescriptorDescriptorModel provisionDesc =
+                        ProvisionDescriptorDescriptorModel.class.cast(deploymentDescriptor);
+                errors = validateProvisioning(infrastructureDescriptor, provisionDesc);
+                break;
+            case RECONFIGURE:
+                ReconfigurationDescriptorModel reconfigDesc =
+                        ReconfigurationDescriptorModel.class.cast(deploymentDescriptor);
+                errors = validateReconfiguration(infrastructureDescriptor, reconfigDesc);
+                break;
+            default:
+                break;
+        }
+        for (ValidationError ve : errors) {
+            Object[] msgArgs = new Object[] {ve.getPropertyPath(), ve.getArguments()};
+            String msg = messageSource.getMessage(
+                    ve.getErrorCode(), msgArgs, Locale.getDefault());
+            log.error(msg);
+        }
+        return errors;
+    }
 
+    private List<ValidationError> validateProvisioning(
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            DeploymentDescriptorModel deploymentDescriptor) {
         List<ValidationError> errors = new ArrayList<>();
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
@@ -132,17 +160,53 @@ public class ValidatorServiceImpl implements ValidatorService {
                     .build();
             errors.add(e);
         }
-
         validateIPs(deploymentDescriptor, errors);
 
-        for (ValidationError ve : errors) {
-            Object[] msgArgs = new Object[] {ve.getPropertyPath(), ve.getArguments()};
-            String msg = messageSource.getMessage(
-                    ve.getErrorCode(), msgArgs, Locale.getDefault());
-            log.error(msg);
+        log.info("Finished provisioning validation, found {} errors", errors.size());
+        return errors;
+    }
+
+    private List<ValidationError> validateReconfiguration(
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            ReconfigurationDescriptorModel deploymentDescriptor) {
+        // Delegate to provisioning validator for base validations.
+        // The 2 differences for the reconfiguration are:
+        // 1. The blockchain id from a previous PROVISION deployment type is MANDATORY
+        // 2. IP addresses are MANDATORY for reconfig.
+
+        List<ValidationError> errors = validateProvisioning(infrastructureDescriptor, deploymentDescriptor);
+
+        // Ensure the blockchain id is specified:
+        UUID blockchainId = deploymentDescriptor.getBlockchain().getBlockchainId();
+        if (blockchainId == null) {
+            String error = "no.blockchain.id.for.reconfiguration";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("blockchainId")
+                    .build();
+            errors.add(e);
         }
 
-        log.info("Finished validation, found {} errors", errors.size());
+        // Ensure IP addresses are specified or all clients and committers.
+        long committerIpCount = deploymentDescriptor.getCommitters().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getProvidedIp()) ? 1 : 0;
+        }).sum();
+        long clientIpCount = deploymentDescriptor.getClients().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getProvidedIp()) ? 1 : 0;
+        }).sum();
+        long totalIPs = committerIpCount + clientIpCount;
+        int totalClientsAndCommitters =
+                deploymentDescriptor.getCommitters().size() + deploymentDescriptor.getClients().size();
+        if (totalIPs != totalClientsAndCommitters) {
+            String error = "not.all.ips.specified.for.deployment";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("providedIp")
+                    .build();
+            errors.add(e);
+        }
+
+        log.info("Finished reconfiguration validation, found {} errors", errors.size());
         return errors;
     }
 

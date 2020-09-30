@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,8 @@ import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
+import com.vmware.blockchain.castor.model.ReconfigurationDescriptorModel;
 
 import lombok.extern.log4j.Log4j2;
 
@@ -30,8 +34,20 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class DescriptorServiceImpl implements DescriptorService {
 
-    private Gson gson = new GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY).create();
+    // Key: Deployment type, Value: the model to serialize/deserialize the payload into
+    private final Map<CastorDeploymentType, Class<? extends DeploymentDescriptorModel>> typeToDeploymentDescriptorMap;
+    private final Gson gson;
+
+    /**
+     * Construct a descriptor service that serializes/deserializes the models.
+     */
+    public DescriptorServiceImpl() {
+        gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.IDENTITY).create();
+
+        typeToDeploymentDescriptorMap = new HashMap<>();
+        typeToDeploymentDescriptorMap.put(CastorDeploymentType.PROVISION, ProvisionDescriptorDescriptorModel.class);
+        typeToDeploymentDescriptorMap.put(CastorDeploymentType.RECONFIGURE, ReconfigurationDescriptorModel.class);
+    }
 
     /**
      * Read and convert to a model, then descriptor file.
@@ -57,11 +73,17 @@ public class DescriptorServiceImpl implements DescriptorService {
 
     /**
      * Read and convert to a model, then descriptor file.
+     *
+     * @param castorDeploymentType The type of deployment: provisioning, deprovisioning, or reconfiguration
      * @param deploymentDescriptorLocation the path to the deployment descriptor
      * @return the deployment descriptor model
      */
-    public DeploymentDescriptorModel readDeploymentDescriptorSpec(String deploymentDescriptorLocation) {
+    public DeploymentDescriptorModel readDeploymentDescriptorSpec(
+            CastorDeploymentType castorDeploymentType, String deploymentDescriptorLocation) {
         Path path = Path.of(deploymentDescriptorLocation);
+
+        Class<? extends DeploymentDescriptorModel> deploymentDescModelClass =
+                typeToDeploymentDescriptorMap.get(castorDeploymentType);
 
         if (!Files.exists(path)) {
             log.error("Deployment descriptor file {} is not available", path);
@@ -69,7 +91,7 @@ public class DescriptorServiceImpl implements DescriptorService {
         }
 
         try (Reader fileReader = Files.newBufferedReader(path)) {
-            DeploymentDescriptorModel model = gson.fromJson(fileReader, DeploymentDescriptorModel.class);
+            DeploymentDescriptorModel model = gson.fromJson(fileReader, deploymentDescModelClass);
             return model;
         } catch (IOException | JsonIOException | JsonSyntaxException e) {
             log.error("Deployment descriptor file {} could not be processed", path, e);
