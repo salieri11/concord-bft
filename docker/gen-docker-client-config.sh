@@ -11,7 +11,7 @@ if [[ "${DOCKER_DIR}" != *${RUN_DIR} ]]; then
   exit 1
 fi
 
-if [ $# -ne 1 ]; then
+if [ $# -eq 0 ]; then
   echo "Please provide a configuration for the conc_genconfig tool"
   exit 1
 fi
@@ -27,10 +27,24 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+if [[ $# -gt 1 ]]; then
+    COMP=$2
+else
+    COMP="participant"
+fi
+
 docker run -it \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
-                          --output-name ${MOUNT_POINT}/config-public/participant --client-conf true
+                          --output-name ${MOUNT_POINT}/config-public/$COMP --client-conf true
 
-bash ${DOCKER_DIR}/config-public/distribute-client-configuration-files.sh
+if [[ $# -gt 2 ]]; then
+    shift
+    shift
+    PRIVPATHS=("$@")
+    bash ${DOCKER_DIR}/config-public/distribute-client-configuration-files.sh config-public/$COMP ${PRIVPATHS[@]}
+else
+  bash ${DOCKER_DIR}/config-public/distribute-client-configuration-files.sh config-public/$COMP
+fi
+
