@@ -184,7 +184,7 @@ EXPOSE 3504/udp
 EXPOSE 3505/udp
 
 # Mountable volumes.
-VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/cores", "/concord/config-generated" ]
+VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/trs_trc_tls_certs", "/concord/cores", "/concord/config-generated" ]
 
 # Concord starting script
 COPY ./concord/scripts/concord-entrypoint.sh /concord/concord-entrypoint.sh

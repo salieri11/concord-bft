@@ -16,6 +16,8 @@ key_exchange_on_start: true
 key_view_path: /tmp
 preexecution_enabled: true
 signing_key_path: /concord/signing_keys
+trs_tls_enable: true
+thin_replica_tls_cert_path: /concord/trs_trc_tls_certs
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
   genesis_block: /concord/config-public/daml_genesis.json

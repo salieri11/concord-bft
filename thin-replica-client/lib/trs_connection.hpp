@@ -3,6 +3,10 @@
 #ifndef THIN_REPLICA_CLIENT_TRS_CONNECTION_HPP_
 #define THIN_REPLICA_CLIENT_TRS_CONNECTION_HPP_
 
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 #include "thin_replica.grpc.pb.h"
@@ -94,6 +98,14 @@ class TrsConnection {
   std::unique_ptr<
       com::vmware::concord::thin_replica::ThinReplica::StubInterface>
       stub_;
+
+  // This method parses the thin replica environment variable
+  // "THIN_REPLICA_SETTINGS" to get value for a specified key.
+  std::string parseThinReplicaEnv(const std::string& env,
+                                  const std::string& key);
+
+  // This method reads certificates from file if TLS is enabled
+  void readCert(const std::string& input_filename, std::string& out_data);
 };
 
 }  // namespace thin_replica_client

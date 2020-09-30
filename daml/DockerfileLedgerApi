@@ -46,7 +46,7 @@ RUN sbt test
 
 EXPOSE 6865
 
-ENV THIN_REPLICA_SETTINGS="--use-thin-replica"
+ENV THIN_REPLICA_SETTINGS="--use-thin-replica --trc_tls_enable=true --thin_replica_tls_cert_path=/concord/trs_trc_tls_certs"
 ENV BFT_CLIENT_SETTINGS="--use-bft-client --bft-client-config-path=/concord/config-public/bftclient.config"
 ENV LOG4CPLUS_CONFIGURATION /doc/daml/ledger-api-server/src/main/resources/log4cplus.properties
 
