@@ -10,9 +10,8 @@ import java.util.AbstractMap;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
 import com.google.common.net.InetAddresses;
@@ -56,11 +55,9 @@ public class OrchestratorUtils {
      */
     public static HttpComponentsClientHttpRequestFactory getHttpRequestFactoryGivenKeyStore(KeyStore keyStore) {
         try {
-            SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(keyStore, null).build();
+            final SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(keyStore, null).build();
 
-            SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
-
-            HttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
+            HttpClient httpClient = HttpClients.custom().setSSLContext(sslContext).build();
 
             HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
             return factory;
