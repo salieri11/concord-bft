@@ -26,7 +26,7 @@
 /docker/config-public/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari @sanchitar @gshruti
 /ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo @rtellamsetty @dinkarr @Akhil @ggalya
-/castor/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo
+/castor/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo @ggalya @dinkarr
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar @kkeunwoo @rtellamsetty @dinkarr @Akhil @ggalya
 /hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner @sanchitar @hbhavsar @kkeunwoo @bsubramanian @imarinkov @leda @egupta @panamika @rtellamsetty @dinkarr @ggalya @Akhil @mandeab
 /Jenkinsfile @rvollmar @rsg @bsubramanian @kkeunwoo @imarinkov @leda

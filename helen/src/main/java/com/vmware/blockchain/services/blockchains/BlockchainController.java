@@ -288,7 +288,7 @@ public class BlockchainController {
                     .setSite(OrchestrationSiteIdentifier.newBuilder()
                                     .setId(k.getZoneId().toString()).build())
                     .setProperties(Properties.newBuilder()
-                            .putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.toString(),
+                            .putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(),
                                        k.getPrivateIp())
                                            .build()));
 
@@ -298,7 +298,7 @@ public class BlockchainController {
         clients.stream().forEach(k -> {
             var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
                                                    k.getGroupId().toString());
-            properties.putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.toString(), k.getPrivateIp());
+            properties.putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), k.getPrivateIp());
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                               .setType(NodeType.CLIENT)
                                               .setNodeId(k.getId().toString())
