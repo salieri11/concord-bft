@@ -13,13 +13,13 @@
           "description": "Consortium name",
           "type": "string"
         },
-        "bockchainType": {
+        "blockchainType": {
           "description": "Blockchain type",
           "type": "string",
-          "enum": ["ETHEREUM", "DAML", "HLF"]
+          "enum": ["ETHEREUM", "DAML"]
         }
       },
-      "required": ["consortiumName", "bockchainType"]
+      "required": ["consortiumName", "blockchainType"]
     },
     "client": {
       "description": "Client properties",

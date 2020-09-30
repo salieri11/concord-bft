@@ -122,7 +122,7 @@ public class DescriptorTestUtills {
      */
     public static DeploymentDescriptorModel buildDeploymentDescriptorModel() {
         DeploymentDescriptorModel.Blockchain blockchain = DeploymentDescriptorModel.Blockchain.builder()
-                .bockchainType(DeploymentDescriptorModel.BlockchainType.DAML)
+                .blockchainType(DeploymentDescriptorModel.BlockchainType.DAML)
                 .consortiumName(CONSORTIUM_NAME)
                 .build();
 

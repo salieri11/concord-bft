@@ -75,7 +75,7 @@ public class DeploymentDescriptorModel {
     public static class Blockchain {
         String consortiumName;
         @BlockchainTypesValid(allowedTypes = {BlockchainType.DAML, BlockchainType.ETHEREUM, BlockchainType.HLF})
-        BlockchainType bockchainType;
+        BlockchainType blockchainType;
     }
 
     // List of zone ids on which the committers should be deployed

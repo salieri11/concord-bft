@@ -23,6 +23,6 @@
   ],
   "blockchain": {
     "consortiumName": "consortium-1",
-    "bockchainType": "INVALID"
+    "blockchainType": "INVALID"
   }
 }
