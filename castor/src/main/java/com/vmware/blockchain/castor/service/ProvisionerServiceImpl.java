@@ -187,7 +187,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         String consortiumIdString = consortiumId.toString();
         String consortiumName = blockchainDescriptor.getConsortiumName();
         log.info("Generated consortium id: {} for consortium: {}", consortiumId, consortiumName);
-        BlockchainType blockchainType = blockchainTypeMap.get(blockchainDescriptor.getBockchainType());
+        BlockchainType blockchainType = blockchainTypeMap.get(blockchainDescriptor.getBlockchainType());
         Sites sites = Sites.newBuilder().addAllInfoList(orchestrationSites).build();
         // Build properties
         Properties properties = buildProperties(infrastructureDescriptorModel);

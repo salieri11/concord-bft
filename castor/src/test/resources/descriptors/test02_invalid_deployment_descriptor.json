@@ -24,6 +24,6 @@
     }
   ],
   "blockchain": {
-    "bockchainType": "DAML"
+    "blockchainType": "DAML"
   }
 }

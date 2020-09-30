@@ -23,6 +23,6 @@
   ],
   "blockchain": {
     "consortiumName": "hermes-castor-consortium",
-    "bockchainType": "DAML"
+    "blockchainType": "DAML"
   }
 }

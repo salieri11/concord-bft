@@ -145,7 +145,7 @@ public class JsonSchemaTest {
         });
 
         String[] expectedMessages = new String[]{
-            "#/blockchain/bockchainType: INVALID is not a valid enum value"
+            "#/blockchain/blockchainType: INVALID is not a valid enum value"
         };
 
         List<String> actualMessages = validationException.getAllMessages();
