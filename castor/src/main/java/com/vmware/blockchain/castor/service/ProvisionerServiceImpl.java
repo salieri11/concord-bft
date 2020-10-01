@@ -473,12 +473,18 @@ public class ProvisionerServiceImpl implements ProvisionerService {
                 )
                 .build();
 
-        Endpoint vCenterApiEndpoint =
-                Endpoint.newBuilder()
-                        .setAddress(vCenterDescriptor.getUrl().toString())
-                        .setCredential(vCenterCredential)
-                        .setTransportSecurity(TransportSecurity.newBuilder().build())
-                        .build();
+        Endpoint.Builder vCenterApiEndpointBuilder = Endpoint.newBuilder()
+                .setAddress(vCenterDescriptor.getUrl().toString())
+                .setCredential(vCenterCredential);
+
+        if (StringUtils.hasText(vCenterDescriptor.getTlsCertificateData())) {
+            vCenterApiEndpointBuilder.setTransportSecurity(TransportSecurity.newBuilder()
+                    .setCertificateData(vCenterDescriptor.getTlsCertificateData()).build());
+        } else {
+            vCenterApiEndpointBuilder.setTransportSecurity(TransportSecurity.newBuilder().build());
+        }
+
+        Endpoint vCenterApiEndpoint = vCenterApiEndpointBuilder.build();
 
         vSphereOrchestrationSiteInfoBuilder
                 .setApi(vCenterApiEndpoint)

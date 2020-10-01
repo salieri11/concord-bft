@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.castor.service;
 
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,6 +92,28 @@ public class ValidatorServiceImpl implements ValidatorService {
                     .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet());
             allDeploymentZones.addAll(clientZones);
         }
+
+        // Checks if the Certificate is valid
+        infrastructureDescriptor.getZones().stream().forEach(zone -> {
+            if (StringUtils.hasText(zone.getVCenter().getTlsCertificateData())) {
+                try {
+                    // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                    X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+                            .generateCertificate(new ByteArrayInputStream(zone.getVCenter()
+                                                                                  .getTlsCertificateData().getBytes()));
+                    // Throws exception if certificate has expired or not yet valid
+                    tlsCertificate.checkValidity();
+                } catch (Exception e) {
+                    String error = "vcenter.certificate.invalid";
+                    ValidationError validationError = ValidationError.builder()
+                            .errorCode(error)
+                            .propertyPath("tlsCertificate")
+                            .arguments(List.of(String.valueOf(zone.getName())))
+                            .build();
+                    errors.add(validationError);
+                }
+            }
+        });
 
         // Validate clients
         validateClients(deploymentDescriptor.getClients(), errors);

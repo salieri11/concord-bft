@@ -256,12 +256,13 @@ public class CastorDescriptorTest {
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInvalidInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
-        // This file has 4 errors:
+        // This file has 5 errors:
         Set<String> expectedErrorCodes = new HashSet<>();
         expectedErrorCodes.add("vcenter.password.not.specified");
         expectedErrorCodes.add("network.name.not.specified");
         expectedErrorCodes.add("invalid.mincpu");
         expectedErrorCodes.add("invalid.minmemory");
+        expectedErrorCodes.add("vcenter.certificate.invalid");
         List<ValidationError> errors = validatorService.validate(readInvalidInfra, validDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
