@@ -105,6 +105,7 @@ public class InfrastructureDescriptorModel {
     @EqualsAndHashCode
     public static class VCenter {
         private URL url;
+        private String tlsCertificateData;
         @NotBlank(message = "vcenter.username.not.specified")
         private String userName;
         @NotBlank(message = "vcenter.password.not.specified")

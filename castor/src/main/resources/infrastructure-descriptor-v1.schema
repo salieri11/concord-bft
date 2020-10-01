@@ -54,6 +54,10 @@
           "description": "vCenter URL",
           "type": "string"
         },
+        "tlsCertificateData": {
+            "description": "vCenter TLS Certificate",
+            "type": "string"
+        },
         "userName": {
           "description": "vCenter user name",
           "type": "string"

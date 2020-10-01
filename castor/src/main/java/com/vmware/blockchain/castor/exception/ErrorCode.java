@@ -21,5 +21,5 @@ public final class ErrorCode {
     public static final String DEPL_REQUEST_SUBMIT_ERROR = "Error in submitting a deployment request";
     public static final String INVALID_DESCRIPTOR_CONFIGURATION = "Could not find zone info in the infrastructure descriptor for zone: {}";
     public static final String DEPLOYMENT_ZONE_MISMATCH = "Specified deployment zones: {0} are not present in infrastructure descriptor";
-    public static final String VALIDATION_ERRORS = "Infrastructure and/pr deployment descriptor specification has errors";
+    public static final String VALIDATION_ERRORS = "Infrastructure and/or deployment descriptor specification has errors";
 }
