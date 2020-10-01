@@ -13,12 +13,14 @@ from asyncio import sleep as async_sleep
 from logging import info
 from os import path as os_path
 from sys import path as sys_path
+import time
 
 # Submodule location for resources
 script_dirname = os_path.dirname(os_path.abspath(__file__))
 sys_path.insert(0, os_path.join(script_dirname, 'dazl-client/python'))
 
 from dazl import create as dazl_create, exercise as dazl_exercise
+
 
 class Scenario():
     '''
@@ -64,6 +66,8 @@ class Scenario():
         self.cid = {}               # Asset:Cid map of created contract IDs
         self.archived_cid = set()   # Set of archived contract IDs
         self._register_triggers()
+        self.fibo_start = 0
+        self.exec_delay = kwargs.get('exec_delay', 1)
 
     async def run(self):
         '''
@@ -78,10 +82,17 @@ class Scenario():
                            dazl_create('Asset.Agent', dict(issuer=party['issuer'], agent=party['agent'])),
                            dazl_create('AssetCheck.DiscloseCmd', dict(issuer=party['issuer']))])
 
-            client_action = [dazl_create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor'])),
-                             dazl_create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
+            client_action = [dazl_create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor']))]
+                             # It hangs waiting for Charlie the clerk.
+                             #dazl_create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
             await self.party['client'].submit(client_action)
 
+            # Kick this off while the above are running.
+            self.fibo_start = time.time()
+            await self.party['issuer'].submit_create_and_exercise('Fibo.InefficientFibonacci',
+                                                                  {'owner': self.data['parties']['issuer']},
+                                                                  'InefficientFibonacciCompute',
+                                                                  {'n': self.exec_delay})
         await self.party['issuer'].submit(action)
 
     async def asset_count(self, asset='Asset.Quote', party='issuer', match={}):
@@ -131,6 +142,9 @@ class Scenario():
 
             if self.full_scenario:
                 issuer.add_ledger_created('AssetCheck.DiscloseCmd', self._created_disclosecmd)
+                issuer.add_ledger_exercised('Fibo.InefficientFibonacci',
+                                            'InefficientFibonacciCompute',
+                                            self._exercised_fibonacci)
 
                 agent, trader = self.party['agent'], self.party['trader']
                 agent.add_ledger_created('Asset.Agent', self._created_agent)
@@ -291,6 +305,7 @@ class Scenario():
 
             observers = [self.data['parties']['supervisor']]
             params = dict(quoteCid=event.cid, observers=observers)
+            # TODO: There is no 'Clerk' in self.cid.  What is expected?
             return dazl_exercise(self.cid['Clerk'], 'Clerk_Request', params)
         else:
             info('Could not Disclose: %s', event)
@@ -309,3 +324,7 @@ class Scenario():
             info('Complex scenario completed successfully')
         else:
             info('Could not complete complex scenario: %s', event)
+
+    async def _exercised_fibonacci(self, event):
+        end = time.time()
+        info("Elapsed fibonacci time: {}".format(end - self.fibo_start))

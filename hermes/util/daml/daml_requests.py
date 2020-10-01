@@ -9,7 +9,7 @@ Based on the dazl Python network stack.
 '''
 
 from argparse import ArgumentParser
-from logging import WARN, info
+from logging import WARN, info, DEBUG
 from asyncio import sleep as async_sleep
 from time import time, sleep as time_sleep
 from yaml import load, FullLoader
@@ -175,6 +175,10 @@ def parse_args():
                           default=False,
                           action='store_true',
                           help='Run a more complex version of the scenario with additional steps')
+    scenario.add_argument('--exec-delay-factor',
+                          type=int,
+                          default=1,
+                          help='A value that affects the time taken for an arbitrary exercise in the complex scenario')
     parser.add_argument('-r', '--repeat',
                         type=int,
                         default='1',
@@ -215,7 +219,8 @@ def main():
                         data,
                         args.action,
                         batch_size=args.batch if args.action == 'asset' else 1,
-                        complex=args.complex if args.action == 'scenario' else False)
+                        complex=args.complex if args.action == 'scenario' else False,
+                        exec_delay=args.exec_delay_factor)
 
     daml_request(remote, scenario, args.repeat, args.wait, args.cleanup)
 
