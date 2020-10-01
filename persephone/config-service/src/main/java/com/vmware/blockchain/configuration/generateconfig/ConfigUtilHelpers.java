@@ -28,7 +28,6 @@ public class ConfigUtilHelpers {
 
     public static final int DEFAULT_PORT = 3501;
     public static final int CLIENT_PROXY_PER_COMMITTER = 4;
-    public static final int CLIENT_PROXY_PER_PARTICIPANT = 15;
     public static final String DEPLOY = "deploy";
     public static final String SECRET = "secret";
     public static final String CONCORD = "concord";
@@ -55,6 +54,7 @@ public class ConfigUtilHelpers {
         COMMITTER_PORT("replica_port"),
         CLIENT_PORT("client_port"),
         NUM_EXTERNAL_CLIENTS("num_of_external_clients"),
+        CLIENTS_PER_PARTICIPANT_NODE("clients_per_participant_node"),
         PREEXECUTION_ENABLED("preexecution_enabled");
 
         String name;

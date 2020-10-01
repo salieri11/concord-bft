@@ -38,7 +38,7 @@ public class BftClientConfigUtilTest {
 
         BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml", sessionId);
 
-        var actualDump = util.generateConfigYaml(hostIps, participantIps, filePath);
+        var actualDump = util.generateConfigYaml(hostIps, participantIps, filePath, 15);
 
         Assertions.assertThat(actualDump).isTrue();
 
