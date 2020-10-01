@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
+import java.security.KeyStore;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -13,9 +14,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import com.google.common.collect.ImmutableSet;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.model.vsphere.VSphereAuthenticationResponse;
 import com.vmware.blockchain.deployment.services.restclient.RestClientBuilder;
 import com.vmware.blockchain.deployment.services.restclient.RestClientUtils;
@@ -45,7 +48,9 @@ public class VsphereSessionAuthenticationInterceptor extends RequestAuthenticati
     /**
      * Constructor.
      */
-    public VsphereSessionAuthenticationInterceptor(String vsphereUrl, String username, String password) {
+    public VsphereSessionAuthenticationInterceptor(String vsphereUrl, String username, String password,
+                                                   Boolean useSelfSignedCertForVSphere,
+                                                   KeyStore selfSignedCertKeyStore) {
         this.vsphereUrl = vsphereUrl;
         this.username = username;
         this.password = password;
@@ -56,7 +61,17 @@ public class VsphereSessionAuthenticationInterceptor extends RequestAuthenticati
                 ImmutableSet.of("refresh_token", "token", "client_id", "client_secret", "csp-auth-token"),
                 ImmutableSet.of());
 
-        this.vsphereRestTemplate = new RestClientBuilder().withBaseUrl(vsphereUrl)
+        RestClientBuilder authRestClientBuilder = new RestClientBuilder();
+
+        if (useSelfSignedCertForVSphere) {
+            HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
+                    .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
+
+            // Utilizes above created factory using the selfSignedCertKeyStore
+            authRestClientBuilder = authRestClientBuilder.withRequestFactory(factory);
+        }
+
+        this.vsphereRestTemplate = authRestClientBuilder.withBaseUrl(vsphereUrl)
                 .withInterceptor(DefaultHttpRequestRetryInterceptor.getDefaultInstance())
                 .withInterceptor(loggingInterceptor)
                 .withObjectMapper(RestClientUtils.getDefaultMapper())

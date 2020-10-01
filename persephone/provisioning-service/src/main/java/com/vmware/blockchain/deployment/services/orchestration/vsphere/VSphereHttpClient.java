@@ -91,10 +91,6 @@ public class VSphereHttpClient {
                 ImmutableSet.of(),
                 ImmutableSet.of());
 
-        vsphereSessionAuthenticationInterceptor
-                = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
-                context.getPassword());
-
         // If self-signed certificate is populated enable useSelfSignedCertForVSphere
         if (this.context.certificateData.isEmpty()) {
             useSelfSignedCertForVSphere = false;
@@ -112,9 +108,15 @@ public class VSphereHttpClient {
                         new ByteArrayInputStream(this.context.certificateData.getBytes()));
                 selfSignedCertKeyStore.setCertificateEntry("SelfSignedCertForVSphere", selfSignedCertForVSphere);
             } catch (Exception e) {
+                log.error("Error in creating the keystore with certificate provided", e);
                 throw new PersephoneException(e, ErrorCode.KEYSTORE_CREATION_ERROR);
             }
         }
+
+        vsphereSessionAuthenticationInterceptor
+                = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
+                                                              context.getPassword(), this.useSelfSignedCertForVSphere,
+                                                              this.selfSignedCertKeyStore);
 
         this.restTemplate = restTemplate();
 
