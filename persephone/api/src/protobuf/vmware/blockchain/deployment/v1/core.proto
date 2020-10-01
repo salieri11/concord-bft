@@ -208,6 +208,7 @@ message Properties {
 enum BlockchainType {
     DAML = 0;
     ETHEREUM = 1;
+    HLF = 2;
 }
 
 enum NodeType {
