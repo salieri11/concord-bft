@@ -305,6 +305,12 @@ public class ProvisionerServiceImpl implements ProvisionerService {
     private Properties buildProperties(
             InfrastructureDescriptorModel infrastructureDescriptorModel) {
         Properties.Builder propertiesBuilder = Properties.newBuilder();
+
+        if (infrastructureDescriptorModel.getOrganization().getAdvancedFeatures() != null
+            && !infrastructureDescriptorModel.getOrganization().getAdvancedFeatures().isEmpty()) {
+            propertiesBuilder.putAllValues(infrastructureDescriptorModel.getOrganization().getAdvancedFeatures());
+        }
+
         // Build properties
         String dockerImage = infrastructureDescriptorModel.getOrganization().getDockerImage();
         if (StringUtils.hasText(dockerImage)) {
