@@ -44,10 +44,10 @@ message ConcordComponent {
         DAML_LEDGER_API = 4;
         DAML_EXECUTION_ENGINE = 5;
         DAML_INDEX_DB = 6;
-        HLF_CONCORD = 7;
-        HLF_TOOLS = 8;
-        HLF_PEER = 9;
-        HLF_ORDERER = 10;
+//        HLF_CONCORD = 7;
+//        HLF_TOOLS = 8;
+//        HLF_PEER = 9;
+//        HLF_ORDERER = 10;
         LOGGING = 11;
         WAVEFRONT_PROXY = 12;
         JAEGER_AGENT = 13;
@@ -175,7 +175,6 @@ message ConcordModelSpecification {
     enum BlockchainType {
         ETHEREUM = 0;
         DAML = 1;
-        HLF = 2;
     }
 
     enum NodeType {
