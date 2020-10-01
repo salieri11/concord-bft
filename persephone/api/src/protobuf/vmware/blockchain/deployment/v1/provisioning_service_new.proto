@@ -157,6 +157,7 @@ enum DeploymentAttributes {
     PREEXECUTION_ENABLED = 13;
     PREEXECUTION_THRESHOLD = 14;
     DECENTRALIZED_KEYS = 15;
+    NUM_BFT_CLIENTS = 16;
 }
 
 /* [END messages] */

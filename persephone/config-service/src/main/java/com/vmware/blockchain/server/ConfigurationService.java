@@ -26,7 +26,6 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
-import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -166,6 +165,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
+        int clientProxyPerParticipant = Integer.parseInt(request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.NUM_BFT_CLIENTS.name(), "15"));
 
         // TODO remove post 1.0
         var isSplitConfigString = request.getGenericProperties().getValuesMap()
@@ -177,7 +178,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             isBftEnabled = true;
             try {
                 bftClientConfig.putAll(bftClientConfigUtil
-                        .getbftClientConfig(participantNodeIds, committerIps, participantIps));
+                        .getbftClientConfig(participantNodeIds, committerIps, participantIps,
+                                clientProxyPerParticipant));
             } catch (IOException e) {
                 var msg = "bftclient configurations not generated for session Id : " + sessionId;
                 log.error(msg);
@@ -187,7 +189,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
             log.info("Generated bft client configurations for session Id : {}", sessionId);
 
-            numClients = ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size();
+            numClients = clientProxyPerParticipant * participantIps.size();
         }
 
         boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()

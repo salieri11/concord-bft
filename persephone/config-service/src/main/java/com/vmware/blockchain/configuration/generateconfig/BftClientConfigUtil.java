@@ -53,7 +53,8 @@ public class BftClientConfigUtil {
      * Utility to generate concord config.
      */
     public Map<String, String> getbftClientConfig(List<String> nodeIds, List<String> hostIps,
-                                                  List<String> participantIps) throws IOException {
+                                                  List<String> participantIps,
+                                                  int clientProxyPerParticipant)throws IOException {
         try {
             var result = new HashMap<String, String>();
 
@@ -62,7 +63,7 @@ public class BftClientConfigUtil {
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
             var configGenOutputPath = Paths.get(outputPath.toString(), "configGenOutput.txt").toString();
 
-            generateConfigYaml(hostIps, participantIps, inputYamlPath);
+            generateConfigYaml(hostIps, participantIps, inputYamlPath, clientProxyPerParticipant);
 
             // TODO: Dependency on config-gen tool can be avoided here.
             // Config gen tool is only giving the principal ids
@@ -125,14 +126,15 @@ public class BftClientConfigUtil {
     /**
      * Utility method for generating input config yaml file.
      */
-    boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath) {
+    boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath,
+                               int clientProxyPerParticipant) {
         if (!ConfigUtilHelpers.validateSbft(hostIps.size())) {
             return false;
         }
         int clusterSize = hostIps.size();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateConfigYaml(hostIps, participantIps, fVal, cVal, configYamlPath);
+        return generateConfigYaml(hostIps, participantIps, fVal, cVal, configYamlPath, clientProxyPerParticipant);
     }
 
     /**
@@ -140,12 +142,13 @@ public class BftClientConfigUtil {
      */
     @SuppressWarnings({"unchecked"})
     boolean generateConfigYaml(List<String> hostIp, List<String> participantIps,
-                               int fVal, int cVal, String configYamlPath) {
+                               int fVal, int cVal, String configYamlPath,
+                               int clientProxyPerParticipant) {
 
         var maxCommitterPrincipalId = (hostIp.size()
                 + ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER * hostIp.size()) - 1;
         maxPrincipalId = maxCommitterPrincipalId + ((participantIps.size()
-                + ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT * participantIps.size()) - 1);
+                + clientProxyPerParticipant * participantIps.size()) - 1);
 
         if (!ConfigUtilHelpers.validateSbft(hostIp.size(), fVal, cVal)) {
             return false;
@@ -210,14 +213,14 @@ public class BftClientConfigUtil {
             var participantConfigRes = ConfigUtilHelpers.clone(participantConfig);
             participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE_HOST.name, "0.0.0.0");
 
-            for (int j = 0; j < ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT; j++) {
+            for (int j = 0; j < clientProxyPerParticipant; j++) {
                 var port = ConfigUtilHelpers.DEFAULT_PORT + counter + j;
                 clientPort.put(ConfigUtilHelpers.ConfigProperty.CLIENT_PORT.name, port);
                 clientValues.put(ConfigUtilHelpers.ConfigProperty.CLIENT.name,
                         new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(clientPort))));
                 resultClients.add(ConfigUtilHelpers.clone(clientValues));
             }
-            counter = counter + ConfigUtilHelpers.CLIENT_PROXY_PER_PARTICIPANT;
+            counter = counter + clientProxyPerParticipant;
 
             participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.EXTERNAL_CLIENTS.name, resultClients);
             participantNodeResMap.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE.name,
@@ -226,6 +229,7 @@ public class BftClientConfigUtil {
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODES.name, participantNodeRes);
+        configInput.put(ConfigUtilHelpers.ConfigProperty.CLIENTS_PER_PARTICIPANT_NODE.name, clientProxyPerParticipant);
 
         try {
             BufferedWriter writer = Files.newBufferedWriter(path);
