@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Deployer servvice implementation.
+ * Deployer service implementation.
  */
 @Service
 @Log4j2

@@ -52,6 +52,9 @@ public class CastorDescriptorTest {
     private static final String VALID_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test01_deployment_descriptor.json";
 
+    private static final String ADV_INFRASTRUCTURE_DESCRIPTOR =
+            "classpath:descriptors/test01_infrastructure_descriptor_with_advanced_features.json";
+
     private static final String INVALID_URL_INFRASTRUCTURE_DESCRIPTOR_1 =
             "classpath:descriptors/test01_invalid_url_infrastructure_descriptor_1.json";
     private static final String INVALID_INFRASTRUCTURE_DESCRIPTOR_2 =
@@ -112,6 +115,40 @@ public class CastorDescriptorTest {
         assertEquals(validInfra, readInfra, "infra descriptor model mismatch");
         assertEquals(validInfra.getOrganization(), readInfra.getOrganization(),
                      "infra descriptors organization mismatch");
+        assertEquals(validInfra.getZones(), readInfra.getZones(), "infra descriptors zones mismatch");
+
+        Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+        assertEquals(validDeployment, readDeployment, "deployment descriptor model mismatch");
+        assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
+                     "deployment descriptor blochchain model mismatch");
+        assertEquals(validDeployment.getClients(), readDeployment.getClients(),
+                     "deployment descriptor client model mismatch");
+        assertEquals(validDeployment.getCommitters(), readDeployment.getCommitters(),
+                     "deployment descriptor blochchain model mismatch");
+
+        readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
+
+        // No errors for valid descriptors
+        List<ValidationError> constraints = validatorService.validate(validInfra, validDeployment);
+        assertEquals(0, constraints.size());
+    }
+
+    @Test
+    public void testValidAdvancedFeaturesDescriptorSerDeser() throws IOException {
+        Resource infraResource = resourceLoader.getResource(ADV_INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        assertEquals(validInfra, readInfra, "infra descriptor model mismatch");
+        assertEquals(validInfra.getOrganization(), readInfra.getOrganization(),
+                     "infra descriptors organization mismatch");
+        assertEquals(1, readInfra.getOrganization().getAdvancedFeatures().size(),
+                     "infra descriptors organization advanced features mismatch");
+        assertEquals("False", readInfra.getOrganization().getAdvancedFeatures().get("SPLIT_CONFIG"),
+                     "infra descriptors organization advanced features key/value mismatch");
         assertEquals(validInfra.getZones(), readInfra.getZones(), "infra descriptors zones mismatch");
 
         Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR);

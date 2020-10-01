@@ -6,6 +6,7 @@ package com.vmware.blockchain.castor.model;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.validation.Valid;
@@ -58,6 +59,12 @@ public class InfrastructureDescriptorModel {
         private int committerDiskGb;
 
         private boolean generatePassword;
+
+        /**
+         * Specific properties we might ask customers to toggle.
+         * Early access of some features
+         */
+        private Map<String, String> advancedFeatures;
     }
 
     /**
