@@ -255,6 +255,10 @@ static concord::storage::s3::StoreConfig getS3ConfigParams(
   config.protocol = nodeConfig.getValue<std::string>("s3-protocol");
   config.secretKey = nodeConfig.getValue<std::string>("s3-secret-key");
   config.accessKey = nodeConfig.getValue<std::string>("s3-access-key");
+  // this prefix is left intenionally empty. Changing it will cause state
+  // discrepancy between the metadata in rocksdb and s3 if the ro replica has
+  // already fetched any blocks
+  config.pathPrefix = "";
 
   return config;
 }
