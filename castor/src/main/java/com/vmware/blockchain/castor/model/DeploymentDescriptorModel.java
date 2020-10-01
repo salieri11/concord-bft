@@ -39,6 +39,7 @@ public class DeploymentDescriptorModel {
         private String zoneName;
         private String authUrlJwt;
         private String providedIp;
+        private String groupName;
     }
 
     /**
@@ -84,6 +85,7 @@ public class DeploymentDescriptorModel {
     @Valid
     private List<Committer> committers;
 
+    @NotEmpty(message = "deployment.clients.not.specified")
     @Valid
     private List<Client> clients;
 

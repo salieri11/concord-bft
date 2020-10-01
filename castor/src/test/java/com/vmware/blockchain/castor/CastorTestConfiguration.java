@@ -61,7 +61,7 @@ public class CastorTestConfiguration {
 
     @Bean
     public ValidatorService validatorService() {
-        return new ValidatorServiceImpl(messageSource);
+        return new ValidatorServiceImpl(messageSource, environment);
     }
 
     @Bean

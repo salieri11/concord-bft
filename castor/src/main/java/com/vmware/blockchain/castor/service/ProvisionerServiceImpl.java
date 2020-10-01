@@ -24,6 +24,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
@@ -100,6 +101,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
 
         DeploymentRequest deploymentRequest = constructDeploymentRequest(
                 infrastructureDescriptorModel, deploymentDescriptorModel);
+        log.debug("Deployment request " + deploymentRequest);
 
         // Request a deployment from the provisioning service
         log.debug("Requesting a deployment with request info: {}", deploymentRequest);
@@ -231,6 +233,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             DeploymentDescriptorModel deploymentDescriptorModel,
             NodeAssignment.Builder nodeAssignmentBuilder) {
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
+
+        // A map to hold groupIndex to groupId (UUID) mapping.
+        final Map<String, String> groupMap = new HashMap<>();
+
         clients.forEach(client -> {
             Properties.Builder propBuilder = Properties.newBuilder();
             if (StringUtils.hasText(client.getAuthUrlJwt())) {
@@ -243,6 +249,21 @@ public class ProvisionerServiceImpl implements ProvisionerService {
             if (clientDiskSize > 0) {
                 String clientDiskSizeString = String.valueOf(clientDiskSize);
                 propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+            }
+
+            // Process client group and add group properties.
+            String groupId;
+            String groupName = client.getGroupName();
+            if (groupMap.containsKey(groupName)) {
+                groupId = groupMap.get(groupName);
+            } else {
+                groupId = UUID.randomUUID().toString();
+                groupMap.put(groupName, groupId);
+            }
+
+            if (!Strings.isNullOrEmpty(groupName)) {
+                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId);
+                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
             }
 
             nodeAssignmentBuilder.addEntries(

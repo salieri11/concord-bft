@@ -1,0 +1,66 @@
+{
+  "committers": [
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - B"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - C"
+    }
+  ],
+  "clients": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group1"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group2"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group3"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group4"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group5"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group6"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group7"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group8"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group9"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group10"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group11"
+    }
+  ],
+  "blockchain": {
+    "consortiumName": "consortium-1",
+    "blockchainType": "DAML"
+  }
+}

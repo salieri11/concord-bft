@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.powermock.reflect.Whitebox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -57,6 +58,19 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test01_invalid_infrastructure_descriptor_2.json";
     private static final String INVALID_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test01_invalid_deployment_descriptor.json";
+    // Client group validation
+    private static final String VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_1 =
+            "classpath:descriptors/test01_valid_client_groups_deployment_descriptor.json";
+    private static final String VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_2 =
+            "classpath:descriptors/test02_valid_client_groups_deployment_descriptor.json";
+    private static final String INVALID_TOO_MANY_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR =
+            "classpath:descriptors/test_invalid_too_many_client_groups_deployment_descriptor.json";
+    private static final String INVALID_TOO_MANY_CLIENTS_DEPLOYMENT_DESCRIPTOR =
+            "classpath:descriptors/test_invalid_too_many_clients_deployment_descriptor.json";
+    private static final String INVALID_TOO_MANY_CLIENTS_IN_GROUP_DEPLOYMENT_DESCRIPTOR =
+            "classpath:descriptors/test_invalid_too_many_clients_in_group_deployment_descriptor.json";
+    private static final String INFRASTRUCTURE_DESCRIPTOR_2 =
+            "classpath:descriptors/test02_infrastructure_descriptor.json";
 
     private InfrastructureDescriptorModel validInfra;
     private DeploymentDescriptorModel validDeployment;
@@ -299,6 +313,135 @@ public class CastorDescriptorTest {
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
 
 
+    }
+
+    /**
+     * Test case adding 11 client groups to DD.
+     * @throws IOException IOException
+     */
+    @Test
+    public void testInValidTooManyClientGroups() throws IOException {
+        Set<String> expectedErrorCodes = new HashSet<>();
+        // The invalid deployment descriptor contains too many client groups.
+        expectedErrorCodes.add("deployment.too.many.client.groups");
+        Resource deploymentResource = resourceLoader.getResource(INVALID_TOO_MANY_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        // Set the max client groups property.
+        environment.setProperty(ValidatorService.DEPLOYMENT_MAX_CLIENT_GROUPS, "10");
+        // For some reason, autowiring does not work for environment. Force it.
+        Whitebox.setInternalState(validatorService, "environment", environment);
+
+        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
+    /**
+     * Test case adding 11 Clients to DD.
+     * @throws IOException IOException
+     */
+    @Test
+    public void testInvalidTooManyClients() throws IOException {
+        Set<String> expectedErrorCodes = new HashSet<>();
+        // The invalid deployment descriptor contains too many clients.
+        expectedErrorCodes.add("deployment.invalid.client.count");
+        Resource deploymentResource = resourceLoader.getResource(INVALID_TOO_MANY_CLIENTS_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        // Set the number of clients range property.
+        environment.setProperty(ValidatorService.DEPLOYMENT_NUM_CLIENTS_RANGE_KEY, "{1,10}");
+        // For some reason, autowiring does not work for environment. Force it.
+        Whitebox.setInternalState(validatorService, "environment", environment);
+
+        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
+    /**
+     * Test case adding 7 Clients to a Group.
+     * @throws IOException IOException
+     */
+    @Test
+    public void testInvalidTooManyClientsInGroup() throws IOException {
+        Set<String> expectedErrorCodes = new HashSet<>();
+        // The invalid deployment descriptor contains too many clients in a group.
+        expectedErrorCodes.add("deployment.too.many.clients.in.group");
+        Resource deploymentResource = resourceLoader.getResource(
+                INVALID_TOO_MANY_CLIENTS_IN_GROUP_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+
+        // Set the max clients per group property.
+        environment.setProperty(ValidatorService.DEPLOYMENT_MAX_CLIENTS_PER_GROUP, "6");
+        // For some reason, autowiring does not work for environment. Force it.
+        Whitebox.setInternalState(validatorService, "environment", environment);
+
+        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
+    /**
+     * Test case adding 3 Clients to 2 Groups.
+     * @throws IOException IOException
+     */
+    @Test
+    public void testValidClientGroups1() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_1);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+
+        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertEquals(0, validationErrorCodes.size());
+    }
+
+    /**
+     * Test case adding 3 Clients to 3 Groups.
+     * @throws IOException IOException
+     */
+    @Test
+    public void testValidClientGroups2() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(VALID_CLIENT_GROUPS_DEPLOYMENT_DESCRIPTOR_2);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR_2);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        List<ValidationError> errors = validatorService.validate(readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertEquals(0, validationErrorCodes.size());
     }
 
 }

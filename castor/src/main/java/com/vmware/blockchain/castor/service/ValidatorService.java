@@ -13,6 +13,10 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
  * Validator Service definition.
  */
 public interface ValidatorService {
+    static final String DEPLOYMENT_NUM_CLIENTS_RANGE_KEY = "castor.deployment.num.clients.range";
+    static final String DEPLOYMENT_MAX_CLIENTS_PER_GROUP = "castor.deployment.max.clients.per.group";
+    static final String DEPLOYMENT_MAX_CLIENT_GROUPS = "castor.deployment.max.client.groups";
+
     /**
      * Validate the contents of the infrastructure and deployment descriptor files.
      * @param infra      The infrastructure descriptor model to be validated
