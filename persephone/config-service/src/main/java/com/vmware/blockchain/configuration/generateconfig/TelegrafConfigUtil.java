@@ -81,7 +81,8 @@ public class TelegrafConfigUtil {
         // TODO : remove after concord name unification
         List<ConcordComponent.ServiceType> committerList = List.of(
                 ConcordComponent.ServiceType.CONCORD,
-                ConcordComponent.ServiceType.DAML_CONCORD);
+                ConcordComponent.ServiceType.DAML_CONCORD,
+                ConcordComponent.ServiceType.HLF_CONCORD);
 
         String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
 
@@ -144,7 +145,8 @@ public class TelegrafConfigUtil {
 
         // TODO change to switch case once concord name is unified.
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_CONCORD)
-                || servicesList.contains(ConcordComponent.ServiceType.CONCORD)) {
+                || servicesList.contains(ConcordComponent.ServiceType.CONCORD)
+                || servicesList.contains(ConcordComponent.ServiceType.HLF_CONCORD)) {
             prometheusUrls.add("\"http://concord:9891/metrics\"");
         }
 

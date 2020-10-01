@@ -40,6 +40,7 @@ public class ConfigUtilHelpers {
         C_VAL("c_val"),
         DAML_ENABLED("daml_enable"),
         ETHEREUM_ENABLED("eth_enable"),
+        HLF_ENABLED("hlf_enable"),
         NODE("node"),
         PARTICIPANT_NODES("participant_nodes"),
         PARTICIPANT_NODE("participant_node"),

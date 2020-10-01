@@ -158,6 +158,8 @@ public class ConcordConfigUtil {
         } else if (blockchainType.equals(BlockchainType.DAML)) {
             configInput.put(ConfigUtilHelpers.ConfigProperty.DAML_ENABLED.name, true);
 
+        } else if (blockchainType.equals(BlockchainType.HLF)) {
+            configInput.put(ConfigUtilHelpers.ConfigProperty.HLF_ENABLED.name, true);
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
