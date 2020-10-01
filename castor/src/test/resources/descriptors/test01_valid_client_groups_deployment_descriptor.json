@@ -4,13 +4,13 @@
       "zoneName": "test-zone-1 - A"
     },
     {
-      "zoneName": "test-zone-1 - A"
+      "zoneName": "test-zone-1 - B"
     },
     {
       "zoneName": "test-zone-1 - A"
     },
     {
-      "zoneName": "test-zone-1 - A"
+      "zoneName": "test-zone-1 - C"
     }
   ],
   "clients": [
@@ -19,12 +19,12 @@
       "groupName": "Group1"
     },
     {
-      "zoneName": "test-zone-1 - A",
-      "groupName": "Group2"
+      "zoneName": "test-zone-1 - B",
+      "groupName": "Group1"
     },
     {
-      "zoneName": "test-zone-1 - A",
-      "groupName": "Group1"
+      "zoneName": "test-zone-1 - B",
+      "groupName": "Group2"
     }
   ],
   "blockchain": {

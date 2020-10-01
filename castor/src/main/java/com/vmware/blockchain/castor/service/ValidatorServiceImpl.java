@@ -6,18 +6,23 @@ package com.vmware.blockchain.castor.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -36,6 +41,9 @@ import lombok.extern.log4j.Log4j2;
 public class ValidatorServiceImpl implements ValidatorService {
 
     private final MessageSource messageSource;
+    @Autowired
+    private final Environment environment;
+
 
     @Override
     public List<ValidationError> validate(
@@ -81,6 +89,9 @@ public class ValidatorServiceImpl implements ValidatorService {
                     .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet());
             allDeploymentZones.addAll(clientZones);
         }
+
+        // Validate clients
+        validateClients(deploymentDescriptor.getClients(), errors);
 
         Set<String> allInfraZones = infrastructureDescriptor.getZones().stream()
                 .map(InfrastructureDescriptorModel.Zone::getName).collect(Collectors.toSet());
@@ -159,5 +170,112 @@ public class ValidatorServiceImpl implements ValidatorService {
 
         // DINKARTODO: Do we need to validate that ips provided fall within the subnet for the zone in which
         // the client/committer is placed ?
+    }
+
+    /**
+     * Validate number of client groups along with grouping thresholds.
+     * From https://docs-staging.vmware.com/en/VMware-Blockchain/1.0/using_managing/GUID-C49B45C7-26B7-4B16-A971-
+     *   0C756A4A15ED.html
+     *   A Blockchain can have at the maximum 10 client nodes.
+     *   A Blockchain can have up to 10 client groups (assuming each client is in its own group - essentially no
+     *   grouping)
+     *   A client group will have at the maximum 6 nodes.
+     * @param clients List of Clients
+     * @param errors List of errors
+     */
+    private void validateClients(List<DeploymentDescriptorModel.Client> clients, List<ValidationError> errors) {
+        // No clients check.
+        if (clients == null || clients.isEmpty()) {
+            String error = "deployment.clients.not.specified";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("client")
+                    .build();
+            errors.add(e);
+            return;
+        }
+
+        String noOfClientsRangeStr = environment.getProperty(DEPLOYMENT_NUM_CLIENTS_RANGE_KEY, "");
+        List<Integer> noOfClientsRange = new ArrayList<>();
+        for (String s : noOfClientsRangeStr.split(",")) {
+            if (s == null) {
+                continue;
+            }
+            String val = s.replaceAll("\\{|\\}", "");
+            if (Pattern.matches("\\d+", val.trim())) {
+                noOfClientsRange.add(Integer.parseInt(val.trim()));
+            }
+        }
+        log.debug("client range values " + noOfClientsRange);
+
+        // Is the number of clients in valid range?
+        if (noOfClientsRange.size() >= 2 && (clients.size() <= noOfClientsRange.get(0)
+                                                                         || clients.size() > noOfClientsRange.get(1))) {
+            String error = "deployment.invalid.client.count";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("client")
+                    .build();
+            errors.add(e);
+        }
+
+        // Capture unique groups.
+        // Also capture node count per group.
+        List<String> uniqueGroupNames = new ArrayList<>();
+        // Node counter per group.
+        Map<String, Integer> groupNodeCount = new HashMap<>();
+        clients.forEach(client -> {
+            if (client != null) {
+                String groupName = client.getGroupName();
+                if (groupName != null && !groupName.isEmpty()) {
+                    // If groupName is not seen, then add it to uniqueGroupNames list.
+                    if (!uniqueGroupNames.contains(groupName)) {
+                        uniqueGroupNames.add(groupName);
+                    }
+                    // Increment node count if there are nodes for this group.
+                    int existingGroup = groupNodeCount.get(groupName) != null ? groupNodeCount.get(groupName) : 0;
+                    // Increment the counter, and put it back.
+                    existingGroup++;
+                    groupNodeCount.put(groupName, existingGroup);
+                }
+            }
+        });
+
+        String maxClientGroupsStr = environment.getProperty(DEPLOYMENT_MAX_CLIENT_GROUPS, "");
+        int maxClientGroups;
+        if (Pattern.matches("\\d+", maxClientGroupsStr.trim())) {
+            maxClientGroups = Integer.parseInt(maxClientGroupsStr.trim());
+            log.debug("Max client groups " + maxClientGroups);
+
+            // Are there many groups?
+            if (uniqueGroupNames.size() > maxClientGroups) {
+                String error = "deployment.too.many.client.groups";
+                ValidationError e = ValidationError.builder()
+                        .errorCode(error)
+                        .propertyPath("groupName")
+                        .build();
+                errors.add(e);
+            }
+        }
+
+        String maxClientsPerGroupStr = environment.getProperty(DEPLOYMENT_MAX_CLIENTS_PER_GROUP, "");
+        int maxClientsPerGroup;
+        if (Pattern.matches("\\d+", maxClientsPerGroupStr.trim())) {
+            maxClientsPerGroup = Integer.parseInt(maxClientsPerGroupStr.trim());
+            log.debug("Max clients per group " + maxClientsPerGroup);
+
+            // Does the group consist of many clients?
+            groupNodeCount.keySet().forEach(groupName -> {
+                // If the number is higher than allowed limit, log an error.
+                if (groupNodeCount.get(groupName) > maxClientsPerGroup) {
+                    String error = "deployment.too.many.clients.in.group";
+                    ValidationError e = ValidationError.builder()
+                            .errorCode(error)
+                            .propertyPath("groupName")
+                            .build();
+                    errors.add(e);
+                }
+            });
+        }
     }
 }

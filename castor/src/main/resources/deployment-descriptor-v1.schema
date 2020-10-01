@@ -36,6 +36,10 @@
         "providedIp": {
           "description": "The user-provided IP address to be assigned to the client",
           "type": "string"
+        },
+        "clientGroupName": {
+          "description": "Client group name",
+          "type": "string"
         }
       },
       "required": ["zoneName"]

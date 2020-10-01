@@ -128,10 +128,17 @@ public class DescriptorTestUtills {
 
         DeploymentDescriptorModel.Client client1 = DeploymentDescriptorModel.Client.builder()
                 .zoneName(ZONE_1_NAME)
+                .groupName("Group1")
                 .build();
 
         DeploymentDescriptorModel.Client client2 = DeploymentDescriptorModel.Client.builder()
                 .zoneName(ZONE_1_NAME)
+                .groupName("Group2")
+                .build();
+
+        DeploymentDescriptorModel.Client client3 = DeploymentDescriptorModel.Client.builder()
+                .zoneName(ZONE_1_NAME)
+                .groupName("Group1")
                 .build();
 
         List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
@@ -143,7 +150,7 @@ public class DescriptorTestUtills {
 
         return DeploymentDescriptorModel.builder()
                 .blockchain(blockchain)
-                .clients(List.of(client1, client2))
+                .clients(List.of(client1, client2, client3))
                 .committers(committers)
                 .build();
     }
