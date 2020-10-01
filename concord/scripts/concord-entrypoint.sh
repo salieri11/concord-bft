@@ -59,7 +59,7 @@ if [ "$#" -eq 0  ]; then
   log "Split file configuration {-a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS}"
   exec gosu concord /concord/concord -a $APP_CONF -d $DEPLOYMENT_CONF -s $SECRETS
 elif [ "$1" = 'debug' ]; then
-  exec gdb
+	exec gdb --args /concord/concord -a /concord/config-local/application.config -d /concord/config-local/deployment.config -s /concord/config-local/secrets.config
 else
   exec "$@"
 fi

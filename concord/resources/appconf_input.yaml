@@ -1,6 +1,7 @@
 client_proxies_per_replica: 1
 c_val: 0
 f_val: 1
+num_ro_replicas: 0
 FEATURE_time_service: true
 concord-bft_communication_buffer_length: 33554432
 concord-bft_max_reply_message_size: 4096

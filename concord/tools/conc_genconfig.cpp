@@ -185,7 +185,8 @@ int outputConfig(ConcordConfiguration& config,
       std::ofstream fileOutput(outputFilename);
       YAMLConfigurationOutput yamlOutput(fileOutput);
       try {
-        outputConcordNodeConfiguration(config, yamlOutput, i);
+        outputConcordNodeConfiguration(config, yamlOutput, i,
+                                       false /* isReadOnly */);
       } catch (std::exception& e) {
         LOG_FATAL(
             concGenconfigLogger,
@@ -198,6 +199,32 @@ int outputConfig(ConcordConfiguration& config,
       LOG_INFO(concGenconfigLogger, "Configuration file " + outputFilename +
                                         " (" + std::to_string(i + 1) + " of " +
                                         std::to_string(numNodes) +
+                                        ") written.");
+    }
+
+    size_t numRoNodes = config.hasValue<uint16_t>("num_ro_replicas")
+                            ? config.getValue<uint16_t>("num_ro_replicas")
+                            : 0;
+    for (int i = 0; i < numRoNodes; i++) {
+      std::string outputFilename =
+          outputPrefix + std::to_string(numNodes + i + 1) + ".config";
+      std::ofstream fileOutput(outputFilename);
+      YAMLConfigurationOutput yamlOutput(fileOutput);
+      try {
+        outputConcordNodeConfiguration(config, yamlOutput, i,
+                                       true /* isReadOnly */);
+      } catch (std::exception& e) {
+        LOG_FATAL(concGenconfigLogger,
+                  "An exception occurred while trying to write RO "
+                  "configuraiton file " +
+                      outputFilename + ".");
+        LOG_FATAL(concGenconfigLogger,
+                  "Exception message: " + std::string(e.what()));
+        return -1;
+      }
+      LOG_INFO(concGenconfigLogger, "RO configuration file " + outputFilename +
+                                        " (" + std::to_string(i + 1) + " of " +
+                                        std::to_string(numRoNodes) +
                                         ") written.");
     }
   }

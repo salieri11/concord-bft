@@ -14,6 +14,9 @@ string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Enables S3 support in concord-bft
+set(USE_S3_OBJECT_STORE TRUE)
+
 # Storage options
 option(BUILD_ROCKSDB_STORAGE "concord needs rocksdb" TRUE)
 

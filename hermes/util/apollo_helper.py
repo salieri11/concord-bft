@@ -14,7 +14,7 @@ import hermes_util.hermes_logging as hermes_logging_util
 
 log = hermes_logging_util.getMainLogger()
 
-async def create_bft_network():
+async def create_bft_network(num_ro_replicas=0):
     config = TestConfig(n=4,
                         f=1,
                         c=0,
@@ -22,9 +22,9 @@ async def create_bft_network():
                         key_file_prefix=None,
                         start_replica_cmd=start_replica_cmd,
                         stop_replica_cmd=stop_replica_cmd,
-                        num_ro_replicas=0)
+                        num_ro_replicas=num_ro_replicas)
     replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
-                for i in range(config.num_clients)]
+                for i in range(config.num_clients + config.num_ro_replicas)]
     clients = [ExternalBftClient(i) for i in range(config.num_clients)]
     bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
     return bft_network

@@ -1504,7 +1504,7 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
 // loopback IP is rejected by the node's configuration object.
 void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
-                                    size_t node);
+                                    size_t node, bool isReadOnly);
 
 // Uses the provided YAMLConfigurationOutput to write a configuration file for a
 // specified Participant node. This function expects that values for all
@@ -1535,7 +1535,9 @@ void loadNodeConfiguration(ConcordConfiguration& config,
 // that the configuration of interest was already loaded to it. This function
 // will throw a ConfigurationResourceNotFoundException if it cannot determine
 // which node the configuration is for.
-size_t detectLocalNode(ConcordConfiguration& config);
+// The function returns a pair with the detected node id and boolean indicating
+// if the node is RO (true) replica or not (false).
+std::pair<size_t, bool> detectLocalNode(ConcordConfiguration& config);
 
 // Initializes the cryptosystems in the given ConcordConfiguration's auxiliary
 // state and load the keys contained in the configuration to them so they can be
@@ -1575,6 +1577,20 @@ class NodesSizer : public ConcordConfiguration::ScopeSizer {
       const ConcordConfiguration& config, const ConfigurationPath& path,
       size_t& output) override;
 };
+
+// Computes the number of RO replicas
+class RoNodesSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~RoNodesSizer() override;
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override;
+};
+
+// Convenience function which returns the count of the configured committer
+// nodes
+size_t getCommitterNodesCount(const ConcordConfiguration& config,
+                              const std::string expceptMsg);
 
 // Computes the number of SBFT replicas per Concord node. Note that, at the time
 // of this writing, we assume there is exactly one SBFT replica per Concord

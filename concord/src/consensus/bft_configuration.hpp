@@ -83,14 +83,15 @@ inline bool InitializeSbftConfiguration(
     concord::config::ConcordConfiguration& nodeConfig,
     concord::config::CommConfig* commConfig,
     concord::kvbc::ClientConfig* clConf, uint16_t clientIndex,
-    bftEngine::ReplicaConfig* repConf, Cryptosystem* cryptosystem = nullptr) {
+    bftEngine::ReplicaConfig* repConf, bool isReadOnly,
+    Cryptosystem* cryptosystem = nullptr) {
   assert(!clConf != !repConf);
 
   // Initialize random number generator
   srand48(getpid());
 
   concord::config::ConcordConfiguration& replicaConfig =
-      nodeConfig.subscope("replica", 0);
+      isReadOnly ? nodeConfig : nodeConfig.subscope("replica", 0);
   uint16_t selfNumber = (repConf)
                             ? (replicaConfig.getValue<uint16_t>("principal_id"))
                             : (nodeConfig.subscope("client_proxy", clientIndex)
@@ -99,6 +100,7 @@ inline bool InitializeSbftConfiguration(
   uint16_t maxSlow = config.getValue<uint16_t>("c_val");
   uint16_t numOfPrincipals = config.getValue<uint16_t>("num_principals");
   uint16_t numOfReplicas = config.getValue<uint16_t>("num_replicas");
+  uint16_t numRoReplicas = config.getValue<uint16_t>("num_ro_replicas");
   std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas;
   if (commConfig) {
     bool res = initializeSBFTPrincipals(config, selfNumber, numOfPrincipals,
@@ -119,6 +121,7 @@ inline bool InitializeSbftConfiguration(
     repConf->concurrencyLevel = config.getValue<uint16_t>("concurrency_level");
 
     repConf->numReplicas = numOfReplicas;
+    repConf->numRoReplicas = numRoReplicas;
     repConf->replicaId = selfNumber;
     repConf->fVal = maxFaulty;
     repConf->cVal = maxSlow;
@@ -129,33 +132,38 @@ inline bool InitializeSbftConfiguration(
     for (uint16_t j = numOfPrincipals; j < totalNodes; ++j) {
       commConfig->nodes.insert({j, bft::communication::NodeInfo{"", 0, false}});
     }
-    repConf->debugStatisticsEnabled =
-        nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
-    repConf->keyExchangeOnStart =
-        config.getValue<bool>("key_exchange_on_start");
+    repConf->isReadOnly = isReadOnly;
 
-    repConf->preExecutionFeatureEnabled =
-        config.getValue<bool>("preexecution_enabled");
+    // committers only
+    if (selfNumber < numOfReplicas) {
+      repConf->debugStatisticsEnabled =
+          nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
-    repConf->preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
-        "preexec_requests_status_check_period_millisec");
+      repConf->keyExchangeOnStart =
+          config.getValue<bool>("key_exchange_on_start");
 
-    repConf->preExecConcurrencyLevel =
-        config.getValue<uint16_t>("preexec_concurrency_level");
+      repConf->preExecutionFeatureEnabled =
+          config.getValue<bool>("preexecution_enabled");
 
-    // TODO(IG): add to config file
-    repConf->viewChangeProtocolEnabled = true;
+      repConf->preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
+          "preexec_requests_status_check_period_millisec");
 
-    // Cryptosystem
-    repConf->thresholdSystemType_ = cryptosystem->getType();
-    repConf->thresholdSystemSubType_ = cryptosystem->getSubtype();
-    repConf->thresholdPrivateKey_ =
-        cryptosystem->getPrivateKey(repConf->replicaId + 1);
-    repConf->thresholdPublicKey_ = cryptosystem->getSystemPublicKey();
-    repConf->thresholdVerificationKeys_ =
-        cryptosystem->getSystemVerificationKeys();
+      repConf->preExecConcurrencyLevel =
+          config.getValue<uint16_t>("preexec_concurrency_level");
 
+      // TODO(IG): add to config file
+      repConf->viewChangeProtocolEnabled = true;
+
+      // Cryptosystem
+      repConf->thresholdSystemType_ = cryptosystem->getType();
+      repConf->thresholdSystemSubType_ = cryptosystem->getSubtype();
+      repConf->thresholdPrivateKey_ =
+          cryptosystem->getPrivateKey(repConf->replicaId + 1);
+      repConf->thresholdPublicKey_ = cryptosystem->getSystemPublicKey();
+      repConf->thresholdVerificationKeys_ =
+          cryptosystem->getSystemVerificationKeys();
+    }
 #define DEFAULT(field, userCfg)                            \
   {                                                        \
     if (config.hasValue<uint32_t>(userCfg)) {              \

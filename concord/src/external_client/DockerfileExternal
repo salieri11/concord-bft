@@ -34,6 +34,7 @@ RUN apt-get update && apt-get -y install \
     libboost-thread1.65.1 \
     libyaml-cpp0.5v5 \
     libyaml-cpp-dev \
+    libs3-dev \
     gdbserver \
     && rm -rf /var/lib/apt/lists/*
 

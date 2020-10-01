@@ -59,6 +59,7 @@ suiteList = {
    "EvilTimeTests": "suites/time_service/evil_test.py",
    "PrivacyTeeTests": "suites/privacy_tee_tests.py",
    "ApolloBftTests": "suites/apollo_bft_tests.py",
+   "RoReplicaTests": "suites/ro_replica_tests.py",
    "SkvbcLinearizabilityTests": "suites/skvbc_linearizability_tests.py",
    "SkvbcLinearizabilityWithCrashesTests": "suites/skvbc_linearizability_with_crashes_tests.py",
    "SkvbcStateTransferTests": "suites/skvbc_state_transfer_tests.py",

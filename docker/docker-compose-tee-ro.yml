@@ -1,0 +1,40 @@
+# For running local concord with Test Execution Engine with RO replica
+# This file is meant to be an extension to docker-compose-tee.yml. It adds
+# additional RO replica and S3 service.
+#
+# ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-tee-ro.yaml
+# docker-compose -f docker-compose-tee.yml -f docker-compose-tee-ro.yml up
+#
+version: '3'
+services:
+  concord5:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    ports:
+      - "50055:50051"
+      - "4505:4501/udp"
+    expose:
+      - 5458
+      - 3501/udp
+    volumes:
+      - ./devdata/rocksdbdata5:/concord/rocksdbdata
+      - ./devdata/log5:/concord/log
+      - ./config-concord5:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./devdata/core5:/concord/cores
+
+  minio:
+    image: minio/minio:RELEASE.2020-09-05T07-14-49Z 
+    command: server /data
+    expose:
+      - "9000/tcp"
+    environment:
+      - MINIO_ACCESS_KEY=concordbft
+      - MINIO_SECRET_KEY=concordbft
+    volumes:
+      - ./devdata/minio-buckets:/data
+    entrypoint: >
+      /bin/sh -c "
+      mkdir /data/blockchain;
+      /usr/bin/docker-entrypoint.sh server /data"
