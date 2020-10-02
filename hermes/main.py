@@ -34,7 +34,7 @@ log = None
 suiteList = {
    "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
    "ChessPlusTests": "suites/chess_plus_tests.py",
-   "ClientGroupTests": "suites/st_client_group_tests.py",
+   "ClientGroupTests": "suites/sys_test_client_group_tests.py",
    "EthCoreVmTests": "suites/eth_core_vm_tests.py",
    "DamlTests": "suites/daml_tests.py",
    "DamlRegressionTests": "suites/daml_regression_tests.py",
