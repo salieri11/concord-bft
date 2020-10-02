@@ -19,9 +19,12 @@ public interface ValidatorService {
 
     /**
      * Validate the contents of the infrastructure and deployment descriptor files.
+     *
+     * @param deploymentType the type of deployment that determines the validator to use
      * @param infra      The infrastructure descriptor model to be validated
      * @param deployment The deployment descriptor model to be validated
      * @return A list of validation errors
      */
-    List<ValidationError> validate(InfrastructureDescriptorModel infra, DeploymentDescriptorModel deployment);
+    List<ValidationError> validate(CastorDeploymentType deploymentType,
+                                   InfrastructureDescriptorModel infra, DeploymentDescriptorModel deployment);
 }

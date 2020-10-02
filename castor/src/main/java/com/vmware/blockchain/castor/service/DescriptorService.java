@@ -11,7 +11,8 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
  * Descriptor service to process descriptor files and models.
  */
 public interface DescriptorService {
-    DeploymentDescriptorModel readDeploymentDescriptorSpec(String deploymentDescriptorLocation);
+    DeploymentDescriptorModel readDeploymentDescriptorSpec(CastorDeploymentType castorDeploymentType,
+                                                           String deploymentDescriptorLocation);
 
     InfrastructureDescriptorModel readInfrastructureDescriptorSpec(String infrastructureDescriptorLocation);
 }

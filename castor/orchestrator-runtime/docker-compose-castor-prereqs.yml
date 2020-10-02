@@ -5,7 +5,7 @@ services:
     ports:
       - 9003:9003
       - 0.0.0.0:8000:9023
-    restart: unless-stopped
+    restart: on-failure
   persephone-provisioning:
     image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
@@ -14,4 +14,4 @@ services:
     environment:
       - provisioning.config.service.address=config-service:9003
       - provisioning.config.service.transportSecurity.type=NONE
-      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP}:8000
+      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP:?CONFIG_SERVICE_IP is required}:8000

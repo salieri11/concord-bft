@@ -1,0 +1,35 @@
+{
+  "committers": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.94"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.90"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.92"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.91"
+    }
+  ],
+  "clients": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.95"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "providedIp": "10.72.216.93"
+    }
+  ],
+  "blockchain": {
+    "consortiumName": "test-consortium-4",
+    "blockchainType": "DAML",
+    "blockchainId": "bc2b1fe0-e23b-439f-9be5-5115643ae466"
+  }
+}

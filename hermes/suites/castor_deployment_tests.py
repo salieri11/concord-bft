@@ -92,7 +92,6 @@ def _populateDescriptorFiles(fxHermesRunSettings):
     with open(infraFilePath, "w") as infraFile:
         json.dump(infraDescriptor, infraFile, indent=4)
 
-    # DINKARTODO: Remove this log after debugging
     infraJson = json.dumps(infraDescriptor, indent=4)
     log.info("Infra descriptor file was updated with: ")
     log.info(infraJson)

@@ -5,10 +5,9 @@
 package com.vmware.blockchain.castor.model;
 
 import java.util.List;
+import java.util.UUID;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
 
 import com.vmware.blockchain.castor.service.BlockchainTypesValid;
 
@@ -18,13 +17,18 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Deployment Descriptor. Contains properties that are specific to each blockchain deployment.
+ * The interface that defines contracts for the provision, deprovision, and reconfigure models.
  */
-@Getter
-@Setter
-@Builder
-@EqualsAndHashCode
-public class DeploymentDescriptorModel {
+public interface DeploymentDescriptorModel {
+
+    /**
+     * Required blockchain type.
+     * NOTE: These entries must be up-to-date with the protobuf definition.
+     */
+    public enum BlockchainType {
+        ETHEREUM,
+        DAML
+    }
 
     /**
      * Required client.
@@ -57,16 +61,6 @@ public class DeploymentDescriptorModel {
     }
 
     /**
-     * Required blockchain type.
-     * NOTE: These entries must be up-to-date with the protobuf definition.
-     */
-    public enum BlockchainType {
-        ETHEREUM,
-        DAML,
-        HLF
-    }
-
-    /**
      * Required blockchain.
      */
     @Getter
@@ -75,20 +69,27 @@ public class DeploymentDescriptorModel {
     @EqualsAndHashCode
     public static class Blockchain {
         String consortiumName;
-        @BlockchainTypesValid(allowedTypes = {BlockchainType.DAML, BlockchainType.ETHEREUM, BlockchainType.HLF})
+        @BlockchainTypesValid(allowedTypes = {BlockchainType.DAML, BlockchainType.ETHEREUM})
         BlockchainType blockchainType;
+        UUID blockchainId;
     }
 
-    // List of zone ids on which the committers should be deployed
-    // These MUST match the zone name in the Infrastructure descriptor.
-    @NotEmpty(message = "deployment.commiters.not.specified")
-    @Valid
-    private List<Committer> committers;
+    /**
+     * Get committers from the deployment model.
+     * @return a list of committers
+     */
+    List<Committer> getCommitters();
 
-    @NotEmpty(message = "deployment.clients.not.specified")
-    @Valid
-    private List<Client> clients;
+    /**
+     * Get clients from the deployment model.
+     * @return a list of clients
+     */
+    List<Client> getClients();
 
-    @Valid
-    private Blockchain blockchain;
+    /**
+     * Get the blockchain spec from the deployment model.
+     * @return a blockchain
+     */
+    Blockchain getBlockchain();
+
 }

@@ -89,6 +89,10 @@ public class CastorException extends VmbcException {
         this.httpStatus = httpStatus;
     }
 
+    /**
+     * Get the http status.
+     * @return http status
+     */
     public HttpStatus getHttpStatus() {
         return httpStatus;
     }

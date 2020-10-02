@@ -34,8 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
 import com.vmware.blockchain.castor.service.CastorDeploymentStatus;
 import com.vmware.blockchain.castor.service.ProvisionerService;
 import com.vmware.blockchain.castor.service.ProvisioningServiceTestImpl;
@@ -69,7 +69,7 @@ public class CastorDeploymentTest {
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingStub;
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub asyncProvisioningStub;
     private InfrastructureDescriptorModel infrastructureDescriptorModel;
-    private DeploymentDescriptorModel deploymentDescriptorModel;
+    private ProvisionDescriptorDescriptorModel provisioningDescriptorModel;
     ProvisioningServiceTestImpl provisioningServiceTest;
     private CompletableFuture<CastorDeploymentStatus> completableFuture;
 
@@ -83,7 +83,7 @@ public class CastorDeploymentTest {
     @Before
     public void init() throws IOException {
         infrastructureDescriptorModel = DescriptorTestUtills.buildInfraDescriptorModel();
-        deploymentDescriptorModel = DescriptorTestUtills.buildDeploymentDescriptorModel();
+        provisioningDescriptorModel = DescriptorTestUtills.buildDeploymentDescriptorModel();
 
         completableFuture = new CompletableFuture<>();
         provisioningServiceTest = new ProvisioningServiceTestImpl(completableFuture);
@@ -128,7 +128,7 @@ public class CastorDeploymentTest {
 
         // Test path through Castor services
         provisionerService.provisioningHandoff(
-                printWriter, infrastructureDescriptorModel, deploymentDescriptorModel, completableFuture);
+                printWriter, infrastructureDescriptorModel, provisioningDescriptorModel, completableFuture);
         // The future should be set, TimeoutException is unexpected for successful test.
         CastorDeploymentStatus result = completableFuture.get(5, TimeUnit.SECONDS);
         assertEquals(CastorDeploymentStatus.SUCCESS, result);
