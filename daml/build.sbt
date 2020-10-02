@@ -5,17 +5,14 @@ ThisBuild / organizationName := "Digital Asset, LLC"
 ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com.digitalasset.kvbc.daml_validator.*"
 
 lazy val akkaVersion = "2.6.1"
-lazy val sdkVersion = "1.6.0-snapshot.20200915.5208.0.09014dc6"
-lazy val integrationKitVersion = "0.0.13-snapshot.20200930.864.0.8079591f"
+lazy val sdkVersion = "1.6.0-snapshot.20200930.5312.0.b9a1905d"
+lazy val integrationKitVersion = "0.0.13-snapshot.20201001.868.0.b93d7a39"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
 lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
 
-resolvers in Global ++=
-  Seq(
-    "Digital Asset KV OEM integration kit" at "https://build-artifactory.eng.vmware.com/digitalassetsdk.bintray.com/vmware-integration-kit",
-  )
+resolvers in Global += "Digital Asset" at "https://build-artifactory.eng.vmware.com/digitalasset.jfrog.io"
 
 lazy val commonSettings = Seq()
 
