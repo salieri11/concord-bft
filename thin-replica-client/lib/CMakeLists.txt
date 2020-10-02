@@ -26,6 +26,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(thin_replica_client SHARED
   "thin_replica_client.cpp" "thin_replica_client.hpp"
   "thin_replica_client_facade.cpp" "thin_replica_client_facade.hpp"
+  "trs_connection.cpp" "trs_connection.hpp"
   "update.hpp")
 target_link_libraries(thin_replica_client
   proto
