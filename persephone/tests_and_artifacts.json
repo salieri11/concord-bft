@@ -1,4 +1,4 @@
 {
-  "test_suites": ["PersephoneSmokeNew","HelenDeployDAMLToSDDC"],
+  "test_suites": ["PersephoneSmokeNew","HelenDeployDAMLToSDDC","CastorDeploymentTests"],
   "build_targets": ["persephone-configuration", "persephone-provisioning"]
 }
