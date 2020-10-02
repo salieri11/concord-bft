@@ -122,8 +122,7 @@ def main(args):
                                                args.notifyJobName)
 
       end_time = time.time()
-      monitored_duration = args.runDuration if monitor_status else (
-            (end_time - start_time) / 3600)
+      monitored_duration = (end_time - start_time) / 3600
       if monitor_status:
          log.info("")
          log.info("**** Blockchain successfully active for {} hrs".format(
