@@ -15,8 +15,10 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 import time
+from datetime import datetime
 from tempfile import NamedTemporaryFile
 from util import helper
 import util.hermes_logging as hermes_logging
@@ -107,37 +109,69 @@ def main(args):
    log.info("************************************************************")
    status = helper.installHealthDaemon(all_replicas_and_type)
    start_time = time.time()
+   ret_status = 1
    if status:
       log.info("Successfuly instantiated health monitoring daemon on all replicas")
-      if helper.monitor_replicas(replicas_config,
-                                 args.runDuration,
-                                 args.loadInterval,
-                                 args.resultsDir,
-                                 args.testlistFile,
-                                 args.testset,
-                                 args.notifyTarget,
-                                 args.notifyJobName):
+      monitor_status = helper.monitor_replicas(replicas_config,
+                                               args.runDuration,
+                                               args.loadInterval,
+                                               args.resultsDir,
+                                               args.testlistFile,
+                                               args.testset,
+                                               args.notifyTarget,
+                                               args.notifyJobName)
+
+      end_time = time.time()
+      monitored_duration = (end_time - start_time) / 3600
+      if monitor_status:
          log.info("")
          log.info("**** Blockchain successfully active for {} hrs".format(
-            args.runDuration))
-         if args.replicasConfig:
-            log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
+            monitored_duration))
+         ret_status = 0
       else:
-         end_time = time.time()
          log.info("")
          log.error("**** Blockchain FAILED to be active for {} hrs".format(
             args.runDuration))
-         log.error("**** Blockchain sustained only for {} hrs".format(
-            (end_time - start_time) / 3600))
-         if args.replicasConfig:
-            log.info("")
-            log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
-         sys.exit(1)
+         log.error(
+            "**** Blockchain sustained only for {} hrs".format(monitored_duration))
+
+      # record monitored_duration
+      save_monitored_duration(start_time, monitored_duration)
+      if args.replicasConfig:
+         log.info("")
+         log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
    else:
       log.error(
          "**** Failed to install status monitoring daemon on nodes: {}".format(
             all_replicas_and_type))
-      sys.exit(1)
+
+   sys.exit(ret_status)
+
+def save_monitored_duration(start_time, monitored_duration):
+   '''
+   Record monitored duration in hermes-data repo for graph
+   :param start_time: Monitoring start time
+   :param monitored_duration: monitored duration
+   '''
+   jenkins_workspace = os.getenv("WORKSPACE")
+   if jenkins_workspace:
+      log.info("Record monitored duration...")
+      file_not_found = False
+      run_duration_record_file = "../../hermes-data/longrun_test/longrun_duration_summary.csv"
+      if not os.path.exists(run_duration_record_file):
+         file_not_found = True
+
+      with open(run_duration_record_file, "a+") as fp:
+         if file_not_found:
+            line = "\"Date\",\"Run Duration\"\n"
+            fp.write(line)
+
+         start_date = time.strftime('%m/%d/%y', time.localtime(start_time))
+         line = "{},{}\n".format(start_date, int(monitored_duration))
+         fp.write(line)
+
+      # For graph in Jenkins
+      shutil.copy(run_duration_record_file, jenkins_workspace)
 
 if __name__ == '__main__':
    main(sys.argv)
