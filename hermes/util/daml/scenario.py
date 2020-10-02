@@ -82,9 +82,8 @@ class Scenario():
                            dazl_create('Asset.Agent', dict(issuer=party['issuer'], agent=party['agent'])),
                            dazl_create('AssetCheck.DiscloseCmd', dict(issuer=party['issuer']))])
 
-            client_action = [dazl_create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor']))]
-                             # It hangs waiting for Charlie the clerk.
-                             #dazl_create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
+            client_action = [dazl_create('Asset.Supervisor', dict(client=party['client'], supervisor=party['supervisor'])),
+                             dazl_create('Asset.Clerk', dict(client=party['client'], clerk=party['clerk']))]
             await self.party['client'].submit(client_action)
 
             # Kick this off while the above are running.
@@ -154,7 +153,9 @@ class Scenario():
 
                 clerk, supervisor = self.party['clerk'], self.party['supervisor']
                 clerk.add_ledger_created('Asset.Clerk', self._created_clerk)
-                clerk.add_ledger_created('Asset.Quote', self._exercised_disclose)
+                # TODO: commented out because of error:
+                # Writer loop for party Charlie has NOT fully finished, but will be terminated anyway (1 futures still pending).
+                # clerk.add_ledger_created('Asset.Quote', self._exercised_disclose)
                 supervisor.add_ledger_created('Asset.Supervisor', self._created_supervisor)
                 supervisor.add_ledger_created('Asset.Request', self._exercised_clerk_request)
                 supervisor.add_ledger_exercised('Asset.Supervisor', 'Supervisor_Accept', self._exercised_accept)
@@ -305,7 +306,7 @@ class Scenario():
 
             observers = [self.data['parties']['supervisor']]
             params = dict(quoteCid=event.cid, observers=observers)
-            # TODO: There is no 'Clerk' in self.cid.  What is expected?
+
             return dazl_exercise(self.cid['Clerk'], 'Clerk_Request', params)
         else:
             info('Could not Disclose: %s', event)
