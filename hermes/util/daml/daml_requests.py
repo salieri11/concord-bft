@@ -4,12 +4,12 @@
 '''
 DAML Request Tool
 
-Provides a simple interface for DAML requests to a ledger API. 
+Provides a simple interface for DAML requests to a ledger API.
 Based on the dazl Python network stack.
 '''
 
 from argparse import ArgumentParser
-from logging import WARN, info
+from logging import WARN, info, DEBUG
 from asyncio import sleep as async_sleep
 from time import time, sleep as time_sleep
 from yaml import load, FullLoader
@@ -141,7 +141,7 @@ def daml_request(remote, scenario, repeat=1, wait=1, cleanup=False):
                 await run_once()
 
         return await scenario.asset_count()
-        
+
     # NB: the asyncio run_until_complete returns the task return value
     # The dazl implementation returns None - colect output using callbacks
     remote.network.run_until_complete(run_request())
@@ -172,19 +172,19 @@ def parse_args():
     scenario = subparser.add_parser('scenario',
                                     help='Run trade scenario - create, transfer and archive assets')
     scenario.add_argument('--complex',
-                          default=False,
-                          action='store_true',
-                          help='Run a more complex version of the scenario with additional steps')
+                          type=int,
+                          nargs='?',
+                          const=1,
+                          help='Run a slow transaction; optional value affects the time taken.')
     parser.add_argument('-r', '--repeat',
                         type=int,
-                        default='1',
+                        default=1,
                         help='Run the command this many times in sequence')
     parser.add_argument('-w', '--wait',
                         type=float,
                         default=1,
                         help='Seconds to wait between each DAML request')
     parser.add_argument('--cleanup',
-                        default=False,
                         action='store_true',
                         help='Do not archive issuer assets from previous runs')
     return parser.parse_args()
@@ -215,7 +215,8 @@ def main():
                         data,
                         args.action,
                         batch_size=args.batch if args.action == 'asset' else 1,
-                        complex=args.complex if args.action == 'scenario' else False)
+                        complex=args.complex is not None if args.action == 'scenario' else False,
+                        exec_delay=args.complex if args.action == 'scenario' else 0)
 
     daml_request(remote, scenario, args.repeat, args.wait, args.cleanup)
 
