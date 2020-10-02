@@ -28,7 +28,6 @@ WORKDIR /concord/build
 RUN cmake \
     -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
-    -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" \
     .. && \
     CTEST_OUTPUT_ON_FAILURE=true make \
     -j$(nproc) all test

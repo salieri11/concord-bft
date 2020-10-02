@@ -7,10 +7,8 @@ CONCORD_WORK_DIR:=/concord
 CONCORD_BUILD_CONTAINER:=concord-build
 CONCORD_CMAKE_FLAGS:= \
 			  -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
-			  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
-			  -DCMAKE_CXX_FLAGS=\"-march=x86-64 -mtune=generic\" \
-			  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-			  -DUSE_CONAN=OFF
+			  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7
+
 CONCORD_CTEST_TIMEOUT:=3000
 CONCORD_USER_GROUP:=--user `id -u`:`id -g`
 
@@ -46,7 +44,7 @@ run-c: ## Run container in background
 			  ${PREREQS_IMAGE} \
 			  ${CONCORD_CONTAINER_SHELL} -c \
 			  "${CONCORD_ADDITIONAL_RUN_COMMANDS} \
-			  make -C /googletest/_build install; /usr/bin/tail -f /dev/null"
+			  /usr/bin/tail -f /dev/null"
 	@echo
 	@echo "The container \"${CONCORD_BUILD_CONTAINER}\" with the build environment is started as daemon."
 	@echo "Run \"make stop-c\" to stop or \"make remove-c\" to delete."
