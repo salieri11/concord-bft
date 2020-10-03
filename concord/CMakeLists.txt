@@ -6,10 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # ELF security flags
 string(APPEND CMAKE_CXX_FLAGS " -fPIE -fstack-protector-all -O3")
 
-string(APPEND CMAKE_CXX_FLAGS " -pedantic") #Mostly for -Werror=vla
+string(APPEND CMAKE_CXX_FLAGS " -pedantic") # Mostly for -Werror=vla
+string(APPEND CMAKE_CXX_FLAGS " -march=x86-64") # Generate code specific for x68-64 architecture
+string(APPEND CMAKE_CXX_FLAGS " -mtune=generic") # Generate code optimized for the most common processors
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -pie -Wl,-z,relro,-z,now")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
