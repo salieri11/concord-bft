@@ -12,7 +12,7 @@ ONPREM_BLOCKCHAIN_ARTIFACTORY=athena-docker-local.artifactory.eng.vmware.com
 CONFIG_SERVICE_NAME=persephone-configuration
 PROVISIONING_SERVICE_NAME=persephone-provisioning
 CASTOR_SERVICE_NAME=castor
-ONPREM_BLOCKCHAIN_VERSION=0.0.0.2252
+ONPREM_BLOCKCHAIN_VERSION=0.0.0.2323
 
 CONFIG_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CONFIG_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
 PROVISIONING_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$PROVISIONING_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
@@ -65,9 +65,17 @@ else
     exit -1
 fi
 
+# In build 16973301 of the SH appliance, the default python links to python2.
+# The python2 invocation causes the ovfenv tool to fail, leading to firstboot problems.
+# Remove this if the SH folks ever fix the problem.
+pushd /usr/bin
+rm python
+ln -s python3 python
+popd
+
 # Install docker-compose
 curl -L "https://github.com/docker/compose/releases/download/1.27.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+chmod 755 /usr/local/bin/docker-compose
 
 # Add the docker containers
 docker pull $CONFIG_SERVICE
@@ -103,7 +111,7 @@ chown -R $BLOCKCHAIN_USER:users /home/$BLOCKCHAIN_USER
 # is set up and launched as a systemd service.
 
 cp $APPLIANCE_FILES/orchestrator-prereqs-launcher.sh $VMWARE_BLOCKCHAIN_DIR
-chmod 744 $VMWARE_BLOCKCHAIN_DIR/orchestrator-prereqs-launcher.sh
+chmod 755 $VMWARE_BLOCKCHAIN_DIR/orchestrator-prereqs-launcher.sh
 
 echo "Setting up the blockchain service"
 cp $APPLIANCE_FILES/blockchain.service /lib/systemd/system
@@ -122,6 +130,7 @@ systemctl status blockchain.service
 # Liberally copied from:
 # srm.perforce-aog.1750:/srm/main/install/cap/scripts/post-install-all.sh
 
+# Set up the oneshot firstboot service
 echo "Setting up the oneshot firstboot service"
 # Copy the firstboot wrapper
 cp $APPLIANCE_FILES/firstboot-init $VMWARE_BLOCKCHAIN_DIR
@@ -130,7 +139,6 @@ chmod 755 $VMWARE_BLOCKCHAIN_DIR/firstboot-init
 cp $APPLIANCE_FILES/firstboot-init.sh $VMWARE_BLOCKCHAIN_DIR
 chmod 755 $VMWARE_BLOCKCHAIN_DIR/firstboot-init.sh
 
-# Set up the oneshot firstboot service
 cp $APPLIANCE_FILES/firstboot.service /lib/systemd/system
 systemctl daemon-reload
 systemctl enable firstboot.service
