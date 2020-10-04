@@ -222,6 +222,7 @@ class ThinReplicaClient final {
   prometheus::Family<prometheus::Gauge>& trc_failures_total_;
   prometheus::Counter& trc_updates_counter_;
   prometheus::Gauge& trc_queue_size_;
+  prometheus::Gauge& trc_last_verified_block_id_;
   prometheus::Gauge& trc_read_timeouts_;
   prometheus::Gauge& trc_read_failures_;
   prometheus::Gauge& trc_read_ignored_;
@@ -366,6 +367,8 @@ class ThinReplicaClient final {
             trc_requests_counters_total_.Add({{"item", "updates"}})),
         trc_queue_size_(
             trc_resources_gauges_total_.Add({{"resource", "queue_size"}})),
+        trc_last_verified_block_id_(trc_resources_gauges_total_.Add(
+            {{"resource", "last_verified_block_id"}})),
         trc_failures_total_(prometheus::BuildGauge()
                                 .Name("trc_failures_total")
                                 .Help("TRC failures")

@@ -594,6 +594,7 @@ void ThinReplicaClient::ReceiveUpdates() {
 
     update_queue_->Push(move(update));
     latest_verified_block_id_ = update_in.block_id();
+    trc_last_verified_block_id_.Set(latest_verified_block_id_);
 
     // Cleanup before the next update
 

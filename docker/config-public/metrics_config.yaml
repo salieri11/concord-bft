@@ -11,7 +11,7 @@ concord:
     type: "counter"
     exposed: "on"
 
-  - name: "concord_trs_queue_size"
+  - name: "concord_trs_stats"
     type: "gauge"
     exposed: "on"
 

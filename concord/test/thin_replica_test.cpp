@@ -41,6 +41,9 @@ using BlockMap = std::map<BlockId, SetOfKeyValuePairs>;
 
 constexpr uint64_t kLastBlockId{5u};
 
+auto registry =
+    std::make_shared<concord::utils::PrometheusRegistry>("127.0.0.1:9891");
+
 Block generate_block(BlockId block_id) {
   return {block_id,
           SetOfKeyValuePairs{
@@ -224,7 +227,7 @@ TEST(thin_replica_test, SubscribeToUpdatesAlreadySynced) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -243,7 +246,7 @@ TEST(thin_replica_test, SubscribeToUpdatesWithGap) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -262,7 +265,7 @@ TEST(thin_replica_test, SubscribeToUpdatesWithGapFromTheMiddleBlock) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -281,7 +284,7 @@ TEST(thin_replica_test, SubscribeToUpdateHashesAlreadySynced) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -300,7 +303,7 @@ TEST(thin_replica_test, SubscribeToUpdateHashesWithGap) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -321,7 +324,7 @@ TEST(thin_replica_test, ReadState) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   ReadStateRequest request;
   request.set_key_prefix("");
@@ -337,7 +340,7 @@ TEST(thin_replica_test, ReadStateHash) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -355,7 +358,7 @@ TEST(thin_replica_test, AckUpdate) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -374,7 +377,7 @@ TEST(thin_replica_test, Unsubscribe) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -401,7 +404,8 @@ TEST(thin_replica_test, ContextWithoutClientIdData) {
   SubscriptionRequest subscription_request;
   Hash hash;
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, data_buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, data_buffer,
+                                                 registry);
   EXPECT_EQ(replica.ReadState(&context, &read_state_request, &data_stream)
                 .error_code(),
             grpc::StatusCode::UNKNOWN);
@@ -427,7 +431,7 @@ TEST(thin_replica_test, SubscribeWithWrongBlockId) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer);
+  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
