@@ -24,7 +24,7 @@ RUN mvn -f pom.xml package -pl ip-allocation-service -am -B
 #RUN mvn -f ip-allocation-service/pom.xml install
 
 # Runtime image (IP Allocation Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.2
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
 LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
 
 WORKDIR /persephone/ip-allocation-service
