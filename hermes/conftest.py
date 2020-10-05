@@ -723,7 +723,8 @@ def _get_suite_short_name(module_name):
         "DeployDamlTests": "hermes.suites.ui_e2e_deploy_daml",
         "MetadataPersistencyTests": "hermes.suites.persistency_tests",
         "HelenNodeSizeTemplateTests": "nodesize_test",
-        "ReconfigurationTests": "hermes.suites.reconfiguration_tests"
+        "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
+        "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests"
     }
 
     short_name = list(suite_list.keys())[list(
