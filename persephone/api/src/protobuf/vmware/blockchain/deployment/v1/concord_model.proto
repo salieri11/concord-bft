@@ -58,8 +58,6 @@ message ConcordComponent {
     ServiceType service_type = 2;
     string name = 3;
     ContainerSpecification container_specification = 4;
-    // Denote whether Notary Verification is required for this component
-    bool notary_verification_required = 5;
 }
 
 /**

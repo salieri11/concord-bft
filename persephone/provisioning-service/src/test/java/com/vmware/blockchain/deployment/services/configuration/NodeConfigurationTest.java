@@ -113,21 +113,6 @@ public class NodeConfigurationTest {
         }
     }
 
-    // Tests the presence of NotaryVerificationRequired in each component for each node
-    @Test
-    void testNotaryVerificationRequirementField() {
-        var output = nodeConfiguration.generateModelSpec(BlockchainType.DAML, nodeAssignment);
-
-        Assert.assertEquals(nodeAssignment.getEntriesList().size(), output.size());
-
-        for (var eachNode : nodeAssignment.getEntriesList()) {
-            output.get(UUID.fromString(eachNode.getNodeId())).forEach(component -> {
-                Assert.assertNotNull("NotaryVerificationRequired field missing for component",
-                                     component.getNotaryVerificationRequired());
-            });
-        }
-    }
-
     private void assertResponse(List<ConcordComponent> output, String dockerImageTag) {
         output.stream().forEach(k -> {
             if (NodeConfiguration.STATIC_TAG_LIST.containsKey(k.getServiceType())) {
