@@ -25,8 +25,8 @@ from suites.case import describe, passed, failed
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 import util.helper
-import util.daml.customer.participants as participants_lib
-import util.daml.customer.parties as parties_lib
+import util.daml.party_framework.participants as participants_lib
+import util.daml.party_framework.parties as parties_lib
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()

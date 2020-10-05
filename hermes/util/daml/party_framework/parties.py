@@ -12,7 +12,7 @@ import shutil
 import time
 import yaml
 
-from util.daml.customer.exceptions import TransactionCreationError, TransactionReadError
+from util.daml.party_framework.exceptions import TransactionCreationError, TransactionReadError
 import util.daml.bombardier
 import util.daml.daml_helper
 import util.hermes_logging as hermes_logging_util
