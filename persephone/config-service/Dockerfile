@@ -45,7 +45,7 @@ FROM ${concord_repo}:${concord_tag} as concord_image
 #FROM vmware-docker-blockchainsaas.bintray.io/vmwblockchain/concord-core:0.0.0.2158 as concord_image
 
 # Runtime image (Metadata Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.2
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
 LABEL description="VMware Blockchain Configuration Service"
 
 WORKDIR /app
