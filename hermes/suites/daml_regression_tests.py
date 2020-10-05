@@ -103,7 +103,7 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     node_interruption_details = {
         intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
         intr_helper.NODE_TYPE_TO_INTERRUPT: node_type,
-        intr_helper.SKIP_MASTER_REPLICA: True
+        intr_helper.SKIP_MASTER_REPLICA: False
     }
     if custom_params is None:
         node_interruption_details[intr_helper.CUSTOM_INTERRUPTION_PARAMS] = {}
@@ -111,73 +111,7 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
         node_interruption_details[intr_helper.CUSTOM_INTERRUPTION_PARAMS] = \
             custom_params
     return intr_helper.perform_interrupt_recovery_operation(
-        fxHermesRunSettings, node, node_interruption_details, mode)
-
-
-def find_primary_replica_id(master):
-    username, password = helper.getNodeCredentials()
-    cmd = "docker logs concord | cut -d '|' -f 11 | grep 'primary' | cut -d ':' -f 2| cut -d ',' -f 1|tail -1"
-    primary_id = helper.ssh_connect(master, username, password, cmd)
-    return primary_id
-
-
-def stop_start_primary_replica(master, stop_wait_time=60, start_wait_time=30):
-    username, password = helper.getNodeCredentials()
-    cmd_to_get_status = "docker inspect concord --format {{.State.Status}}"
-    status = helper.ssh_connect(master, username, password, cmd_to_get_status)
-    if "running" in status:
-        cmd_to_stop_primary = "docker stop concord"
-        helper.ssh_connect(master, username, password, cmd_to_stop_primary)
-        time.sleep(stop_wait_time)
-        status = helper.ssh_connect(
-            master, username, password, cmd_to_get_status)
-        if "exited" in status:
-            log.info("Primary replica {} stopped".format(master))
-            return True
-        else:
-            log.info("Primary replica {} failed to stop".format(master))
-            return False
-    elif "exited" in status:
-        cmd_to_start_primary = "docker start concord"
-        helper.ssh_connect(master, username, password, cmd_to_start_primary)
-        time.sleep(start_wait_time)
-        status = helper.ssh_connect(
-            master, username, password, cmd_to_get_status)
-        if "running" in status:
-            log.info("Primary replica {} restarted".format(master))
-            return True
-        else:
-            log.info("Primary replica {} failed to restart".format(master))
-            return False
-
-
-def crash_recovery_master(master):
-    try:
-        status = True
-        start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=5)
-        while status and start_time <= end_time:
-            status = stop_start_primary_replica(master)
-            start_time = datetime.now()
-    except Exception as excp:
-        log.debug("Failed to crash and recover Primary replica:{}".format(master))
-        assert False, excp
-
-
-def send_request(client_host, client_port, no_of_txns, wait_time):
-    try:
-        status = True
-        url = 'http://{}:{}'.format(client_host, client_port)
-        start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=5)
-        asyncio.set_event_loop(asyncio.new_event_loop())
-        while status and start_time <= end_time:
-            status = simple_request(url, no_of_txns, wait_time)
-            start_time = datetime.now()
-    except Exception as excp:
-        log.debug(
-            "Failed to submit Daml transactions on participant: {}".format(client_host))
-        assert False, excp
+        fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
 
 
 @describe("daml test for single transaction")
@@ -235,7 +169,6 @@ def test_daml_stop_start_replicas(fxLocalSetup, fxHermesRunSettings):
                 custom_params = {
                     intr_helper.CONTAINERS_TO_CRASH: ["concord"]
                 }
-
                 assert interrupt_node(fxHermesRunSettings, concord_host,
                                       helper.TYPE_DAML_COMMITTER,
                                       intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
@@ -421,83 +354,5 @@ def test_participant_ledgerapi_indexdb_restart(fxLocalSetup, fxHermesRunSettings
             assert simple_request(url, no_of_txns, wait_time), \
                 "DAML request submission/verification failed after daml_index_db container crash for \
                 [{}]".format(client_host)
-        except Exception as excp:
-            assert False, excp
-
-
-@describe("verify fault tolerance - view change")
-def test_fault_tolerance_view_change(fxLocalSetup, fxHermesRunSettings, fxBlockchain):
-    '''
-    Verify fault tolerance using below steps:
-    - Connect to a blockchain network.
-    - Stop f-1 non primary replica.
-    - Submit client requests continuously.
-    - Stop and start current primary (same) node continuously.
-    - Submit client requests.
-    - Verify that requests are processed correctly.
-    Args:
-        fxLocalSetup: Local fixture
-        fxHermesRunSettings: Hermes command line arguments
-        fxBlockchain: blockchain
-    '''
-    for client_host, client_port in fxLocalSetup.client_hosts.items():
-        try:
-            install_sdk_deploy_daml(client_host, client_port)
-
-            no_of_txns, wait_time = 5, 0.2
-            url = 'http://{}:{}'.format(client_host, client_port)
-
-            # Submit Daml requests before finding primary replica id
-            assert simple_request(url, no_of_txns, wait_time), \
-                "DAML request submission/verification failed for participant \
-                [{}]".format(client_host)
-
-            # Find primary replica and primary replica id
-            initial_master_replica = blockchain_ops.fetch_master_replica(
-                fxBlockchain)
-            initial_primary_replica_id = find_primary_replica_id(
-                initial_master_replica)
-            log.info("Master Replica: {} and Replica ID: {}".format(
-                initial_master_replica, initial_primary_replica_id))
-
-            # Stop f-1 non-primary replica
-            for i in range(fxLocalSetup.f_count - 1):
-                custom_params = {
-                    intr_helper.CONTAINERS_TO_CRASH: ["concord"]
-                }
-                concord_host = fxLocalSetup.concord_hosts[i]
-                if concord_host != initial_master_replica:
-                    log.info(
-                        "Stop concord in non-primary replica: {}".format(concord_host))
-                    assert interrupt_node(fxHermesRunSettings, concord_host, helper.TYPE_DAML_COMMITTER,
-                                          intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
-                                          intr_helper.NODE_INTERRUPT,
-                                          custom_params), "Failed to crash container [{}]".format(
-                        concord_host)
-            log.info("Completed stopping f-1 non-primary replica concord container")
-
-            # Start new thread for daml request submissions and stop & start primary replica
-            thread_daml_txn = Thread(target=send_request,
-                                     args=(client_host, client_port, no_of_txns, wait_time))
-            thread_stop_start_primary = Thread(
-                target=crash_recovery_master, args=(initial_master_replica,))
-            t = []
-            thread_daml_txn.start()
-            thread_stop_start_primary.start()
-            t.append(thread_daml_txn)
-            t.append(thread_stop_start_primary)
-            thread_daml_txn.join()
-            thread_stop_start_primary.join()
-
-            # Find primary replica
-            committer_no = random.randint(1, 3 * fxLocalSetup.f_count)
-            log.info(
-                "\n\n Find new primary using random committer - {}".format(committer_no))
-            new_primary_replica_id = find_primary_replica_id(
-                fxLocalSetup.concord_hosts[committer_no])
-            log.info("New primary replica ID: {}".format(
-                new_primary_replica_id))
-            assert initial_primary_replica_id != new_primary_replica_id, "View Change did not happen successfully"
-
         except Exception as excp:
             assert False, excp
