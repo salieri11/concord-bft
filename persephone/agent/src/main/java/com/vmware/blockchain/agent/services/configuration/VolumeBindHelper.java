@@ -20,6 +20,7 @@ public class VolumeBindHelper {
     public static List<Bind> getConcordVolBinds() {
         return List.of(Bind.parse("/config/concord/config-local:/concord/config-local"),
                        Bind.parse("/config/concord/config-public:/concord/config-public"),
+                       Bind.parse("/config/concord/config-generated:/concord/config-generated"),
                        Bind.parse("/config/concord/rocksdbdata:/concord/rocksdbdata"),
                        Bind.parse("/config/concord/cores:/concord/cores"));
     }
@@ -32,6 +33,7 @@ public class VolumeBindHelper {
     public static List<Bind> getConcordVolBindsDataDisk() {
         return List.of(Bind.parse("/config/concord/config-local:/concord/config-local"),
                        Bind.parse("/config/concord/config-public:/concord/config-public"),
+                       Bind.parse("/config/concord/config-generated:/concord/config-generated"),
                        Bind.parse("/mnt/data/rocksdbdata:/concord/rocksdbdata"),
                        Bind.parse("/mnt/data/cores:/concord/cores"));
     }
