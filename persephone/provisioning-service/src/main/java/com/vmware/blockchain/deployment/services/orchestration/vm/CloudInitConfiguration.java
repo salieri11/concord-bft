@@ -58,6 +58,7 @@ public class CloudInitConfiguration {
     private String vmPassword;
     private boolean noLaunch;
     private boolean newDisk;
+    private boolean mountNewDiskToPrimary;
 
     /** Container network name alias.
      * TODO: This could be unified across agent and provisioning service and sent via agent request.
@@ -122,6 +123,8 @@ public class CloudInitConfiguration {
         this.vmPassword = vmPassword;
         this.noLaunch = request.getProperties().containsKey(DeploymentAttributes.NO_LAUNCH.name());
         this.newDisk = request.getProperties().containsKey(DeploymentAttributes.VM_STORAGE.name());
+        this.mountNewDiskToPrimary = Boolean.parseBoolean(request.getProperties()
+                .getOrDefault(DeploymentAttributes.ADD_DISK_PRIMARY.name(), "False"));
     }
 
     private String getGateway(VSphereDatacenterInfo datacenterInfo) {
@@ -211,7 +214,8 @@ public class CloudInitConfiguration {
         if (noLaunch) {
             propBuilder.putValues(AgentAttributes.COMPONENT_NO_LAUNCH.name(), "True");
         }
-        if (newDisk) {
+        if (newDisk && !mountNewDiskToPrimary) {
+            // Set NEW_DATA_DISK in Agent if adding a new disk to its own partition
             propBuilder.putValues(AgentAttributes.NEW_DATA_DISK.name(), "True");
         }
         var builder = ConcordAgentConfiguration.newBuilder()
@@ -270,15 +274,25 @@ public class CloudInitConfiguration {
     private String diskSetupCommand() {
         String diskCmd = "";
         if (newDisk) {
-            String mountDir = "/mnt/data";
-            diskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;"
-                    + "sleep 2;"
-                    + "mkfs.ext4 /dev/sdb1;"
-                    + "sleep 5;"
-                    + "mkdir " + mountDir
-                    + ";mount /dev/sdb1 " + mountDir
-                    + ";echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` " + mountDir
-                    + " ext4 defaults 0 0\" >> /etc/fstab;";
+            if (mountNewDiskToPrimary) {
+                log.info("Adding new disk to existing LVM and mountpoint '/'");
+                diskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100% set 1 lvm on;"
+                        + "sleep 2;"
+                        + "pvcreate /dev/sdb1; vgextend vg0 /dev/sdb1; lvextend /dev/vg0/data /dev/sdb1; "
+                        + "resize2fs /dev/vg0/data;";
+            }
+            else {
+                String mountDir = "/mnt/data";
+                log.info(String.format("Adding new disk in a separate partition and mountpoint '%s'", mountDir));
+                diskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%;"
+                        + "sleep 2;"
+                        + "mkfs.ext4 /dev/sdb1;"
+                        + "sleep 5;"
+                        + "mkdir " + mountDir
+                        + ";mount /dev/sdb1 " + mountDir
+                        + ";echo -e \"`blkid /dev/sdb1 | cut -d\" \" -f4` " + mountDir
+                        + " ext4 defaults 0 0\" >> /etc/fstab;";
+            }
         }
         return diskCmd;
     }
