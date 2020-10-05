@@ -44,7 +44,7 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.password}")
     private String password;
 
-    @Value("${ova.template:8abc7fda-9576-4b13-9beb-06f867cf2c7c}")
+    @Value("${ova.template:ad4bf1d8-1290-4438-98ed-441837cb2f31}")
     public String template;
 
     @Value("${replica.wait:300000}")
