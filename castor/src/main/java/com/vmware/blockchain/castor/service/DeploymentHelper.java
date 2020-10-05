@@ -297,6 +297,13 @@ public class DeploymentHelper {
 
         InfrastructureDescriptorModel.Zone zoneDescriptor = zoneDescriptorOpt.get();
 
+        Endpoint.Builder notaryServerBuilder = Endpoint.newBuilder();
+        if (zoneDescriptor.getNotaryServer() != null
+            && StringUtils.hasText(zoneDescriptor.getNotaryServer().toString())) {
+            notaryServerBuilder = notaryServerBuilder
+                    .setAddress(zoneDescriptor.getNotaryServer().toString());
+        }
+
         InfrastructureDescriptorModel.Wavefront wavefrontDescriptor = zoneDescriptor.getWavefront();
         Wavefront.Builder waveFrontBuilder = Wavefront.newBuilder();
         if (wavefrontDescriptor != null) {
@@ -416,6 +423,7 @@ public class DeploymentHelper {
         vSphereOrchestrationSiteInfoBuilder
                 .setApi(vCenterApiEndpoint)
                 .setContainerRegistry(containerBuilder.build())
+                .setNotaryServer(notaryServerBuilder.build())
                 .setVsphere(vSphereDatacenterInfo)
                 .setWavefront(waveFrontBuilder.build())
                 .setElasticsearch(elasticSearchBuilder.build())

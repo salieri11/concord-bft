@@ -119,6 +119,7 @@ public class DescriptorTestUtills {
                 .network(network)
                 // skip outbound proxy
                 // skip ContainerRegistry
+                // skip NotaryServer
                 // skip Wavefront
                 // skip ElasticSearch
                 // skip LogManagement

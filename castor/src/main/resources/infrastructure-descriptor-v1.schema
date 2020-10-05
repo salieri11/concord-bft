@@ -163,6 +163,11 @@
       },
       "required": ["url", "userName", "password"]
     },
+    "notaryServer": {
+      "description": "The URL of Notary Server",
+      "type": "string",
+      "format": "url"
+    },
     "wavefront": {
       "description": "Wavefront properties",
       "type": "object",
