@@ -71,10 +71,12 @@ def test_long_run(fxHermesRunSettings, fxBlockchain):
          result = True
       else:
          end_time = time.time()
+         hours = (end_time - start_time) / 3600
+         minutes = (hours * 60) % 60
          log.error("**** Blockchain FAILED to be active for {} hrs".format(
             args.runDuration))
-         log.error("**** Blockchain sustained only for {} hrs".format(
-            (end_time - start_time) / 3600))
+         log.error("**** Blockchain sustained only for {} hrs and {} minutes".format(
+            int(hours), int(minutes)))
          if args.replicasConfig:
             log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
    else:

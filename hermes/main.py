@@ -240,19 +240,19 @@ def main():
                        help="Location for storing data for Allure reports")
    parser.add_argument("--runDuration",
                        type=int,
-                       default=1,
+                       default=6,
                        help="No. of hrs to monitor replicas (default 6 hrs)")
    parser.add_argument("--loadInterval",
                        type=int,
-                       default=0,
+                       default=60,
                        help="Minutes to wait between monitors (default 60 mins)")
-   # parser.add_argument("--testset",
-   #                     default="basic_tests",
-   #                     help="Set of test sets to be picked up from testlist file.  e.g. " \
-   #                     "'basic_tests'")
-   # parser.add_argument("--testlistFile",
-   #                     help="json file containing the list of tests",
-   #                     default=helper.LONG_RUN_TEST_FILE)
+   parser.add_argument("--testset",
+                       default="basic_tests",
+                       help="Set of test sets to be picked up from testlist file.  e.g. " \
+                       "'basic_tests'")
+   parser.add_argument("--testlistFile",
+                       help="json file containing the list of tests",
+                       default=helper.LONG_RUN_TEST_FILE)
    parser.add_argument("--notifyTarget",
                        help="Slack channel name or email address, default will skip notification",
                        default=None)
