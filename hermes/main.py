@@ -51,6 +51,7 @@ suiteList = {
    "HelenZoneTests": "suites/helen/zone_test.py",
    "HelenRoleTests": "suites/helen/roles.py",
    "NodeInterruptionTests": "suites/node_interruption_tests.py",
+   "LongRunningTests": "suites/long_running_tests.py",
    "LoggingTests": "suites/logging_tests.py",
    "PersephoneTestsNew": "suites/persephone_tests_new.py",
    "SampleSuite": "suites/sample_suite.py",
@@ -237,6 +238,27 @@ def main():
    parser.add_argument("--allureDir",
                        default=tempfile.gettempdir(),
                        help="Location for storing data for Allure reports")
+   parser.add_argument("--runDuration",
+                       type=int,
+                       default=6,
+                       help="No. of hrs to monitor replicas (default 6 hrs)")
+   parser.add_argument("--loadInterval",
+                       type=int,
+                       default=60,
+                       help="Minutes to wait between monitors (default 60 mins)")
+   parser.add_argument("--testset",
+                       default="basic_tests",
+                       help="Set of test sets to be picked up from testlist file.  e.g. " \
+                       "'basic_tests'")
+   parser.add_argument("--testlistFile",
+                       help="json file containing the list of tests",
+                       default=helper.LONG_RUN_TEST_FILE)
+   parser.add_argument("--notifyTarget",
+                       help="Slack channel name or email address, default will skip notification",
+                       default=None)
+   parser.add_argument("--notifyJobName",
+                       help="Shortened job name running this monitoring script",
+                       default=None)
 
 
 
@@ -320,8 +342,8 @@ def main():
    parent_results_dir = args.resultsDir
 
    args.allureDir = parent_results_dir if args.allureDir is tempfile.gettempdir() else args.allureDir
-   
-   
+
+
    # In future, if the location of main.py changes from hermes/,
    # update args.hermes_dir accordingly
    dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -405,7 +427,7 @@ def main():
                pipeline.dryRunSaveInvocation(runSuite=True)
          elif helper.thisHermesIsFromJenkins():
             pipeline.saveInvocationSignature(runSuite=True)
-         
+
          # at this point, the suite is going to run; mark as executed
          if helper.thisHermesIsFromJenkins():
             pipeline.markInvocationAsExecuted()
