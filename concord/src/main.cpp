@@ -495,14 +495,16 @@ void RunThinReplicaServer(
   thin_replica_server->Wait();
 }
 
-void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
-                      const ILocalKeyValueStorageReadOnly *ro_storage,
-                      SubBufferList &subscriber_list, int max_num_threads) {
+void RunTeeGrpcServer(
+    std::string server_address, KVBClientPool &pool,
+    const ILocalKeyValueStorageReadOnly *ro_storage,
+    SubBufferList &subscriber_list, int max_num_threads,
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
   Logger logger = Logger::getInstance("concord.tee");
 
   auto teeService = std::make_unique<TeeServiceImpl>(pool);
-  auto thinReplicaServiceImpl =
-      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list);
+  auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
+      ro_storage, subscriber_list, prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
@@ -521,15 +523,17 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
   tee_grpc_server->Wait();
 }
 
-void RunPerfGrpcServer(std::string server_address, KVBClientPool &pool,
-                       const ILocalKeyValueStorageReadOnly *ro_storage,
-                       SubBufferList &subscriber_list, int max_num_threads) {
+void RunPerfGrpcServer(
+    std::string server_address, KVBClientPool &pool,
+    const ILocalKeyValueStorageReadOnly *ro_storage,
+    SubBufferList &subscriber_list, int max_num_threads,
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
   Logger logger = Logger::getInstance("concord.perf.grpc");
 
   auto perfService =
       std::make_unique<concord::performance::PerformanceServiceImp>(pool);
-  auto thinReplicaServiceImpl =
-      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list);
+  auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
+      ro_storage, subscriber_list, prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
@@ -949,7 +953,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       int max_num_threads = nodeConfig.getValue<int>("tee_service_threads");
 
       std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), &replica,
-                  std::ref(subscriber_list), max_num_threads)
+                  std::ref(subscriber_list), max_num_threads,
+                  prometheus_registry)
           .detach();
     } else if (perf_enabled) {
       std::string perf_addr = {
@@ -958,7 +963,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       int max_num_threads = nodeConfig.getValue<int>("perf_service_threads");
 
       std::thread(RunPerfGrpcServer, perf_addr, std::ref(pool), &replica,
-                  std::ref(subscriber_list), max_num_threads)
+                  std::ref(subscriber_list), max_num_threads,
+                  prometheus_registry)
           .detach();
     }
 

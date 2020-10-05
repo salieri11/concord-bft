@@ -44,22 +44,16 @@ class ThinReplicaImpl {
   ThinReplicaImpl(
       const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage,
       SubBufferList& subscriber_list,
-      std::optional<std::shared_ptr<concord::utils::PrometheusRegistry>>
-          prometheus_registry = {})
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : logger_(logging::getLogger("concord.thin_replica")),
         rostorage_(rostorage),
-        subscriber_list_(subscriber_list) {
-    if (prometheus_registry) {
-      prometheus_registry_ = prometheus_registry.value();
-      auto& family = prometheus_registry_->createGaugeFamily(
-          "concord_trs_queue_size",
-          "Count the updates available to the TRS for "
-          "multiple clients differentiated by the label",
-          {{"layer", "ThinReplicaServer"},
-           {"operation", "SubscribeToUpdates"}});
-      metric_queue_size_fam_ = &family;
-    }
-  }
+        subscriber_list_(subscriber_list),
+        prometheus_registry_(prometheus_registry),
+        metric_stats_(prometheus_registry_->createGaugeFamily(
+            "concord_trs_stats",
+            "Count stats available to the TRS for multiple clients "
+            "differentiated by the label",
+            {{"operation", "SubscribeToUpdates"}})) {}
 
   ThinReplicaImpl(const ThinReplicaImpl&) = delete;
   ThinReplicaImpl(ThinReplicaImpl&&) = delete;
@@ -156,6 +150,7 @@ class ThinReplicaImpl {
       const com::vmware::concord::thin_replica::SubscriptionRequest* request,
       ServerWriterT* stream) {
     bool read_cid = false;
+    std::string stream_type;
     // If DataT == Data we want to read the correlation is when filtering the
     // updates in order to update the correlation id in the returned Update
     // item. If DataT = Hash we won't read the correlation id while filtering in
@@ -163,20 +158,30 @@ class ThinReplicaImpl {
     if constexpr (std::is_same<DataT,
                                com::vmware::concord::thin_replica::Data>()) {
       read_cid = true;
+      stream_type = "data";
+    } else if constexpr (std::is_same<
+                             DataT,
+                             com::vmware::concord::thin_replica::Hash>()) {
+      stream_type = "hash";
     }
+
     auto [kvb_status, kvb_filter] = CreateKvbFilter(context, request, read_cid);
     if (!kvb_status.ok()) {
       return kvb_status;
     }
 
-    prometheus::Gauge* metric_queue_size{};
-    if (metric_queue_size_fam_) {
-      assert(prometheus_registry_);
-      auto& metric = prometheus_registry_->createGauge(
-          *metric_queue_size_fam_, {{"client", GetClientId(context)}});
-      metric.Set(0);
-      metric_queue_size = &metric;
-    }
+    // Setup metrics for this client connection
+    assert(prometheus_registry_);
+    auto& metric_queue_size = prometheus_registry_->createGauge(
+        metric_stats_, {{"stat", "queue_size"},
+                        {"stream", stream_type},
+                        {"client", GetClientId(context)}});
+    metric_queue_size.Set(0);
+    auto& metric_last_sent_block_id = prometheus_registry_->createGauge(
+        metric_stats_, {{"stat", "last_sent_block_id"},
+                        {"stream", stream_type},
+                        {"client", GetClientId(context)}});
+    metric_last_sent_block_id.Set(0);
 
     auto [subscribe_status, live_updates] = SubscribeToLiveUpdates(request);
     if (!subscribe_status.ok()) {
@@ -204,9 +209,7 @@ class ThinReplicaImpl {
     // Read, filter, and send live updates
     std::string correlation_id;
     while (!context->IsCancelled()) {
-      if (metric_queue_size) {
-        metric_queue_size->Set(live_updates->Size());
-      }
+      metric_queue_size.Set(live_updates->Size());
       const auto& update = live_updates->Pop();
       auto filtered_update = kvb_filter->FilterUpdate(update);
       auto& kv = filtered_update.second;
@@ -227,6 +230,7 @@ class ThinReplicaImpl {
         LOG_INFO(logger_, "Subscription stream closed: " << error.what());
         break;
       }
+      metric_last_sent_block_id.Set(update.first);
     }
 
     subscriber_list_.RemoveBuffer(live_updates);
@@ -461,8 +465,8 @@ class ThinReplicaImpl {
   logging::Logger logger_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
-  std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_{};
-  prometheus::Family<prometheus::Gauge>* metric_queue_size_fam_{};
+  std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_;
+  prometheus::Family<prometheus::Gauge>& metric_stats_;
 
   const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
