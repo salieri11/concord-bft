@@ -13,16 +13,16 @@ from time import strftime, localtime, sleep
 
 import event_recorder
 from suites import (
-   eth_core_vm_tests,
-   eth_regression_tests,
-   performance_tests,
-   persistency_tests,
-   pytest_suite,
-   sample_dapp_tests
+    eth_core_vm_tests,
+    eth_regression_tests,
+    performance_tests,
+    persistency_tests,
+    pytest_suite,
+    sample_dapp_tests
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
 from util import (auth, csp, helper, hermes_logging, html, json_helper,
-                  numbers_strings, generate_grpc_bindings, pipeline)
+                 numbers_strings, generate_grpc_bindings, pipeline)
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
 
@@ -32,7 +32,7 @@ log = None
 # Add new test suite in suiteList.
 
 suiteList = {
-   "CastorDeploymentTests": "suites/castor_deployment_tests.py",
+   "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
    "ChessPlusTests": "suites/chess_plus_tests.py",
    "ClientGroupTests": "suites/st_client_group_tests.py",
    "EthCoreVmTests": "suites/eth_core_vm_tests.py",
@@ -68,7 +68,7 @@ suiteList = {
    "DamlPreexecutionTests": "suites/daml_tests.py",
    "SimpleStateTransferTest": "suites/simple_st_test.py",
    "ContractCompilerTests": "suites/contract_compiler_tests.py",
-   "SampleDAppTests": "suites/sample_dapp_tests.py",
+   "SampleDAppTests":"suites/sample_dapp_tests.py",
    "EthJsonRpcTests": "suites/eth_jsonrpc_tests.py",
    "EthRegressionTests": "suites/eth_regression_tests.py",
    "PerformanceTests": "suites/performance_tests.py",
@@ -81,15 +81,17 @@ suiteList = {
 
 local_modules = [os.path.join(".", "lib", "persephone")]
 
+
 def initialize():
-   '''
-   Perform necessary initialization to setup the runtime environment.
-   '''
-   # For any Python modules that is only available "locally" with respect to
-   # this Hermes installation, initialize the sys.path such that the module
-   # can be imported.
-   for path in local_modules:
-      sys.path.append(path)
+    '''
+    Perform necessary initialization to setup the runtime environment.
+    '''
+    # For any Python modules that is only available "locally" with respect to
+    # this Hermes installation, initialize the sys.path such that the module
+    # can be imported.
+    for path in local_modules:
+        sys.path.append(path)
+
 
 @summarizeExceptions
 def main():
@@ -100,14 +102,14 @@ def main():
 
    parser = argparse.ArgumentParser()
    parser.add_argument("suites", help="Comma delimited list of test suites. " \
-                                      "Available suites: {}".format([*suiteList]))
+                       "Available suites: {}".format([*suiteList]))
    parser.add_argument("--ethereumMode",
                        help="Run tests against Ethereum",
                        default=False,
                        action='store_true')
    parser.add_argument("--logLevel",
                        help="Set the log level.  Valid values:"
-                            "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
+                       "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
                        default="INFO")
    parser.add_argument("--resultsDir",
                        default=tempfile.gettempdir(),
@@ -116,10 +118,10 @@ def main():
                        help="File to receive timing events.")
    parser.add_argument("--tests",
                        help="Run specific tests. Details depend on the suite " \
-                            "being run. For EthCoreVmTests, this is a directory or " \
-                            "specific file relative to the VMTests directory. e.g. " \
-                            "'--tests vmArithmeticTest' or " \
-                            "'--tests vmArithmeticTest/add0.json'")
+                       "being run. For EthCoreVmTests, this is a directory or " \
+                       "specific file relative to the VMTests directory. e.g. " \
+                       "'--tests vmArithmeticTest' or " \
+                       "'--tests vmArithmeticTest/add0.json'")
    parser.add_argument("--config",
                        help="User config file to be considered.")
    parser.add_argument("--zoneConfig",
@@ -135,10 +137,10 @@ def main():
                        default=None)
    parser.add_argument("--dockerComposeFile",
                        help="REQUIRES SUDO. Accepts a docker compose file " \
-                            "which starts concord and helen.  The product will " \
-                            "be launched in docker images instead of on the " \
-                            "command line.  May be a space-separated list of files, " \
-                            "in the order in which the files should be applied.",
+                       "which starts concord and helen.  The product will " \
+                       "be launched in docker images instead of on the " \
+                       "command line.  May be a space-separated list of files, " \
+                       "in the order in which the files should be applied.",
                        default=["../docker/docker-compose.yml"],
                        nargs="*")
    parser.add_argument("--noLaunch",
@@ -148,8 +150,8 @@ def main():
                             "already running")
    parser.add_argument("--productLaunchAttempts",
                        help="Number of times to attempt to launch the product " \
-                            "before failing.  Used to work around intermittent bugs " \
-                            "with product startup.",
+                       "before failing.  Used to work around intermittent bugs " \
+                       "with product startup.",
                        default=1,
                        type=int)
    parser.add_argument("--keepconcordDB",
@@ -176,7 +178,7 @@ def main():
                        default=helper.getDefaultDeploymentComponents())
    parser.add_argument("--helenDeploymentComponentsVersion",
                        help="Optional version number of components to deploy.  e.g. 0.0.0.123" \
-                            "Defaults to concord_tag in .env>",
+                       "Defaults to concord_tag in .env>",
                        default=None)
    parser.add_argument("--useLocalConfigService",
                        default=False,
@@ -215,7 +217,7 @@ def main():
                        default="",
                        help="Comma-separated list of real names for supplied suites argument")
    parser.add_argument("--su",
-                       action="store_true",  # implies default=False
+                       action="store_true", # implies default=False
                        help="Super user privilege with all Jenkins injected credentials available.")
    parser.add_argument("--spiderImageTag", default=None,
                        help="Spider image tag, optional. If not passed in, an appropriate one will be determined.")
@@ -227,82 +229,82 @@ def main():
                        help="No. of requests from chess+")
    parser.add_argument("--dockerHubUser", default="blockchainrepositoryreader",
                        help="DockerHub user which has read access to the digitalasset private repos. " \
-                            "Only needed if the DAML SDK version is not one of {}.".format(
-                          list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
+                       "Only needed if the DAML SDK version is not one of {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
    parser.add_argument("--dockerHubPassword",
                        help="DockerHub password which has read access to the digitalasset private repos. " \
-                            "Only needed if the DAML SDK version is not in {}.".format(
-                          list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
+                       "Only needed if the DAML SDK version is not in {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
    parser.add_argument("--runID", default=helper.get_time_now_in_milliseconds(),
                        help="Unique ID to differentiate runs")
    parser.add_argument("--allureDir",
                        default=tempfile.gettempdir(),
                        help="Location for storing data for Allure reports")
+   parser.add_argument("--runDuration",
+                       type=int,
+                       default=1,
+                       help="No. of hrs to monitor replicas (default 6 hrs)")
+   parser.add_argument("--loadInterval",
+                       type=int,
+                       default=0,
+                       help="Minutes to wait between monitors (default 60 mins)")
+   parser.add_argument("--testset",
+                       default="basic_tests",
+                       help="Set of test sets to be picked up from testlist file.  e.g. " \
+                       "'basic_tests'")
+   parser.add_argument("--testlistFile",
+                       help="json file containing the list of tests",
+                       default=helper.LONG_RUN_TEST_FILE)
    parser.add_argument("--notifyTarget",
                        help="Slack channel name or email address, default will skip notification",
                        default=None)
    parser.add_argument("--notifyJobName",
                        help="Shortened job name running this monitoring script",
                        default=None)
-   parser.add_argument("--runDuration",
-                       type=int,
-                       default=6,
-                       help="No. of hrs to monitor replicas (default 6 hrs)")
-   parser.add_argument("--loadInterval",
-                       type=int,
-                       default=60,
-                       help="Minutes to wait between monitors (default 60 mins)")
-   parser.add_argument("--testset",
-                       default="basic_tests",
-                       help="Set of test sets to be picked up from testlist file.  e.g. " \
-                            "'basic_tests'")
-   parser.add_argument("--testlistFile",
-                       help="json file containing the list of tests",
-                       default=helper.LONG_RUN_TEST_FILE)
+
+
 
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
-                              help="Run Concord configuration generation for the test  cluster before "
-                                   "launching and launch with the newly generated configuration files. "
-                                   "If this option is not given, then configuration generation will be "
-                                   "skipped and the currently existing configuration files will be used.",
-                              default=False,
-                              action='store_true')
+      help="Run Concord configuration generation for the test  cluster before "
+           "launching and launch with the newly generated configuration files. "
+           "If this option is not given, then configuration generation will be "
+           "skipped and the currently existing configuration files will be used.",
+      default=False,
+      action='store_true')
    concordConfig.add_argument("--concordConfigurationInput",
-                              help="The input file to the configuration generation utility. "
-                                   "Note: --runConcordConfigurationGeneration has to be set. "
-                                   "Note: The path specified is the absolute path within a Concord container",
-                              default="/concord/config/dockerConfigurationInput.yaml")
+      help="The input file to the configuration generation utility. "
+           "Note: --runConcordConfigurationGeneration has to be set. "
+           "Note: The path specified is the absolute path within a Concord container",
+      default="/concord/config/dockerConfigurationInput.yaml")
 
    nonLocalDeployConfig = parser.add_argument_group("SDDC Deployment Parameters")
    nonLocalDeployConfig.add_argument("--blockchainLocation",
-                                     help="Location of the blockchain being tested.  Values: " \
-                                          "{} (default), {}, {}. {} not implemented." \
-                                     .format(helper.LOCATION_LOCAL,
-                                             helper.LOCATION_SDDC,
-                                             helper.LOCATION_ONPREM,
-                                             helper.LOCATION_ONPREM),
-                                     default=helper.LOCATION_LOCAL)
+                       help="Location of the blockchain being tested.  Values: " \
+                            "{} (default), {}, {}. {} not implemented." \
+                       .format(helper.LOCATION_LOCAL,
+                               helper.LOCATION_SDDC,
+                               helper.LOCATION_ONPREM,
+                               helper.LOCATION_ONPREM),
+                       default=helper.LOCATION_LOCAL)
    nonLocalDeployConfig.add_argument("--blockchainType",
-                                     help="Type of blockchain to deploy if --blockchainLocation is not 'local'.  Values: " \
-                                          "{} (default), {}, {}, {}" \
-                                     .format(helper.TYPE_ETHEREUM,
-                                             helper.TYPE_DAML,
-                                             helper.TYPE_HLF,
-                                             helper.TYPE_TEE),
-                                     default=helper.TYPE_ETHEREUM)
+                       help="Type of blockchain to deploy if --blockchainLocation is not 'local'.  Values: " \
+                            "{} (default), {}, {}, {}" \
+                       .format(helper.TYPE_ETHEREUM,
+                               helper.TYPE_DAML,
+                               helper.TYPE_HLF,
+                               helper.TYPE_TEE),
+                       default=helper.TYPE_ETHEREUM)
    nonLocalDeployConfig.add_argument("--numReplicas",
-                                     help="The number of blockchain replicas to deploy. The 'f' value will be " \
-                                          "calculated automatically using f = (numReplicas - 1)/3. If Helen does not " \
-                                          "like the combination of the replica count and f value, deployment will fail.",
-                                     default=4)
+                       help="The number of blockchain replicas to deploy. The 'f' value will be " \
+                       "calculated automatically using f = (numReplicas - 1)/3. If Helen does not " \
+                       "like the combination of the replica count and f value, deployment will fail.",
+                       default=4)
    nonLocalDeployConfig.add_argument("--keepBlockchains",
-                                     help="Whether to keep the blockchain(s) deployed by this run. " \
-                                          "Valid values: {}.  Default: '{}'".format([helper.KEEP_BLOCKCHAINS_ALWAYS,
-                                                                                     helper.KEEP_BLOCKCHAINS_ON_FAILURE,
-                                                                                     helper.KEEP_BLOCKCHAINS_NEVER],
-                                                                                    helper.KEEP_BLOCKCHAINS_NEVER),
-                                     default=helper.KEEP_BLOCKCHAINS_NEVER)
+                       help="Whether to keep the blockchain(s) deployed by this run. " \
+                            "Valid values: {}.  Default: '{}'".format([helper.KEEP_BLOCKCHAINS_ALWAYS,
+                                                                       helper.KEEP_BLOCKCHAINS_ON_FAILURE,
+                                                                       helper.KEEP_BLOCKCHAINS_NEVER],
+                                                                      helper.KEEP_BLOCKCHAINS_NEVER),
+                       default=helper.KEEP_BLOCKCHAINS_NEVER)
    nonLocalDeployConfig.add_argument("--numParticipants",
                                      help="The number of participant/client nodes to deploy.",
                                      default=1)
@@ -315,7 +317,7 @@ def main():
                                      default='localhost')
    nonLocalDeployConfig.add_argument("--replicasConfig",
                                      help="Replicas config file obtained after a helen/persephone deployment. "
-                                          'Sample format: { "daml_committer": [ { "ip": "10.73.232.56", ... }, ... ], "daml_participant": [ { "ip": "10.73.232.65", ... } ] }',
+                                     'Sample format: { "daml_committer": [ { "ip": "10.73.232.56", ... }, ... ], "daml_participant": [ { "ip": "10.73.232.65", ... } ] }',
                                      default=None)
    nonLocalDeployConfig.add_argument("--deploymentOrg",
                                      help="Org to use for the deployment for long running tests. An org can specify details such as the Concord version to deploy and feature flags. "
@@ -324,7 +326,7 @@ def main():
                                      default=None)
    nonLocalDeployConfig.add_argument("--deploymentService",
                                      help="The blockchain service to use for long running tests. (Feel free to adopt for other tests.) Valid values: " \
-                                          "A url or the word 'staging'. Defaults to https://localhost/blockchains/local (same as reverseProxyApiBaseUrl)". \
+                                     "A url or the word 'staging'. Defaults to https://localhost/blockchains/local (same as reverseProxyApiBaseUrl)". \
                                      format(auth.SERVICE_STAGING),
                                      default="https://localhost/blockchains/local")
    nonLocalDeployConfig.add_argument("--numGroups",
@@ -340,6 +342,7 @@ def main():
    parent_results_dir = args.resultsDir
 
    args.allureDir = parent_results_dir if args.allureDir is tempfile.gettempdir() else args.allureDir
+
 
    # In future, if the location of main.py changes from hermes/,
    # update args.hermes_dir accordingly
@@ -370,7 +373,7 @@ def main():
       folder = args.zoneOverrideFolder if hasattr(args, "zoneOverrideFolder") else None
       util.infra.overrideDefaultZones(args.zoneOverride, folder)
 
-   # Valid Test Suite List?
+   #Valid Test Suite List?
    allSuitesValid = True
    unKnownSuites = []
    for i, suiteName in enumerate(args.suites.split(",")):
@@ -380,13 +383,11 @@ def main():
       else:
          allSuitesValid = (allSuitesValid and True)
 
-   if not allSuitesValid:
+   if not allSuitesValid :
       log.error("Unknown Suites found: {}".format(unKnownSuites))
       log.info("Available Test Suites {}".format([*suiteList]))
-      try:
-         raise Exception("Unknown test suite")
-      except Exception as e:
-         log.error(e); addExceptionToSummary(e)
+      try: raise Exception("Unknown test suite")
+      except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(3)
 
    # Generate gRPC bindings for Hermes
@@ -399,7 +400,7 @@ def main():
       if args.eventsFile:
          event_recorder.record_event(suiteName, "Start", args.eventsFile)
 
-      for run_count in range(1, args.repeatSuiteRun + 1):
+      for run_count in range(1, args.repeatSuiteRun+1):
          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
          args.resultsDir = createResultsDir(suiteName,
                                             parent_results_dir=parent_results_dir)
@@ -407,10 +408,8 @@ def main():
          suite = pytest_suite.PytestSuite(args, suiteName, suiteList[suiteName], product)
          map_run_id_to_this_run(args, parent_results_dir)
          if suite is None:
-            try:
-               raise Exception("Unknown test suite")
-            except Exception as e:
-               log.error(e); addExceptionToSummary(e)
+            try: raise Exception("Unknown test suite")
+            except Exception as e: log.error(e); addExceptionToSummary(e)
             exit(3)
 
          helper.CURRENT_SUITE_NAME = suiteName
@@ -468,84 +467,85 @@ def main():
                log.info("Collecting support bundle(s)...")
                for blockchain_type, replica_ips in all_replicas_and_type.items():
                   helper.create_concord_support_bundle(
-                     replica_ips, blockchain_type, args.resultsDir)
+                        replica_ips, blockchain_type, args.resultsDir)
                log.info("*************************************")
          except Exception as e:
-            addExceptionToSummary(e)
-            suiteSuccess = False
-            suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(
-               resultFile, suiteName)
+               addExceptionToSummary(e)
+               suiteSuccess = False
+               suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(
+                  resultFile, suiteName)
 
          allResults[suiteName] = {
-            "message": suiteSuccessMessage,
-            "logs": suite.getTestLogDir()
+               "message": suiteSuccessMessage,
+               "logs": suite.getTestLogDir()
          }
 
          totalSuccess = totalSuccess and suiteSuccess
 
          if not totalSuccess:
-            update_repeated_suite_run_result(
-               parent_results_dir, "fail", args.repeatSuiteRun)
-            break
+               update_repeated_suite_run_result(
+                  parent_results_dir, "fail", args.repeatSuiteRun)
+               break
 
       if args.eventsFile:
-         event_recorder.record_event(suiteName, "End", args.eventsFile)
+            event_recorder.record_event(suiteName, "End", args.eventsFile)
 
    # CI dry run does not have to actually run the suites
    if pipeline.isDryRun() and pipeline.isQualifiedToSkip():
-      pipeline.markInvocationAsNotExecuted()
-      helper.hermesPreexitWrapUp()
-      exit(0)
+     pipeline.markInvocationAsNotExecuted()
+     helper.hermesPreexitWrapUp()
+     exit(0)
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
    printAllResults(allResults)
    helper.hermesPreexitWrapUp()
 
    if not totalSuccess:
-      try:
-         raise Exception("Not a total success for suite '{}'".format(helper.CURRENT_SUITE_NAME))
-      except Exception as e:
-         log.error(e); addExceptionToSummary(e)
+      try: raise Exception("Not a total success for suite '{}'".format(helper.CURRENT_SUITE_NAME))
+      except Exception as e: log.error(e); addExceptionToSummary(e)
       exit(2)
 
+
 def printAllResults(allResults):
-   '''
-   Summarize the suite results on the console.
-   '''
-   longestName = 0
-   longestMessage = 0
-   longestDir = 0
+    '''
+    Summarize the suite results on the console.
+    '''
+    longestName = 0
+    longestMessage = 0
+    longestDir = 0
 
-   for suiteName in allResults:
-      longestName = len(suiteName) if len(
-         suiteName) > longestName else longestName
+    for suiteName in allResults:
+        longestName = len(suiteName) if len(
+            suiteName) > longestName else longestName
 
-      messageLength = len(numbers_strings.stripEscapes(
-         allResults[suiteName]["message"]))
-      longestMessage = messageLength if messageLength > longestMessage else longestMessage
+        messageLength = len(numbers_strings.stripEscapes(
+            allResults[suiteName]["message"]))
+        longestMessage = messageLength if messageLength > longestMessage else longestMessage
 
-      logPath = allResults[suiteName]["logs"]
-      longestDir = len(logPath) if len(logPath) > longestDir else longestDir
+        logPath = allResults[suiteName]["logs"]
+        longestDir = len(logPath) if len(logPath) > longestDir else longestDir
 
-   longestValues = [longestName, longestMessage, longestDir]
-   header = numbers_strings.createLogRow(
-      ["Suite", "Result", "Logs"], longestValues)
-   log.info(header)
+    longestValues = [longestName, longestMessage, longestDir]
+    header = numbers_strings.createLogRow(
+        ["Suite", "Result", "Logs"], longestValues)
+    log.info(header)
 
-   for suiteName in allResults:
-      row = numbers_strings.createLogRow([suiteName,
-                                          allResults[suiteName]["message"],
-                                          allResults[suiteName]["logs"]],
-                                         longestValues)
-      log.info(row)
+    for suiteName in allResults:
+        row = numbers_strings.createLogRow([suiteName,
+                                            allResults[suiteName]["message"],
+                                            allResults[suiteName]["logs"]],
+                                           longestValues)
+        log.info(row)
+
 
 def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
-   if no_of_runs > 1:
-      result_file = os.path.join(parent_results_dir,
-                                 'test_status.{0}'.format(result))
-      log.info("Repeated Suite run result: {0} [{1}]".format(
-         result, result_file))
-      open(result_file, 'a').close()
+    if no_of_runs > 1:
+        result_file = os.path.join(parent_results_dir,
+                                   'test_status.{0}'.format(result))
+        log.info("Repeated Suite run result: {0} [{1}]".format(
+            result, result_file))
+        open(result_file, 'a').close()
+
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    '''
@@ -559,76 +559,77 @@ def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    return results_dir
 
 def processResults(resultFile):
-   '''
-   Process a result file, outputting an html file.  If we ever need to output
-   a file in another format (such as a CI tool), do that here.
-   '''
-   results = json_helper.readJsonFile(resultFile)
-   testCount, passCount, failCount, skippedCount = tallyResults(results)
-   fileContents = html.createResultHeader(results,
-                                          testCount,
-                                          passCount,
-                                          failCount,
-                                          skippedCount)
-   fileContents += html.createResultTable(results)
-   fileContents += html.createHtmlFooter()
-   fileLocation = os.path.join(os.path.dirname(resultFile), "results.html")
+    '''
+    Process a result file, outputting an html file.  If we ever need to output
+    a file in another format (such as a CI tool), do that here.
+    '''
+    results = json_helper.readJsonFile(resultFile)
+    testCount, passCount, failCount, skippedCount = tallyResults(results)
+    fileContents = html.createResultHeader(results,
+                                           testCount,
+                                           passCount,
+                                           failCount,
+                                           skippedCount)
+    fileContents += html.createResultTable(results)
+    fileContents += html.createHtmlFooter()
+    fileLocation = os.path.join(os.path.dirname(resultFile), "results.html")
 
-   with open(fileLocation, "w") as f:
-      f.write(fileContents)
+    with open(fileLocation, "w") as f:
+        f.write(fileContents)
 
-   log.info("Results written to '{}'".format(fileLocation))
+    log.info("Results written to '{}'".format(fileLocation))
 
-   suiteName = list(results.keys())[0]
-   red = "\033[1;31m"
-   green = "\033[1;32m"
-   yellow = "\033[1;33m"
-   reset = "\033[0m"
+    suiteName = list(results.keys())[0]
+    red = "\033[1;31m"
+    green = "\033[1;32m"
+    yellow = "\033[1;33m"
+    reset = "\033[0m"
 
-   msg = "{color}{symbol} " + suiteName + " {tests}" + reset
+    msg = "{color}{symbol} " + suiteName + " {tests}" + reset
 
-   # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
-   # will still be able to find it.
-   if failCount > 0 or passCount <= 0:
-      msg = msg.format(color=red, symbol="\u2717",
-                       tests="{} tests failed".format(failCount))
-   else:
-      msg = msg.format(color=green, symbol="\u2714",
-                       tests="{} tests succeeded".format(passCount))
+    # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
+    # will still be able to find it.
+    if failCount > 0 or passCount <= 0:
+        msg = msg.format(color=red, symbol="\u2717",
+                         tests="{} tests failed".format(failCount))
+    else:
+        msg = msg.format(color=green, symbol="\u2714",
+                         tests="{} tests succeeded".format(passCount))
 
-   if skippedCount > 0:
-      msg += " {}{} tests skipped{}".format(yellow, skippedCount, reset)
+    if skippedCount > 0:
+        msg += " {}{} tests skipped{}".format(yellow, skippedCount, reset)
 
-   log.info(msg)
+    log.info(msg)
 
-   return failCount == 0 and passCount != 0, msg
+    return failCount == 0 and passCount != 0, msg
+
 
 def tallyResults(results):
-   '''
-   Given the results structure, returns:
-   - Total number of tests run.
-   - Passes
-   - Failures
-   - Skipped
-   '''
-   suiteName = list(results.keys())[0]
-   testCases = results[suiteName]["tests"]
-   passCount = 0
-   failCount = 0
-   skippedCount = 0
-   totalCount = 0
+    '''
+    Given the results structure, returns:
+    - Total number of tests run.
+    - Passes
+    - Failures
+    - Skipped
+    '''
+    suiteName = list(results.keys())[0]
+    testCases = results[suiteName]["tests"]
+    passCount = 0
+    failCount = 0
+    skippedCount = 0
+    totalCount = 0
 
-   for test in testCases:
-      totalCount += 1
+    for test in testCases:
+        totalCount += 1
 
-      if testCases[test]["result"] == "PASS":
-         passCount += 1
-      elif testCases[test]["result"] == "FAIL":
-         failCount += 1
-      elif testCases[test]["result"] == "SKIPPED":
-         skippedCount += 1
+        if testCases[test]["result"] == "PASS":
+            passCount += 1
+        elif testCases[test]["result"] == "FAIL":
+            failCount += 1
+        elif testCases[test]["result"] == "SKIPPED":
+            skippedCount += 1
 
-   return totalCount, passCount, failCount, skippedCount
+    return totalCount, passCount, failCount, skippedCount
 
 def map_run_id_to_this_run(args, parent_results_dir):
    '''
@@ -646,7 +647,7 @@ def map_run_id_to_this_run(args, parent_results_dir):
    hermes_testrun_info_lock_file = "{}.lock".format(hermes_testrun_info_file)
    max_tries = 5
    count = 0
-   while count < max_tries:  # avoid deadlock if a parallel run is writing into the file
+   while count < max_tries: # avoid deadlock if a parallel run is writing into the file
       if os.path.exists(hermes_testrun_info_lock_file):
          sleep(1)
       else:
@@ -673,5 +674,6 @@ def map_run_id_to_this_run(args, parent_results_dir):
          os.remove(hermes_testrun_info_lock_file)
       except FileExistsError:
          pass
+
 
 main()

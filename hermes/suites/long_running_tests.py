@@ -20,7 +20,7 @@ import json
 import pytest
 import util.helper as helper
 from suites.case import describe
-from fixtures.common_fixtures import fxProduct, fxBlockchain, fxNodeInterruption
+from fixtures.common_fixtures import fxBlockchain
 import util.hermes_logging
 
 log = util.hermes_logging.getMainLogger()
@@ -39,8 +39,7 @@ def test_long_run(fxHermesRunSettings, fxBlockchain):
          replicas_config = util.helper.REPLICAS_JSON_PATH
       else:
          log.warning(
-            "Either --replicasConfig should be passed OR blockchainType must be {} and blockchainLocation must be {}- Test Failed"
-               .format(blockchain_type, blockchain_location))
+            "Either --replicasConfig should be passed OR blockchainType must be 'daml' and blockchainLocation must be 'onprem / sddc'- Test Failed")
 
    all_replicas_and_type = helper.parseReplicasConfig(replicas_config)
    replica_json_data = json.dumps(all_replicas_and_type, sort_keys=True, indent=4)
@@ -51,10 +50,10 @@ def test_long_run(fxHermesRunSettings, fxBlockchain):
    log.info("Load Interval: {} mins".format(args.loadInterval))
    log.info("Support bundle destination: {}".format(args.resultsDir))
 
-   log.info("")
    log.info("************************************************************")
    status = helper.installHealthDaemon(all_replicas_and_type)
    start_time = time.time()
+   result = False
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
       if helper.monitor_replicas(replicas_config,
@@ -78,11 +77,9 @@ def test_long_run(fxHermesRunSettings, fxBlockchain):
             (end_time - start_time) / 3600))
          if args.replicasConfig:
             log.info(helper.longRunningTestDashboardLink(args.replicasConfig))
-         result = False
    else:
       log.error(
          "**** Failed to install status monitoring daemon on nodes: {}".format(
             all_replicas_and_type))
-      result = False
    log.info("Overall Run status: {}".format(result))
    assert result, "Long Run Failed"
