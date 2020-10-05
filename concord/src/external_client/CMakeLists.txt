@@ -1,5 +1,3 @@
-
-
 file (GLOB util_headers "../../submodules/concord-bft/util/include/*.h"
         "../../submodules/concord-bft/util/include/*.hpp")
 file (GLOB logging_headers "../../submodules/concord-bft/logging/include/*.hpp")
@@ -20,7 +18,6 @@ install (FILES ${comm_headers} ${logging_headers} DESTINATION include/communicat
 install (FILES ../../submodules/concord-bft/storage/include/storage/db_interface.h ${util_headers} DESTINATION include/storage)
 install (FILES ${bft_headers} DESTINATION include/bftclient)
 install (FILES ${util_headers} ${logging_headers} DESTINATION include/)
-
 
 file(GLOB concord_external_client_sources "*.cpp" "*.hpp"
         "../../submodules/concord-bft/threshsign/src/*.cpp")

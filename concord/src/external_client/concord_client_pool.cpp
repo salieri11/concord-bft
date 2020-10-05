@@ -46,7 +46,7 @@ SubmitResult ConcordClientPool::SendRequest(
     } else {
       rejected_counter_.Increment();
       is_overloaded_ = true;
-      LOG_ERROR(logger_, "Cannot allocate client for cid=" << correlation_id);
+      LOG_WARN(logger_, "Cannot allocate client for cid=" << correlation_id);
       return SubmitResult::Overloaded;
     }
   }
@@ -62,7 +62,7 @@ SubmitResult ConcordClientPool::SendRequest(
       logger_,
       "client_id=" << client->getClientId() << " starts handling reqSeqNum="
                    << client->getClientSeqNum() << " cid=" << correlation_id
-                   << "span_context exists=" << !span_context.empty()
+                   << " span_context exists=" << !span_context.empty()
                    << " flags=" << flags << " request_size=" << request.size()
                    << " timeout_ms=" << timeout_ms.count());
 
