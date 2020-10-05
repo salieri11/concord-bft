@@ -20,7 +20,7 @@ import json
 import pytest
 import util.helper as helper
 from suites.case import describe
-from fixtures.common_fixtures import fxBlockchain
+from fixtures.common_fixtures import fxProduct, fxBlockchain
 import util.hermes_logging
 
 log = util.hermes_logging.getMainLogger()
