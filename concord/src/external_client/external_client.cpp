@@ -12,6 +12,7 @@
 // file.
 
 #include "external_client.hpp"
+#include "bftclient/fake_comm.h"
 
 namespace concord::external_client {
 
@@ -20,6 +21,7 @@ using config::CommConfig;
 using config::ConcordConfiguration;
 using namespace config_pool;
 using namespace bftEngine;
+using std::chrono_literals::operator""s;
 
 using namespace bft::communication;
 
@@ -55,15 +57,23 @@ uint32_t ConcordClient::SendRequest(const void* request,
   char* replyBuffer =
       externalReplyBuffer ? externalReplyBuffer : reply_->data();
 
-  auto res = client_->sendRequest(flags, static_cast<const char*>(request),
-                                  request_size, seq_num, timeout_ms.count(),
-                                  replyBufSize, replyBuffer, replyBufSize,
-                                  correlation_id, span_context);
+  auto res = bftEngine::OperationResult::SUCCESS;
+  if (enable_mock_comm_)
+    res = client_->sendRequest(
+        ClientMsgFlag::READ_ONLY_REQ, static_cast<const char*>(request),
+        request_size, seq_num, timeout_ms.count(), replyBufSize, replyBuffer,
+        replyBufSize, correlation_id, span_context);
+  else
+    res = client_->sendRequest(flags, static_cast<const char*>(request),
+                               request_size, seq_num, timeout_ms.count(),
+                               replyBufSize, replyBuffer, replyBufSize,
+                               correlation_id, span_context);
 
   if (res == bftEngine::OperationResult::TIMEOUT)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
                                     << " has failed to invoke, timeout="
-                                    << timeout_ms.count() << " ms has reached");
+                                    << timeout_ms.count()
+                                    << " ms has been reached");
   else if (res == bftEngine::OperationResult::BUFFER_TOO_SMALL)
     LOG_ERROR(logger_, "reqSeqNum=" << seq_num << " cid=" << correlation_id
                                     << " has failed to invoke, buffer size="
@@ -125,6 +135,8 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   auto fVal = config.getValue<uint16_t>(pool_config.F_VAL);
   auto cVal = config.getValue<uint16_t>(pool_config.C_VAL);
   auto clientId = client_conf.getValue<uint16_t>(pool_config.CLIENT_ID);
+  if (config.hasValue<bool>(pool_config.ENABLE_MOCK_COMM))
+    enable_mock_comm_ = config.getValue<bool>(pool_config.ENABLE_MOCK_COMM);
   CommConfig comm_config;
   CreateCommConfig(comm_config, config, num_replicas, pool_config);
   client_id_ = clientId;
@@ -146,18 +158,23 @@ void ConcordClient::CreateClient(const ConcordConfiguration& config,
   // object members if construction and startup haven't thrown.
   LOG_DEBUG(logger_,
             "Client_id=" << client_id_ << " Creating communication module");
-  auto comm = pool_config.ToCommunication(comm_config);
+  if (enable_mock_comm_) {
+    std::unique_ptr<FakeCommunication> fakecomm(
+        new FakeCommunication(immideateBehaviour));
+    comm_ = std::move(fakecomm);
+  } else {
+    auto comm = pool_config.ToCommunication(comm_config);
+    comm_ = std::move(comm);
+  }
   LOG_DEBUG(
       logger_,
       "Client_id="
           << client_id_
           << " starting communication and creating simple client instance");
-  comm_ = std::move(comm);
-  comm_->Start();
   auto client = std::unique_ptr<bftEngine::SimpleClient>{
       bftEngine::SimpleClient::createSimpleClient(comm_.get(), clientId, fVal,
                                                   cVal, client_params)};
-
+  comm_->Start();
   seqGen_ = bftEngine::SeqNumberGeneratorForClientRequests::
       createSeqNumberGeneratorForClientRequests();
   client_ = std::move(client);

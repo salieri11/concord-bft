@@ -63,6 +63,7 @@ class ClientPoolConfig {
   const std::string PROMETHEUS_PORT = "prometheus_port";
   const std::string PROMETHEUS_HOST = "participant_node_host";
   const std::string CLIENT_PROXIES_PER_REPLICA = "client_proxies_per_replica";
+  const std::string ENABLE_MOCK_COMM = "enable_mock_comm";
   ClientPoolConfig();
 
   void ParseConfig(std::istream& config_stream,
