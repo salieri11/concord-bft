@@ -70,7 +70,7 @@ def install_sdk_deploy_daml(client_host, client_port):
            client_host, "--port", client_port]
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
-        cmd, timeout=120, working_dir=party_project_dir, verbose=True)
+        cmd, timeout=150, working_dir=party_project_dir, verbose=True)
 
     assert success or "Party already exists" in output, \
         "Unable to deploy DAML app for one/more parties"
