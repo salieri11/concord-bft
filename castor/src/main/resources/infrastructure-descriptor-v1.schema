@@ -25,12 +25,12 @@
         "memoryGb": {
           "description": "Memory in GB for the deployed blockchain VM",
           "type": "integer",
-          "minimum": 0
+          "exclusiveMinimum": 0
         },
         "clientDiskGb": {
           "description": "Disk size in GB for the deployed blockchain client VM",
           "type": "integer",
-          "minimum": 0,
+          "exclusiveMinimum": 0,
           "maximum": 63488
         },
         "committerDiskGb": {
