@@ -10,6 +10,7 @@ function log {
 log $0 $@
 
 chown concord /concord/rocksdbdata
+chown concord /concord/config-generated
 chown concord /concord/log
 chown concord /concord/cores
 
