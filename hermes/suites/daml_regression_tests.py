@@ -21,7 +21,7 @@ LocalSetupFixture = namedtuple(
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
-def fxLocalSetup(fxHermesRunSettings, fxNodeInterruption, fxBlockchain, fxProduct):
+def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxProduct):
     '''
     Module scoped fixture to enable all the test cases utilize common func.
     Functionalities:
@@ -30,7 +30,6 @@ def fxLocalSetup(fxHermesRunSettings, fxNodeInterruption, fxBlockchain, fxProduc
     Args:
         fxHermesRunSettings: Hermes command line arguments.
         fxBlockchain: Blockchain fixture required to get f_count
-        fxNodeInterruption: Node Interruption fixture for related functions
         fxProduct: Product fixture
     Returns:
         client_hosts: Participant hosts (and ports) with running ledger API
@@ -38,15 +37,10 @@ def fxLocalSetup(fxHermesRunSettings, fxNodeInterruption, fxBlockchain, fxProduc
         f_count: Maximum faulty replicas allowed.
     '''
     ledger_api_hosts, concord_hosts = None, None
-
-    # Get Client IP from Replicas config file
-    args = fxHermesRunSettings["hermesCmdlineArgs"]
-    if args.replicasConfig:
-        all_replicas = helper.parseReplicasConfig(args.replicasConfig)
-        ledger_api_hosts = all_replicas["daml_participant"]
-        concord_hosts = all_replicas["daml_committer"]
-    else:
-        ledger_api_hosts = args.damlParticipantIP.split(",")
+    log.info("\nInside local fixture, all the nodes are {}".format(fxBlockchain.replicas))
+    all_replicas = fxBlockchain.replicas
+    ledger_api_hosts = all_replicas["daml_participant"]
+    concord_hosts = all_replicas["daml_committer"]
 
     f_count = intr_helper.get_f_count(fxBlockchain)
     client_hosts = {}
