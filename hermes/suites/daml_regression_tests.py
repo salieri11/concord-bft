@@ -356,3 +356,92 @@ def test_participant_ledgerapi_indexdb_restart(fxLocalSetup, fxHermesRunSettings
                 [{}]".format(client_host)
         except Exception as excp:
             assert False, excp
+
+
+@describe("recovery test after checkpoints (network failure)")
+def test_daml_network_failure(fxLocalSetup, fxHermesRunSettings):
+    '''
+    Verify below using DAML tool.
+    - Connect to a blockchain network.
+    - Submit valid requests enough to trigger multiple checkpoints. ** Will be done later **
+    - Disable the network interface on all replicas.
+    - Enable the network interface on all replicas.
+    - Submit a small number of sequential client requests
+    - Verify that new requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+    '''
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        try:
+            install_sdk_deploy_daml(client_host, client_port)
+
+            no_of_txns, wait_time = 2, 1
+            url = 'http://{}:{}'.format(client_host, client_port)
+
+            assert simple_request(url, no_of_txns), \
+                "DAML request submission/verification failed for participant \
+                [{}]".format(client_host)
+
+            # Disconnect network of all committer nodes
+            custom_params = {
+                intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_VM_LEVEL
+            }
+
+            for i in range(len(fxLocalSetup.concord_hosts)):
+                concord_host = fxLocalSetup.concord_hosts[i]
+                assert interrupt_node(fxHermesRunSettings, concord_host,
+                                      helper.TYPE_DAML_COMMITTER,
+                                      intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+                                      intr_helper.NODE_INTERRUPT,
+                                      custom_params), \
+                    "Failed to disconnect committer node [{}]".format(
+                        concord_host)
+
+            # Reconnect network of all committer nodes
+            for i in range(len(fxLocalSetup.concord_hosts)):
+                concord_host = fxLocalSetup.concord_hosts[i]
+                assert interrupt_node(fxHermesRunSettings, concord_host,
+                                      helper.TYPE_DAML_COMMITTER,
+                                      intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
+                                      intr_helper.NODE_RECOVER,
+                                      custom_params), \
+                    "Failed to reconnect committer node [{}]".format(
+                        concord_host)
+
+            # Create & verify transactions after disconnect/reconnect of all committer nodes
+            assert simple_request(url, no_of_txns), \
+                "DAML request submission/verification failed after network \
+                    disconnect and reconnect for all committer nodes"
+
+            # Power off f committer nodes
+            for i in range(fxLocalSetup.f_count):
+                concord_host = fxLocalSetup.concord_hosts[i]
+                assert interrupt_node(fxHermesRunSettings, concord_host,
+                                      helper.TYPE_DAML_COMMITTER,
+                                      intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                                      intr_helper.NODE_INTERRUPT), \
+                    "Failed to power off committer node [{}]".format(
+                        concord_host)
+
+            # Create & verify transactions after powering off f committer nodes
+            assert simple_request(url, no_of_txns), \
+                "DAML request submission/verification failed after \
+                powering off {} committers".format(fxLocalSetup.f_count)
+
+            # Power on f committer nodes
+            for i in range(fxLocalSetup.f_count):
+                concord_host = fxLocalSetup.concord_hosts[i]
+                assert interrupt_node(fxHermesRunSettings, concord_host,
+                                      helper.TYPE_DAML_COMMITTER,
+                                      intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                                      intr_helper.NODE_RECOVER), \
+                    "Failed to power on committer node [{}]".format(
+                        concord_host)
+
+            # Create & verify transactions after powering on f committer nodes
+            assert simple_request(url, no_of_txns), \
+                "DAML request submission/verification failed after powering \
+                on {} committer nodes".format(fxLocalSetup.f_count)
+        except Exception as excp:
+            assert False, excp
