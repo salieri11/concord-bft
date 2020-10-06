@@ -208,6 +208,8 @@ public class InfrastructureDescriptorModel {
         @Valid
         private ContainerRegistry containerRegistry;
 
+        private URL notaryServer;
+
         @Valid
         private Wavefront wavefront;
 
