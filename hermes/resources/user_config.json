@@ -185,7 +185,7 @@
       },
       "defaults": {
         "concord_model_version": "1.0",
-        "concord_model_template_id": "ad4bf1d8-1290-4438-98ed-441837cb2f31",
+        "concord_model_template_id": "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
         "deployment_components": {
           "ethereum": {
             "vmwblockchain/agent:latest": "agent",
