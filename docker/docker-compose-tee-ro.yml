@@ -19,6 +19,7 @@ services:
     volumes:
       - ./devdata/rocksdbdata5:/concord/rocksdbdata
       - ./devdata/log5:/concord/log
+      - ./devdata/securestore5:/concord/config-generated
       - ./config-concord5:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro

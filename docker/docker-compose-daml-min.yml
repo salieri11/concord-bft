@@ -19,6 +19,7 @@ services:
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
+      - ./devdata/securestore1:/concord/config-generated
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
@@ -37,6 +38,7 @@ services:
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
+      - ./devdata/securestore2:/concord/config-generated
       - ./config-concord2:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
@@ -55,6 +57,7 @@ services:
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
+      - ./devdata/securestore3:/concord/config-generated
       - ./config-concord3:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
@@ -73,6 +76,7 @@ services:
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
+      - ./devdata/securestore4:/concord/config-generated
       - ./config-concord4:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
