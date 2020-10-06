@@ -82,7 +82,7 @@ public class JsonSchemaTest {
 
         validationException.getAllMessages().forEach(System.out::println);
         String[] expectedMessages = new String[]{
-            "#/organization/memoryGb: -4 is not greater or equal to 0",
+            "#/organization/memoryGb: -4 is not greater than 0",
             "#/organization/cpuCount: -4 is not greater or equal to 0",
             "#/zones/0/vCenter: required key [password] not found",
             "#/zones/0/network: required key [name] not found"
