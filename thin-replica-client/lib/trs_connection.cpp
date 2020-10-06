@@ -75,6 +75,7 @@ void TrsConnection::closeDataStream() {
   }
   assert(data_context_);
   data_context_->TryCancel();
+  data_context_.reset();
   data_stream_.reset();
 }
 
@@ -108,6 +109,7 @@ bool TrsConnection::closeStateStream() {
                                 << status.error_code() << ", \""
                                 << status.error_message() << "\").");
   }
+  state_context_.reset();
   state_stream_.reset();
   return status.ok();
 }
@@ -149,6 +151,7 @@ void TrsConnection::closeHashStream() {
   }
   assert(hash_context_);
   hash_context_->TryCancel();
+  hash_context_.reset();
   hash_stream_.reset();
 }
 

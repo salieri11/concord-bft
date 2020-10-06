@@ -1,6 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "thin_replica_client.hpp"
+#include "trs_connection.hpp"
 
 #include "gmock/gmock.h"
 #include "thin_replica_client_mocks.hpp"
@@ -33,6 +34,16 @@ using testing::Invoke;
 using testing::InvokeWithoutArgs;
 using testing::Return;
 using thin_replica_client::HashUpdate;
+using thin_replica_client::TrsConnection;
+
+MockTrsConnection::MockTrsConnection()
+    : TrsConnection("mock_address", "mock_client_id") {
+  this->stub_.reset(new MockThinReplicaStub());
+}
+MockThinReplicaStub* MockTrsConnection::GetStub() {
+  return dynamic_cast<MockThinReplicaStub*>(this->stub_.get());
+}
+bool MockTrsConnection::isConnected() { return true; }
 
 Data FilterUpdate(const Data& raw_update, const string& filter) {
   Data filtered_update;
@@ -392,69 +403,69 @@ MockOrderedDataStreamHasher::SubscribeToUpdateHashesRaw(
 }
 
 void SetMockServerBehavior(
-    unique_ptr<MockThinReplicaStub>& server,
+    MockTrsConnection* server,
     const shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher) {
-  ON_CALL(*server, ReadStateRaw)
+  ON_CALL(*(server->GetStub()), ReadStateRaw)
       .WillByDefault(
           Invoke(data_preparer.get(), &MockDataStreamPreparer::ReadStateRaw));
-  ON_CALL(*server, ReadStateHash)
+  ON_CALL(*(server->GetStub()), ReadStateHash)
       .WillByDefault(
           Invoke(&hasher, &MockOrderedDataStreamHasher::ReadStateHash));
-  ON_CALL(*server, SubscribeToUpdatesRaw)
+  ON_CALL(*(server->GetStub()), SubscribeToUpdatesRaw)
       .WillByDefault(Invoke(data_preparer.get(),
                             &MockDataStreamPreparer::SubscribeToUpdatesRaw));
-  ON_CALL(*server, SubscribeToUpdateHashesRaw)
+  ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
       .WillByDefault(Invoke(
           &hasher, &MockOrderedDataStreamHasher::SubscribeToUpdateHashesRaw));
 }
 
-void SetMockServerBehavior(
-    vector<unique_ptr<MockThinReplicaStub>>& servers,
-    const shared_ptr<MockDataStreamPreparer>& data_preparer,
-    const MockOrderedDataStreamHasher& hasher) {
-  for (auto& server : servers) {
-    SetMockServerBehavior(server, data_preparer, hasher);
-  }
-}
-
-void SetMockServerUnresponsive(unique_ptr<MockThinReplicaStub>& server) {
-  ON_CALL(*server, ReadStateRaw)
+void SetMockServerUnresponsive(MockTrsConnection* server) {
+  ON_CALL(*(server->GetStub()), ReadStateRaw)
       .WillByDefault(InvokeWithoutArgs(&CreateUnresponsiveMockStream<Data>));
-  ON_CALL(*server, ReadStateHash)
+  ON_CALL(*(server->GetStub()), ReadStateHash)
       .WillByDefault(Return(
           Status(StatusCode::UNAVAILABLE, "This server is non-responsive")));
-  ON_CALL(*server, SubscribeToUpdatesRaw)
+  ON_CALL(*(server->GetStub()), SubscribeToUpdatesRaw)
       .WillByDefault(InvokeWithoutArgs(&CreateUnresponsiveMockStream<Data>));
-  ON_CALL(*server, AckUpdate)
+  ON_CALL(*(server->GetStub()), AckUpdate)
       .WillByDefault(Return(
           Status(StatusCode::UNAVAILABLE, "This server is non-responsive")));
-  ON_CALL(*server, SubscribeToUpdateHashesRaw)
+  ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
       .WillByDefault(InvokeWithoutArgs(&CreateUnresponsiveMockStream<Hash>));
-  ON_CALL(*server, Unsubscribe)
+  ON_CALL(*(server->GetStub()), Unsubscribe)
       .WillByDefault(Return(
           Status(StatusCode::UNAVAILABLE, "This server is non-responsive")));
 }
 
-void SetMockServerUnresponsive(
-    vector<unique_ptr<MockThinReplicaStub>>& servers) {
-  for (auto& server : servers) {
-    SetMockServerUnresponsive(server);
-  }
-}
-
-void SetSomeMockServersUnresponsive(
-    vector<unique_ptr<MockThinReplicaStub>>& servers, size_t num_unresponsive) {
-  assert(num_unresponsive <= servers.size());
-  for (size_t i = 0; i < num_unresponsive; ++i) {
-    SetMockServerUnresponsive(servers[i]);
-  }
-}
-
-void InstantiateMockServers(
-    vector<unique_ptr<MockThinReplicaStub>>& mock_servers, size_t num_servers) {
-  mock_servers.clear();
+vector<unique_ptr<TrsConnection>> CreateTrsConnections(
+    size_t num_servers, size_t num_unresponsive) {
+  vector<unique_ptr<TrsConnection>> mock_servers;
   for (size_t i = 0; i < num_servers; ++i) {
-    mock_servers.push_back(make_unique<MockThinReplicaStub>());
+    auto conn = new MockTrsConnection();
+    if (num_unresponsive > 0) {
+      SetMockServerUnresponsive(conn);
+      num_unresponsive--;
+    }
+    auto server = dynamic_cast<TrsConnection*>(conn);
+    mock_servers.push_back(unique_ptr<TrsConnection>(server));
   }
+  return mock_servers;
+}
+
+vector<unique_ptr<TrsConnection>> CreateTrsConnections(
+    size_t num_servers, shared_ptr<MockDataStreamPreparer> stream_preparer,
+    MockOrderedDataStreamHasher& hasher, size_t num_unresponsive) {
+  vector<unique_ptr<TrsConnection>> mock_servers;
+  for (size_t i = 0; i < num_servers; ++i) {
+    auto conn = new MockTrsConnection();
+    SetMockServerBehavior(conn, stream_preparer, hasher);
+    if (num_unresponsive > 0) {
+      SetMockServerUnresponsive(conn);
+      num_unresponsive--;
+    }
+    auto server = dynamic_cast<TrsConnection*>(conn);
+    mock_servers.push_back(unique_ptr<TrsConnection>(server));
+  }
+  return mock_servers;
 }

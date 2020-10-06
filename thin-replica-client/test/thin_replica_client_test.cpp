@@ -1,6 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include "thin_replica_client.hpp"
+#include "trs_connection.hpp"
 
 #include <log4cplus/configurator.h>
 #include "gtest/gtest.h"
@@ -8,7 +9,6 @@
 
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::KVPair;
-using com::vmware::concord::thin_replica::MockThinReplicaStub;
 using std::chrono::operator""ms;
 using std::condition_variable;
 using std::make_shared;
@@ -25,10 +25,11 @@ using std::chrono::milliseconds;
 using std::this_thread::sleep_for;
 using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::ThinReplicaClient;
+using thin_replica_client::TrsConnection;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
 
-const string kTestingClientID = "0";
+const string kTestingClientID = "mock_client_id";
 const string kUnimplementedPrivateKey = "";
 const uint16_t kTestingMaxDataReadTimeout = 1;
 const uint16_t kTestingMaxHashReadTimeout = 1;
@@ -48,25 +49,23 @@ TEST(thin_replica_client_test, test_destructor_always_successful) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
+  auto mock_servers = CreateTrsConnections(num_replicas);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_NO_THROW(trc.reset()) << "ThinReplicaClient destructor failed.";
   update_queue->Clear();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  mock_servers = CreateTrsConnections(num_replicas, stream_preparer, hasher);
   trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   trc->Subscribe("");
   update_queue->Pop();
@@ -76,11 +75,10 @@ TEST(thin_replica_client_test, test_destructor_always_successful) {
          "ThinReplicaClient with an active subscription.";
   update_queue->Clear();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  mock_servers = CreateTrsConnections(num_replicas, stream_preparer, hasher);
   trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   trc->Subscribe("");
   update_queue->Pop();
@@ -102,17 +100,16 @@ TEST(thin_replica_client_test, test_1_parameter_subscribe_success_cases) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_NO_THROW(trc->Subscribe(""))
       << "ThinReplicaClient::Subscribe's 1-parameter overload failed.";
@@ -147,17 +144,16 @@ TEST(thin_replica_client_test, test_2_parameter_subscribe_success_cases) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   trc->Subscribe("");
   unique_ptr<Update> update_received = update_queue->Pop();
@@ -215,19 +211,17 @@ TEST(thin_replica_client_test,
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
   size_t num_unresponsive = num_replicas - max_faulty;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
-  SetSomeMockServersUnresponsive(mock_servers, num_unresponsive);
+  auto mock_servers = CreateTrsConnections(num_replicas, stream_preparer,
+                                           hasher, num_unresponsive);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_ANY_THROW(trc->Subscribe(""))
       << "ThinReplicaClient::Subscribe's 1-parameter overload doesn't throw an "
@@ -235,11 +229,10 @@ TEST(thin_replica_client_test,
          "servers responsive.";
   trc.reset();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerUnresponsive(mock_servers);
+  mock_servers = CreateTrsConnections(num_replicas, num_replicas);
   trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_ANY_THROW(trc->Subscribe(""))
       << "ThinReplicaClient::Subscribe's 1-parameter overload doesn't throw an "
@@ -258,17 +251,16 @@ TEST(thin_replica_client_test, test_unsubscribe_successful) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_NO_THROW(trc->Unsubscribe())
       << "ThinReplicaClient::Unsubscribe failed for a newly-constructed "
@@ -302,17 +294,16 @@ TEST(thin_replica_client_test, test_pop_fetches_updates_) {
                                         delay_condition_mutex));
   MockOrderedDataStreamHasher hasher(base_stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   trc->Subscribe("");
   unique_ptr<Update> update_received = update_queue->Pop();
@@ -349,17 +340,16 @@ TEST(thin_replica_client_test, test_acknowledge_block_id_success) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_NO_THROW(trc->AcknowledgeBlockID(1))
       << "ThinReplicaClient::AcknowledgeBlockID fails when called on a "
@@ -409,17 +399,16 @@ TEST(thin_replica_client_test, test_correct_data_returned_) {
                                         delay_condition_mutex));
   MockOrderedDataStreamHasher hasher(base_stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
   EXPECT_FALSE((bool)(update_queue->TryPop()))
       << "ThinReplicaClient appears to have published state to update queue "
@@ -520,17 +509,16 @@ TEST(thin_replica_client_test, test_key_filtration) {
       new RepeatedMockDataStreamPreparer(update));
   MockOrderedDataStreamHasher hasher(stream_preparer);
 
-  vector<unique_ptr<MockThinReplicaStub>> mock_servers;
   uint16_t max_faulty = 1;
   size_t num_replicas = 3 * max_faulty + 1;
 
   shared_ptr<UpdateQueue> update_queue = make_shared<BasicUpdateQueue>();
 
-  InstantiateMockServers(mock_servers, num_replicas);
-  SetMockServerBehavior(mock_servers, stream_preparer, hasher);
+  auto mock_servers =
+      CreateTrsConnections(num_replicas, stream_preparer, hasher);
   auto trc = make_unique<ThinReplicaClient>(
       kTestingClientID, update_queue, max_faulty, kUnimplementedPrivateKey,
-      mock_servers.begin(), mock_servers.end(), kTestingMaxDataReadTimeout,
+      std::move(mock_servers), kTestingMaxDataReadTimeout,
       kTestingMaxHashReadTimeout, kTestingJaegerAddress);
 
   trc->Subscribe("");
