@@ -37,8 +37,8 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxProduct):
         f_count: Maximum faulty replicas allowed.
     '''
     ledger_api_hosts, concord_hosts = None, None
-    log.info("\nInside local fixture, all the nodes are {}".format(fxBlockchain.replicas))
-    all_replicas = fxBlockchain.replicas
+    all_replicas = helper.parseReplicasConfig(fxBlockchain.replicas)
+    log.info("\nInside local fixture, all the nodes after parsing are {}".format(all_replicas))
     ledger_api_hosts = all_replicas["daml_participant"]
     concord_hosts = all_replicas["daml_committer"]
 
