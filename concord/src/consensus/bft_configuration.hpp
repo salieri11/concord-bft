@@ -143,6 +143,8 @@ inline bool InitializeSbftConfiguration(
       repConf->keyExchangeOnStart =
           config.getValue<bool>("key_exchange_on_start");
 
+      repConf->keyViewFilePath = config.getValue<std::string>("key_view_path");
+
       repConf->preExecutionFeatureEnabled =
           config.getValue<bool>("preexecution_enabled");
 
