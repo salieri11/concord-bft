@@ -127,43 +127,43 @@ class PytestSuite():
             params += self._args.tests.split(" ")
 
         pytest.main(params)
-        self.collectSupportBundles()
-        self.parsePytestResults()
+        util.helper.collectSupportBundles(self._supportBundleFile, self._testLogDir)
+        self.parsePytestResults(self._reportFile, self._testLogDir)
 
         log.removeHandler(self._logHandler)
         return self._resultFile, self.product
 
-    def collectSupportBundles(self):
-        '''
-        Collect support bundles found in support_bundles.json.  The structure must be:
-        {
-          "<host>": {
-            "type": "daml | ethereum",  (mandatory)
-            "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
-          }
-        }
-        '''
-        if os.path.isfile(self._supportBundleFile):
-            with open(self._supportBundleFile, "r") as f:
-                bundles = json.load(f)
+    # def collectSupportBundles(self):
+    #     '''
+    #     Collect support bundles found in support_bundles.json.  The structure must be:
+    #     {
+    #       "<host>": {
+    #         "type": "daml | ethereum",  (mandatory)
+    #         "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
+    #       }
+    #     }
+    #     '''
+    #     if os.path.isfile(self._supportBundleFile):
+    #         with open(self._supportBundleFile, "r") as f:
+    #             bundles = json.load(f)
 
-            log.info("bundles: {}".format(bundles))
+    #         log.info("bundles: {}".format(bundles))
 
-            for bundleHost in bundles:
-                if "dir" in bundles[bundleHost]:
-                    logDir = bundles[bundleHost]["dir"]
-                else:
-                    logDir = self._testLogDir
+    #         for bundleHost in bundles:
+    #             if "dir" in bundles[bundleHost]:
+    #                 logDir = bundles[bundleHost]["dir"]
+    #             else:
+    #                 logDir = self._testLogDir
 
-                util.helper.create_concord_support_bundle(
-                    [bundleHost], bundles[bundleHost]["type"], logDir)
+    #             util.helper.create_concord_support_bundle(
+    #                 [bundleHost], bundles[bundleHost]["type"], logDir)
 
-    def parsePytestResults(self):
+    def parsePytestResults(self, report_file, log_dir):
         '''
         Convert PyTest's json format to the Hermes format for Hermes
         to parse later.
         '''
-        results = util.json_helper.readJsonFile(self._reportFile)
+        results = util.json_helper.readJsonFile(report_file)
         stackInfo = getStackInfo()
         for testResult in results["report"]["tests"]:
             testPassed = None
@@ -178,9 +178,9 @@ class PytestSuite():
             info = "" if testPassed else json.dumps(
                 testResult, indent=2, default=str)
             stackInfo = getStackInfo()
-            testName = self.parsePytestTestName(testResult["name"])
-            testLogDir = os.path.join(self._testLogDir, testName)
-            relativeLogDir = self.makeRelativeTestPath(testLogDir)
+            testName = util.helper.parsePytestTestName(testResult["name"])
+            testLogDir = os.path.join(log_dir, testName)
+            relativeLogDir = util.helper.makeRelativeTestPath(log_dir, testLogDir)
             info += "\nLog: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                           testLogDir)
             self.writeResult(testResult["name"],
@@ -188,11 +188,11 @@ class PytestSuite():
                              info,
                              stackInfo)
 
-    def parsePytestTestName(self, parseMe):
-        '''
-        Returns a condensed name, just used to reduce noise.
-        '''
-        return parseMe[parseMe.rindex(":")+1:]
+    # def parsePytestTestName(self, parseMe):
+    #     '''
+    #     Returns a condensed name, just used to reduce noise.
+    #     '''
+    #     return parseMe[parseMe.rindex(":")+1:]
 
     # TODO: Remove after direct invocation of pytest, used in main.py
     def getResultFile(self):
@@ -207,12 +207,12 @@ class PytestSuite():
         return self._testLogDir
 
     # TODO: To be deleted after porting of all testSuites to pytest
-    def makeRelativeTestPath(self, fullTestPath):
-        '''
-        Given the full test path (in the results directory), return the
-        relative path.
-        '''
-        return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
+    # def makeRelativeTestPath(self, fullTestPath):
+    #     '''
+    #     Given the full test path (in the results directory), return the
+    #     relative path.
+    #     '''
+    #     return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
 
     def writeResult(self, testName, result, info, stackInfo=None):
         '''

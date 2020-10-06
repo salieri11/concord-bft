@@ -5,22 +5,29 @@
 #################################################################################
 import json
 import os
+import sys
 import types
 import pytest
 import tempfile
 import collections
 import util
-from suites.case import describe
+from suites.case import describe, getStackInfo
 from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
-from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings
+from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings, pipeline
 
 import util.hermes_logging
+
+local_modules = [os.path.join(".", "lib", "persephone")]
+for path in local_modules:
+    sys.path.append(path)
+
 log = util.hermes_logging.getMainLogger()
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 
 TEST_LOGDIR = "test_logs"
-HERMES_LOGDIR = "hermes_logs"
+UNINTENTIONALLY_SKIPPED = "unintentionallySkippedTests.json"
+SUPPORT_BUNDLE = "support_bundles.json"
 
 
 def pytest_generate_tests(metafunc):
@@ -34,23 +41,42 @@ def pytest_generate_tests(metafunc):
     if "fxEthCoreVmTests" in metafunc.fixturenames:
         metafunc.parametrize("fxEthCoreVmTests", getEthCoreVmTests(metafunc))
 
-
 def getEthCoreVmTests(metafunc):
     '''
     Returns a list of file names.  Each file is a test to run.
     '''
     tests = []
     testSubDirs = None
-    hermesCmdlineArgs = json.loads(metafunc.config.option.hermesCmdlineArgs)
-    ethereumTestRoot = json.loads(metafunc.config.option.hermesUserConfig)[
-        "ethereum"]["testRoot"]
+    hermes_tests = None
+
+    if metafunc.config.option.hermesCmdlineArgs:
+        hermesCmdlineArgs = json.loads(
+            metafunc.config.option.hermesCmdlineArgs)
+        if "tests" in hermesCmdlineArgs and hermesCmdlineArgs["tests"]:
+            hermes_tests = hermesCmdlineArgs['tests']
+    elif metafunc.config.option.tests:
+        hermes_tests = metafunc.config.option.tests
+    else:
+        hermes_tests = None
+
+    # hermesCmdlineArgs = json.loads(metafunc.config.option.hermesCmdlineArgs)
+    # ethereumTestRoot = json.loads(metafunc.config.option.hermesUserConfig)[
+        # "ethereum"]["testRoot"]
+    if metafunc.config.option.hermesUserConfig:
+        ethereumTestRoot = json.loads(metafunc.config.option.hermesUserConfig)[
+            "ethereum"]["testRoot"]
+    else:
+        cmdline_args = metafunc.config.option
+        user_config = helper.getUserConfig() if cmdline_args.su else helper.loadConfigFile(cmdline_args)
+        ethereumTestRoot = user_config["ethereum"]["testRoot"]
+
     vmTests = os.path.join(ethereumTestRoot, "VMTests")
 
-    if "tests" in hermesCmdlineArgs and hermesCmdlineArgs["tests"]:
+    if hermes_tests:
         # Remove the "-k".
         log.debug("hermesCmdlineArgs['tests']: {}".format(
-            hermesCmdlineArgs["tests"]))
-        userRequestedTest = hermesCmdlineArgs["tests"].split(" ")[1]
+            hermes_tests))
+        userRequestedTest = hermes_tests.split(" ")[1]
         fullPath = os.path.join(vmTests, userRequestedTest)
 
         if os.path.exists(fullPath):
@@ -114,7 +140,7 @@ def hermes_info(request):
     Session level fixture to read in commandline arguments and 
     prepares a dictionary of the arguments. 
     '''
-    log.info("Setting up Hermes Commandline Arguments for the session...")
+    log.info("Setting up Hermes Commandline Arguments for the session...with Args")
 
     if (request.config.getoption("--hermesCmdlineArgs")):
         cmdline_args_dict = json.loads(
@@ -126,19 +152,14 @@ def hermes_info(request):
             request.config.getoption("--hermesZoneConfig"))
         log_dir = request.config.getoption("--hermesTestLogDir")
         support_bundle_file = request.config.getoption("--supportBundleFile")
-        cmdline_args.fromMain = 'y'
+        cmdline_args.fromMain = True
     else:
         cmdline_args_dict = _getArgs(request)
         cmdline_args = types.SimpleNamespace(**cmdline_args_dict)
 
-        hermes_log_dir = HERMES_LOGDIR + "_" + \
-            strftime("%Y%m%d_%H%M%S", localtime())
-        log_dir = os.path.join(
-            cmdline_args.resultsDir, hermes_log_dir)
-
-        os.makedirs(log_dir)
-        cmdline_args.resultsDir = log_dir
-
+        log_dir = cmdline_args.resultsDir
+        cmdline_args.fromMain = False
+        helper.CURRENT_SUITE_NAME = "HermesSetup"
         generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
                                                  helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
 
@@ -157,12 +178,17 @@ def hermes_info(request):
                 cmdline_args, "zoneOverrideFolder") else None
             util.infra.overrideDefaultZones(cmdline_args.zoneOverride, folder)
 
-        support_bundle_file = cmdline_args.supportBundleFile
+        support_bundle_file = os.path.join(
+            log_dir, SUPPORT_BUNDLE)
 
         # Set appropriate  log level
         hermes_logging.setUpLogging(cmdline_args)
         helper.CMDLINE_ARGS = vars(cmdline_args)
 
+    def post_session_processing():
+        log.info("Teardown at Session Level...")
+
+    request.addfinalizer(post_session_processing)
     return {
         "hermesCmdlineArgs": cmdline_args,
         "hermesUserConfig": user_config,
@@ -178,14 +204,74 @@ def set_hermes_info(request, hermes_info):
     '''
     Hermes setup at module level
     '''
+    short_name = _get_suite_short_name(request.module.__name__)
+    log.info("Setting up Hermes run time settings for {0} Test Suite".format(
+        short_name))
 
-    log.info("Setting up Hermes run time settings for {} Test Suite".format(
-        request.module.__name__))
-
-    resultsDir = _createResultsDir(request, hermes_info["hermesCmdlineArgs"])
+    resultsDir = _createResultsDir(
+        short_name, hermes_info["hermesCmdlineArgs"].resultsDir)
     hermes_info["hermesTestLogDir"] = resultsDir
     hermes_info["hermesModuleLogDir"] = resultsDir
 
+    if (not hermes_info["hermesCmdlineArgs"].fromMain):
+        # Set some helpers - update for each module
+        short_name = _get_suite_short_name(request.module.__name__)
+
+        # Set Real Name same as Current Name
+        if not hermes_info["hermesCmdlineArgs"].suitesRealname:
+            hermes_info["hermesCmdlineArgs"].suitesRealname = short_name
+
+        helper.CURRENT_SUITE_NAME = hermes_info["hermesCmdlineArgs"].suitesRealname
+        helper.CURRENT_SUITE_LOG_FILE = os.path.join(
+            resultsDir, helper.CURRENT_SUITE_NAME + ".log")
+
+        if pipeline.isDryRun():
+            # CI dry run might not have to run the suite
+            # if invocation signatures didn't change
+            if pipeline.isQualifiedToSkip():
+                pipeline.dryRunSaveInvocation()
+            else:
+                pipeline.dryRunSaveInvocation(runSuite=True)
+        elif helper.thisHermesIsFromJenkins():
+            pipeline.saveInvocationSignature(runSuite=True)
+
+        # at this point, the suite is going to run; mark as executed
+        if helper.thisHermesIsFromJenkins():
+            pipeline.markInvocationAsExecuted()
+
+        logHandler = util.hermes_logging.addFileHandler(
+            helper.CURRENT_SUITE_LOG_FILE, hermes_info["hermesCmdlineArgs"].logLevel)
+
+        support_bundle_file = os.path.join(
+            resultsDir, SUPPORT_BUNDLE)
+        hermes_info["supportBundleFile"] = support_bundle_file
+
+        results = {
+            helper.CURRENT_SUITE_NAME: {
+                "result": "",
+                "tests": collections.OrderedDict()
+            }
+        }
+
+        result_file = os.path.join(resultsDir,
+                                   helper.CURRENT_SUITE_NAME + ".json")
+        with open(result_file, "w") as f:
+            f.write(json.dumps(results))
+
+        unintentionallySkippedFile = os.path.join(resultsDir,
+                                                  UNINTENTIONALLY_SKIPPED
+                                                  )
+        unintentionallySkippedTests = {}
+
+    def post_module_processing():
+        log.info("Teardown at Module level...")
+        if (not hermes_info["hermesCmdlineArgs"].fromMain):
+            helper.collectSupportBundles(
+                hermes_info["supportBundleFile"], resultsDir)
+            #TODO:  parsePytestResults()
+            log.removeHandler(logHandler)
+
+    request.addfinalizer(post_module_processing)
     return hermes_info
 
 
@@ -202,8 +288,8 @@ def fxHermesRunSettings(request, set_hermes_info):
     log_dir: The log directory path, as a string.
     support_bundle_file: The support bundle file path.
     """
-    log.info("Setting up Hermes Settings for test case {0} of {1} Test Suite".format(
-        request.node.name, request.module.__name__))
+    log.info("Setting up Hermes for '{0}' of '{1}'".format(
+        request.node.name, helper.CURRENT_SUITE_NAME))
 
     results_dir = os.path.join(set_hermes_info["hermesModuleLogDir"], request.cls.__name__) \
         if request.cls else set_hermes_info["hermesModuleLogDir"]
@@ -223,14 +309,14 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_the_test)
 
 
-def _createResultsDir(request, cmdline_args):
+def _createResultsDir(module_name, resultsDir):
     '''
     Creates parent results dir by appending module name in result_dir
     <parent_results_dir>/ContractCompilerTests/ContractCompilerTests_20200305_140416
     <parent_results_dir>/ContractCompilerTests/ContractCompilerTests.log
     '''
-    parent_results_dir = cmdline_args.resultsDir
-    logDir = request.module.__name__ + "_" + \
+    parent_results_dir = resultsDir
+    logDir = module_name + "_" + \
         strftime("%Y%m%d_%H%M%S", localtime())
     results_dir = os.path.join(parent_results_dir, logDir, TEST_LOGDIR)
     os.makedirs(results_dir)
@@ -370,6 +456,30 @@ def pytest_addoption(parser):
     parser.addoption("--dockerHubPassword",
                      help="DockerHub password which has read access to the digitalasset private repos. "
                      "Only needed if the DAML SDK version is not in {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
+    parser.addoption("--runID",
+                     default=helper.get_time_now_in_milliseconds(),
+                     help="Unique ID to differentiate runs")
+    parser.addoption("--runDuration",
+                        type=int,
+                        default=6,
+                        help="No. of hrs to monitor replicas (default 6 hrs)")
+    parser.addoption("--loadInterval",
+                        type=int,
+                        default=60,
+                        help="Minutes to wait between monitors (default 60 mins)")
+    parser.addoption("--testset",
+                        default="basic_tests",
+                        help="Set of test sets to be picked up from testlist file.  e.g. " \
+                        "'basic_tests'")
+    parser.addoption("--testlistFile",
+                        help="json file containing the list of tests",
+                        default=helper.LONG_RUN_TEST_FILE)
+    parser.addoption("--notifyTarget",
+                        help="Slack channel name or email address, default will skip notification",
+                        default=None)
+    parser.addoption("--notifyJobName",
+                        help="Shortened job name running this monitoring script",
+                        default=None)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
@@ -445,17 +555,17 @@ def pytest_addoption(parser):
                                    default=1)
     parser.addoption("--executeAvoid",
                      help="Required to execute test cases which are marked as 'avoid'")
+
+    #### Required to invoke pytest from main program #######
+    #### This is a stop gap arrangement till main.py is deprecated. ####
+    #### Below mentioned arguments to be deleted  when main.py is deprecated ####
+
     parser.addoption(
         "--supportBundleFile",
         action="store",
         default="support_bundles.json",
         help="Path to a file a test suite should create to have the framework create support "
         "bundles. POPULATED BY HERMES.")
-
-    #### Required to invoke pytest from main program #######
-    #### This is a stop gap arrangement till main.py is deprecated. ####
-    #### Below mentioned arguments to be deleted  when main.py is deprecated ####
-
     parser.addoption(
         "--hermesCmdlineArgs",
         action="store",
@@ -526,6 +636,8 @@ def _getArgs(request):
     cmdArgs["concurrency"] = request.config.getoption("--concurrency")
     cmdArgs["noOfRequests"] = request.config.getoption("--noOfRequests")
     cmdArgs["dockerHubUser"] = request.config.getoption("--dockerHubUser")
+    cmdArgs["runID"] = request.config.getoption(
+        "--runID")
     cmdArgs["dockerHubPassword"] = request.config.getoption(
         "--dockerHubPassword")
     cmdArgs["runConcordConfigurationGeneration"] = request.config.getoption(
@@ -560,3 +672,61 @@ def _getArgs(request):
         "--hermesTestLogDir"),
 
     return cmdArgs
+
+
+def _get_suite_short_name(module_name):
+    '''
+    This function returns short name of the Test Suite from it's module
+    '''
+
+    suite_list = {
+        "CastorDeploymentTests": "hermes.suites.castor_deployment_tests",
+        "ChessPlusTests": "hermes.suites.chess_plus_tests",
+        "ClientGroupTests": "hermes.suites.st_client_group_tests",
+        "EthCoreVmTests": "hermes.suites.eth_core_vm_tests",
+        "DamlTests": "hermes.suites.daml_tests",
+        "DamlRegressionTests": "hermes.suites.daml_regression_tests",
+        "ClientPoolDamlTests": "hermes.suites.daml_tests",
+        "HelenAPITests": "api_test",
+        "HelenBlockTests": "block_test",
+        "HelenBlockchainTests": "blockchain_test",
+        "HelenClientTests": "client_test",
+        "HelenConsortiumTests": "consortium_test",
+        "HelenContractTests": "contract_test",
+        "HelenMemberTests": "members_test",
+        "HelenOrganizationTests": "organization_test",
+        "HelenReplicaTests": "replica_test",
+        "HelenZoneTests": "zone_test",
+        "HelenRoleTests": "roles",
+        "NodeInterruptionTests": "hermes.suites.node_interruption_tests",
+        "LoggingTests": "hermes.suites.logging_tests",
+        "PersephoneTestsNew": "hermes.suites.persephone_tests_new",
+        "SampleSuite": "hermes.suites.sample_suite",
+        "ThinReplicaServerTests": "hermes.suites.thin_replica_server_tests",
+        "TimeTests": "hermes.suites.time_service.basic_test",
+        "EvilTimeTests": "hermes.suites.time_service.evil_test",
+        "PrivacyTeeTests": "hermes.suites.privacy_tee_tests",
+        "ApolloBftTests": "hermes.suites.apollo_bft_tests",
+        "RoReplicaTests": "hermes.suites.ro_replica_tests",
+        "SkvbcLinearizabilityTests": "hermes.suites.skvbc_linearizability_tests",
+        "SkvbcLinearizabilityWithCrashesTests": "hermes.suites.skvbc_linearizability_with_crashes_tests",
+        "SkvbcStateTransferTests": "hermes.suites.skvbc_state_transfer_tests",
+        "SkvbcPreexecutionTests": "hermes.suites.skvbc_preexecution_tests",
+        "DamlPreexecutionTests": "hermes.suites.daml_tests",
+        "SimpleStateTransferTest": "hermes.suites.simple_st_test",
+        "ContractCompilerTests": "hermes.suites.contract_compiler_tests",
+        "SampleDAppTests": "hermes.suites.sample_dapp_tests",
+        "EthJsonRpcTests": "hermes.suites.eth_jsonrpc_tests",
+        "EthRegressionTests": "hermes.suites.eth_regression_tests",
+        "PerformanceTests": "hermes.suites.performance_tests",
+        "UiTests": "hermes.suites.ui_tests",
+        "DeployDamlTests": "hermes.suites.ui_e2e_deploy_daml",
+        "MetadataPersistencyTests": "hermes.suites.persistency_tests",
+        "HelenNodeSizeTemplateTests": "nodesize_test",
+        "ReconfigurationTests": "hermes.suites.reconfiguration_tests"
+    }
+
+    short_name = list(suite_list.keys())[list(
+        suite_list.values()).index(module_name)]
+
+    return short_name

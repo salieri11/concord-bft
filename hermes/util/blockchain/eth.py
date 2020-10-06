@@ -13,6 +13,7 @@ import time
 
 import util
 import util.numbers_strings
+import util.bytecode
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
