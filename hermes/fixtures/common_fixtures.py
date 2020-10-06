@@ -522,13 +522,13 @@ def create_support_bundle_from_replicas_info(blockchain_type, log_dir):
 
 @pytest.fixture(scope="module")
 @describe("fixture; product")
-def fxProduct(request, set_hermes_info):
+def fxProduct(request, hermes_info):
    '''
    An fxProduct provides a launched instance of the product
    to the tests being run.
    '''
    
-   hermes_data = set_hermes_info
+   hermes_data = hermes_info
    if not hermes_data["hermesCmdlineArgs"].noLaunch:
       logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
       if hermes_data["hermesCmdlineArgs"].replicasConfig:
@@ -619,7 +619,7 @@ def fxProduct(request, set_hermes_info):
 
 @pytest.fixture(scope="module")
 @describe("fixture; blockchain")
-def fxBlockchain(request, set_hermes_info, fxProduct):
+def fxBlockchain(request, hermes_info, fxProduct):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
    If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked
@@ -635,11 +635,11 @@ def fxBlockchain(request, set_hermes_info, fxProduct):
    conId = None
    replicas = None
    clientNodes = None
-   hermes_data = set_hermes_info
+   hermes_data = hermes_info
    logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
 
    if not auth.tokens[auth.CUSTOM_ORG]:
-       auth.readUsersFromConfig(set_hermes_info["hermesUserConfig"])
+       auth.readUsersFromConfig(hermes_data["hermesUserConfig"])
 
    devAdminRequest = Request(logDir,
                              "fxBlockchain",

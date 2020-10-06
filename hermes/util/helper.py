@@ -2318,3 +2318,42 @@ def get_time_now_in_milliseconds():
    '''
    milli_sec = int(round(time.time() * 1000))
    return str(milli_sec)
+
+
+def collectSupportBundles(supportBundleFile, testLogDir):
+   '''
+   Collect support bundles found in support_bundles.json.  The structure must be:
+   {
+      "<host>": {
+      "type": "daml | ethereum",  (mandatory)
+      "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
+      }
+   }
+   '''
+   if os.path.isfile(supportBundleFile):
+      with open(supportBundleFile, "r") as f:
+            bundles = json.load(f)
+
+      log.info("bundles: {}".format(bundles))
+
+      for bundleHost in bundles:
+            if "dir" in bundles[bundleHost]:
+               logDir = bundles[bundleHost]["dir"]
+            else:
+               logDir = testLogDir
+
+            create_concord_support_bundle(
+               [bundleHost], bundles[bundleHost]["type"], logDir)
+
+def parsePytestTestName(parseMe):
+   '''
+   Returns a condensed name, just used to reduce noise.
+   '''
+   return parseMe[parseMe.rindex(":")+1:]
+
+def makeRelativeTestPath(resultsDir, fullTestPath):
+   '''
+   Given the full test path (in the results directory), return the
+   relative path.
+   '''
+   return fullTestPath[len(resultsDir)+1:len(fullTestPath)]

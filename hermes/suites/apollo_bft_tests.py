@@ -12,7 +12,7 @@
 import sys
 import os
 import importlib.util
-
+from fixtures.common_fixtures import fxProduct
 # BEGIN - Fix conflicting 'util' module names between Apollo and Hermes
 sys.modules['hermes_util'] = __import__('util')
 apollo_util_spec = importlib.util.spec_from_file_location(
@@ -37,7 +37,7 @@ from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 from test_skvbc_checkpoints import SkvbcCheckpointTest
 
-from fixtures.common_fixtures import fxProduct
+
 from suites.case import describe
 import hermes_util.helper as helper
 from hermes_util.apollo_helper import with_timeout
