@@ -43,8 +43,8 @@ message PerfWriteExternal {
   fixed32 key_size = 4; // each kv key size, > 0
   fixed32 value_size = 5; // each kv value size, > 0
   fixed32 max_exec_time_milli = 6; // if block data creation using parameters in this message is too short (not to confuse with writing!)
-  // and we want to introduce longer delay, this value can be used
-  // the actual delay will be max(max_exec_time_milli, block data creation delay)
+  // and we want to introduce longer delay, this value can be used the actual delay will be max(max_exec_time_milli, block data creation delay)
+  fixed32 busy_wait = 7; // choose between a regular sleep/busy-wait for request execution latency simulation
 }
 
 // This message is sent to perform the write

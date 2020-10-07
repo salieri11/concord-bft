@@ -29,8 +29,7 @@ using com::vmware::concord::performance::PerfWriteFromInit;
 using com::vmware::concord::performance::PerfWriteRequest;
 using com::vmware::concord::performance::PerfWriteResponse;
 
-namespace concord {
-namespace performance {
+namespace concord::performance {
 
 class PerformanceCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
@@ -93,6 +92,20 @@ class PerformanceCommandsHandler
                                                    << init_data_.GetInfo());
   }
 
+  // Simulate reads from the storage
+  void ReadFromStorage(const SetOfKeyValuePairs& kv) {
+    const BlockId latest_block_id = storage_.getLastBlock();
+    std::map<string, std::pair<string, BlockId>> result;
+    for (const auto& key_value : kv) {
+      const auto key = key_value.first;
+      Value out;
+      BlockId actual_block_id = 0;
+      if (!storage_.get(latest_block_id, key, out, actual_block_id).isOK())
+        continue;
+      if (out.length() == 0) continue;
+    }
+  }
+
   void ExecuteWriteRequest(const PerfWriteRequest& request,
                            PerfWriteResponse& outResponse, uint8_t flags) {
     using namespace concord::kvbc;
@@ -108,21 +121,30 @@ class PerformanceCommandsHandler
       init_data_.GetBlocksData(id, data);
     } else {
       const auto& external = request.external();
-      auto keyPrefix = external.key_prefix();
-      auto valPrefix = external.val_prefix();
-      auto kv_count = external.kv_count();
-      auto ksize = external.key_size();
-      auto vsize = external.value_size();
-      auto start = chrono::steady_clock::now();
+      const auto& keyPrefix = external.key_prefix();
+      const auto& valPrefix = external.val_prefix();
+      const auto& kv_count = external.kv_count();
+      const auto& ksize = external.key_size();
+      const auto& vsize = external.value_size();
+      const auto& busyWait = external.busy_wait();
+      const auto start = chrono::high_resolution_clock::now();
       id = init_data_.CreateData(1, kv_count, ksize, vsize, data, keyPrefix,
                                  valPrefix);
-      auto end = chrono::steady_clock::now();
-      auto time =
-          chrono::duration_cast<chrono::milliseconds>(end - start).count();
-      if (external.max_exec_time_milli() > 0 &&
-          time < external.max_exec_time_milli()) {
-        this_thread::sleep_for(
-            chrono::milliseconds(external.max_exec_time_milli() - time));
+      auto time = chrono::duration_cast<chrono::milliseconds>(
+                      chrono::high_resolution_clock::now() - start)
+                      .count();
+      if (external.max_exec_time_milli() > 0) {
+        if (busyWait) {
+          while (time < external.max_exec_time_milli()) {
+            time = chrono::duration_cast<chrono::milliseconds>(
+                       chrono::high_resolution_clock::now() - start)
+                       .count();
+            this_thread::sleep_for(chrono::nanoseconds(20));
+          }
+        } else if (time < external.max_exec_time_milli()) {
+          this_thread::sleep_for(
+              chrono::milliseconds(external.max_exec_time_milli() - time));
+        }
       }
     }
 
@@ -139,6 +161,8 @@ class PerformanceCommandsHandler
     const auto payload = request.payload().size();
     if (data && data->blocks.size() > blockId) {
       const auto kvCount = data->blocks[blockId].size();
+      // Simulate reading keys from the storage
+      ReadFromStorage(data->blocks[blockId]);
       LOG_DEBUG(logger_, "ExecuteWriteRequest, execution start"
                              << KVLOG(id, has_pre_executed, payload, kvCount));
       BlockId newBlockId;
@@ -230,5 +254,4 @@ class PerformanceCommandsHandler
   }
 };
 
-}  // namespace performance
-}  // namespace concord
+}  // namespace concord::performance
