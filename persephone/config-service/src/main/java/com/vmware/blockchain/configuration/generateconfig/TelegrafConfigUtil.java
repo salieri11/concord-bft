@@ -157,6 +157,7 @@ public class TelegrafConfigUtil {
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_LEDGER_API)) {
             prometheusUrls.add("\"http://daml_ledger_api:55001/metrics\"");
             prometheusUrls.add("\"http://daml_ledger_api:9873/metrics\"");
+            prometheusUrls.add("\"http://daml_ledger_api:9891/metrics\"");
         }
         return prometheusUrls;
     }
