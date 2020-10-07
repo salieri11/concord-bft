@@ -13,6 +13,7 @@ tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: true
 key_exchange_on_start: true
+key_view_path: /tmp
 preexecution_enabled: true
 signing_key_path: /concord/signing_keys
 node__TEMPLATE:
