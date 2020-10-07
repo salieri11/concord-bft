@@ -38,7 +38,8 @@ class DeploymentParams:
     zone_type: str
     num_replicas: int
     num_clients: int
-    num_client_groups: int = 0  # By default, the number of client groups is 0
+    num_client_groups: int  # By default, the number of client groups is 0
+    deployment_properties: str # String containing key-value pairs for
 
 
 @pytest.fixture
@@ -142,9 +143,16 @@ def create_deployment(ps_helper, deployment_params, zone_config):
     num_replicas = deployment_params.num_replicas
     num_clients = deployment_params.num_clients
     num_client_groups = deployment_params.num_client_groups
+    deployment_properties = deployment_params.deployment_properties
+
     log.info("Create deployment with following parameters: Blockchain type: {}; Zone type: {}; "
              "Number of Replica nodes: {}; Number of Client nodes: {}; Number of Client groups: {}"
              .format(blockchain_type.upper(), zone_type.upper(), num_replicas, num_clients, num_client_groups))
+
+    helper.DEPLOYMENT_PROPERTIES = helper.get_deployment_properties(deployment_properties)
+
+    log.info("The properties provided for the deployment are: ")
+    log.info(helper.DEPLOYMENT_PROPERTIES)
 
     # Deploy
     start_time = datetime.now(timezone.utc).astimezone()
@@ -925,13 +933,24 @@ def test_ethereum_4_node_vmc(request, fxHermesRunSettings, ps_helper, file_root,
     log.info("Test {} completed successfully".format(request.node.name))
 
 
-@describe("Test to run a DAML ONPREM deployment (7 replicas + 3 client + 2 group)")
+@describe("Test to run a DAML ONPREM deployment (Default: 7 replicas + 3 clients + 2 groups)")
 @pytest.mark.smoke
 @pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
 def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, teardown):
+    # TODO: https://jira.eng.vmware.com/browse/BC-4844
+    # TODO: On demand runs pass Ethereum as concord type even after selecting DAML
+    blockchain_type = helper.TYPE_DAML
+    # TODO: https://jira.eng.vmware.com/browse/BC-4842
+    # TODO: Resolve issue arising due to unexpected key "local" being passed
+    zone_type = helper.LOCATION_ONPREM
+    num_replicas = 7 if not fxHermesRunSettings["hermesCmdlineArgs"].numReplicas else int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
+    num_clients = 3 if not fxHermesRunSettings["hermesCmdlineArgs"].numParticipants else int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    num_groups = 2 if not fxHermesRunSettings["hermesCmdlineArgs"].numGroups else int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
+    deployment_properties = "" if not fxHermesRunSettings["hermesCmdlineArgs"].propertiesString else fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
+
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
-    deployment_params = DeploymentParams(helper.TYPE_DAML, helper.LOCATION_ONPREM, 7, 3, 2)
+    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_groups, deployment_properties)
     zone_type = helper.LOCATION_ONPREM
 
     # Rest of the code below shouldn't change between different combinations of DAML test cases
@@ -962,7 +981,10 @@ def test_cmdline_driven(request, fxHermesRunSettings, ps_helper, file_root, tear
     zone_type = validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
     num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
     num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
-    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients)
+    num_groups = int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
+    deployment_properties = fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
+
+    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_groups, deployment_properties)
 
     # Call the deploy and post deploy wrapper
     deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper,
@@ -992,8 +1014,11 @@ def test_deployment_only(request, fxHermesRunSettings, ps_helper):
     zone_type = validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
     num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
     num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    num_groups = int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
     zone_config = fxHermesRunSettings["hermesZoneConfig"]
-    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_client_groups=0)
+    properties_string = fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
+
+    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_groups, properties_string)
 
     deployment_session_id, deployment_stream_events = create_deployment(ps_helper, deployment_params, zone_config)
     assert deployment_session_id is not None, "Deployment session id not found"

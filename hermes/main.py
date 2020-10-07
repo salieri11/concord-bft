@@ -332,6 +332,9 @@ def main():
    nonLocalDeployConfig.add_argument("--numGroups",
                                      help="The number of groups for the client node grouping.",
                                      default=1)
+   nonLocalDeployConfig.add_argument("--propertiesString",
+                                     help="The string containing comma seperated key value pairs for deployment properties.",
+                                     default="")
 
    args = parser.parse_args()
 
