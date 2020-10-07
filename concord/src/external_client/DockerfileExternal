@@ -2,7 +2,7 @@
 # Dockerfile for building the BFT Client Pool Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v24
 LABEL Description="External Client Pool"
 
 COPY ./concord /concord
@@ -36,6 +36,7 @@ RUN apt-get update && apt-get -y install \
     libyaml-cpp-dev \
     libs3-dev \
     gdbserver \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
@@ -116,6 +117,10 @@ RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.s
 
 COPY --from=0 /usr/local/lib/libthrift-0.11.0.so /usr/local/lib
 RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
+
+COPY --from=0 /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so.6
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so
 
 # Copy default Concord logger configuration so logging will be sanely configured
 # if no custom configuration was provided when the cluster was set up.
