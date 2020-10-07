@@ -38,7 +38,7 @@ class ThinReplicaImpl {
   };
 
   using KvbAppFilterPtr = std::shared_ptr<storage::KvbAppFilter>;
-  static constexpr size_t kSubUpdateBufferSize{100u};
+  static constexpr size_t kSubUpdateBufferSize{1000u};
 
  public:
   ThinReplicaImpl(
