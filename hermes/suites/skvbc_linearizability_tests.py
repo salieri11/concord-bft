@@ -64,6 +64,7 @@ async def _test_skvbc_linearizability(bft_network):
     log.info("Running SKVBC linearizability test...")
     await skvbc_chaos_test.test_healthy(
         bft_network=bft_network,
-        already_in_trio=True
+        already_in_trio=True,
+        exchange_keys=False
     )
     log.info("SKVBC linearizability test: OK.")

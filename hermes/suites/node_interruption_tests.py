@@ -137,7 +137,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.CONTAINERS_TO_CRASH: ["concord", "daml_execution_engine"],
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 1440
       }
    }
 
@@ -465,7 +465,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
          intr_helper.NETWORK_DISCONNECT_LEVEL: intr_helper.NETWORK_DISCONNECT_VM_LEVEL,
          intr_helper.NODE_OFFLINE_TIME: 30,
-         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 180
+         intr_helper.TIME_BETWEEN_INTERRUPTIONS: 1440
       }
    }
 

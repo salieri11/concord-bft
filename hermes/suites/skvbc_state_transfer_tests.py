@@ -64,6 +64,7 @@ async def _test_skvbc_state_transfer(bft_network):
     log.info("Running SKVBC state transfer test...")
     await skvbc_test.test_state_transfer(
         bft_network=bft_network,
-        already_in_trio=True
+        already_in_trio=True,
+        exchange_keys=False
     )
     log.info("SKVBC state transfer test: OK.")

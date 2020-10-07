@@ -317,6 +317,21 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
       raise
    return config_file
 
+def get_deployment_properties(deployment_properties):
+   properties_dict = {}
+
+   # Incoming string will be of the form K1=V1,K2=V2...KN=VN
+   # Following code will turn it into a corresponding python dict
+
+   if not deployment_properties:
+      return properties_dict
+
+   for kv_pair in deployment_properties.split(","):
+      key, value = kv_pair.split('=')
+      properties_dict[key] = value
+
+   return properties_dict
+
 
 def set_props_file_value(filename, key, value):
    '''
@@ -348,7 +363,6 @@ def set_props_file_value(filename, key, value):
    except Exception as e:
       log.error("Unable to update properties file: {}".format(filename))
       raise
-
 
 def read_key(key, properties_file=PROPERTIES_TEST_FILE):
    """
