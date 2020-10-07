@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v24
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -59,6 +59,7 @@ RUN apt-get update \
     gdb \
     lldb \
     vim \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
@@ -159,6 +160,10 @@ RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.s
 
 COPY --from=0 /usr/local/lib/libthrift-0.11.0.so /usr/local/lib
 RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
+
+COPY --from=0 /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so.6
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so
 
 WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord
