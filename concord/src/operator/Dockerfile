@@ -2,7 +2,7 @@
 # Dockerfile for building the concord operator image
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v23 AS build
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v24 AS build
 
 WORKDIR /concord
 COPY ./concord /concord
@@ -106,6 +106,10 @@ RUN ln -s /usr/local/lib/libcrypto.so.1.1 /usr/local/lib/libcrypto.so
 COPY --from=0 /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
 RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
 RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so
+
+COPY --from=0 /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so.6
+RUN ln -s /usr/local/lib/libhdr_histogram.so.6.1.0 /usr/local/lib/libhdr_histogram.so
 
 WORKDIR /operator
 COPY --from=build /concord/build/src/operator/operator_server /operator
