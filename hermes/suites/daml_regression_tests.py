@@ -21,7 +21,7 @@ LocalSetupFixture = namedtuple(
 
 @pytest.fixture(scope="function")
 @describe("fixture; local setup for given test suite")
-def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxProduct):
+def fxLocalSetup(fxHermesRunSettings, fxNodeInterruption, fxBlockchain, fxProduct):
     '''
     Module scoped fixture to enable all the test cases utilize common func.
     Functionalities:
@@ -30,6 +30,7 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxProduct):
     Args:
         fxHermesRunSettings: Hermes command line arguments.
         fxBlockchain: Blockchain fixture required to get f_count
+        fxNodeInterruption: Node Interruption fixture for related functions
         fxProduct: Product fixture
     Returns:
         client_hosts: Participant hosts (and ports) with running ledger API
@@ -37,10 +38,15 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxProduct):
         f_count: Maximum faulty replicas allowed.
     '''
     ledger_api_hosts, concord_hosts = None, None
-    all_replicas = helper.parseReplicasConfig(fxBlockchain.replicas)
-    log.info("\nInside local fixture, all the nodes after parsing are {}".format(all_replicas))
-    ledger_api_hosts = all_replicas["daml_participant"]
-    concord_hosts = all_replicas["daml_committer"]
+
+    # Get Client IP from Replicas config file
+    args = fxHermesRunSettings["hermesCmdlineArgs"]
+    if args.replicasConfig:
+        all_replicas = helper.parseReplicasConfig(args.replicasConfig)
+        ledger_api_hosts = all_replicas["daml_participant"]
+        concord_hosts = all_replicas["daml_committer"]
+    else:
+        ledger_api_hosts = args.damlParticipantIP.split(",")
 
     f_count = intr_helper.get_f_count(fxBlockchain)
     client_hosts = {}
@@ -71,7 +77,7 @@ def install_sdk_deploy_daml(client_host, client_port):
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
         cmd, timeout=150, working_dir=party_project_dir, verbose=True)
-    log.info("\nDaml deployment is {} and output is {}".format(success,output))
+
     assert success or "Party already exists" in output, \
         "Unable to deploy DAML app for one/more parties"
 
@@ -105,29 +111,38 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
         fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
 
 
-def crash_recover_primary(ip):
+def stop_start_concord(ip, container_name):
     '''
     Function to crash and recover primary replica
     Args:
         ip: Primary replica IP
+        container_name: Name of the container
     Returns:
         None
     '''
     try:
         status = True
         start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=5)
+        end_time = start_time + timedelta(minutes=3)
+        username, password = helper.getNodeCredentials()
         while status and start_time <= end_time:
-            status = intr_helper.start_stop_container(ip, 'concord')
+            cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
+            concord_status = helper.ssh_connect(ip, username, password, cmd)
+
+            if "running" in concord_status:
+                status = intr_helper.stop_container(ip, container_name)
+            elif "exited" in concord_status:
+                status = intr_helper.start_container(ip, container_name)
+
             start_time = datetime.now()
     except Exception as excp:
-        log.debug("Failed to crash and recover primary replica:{}".format(ip))
+        log.debug("Failed to stop and start primary replica:{}".format(ip))
         assert False, excp
 
 
 def send_request(client_host, client_port, no_of_txns, wait_time):
     '''
-    Function to submit daml request continu ously
+    Function to submit daml request continuously
     Args:
         client_host: Host where ledger API is running
         client_port: Port on which ledger API is running
@@ -139,7 +154,7 @@ def send_request(client_host, client_port, no_of_txns, wait_time):
     try:
         url = 'http://{}:{}'.format(client_host, client_port)
         start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=5)
+        end_time = start_time + timedelta(minutes=3)
         asyncio.set_event_loop(asyncio.new_event_loop())
         while start_time <= end_time:
             simple_request(url, no_of_txns, wait_time)
@@ -516,28 +531,24 @@ def test_fault_tolerance_view_change(fxLocalSetup, fxHermesRunSettings, fxBlockc
             initial_primary_replica_id = blockchain_ops.get_primary_rid(
                 fxBlockchain)
 
+            container_name = 'concord'
+
             # Stop f-1 non-primary replica
             for i in range(fxLocalSetup.f_count - 1):
-                custom_params = {
-                    intr_helper.CONTAINERS_TO_CRASH: ["concord"]
-                }
                 concord_host = fxLocalSetup.concord_hosts[i]
                 if concord_host != initial_primary_replica:
-
                     log.info(
                         "Stop concord in non-primary replica: {}".format(concord_host))
-                    assert interrupt_node(fxHermesRunSettings, concord_host, helper.TYPE_DAML_COMMITTER,
-                                          intr_helper.NODE_INTERRUPT_CONTAINER_CRASH,
-                                          intr_helper.NODE_INTERRUPT,
-                                          custom_params), "Failed to crash container [{}]".format(
-                        concord_host)
+                    intr_helper.stop_container(concord_host, container_name)
+
+
             log.info("Completed stopping f-1 non-primary replica concord container")
 
             # Start new thread for daml request submissions and stop & start current primary replica
             thread_daml_txn = Thread(target=send_request,
                                      args=(client_host, client_port, no_of_txns, wait_time))
             thread_start_stop_primary = Thread(
-                target=crash_recover_primary, args=(initial_primary_replica,))
+                target=stop_start_concord, args=(initial_primary_replica, container_name))
             t = []
             thread_daml_txn.start()
             thread_start_stop_primary.start()
