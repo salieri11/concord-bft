@@ -12,6 +12,8 @@ tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: true
+key_exchange_on_start: true
+key_view_path: /tmp
 preexecution_enabled: true
 pre_execute_all_requests: false
 node__TEMPLATE:

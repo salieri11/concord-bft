@@ -3449,6 +3449,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("key_exchange_on_start", make_shared<BooleanValidator>());
 
   config.declareParameter(
+      "key_view_path",
+      "A flag to indicate if key exchange on start is required.",
+      "/concord/config-generated");
+  config.tagParameter("key_view_path", publicDefaultableTags);
+  config.tagParameter("key_view_path", applicationTag);
+
+  config.declareParameter(
       "pruning_num_blocks_to_keep",
       "Minimum number of blocks to always keep in storage when pruning. If not "
       "specified, a value of 0 is assumed. If pruning_duration_to_keep_minutes "
