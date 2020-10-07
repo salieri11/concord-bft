@@ -217,9 +217,9 @@ class ThinReplicaClient final {
   // TRC metrics
   prometheus::Exposer exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
-  prometheus::Family<prometheus::Counter>& trc_requests_counters_total_;
-  prometheus::Family<prometheus::Gauge>& trc_resources_gauges_total_;
-  prometheus::Family<prometheus::Gauge>& trc_failures_total_;
+  prometheus::Family<prometheus::Counter>& trc_updates_total_;
+  prometheus::Family<prometheus::Gauge>& trc_sources_;
+  prometheus::Family<prometheus::Gauge>& trc_read_failures_total_;
   prometheus::Counter& trc_updates_counter_;
   prometheus::Gauge& trc_queue_size_;
   prometheus::Gauge& trc_last_verified_block_id_;
@@ -354,31 +354,27 @@ class ThinReplicaClient final {
         timeout_read_hash_stream_(std::chrono::seconds(max_read_hash_timeout)),
         exposer_("0.0.0.0:9891", "/metrics", 1),
         registry_(std::make_shared<prometheus::Registry>()),
-        trc_requests_counters_total_(
-            prometheus::BuildCounter()
-                .Name("trc_requests_counters_toatal")
-                .Help("counts requests related operation")
-                .Register(*registry_)),
-        trc_resources_gauges_total_(prometheus::BuildGauge()
-                                        .Name("trc_resources_gauges_total")
-                                        .Help("values of trc resources")
-                                        .Register(*registry_)),
-        trc_updates_counter_(
-            trc_requests_counters_total_.Add({{"item", "updates"}})),
-        trc_queue_size_(
-            trc_resources_gauges_total_.Add({{"resource", "queue_size"}})),
-        trc_last_verified_block_id_(trc_resources_gauges_total_.Add(
-            {{"resource", "last_verified_block_id"}})),
-        trc_failures_total_(prometheus::BuildGauge()
-                                .Name("trc_failures_total")
-                                .Help("TRC failures")
-                                .Register(*registry_)),
+        trc_updates_total_(prometheus::BuildCounter()
+                               .Name("trc_updates_toatal")
+                               .Help("Received and verifed updates")
+                               .Register(*registry_)),
+        trc_sources_(prometheus::BuildGauge()
+                         .Name("trc_sources")
+                         .Help("Interesting runtime values")
+                         .Register(*registry_)),
+        trc_updates_counter_(trc_updates_total_.Add({{"source", "updates"}})),
+        trc_queue_size_(trc_sources_.Add({{"source", "current_queue_size"}})),
+        trc_last_verified_block_id_(
+            trc_sources_.Add({{"source", "last_verified_block_id"}})),
+        trc_read_failures_total_(prometheus::BuildGauge()
+                                     .Name("trc_read_failures_total")
+                                     .Help("TRC read failures")
+                                     .Register(*registry_)),
         trc_read_timeouts_(
-            trc_failures_total_.Add({{"type", "read"}, {"error", "timeout"}})),
+            trc_read_failures_total_.Add({{"error", "timeout"}})),
         trc_read_failures_(
-            trc_failures_total_.Add({{"type", "read"}, {"error", "failure"}})),
-        trc_read_ignored_(
-            trc_failures_total_.Add({{"type", "read"}, {"error", "ignored"}})),
+            trc_read_failures_total_.Add({{"error", "failure"}})),
+        trc_read_ignored_(trc_read_failures_total_.Add({{"error", "ignored"}})),
         read_timeouts_per_update_(0),
         read_failures_per_update_(0),
         read_ignored_per_update_(0) {
