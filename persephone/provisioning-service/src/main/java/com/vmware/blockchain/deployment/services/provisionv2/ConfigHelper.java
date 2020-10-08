@@ -47,7 +47,8 @@ public class ConfigHelper {
      * @param bootstrapComponent properties
      */
     public ConfigHelper(BootstrapComponent bootstrapComponent) {
-        this.configurationServiceClient = (new ConfigServiceInvoker(bootstrapComponent.configService))
+        this.configurationServiceClient = (new ConfigServiceInvoker(bootstrapComponent.configService,
+                                                                    bootstrapComponent.pathToCerts))
                 .generateConfigServiceFutureStub().withWaitForReady();
     }
 

@@ -4,16 +4,23 @@
 
 package com.vmware.blockchain.deployment.services.provisionv2;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.text.MessageFormat;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.FileNotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.v1.Address;
+
+import io.grpc.ManagedChannel;
 
 /**
  * Test for OrchestrationUtils class.
@@ -51,5 +58,36 @@ public class OrchestratorUtilsTest {
 
         Assert.assertEquals(actual.getKey(), ADDR_NAME);
         Assert.assertEquals(actual.getValue(), IP);
+    }
+
+    @Test
+    void testGetSecureManagedChanel() {
+        ManagedChannel mc = OrchestratorUtils.getSecureManagedChanel("configservice-vmbc.vdp-stg.vmware.com",
+                                                                     "src/test/resources/certs");
+        Assert.assertNotNull(mc);
+    }
+
+    @Test
+    void testGetSecureManagedChanelNoFolder() {
+        try {
+            OrchestratorUtils.getSecureManagedChanel("configservice-vmbc.vdp-stg.vmware.com",
+                                                              "src/test/resources/certs/nonExistingFolder");
+        } catch (Exception ex) {
+            assertEquals(ex.getClass(), FileNotFoundPersephoneException.class);
+            assertEquals(ex.getMessage(), MessageFormat.format(ErrorCode.GRPC_SSL_INIT_ERROR,
+                                                               "Certificates folder does not exit."));
+        }
+    }
+
+    @Test
+    void testGetSecureManagedChanelNoCertFiles() {
+        try {
+            OrchestratorUtils.getSecureManagedChanel("configservice-vmbc.vdp-stg.vmware.com",
+                                                     "src/test/resources/certs/empty");
+        } catch (Exception ex) {
+            assertEquals(ex.getClass(), FileNotFoundPersephoneException.class);
+            assertEquals(ex.getMessage(), MessageFormat.format(ErrorCode.GRPC_SSL_INIT_ERROR,
+                                                               "No certificates provided."));
+        }
     }
 }

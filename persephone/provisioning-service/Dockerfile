@@ -23,29 +23,9 @@ COPY ./provisioning-service  ./provisioning-service
 RUN mvn -f pom.xml package -pl provisioning-service -am -B
 #RUN mvn -f persephone/provisioning-service/pom.xml install
 
-# Environment preparation.
-FROM openjdk:11.0.2-jdk-slim as environment
-
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y wget \
-    && wget --no-check-certificate --directory-prefix=/tmp/ https://dl.cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt \
-    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-test.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-test-config-cert -file /tmp/config-service-test.crt \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-staging.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-staging-config-cert -file /tmp/config-service-staging.crt \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-dev.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-dev-config-cert -file /tmp/config-service-dev.crt \
-    && wget --directory-prefix=/tmp/ http://aia.entrust.net/l1k-chain256.cer \
-    && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
-
 # Runtime image (Provisioning Service).
 FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
-
-## Install CA certificate.
-## This has hardcoded dependency on JAVA folder.
-COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.41.24-sa-jdk11.0.8-linux_x64/lib/security/cacerts
 
 WORKDIR /persephone-provisioning-service
 COPY ./provisioning-service/src/main/resources .
@@ -63,3 +43,4 @@ ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspri
 EXPOSE 8000 9002
 
 VOLUME ["/config"]
+VOLUME ["/certs"]

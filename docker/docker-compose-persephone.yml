@@ -13,3 +13,4 @@ services:
       - 9002:9002
     volumes:
       - ../hermes/resources/persephone/provisioning:/config:ro
+      - ../hermes/resources/persephone/provisioning/app/certs:/certs

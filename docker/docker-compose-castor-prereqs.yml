@@ -13,6 +13,7 @@ services:
       - 9002:9002
     volumes:
       - ../hermes/resources/persephone/provisioning:/config:ro
+      - ../hermes/resources/persephone/provisioning/app/certs:/certs
     environment:
       - provisioning.config.service.address=config-service:9003
       - provisioning.config.service.transportSecurity.type=NONE

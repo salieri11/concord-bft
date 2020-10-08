@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.deployment.services.configservice;
 
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
@@ -19,9 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfigServiceInvoker {
 
     private final Endpoint endpoint;
+    private String path;
 
-    public ConfigServiceInvoker(Endpoint configServiceEndpoint) {
+    public ConfigServiceInvoker(Endpoint configServiceEndpoint, String pathToCerts) {
         this.endpoint = configServiceEndpoint;
+        this.path = pathToCerts;
     }
 
     /**
@@ -37,9 +40,7 @@ public class ConfigServiceInvoker {
                     .usePlaintext()
                     .build();
         } else {
-            channel = ManagedChannelBuilder
-                    .forTarget(endpoint.getAddress())
-                    .build();
+            channel = OrchestratorUtils.getSecureManagedChanel(endpoint.getAddress(), path);
         }
         return ConfigurationServiceGrpc.newStub(channel);
     }
@@ -57,9 +58,7 @@ public class ConfigServiceInvoker {
                     .usePlaintext()
                     .build();
         } else {
-            channel = ManagedChannelBuilder
-                    .forTarget(endpoint.getAddress())
-                    .build();
+            channel = OrchestratorUtils.getSecureManagedChanel(endpoint.getAddress(), path);
         }
         return ConfigurationServiceGrpc.newFutureStub(channel);
     }

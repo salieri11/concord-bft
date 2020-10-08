@@ -37,7 +37,7 @@ public class OrchestrationSiteService extends OrchestrationSiteServiceGrpc.Orche
     @Autowired
     public OrchestrationSiteService(BootstrapComponent bootstrapComponent) {
         this.orchestratorProvider = new OrchestratorFactory();
-        this.ipamClient = new IpamClient(bootstrapComponent.allocationService);
+        this.ipamClient = new IpamClient(bootstrapComponent.allocationService, bootstrapComponent.pathToCerts);
     }
 
     @Override

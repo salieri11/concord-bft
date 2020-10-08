@@ -87,6 +87,7 @@ public class ProvisioningServiceTest {
                 .setTransportSecurity(TransportSecurity.newBuilder()
                                               .setType(TransportSecurity.Type.TLSv1_2).build()).build();
         bootstrapComponent.configService = configService;
+        bootstrapComponent.pathToCerts = "src/test/resources/certs";
 
         // Would have loved to use expectNew. but not taking effect.
         provisioningServiceV2 = new ProvisioningServiceV2(bootstrapComponent, nodeConfiguration);
