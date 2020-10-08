@@ -50,6 +50,9 @@ public class BootstrapComponent {
     @Value("${replica.wait:300000}")
     public int waitForReplica;
 
+    @Value("${provisioning.certs:/certs}")
+    public String pathToCerts;
+
     public Endpoint configService;
 
     public Endpoint configServiceRest;

@@ -10,6 +10,8 @@ package com.vmware.blockchain.deployment.services.exception;
 public final class ErrorCode {
 
     public static final String FOLDER_NOT_FOUND = "Error retrieving folder: {0}";
+    public static final String GRPC_SSL_INIT_ERROR =
+                                                "Error importing self-signed certificates for gRPC communication. {0}";
     public static final String INVALID_SESSION_ID = "Invalid session id: {0}";
     public static final String KEYSTORE_CREATION_ERROR = "Error in creating KeyStore with the provided certificate";
     public static final String NO_RESPONSE_RETRY = "No response after {0} retries";
@@ -38,5 +40,6 @@ public final class ErrorCode {
     public static final String VM_POWER_STATE_UPDATE_ERROR = "Unable to update VM power state: {0}";
     public static final String VM_START_ERROR = "Error creating/starting the VM";
     public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator: {0}";
+
 
 }

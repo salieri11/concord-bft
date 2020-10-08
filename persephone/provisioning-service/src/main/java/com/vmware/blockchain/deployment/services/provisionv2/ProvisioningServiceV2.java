@@ -349,7 +349,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
             var site = OrchestrationSites.buildSiteInfo(each.getInfo(), bootstrapComponent.containerRegistry);
             siteInfo.put(id, site);
             orchestratorMap.put(id, orchestratorProvider
-                    .newOrchestrator(site, new IpamClient(bootstrapComponent.allocationService)));
+                    .newOrchestrator(site, new IpamClient(bootstrapComponent.allocationService,
+                                                          bootstrapComponent.pathToCerts)));
         });
     }
 

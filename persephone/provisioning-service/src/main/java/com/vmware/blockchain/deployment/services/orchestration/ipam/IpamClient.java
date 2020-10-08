@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.futureutil.ReactiveStream;
+import com.vmware.blockchain.deployment.services.orchestration.OrchestratorUtils;
 import com.vmware.blockchain.deployment.v1.Address;
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest;
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse;
@@ -19,6 +20,7 @@ import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest;
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
+import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -35,14 +37,18 @@ public class IpamClient {
     /**
      * Constructor.
      */
-    public IpamClient(Endpoint allocationServer) {
+    public IpamClient(Endpoint allocationServer, String path) {
         ManagedChannelBuilder managedChannelBuilder = ManagedChannelBuilder.forTarget(allocationServer.getAddress());
+        ManagedChannel channel = null;
 
         if (allocationServer.getTransportSecurity().getType() == TransportSecurity.Type.NONE) {
             managedChannelBuilder.usePlaintext();
+            channel = managedChannelBuilder.build();
+        } else {
+            channel = OrchestratorUtils.getSecureManagedChanel(allocationServer.getAddress(), path);
         }
 
-        ipAllocationServiceStub = IPAllocationServiceGrpc.newStub(managedChannelBuilder.build());
+        ipAllocationServiceStub = IPAllocationServiceGrpc.newStub(channel);
     }
 
     /**
