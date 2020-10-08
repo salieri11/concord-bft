@@ -22,25 +22,13 @@ RUN mvn -f agent/pom.xml install
 FROM openjdk:11.0.2-jdk-slim as environment
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y wget \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-test.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-test-config-cert -file /tmp/config-service-test.crt \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-staging.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-staging-config-cert -file /tmp/config-service-staging.crt \
-    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-dev.crt \
-    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-dev-config-cert -file /tmp/config-service-dev.crt \
-    && wget --directory-prefix=/tmp/ http://aia.entrust.net/l1k-chain256.cer \
-    && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
+    && apt-get install --no-install-recommends -y wget
 
 RUN wget --directory-prefix=/tmp/ https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64
 
 # Runtime image.
 FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
 LABEL description="Node Agent"
-
-## Install CA certificate.
-## This has hardcoded dependency on JAVA folder.
-COPY --from=environment /docker-java-home/lib/security/cacerts /usr/local/zulu11.41.24-sa-jdk11.0.8-linux_x64/lib/security/cacerts
 
 ## Get the notary binary from environment stage
 ## Make the binary executable
