@@ -3,96 +3,195 @@
 #########################################################################
 
 import pytest
-
 from suites.case import describe
-
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
-import util.auth
-import util.helen.common
-import util.helen.error_codes
-import util.helen.validators
-import util.helen.zone
-import util.helper
-import util.product
-import math
-from util import json_helper
-import util.hermes_logging
+from util import auth, helper, product, hermes_logging, json_helper
+from util.helen import common, error_codes, validators, zone
 import collections
 
-log = util.hermes_logging.getMainLogger()
+log = hermes_logging.getMainLogger()
 
-defaultTokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
-                                                      True,
-                                                      util.auth.internal_admin)
+defaultTokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN, True, auth.internal_admin)
 
-LocalSetupfixture = collections.namedtuple("LocalSetupfixture",["flag", "vm_size","warning"])
+LocalSetupfixture = collections.namedtuple("LocalSetupfixture", ["flag", "node_size", "participant_nodes",
+                                                                 "committer_nodes", "warning"])
+
 
 @pytest.fixture
 @describe("fixture; Initial Setup")
-def fxLocalSetup(fxHermesRunSettings):
-   warning = None
-   blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
-   blockchain_location = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()
-   vm_size_configs = fxHermesRunSettings["hermesCmdlineArgs"].vmSizeConfig
-   if vm_size_configs:
-      size_config = json_helper.readJsonFile(vm_size_configs)
-   else:
-      size_config = None
-   if (blockchain_type == util.helper.TYPE_DAML and
-         blockchain_location in [util.helper.LOCATION_SDDC, util.helper.LOCATION_ONPREM] and
-         size_config):
-      flag = True
-   else:
-      warning = ("blockchainType must be {} and blockchainLocation must be onprem or sddc and VM size must be "
-                  "specified- All VM Test skipped".format(blockchain_type, blockchain_location))
-      flag = False
+def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection):
+    warning = None
+    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
+    blockchain_location = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation.lower()
 
-   return LocalSetupfixture(flag=flag,vm_size=size_config,warning = warning)
+    if blockchain_type == helper.TYPE_DAML and blockchain_location in [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
+        flag = True
+    else:
+        warning = ("blockchainType must be {} and blockchainLocation must be onprem or sddc and VM size must be "
+                   "specified- All VM Test skipped".format(blockchain_type, blockchain_location))
+        flag = False
+    node_sizing = get_node_size(fxHermesRunSettings, fxConnection)
+    all_participants = fxBlockchain.replicas[helper.TYPE_DAML_PARTICIPANT]
+    all_committers = fxBlockchain.replicas[helper.TYPE_DAML_COMMITTER]
 
-def validateSize(nodes,vm_node_size):
-   for node in nodes:
-      if node['public_ip'] == None:
-         ip = node['private_ip']
-      else:
-         ip = node['public_ip']
+    participant_nodes = []
+    committer_nodes = []
 
-      if node['name'] == None:
-         node['name'] = node['type_name']
+    for node in (all_participants + all_committers):
+        ip = node['private_ip'] if node['public_ip'] is None else node['public_ip']
 
-      log.info("checking {} IP Address - {}".format(node['name'], ip))
-      vm_actual_size = getVMSize(ip)
-      assert vm_node_size.get("storage_in_gigs") == vm_actual_size[
-         'storage'], "Storage of {} IP Address-{} is not {}GB but {}GB".format(node['name'], ip,
-                                                                    vm_node_size.get("storage_in_gigs"),vm_actual_size["storage"])
-      assert vm_node_size.get("no_of_cpus") == vm_actual_size[
-         'vcpu'], "CPU of {} IP Address-{} is not {} ".format(node['name'], ip, vm_node_size.get("no_of_cpus"),vm_actual_size["vcpu"])
-      assert vm_node_size.get("memory_in_gigs") == vm_actual_size[
-         'memory'], "Memory of {} IP Address-{} is not {}".format(node['name'], ip,
-                                                                  vm_node_size.get("memory_in_gigs"),vm_actual_size["memory"])
+        # as the client node has name as None
+        if node['name'] is None:
+            node['name'] = "Client"
+
+        # get vm size for only Client and Replica, there may be other types of node as well
+        if node['name'] == "Client":
+            vm_size = get_vm_size(ip)
+            node_info = {
+                        "ip": ip,
+                        "size_info": vm_size,
+                        "name": node["name"]
+            }
+            participant_nodes.append(node_info)
+        elif node['name'][0:7] == "Replica":
+            vm_size = get_vm_size(ip)
+            node_info = {
+                        "ip": ip,
+                        "size_info": vm_size,
+                        "name": node["name"]
+            }
+            committer_nodes.append(node_info)
+
+        log.info("checking {} IP Address - {}".format(node['name'], ip))
+    return LocalSetupfixture(flag=flag, node_size=node_sizing, participant_nodes=participant_nodes,
+                             committer_nodes=committer_nodes, warning=warning)
 
 
-def getVMSize(ip):
-   '''
-    Get VM size details
+def get_node_size(fxHermesRunSettings, fxConnection):
     '''
-   user_config = util.json_helper.readJsonFile(util.helper.CONFIG_USER_FILE)
-   username = user_config["persephoneTests"]["provisioningService"]["concordNode"]["username"]
-   password = user_config["persephoneTests"]["provisioningService"]["concordNode"]["password"]
-   vm_actual_size = {}
-   cmd_vm_memory = "grep MemTotal /proc/meminfo"
-   cmd_vm_cpu = "lscpu|grep 'CPU(s):'"
-   cmd_vm_disk = "fdisk -l | grep Disk | grep /dev/sdb"
+    creating a node size json consisting of replica and client size from command line argument
+    then modifying it with available details if command line argument is None
+    '''
+    node_sizing = [
+        {
+            "type": "replica",
+            "name": fxHermesRunSettings["hermesCmdlineArgs"].replicaSize,
+            "mem": fxHermesRunSettings["hermesCmdlineArgs"].replicaMemory,
+            "storage": fxHermesRunSettings["hermesCmdlineArgs"].replicaStorage,
+            "cpu": fxHermesRunSettings["hermesCmdlineArgs"].replicaCpu
+        },
+        {
+            "type": "client",
+            "name": fxHermesRunSettings["hermesCmdlineArgs"].clientSize,
+            "mem": fxHermesRunSettings["hermesCmdlineArgs"].clientMemory,
+            "storage": fxHermesRunSettings["hermesCmdlineArgs"].clientStorage,
+            "cpu": fxHermesRunSettings["hermesCmdlineArgs"].clientCpu
+        }]
 
-   final_command = cmd_vm_memory +"\n"+ cmd_vm_cpu +"\n"+ cmd_vm_disk
-   output=util.helper.ssh_connect(ip, username, password, final_command)
-   assert output, "Unable to connect with IP:{}".format(ip)
-   log.debug ("*********Total*********\n{}".format(output))
-   output=output.split("\n")
-   memory = (output[0].split()[1])
-   vm_actual_size["memory"] = str(math.ceil(int(memory) / (1024 * 1024)))
-   vm_actual_size["vcpu"] = (output[1].split()[1])
-   vm_actual_size["storage"] = (output[3].split()[2])
-   return vm_actual_size
+    res = fxConnection.request.getNodeSizeTemplate()
+    templates = res.get("templates")
+    for node_size in node_sizing:
+        for template in templates:
+            if template.get("name").lower() == node_size.get("name").lower():
+                for item in template.get("items"):
+                    if item.get("type") == node_size.get("type"):
+                        node_size["mem"] = item.get("memory_in_gigs") if node_size["mem"] is None else node_size["mem"]
+                        node_size["storage"] = item.get("storage_in_gigs") if node_size["storage"] is None \
+                            else node_size["storage"]
+                        node_size["cpu"] = item.get("no_of_cpus") if node_size["cpu"] is None else node_size["cpu"]
+                        break
+                break
+    return node_sizing
+
+
+def validate_size(actual_nodes_size, vm_node_size):
+    '''
+    Validates actual node size with template/entered size
+    :param actual_nodes_size: Actual VM size of the nodes
+    :param vm_node_size:  Node size from template/command line argument
+    '''
+    for node in actual_nodes_size:
+        assert float(vm_node_size.get("storage")) == float(node[
+            'size_info']['storage']), "Storage of {} IP Address-{} is not {}GB but {}GB". \
+            format(node['name'], node['ip'],
+                   vm_node_size.get('storage_in_gigs'),
+                   node["size_info"]['storage'])
+
+        assert vm_node_size.get("cpu") == node['size_info']['cpu'], \
+            "CPU of {} IP Address-{} is not {} ".\
+            format(node['name'], node['ip'],
+                   vm_node_size.get('no_of_cpus'),
+                   node['size_info']['cpu'])
+
+        # Actual memory of VM wont match exactly to the specified json value
+        # memory details obtained are in KB
+        # obtaining two limits for comparison with specified value by dividing actual value by 1000*1000 and 1024*1024
+        # we can ensure that the actual value is within +3.5% or -3.5% from the specified value
+        assert (float(node['size_info']['memory']) / (1000 * 1000)) >= float(vm_node_size.get("mem")) \
+               >= (float(node['size_info']['memory']) / (1024 * 1024)), "Memory of {} IP Address-{} is not " \
+                                                                        "{}".format(node['name'], node["ip"],
+                                                                                    vm_node_size.get('memory_in_gigs'),
+                                                                                    node['size_info']['memory'])
+
+
+def validate_range(fxConnection, actual_nodes_size):
+    '''
+     Validates the sizing template provided for the system against available node size template range
+     '''
+    res = fxConnection.request.getNodeSizeTemplate()
+    range_template = res.get("range")
+    max_cpu = range_template.get("no_of_cpus").get("max")
+    min_cpu = range_template.get("no_of_cpus").get("min")
+    max_memory = range_template.get("memory_in_gigs").get("max")
+    min_memory = range_template.get("memory_in_gigs").get("min")
+    max_storage = range_template.get("storage_in_gigs").get("max")
+    min_storage = range_template.get("storage_in_gigs").get("min")
+    for node in actual_nodes_size:
+        cpu = int(node["size_info"].get("cpu"))
+        storage = int(node["size_info"].get("storage"))
+        memory = int(node["size_info"].get("memory"))
+
+        assert cpu <= max_cpu or cpu >= min_cpu, \
+            "CPU of {} with IP: {} is not in the range {} - {}".format(node["name"], node["ip"], max_cpu, min_cpu)
+
+        assert memory <= max_memory or memory >= min_memory, \
+            "Memory of {} with IP: {} is not in the range {} - {}".format(node["name"], node["ip"],
+                                                                          max_memory, min_memory)
+
+        assert float(storage) <= float(max_storage) or float(storage) >= float(min_storage), \
+            "Storage of {} with IP: {} is not in the range {} - {}".format(node["name"], node["ip"],
+                                                                           max_storage, min_storage)
+
+
+def get_vm_size(ip):
+    '''
+     Get VM size details from the vm of given IP
+    '''
+    user_config = json_helper.readJsonFile(helper.CONFIG_USER_FILE)
+    username = user_config["persephoneTests"]["provisioningService"]["concordNode"]["username"]
+    password = user_config["persephoneTests"]["provisioningService"]["concordNode"]["password"]
+    vm_actual_size = {}
+    cmd_vm_memory = "grep MemTotal /proc/meminfo"
+    cmd_vm_cpu = "lscpu|grep 'CPU(s):'"
+    cmd_vm_disk = "fdisk -l | grep Disk | grep /dev/sdb"
+
+    final_command = cmd_vm_memory + "\n" + cmd_vm_cpu + "\n" + cmd_vm_disk
+    output = helper.ssh_connect(ip, username, password, final_command)
+    assert output, "Unable to connect with IP:{}".format(ip)
+    log.debug("*********Size Details*********\n{}".format(output))
+    output = output.split("\n")
+    vm_actual_size["memory"] = (output[0].split()[1])
+    vm_actual_size["cpu"] = (output[1].split()[1])
+
+    # cpu command may result in one or two line output. hence checking the length of the output
+    # when storage is greater than 1024 GB, the output will be in-terms of TB. changing it to equivalent GB value
+    index = 2 if len(output) == 3 else 3
+    log.debug("VM storage: {}".format(output[index]))
+    vm_actual_size["storage"] = str(float(output[index].split()[2])*1024) \
+        if "TiB" in output[index].split()[3] else output[index].split()[2]
+
+    return vm_actual_size
+
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # HELEN BLOCKCHAIN SIZE TESTS
@@ -100,75 +199,65 @@ def getVMSize(ip):
 @describe()
 @pytest.mark.smoke
 @pytest.mark.blockchains
-def test_vm_range(fxConnection, fxLocalSetup):
-   '''
-    Verify VM size passed is as per the node-size-template range
-    '''
-   if not fxLocalSetup.flag:
-      pytest.skip(fxLocalSetup.warning)
-
-   log.info("PERFORMING RANGE TEST")
-
-   validate_range = util.helen.validators.validateRange(fxConnection.request, fxLocalSetup.vm_size)
-   assert validate_range == True, validate_range
-
-
-@describe()
-@pytest.mark.smoke
-@pytest.mark.blockchains
 def test_size_blockchain(fxConnection, fxLocalSetup):
-   '''
-    Verify Blockchain created successfully when size parameter is passed
-   '''
-   if not fxLocalSetup.flag:
-      pytest.skip(fxLocalSetup.warning)
+    '''
+     Verify Blockchain created successfully when size parameter is passed
+    '''
+    if not fxLocalSetup.flag:
+        pytest.skip(fxLocalSetup.warning)
 
-   log.info("Performing deployed Blockchain with size parameters validation")
+    log.info("Performing deployed Blockchain with size parameters validation")
 
-   blockchains = fxConnection.request.getBlockchains()
-   assert len(blockchains) == 1, "Expected one blockchain to be returned"
-   blockchain = blockchains[0]
-   util.helen.validators.validateBlockchainFields(blockchain)
+    blockchains = fxConnection.request.getBlockchains()
+    assert len(blockchains) == 1, "Expected one blockchain to be returned"
+    blockchain = blockchains[0]
+    validators.validateBlockchainFields(blockchain)
+
 
 @describe()
 @pytest.mark.smoke
 @pytest.mark.blockchains
 def test_replica_size(fxConnection, fxBlockchain, fxLocalSetup):
-   '''
-    Verify VM size of Replicas
     '''
-   if not fxLocalSetup.flag:
-      pytest.skip(fxLocalSetup.warning)
+     Verify VM size of Replicas
+     '''
+    if not fxLocalSetup.flag:
+        pytest.skip(fxLocalSetup.warning)
 
-   vm_replica_size = fxLocalSetup.vm_size.get("replica")
+    replica_size_info = fxLocalSetup.node_size[0] if fxLocalSetup.node_size[0].get("type") is "replica" \
+        else fxLocalSetup.node_size[1]
 
-   if not vm_replica_size:
-      pytest.skip("Replica size is not specified")
-
-   log.info("Performing VM size verification of replicas")
-
-   all_committers = fxBlockchain.replicas[util.helper.TYPE_DAML_COMMITTER]
-
-   validateSize(all_committers,vm_replica_size)
+    log.info("Performing VM size verification of replicas")
+    committer_nodes_size = fxLocalSetup.committer_nodes
+    validate_size(committer_nodes_size, replica_size_info)
 
 
 @describe()
 @pytest.mark.smoke
 @pytest.mark.blockchains
 def test_client_size(fxConnection, fxBlockchain, fxLocalSetup):
-   '''
-    Verify VM size of Clients
     '''
-   if not fxLocalSetup.flag:
-      pytest.skip(fxLocalSetup.warning)
+     Verify VM size of Clients
+     '''
+    if not fxLocalSetup.flag:
+        pytest.skip(fxLocalSetup.warning)
 
-   vm_client_size = fxLocalSetup.vm_size.get("replica")
+    client_size_info = fxLocalSetup.node_size[1] if fxLocalSetup.node_size[1].get("type") is "client" \
+        else fxLocalSetup.node_size[0]
 
-   if not vm_client_size:
-      pytest.skip("Client size is not specified")
+    log.info("Performing VM size verification of clients")
+    participant_nodes_size = fxLocalSetup.participant_nodes
+    validate_size(participant_nodes_size, client_size_info)
 
-   log.info("Performing VM size verification of replicas")
 
-   all_participants = fxBlockchain.replicas[util.helper.TYPE_DAML_PARTICIPANT]
-
-   validateSize(all_participants,vm_client_size)
+@describe()
+@pytest.mark.smoke
+@pytest.mark.blockchains
+def test_vm_range(fxConnection, fxLocalSetup):
+    '''
+     Verify created VM size is as per the node-size-template range
+     '''
+    if not fxLocalSetup.flag:
+        pytest.skip(fxLocalSetup.warning)
+    log.info("Performing range test")
+    validate_range(fxConnection, fxLocalSetup.participant_nodes + fxLocalSetup.committer_nodes)

@@ -277,9 +277,6 @@ def main():
    parser.add_argument("--notifyJobName",
                        help="Shortened job name running this monitoring script",
                        default=None)
-   parser.add_argument("--vmSizeConfig",
-                       help="VM size config file to create VM of given size",
-                       default=None)
 
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
