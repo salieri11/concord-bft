@@ -6,6 +6,7 @@
 # create deployment support bundle
 
 import argparse
+import glob
 import json
 import logging
 import os
@@ -22,10 +23,6 @@ files_folders_to_backup = [
    "/var/log/cloud-init.log",
    "/var/log/cloud-init-output.log",
    "/var/lib/cloud/instance/user-data.txt",
-]
-
-product_logs_to_backup = [
-   "/concord/log"
 ]
 
 path_to_exclude_backup = [
@@ -50,14 +47,11 @@ def gather_product_logs(docker_containers):
       if execute_ext_command(command, container_inspect_json):
          with open(container_inspect_json, "r") as fp:
             data = json.load(fp)
-            if data and "Mounts" in data[0]:
-               for mount in data[0]["Mounts"]:
-                  if "Destination" in mount and "Source" in mount and mount[
-                     "Destination"] in product_logs_to_backup:
-                     log.debug(
-                        "'{}' mount point '{}'".format(mount["Destination"],
-                                                       mount["Source"]))
-                     files_folders_to_backup.append(mount["Source"])
+            if data and "LogPath" in data[0]:
+               log_path = data[0]["LogPath"]
+               log.debug("LogPath: {}".format(log_path))
+               for log_file in glob.glob("{}*".format(log_path)):
+                  files_folders_to_backup.append({log_file: container})
 
 
 def gather_deployment_docker_logs(docker_containers, deployment_support_bundle_dir_path):
@@ -80,9 +74,17 @@ def backup_logfiles_folders(deployment_support_bundle_dir_path):
    :param deployment_support_bundle_dir_path: Support bundle destination dir
    '''
    for file_folder in files_folders_to_backup:
+      sub_folder = ""
+      if isinstance(file_folder, dict):
+         for filepath in file_folder:
+            sub_folder = file_folder[filepath]
+            file_folder = filepath
+
       log.debug("Back up log file/folder '{}'...".format(file_folder))
       dir, file = os.path.split(file_folder)
-      dest = os.path.join(deployment_support_bundle_dir_path, file)
+      dest_dir = os.path.join(deployment_support_bundle_dir_path, sub_folder)
+      os.makedirs(dest_dir, exist_ok = True)
+      dest = os.path.join(dest_dir, file)
       copy_util(file_folder, dest)
 
 
