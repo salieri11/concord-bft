@@ -5,8 +5,8 @@ ThisBuild / organizationName := "Digital Asset, LLC"
 ThisBuild / coverageExcludedPackages := "com.digitalasset.kvbc.daml_commit.*;com.digitalasset.kvbc.daml_validator.*"
 
 lazy val akkaVersion = "2.6.1"
-lazy val sdkVersion = "1.6.0-snapshot.20200930.5312.0.b9a1905d"
-lazy val integrationKitVersion = "0.0.13-snapshot.20201001.868.0.b93d7a39"
+lazy val sdkVersion = "1.6.0-snapshot.20201007.5314.0.b4a47d0b"
+lazy val integrationKitVersion = "0.0.13-snapshot.20201008.891.0.1147d5a5"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -41,6 +41,7 @@ lazy val common = (project in file("common"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "ch.qos.logback" % "logback-core" % "1.2.3",
       "com.daml" %% "build-info" % sdkVersion,
+      "com.daml" %% "participant-state" % sdkVersion,
       "com.daml" %% "testing-utils" % sdkVersion % Test,
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
       "io.dropwizard.metrics" % "metrics-core" % "4.1.2",
