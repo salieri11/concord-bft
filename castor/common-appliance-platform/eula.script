@@ -1,0 +1,37 @@
+#!/bin/bash
+
+EULA_DIR=/opt/vmware/blockchain/eula
+EULA_FILE=VMware_EULA_20190913_English.txt
+EULA_FILE_ONLINE=https://www.vmware.com/content/dam/digitalmarketing/vmware/en/pdf/downloads/eula/universal_eula.pdf
+
+if [[ ! -f $EULA_DIR/.${USER}-eula ]]
+then
+  trap controlc INT
+  function controlc() {
+    echo "exiting..."
+    exit 0
+  }
+
+  less $EULA_DIR/$EULA_FILE
+  while true
+  do
+    echo
+    echo "EULA file: $EULA_FILE_ONLINE"
+    echo
+    read -rp "Agree to EULA? [yes|no]: " eulaanswer
+    if [[ "$eulaanswer" == "yes" ]] || [[ "$eulaanswer" == "no" ]]
+    then
+      break
+    fi
+  done
+
+  if [[ "$eulaanswer" == "no" ]]
+  then
+    echo "EULA NOT ACCEPTED, EXITING..."
+    exit 0
+  else
+    echo "User $USER accepted EULA on $(date -u)" >> $EULA_DIR/.${USER}-eula
+  fi
+
+  trap - INT
+fi
