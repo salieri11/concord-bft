@@ -16,6 +16,7 @@ import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.L
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.TELEGRAF;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.WAVEFRONT_PROXY;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,10 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
+
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -119,7 +123,9 @@ public class NodeConfiguration {
      * @return components.
      */
     List<ConcordComponent> getComponentsByNodeType(BlockchainType blockchainType,
-                                                          NodeType nodeType, Properties properties) {
+                                                   NodeType nodeType,
+                                                   Properties properties,
+                                                   boolean excludeWavefront) {
 
         var componentsByNode = componentListForBlockchainNodeType.get(blockchainType);
         if (componentsByNode == null || componentsByNode.get(nodeType) == null) {
@@ -128,15 +134,18 @@ public class NodeConfiguration {
         }
         String dockerVersionToUse = properties.getValuesOrDefault(DeploymentAttributes.IMAGE_TAG.name(),
                                                                     dockerImageBaseVersion);
-        return componentsByNode.get(nodeType).stream()
-                .map(k ->
-                             ConcordComponent.newBuilder()
-                                     .setType(ConcordComponent.Type.CONTAINER_IMAGE)
-                                     .setServiceType(k)
-                                     .setName(getImageTag(k, properties.getValuesOrDefault(k.name(),
-                                                                                           dockerVersionToUse)))
-                                     .build()
-                ).collect(Collectors.toList());
+        List<ConcordComponent> components = new ArrayList<>();
+        componentsByNode.get(nodeType).forEach(service -> {
+            if (!(service.equals(WAVEFRONT_PROXY) && excludeWavefront)) {
+                components.add(ConcordComponent.newBuilder()
+                        .setType(ConcordComponent.Type.CONTAINER_IMAGE)
+                        .setServiceType(service)
+                        .setName(getImageTag(service, properties.getValuesOrDefault(service.name(),
+                                dockerVersionToUse)))
+                        .build());
+            }
+        });
+        return components;
     }
 
     /**
@@ -146,14 +155,23 @@ public class NodeConfiguration {
      * @return map
      */
     public Map<UUID, List<ConcordComponent>> generateModelSpec(BlockchainType blockchainType,
-                                                               NodeAssignment nodeAssignment) {
+                                                               NodeAssignment nodeAssignment,
+                                                               Map<OrchestrationSiteIdentifier,
+                                                                       OrchestrationSiteInfo> siteMap) {
 
         Map<UUID, List<ConcordComponent>> output = new HashMap<>();
 
         nodeAssignment.getEntriesList().stream()
                 .forEach(k -> {
+                    var siteInfo = siteMap.get(k.getSite());
+                    String wavfrontUrl = siteInfo.getType() == OrchestrationSiteInfo.Type.VSPHERE
+                            ? siteInfo.getVsphere().getWavefront().getUrl()
+                            : siteInfo.getVmc().getWavefront().getUrl();
+
+                    boolean excludeWavefront = wavfrontUrl.isBlank() || wavfrontUrl.isEmpty();
                     output.put(UUID.fromString(k.getNodeId()),
-                               getComponentsByNodeType(blockchainType, k.getType(), k.getProperties()));
+                               getComponentsByNodeType(blockchainType, k.getType(),
+                                       k.getProperties(), excludeWavefront));
                 });
         return output;
     }

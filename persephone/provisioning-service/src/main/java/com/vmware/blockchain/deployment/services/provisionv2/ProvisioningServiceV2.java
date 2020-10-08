@@ -107,7 +107,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
 
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
-                                                                   nodeAssignment);
+                                                                   nodeAssignment, siteMap);
 
         // Info fields only
         Properties.Builder responseInfoProperties = Properties.newBuilder();
@@ -232,7 +232,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
 
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
-                                                                   nodeAssignment);
+                                                                   nodeAssignment, siteMap);
 
         var localNodeDetailsMap = new HashMap<UUID, DeploymentExecutionContext.LocalNodeDetails>();
 
