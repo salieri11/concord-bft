@@ -111,9 +111,24 @@ def get_samples(concordContainer=None):
    '''
    Use the `conc_time` tool to read the latest state of the time contract.
    '''
-   output = run_conc_time(concordContainer, "-l")
-   return extract_samples_from_response(output)
+   sleep_time = 30
 
+   attempt = 0
+   max_tries = 4
+   while attempt < max_tries:
+      attempt += 1
+
+      output = run_conc_time(concordContainer, "-l")
+
+      # retry reading after sleep_time if docker exec command failed
+      # temporary fix for BC-3865 due to intermittent open runc issue https://github.com/opencontainers/runc/issues/1326
+      if re.findall("runtime exec failed", output):
+         log.warning("Unable to read the time contract from container {} due to \"{}\".".format(concordContainer, output))
+         log.warning("Retry after {} seconds...".format(sleep_time))
+         time.sleep(sleep_time)
+      else:
+         return extract_samples_from_response(output)
+   raise RuntimeError("Failed to read the time contract from container {} after {} tries".format(concordContainer, max_tries))
 
 def extract_time_summary_response(output):
    '''
@@ -390,7 +405,7 @@ def test_reconfigure_pusher_period(fxBlockchain):
          break
    assert allHaveUpdated, "Not all nodes appear to be producing time updates " \
       "before reonfiguring the time update period."
-   
+
    # Set pusher period to 0 for all nodes.
    run_conc_reconfig_pusher_period(None, 0)
 
