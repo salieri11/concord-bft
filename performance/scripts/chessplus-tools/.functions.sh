@@ -118,4 +118,8 @@ slack_msg() {
   envsubst <"$file" | curl -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
 }
 
+create_index_page() {
+  envsubst < ".index.txt" > "./$BASE_PATH/index.html"
+}
+
 # shellcheck disable=SC2155

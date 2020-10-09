@@ -83,6 +83,9 @@ bundle_logs
 ## Zip logs to reduce size
 zip_logs
 
+## Create index page
+create_index_page .index.txt
+
 ## Upload bundle to Apache server
 upload_bundle
 
