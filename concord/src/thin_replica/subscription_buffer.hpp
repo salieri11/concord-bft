@@ -33,7 +33,9 @@ class SubUpdateBuffer {
  public:
   explicit SubUpdateBuffer(size_t size)
       : logger_(logging::getLogger("concord.thin_replica.sub_buffer")),
-        queue_(size) {}
+        queue_(size),
+        too_slow_(false),
+        newest_block_id_(0) {}
 
   // Let's help ourselves and make sure we don't copy this buffer
   SubUpdateBuffer(const SubUpdateBuffer&) = delete;
