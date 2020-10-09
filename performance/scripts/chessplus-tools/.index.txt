@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<title>Blockchain Run Info</title>
+<body>
+<h3 align=center>Blockchain Run Info</h3>
+<hr>
+<table>
+<tr><td><b>Test Host:</b></td><td>$VM_IP</td></tr>
+<tr><td><b>Logs:</b></td><td><a href="http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/logs/">Logs</a></td></tr>
+<tr><td><b>Reports:</b></td><td><a href="http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/reports/">Reports</a></td></tr></table>
+<h3>Test Config:</h3>
+<table>
+<tr><td>CHESS+ Spider:</td><td>$SPIDER_IMAGE_TAG</td></tr>
+<tr><td>DAML SDK:</td><td>$DAML_SDK_VERSION</td></tr>
+<tr><td>Market Flavor:</td><td>$MARKET_FLAVOUR</td></tr>
+<tr><td>Total Trades:</td><td>$TRADE_COUNT</td></tr>
+<tr><td>Concurrency:</td><td>$CONCURRENCY</td></tr>
+</table>
+<br><h3>Deployment:</h3>
+<table>
+<tr><td>Client node:</td><td>$LEDGER_HOST</td></tr>
+<tr><td>Committer nodes:</td><td>$REPLICAS</td></tr>
+<tr><td>Consortium Id:</td><td>$CONSORTIUM_ID</td></tr>
+<tr><td>Blockchain Id:</td><td>$BLOCKCHAIN_ID</td></tr>
+<tr><td>Wavefront Source:</td><td>$WAVEFRONT_SOURCE</td></tr>
+</table>
+<br><h3>Monitoring tools:</h3>
+<table>
+<tr><td>Logs:</td><td><a href ="http://$LOG_INSIGHT_HOST/">Log Insight</a></td></tr>
+<tr><td>Metrics:</td><td><a href="$WAVEFRONT_URL/">Wavefront</a></td></tr>
+<tr><td>Progress:</td><td><a href="http://$VM_IP:3000/">Grafana</a></td></tr>
+</table>
+
