@@ -309,6 +309,32 @@ public class CloudInitConfigurationTest {
         Assert.assertEquals(expectedDiskCmd, actualDiskCmd);
     }
 
+    @Test
+    void vmAddDiskToPrimary() {
+        ReflectionTestUtils.setField(cloudInitConfiguration, "newDisk", true);
+        ReflectionTestUtils.setField(cloudInitConfiguration, "mountNewDiskToPrimary", true);
+        String[] userDataLines = cloudInitConfiguration.userData().split("\\r?\\n");
+        Assert.assertNotNull(userDataLines);
+
+        String commentDiskCmd = "# Partition, format, and mount additional disk, if any";
+        String expectedDiskCmd = "parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 0% 100%"
+                + " set 1 lvm on;sleep 2;pvcreate /dev/sdb1; "
+                + "vgextend vg0 /dev/sdb1; lvextend /dev/vg0/data /dev/sdb1; resize2fs /dev/vg0/data;";
+
+        String actualDiskCmd = null;
+        for (int i = 0; i < userDataLines.length; ++i) {
+            if (userDataLines[i].equals(commentDiskCmd)) {
+                if (i + 1 < userDataLines.length) {
+                    actualDiskCmd = userDataLines[i + 1];
+                }
+                break;
+            }
+        }
+
+        Assert.assertNotNull(actualDiskCmd);
+        Assert.assertEquals(expectedDiskCmd, actualDiskCmd);
+    }
+
     @Nested
     class TestGateway {
 
