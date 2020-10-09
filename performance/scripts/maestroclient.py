@@ -90,7 +90,7 @@ class MaestroClient:
                     "maxBatchSizeBytes": 4194304,
                     "maxWaitMillis": 100,
                     "maxConcurrentCommits": 5,
-                    "operation": "RunTest",
+                    "operation": "ClosedModelTrades",
                     "git_commits": {
                         "ids": commit_ids,
                         "commits": commit_summary,
@@ -270,6 +270,9 @@ def main():
     parser.add_argument("--testList",
                         help="list of tests like chess_plus, IOU etc",
                         default="IOU")
+    parser.add_argument("--inputJson",
+                        help="CI will pass all the inputs like commit info through this file",
+                        default="None")
 
     args = parser.parse_args()
 
