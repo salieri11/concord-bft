@@ -107,7 +107,7 @@ def define_groups(blockchain):
         group = None
 
         while attempts > 0:
-            group = util.helper.ssh_connect(ip, "root", "c0nc0rd", cmd, verbose=False)
+            group = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
 
             if group and group.strip():
                 group = group.strip()
