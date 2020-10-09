@@ -12,6 +12,27 @@ lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.8.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
 lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
 
+lazy val akka_stream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
+
+lazy val daml_lf_dev_archive_java_proto = "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion
+lazy val daml_lf_data = "com.daml" %% "daml-lf-data" % sdkVersion
+lazy val daml_lf_engine = "com.daml" %% "daml-lf-engine" % sdkVersion
+lazy val daml_lf_language = "com.daml" %% "daml-lf-language" % sdkVersion
+
+lazy val participant_state = "com.daml" %% "participant-state" % sdkVersion
+
+lazy val participant_state_kvutils = "com.daml" %% "participant-state-kvutils" % sdkVersion
+lazy val participant_state_kvutils_app = "com.daml" %% "participant-state-kvutils-app" % sdkVersion
+lazy val pkvutils = "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion
+
+lazy val slf4j_api = "org.slf4j" % "slf4j-api" % "1.7.26"
+lazy val logback_core = "ch.qos.logback" % "logback-core" % "1.2.3"
+lazy val logback_classic = "ch.qos.logback" % "logback-classic" % "1.2.3"
+
+lazy val mockito_core = "org.mockito" % "mockito-core" % "2.24.0" % Test
+lazy val scalatest = "org.scalatest" %% "scalatest" % "3.0.8" % Test
+lazy val testing_utils = "com.daml" %% "testing-utils" % sdkVersion % Test
+
 resolvers in Global += "Digital Asset" at "https://build-artifactory.eng.vmware.com/digitalasset.jfrog.io"
 
 lazy val commonSettings = Seq()
@@ -38,24 +59,30 @@ lazy val common = (project in file("common"))
     commonSettings,
     name := "DAML on VMware Common",
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
       "com.daml" %% "build-info" % sdkVersion,
-      "com.daml" %% "participant-state" % sdkVersion,
-      "com.daml" %% "testing-utils" % sdkVersion % Test,
-      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
+      pkvutils,
+      participant_state,
+
       "io.dropwizard.metrics" % "metrics-core" % "4.1.2",
       "io.dropwizard.metrics" % "metrics-jvm" % "4.1.2",
       "io.dropwizard.metrics" % "metrics-servlets" % "4.1.2",
       "io.prometheus" % "simpleclient" % "0.8.1",
       "io.prometheus" % "simpleclient_dropwizard" % "0.8.1",
       "io.prometheus" % "simpleclient_servlet" % "0.8.1",
+
       "org.eclipse.jetty" % "jetty-servlets" % "9.4.20.v20190813",
       "org.eclipse.jetty" % "jetty-webapp" % "9.4.20.v20190813",
-      "org.mockito" % "mockito-core" % "2.24.0" % Test,
-      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
-      "org.slf4j" % "slf4j-api" % "1.7.26",
+
+      slf4j_api,
+      logback_classic,
+      logback_core,
+
       protobuf,
+
+      // Testing
+      mockito_core,
+      scalatest,
+      testing_utils,
     ),
   )
 
@@ -66,6 +93,10 @@ lazy val execution_engine = (project in file("execution-engine"))
     name := "DAML on VMware Execution Engine",
     libraryDependencies ++= Seq(
       "com.digitalasset.daml.execution.engine" % "execution-engine" % integrationKitVersion,
+
+      // Testing
+      mockito_core,
+      scalatest,
     ),
   )
 
@@ -75,33 +106,33 @@ lazy val write_service = (project in file("write-service"))
     name := "DAML on VMware Write Service",
     libraryDependencies ++= Seq(
       // DAML
-      "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion,
-      "com.daml" %% "daml-lf-data" % sdkVersion,
-      "com.daml" %% "daml-lf-engine" % sdkVersion,
-      "com.daml" %% "daml-lf-language" % sdkVersion,
+      daml_lf_dev_archive_java_proto,
+      daml_lf_data,
+      daml_lf_engine,
+      daml_lf_language,
 
-      "com.daml" %% "participant-state" % sdkVersion,
-      "com.daml" %% "participant-state-kvutils" % sdkVersion,
-      "com.daml" %% "participant-state-kvutils-app" % sdkVersion,
-      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
-
-      "com.daml" %% "testing-utils" % sdkVersion % Test,
-      "org.mockito" % "mockito-core" % "2.24.0" % Test,
-      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+      participant_state_kvutils,
+      participant_state_kvutils_app,
+      pkvutils,
 
       // Database support
       "org.postgresql" % "postgresql" % "42.2.9",
 
       // Akka
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      akka_stream,
 
       // Protobuf / grpc
       protobuf,
 
       // Logging
-      "org.slf4j" % "slf4j-api" % "1.7.26",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      slf4j_api,
+      logback_core,
+      logback_classic,
+
+      // Testing
+      testing_utils,
+      mockito_core,
+      scalatest,
     ),
   )
   .dependsOn(damlAndConcordProtos, common, trc_core, bft_client_core)
@@ -113,34 +144,36 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
     name := "DAML on VMware Ledger API Server",
     libraryDependencies ++= Seq(
       // DAML
-      "com.daml" % "daml-lf-dev-archive-java-proto" % sdkVersion,
+      daml_lf_dev_archive_java_proto,
       "com.daml" %% "contextualized-logging" % sdkVersion,
-      "com.daml" %% "daml-lf-data" % sdkVersion,
-      "com.daml" %% "daml-lf-engine" % sdkVersion,
-      "com.daml" %% "daml-lf-language" % sdkVersion,
+
+      daml_lf_data,
+      daml_lf_engine,
+      daml_lf_language,
+
       "com.daml" %% "sandbox" % sdkVersion,
-      "com.daml" %% "testing-utils" % sdkVersion % Test,
       "com.daml" %% "ledger-api-auth" % sdkVersion,
 
-      "com.daml" %% "participant-state" % sdkVersion,
-      "com.daml" %% "participant-state-kvutils" % sdkVersion,
+      participant_state_kvutils,
 
       // Database support
       "org.postgresql" % "postgresql" % "42.2.9",
 
       // Akka
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      akka_stream,
 
       // Protobuf / grpc
       protobuf,
 
       // Logging and monitoring
-      "org.slf4j" % "slf4j-api" % "1.7.26",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      slf4j_api,
+      logback_core,
+      logback_classic,
 
-      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
-      "org.mockito" % "mockito-core" % "2.24.0" % Test,
+      // Testing
+      scalatest,
+      mockito_core,
+      testing_utils,
       "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % Test,
     ),
   )
@@ -152,8 +185,8 @@ lazy val trc_core = (project in file("thin-replica-client-core")) // regular sca
     target in javah := (sourceDirectory in nativeCompile in trc_native).value / "include",
     libraryDependencies ++= Seq(
       protobuf,
-      "com.daml" %% "participant-state" % sdkVersion,
-      "com.daml" %% "participant-state-kvutils" % sdkVersion
+      participant_state,
+      participant_state_kvutils
     )
   )
   .dependsOn(trc_native % Runtime)
