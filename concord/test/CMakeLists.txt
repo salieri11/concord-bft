@@ -27,6 +27,7 @@ if(EXTERNAL_CLIENTS_TEST)
   add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
 endif()
 add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
+add_test(NAME TrsSubBufferTest COMMAND TrsSubBufferTest)
 add_test(NAME OpenSSLCryptoWrapperTest COMMAND OpenSSLCryptoWrapperTest)
 
 add_executable(agent_test_server
@@ -188,6 +189,17 @@ target_link_libraries(ThinReplicaTest
         proto
         concord_utils
         concord_consensus
+        concord_common
+        logging)
+
+add_executable(TrsSubBufferTest
+        trs_sub_buffer_test.cpp)
+target_include_directories(TrsSubBufferTest PUBLIC
+        ${PROJECT_SOURCE_DIR}/submodules/concord-bft/kvbc/include)
+target_link_libraries(TrsSubBufferTest
+        ${Boost_LIBRARIES}
+        ${GTEST_LIBRARY}
+        concord_utils
         concord_common
         logging)
 

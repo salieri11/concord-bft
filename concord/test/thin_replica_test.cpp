@@ -183,7 +183,8 @@ class TestStateMachine {
   }
 
   void on_finished_dropping_blocks() {
-    live_buffer_->Push(generate_block(storage_.getLastBlock() + 1));
+    auto block = generate_block(storage_.getLastBlock() + 1);
+    live_buffer_->Push(block);
   }
 
  private:

@@ -208,9 +208,15 @@ class ThinReplicaImpl {
 
     // Read, filter, and send live updates
     std::string correlation_id;
+    SubUpdate update;
     while (!context->IsCancelled()) {
       metric_queue_size.Set(live_updates->Size());
-      const auto& update = live_updates->Pop();
+      try {
+        live_updates->Pop(update);
+      } catch (concord::thin_replica::ConsumerTooSlow& error) {
+        LOG_WARN(logger_, "Closing subscription: " << error.what());
+        break;
+      }
       auto filtered_update = kvb_filter->FilterUpdate(update);
       auto& kv = filtered_update.second;
       correlation_id = ExtractCid(kv);
@@ -374,7 +380,7 @@ class ThinReplicaImpl {
     assert(live_updates->OldestBlockId() <= end);
     SubUpdate update;
     do {
-      update = live_updates->Pop();
+      live_updates->Pop(update);
       LOG_INFO(logger_, "Sync dropping " << update.first);
     } while (update.first < end);
   }
