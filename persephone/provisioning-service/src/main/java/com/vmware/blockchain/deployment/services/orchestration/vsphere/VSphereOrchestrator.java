@@ -112,7 +112,7 @@ public class VSphereOrchestrator implements Orchestrator {
                                                                                         .getModel().getTemplate()));
 
             var vmPassword = request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())
-                             ? PasswordGeneratorUtil.generateCommonTextPassword() : "c0nc0rd";
+                             ? PasswordGeneratorUtil.generateCommonTextPassword() : "Bl0ckch@!n";
 
             val cloudInit = new CloudInitConfiguration(request, datacenterInfo, vmPassword);
 

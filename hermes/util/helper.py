@@ -408,6 +408,12 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
       ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
                                                            get_pty=True)
       outlines = ssh_stdout.readlines()
+      # Hack for new security hardened OVA 1.0 that adds an extra line in SSH output
+      # "/etc/bash.bashrc: line 42: TMOUT: readonly variable"
+      for i in range(len(outlines)):
+         if "TMOUT: readonly variable" in outlines[i]:
+            del outlines[i]
+            break
       resp = ''.join(outlines)
       log.debug(resp)
    except paramiko.AuthenticationException as e:
@@ -494,7 +500,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
          ssh_output = ssh_connect(host, username,password, cmd_verify_ftp)
          log.debug(ssh_output)
          if ssh_output:
-            if ssh_output.rstrip() == dest:
+            if dest in ssh_output.rstrip():
                log.debug("File uploaded to {} successfully: {}".format(host, dest))
                result = True
    except paramiko.AuthenticationException as e:

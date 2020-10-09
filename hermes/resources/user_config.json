@@ -185,7 +185,7 @@
       },
       "defaults": {
         "concord_model_version": "1.0",
-        "concord_model_template_id": "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
+        "concord_model_template_id": "28b41974-c7a8-41a7-84f8-4438f828e87b",
         "deployment_components": {
           "ethereum": {
             "vmwblockchain/agent:latest": "agent",
@@ -242,7 +242,7 @@
     "provisioningService": {
       "concordNode": {
         "username": "root",
-        "password": "c0nc0rd"
+        "password": "Bl0ckch@!n"
       }
     }
   }

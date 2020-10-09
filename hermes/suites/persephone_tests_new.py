@@ -28,7 +28,7 @@ class NodeInfo:
     private_ip: str = ""
     public_ip: str = ""
     username: str = "root"
-    password: str = "c0nc0rd"
+    password: str = "Bl0ckch@!n"
     node_type: helper.NodeType = helper.NodeType.REPLICA
 
 
@@ -658,7 +658,7 @@ def ssh_connect_node(ip, username, password, mode=None):
         ssh_output = helper.ssh_connect(ip, username, password, command_to_run)
         log.debug("SSH output: {}".format(ssh_output))
         if ssh_output:
-            if ssh_output.rstrip() == marker_file:
+            if marker_file in ssh_output.rstrip():
                 log.debug(validation_message_success)
                 status = True
         if not status:

@@ -420,7 +420,7 @@ class PersephoneTests(test_suite.TestSuite):
                                       command_to_run)
       log.debug(ssh_output)
       if ssh_output:
-         if ssh_output.rstrip() == marker_file:
+         if marker_file in ssh_output.rstrip():
             log.debug(validation_message_success)
             if mode is None:
                self.concord_ips.append(concord_ip)
