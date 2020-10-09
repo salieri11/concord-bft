@@ -212,7 +212,7 @@ public class NodeComponentControllerTests {
     void stopHealthCheck() throws Exception {
         doNothing().when(healthCheckScheduler).stopHealthCheck();
 
-        mockMvc.perform(post("/api/health/stop")
+        mockMvc.perform(post("/api/node/healthcheck?action=stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         verify(healthCheckScheduler, times(1)).stopHealthCheck();
@@ -222,7 +222,7 @@ public class NodeComponentControllerTests {
     void stopHealthCheckException() throws Exception {
         doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).stopHealthCheck();
 
-        mockMvc.perform(post("/api/health/stop")
+        mockMvc.perform(post("/api/node/healthcheck?action=stop")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is5xxServerError()).andReturn();
         verify(healthCheckScheduler, times(1)).stopHealthCheck();
@@ -232,7 +232,7 @@ public class NodeComponentControllerTests {
     void startHealthCheck() throws Exception {
         doNothing().when(healthCheckScheduler).startHealthCheck();
 
-        mockMvc.perform(post("/api/health/start")
+        mockMvc.perform(post("/api/node/healthcheck?action=start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         verify(healthCheckScheduler, times(1)).startHealthCheck();
@@ -242,7 +242,7 @@ public class NodeComponentControllerTests {
     void startHealthCheckException() throws Exception {
         doThrow(new IllegalStateException("Exception from unit test")).when(healthCheckScheduler).startHealthCheck();
 
-        mockMvc.perform(post("/api/health/start")
+        mockMvc.perform(post("/api/node/healthcheck?action=start")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is5xxServerError()).andReturn();
         verify(healthCheckScheduler, times(1)).startHealthCheck();

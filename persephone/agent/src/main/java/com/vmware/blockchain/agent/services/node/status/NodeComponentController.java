@@ -81,6 +81,17 @@ public class NodeComponentController {
         return null;
     }
 
+    @RequestMapping(path = "/api/node/healthcheck", method = RequestMethod.POST)
+    ResponseEntity<String> nodeHealthManagement(@RequestParam(required = false)
+                                                                        NodeManagementAction action) {
+        if (NodeManagementAction.start.equals(action)) {
+            return startHealthCheck();
+        } else if (NodeManagementAction.stop.equals(action)) {
+            return stopHealthCheck();
+        }
+        return null;
+    }
+
     private ResponseEntity<NodeManagementResponse> startNodeComponents() {
         log.info("Received request to start node components...");
         try {
@@ -177,7 +188,6 @@ public class NodeComponentController {
         return getHealthResponse(serviceType);
     }
 
-    @RequestMapping(path = "/api/health/stop", method = RequestMethod.POST)
     ResponseEntity<String> stopHealthCheck() {
         log.info("Receieved manual request to suspend health check...");
         try {
@@ -188,7 +198,6 @@ public class NodeComponentController {
         }
     }
 
-    @RequestMapping(path = "/api/health/start", method = RequestMethod.POST)
     ResponseEntity<String> startHealthCheck() {
         log.info("Receieved manual request to resume health check...");
         try {
