@@ -100,10 +100,11 @@ public class ComputeHelper {
                 .map(placement -> Map.entry(placement.getNodeId(), CompletableFuture.supplyAsync(() -> {
                     var nodeId = UUID.fromString(placement.getNodeId());
                     var siteInfo = session.getSitesById().get(placement.getSite());
-                    var registry = session.deploymentType == OrchestrationSiteInfo.Type.VSPHERE
+
+                    var registry = siteInfo.getType() == OrchestrationSiteInfo.Type.VSPHERE
                                    ? siteInfo.getVsphere().getContainerRegistry()
                                    : siteInfo.getVmc().getContainerRegistry();
-                    var notaryServer = session.deploymentType == OrchestrationSiteInfo.Type.VSPHERE
+                    var notaryServer = siteInfo.getType() == OrchestrationSiteInfo.Type.VSPHERE
                                        ? siteInfo.getVsphere().getNotaryServer()
                                        : siteInfo.getVmc().getNotaryServer();
                     var computeEvent = deployNode(nodeId,
