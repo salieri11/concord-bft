@@ -630,6 +630,14 @@ staging_tokens = {
             "access_token": None,
             "last_retrieved": 0
          }
+      },
+      "vmbc_test_con_admin": {
+         ROLE_CON_ADMIN: {
+            # Never expires.
+            "api_key": "PxsXtehT3P9b6GAXnL6ELitZx24VPu3FiUzAhNKmtLEJO7FFJHeT0c3CZa7mvojb",
+            "access_token": None,
+            "last_retrieved": 0
+         }
       }
    },
    "system_test_5": {
