@@ -298,12 +298,13 @@ public class ValidatorServiceImpl implements ValidatorService {
         log.debug("client range values " + noOfClientsRange);
 
         // Is the number of clients in valid range?
-        if (noOfClientsRange.size() >= 2 && (clients.size() <= noOfClientsRange.get(0)
+        if (noOfClientsRange.size() >= 2 && (clients.size() < noOfClientsRange.get(0)
                                                                          || clients.size() > noOfClientsRange.get(1))) {
             String error = "deployment.invalid.client.count";
             ValidationError e = ValidationError.builder()
                     .errorCode(error)
                     .propertyPath("client")
+                    .arguments(List.of(noOfClientsRange.get(0).toString(), noOfClientsRange.get(1).toString()))
                     .build();
             errors.add(e);
         }
@@ -341,7 +342,7 @@ public class ValidatorServiceImpl implements ValidatorService {
                 String error = "deployment.too.many.client.groups";
                 ValidationError e = ValidationError.builder()
                         .errorCode(error)
-                        .propertyPath("groupName")
+                        .propertyPath(maxClientGroupsStr)
                         .build();
                 errors.add(e);
             }
@@ -360,7 +361,8 @@ public class ValidatorServiceImpl implements ValidatorService {
                     String error = "deployment.too.many.clients.in.group";
                     ValidationError e = ValidationError.builder()
                             .errorCode(error)
-                            .propertyPath("groupName")
+                            .arguments(List.of(maxClientsPerGroupStr))
+                            .propertyPath(groupName)
                             .build();
                     errors.add(e);
                 }
