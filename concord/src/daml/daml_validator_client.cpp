@@ -160,14 +160,16 @@ void DamlValidatorClient::SwapWriteSet(
     ValueWithTrids value_with_thin_replica_ids;
     currKV = kv.key();
     currKV += kv.value();
-    value_with_thin_replica_ids.set_value(std::move(*kv.release_value()));
+    value_with_thin_replica_ids.set_allocated_value(kv.release_value());
     for (auto thin_replica_id : *(kv.mutable_trids())) {
       currKV += thin_replica_id;
       value_with_thin_replica_ids.add_trid(std::move(thin_replica_id));
     }
     toHash += currKV;
-    result->push_back(
-        {std::move(*kv.release_key()), value_with_thin_replica_ids});
+
+    auto kv_key = kv.release_key();
+    result->push_back({std::move(*kv_key), value_with_thin_replica_ids});
+    delete kv_key;
     LOG_DEBUG(determinism_logger_, "Write KV from stream ["
                                        << (concordUtils::HexPrintBuffer{
                                               currKV.c_str(), currKV.size()})
