@@ -942,6 +942,9 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                   log.info("")
                   log.warning("**** There are failed tests in this iteration")
                   overall_run_status = False
+                  log.warning("**** AS AN OUTCOME OF MEETING DISCUSSION WITH CONCORD TEAM (10/09/2020), SLEEP 5 MINS BEFORE NEXT ITERATION ****")
+                  log.warning("**** IF THIS IS THE EXPECTED BEHAVIOR, RELEASE NOTE IT (BC-5010) ****")
+                  time.sleep(300)
 
                if all_tests_failed:
                   no_of_times_all_tests_failed += 1
@@ -950,7 +953,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
                log.debug("**** Testrun status for this iteration: {}".format(iteration_result))
 
-               if no_of_times_all_tests_failed == 3:
+               if no_of_times_all_tests_failed == 5:
                   log.info("************************************************************")
                   log.info("")
                   log.error("All testsuites have failed consecutively for the 3rd time; aborting the entire run")
