@@ -336,6 +336,9 @@ class ThinReplicaImpl {
 
   // Read from KVB until we are in sync with the live updates. This function
   // returns when the next update can be taken from the given live updates.
+  // We assume that the Commands handler is already filling the queue. Also, we
+  // don't care if the queue fills up. In that case, the caller won't be able to
+  // use the queue as soon as he consumes it.
   template <typename ServerContextT, typename ServerWriterT, typename DataT>
   void SyncAndSend(ServerContextT* context, kvbc::BlockId start,
                    std::shared_ptr<SubUpdateBuffer> live_updates,
@@ -354,18 +357,17 @@ class ThinReplicaImpl {
     live_updates->WaitUntilNonEmpty();
 
     // We are in sync already
-    if (!live_updates->Full() && live_updates->OldestBlockId() == (end + 1)) {
+    if (live_updates->OldestBlockId() == (end + 1)) {
       return;
     }
 
     // Gap:
-    // The ring buffer (live updates) could have filled up and we are
-    // overwriting old updates already. Or the first live update is not the
-    // follow-up to the last read block from KVB. In either case, we need to
-    // fill the gap. Let's read from KVB starting at end + 1 up to updates that
-    // are part of the live updates already. Thereby, we create an overlap
-    // between what we read from KVB and what is currently in the live updates.
-    if (live_updates->Full() || live_updates->OldestBlockId() > (end + 1)) {
+    // If the first live update is not the follow-up to the last read block from
+    // KVB then we need to fill the gap. Let's read from KVB starting at end + 1
+    // up to updates that are part of the live updates already. Thereby, we
+    // create an overlap between what we read from KVB and what is currently in
+    // the live updates.
+    if (live_updates->OldestBlockId() > (end + 1)) {
       start = end + 1;
       end = live_updates->NewestBlockId();
 
