@@ -15,6 +15,13 @@ target_link_libraries(ThinReplicaClientTests
 		      ${GMOCK_LIBRARY}
 		      thin_replica_client)
 
+add_test(NAME TrcBasicUpdateQueueTests COMMAND TrcBasicUpdateQueueTests)
+add_executable(TrcBasicUpdateQueueTests
+               trc_basic_update_queue_test.cpp)
+target_link_libraries(TrcBasicUpdateQueueTests
+                      ${GTEST_LIBRARY}
+		      thin_replica_client)
+
 add_test(NAME TrcHashTests COMMAND TrcHashTests)
 add_executable(TrcHashTests trc_hash_test.cpp)
 target_link_libraries(TrcHashTests
