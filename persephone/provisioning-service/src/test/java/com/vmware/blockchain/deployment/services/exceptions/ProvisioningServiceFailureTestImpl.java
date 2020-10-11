@@ -4,8 +4,6 @@
 
 package com.vmware.blockchain.deployment.services.exceptions;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
@@ -15,18 +13,14 @@ import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
 import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Implement test methods for Provisioning service's skeleton.
  */
-@RequiredArgsConstructor
 public class ProvisioningServiceFailureTestImpl extends ProvisioningServiceV2Grpc.ProvisioningServiceV2ImplBase {
 
     public static final String ERR_MSG_BAD_REQ = "Test exception - bad request";
     public static final String ERR_MSG_NOT_FOUND = "Test exception - not found";
-
-    private final CompletableFuture<DeploymentStatus> completableFuture;
 
     @Override
     public void createDeployment(DeploymentRequest request,

@@ -20,6 +20,7 @@
 <!--        <persephone.version>1.0.0-SNAPSHOT</persephone.version>-->
         <bouncycastle.version>1.60</bouncycastle.version>
         <snakeyaml.version>1.26</snakeyaml.version>
+        <io.grpc.tesing.version>1.31.0</io.grpc.tesing.version>
     </properties>
 
     <dependencies>
@@ -33,6 +34,12 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-testing</artifactId>
+            <version>${io.grpc.tesing.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
