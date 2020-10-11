@@ -10,6 +10,7 @@
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loglevel.h>
+#include <sys/resource.h>
 #include <chrono>
 #include <ctime>
 #include <memory>
@@ -21,6 +22,7 @@
 #include "concord_client_pool.hpp"
 #include "grpcpp/impl/codegen/status.h"
 #include "histogram.hpp"
+#include "kvstream.h"
 #include "performance.grpc.pb.h"
 #include "performance.pb.h"
 
@@ -44,16 +46,17 @@ using namespace google::protobuf;
 bool printReqDurations = true;
 uint32_t numOfBlocks = 4000000;
 auto flags = ClientMsgFlag::EMPTY_FLAGS_REQ;
-uint32_t numOfKvs = 151;
-uint32_t keySize = 76;
-uint32_t valSize = 502;
+uint32_t numOfKvs = 31;
+uint32_t keySize = 118;
+uint32_t valSize = 2841;
 uint32_t payloadSize = 15100;
-uint32_t concurrencyLevel = 16;
+uint32_t concurrencyLevel = 15;
 uint32_t executionTime = 0;
+bool busyWait = true;
 
 const float kWarmUpPerc = 0.02;
 const string kPerfServiceHost = "127.0.0.1:50051";
-const string poolConfigPath = "external_client_tls_20.config";
+const string poolConfigPath = "external_client_tls.config";
 const log4cplus::LogLevel kLogLevel = log4cplus::ERROR_LOG_LEVEL;
 
 bool done = false;
@@ -272,6 +275,7 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     fromExternal->set_key_size(keySize);
     fromExternal->set_value_size(valSize);
     fromExternal->set_max_exec_time_milli(executionTime);
+    fromExternal->set_busy_wait(busyWait);
 
     pWriteReq->set_payload(payload.c_str(), payloadSize);
 
@@ -311,14 +315,18 @@ void show_help(char** argv) {
       "Command line options: \n"
           << " -b NBR - a number of requests to launch (default: 4000000) \n"
           << " -p 1/0 - requests pre-processing on/off (default: off) \n"
-          << " -k NBR - number of keys (default: 151) \n"
-          << " -s NBR - single key size (default: 76) \n"
-          << " -v NBR - key value size (default: 502) \n"
+          << " -k NBR - number of keys (default: 31) \n"
+          << " -s NBR - single key size (default: 118) \n"
+          << " -v NBR - key value size (default: 2841) \n"
           << " -d NBR - payload size (default: 15100) \n"
           << " -c NBR - concurrency level: capacity of the clients pool "
-             "(default: 16) \n"
+             "(default: 15) \n"
           << " -e NBR - execution time (default: 0) \n"
-          << " -i 1/0 - to print or not requests durations (default: true)");
+          << " -w 1/0 - to use a busy-wait (1) or a regular sleep (0) "
+             "simulating "
+             "execution time latency (default: 1)"
+          << " -i 1/0 - to print (1) or not (0) request durations (default: "
+             "1)");
 }
 
 bool parse_args(int argc, char** argv) {
@@ -333,11 +341,12 @@ bool parse_args(int argc, char** argv) {
         {"concurrency_level", required_argument, nullptr, 'c'},
         {"execution_time", required_argument, nullptr, 'e'},
         {"print_req_durations", required_argument, nullptr, 'i'},
+        {"busy_wait", required_argument, nullptr, 'w'},
         {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:", longOptions,
-                                 &optionIndex)) != -1) {
+    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:w:",
+                                 longOptions, &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
           auto blocks = stoi(string(optarg));
@@ -385,6 +394,10 @@ bool parse_args(int argc, char** argv) {
           printReqDurations = stoi(string(optarg)) != 0;
           break;
         }
+        case 'w': {
+          busyWait = stoi(string(optarg)) != 0;
+          break;
+        }
         default:
           return false;
       }
@@ -394,6 +407,16 @@ bool parse_args(int argc, char** argv) {
     LOG_FATAL(GL, "Failed to parse command line arguments: " << e.what());
     return false;
   }
+}
+
+void setMaxNumOfOpenFiles() {
+  rlimit limit;
+
+  limit.rlim_cur = 65535;
+  limit.rlim_max = 65535;
+  setrlimit(RLIMIT_NOFILE, &limit);
+  getrlimit(RLIMIT_NOFILE, &limit);
+  LOG_INFO(GL, KVLOG(limit.rlim_cur, limit.rlim_max));
 }
 
 int main(int argc, char** argv) {
@@ -410,6 +433,7 @@ int main(int argc, char** argv) {
   config.configure();
   log4cplus::Logger logger = logging::getLogger("test");
   logger.getRoot().setLogLevel(kLogLevel);
+  setMaxNumOfOpenFiles();
   auto pool = new ConcordClientPool(poolConfigPath);
   pool->SetDoneCallback(req_callback);
   parse_args(argc, argv);
