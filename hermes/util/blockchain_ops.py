@@ -39,6 +39,51 @@ def refresh_current_state_info(fxBlockchain, verbose=False):
   echo_current_state_info(fxBlockchain)
   return True
 
+def wait_for_state_transfer_complete(fxBlockchain, interrupted_replicas=[], timeout=180):
+  '''
+  Determine whether all running replicas have finished state transfer.
+  This is done by checking "lastStableSeqNum" on each replica.  If they
+  are all the same, then they are all in sync.
+  '''
+  all_replicas = committers_of(fxBlockchain)
+  target_replicas = [ip for ip in all_replicas if ip not in interrupted_replicas]
+  cmd = "docker exec -t telegraf /bin/bash -c 'curl concord:9891/metrics' | grep 'lastStableSeqNum{'"
+  username, password = helper.getNodeCredentials()
+  seq_num = None
+  complete = False
+  start_time = time.time()
+
+  while time.time() - start_time < timeout:
+    responses = helper.ssh_parallel(target_replicas, cmd, verbose=True)
+
+    for r in responses:
+      output = r["output"]
+
+      try:
+        seq_num_to_check = float(output.split(" ")[-1].strip())
+      except ValueError:
+        complete = False
+        seq_num = None
+        break
+
+      log.info("Replica '{}' lastStableSeqNum is '{}'".format(r["ip"], seq_num_to_check))
+
+      if not seq_num:
+        # First one is in sync with itself.
+        complete = True
+        seq_num = seq_num_to_check
+      else:
+        if not seq_num_to_check == seq_num:
+          complete = False
+          seq_num = None
+          break
+
+    if complete:
+      break
+    else:
+      log.info("State transfer not complete.  Waiting.")
+      time.sleep(1)
+
 def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     Get primary rid (id used internally for concord nodes)

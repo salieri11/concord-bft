@@ -429,7 +429,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    :param host: IP of the destination host
    :param username: username for SSH connection
    :param password: password for username
-   :param command: command to be executed on the remote host
+   :param command: command, as a string, to be executed on the remote host.
    :param log_mode: Override to log connectivity issue as a warning
    :return: Output of the command
    '''
@@ -471,6 +471,10 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
       if ssh:
          ssh.close()
    return work_around_bc_5021(resp)
+<<<<<<< HEAD
+=======
+
+>>>>>>> Pre-execution change 2: Stop f nodes.
 
 def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
   '''

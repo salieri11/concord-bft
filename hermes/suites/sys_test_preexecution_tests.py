@@ -7,6 +7,7 @@
 import concurrent.futures
 import os
 import pytest
+import time
 import util.daml.daml_requests
 import util.helper
 import yaml
@@ -30,7 +31,7 @@ def fxInstallDamlSdk(fxBlockchain):
     host = fxBlockchain.replicas["daml_participant"][0]
     daml_sdk_version = util.daml.daml_helper.get_ledger_api_version(host)
     daml_sdk_path = util.daml.daml_helper.install_daml_sdk(daml_sdk_version)
-    
+
 
 @pytest.fixture(scope="module")
 def fxAppSetup(fxBlockchain):
@@ -203,6 +204,46 @@ def run_request_tool(host, port=LEDGER_PORT, iterations=1):
 #                 break
 
 
+def get_primary_ip(fxBlockchain):
+    '''
+    Noopur is implementing this in blockchain_ops.py.  This is just a
+    placeholder.
+    '''
+    primary_rid = util.blockchain_ops.get_primary_rid(fxBlockchain)
+    arbitrary_committer_ip = fxBlockchain.replicas["daml_committer"][0]
+    username, password = util.helper.getNodeCredentials()
+    success = False
+    msg = None
+    e = None
+    output = None
+
+    output = util.helper.durable_ssh_connect(arbitrary_committer_ip,
+                                             username, password,
+                                             "cat /config/concord/config-local/deployment.config")
+    config = yaml.load(output, Loader=yaml.Loader)
+
+    for item in config["node"]:
+        if item["replica"][0]["principal_id"] == primary_rid:
+            primary_ip = item["replica"][0]["replica_host"]
+
+            if "localhost" in primary_ip or "127.0.0.1" in primary_ip:
+                # The one we retrieved the config from *is* the primary.
+                primary_ip = arbitrary_committer_ip
+
+            return primary_ip
+
+    raise("Could not find ip for replica '{}' in: '{}'".format(primary_rid, config))
+
+
+def get_docker_timestamp(host, username, password, service):
+    '''
+    Retrieves the most recent timestamp from `docker logs` for the given service.
+    '''
+    output = util.helper.durable_ssh_connect(host, username, password,
+                                             "docker logs --tail 1 {}".format(service))
+    return output.split("|")[0]
+
+
 @describe()
 @pytest.mark.smoke
 def test_simple_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax):
@@ -263,7 +304,7 @@ def test_parallel_short_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMa
     # This will trigger failures due to Pytest asserts.
     for f in futures:
         f.result()
-        
+
 
 @describe()
 @pytest.mark.smoke
@@ -283,5 +324,44 @@ def test_parallel_long_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax
     # This will trigger failures due to Pytest asserts.
     for f in futures:
         f.result()
-        
-        
+
+
+@describe()
+def test_stop_nonprimary_nodes(fxBlockchain, fxAppSetup, fxInstallDamlSdk):
+    '''
+    Stop f nonprimary nodes and verify that txs work.
+    '''
+    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain)
+    ledger = fxBlockchain.replicas["daml_participant"][0]
+    primary_ip = get_primary_ip(fxBlockchain)
+    log.info("primary: {}".format(primary_ip))
+    f = (len(fxBlockchain.replicas["daml_committer"]) - 1) / 3
+    username, password = util.helper.getNodeCredentials()
+    stopped_nodes = []
+
+    for committer in fxBlockchain.replicas["daml_committer"]:
+        if not committer == primary_ip:
+            timestamp = get_docker_timestamp(committer, username, password, "concord")
+            log.info("Stopping Concord on {} at timestamp {}".format(committer, timestamp))
+            stopped_nodes.append(committer)
+            output = util.helper.durable_ssh_connect(committer,
+                                                     username, password,
+                                                     "docker stop concord")
+            if len(stopped_nodes) == f:
+                break
+
+    timestamp = get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+    log.info("Starting transactions on {} at timestamp {}".format(ledger, timestamp))
+    run_fibo(ledger, num_fib_values=fibo_max)
+    run_request_tool(ledger)
+
+    for committer in stopped_nodes:
+        timestamp = get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+        log.info("Restarting Concord {} at {}".format(committer, timestamp))
+        output = util.helper.durable_ssh_connect(committer,
+                                                 username, password,
+                                                 "docker restart concord")
+
+    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain)
+    run_fibo(ledger, num_fib_values=1)
+    run_request_tool(ledger)
