@@ -9,7 +9,6 @@ import static com.vmware.blockchain.deployment.services.exceptions.ProvisioningS
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -17,7 +16,6 @@ import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
-
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -48,11 +46,7 @@ public class GrpcExceptionHandlerTest {
 
     public static final String GRPC_ERROR_MSG_TEST = "grpc-error-msg-test";
 
-    private Server inProcessServer;
-    private ManagedChannel channel;
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingStub;
-    private ProvisioningServiceFailureTestImpl provisioningServiceFailureTest;
-    private CompletableFuture<DeploymentStatus> completableFuture;
 
 
     /**
@@ -60,18 +54,16 @@ public class GrpcExceptionHandlerTest {
      * */
     @Before
     public void init() throws IOException {
+        ProvisioningServiceFailureTestImpl provisioningServiceFailureTest = new ProvisioningServiceFailureTestImpl();
 
-        completableFuture = new CompletableFuture<>();
-        provisioningServiceFailureTest = new ProvisioningServiceFailureTestImpl(completableFuture);
-
-        inProcessServer = InProcessServerBuilder
+        Server inProcessServer = InProcessServerBuilder
                 .forName(GRPC_ERROR_MSG_TEST)
                 .directExecutor()
                 .addService(provisioningServiceFailureTest)
                 .intercept(new GrpcExceptionHandler())
                 .build();
 
-        channel = InProcessChannelBuilder
+        ManagedChannel channel = InProcessChannelBuilder
                 .forName(GRPC_ERROR_MSG_TEST)
                 .directExecutor()
                 .build();

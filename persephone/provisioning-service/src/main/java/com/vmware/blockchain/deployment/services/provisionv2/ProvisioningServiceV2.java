@@ -29,7 +29,6 @@ import com.vmware.blockchain.deployment.server.BootstrapComponent;
 import com.vmware.blockchain.deployment.services.configuration.NodeConfiguration;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
-import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvider;
@@ -321,11 +320,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
             session.status = DeploymentExecutionEvent.Status.SUCCESS;
             status = DeploymentExecutionEvent.Status.SUCCESS;
             log.info("Deployment session({}) completed", session.getId());
-        } catch (PersephoneException e) {
-            log.warn("Caught handled exception", e);
-            session.status = DeploymentExecutionEvent.Status.FAILURE;
         } catch (Exception e) {
-            log.error("Caught un-handled exception", e);
+            log.error("Caught an exception", e);
             session.status = DeploymentExecutionEvent.Status.FAILURE;
         } finally {
             session.results.forEach(each ->

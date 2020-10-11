@@ -7,7 +7,6 @@ package com.vmware.blockchain.deployment.services.provisionv2;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -41,6 +40,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfigHelper {
 
     public final ConfigurationServiceGrpc.ConfigurationServiceFutureStub configurationServiceClient;
+    //intentionally left public, client code might want to change this value
+    public Integer maxConfigRetrievalTrials = 5;
 
     /**
      * Constructor for compute helper.
@@ -109,14 +110,39 @@ public class ConfigHelper {
         if (genericProperties.containsValues(DeploymentAttributes.NO_LAUNCH.name())) {
             return ConfigurationSessionIdentifier.newBuilder().setId("inactive").build();
         }
-        try {
+
+        String msg = "Error generating configuration, trying again, number of retrials: " + maxConfigRetrievalTrials;
+        PersephoneException lastException;
+        try { //retrial mechanism in case CS is temporarily unavailable.
+
             ListenableFuture<ConfigurationSessionIdentifier> completable = configurationServiceClient.withWaitForReady()
                     .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);
             log.info("Configuration request \n {}", request.toString());
             return completable.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new PersephoneException(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error generating configuration");
+
+        } catch (Exception ex) {
+            lastException = new PersephoneException(HttpStatus.INTERNAL_SERVER_ERROR, ex, msg);
+            log.warn("Could not retrieve/generate configuration, trial number: 1");
+            log.debug("This trial's error: ", ex);
+            for (int i = 0; i < (maxConfigRetrievalTrials - 1); i++) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(1000);
+
+                    ListenableFuture<ConfigurationSessionIdentifier> completable =
+                            configurationServiceClient.withWaitForReady()
+                                    .withDeadlineAfter(2, TimeUnit.MINUTES).createConfigurationV2(request);
+                    log.info("Configuration request \n {}", request.toString());
+                    return completable.get();
+
+                } catch (Exception e) {
+                    lastException = new PersephoneException(HttpStatus.INTERNAL_SERVER_ERROR, e, msg);
+                    int trial = i + 1;
+                    log.warn("Could not retrieve/generate configuration, trial number: " + ++trial);
+                    log.debug("This trial's error: ", e);
+                }
+            }
         }
+        throw lastException;
     }
 
     private void addLogAndMetricProperties(DeploymentExecutionContext context, NodeAssignment.Entry entry,

@@ -37,6 +37,8 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.NodeType;
+import com.vmware.blockchain.server.exceptions.ConfigServiceException;
+import com.vmware.blockchain.server.exceptions.ErrorCode;
 
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -181,9 +183,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                         .getbftClientConfig(participantNodeIds, committerIps, participantIps,
                                 clientProxyPerParticipant));
             } catch (IOException e) {
-                var msg = "bftclient configurations not generated for session Id : " + sessionId;
-                log.error(msg);
-                observer.onError(e);
+                var msg = "BFT client configurations not generated for session Id : " + sessionId;
+                log.error(msg + e.getMessage());
+                throw new ConfigServiceException(ErrorCode.BFT_CONFIGURATION_FAILURE, msg, e);
             }
             nodeIdList.addAll(participantNodeIds);
 
@@ -202,9 +204,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig,
                     isPreexecutionDeployment);
         } catch (IOException e) {
-            var msg = "concord configurations not generated for session Id : " + sessionId;
+            var msg = "Concord configurations not generated for session Id : " + sessionId;
             log.error(msg);
-            observer.onError(e);
+            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE, msg, e);
         }
 
         log.info("Generated concord configurations for session Id : {}", sessionId);
@@ -252,7 +254,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             });
         } catch (Exception e) {
             log.error("Error organizing the configurations for sessions {}", sessionId);
-            observer.onError(e);
+            throw new ConfigServiceException(ErrorCode.CONFIGURATION_GENERATION_FAILURE,
+                                             "Error organizing the configurations for sessions {}" + sessionId, e);
         }
 
         observer.onNext(sessionId);
