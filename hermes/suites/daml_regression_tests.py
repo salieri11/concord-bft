@@ -538,7 +538,7 @@ def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, parti
         if participant_first:
             install_sdk_deploy_daml(client_host, client_port)
 
-        no_of_txns, wait_time = 2, 1
+        no_of_txns, wait_time = 1, 1
         client_off_count = 0
         url = 'http://{}:{}'.format(client_host, client_port)
 
@@ -577,9 +577,12 @@ def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, parti
         power_on_all_participants(
             fxHermesRunSettings, fxLocalSetup.client_hosts.items())
 
+    # Wait for sometime before creating transactions
+    time.sleep(60)
+
     # Create & verify transactions after powering on all nodes
     for client_host, client_port in fxLocalSetup.client_hosts.items():
-        no_of_txns, wait_time = 2, 1
+        no_of_txns, wait_time = 1, 1
         url = 'http://{}:{}'.format(client_host, client_port)
         assert simple_request(url, no_of_txns), \
             "DAML request submission/verification failed for participant \
