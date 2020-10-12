@@ -10,11 +10,11 @@ https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP
     orchestrator-appliance-customizations.json
     orchestrator-appliance-remote.json
     blockchain.service
-    firstboot.service
     orchestrator-prereqs-launcher.sh
-    firstboot-init.sh
-    firstboot-init
+    cap-firstboot.sh
     post-install-castor.sh
+    VMware_EULA_20190913_English.txt
+    eula.script
 
 4. Modify the configuration/repositories/local json 
    entry in orchestrator-appliance-remote.json to point to the absolute path for $CommonAppliancePlatform.
@@ -37,8 +37,12 @@ https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP
 
 10. Remove any vmware-blockchain-appliance VMs on the target vCenter.
 
-11. Build the OVF:
+11A. Build the OVF:
     ./cap build -f orchestrator-appliance-remote.json
+
+11B. To build an OVF for automation/QE, where EULA is already accepted:
+    In orchestrator-appliance-remote.json, set this:
+	"after-appliance-ready-script": "post-install-castor-TESTBUILD.sh"
 
 12. The new OVF should be available under $CommonAppliancePlatform/images.
 

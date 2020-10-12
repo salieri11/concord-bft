@@ -4,7 +4,17 @@ set -x -v
 #/* **************************************************************************** *
 #* Copyright (c) 2020 VMware, Inc.  All rights reserved. -- VMware Confidential *
 #* **************************************************************************** */
-# This script does post install tasks for the blockchain appliance.
+
+# This script is to be used for test builds for Automation/QE.
+# It sets up automatic EULA acceptance so root/blockchain logins can be automated.
+# To create a test build, set this in orchestrator-appliance-remote.json:
+# 	"after-appliance-ready-script": "post-install-castor-TESTBUILD.sh"
+
+# This is a copy of post-install-castor.sh, but CAP does not allow me to
+# source this file since CAP does not transfer the files to the appliance.
+# Hence the cut-n-paste.
+
+# Run the production script
 
 # blockchain user
 BLOCKCHAIN_USER=blockchain
@@ -148,3 +158,11 @@ chmod 444 $EULA_DIR/VMware_EULA_20190913_English.txt
 
 # The last statement needs to return code 0 for CAP to assume success.
 echo "post-install-castor.sh run finished"
+
+# End production script
+
+# Accept EULA for test/automation
+echo "Running a TEST BUILD"
+# Do what eula.script would have done if the user had accepted the EULA
+echo "TEST BUILD: User root accepted EULA on $(date -u)" >> $EULA_DIR/.root-eula
+echo "TEST BUILD: User blockchain accepted EULA on $(date -u)" >> $EULA_DIR/.blockchain-eula

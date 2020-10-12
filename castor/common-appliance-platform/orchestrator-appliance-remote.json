@@ -59,17 +59,17 @@
     "build-appliance": {
         "remote": {
             "personalization": {
-                "image": "http://build-squid.eng.vmware.com/build/mts/release/bora-16901077/publish/sh-16901077.iso",
+                "image": "http://build-squid.eng.vmware.com/build/mts/release/bora-16973301/publish/sh-16973301.iso",
                 "root_password": "vmware",
                 "existing_password": "previous"
             },
             "machine": {
                 "datastore": "datastore1",
                 "datacenter": "Datacenter",
-                "vcenter_address": "10.186.55.185",
+                "vcenter_address": "10.184.164.59",
                 "password": "Admin!23",
                 "username": "administrator@vsphere.local",
-                "hostname": "10.182.176.224",
+                "hostname": "10.184.173.156",
                 "network": "VM Network"
             }
         },
@@ -99,7 +99,6 @@
                 "net-tools",
                 "rsync",
                 "sudo",
-                "time",
                 "wget",
                 "unzip",
                 "tar"
@@ -120,9 +119,9 @@
                         "files": [
                             "blockchain.service",
                             "orchestrator-prereqs-launcher.sh",
-                            "firstboot-init",
-                            "firstboot.service",
-                            "firstboot-init.sh"
+                            "cap-firstboot.sh",
+                            "eula.script",
+                            "VMware_EULA_20190913_English.txt"
                         ]
 
                     }
