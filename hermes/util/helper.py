@@ -403,6 +403,26 @@ def work_around_bc_5021(output):
 
    return output
 
+def durable_ssh_connect(host, username, password, command, log_mode=None, verbose=True, attempts=5):
+   '''
+   Run ssh_connect with exponential backoff retries.
+   attempts: Number of times to try.
+   Other params: See ssh_connect.
+   '''
+   exc = None
+
+   for i in range(0, attempts):
+      try:
+         if i > 0:
+            time.sleep(pow(2, i))
+
+         return ssh_connect(host, username, password, command, log_mode=None, verbose=True)
+      except Exception as e:
+         log.error("Error running SSH command on {}: {}".format(host, e))
+         exc = e
+
+   raise exc
+
 def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    '''
    Helper method to execute a command on a host via SSH
@@ -435,6 +455,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
       log.debug(resp)
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
+      raise
    except EOFError as e:
       if "Error reading SSH protocol banner" in str(e):
          log.error("SSH failure, most likely due to network congestion.")
@@ -445,6 +466,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
             log.warning("Could not connect to {}".format(host))
          else:
             log.error("Could not connect to {}: {}".format(host, e))
+      raise
    finally:
       if ssh:
          ssh.close()
