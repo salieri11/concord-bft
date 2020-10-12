@@ -14,9 +14,9 @@
     }
   ],
   "committerNodeSpec": {
-    "cpuCount": 2,
-    "memoryGb": 16,
-    "diskSizeGb": 64
+    "cpuCount": 64,
+    "memoryGb": 256,
+    "diskSizeGb": 2000
   },
   "clients": [
     {
@@ -33,9 +33,9 @@
     }
   ],
   "clientNodeSpec": {
-    "cpuCount": 4,
-    "memoryGb": 32,
-    "diskSizeGb": 100
+    "cpuCount": -1,
+    "memoryGb": 2,
+    "diskSizeGb": 2000
   },
   "blockchain": {
     "consortiumName": "consortium-1",

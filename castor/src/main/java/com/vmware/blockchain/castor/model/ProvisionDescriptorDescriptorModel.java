@@ -29,9 +29,15 @@ public class ProvisionDescriptorDescriptorModel implements DeploymentDescriptorM
     @Valid
     private List<Committer> committers;
 
+    @Valid
+    private NodeSpecification committerNodeSpec;
+
     @NotEmpty(message = "deployment.clients.not.specified")
     @Valid
     private List<Client> clients;
+
+    @Valid
+    private NodeSpecification clientNodeSpec;
 
     @Valid
     private Blockchain blockchain;

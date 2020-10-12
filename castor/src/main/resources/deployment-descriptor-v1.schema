@@ -63,6 +63,24 @@
         }
       },
       "required": ["zoneName"]
+    },
+    "nodeSpec": {
+      "description": "Node specification",
+      "type": "object",
+      "properties": {
+        "cpuCount": {
+          "description": "CPU count",
+          "type": "integer"
+        },
+        "memoryGb": {
+          "description": "Memory in GB",
+          "type": "integer"
+        },
+        "diskSizeGb": {
+          "description": "Disk size in GB",
+          "type": "integer"
+        }
+      }
     }
   },
   "properties": {
@@ -81,6 +99,14 @@
       "items": {
         "$ref": "#/definitions/client"
       }
+    },
+    "committerNodeSpec": {
+      "description": "Committer node specification",
+      "$ref": "#/definitions/nodeSpec"
+    },
+    "clientNodeSpec": {
+      "description": "Client node specification",
+      "$ref": "#/definitions/nodeSpec"
     }
   },
   "required": [

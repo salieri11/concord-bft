@@ -7,6 +7,8 @@ package com.vmware.blockchain.castor.model;
 import java.util.List;
 import java.util.UUID;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 
 import com.vmware.blockchain.castor.service.BlockchainTypesValid;
@@ -61,6 +63,28 @@ public interface DeploymentDescriptorModel {
     }
 
     /**
+     * Defines node size.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @EqualsAndHashCode
+    public static class NodeSpecification {
+
+        @Min(value = 2, message = "invalid.mincpu")
+        @Max(value = 32, message = "invalid.maxcpu")
+        private int cpuCount;
+
+        @Min(value = 16, message = "invalid.minmemory")
+        @Max(value = 128, message = "invalid.maxmemory")
+        private int memoryGb;
+
+        @Min(value = 64, message = "invalid.mindisk")
+        @Max(value = 1024, message = "invalid.maxdisk")
+        private int diskSizeGb;
+    }
+
+    /**
      * Required blockchain.
      */
     @Getter
@@ -75,6 +99,13 @@ public interface DeploymentDescriptorModel {
     }
 
     /**
+     * Get committer node specification from deployment model.
+     * @return node spec
+     */
+    NodeSpecification getCommitterNodeSpec();
+
+
+    /**
      * Get committers from the deployment model.
      * @return a list of committers
      */
@@ -85,6 +116,13 @@ public interface DeploymentDescriptorModel {
      * @return a list of clients
      */
     List<Client> getClients();
+
+    /**
+     * Get client node specification from deployment model.
+     * @return node spec
+     */
+    NodeSpecification getClientNodeSpec();
+
 
     /**
      * Get the blockchain spec from the deployment model.

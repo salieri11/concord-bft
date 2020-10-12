@@ -1,10 +1,6 @@
 {
   "organization": {
     "damlSdk": "1.0.1",
-    "cpuCount": 4,
-    "memoryGb": 4,
-    "clientDiskGb": 12,
-    "committerDiskGb": -12,
     "generatePassword": true
   },
   "zones": [
