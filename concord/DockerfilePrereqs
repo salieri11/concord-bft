@@ -139,7 +139,7 @@ RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com
 
 # gRPC for DAML and HLF api server
 WORKDIR /
-RUN git clone -b v1.28.x --depth 1 --recurse-submodules https://github.com/grpc/grpc && \
+RUN git clone -b v1.32.x --depth 1 --recurse-submodules https://github.com/grpc/grpc && \
     mkdir -p /grpc/third_party/protobuf/cmake/build && \
     cd /grpc/third_party/protobuf/cmake/build && \
     cmake -DBUILD_SHARED_LIBS=ON \
