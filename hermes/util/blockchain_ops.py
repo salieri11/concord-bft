@@ -102,13 +102,13 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
 
 def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
-    This will get primary rid and map out commiter idx and rid relation.
+    This will get primary rid, ip and map out commiter idx and rid relation.
   '''
   if verbose: log.info("")
   all_committers = committers_of(fxBlockchain)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
-  # Below will get principal_id, private_key, public_key from concord config (3 lines)
-  replicaIdGetCommand = "cat /config/concord/config-local/concord.config"
+  # Below will get principal_id from deployment config
+  replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
   committersMapping = {
     "primary_ip": None,
     "primary_index": None,
@@ -119,15 +119,24 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   committersOutput = [""] * len(all_committers)
   if verbose: log.info("Mapping out the rid and index relationship in committers...")
   primary_rid = get_primary_rid(fxBlockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
-  results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
+  success = False
+  try:
+    results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
+    success = True
+  except Exception as e:
+    msg = "Error fetching deployment config from one of committer nodes is : '{}'".format(str(e))
+    log.error(msg)
+  
+  if not success:
+        raise(e)
+
   committerRespondedCount = 0; errored = []
   for result in results:
     if result["output"]:
       try:
-        concordConfig = yaml.safe_load(result["output"])
-        fileterCondition = lambda nodeConfig: "private_key" in nodeConfig["replica"][0]
-        nodeWithPrivateKey = list(filter(fileterCondition, concordConfig["node"]))[0]
-        replicaId = nodeWithPrivateKey["replica"][0]["principal_id"]
+        config = yaml.safe_load(result["output"])
+        node = config["node"][0]
+        replicaId = node["replica"][0]["principal_id"]
         committerIndex = target_committers.index(result["ip"])
         committersMapping["committers"][committerIndex] = {
           "ip": result["ip"], "index": committerIndex, "rid": replicaId
