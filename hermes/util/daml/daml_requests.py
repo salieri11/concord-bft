@@ -10,12 +10,11 @@ Based on the dazl Python network stack.
 
 from argparse import ArgumentParser
 from logging import WARN, info, DEBUG
-from asyncio import sleep as async_sleep
+from asyncio import sleep as async_sleep, set_event_loop, new_event_loop
 from time import time, sleep as time_sleep
 from yaml import load, FullLoader
-
+from datetime import datetime, timedelta
 from scenario import Scenario
-
 from dazl import setup_default_logger as dazl_setup_logger
 from dazl_remote import Remote
 
@@ -41,6 +40,7 @@ def simple_request(url, requests=1, wait=1, retries=3):
         return remote, scenario
 
     assets = 0
+
     def count_assets(_):    # Callback invoked on asset creation
         nonlocal assets
         assets += 1
@@ -49,7 +49,8 @@ def simple_request(url, requests=1, wait=1, retries=3):
 
     for _ in range(0, retries):
         try:
-            scenario.party['client'].add_ledger_created('Asset.Quote', count_assets)
+            scenario.party['client'].add_ledger_created(
+                'Asset.Quote', count_assets)
             daml_request(remote, scenario, requests, wait, True)
             return requests == assets
         except Exception as e:
@@ -60,6 +61,7 @@ def simple_request(url, requests=1, wait=1, retries=3):
             time_sleep(wait)
 
     return False
+
 
 def daml_request(remote, scenario, repeat=1, wait=1, cleanup=False):
     '''
@@ -103,6 +105,32 @@ def daml_request(remote, scenario, repeat=1, wait=1, cleanup=False):
     remote.network.run_until_complete(run_request())
     remote.network.join()
 
+
+def continuous_daml_request_submission(client_host, client_port, no_of_txns, wait_time, duration=60):
+    '''
+    Function to submit daml request continuously for the given duration
+    Args:
+        client_host: Host where ledger API is running
+        client_port: Port on which ledger API is running
+        no_of_txns: Number of transactions to be performed
+        wait_time: Wait time after each transaction
+        duration: Duration (seconds) for which daml request has to be submitted continuously
+    Returns:
+        None
+    '''
+    try:
+        url = 'http://{}:{}'.format(client_host, client_port)
+        start_time = datetime.now()
+        end_time = start_time + timedelta(seconds=duration)
+        set_event_loop(new_event_loop())
+        while start_time <= end_time:
+            simple_request(url, no_of_txns, wait_time)
+            start_time = datetime.now()
+    except Exception as excp:
+        info("Failed to submit Daml transactions on participant: {}".format(client_host))
+        assert False, excp
+
+
 def parse_args():
     '''
     Create a parser and process user input
@@ -145,6 +173,7 @@ def parse_args():
                         help='Do not archive issuer assets from previous runs')
     return parser.parse_args()
 
+
 def main():
     '''
     Run a scenario as a standalone tool
@@ -175,6 +204,7 @@ def main():
                         exec_delay=args.complex if args.action == 'scenario' else 0)
 
     daml_request(remote, scenario, args.repeat, args.wait, args.cleanup)
+
 
 if __name__ == '__main__':
     main()

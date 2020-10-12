@@ -8,8 +8,8 @@ import pytest
 from util import helper, hermes_logging, blockchain_ops
 from threading import Thread
 import util.daml.daml_helper as daml_helper
+from util.daml.daml_requests import simple_request, continuous_daml_request_submission
 import util.node_interruption_helper as intr_helper
-from util.daml.daml_requests import simple_request
 import asyncio
 from fixtures.common_fixtures import fxNodeInterruption, fxBlockchain, fxProduct
 
@@ -109,60 +109,6 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
             custom_params
     return intr_helper.perform_interrupt_recovery_operation(
         fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
-
-
-def stop_start_concord(ip, container_name):
-    '''
-    Function to crash and recover primary replica
-    Args:
-        ip: Primary replica IP
-        container_name: Name of the container
-    Returns:
-        None
-    '''
-    try:
-        status = True
-        start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=3)
-        username, password = helper.getNodeCredentials()
-        while status and start_time <= end_time:
-            cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
-            concord_status = helper.ssh_connect(ip, username, password, cmd)
-
-            if "running" in concord_status:
-                status = intr_helper.stop_container(ip, container_name)
-            elif "exited" in concord_status:
-                status = intr_helper.start_container(ip, container_name)
-
-            start_time = datetime.now()
-    except Exception as excp:
-        log.debug("Failed to stop and start primary replica:{}".format(ip))
-        assert False, excp
-
-
-def send_request(client_host, client_port, no_of_txns, wait_time):
-    '''
-    Function to submit daml request continuously
-    Args:
-        client_host: Host where ledger API is running
-        client_port: Port on which ledger API is running
-        no_of_txns: Number of transactions to be performed
-        wait_time: wait time after each transaction
-    Returns:
-        None
-    '''
-    try:
-        url = 'http://{}:{}'.format(client_host, client_port)
-        start_time = datetime.now()
-        end_time = start_time + timedelta(minutes=3)
-        asyncio.set_event_loop(asyncio.new_event_loop())
-        while start_time <= end_time:
-            simple_request(url, no_of_txns, wait_time)
-            start_time = datetime.now()
-    except Exception as excp:
-        log.debug(
-            "Failed to submit Daml transactions on participant: {}".format(client_host))
-        assert False, excp
 
 
 @describe("daml test for single transaction")
@@ -520,52 +466,59 @@ def test_fault_tolerance_view_change(fxLocalSetup, fxHermesRunSettings, fxBlockc
             no_of_txns, wait_time = 2, 0.2
             url = 'http://{}:{}'.format(client_host, client_port)
 
-            # Submit Daml requests before finding primary replica id
+            # Submit Daml requests before finding primary replica
             assert simple_request(url, no_of_txns, wait_time), \
                 "DAML request submission/verification failed for participant \
             [{}]".format(client_host)
 
-            # Find primary replica and primary replica id
-            initial_primary_replica = blockchain_ops.fetch_master_replica(
-                fxBlockchain)
-            initial_primary_replica_id = blockchain_ops.get_primary_rid(
+            committers_mapping = blockchain_ops.map_committers_info(
                 fxBlockchain)
 
+            # Find primary replica ip
+            initial_primary_replica_ip = committers_mapping["primary_ip"]
+            log.info("initial_primary_replica_info: {}".format(
+                initial_primary_replica_ip))
+
+            interrupted_nodes = []
             container_name = 'concord'
 
             # Stop f-1 non-primary replica
             for i in range(fxLocalSetup.f_count - 1):
                 concord_host = fxLocalSetup.concord_hosts[i]
-                if concord_host != initial_primary_replica:
+                if concord_host != initial_primary_replica_ip:
                     log.info(
                         "Stop concord in non-primary replica: {}".format(concord_host))
                     intr_helper.stop_container(concord_host, container_name)
-
+                    interrupted_nodes.append(concord_host)
 
             log.info("Completed stopping f-1 non-primary replica concord container")
 
             # Start new thread for daml request submissions and stop & start current primary replica
-            thread_daml_txn = Thread(target=send_request,
-                                     args=(client_host, client_port, no_of_txns, wait_time))
+            thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                     args=(client_host, client_port, no_of_txns, wait_time, 180))
             thread_start_stop_primary = Thread(
-                target=stop_start_concord, args=(initial_primary_replica, container_name))
-            t = []
+                target=intr_helper.continuous_stop_start_container,
+                args=(initial_primary_replica_ip, container_name, 180))
+            interrupted_nodes.append(initial_primary_replica_ip)
+            threads_list = []
             thread_daml_txn.start()
             thread_start_stop_primary.start()
-            t.append(thread_daml_txn)
-            t.append(thread_start_stop_primary)
-            thread_daml_txn.join()
-            thread_start_stop_primary.join()
+            threads_list.append(thread_daml_txn)
+            threads_list.append(thread_start_stop_primary)
+            for threads in threads_list:
+                threads.join()
 
-            new_primary_replica_id = blockchain_ops.get_primary_rid(
-                fxBlockchain)
+            # Find new primary replica ip
+            committers_mapping = blockchain_ops.map_committers_info(
+                fxBlockchain, interrupted_nodes)
+            new_primary_replica_ip = committers_mapping["primary_ip"]
 
-            log.info("\n\nInitial primary replica ID: {}".format(
-                initial_primary_replica_id))
+            log.info("\n\nInitial primary replica: {}".format(
+                initial_primary_replica_ip))
 
-            log.info("\n\nNew primary replica ID: {}".format(
-                new_primary_replica_id))
-            assert initial_primary_replica_id != new_primary_replica_id, "View Change did not happen successfully"
+            log.info("\n\nNew primary replica: {}".format(
+                new_primary_replica_ip))
+            assert initial_primary_replica_ip != new_primary_replica_ip, "View Change did not happen successfully"
 
             # Submit Daml requests after view change
             assert simple_request(url, no_of_txns, wait_time), \

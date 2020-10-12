@@ -651,7 +651,7 @@ def start_container(ip, container_name, start_wait_time=30):
    Args:
       ip: Node IP on which container has to be started
       container_name: Name of the container
-      start_wait_time: Wait time after starting the container
+      start_wait_time: Wait time (seconds) after starting the container
    Returns:
       None
    '''
@@ -666,10 +666,9 @@ def start_container(ip, container_name, start_wait_time=30):
       log.info("{} container restarted for {}".format(container_name, ip))
       return True
    else:
-      log.info("Failed to restart {} container for {}".format(
-         container_name, ip))
+      log.debug("Container status is {}. Failed to restart {} container for {}".format(
+         status, container_name, ip))
       return False
-
 
 def stop_container(ip, container_name, stop_wait_time=60):
    '''
@@ -677,7 +676,7 @@ def stop_container(ip, container_name, stop_wait_time=60):
    Args:
       ip: Node IP on which container has to be stopped
       container_name: Name of the container
-      stop_wait_time: Wait time after stopping the container
+      stop_wait_time: Wait time (seconds) after stopping the container
    Returns:
       None
    '''
@@ -691,6 +690,37 @@ def stop_container(ip, container_name, stop_wait_time=60):
       log.info("{} container stopped for {}".format(container_name, ip))
       return True
    else:
-      log.info("Failed to stop {} container for {}".format(
-         container_name, ip))
+      log.debug("Container status is {}. Failed to stop {} container for {}".format(
+         status, container_name, ip))
       return False
+
+
+def continuous_stop_start_container(ip, container_name, duration=60):
+   '''
+   Function to stop and start the container continuously for the given duration
+   Args:
+       ip: Node IP
+       container_name: Name of the container
+       duration: Duration (seconds) for which container has to be stopped/restarted continuously
+   Returns:
+       None
+   '''
+   try:
+      status = True
+      start_time = datetime.datetime.now()
+      end_time = start_time + datetime.timedelta(seconds=duration)
+      username, password = helper.getNodeCredentials()
+      while status and start_time <= end_time:
+         cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
+         concord_status = helper.ssh_connect(ip, username, password, cmd)
+
+         if "running" in concord_status:
+            status = stop_container(ip, container_name)
+         elif "exited" in concord_status:
+            status = start_container(ip, container_name)
+
+         start_time = datetime.datetime.now()
+   except Exception as excp:
+      log.debug("Failed to stop and start primary replica:{}".format(ip))
+      assert False, excp
+      
