@@ -15,8 +15,52 @@ from time import time, sleep as time_sleep
 from yaml import load, FullLoader
 from datetime import datetime, timedelta
 from scenario import Scenario
-from dazl import setup_default_logger as dazl_setup_logger
-from dazl_remote import Remote
+from dazl import Network as dazl_network, setup_default_logger as dazl_setup_logger
+
+class Remote:
+    '''
+    Manage remote API connection and configuration
+    '''
+    def __init__(self, url, parties=None):
+        '''
+        Constructor
+
+        Args:
+             url(string): Ledger API endpoint in the format http://host:port
+             parties(dict): a role:name data mapping for parties
+        '''
+        self.url = url
+        self.network = None
+        self.parties = {}
+        if parties is not None:
+            self.create_clients(parties)
+
+    def connect(self):
+        '''
+        Establish connection with the remote API (client node)
+        '''
+        if self.network:
+            self.network.shutdown()
+            self.network.join()
+
+        self.network = dazl_network()
+        self.network.set_config(url=self.url, poll_interval=Scenario.DEFAULT_POLLING_INTERVAL)
+
+    def create_clients(self, parties):
+        '''
+        Create asynchronous clients to connect to the API
+
+        Args:
+            parties(dict): a role:name data mapping for parties
+
+        Returns:
+            dict: mapping of role strings to AIOPartyClient objects
+        '''
+        if not self.network:
+            self.connect()
+
+        self.parties = {k:self.network.aio_party(v) for k, v in parties.items()}
+        return self.parties
 
 def simple_request(url, requests=1, wait=1, retries=3):
     '''
@@ -40,7 +84,6 @@ def simple_request(url, requests=1, wait=1, retries=3):
         return remote, scenario
 
     assets = 0
-
     def count_assets(_):    # Callback invoked on asset creation
         nonlocal assets
         assets += 1
@@ -49,8 +92,7 @@ def simple_request(url, requests=1, wait=1, retries=3):
 
     for _ in range(0, retries):
         try:
-            scenario.party['client'].add_ledger_created(
-                'Asset.Quote', count_assets)
+            scenario.party['client'].add_ledger_created('Asset.Quote', count_assets)
             daml_request(remote, scenario, requests, wait, True)
             return requests == assets
         except Exception as e:
@@ -61,7 +103,6 @@ def simple_request(url, requests=1, wait=1, retries=3):
             time_sleep(wait)
 
     return False
-
 
 def daml_request(remote, scenario, repeat=1, wait=1, cleanup=False):
     '''
@@ -120,12 +161,12 @@ def continuous_daml_request_submission(client_host, client_port, no_of_txns, wai
     '''
     try:
         url = 'http://{}:{}'.format(client_host, client_port)
-        start_time = datetime.now()
-        end_time = start_time + timedelta(seconds=duration)
+        start_time = datetime.datetime.now()
+        end_time = start_time + datetime.timedelta(seconds=duration)
         set_event_loop(new_event_loop())
         while start_time <= end_time:
             simple_request(url, no_of_txns, wait_time)
-            start_time = datetime.now()
+            start_time = datetime.datetime.now()
     except Exception as excp:
         info("Failed to submit Daml transactions on participant: {}".format(client_host))
         assert False, excp
@@ -173,7 +214,6 @@ def parse_args():
                         help='Do not archive issuer assets from previous runs')
     return parser.parse_args()
 
-
 def main():
     '''
     Run a scenario as a standalone tool
@@ -204,7 +244,6 @@ def main():
                         exec_delay=args.complex if args.action == 'scenario' else 0)
 
     daml_request(remote, scenario, args.repeat, args.wait, args.cleanup)
-
 
 if __name__ == '__main__':
     main()
