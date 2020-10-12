@@ -53,7 +53,7 @@ class ThinReplicaImpl {
             "concord_trs_stats",
             "Count stats available to the TRS for multiple clients "
             "differentiated by the label",
-            {{"operation", "SubscribeToUpdates"}})) {}
+            {{"layer", "ThinReplicaServer"}})) {}
 
   ThinReplicaImpl(const ThinReplicaImpl&) = delete;
   ThinReplicaImpl(ThinReplicaImpl&&) = delete;
@@ -173,12 +173,12 @@ class ThinReplicaImpl {
     // Setup metrics for this client connection
     assert(prometheus_registry_);
     auto& metric_queue_size = prometheus_registry_->createGauge(
-        metric_stats_, {{"stat", "queue_size"},
+        metric_stats_, {{"operation", "queue_size"},
                         {"stream", stream_type},
                         {"client", GetClientId(context)}});
     metric_queue_size.Set(0);
     auto& metric_last_sent_block_id = prometheus_registry_->createGauge(
-        metric_stats_, {{"stat", "last_sent_block_id"},
+        metric_stats_, {{"operation", "last_sent_block_id"},
                         {"stream", stream_type},
                         {"client", GetClientId(context)}});
     metric_last_sent_block_id.Set(0);
