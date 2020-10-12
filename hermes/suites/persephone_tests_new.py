@@ -935,7 +935,6 @@ def test_ethereum_4_node_vmc(request, fxHermesRunSettings, ps_helper, file_root,
 
 @describe("Test to run a DAML ONPREM deployment (Default: 7 replicas + 3 clients + 2 groups)")
 @pytest.mark.smoke
-@pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
 def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, teardown):
     # TODO: https://jira.eng.vmware.com/browse/BC-4844
     # TODO: On demand runs pass Ethereum as concord type even after selecting DAML
@@ -975,14 +974,21 @@ def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, 
 
 @describe("Use this test to test Persephone with desired cmdline arguments")
 @pytest.mark.cmdline
+@pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
 def test_cmdline_driven(request, fxHermesRunSettings, ps_helper, file_root, teardown):
+    # TODO: https://jira.eng.vmware.com/browse/BC-4844
+    # TODO: On demand runs pass Ethereum as concord type even after selecting DAML
+    blockchain_type = helper.TYPE_DAML if not fxHermesRunSettings["hermesCmdlineArgs"].blockchainType else fxHermesRunSettings["hermesCmdlineArgs"].blockchainType
+    # TODO: https://jira.eng.vmware.com/browse/BC-4842
+    # TODO: Resolve issue arising due to unexpected key "local" being passed
+    zone_type = helper.LOCATION_ONPREM if not fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation else validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
+    num_replicas = 7 if not fxHermesRunSettings["hermesCmdlineArgs"].numReplicas else int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
+    num_clients = 1 if not fxHermesRunSettings["hermesCmdlineArgs"].numParticipants else int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    num_groups = 0 if not fxHermesRunSettings["hermesCmdlineArgs"].numGroups else int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
+    deployment_properties = "" if not fxHermesRunSettings["hermesCmdlineArgs"].propertiesString else fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
 
-    blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType
-    zone_type = validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
-    num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
-    num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
-    num_groups = int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
-    deployment_properties = fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
+    log.info("Deployment properties are:")
+    log.info(deployment_properties)
 
     deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_groups, deployment_properties)
 
