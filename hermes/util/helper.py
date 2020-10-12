@@ -385,6 +385,23 @@ def read_key(key, properties_file=PROPERTIES_TEST_FILE):
       log.error("Unable to access/read properties file: {}".format(properties_file))
       raise
 
+def work_around_bc_5021(output):
+   '''
+   In the new VM templates, every first line of a remote SSH exeuction starts
+   with "/etc/bash.bashrc: line 42: TMOUT: readonly variable".
+   This breaks some code.
+   BC-5021 is to fix that. But meanwhile, this will remove it.
+   output: The raw output from a function like ssh_connect.
+   Returns the fixed up output.
+   '''
+   lines = output.splitlines()
+
+   if lines and "TMOUT: readonly variable" in lines[0]:
+      log.info("Fixing up SSH output")
+      del(lines[0])
+      output = "\n".join(lines)
+
+   return output
 
 def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    '''
@@ -431,8 +448,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    finally:
       if ssh:
          ssh.close()
-   return resp
-
+   return work_around_bc_5021(resp)
 
 def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
   '''
@@ -1828,7 +1844,7 @@ def thisHermesIsFromJenkins():
 
 def getContentSignature(content):
   '''Given string content returns long, short signature in a tuple'''
-  longSignature = hashlib.sha256(content.encode()) 
+  longSignature = hashlib.sha256(content.encode())
   shortSignature = base64.b64encode(longSignature.digest()[:6]) # short, 6-byte
   longSignature = longSignature.hexdigest().upper()[:32] # 32-hex = 16-byte (e.g. F4E9A7CADAF8A0B9359740D5F84D118E)
   shortSignature = shortSignature.decode("utf-8").replace("+", "A").replace("/", "A") # (e.g. F9Omnytr4)
