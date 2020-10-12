@@ -47,10 +47,13 @@ function getFileName() {
     echo "/$1$2.config"
 }
 
+function distributionFailure() {
+    >&2 echo "WARNING! Can't distribute config file for node $1. Check if $2 exists in ${PUBPATH}."
+}
+
 for i in $(seq 1 ${#PRIVPATHS[@]}); do
 
-    mv -f ${PUBPATH}$(getFileName application $i) ${PRIVPATHS[i - 1]}$(getFileName application)
-    mv -f ${PUBPATH}$(getFileName deployment $i) "${PRIVPATHS[i - 1]}$(getFileName deployment)"
-    mv -f ${PUBPATH}$(getFileName secrets $i) "${PRIVPATHS[i - 1]}$(getFileName secrets)"
-    
+    mv -f ${PUBPATH}$(getFileName application $i) ${PRIVPATHS[i - 1]}$(getFileName application) || distributionFailure $i $(getFileName application $i)
+    mv -f ${PUBPATH}$(getFileName deployment $i) "${PRIVPATHS[i - 1]}$(getFileName deployment)" || distributionFailure $i $(getFileName deployment $i)
+    mv -f ${PUBPATH}$(getFileName secrets $i) "${PRIVPATHS[i - 1]}$(getFileName secrets)" || distributionFailure $i $(getFileName secrets $i)
 done

@@ -157,7 +157,8 @@
         "../docker/config-concord1/",
         "../docker/config-concord2/",
         "../docker/config-concord3/",
-        "../docker/config-concord4/"]
+        "../docker/config-concord4/",
+        "../docker/config-concord5/"]
   },
   "logInsight": {
     "destinationName": "LOG_INSIGHT",
