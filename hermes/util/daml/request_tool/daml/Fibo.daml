@@ -4,6 +4,8 @@ BSD0 license: "Permission to use, copy, modify, and/or distribute this software 
 - - - -}
 module Fibo where
 
+import Daml.Script
+
 inefficientFibonacci n =
   case n of
     0 -> 0
@@ -28,15 +30,13 @@ template InefficientFibonacci
           n: Int
         do create Result with owner = owner; result = inefficientFibonacci n
 
-eventuallyTerminates : Scenario ()
-eventuallyTerminates = scenario do
-  owner <- getParty "owner"
+run : Int -> Script ()
+run loops = do
+  owner <- allocateParty "AcmeBank"
   fib <- submit owner do
-    create InefficientFibonacci with
+    createCmd InefficientFibonacci with
       owner = owner
-  let loops = 31
-  resultId <- submit owner do
-    exercise fib InefficientFibonacciCompute with
+  submit owner do
+    exerciseCmd fib InefficientFibonacciCompute with
       n = loops
-  result <- submit owner do fetch resultId
-  return ()
+  pure ()

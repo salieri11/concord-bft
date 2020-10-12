@@ -76,7 +76,8 @@ suiteList = {
    "DeployDamlTests": "suites/ui_e2e_deploy_daml.py",
    "MetadataPersistencyTests": "suites/persistency_tests.py",
    "HelenNodeSizeTemplateTests": "suites/helen/nodesize_test.py",
-   "ReconfigurationTests": "suites/reconfiguration_tests.py"
+   "ReconfigurationTests": "suites/reconfiguration_tests.py",
+   "PreExecutionTests": "suites/sys_test_preexecution_tests.py" 
 }
 
 local_modules = [os.path.join(".", "lib", "persephone")]

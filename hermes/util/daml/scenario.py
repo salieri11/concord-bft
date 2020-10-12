@@ -20,7 +20,7 @@ script_dirname = os_path.dirname(os_path.abspath(__file__))
 sys_path.insert(0, os_path.join(script_dirname, 'dazl-client/python'))
 
 from dazl import create as dazl_create, exercise as dazl_exercise
-
+from dazl_remote import Remote
 
 class Scenario():
     '''
@@ -43,7 +43,6 @@ class Scenario():
                  'AssetCheck.FetchCmd',
                  'AssetCheck.DiscloseCmd']
     DEFAULT_TIMEOUT = 10                # 10s default timeout for requests
-    DEFAULT_POLLING_INTERVAL = 0.01     # 10ms
     DEFAULT_DATA_FILE = os_path.join(script_dirname, 'request_tool/data.yaml')
 
     def __init__(self, parties, data, action, **kwargs):
@@ -68,6 +67,7 @@ class Scenario():
         self._register_triggers()
         self.fibo_start = 0
         self.exec_delay = kwargs.get('exec_delay', 1)
+        self.polling_interval = kwargs.get('polling_interval', Remote.DEFAULT_POLLING_INTERVAL)
 
     async def run(self):
         '''
@@ -172,7 +172,7 @@ class Scenario():
         self.archived_cid.add(archived)
 
     async def _wait_for(self, item, container, seconds):
-        wait_step = self.DEFAULT_POLLING_INTERVAL
+        wait_step = self.polling_interval
         for _ in range(0, int(seconds / wait_step)):
             if item in container:
                 return
