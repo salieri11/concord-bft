@@ -102,7 +102,7 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
 
 def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
-    This will get primary rid, ip and map out commiter idx and rid relation.
+    This will get primary rid, ip and map out committer idx and rid relation.
   '''
   if verbose: log.info("")
   all_committers = committers_of(fxBlockchain)
