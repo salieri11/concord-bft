@@ -82,14 +82,12 @@ public class JsonSchemaTest {
 
         validationException.getAllMessages().forEach(System.out::println);
         String[] expectedMessages = new String[]{
-            "#/organization/memoryGb: -4 is not greater than 0",
-            "#/organization/cpuCount: -4 is not greater or equal to 0",
             "#/zones/0/vCenter: required key [password] not found",
             "#/zones/0/network: required key [name] not found"
         };
 
         List<String> actualMessages = validationException.getAllMessages();
-        assertEquals(4, actualMessages.size(), "Expected validation count mismatch");
+        assertEquals(2, actualMessages.size(), "Expected validation count mismatch");
         assertThat(actualMessages, containsInAnyOrder(expectedMessages));
     }
 
@@ -109,10 +107,9 @@ public class JsonSchemaTest {
         List<String> actualMessages = validationException.getAllMessages();
         System.out.printf("ERRORS:");
         actualMessages.forEach(System.out::println);
-        assertEquals(6, actualMessages.size(), "Expected validation count mismatch");
+        assertEquals(5, actualMessages.size(), "Expected validation count mismatch");
 
         String[] expectedMessages = new String[] {
-            "#/organization/committerDiskGb: -12 is not greater than 0",
             "#/zones/0/vCenter: required key [storage] not found",
             "#/zones/0/outboundProxy: required key [httpPort] not found",
             "#/zones/0/outboundProxy: required key [httpsHost] not found",

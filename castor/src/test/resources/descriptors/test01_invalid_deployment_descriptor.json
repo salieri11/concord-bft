@@ -13,6 +13,11 @@
       "zoneName": "test-zone-1 - C"
     }
   ],
+  "committerNodeSpec": {
+    "cpuCount": 0,
+    "memoryGb": 6,
+    "diskSizeGb": 64
+  },
   "clients": [
     {
       "zoneName": "test-zone-1 - A"
@@ -21,6 +26,11 @@
       "zoneName": "test-zone-1 - D"
     }
   ],
+  "clientNodeSpec": {
+    "cpuCount": 4,
+    "memoryGb": 8,
+    "diskSizeGb": 100
+  },
   "blockchain": {
     "consortiumName": "consortium-1",
     "blockchainType": "INVALID"

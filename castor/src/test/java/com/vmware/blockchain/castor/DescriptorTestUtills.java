@@ -70,10 +70,6 @@ public class DescriptorTestUtills {
                 // .dockerImage("dockerImage v1")
                 .damlSdk("1.0.1")
                 // .templateId(UUID.randomUUID())
-                .cpuCount(4)
-                .memoryGb(4)
-                .clientDiskGb(12)
-                .committerDiskGb(12)
                 .generatePassword(true)
                 .build();
 
@@ -145,6 +141,12 @@ public class DescriptorTestUtills {
      * @return the model
      */
     public static ProvisionDescriptorDescriptorModel buildDeploymentDescriptorModel() {
+        DeploymentDescriptorModel.NodeSpecification clientNodeSpec =
+                DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(4).memoryGb(32).diskSizeGb(100).build();
+
+        DeploymentDescriptorModel.NodeSpecification committerNodeSpec =
+                DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(2).memoryGb(16).diskSizeGb(64).build();
+
         DeploymentDescriptorModel.Blockchain blockchain = DeploymentDescriptorModel.Blockchain.builder()
                 .blockchainType(DeploymentDescriptorModel.BlockchainType.DAML)
                 .consortiumName(CONSORTIUM_NAME)
@@ -172,10 +174,13 @@ public class DescriptorTestUtills {
                         .map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
                         .collect(Collectors.toList());
 
+        // Add Client and Committer nodeSpec to deployment model.
         return ProvisionDescriptorDescriptorModel.builder()
                 .blockchain(blockchain)
                 .clients(List.of(client1, client2, client3))
                 .committers(committers)
+                .clientNodeSpec(clientNodeSpec)
+                .committerNodeSpec(committerNodeSpec)
                 .build();
     }
 }

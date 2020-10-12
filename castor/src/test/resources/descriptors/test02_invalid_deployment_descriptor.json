@@ -15,6 +15,11 @@
       "zoneName": "test-zone-1 - C"
     }
   ],
+  "committerNodeSpec": {
+    "cpuCount": 2,
+    "memoryGb": 6,
+    "diskSizeGb": 64
+  },
   "clients": [
     {
       "providedIp": "11.12.13.14"
@@ -23,6 +28,11 @@
       "zoneName": "test-zone-1 - D"
     }
   ],
+  "clientNodeSpec": {
+    "cpuCount": 4,
+    "memoryGb": 3,
+    "diskSizeGb": 100
+  },
   "blockchain": {
     "blockchainType": "DAML"
   }

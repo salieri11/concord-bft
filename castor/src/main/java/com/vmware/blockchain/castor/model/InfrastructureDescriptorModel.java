@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -43,20 +41,6 @@ public class InfrastructureDescriptorModel {
         private String dockerImage;
         private String damlSdk;
         private UUID templateId;
-
-        @Min(value = 0, message = "invalid.mincpu")
-        private int cpuCount;
-        @Min(value = 0, message = "invalid.minmemory")
-        private int memoryGb;
-
-        // Blockchain VM storage specs - these are per kind
-        @Min(value = 0, message = "invalid.mindisk")
-        @Max(value = 62 * 1024, message = "invalid.maxdisk")
-        private int clientDiskGb;
-
-        @Min(value = 0, message = "invalid.mindisk")
-        @Max(value = 62 * 1024, message = "invalid.maxdisk")
-        private int committerDiskGb;
 
         private boolean generatePassword;
 

@@ -84,10 +84,10 @@ public class DeploymentHelper {
         // Build Committers
         List<DeploymentDescriptorModel.Committer>
                 committers = deploymentDescriptorModel.getCommitters();
-        buildCommitters(infrastructureDescriptorModel, committers, nodeAssignmentBuilder);
+        buildCommitters(deploymentDescriptorModel, committers, nodeAssignmentBuilder);
         // Build Clients
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
-        buildClients(infrastructureDescriptorModel, clients, nodeAssignmentBuilder);
+        buildClients(deploymentDescriptorModel, clients, nodeAssignmentBuilder);
 
         // Build sites
         List<OrchestrationSite> orchestrationSites =
@@ -123,7 +123,7 @@ public class DeploymentHelper {
 
 
     private static void buildCommitters(
-            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            DeploymentDescriptorModel deploymentDescriptorModel,
             List<DeploymentDescriptorModel.Committer> committers,
             NodeAssignment.Builder nodeAssignmentBuilder) {
         committers.forEach(committer -> {
@@ -133,10 +133,23 @@ public class DeploymentHelper {
                 propBuilder.putValues(
                         DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), committer.getProvidedIp());
             }
-            int committerDiskSize = infrastructureDescriptorModel.getOrganization().getCommitterDiskGb();
-            if (committerDiskSize > 0) {
-                String committerDiskSizeString = String.valueOf(committerDiskSize);
-                propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), committerDiskSizeString);
+
+            if (deploymentDescriptorModel.getCommitterNodeSpec() != null) {
+                int diskSize = deploymentDescriptorModel.getCommitterNodeSpec().getDiskSizeGb();
+                if (diskSize > 0) {
+                    String clientDiskSizeString = String.valueOf(diskSize);
+                    propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+                }
+
+                int cpuCount = deploymentDescriptorModel.getCommitterNodeSpec().getCpuCount();
+                if (cpuCount > 0) {
+                    propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
+                }
+
+                int memory = deploymentDescriptorModel.getCommitterNodeSpec().getMemoryGb();
+                if (memory > 0) {
+                    propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
+                }
             }
 
             nodeAssignmentBuilder.addEntries(
@@ -150,7 +163,7 @@ public class DeploymentHelper {
     }
 
     private static void buildClients(
-            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            DeploymentDescriptorModel deploymentDescriptorModel,
             List<DeploymentDescriptorModel.Client> clients,
             NodeAssignment.Builder nodeAssignmentBuilder) {
 
@@ -167,10 +180,23 @@ public class DeploymentHelper {
                 propBuilder.putValues(
                         DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), client.getProvidedIp());
             }
-            int clientDiskSize = infrastructureDescriptorModel.getOrganization().getClientDiskGb();
-            if (clientDiskSize > 0) {
-                String clientDiskSizeString = String.valueOf(clientDiskSize);
-                propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+
+            if (deploymentDescriptorModel.getClientNodeSpec() != null) {
+                int diskSize = deploymentDescriptorModel.getClientNodeSpec().getDiskSizeGb();
+                if (diskSize > 0) {
+                    String clientDiskSizeString = String.valueOf(diskSize);
+                    propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+                }
+
+                int cpuCount = deploymentDescriptorModel.getClientNodeSpec().getCpuCount();
+                if (cpuCount > 0) {
+                    propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
+                }
+
+                int memory = deploymentDescriptorModel.getClientNodeSpec().getMemoryGb();
+                if (memory > 0) {
+                    propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
+                }
             }
 
             // Process client group and add group properties.
@@ -247,16 +273,6 @@ public class DeploymentHelper {
         UUID templateId = infrastructureDescriptorModel.getOrganization().getTemplateId();
         if (templateId != null) {
             propertiesBuilder.putValues(DeploymentAttributes.TEMPLATE_ID.name(), templateId.toString());
-        }
-
-        int cpuCount = infrastructureDescriptorModel.getOrganization().getCpuCount();
-        if (cpuCount > 0) {
-            propertiesBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
-        }
-
-        int memory = infrastructureDescriptorModel.getOrganization().getMemoryGb();
-        if (memory > 0) {
-            propertiesBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
         }
 
         boolean generatePassword = infrastructureDescriptorModel.getOrganization().isGeneratePassword();

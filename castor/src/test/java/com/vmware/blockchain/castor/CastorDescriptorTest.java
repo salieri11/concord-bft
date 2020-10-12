@@ -53,6 +53,10 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test01_infrastructure_descriptor.json";
     private static final String VALID_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test01_deployment_descriptor.json";
+    private static final String VALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR =
+            "classpath:descriptors/test01_deployment_descriptor_with_node_spec.json";
+    private static final String INVALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR =
+            "classpath:descriptors/test02_deployment_descriptor_with_node_spec.json";
 
     private static final String ADV_INFRASTRUCTURE_DESCRIPTOR =
             "classpath:descriptors/test01_infrastructure_descriptor_with_advanced_features.json";
@@ -180,6 +184,62 @@ public class CastorDescriptorTest {
     }
 
     @Test
+    public void testValidNodeSpecDescriptorSerDeser() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
+        assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
+                     "deployment descriptor blochchain model mismatch");
+
+        assertEquals(validDeployment.getClients(), readDeployment.getClients(),
+                     "deployment descriptor client model mismatch");
+        assertEquals(validDeployment.getCommitters(), readDeployment.getCommitters(),
+                     "deployment descriptor blochchain model mismatch");
+
+        // Validate Node Specification for both clients and committers.
+        checkNodeSpecValues(readDeployment);
+
+        readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
+
+        // No errors for valid descriptors
+        List<ValidationError> constraints = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, readDeployment);
+        assertEquals(0, constraints.size());
+    }
+
+    @Test
+    public void testInValidNodeSpecDescriptorSerDeser() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(INVALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
+        assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
+                     "deployment descriptor blochchain model mismatch");
+        assertEquals(validDeployment.getClients().size(), readDeployment.getClients().size(),
+                     "deployment descriptor client model mismatch");
+        assertEquals(validDeployment.getCommitters().size(), readDeployment.getCommitters().size(),
+                     "deployment descriptor blochchain model mismatch");
+
+        readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
+
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("invalid.maxcpu");
+        expectedErrorCodes.add("invalid.maxmemory");
+        expectedErrorCodes.add("invalid.mincpu");
+        expectedErrorCodes.add("invalid.minmemory");
+        expectedErrorCodes.add("invalid.maxdisk");
+        // No errors for valid descriptors
+        List<ValidationError> constraints = validatorService.validate(CastorDeploymentType.PROVISION, validInfra,
+                                                                      readDeployment);
+        Set<String> constraintSet = new HashSet<>();
+        constraints.forEach(e -> {
+            constraintSet.add(e.getErrorCode());
+        });
+        assertEquals(expectedErrorCodes, constraintSet);
+    }
+
+    @Test
     public void testInValidDescriptorModel() {
         Set<String> expectedErrorCodes = new HashSet<>();
         final List<DeploymentDescriptorModel.Committer> originalCommitters = validDeployment.getCommitters();
@@ -187,8 +247,7 @@ public class CastorDescriptorTest {
         List<String> unknownZones = List.of("unz-1", "unz-2", "unz-3");
         List<DeploymentDescriptorModel.Committer> unknownZoneCommitters =
                 unknownZones.stream().map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
-                        .collect(
-                                Collectors.toList());
+                        .collect(Collectors.toList());
         validDeployment.setCommitters(unknownZoneCommitters);
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
         List<ValidationError> errors = validatorService.validate(
@@ -206,8 +265,9 @@ public class CastorDescriptorTest {
         // Used later to restore clients to a valid state
         List<String> originalClientZones =
                 clients.stream().map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toList());
-
-        validDeployment.getClients().forEach(c -> c.setZoneName("unz-1"));
+        validDeployment.getClients().forEach(c -> {
+            c.setZoneName("unz-1");
+        });
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
         errors = validatorService.validate(CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(1, errors.size());
@@ -241,6 +301,8 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
         // The blockchain type is UNKNOWN, which is invalid
         expectedErrorCodes.add("blockchain.type.invalid");
+        expectedErrorCodes.add("invalid.minmemory");
+        expectedErrorCodes.add("invalid.mincpu");
         Resource deploymentResource = resourceLoader.getResource(INVALID_DEPLOYMENT_DESCRIPTOR);
         String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
         ProvisionDescriptorDescriptorModel readInvalidDeployment =
@@ -268,12 +330,10 @@ public class CastorDescriptorTest {
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInvalidInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
-        // This file has 5 errors:
+        // This file has 3 errors:
         Set<String> expectedErrorCodes = new HashSet<>();
         expectedErrorCodes.add("vcenter.password.not.specified");
         expectedErrorCodes.add("network.name.not.specified");
-        expectedErrorCodes.add("invalid.mincpu");
-        expectedErrorCodes.add("invalid.minmemory");
         expectedErrorCodes.add("vcenter.certificate.invalid");
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.PROVISION, readInvalidInfra, validDeployment);
@@ -551,5 +611,25 @@ public class CastorDescriptorTest {
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertEquals(0, validationErrorCodes.size());
+    }
+
+    /**
+     * Validate node specification for Client and Committer nodes.
+     * @param readDeployment deployment model
+     */
+    private void checkNodeSpecValues(DeploymentDescriptorModel readDeployment) {
+        assertEquals(2, readDeployment.getCommitterNodeSpec().getCpuCount(),
+                     "deployment descriptor node spec cpu model mismatch");
+        assertEquals(16, readDeployment.getCommitterNodeSpec().getMemoryGb(),
+                     "deployment descriptor node spec memory model mismatch");
+        assertEquals(64, readDeployment.getCommitterNodeSpec().getDiskSizeGb(),
+                     "deployment descriptor node spec disk model mismatch");
+
+        assertEquals(4, readDeployment.getClientNodeSpec().getCpuCount(),
+                     "deployment descriptor node spec cpu model mismatch");
+        assertEquals(32, readDeployment.getClientNodeSpec().getMemoryGb(),
+                     "deployment descriptor node spec memory model mismatch");
+        assertEquals(100, readDeployment.getClientNodeSpec().getDiskSizeGb(),
+                     "deployment descriptor node spec disk model mismatch");
     }
 }
