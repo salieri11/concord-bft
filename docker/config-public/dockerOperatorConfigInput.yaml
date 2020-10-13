@@ -1,7 +1,7 @@
 f_val: 1
 c_val: 0
 num_of_participant_nodes: 1
-clients_per_participant_node: 1
+clients_per_participant_node: 15
 client_proxies_per_replica: 4
 comm_to_use: tls
 concord-bft_communication_buffer_length: 16777216
@@ -40,3 +40,31 @@ participant_nodes:
         external_clients:
           - client:
               - client_port: 3502
+          - client:
+              - client_port: 3503
+          - client:
+              - client_port: 3504
+          - client:
+              - client_port: 3505
+          - client:
+              - client_port: 3506
+          - client:
+              - client_port: 3507
+          - client:
+              - client_port: 3508
+          - client:
+              - client_port: 3509
+          - client:
+              - client_port: 3510
+          - client:
+              - client_port: 3511
+          - client:
+              - client_port: 3512
+          - client:
+              - client_port: 3513
+          - client:
+              - client_port: 3514
+          - client:
+              - client_port: 3515
+          - client:
+              - client_port: 3516

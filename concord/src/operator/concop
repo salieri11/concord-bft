@@ -28,12 +28,12 @@ def release_status(args):
 
 def wedge_status_impl(args):
     url = base_url + "/wedge/status"
-    res = requests.get(url, timeout=args.timeout)
+    res = requests.get(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
     pprint(json.loads(res.text))
 
 def wedge_impl(args):
     url = base_url + "/wedge/stop"
-    res = requests.put(url, timeout=args.timeout)
+    res = requests.put(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
     pprint(json.loads(res.text))
 
 def args_parser():
@@ -74,7 +74,8 @@ def args_parser():
                                                                "Returns the replicas' status")
     wedge_status.add_argument("--timeout",
                         type=int,
-                        help="Optional request timeout in seconds",
+                        help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
+                             " than this value",
                         default=5)
 
     wedge_status.set_defaults(func=wedge_status_impl)
@@ -83,7 +84,8 @@ def args_parser():
                                                           "if the request has been received by the replicas successfully")
     init_wedge.add_argument("--timeout",
                                   type=int,
-                                  help="Optional request timeout in seconds",
+                                  help="Optional request timeout in seconds.The timeout for the bft layer is smaller in 1 second"
+                                        " than this value",
                                   default=5)
 
     init_wedge.set_defaults(func=wedge_impl)
