@@ -61,10 +61,22 @@ int main(int argc, char **argv) {
   }
 
   string tx_s(argv[1]);
-  vector<uint8_t> tx = dehex(tx_s);
+  vector<uint8_t> tx;
+  vector<uint8_t> key_v;
+  try {
+    tx = dehex(tx_s);
+  } catch (invalid_argument &e) {
+    cerr << "Invalid argument on dehex(tx_s)" << endl;
+    return -1;
+  }
 
   string key_s(argv[2]);
-  vector<uint8_t> key_v = dehex(key_s);
+  try {
+    key_v = dehex(key_s);
+  } catch (invalid_argument &e) {
+    cerr << "Invalid argument on dehex(key_s)" << endl;
+    return -1;
+  }
   if (key_v.size() != sizeof(evm_uint256be)) {
     cerr << "Key hex not long enough (is " << key_v.size() << " bytes, must be "
          << sizeof(evm_uint256be) << " bytes)" << endl;
