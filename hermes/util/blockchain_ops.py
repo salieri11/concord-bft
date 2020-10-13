@@ -135,7 +135,7 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
     if result["output"]:
       try:
         config = yaml.safe_load(result["output"])
-        node = config["node"][0]
+        node = [x for x in config["node"] if "current_node" in x and x["current_node"]][0]
         replicaId = node["replica"][0]["principal_id"]
         committerIndex = target_committers.index(result["ip"])
         committersMapping["committers"][committerIndex] = {
