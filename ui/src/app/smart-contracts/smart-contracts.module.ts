@@ -20,11 +20,12 @@ import {
 } from './smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-form/contract-payload-preview-form.component';
 import { ConnectWithTruffleComponent } from './connect-with-truffle/connect-with-truffle.component';
+import { smartContractRoutes } from './smart-contracts-routing';
 
 @NgModule({
   imports: [
     SharedModule,
-    RouterModule,
+    RouterModule.forChild(smartContractRoutes),
     FormsModule,
     TourNgxPopperModule,
     ClarityModule,

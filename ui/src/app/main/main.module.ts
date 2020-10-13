@@ -7,25 +7,19 @@ import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
-import { BlocksModule } from '../blocks/blocks.module';
 import { ZonesModule } from '../zones/zones.module';
 import { NodesModule } from '../nodes/nodes.module';
-import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
 import { MainRoutingModule } from './main/main-routing.module';
-import { SmartContractsModule } from '../smart-contracts/smart-contracts.module';
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
-import { UsersModule } from '../users/users.module';
 import { TasksModule } from '../tasks/tasks.module';
 import { FeaturesModule } from '../features/features.module';
 import { EnvironmentModule } from './../environment/environment.module';
-import { LoggingModule } from '../logging/logging.module';
-import { DeveloperModule } from '../developer/developer.module';
 import { DetailsModule } from '../details/details.module';
 
 import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
@@ -36,6 +30,9 @@ import { DeployingInterstitialComponent } from './deploying-interstitial/deployi
 import { DeployComponent } from './deploy/deploy.component';
 import { WelcomeComponent } from './welcome/welcome.component';
 import { DeployingComponent } from './deploying/deploying.component';
+import { RouterModule } from '@angular/router';
+import { TransactionsModule } from '../transactions/transactions.module';
+import { BlocksModule } from '../blocks/blocks.module';
 
 const defaultProvides: any[] = [
   { provide: HTTP_INTERCEPTORS, useClass: RequestInterceptor, multi: true },
@@ -47,6 +44,7 @@ const defaultProvides: any[] = [
   imports: [
     CommonModule,
     MainRoutingModule,
+    RouterModule,
     HttpClientModule,
     SharedModule.forRoot(),
     AuthenticationModule,
@@ -54,17 +52,13 @@ const defaultProvides: any[] = [
     BlockchainModule,
     ZonesModule,
     NodesModule,
-    BlocksModule,
-    TransactionsModule,
     OrgsModule,
     ConsortiumModule,
-    SmartContractsModule,
-    UsersModule,
+    TransactionsModule,
+    BlocksModule,
     TasksModule,
     FeaturesModule,
     EnvironmentModule,
-    LoggingModule,
-    DeveloperModule,
     TourNgxPopperModule,
     DetailsModule,
   ],

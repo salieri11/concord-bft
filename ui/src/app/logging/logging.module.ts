@@ -11,12 +11,15 @@ import { LogDetailsComponent } from './log-details/log-details.component';
 import { GraphsModule } from '../graphs/graphs.module';
 import { ExportChartDataModalComponent } from './export-chart-data-modal/export-chart-data-modal.component';
 import { ExportLogEventsModalComponent } from './export-log-events-modal/export-log-events-modal.component';
+import { RouterModule } from '@angular/router';
+import { loggingRoutes } from './logging-routing';
 
 @NgModule({
   imports: [
     CommonModule,
     SharedModule,
-    GraphsModule
+    GraphsModule,
+    RouterModule.forChild(loggingRoutes)
   ],
   declarations: [
     LoggingComponent,

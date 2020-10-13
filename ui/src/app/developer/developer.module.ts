@@ -10,11 +10,14 @@ import { ApiComponent } from './api/api.component';
 import { ResourcesComponent } from './resources/resources.component';
 import { SwaggerComponent } from './swagger/swagger.component';
 import { DappComponent } from './resources/dapp/dapp.component';
+import { RouterModule } from '@angular/router';
+import { developerRoutes } from './developer-routing';
 
 @NgModule({
   imports: [
     CommonModule,
     SharedModule,
+    RouterModule.forChild(developerRoutes)
   ],
   declarations: [
     ApiComponent,

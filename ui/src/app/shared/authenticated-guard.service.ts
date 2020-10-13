@@ -12,8 +12,7 @@ import {
 } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
-import { AuthenticationService } from './authentication.service';
-import { UserAuthResponse } from '../users/shared/user.model';
+import { AuthenticationService, UserAuthResponse } from './authentication.service';
 import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
 import { FeatureFlagService } from './feature-flag.service';
@@ -47,9 +46,6 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       return false;
     } else if (this.env.csp) {
       return true;
-    } else if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
-      this.router.navigate([authRoutes.base, authRoutes.login]);
-      return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
       this.handleRoutingFailure();
       this.router.navigate(['/' + mainRoutes.forbidden]);
