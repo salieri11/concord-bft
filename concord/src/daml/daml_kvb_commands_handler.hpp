@@ -108,7 +108,7 @@ class DamlKvbCommandsHandler
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                const concord::consensus::ConcordRequestContext& request_context,
-               const uint8_t flags, concord::time::TimeContract* time_contract,
+               uint8_t flags, concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
   void WriteEmptyBlock(concord::time::TimeContract* time_contract,

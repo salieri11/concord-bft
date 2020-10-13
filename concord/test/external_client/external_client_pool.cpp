@@ -240,8 +240,11 @@ int ExternalClient::Start() {
   }
 
   int optval = 1;
-  setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval,
-             sizeof(int));
+  if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval,
+                 sizeof(int)) == -1) {
+    perror("setsockopt");
+    return 1;
+  }
 
   struct sockaddr_in bind_addr;
   memset(&bind_addr, 0, sizeof(struct sockaddr_in));
