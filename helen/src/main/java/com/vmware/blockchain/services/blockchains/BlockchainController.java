@@ -741,6 +741,9 @@ public class BlockchainController {
     }
 
     private boolean validateNumberOfClients(BlockchainPost body) {
+        if (body.getBlockchainType() == BlockchainType.ETHEREUM) {
+            return true;
+        }
         if (body.getClientNodes() == null || body.getClientNodes().isEmpty()) {
             logger.error("No client nodes available.");
             return false;
