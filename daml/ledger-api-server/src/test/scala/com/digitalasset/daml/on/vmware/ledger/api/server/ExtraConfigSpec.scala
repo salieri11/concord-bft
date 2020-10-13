@@ -13,7 +13,7 @@ import com.daml.ledger.participant.state.kvutils.app.Config
 import com.digitalasset.daml.on.vmware.write.service.RetryStrategy
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   ConstantRequestTimeout,
-  LinearAffineInterpretationCostTransform
+  LinearAffineInterpretationTimeTransform
 }
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import io.grpc.Metadata
@@ -130,19 +130,19 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
   }
 
   "pre-execution command-line parsers" should {
-    "parse a cost threshold parameter expressed in seconds" in {
+    "parse a time threshold parameter expressed in seconds" in {
       val config = parseExtraConfig(
         Array(
           "--pre-execution-time-threshold",
           "3s"
         )
       )
-      config.extra.preExecutionCostThreshold should be(
+      config.extra.preExecutionTimeThreshold should be(
         Some(Duration(3, SECONDS))
       )
     }
 
-    "not parse a cost threshold parameter expressed without unit" in {
+    "not parse a time threshold parameter expressed without unit" in {
       a[TestFailedException] should be thrownBy {
         parseExtraConfig(
           Array(
@@ -167,7 +167,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
         BftClientConfig
           .withReasonableDefaults(Paths.get("/conf"))
           .copy(
-            requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault,
+            requestTimeoutStrategy = LinearAffineInterpretationTimeTransform.ReasonableDefault,
           ))
     }
 
@@ -186,7 +186,7 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
         BftClientConfig
           .withReasonableDefaults(Paths.get("/conf"))
           .copy(
-            requestTimeoutStrategy = LinearAffineInterpretationCostTransform.ReasonableDefault
+            requestTimeoutStrategy = LinearAffineInterpretationTimeTransform.ReasonableDefault
               .copy(slope = 2.0, intercept = 2.seconds, defaultTimeout = 2.seconds),
           ))
     }

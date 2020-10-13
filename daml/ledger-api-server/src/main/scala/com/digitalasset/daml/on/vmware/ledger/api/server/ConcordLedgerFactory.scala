@@ -132,12 +132,12 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
         ),
         concordWriter
       )
-    config.extra.preExecutionCostThreshold
-      .map { preExecutionCostThreshold =>
+    config.extra.preExecutionTimeThreshold
+      .map { preExecutionTimeThreshold =>
         val preExecutingConcordWriter =
           createPreExecutingLedgerWriter(participantId, concordWriteClient)
         InterpretationCostBasedLedgerWriterChooser(
-          preExecutionCostThreshold.toNanos,
+          preExecutionTimeThreshold.toNanos,
           batchingWriter,
           preExecutingConcordWriter,
           metrics)

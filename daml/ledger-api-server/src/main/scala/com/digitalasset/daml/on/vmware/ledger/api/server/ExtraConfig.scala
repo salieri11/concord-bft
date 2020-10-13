@@ -15,7 +15,7 @@ import com.digitalasset.daml.on.vmware.write.service.{ConcordWriteClient, RetryS
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftConcordClientPool,
   ConstantRequestTimeout,
-  LinearAffineInterpretationCostTransform,
+  LinearAffineInterpretationTimeTransform,
   RequestTimeoutStrategy
 }
 import scopt.{OptionParser, Read}
@@ -35,8 +35,8 @@ final case class BftClientConfig(
 )
 
 object BftClientConfig {
-  val DefaultRequestTimeoutStrategy: LinearAffineInterpretationCostTransform =
-    LinearAffineInterpretationCostTransform.ReasonableDefault
+  val DefaultRequestTimeoutStrategy: LinearAffineInterpretationTimeTransform =
+    LinearAffineInterpretationTimeTransform.ReasonableDefault
   val DefaultSendRetryStrategy: RetryStrategy =
     ConcordWriteClient.exponentialBackOff(_ == BftConcordClientPool.OverloadedException)()
 
@@ -53,7 +53,7 @@ final case class ExtraConfig(
     override val maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
     authService: Option[AuthService],
-    preExecutionCostThreshold: Option[Duration],
+    preExecutionTimeThreshold: Option[Duration],
     enableBatching: Boolean, // Whether we're batching requests or not.
     maxBatchQueueSize: Int, // Number of submissions we're willing to queue before dropping.
     maxBatchSizeBytes: Long, // The maximum size for a batch before it is forcefully sent.
@@ -75,7 +75,7 @@ object ExtraConfig {
     maxFaultyReplicas = 1,
     jaegerAgentAddress = "localhost:6831",
     authService = Some(AuthServiceWildcard),
-    preExecutionCostThreshold = None,
+    preExecutionTimeThreshold = None,
     enableBatching = false,
     maxBatchQueueSize = 100,
     maxBatchSizeBytes = 4 * 1024 * 1024 /* 4MB */,
@@ -108,9 +108,9 @@ object ExtraConfig {
       .opt[Duration]("pre-execution-time-threshold")
       .optional()
       .text("Controls the interpretation time threshold based on which requests are marked or not for pre-execution. Default is that we don't pre-execute any transactions.")
-      .action((preExecutionCostThreshold, config) => {
+      .action((preExecutionTimeThreshold, config) => {
         config.copy(
-          extra = config.extra.copy(preExecutionCostThreshold = Some(preExecutionCostThreshold)))
+          extra = config.extra.copy(preExecutionTimeThreshold = Some(preExecutionTimeThreshold)))
       })
     parser
       .opt[Map[String, String]]("batching")
@@ -258,7 +258,7 @@ object ExtraConfig {
         println(
           s"""The supported BFT client request timeout strategies are:
             |
-            | * Linear transform in the estimated interpretation cost as milliseconds (default); keys:
+            | * Linear transform in the estimated interpretation time (default); keys:
             |   - $LinearTimeoutSlopeKey (default value: ${linearDefault.slope})
             |   - $LinearTimeoutInterceptKey (default value: ${linearDefault.intercept})
             |   - $LinearTimeoutDefaultKey (default value: ${durationToCommandlineText(linearDefault.defaultTimeout)})
@@ -362,7 +362,7 @@ object ExtraConfig {
     val configKeys = keyValuePairs.keySet
     if (configKeys.intersect(LinearTimeoutKeysSet).nonEmpty) {
       val linearTimeoutStrategy = keyValuePairs.filterKeys(LinearTimeoutKeysSet.contains)
-        .foldLeft(LinearAffineInterpretationCostTransform.ReasonableDefault) {
+        .foldLeft(LinearAffineInterpretationTimeTransform.ReasonableDefault) {
           case (strategy, (LinearTimeoutSlopeKey, value)) =>
             strategy.copy(slope = Read.doubleRead.reads(value))
           case (strategy, (LinearTimeoutInterceptKey, value)) =>

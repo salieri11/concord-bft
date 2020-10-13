@@ -42,7 +42,7 @@ done
 
 >&2 echo $(eval $DATE_CMD) "Postgres is up - starting ledger api server"
 
-# Pre-execution cost threshold parameter.
+# Pre-execution time threshold parameter.
 if [ -z "$PRE_EXECUTION_TIME_THRESHOLD" ]; then
   echo "Disabling pre-execution"
   PRE_EXECUTION_TIME_THRESHOLD_PARAMETER=""

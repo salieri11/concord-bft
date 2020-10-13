@@ -14,7 +14,7 @@ sealed trait RequestTimeoutStrategy {
   def calculate(metadata: CommitMetadata): Duration
 
   /**
-    * The BFT client request timeout that will be used if not pre-executing or if the interpretation cost is missing.
+    * The BFT client request timeout that will be used if not pre-executing or if the interpretation time is missing.
     */
   def defaultTimeout: Duration
 
@@ -25,9 +25,9 @@ sealed trait RequestTimeoutStrategy {
 }
 
 /**
-  * Produces a BFT client request timeout by applying a linear-affine transform to the estimated interpretation cost.
+  * Produces a BFT client request timeout by applying a linear-affine transform to the estimated interpretation time.
   */
-case class LinearAffineInterpretationCostTransform(
+case class LinearAffineInterpretationTimeTransform(
     slope: Double,
     intercept: Duration,
     defaultTimeout: Duration,
@@ -36,17 +36,17 @@ case class LinearAffineInterpretationCostTransform(
   override def calculate(metadata: CommitMetadata): Duration =
     metadata.estimatedInterpretationCost
       .map(_.nanos)
-      .map(cost => cost * slope + intercept)
+      .map(interpretationTime => interpretationTime * slope + intercept)
       .getOrElse(defaultTimeout)
 
   override def withDefaultTimeout(
-      defaultTimeout: Duration): LinearAffineInterpretationCostTransform =
+      defaultTimeout: Duration): LinearAffineInterpretationTimeTransform =
     copy(defaultTimeout = defaultTimeout)
 }
 
-object LinearAffineInterpretationCostTransform {
-  val ReasonableDefault: LinearAffineInterpretationCostTransform =
-    LinearAffineInterpretationCostTransform(
+object LinearAffineInterpretationTimeTransform {
+  val ReasonableDefault: LinearAffineInterpretationTimeTransform =
+    LinearAffineInterpretationTimeTransform(
       // The current working assumption is: give a BFT client twice the estimation for the request to complete;
       // add 5s for the fixed costs, e.g. network, consensus, post-execution.
       slope = 2.0,
