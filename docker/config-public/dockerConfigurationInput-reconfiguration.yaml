@@ -1,7 +1,7 @@
 daml_enable: true
 eth_enable: false
 client_proxies_per_replica: 4
-num_of_external_clients: 2
+num_of_external_clients: 16
 c_val: 0
 f_val: 1
 concord-bft_communication_buffer_length: 16777216
@@ -13,7 +13,7 @@ tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: true
 key_exchange_on_start: true
-key_view_path: /tmp
+key_view_path: /concord/config-generated
 preexecution_enabled: true
 signing_key_path: /concord/signing_keys
 node__TEMPLATE:

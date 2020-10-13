@@ -106,9 +106,10 @@ concord::op::Response concord::op::Operations::initiateWriteRequest(
     const com::vmware::concord::ConcordRequest& request,
     const WriteQuorum& quorum, std::chrono::milliseconds timeout,
     const std::string& cid, const std::string& span_context) {
-  WriteConfig wc{RequestConfig{false, snGen_.unique(), 64 * 1024, timeout, cid,
-                               span_context},
-                 quorum};
+  auto sn = snGen_.unique();
+  auto rcid = cid + "-" + std::to_string(sn);
+  WriteConfig wc{
+      RequestConfig{false, sn, 64 * 1024, timeout, rcid, span_context}, quorum};
   Msg msg(request.ByteSizeLong());
   request.SerializeToArray(msg.data(), msg.size());
   bft::client::Reply res;
@@ -124,9 +125,9 @@ concord::op::Response concord::op::Operations::initiateReadRequest(
     const com::vmware::concord::ConcordRequest& request,
     const ReadQuorum& quorum, std::chrono::milliseconds timeout,
     const std::string& cid, const std::string& span_context) {
-  ReadConfig rc{
-      RequestConfig{false, snGen_.unique(), 64 * 1024, timeout, cid, ""},
-      quorum};
+  auto sn = snGen_.unique();
+  auto rcid = cid + "-" + std::to_string(sn);
+  ReadConfig rc{RequestConfig{false, sn, 64 * 1024, timeout, rcid, ""}, quorum};
   Msg msg(request.ByteSizeLong());
   request.SerializeToArray(msg.data(), msg.size());
   bft::client::Reply res;

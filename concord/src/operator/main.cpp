@@ -77,8 +77,16 @@ void startServer(concord::op::Operations& ops) {
         res.set_content(j.dump(), "application/json");
       });
 
-  svr.Get("/concord/wedge/status", [&ops](const Request& req, Response& res) {
-    concord::op::Response result = ops.WedgeStatus(1s);
+  svr.Get("/concord/wedge/status", [&ops, &logger](const Request& req,
+                                                   Response& res) {
+    auto timeout = std::stoi(req.params.find("timeout")->second);
+    if (timeout <= 0) {
+      LOG_WARN(logger, "received invalid timeout, the request won't be executed"
+                           << KVLOG(timeout));
+      return;
+    }
+    concord::op::Response result =
+        ops.WedgeStatus(std::chrono::seconds(timeout));
     json j;
     for (auto& rsi : result.rsis) {
       j[std::to_string(std::get<0>(rsi).val)] =
@@ -87,8 +95,15 @@ void startServer(concord::op::Operations& ops) {
     res.set_content(j.dump(), "application/json");
   });
 
-  svr.Put("/concord/wedge/stop", [&ops](const Request& req, Response& res) {
-    auto result = ops.initiateWedge(1s);
+  svr.Put("/concord/wedge/stop", [&ops, &logger](const Request& req,
+                                                 Response& res) {
+    auto timeout = std::stoi(req.params.find("timeout")->second);
+    if (timeout <= 0) {
+      LOG_WARN(logger, "received invalid timeout, the request won't be executed"
+                           << KVLOG(timeout));
+      return;
+    }
+    auto result = ops.initiateWedge(std::chrono::seconds(timeout));
     json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
     if (result.res.reconfiguration_sm_response().has_additionaldata()) {
       j["additional_data"] =
