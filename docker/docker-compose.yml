@@ -192,4 +192,4 @@ services:
     ports:
       - 9002:9002
     volumes:
-      - ../config-persephone:/config:ro
+      - ../hermes/resources/persephone/provisioning:/config:ro
