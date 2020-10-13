@@ -3,7 +3,7 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v24
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v25
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
@@ -63,21 +63,21 @@ COPY --from=0 /opt/grpc/include /opt/grpc/include
 COPY --from=0 /opt/grpc/bin /opt/grpc/bin
 
 # Copy libraries and create symlinks (docker copies instead of sym linking)
-COPY --from=0 /opt/protobuf/lib/*.so.3.11.2.0 /opt/protobuf/lib/
-RUN for x in /opt/protobuf/lib/*.so.3.11.2.0; do \
-        ln -s $x ${x%%.3.11.2.0}; \
+COPY --from=0 /opt/protobuf/lib/*.so.3.13.0.0 /opt/protobuf/lib/
+RUN for x in /opt/protobuf/lib/*.so.3.13.0.0; do \
+        ln -s $x ${x%%.3.13.0.0}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.1.28.2 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.1.28.2; do \
-        ln -s $x ${x%%.28.2} && \
-        ln -s $x ${x%%.1.28.2}; \
+COPY --from=0 /opt/grpc/lib/*.so.1.32.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.32.0; do \
+        ln -s $x ${x%%.32.0} && \
+        ln -s $x ${x%%.1.32.0}; \
     done
 
-COPY --from=0 /opt/grpc/lib/*.so.9.0.0 /opt/grpc/lib/
-RUN for x in /opt/grpc/lib/*.so.9.0.0; do \
+COPY --from=0 /opt/grpc/lib/*.so.12.0.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.12.0.0; do \
         ln -s $x ${x%%.0.0} && \
-        ln -s $x ${x%%.9.0.0}; \
+        ln -s $x ${x%%.12.0.0}; \
     done
 
 COPY --from=0 /opt/grpc/lib/*.so.1.2.11 /opt/grpc/lib/
@@ -85,6 +85,8 @@ RUN for x in /opt/grpc/lib/*.so.1.2.11; do \
         ln -s $x ${x%%.2.11} && \
         ln -s $x ${x%%.1.2.11}; \
     done
+
+COPY --from=0 /opt/grpc/lib/libre2.so /opt/grpc/lib/
 
 COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
 
