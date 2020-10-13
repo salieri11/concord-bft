@@ -218,7 +218,7 @@ class ThinReplicaClient final {
   prometheus::Exposer exposer_;
   std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter>& trc_updates_total_;
-  prometheus::Family<prometheus::Gauge>& trc_sources_;
+  prometheus::Family<prometheus::Gauge>& trc_operations_;
   prometheus::Family<prometheus::Gauge>& trc_read_failures_total_;
   prometheus::Counter& trc_updates_counter_;
   prometheus::Gauge& trc_queue_size_;
@@ -355,26 +355,32 @@ class ThinReplicaClient final {
         exposer_("0.0.0.0:9891", "/metrics", 1),
         registry_(std::make_shared<prometheus::Registry>()),
         trc_updates_total_(prometheus::BuildCounter()
-                               .Name("trc_updates_toatal")
+                               .Name("trc_updates_total")
+                               .Labels({{"layer", "ThinReplicaClient"}})
                                .Help("Received and verifed updates")
                                .Register(*registry_)),
-        trc_sources_(prometheus::BuildGauge()
-                         .Name("trc_sources")
-                         .Help("Interesting runtime values")
-                         .Register(*registry_)),
-        trc_updates_counter_(trc_updates_total_.Add({{"source", "updates"}})),
-        trc_queue_size_(trc_sources_.Add({{"source", "current_queue_size"}})),
+        trc_operations_(prometheus::BuildGauge()
+                            .Name("trc_operation")
+                            .Labels({{"layer", "ThinReplicaClient"}})
+                            .Help("Interesting runtime values")
+                            .Register(*registry_)),
+        trc_updates_counter_(
+            trc_updates_total_.Add({{"operation", "updates_received"}})),
+        trc_queue_size_(
+            trc_operations_.Add({{"operation", "current_queue_size"}})),
         trc_last_verified_block_id_(
-            trc_sources_.Add({{"source", "last_verified_block_id"}})),
+            trc_operations_.Add({{"operation", "last_verified_block_id"}})),
         trc_read_failures_total_(prometheus::BuildGauge()
                                      .Name("trc_read_failures_total")
+                                     .Labels({{"layer", "ThinReplicaClient"}})
                                      .Help("TRC read failures")
                                      .Register(*registry_)),
         trc_read_timeouts_(
-            trc_read_failures_total_.Add({{"error", "timeout"}})),
+            trc_read_failures_total_.Add({{"operation", "read_timeout"}})),
         trc_read_failures_(
-            trc_read_failures_total_.Add({{"error", "failure"}})),
-        trc_read_ignored_(trc_read_failures_total_.Add({{"error", "ignored"}})),
+            trc_read_failures_total_.Add({{"operation", "read_failure"}})),
+        trc_read_ignored_(
+            trc_read_failures_total_.Add({{"operation", "read_ignored"}})),
         read_timeouts_per_update_(0),
         read_failures_per_update_(0),
         read_ignored_per_update_(0) {
