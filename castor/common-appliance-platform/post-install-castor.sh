@@ -12,7 +12,7 @@ ONPREM_BLOCKCHAIN_ARTIFACTORY=athena-docker-local.artifactory.eng.vmware.com
 CONFIG_SERVICE_NAME=persephone-configuration
 PROVISIONING_SERVICE_NAME=persephone-provisioning
 CASTOR_SERVICE_NAME=castor
-ONPREM_BLOCKCHAIN_VERSION=0.0.0.2323
+ONPREM_BLOCKCHAIN_VERSION=0.0.0.2447
 
 CONFIG_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CONFIG_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
 PROVISIONING_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$PROVISIONING_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
@@ -145,6 +145,11 @@ chmod 555 $EULA_DIR/eula.script
 cp $APPLIANCE_FILES/VMware_EULA_20190913_English.txt $EULA_DIR
 chmod 444 $EULA_DIR/VMware_EULA_20190913_English.txt
 # End EULA acceptance setup
+
+# Remove the default DHCP network configuration set up by CAP, so when users instantiate the image,
+# a network will be set up at first-boot that will be DHCP or static, based on user input.
+rm -rf /etc/systemd/network/*
+
 
 # The last statement needs to return code 0 for CAP to assume success.
 echo "post-install-castor.sh run finished"
