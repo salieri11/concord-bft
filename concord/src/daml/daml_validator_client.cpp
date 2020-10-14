@@ -284,6 +284,14 @@ void DamlValidatorClient::SetAndLogPreExecutionResult(
   auto result = pre_execute_response.mutable_preexecution_result();
   result->Swap(pre_execution_result);
   if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
+    if (pre_execution_result->has_read_set()) {
+      const auto& raw_read_set =
+          pre_execution_result->read_set().SerializeAsString();
+      LOG_DEBUG(logger_, "Hash of pre-execution read set "
+                             << Hash(SHA3_256().digest(raw_read_set.c_str(),
+                                                       raw_read_set.size()))
+                                    .toString());
+    }
     da_kvbc::PreExecutionOutput pre_execution_output;
     if (pre_execution_output.ParseFromString(pre_execution_result->output())) {
       LOG_DEBUG(logger_, "Received pre-execution output: "
