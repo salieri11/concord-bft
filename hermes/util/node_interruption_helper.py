@@ -723,4 +723,4 @@ def continuous_stop_start_container(ip, container_name, duration=60):
    except Exception as excp:
       log.debug("Failed to stop and start primary replica:{}".format(ip))
       assert False, excp
-      
+
