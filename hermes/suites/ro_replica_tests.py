@@ -289,6 +289,7 @@ async def _test_ro_replica_not_enough_replies(bft_network):
     print("Verify state transfer")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
 
+@pytest.mark.skip(reason="flaky tests")
 @describe()
 def test_ro_replica_restart(fxProduct, bft_network):
     trio.run(_test_ro_replica_restart, bft_network)
