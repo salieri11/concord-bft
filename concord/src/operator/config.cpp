@@ -42,9 +42,8 @@ config::CommConfig loadCommConfig(const ConcordConfiguration& conc_config) {
 
   // Keys under the participant_nodes/participant_node
   auto index = 0;
-  const auto& node = conc_config.subscope("participant_nodes", index)
-                         .subscope("participant_node", index);
-  c.listenIp = node.getValue<std::string>("participant_node_host");
+  const auto& node = conc_config.subscope("operator_node", index);
+  c.listenIp = node.getValue<std::string>("operator_node_host");
   c.listenPort = node.getValue<uint16_t>("operator_port");
   c.selfId = node.getValue<uint32_t>("operator_id");
 
@@ -115,7 +114,7 @@ Config Config::parse(const char* path) {
   LOG_INFO(logger, "Parsing Config file: " << KVLOG(path));
   std::ifstream file(path);
   ConcordConfiguration conc_config;
-  config::specifyExternalClientConfiguration(conc_config);
+  config::specifyOperatorConfiguration(conc_config);
   conc_config.setConfigurationStateLabel(path);
   config::YAMLConfigurationInput yaml{file};
   yaml.parseInput();
@@ -129,9 +128,8 @@ Config Config::parse(const char* path) {
       conc_config.end(ConcordConfiguration::kIterateAllTemplateParameters));
   conc_config.subscope("node").instantiateScope("replica");
   conc_config.instantiateScope("node");
-  conc_config.subscope("participant_nodes")
-      .instantiateScope("participant_node");
-  conc_config.instantiateScope("participant_nodes");
+  conc_config.subscope("operator_node");
+  conc_config.instantiateScope("operator_node");
 
   // Once all the necessary subscopes are instantiated we can load all
   // parameters.

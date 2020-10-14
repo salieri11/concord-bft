@@ -40,8 +40,7 @@ concord_tag=latest
 Generate the corresponding configuration files with
 ```
 ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-reconfiguration.yaml
-./gen-docker-client-config.sh config-public/dockerOperatorConfigInput.yaml operator ./config-operator
-./gen-docker-client-config.sh config-public/dockerOperatorConfigInput.yaml
+./gen-docker-operator-config.sh config-public/dockerOperatorConfigInput.yaml
 ```
 # Start cluster
 

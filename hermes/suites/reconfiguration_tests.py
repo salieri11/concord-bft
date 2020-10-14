@@ -37,7 +37,8 @@ def _system_has_stopped(operator_container):
     output = operator_container.exec_run(cmd)
     assert output[0] == 0
     msg = output[1].decode('utf-8').rstrip().replace("'", '"')
-    assert msg.lower() != "none"
+    if msg.lower() == "none":
+        return False
     res = json.loads(msg)
     for v in list(res.values()):
         if v.lower() == "false":
@@ -51,9 +52,9 @@ def test_wedge_stop_command(fxProduct, fxHermesRunSettings):
     assert _system_has_stopped(operator_container) is False
     cmd = "./concop wedge stop"
     output = operator_container.exec_run(cmd)
-    msg = output[1].decode('utf-8').rstrip().replace("'", '"')
+    msg = output[1].decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
     assert msg.lower() != "none"
-    res = json.loads(msg.replace('True', '"true"'))
+    res = json.loads(msg)
     assert res["succ"].lower() == "true"
 
     # Wait for the system to stop

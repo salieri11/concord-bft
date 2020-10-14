@@ -30,7 +30,7 @@ using namespace httplib;
 using namespace bft::communication;
 using json = nlohmann::json;
 
-static const char* CONFIG_FILE = "/operator/config-local/participant.config";
+static const char* CONFIG_FILE = "/operator/config-local/operator.config";
 
 void startServer(concord::op::Operations& ops) {
   auto logger = logging::getLogger("concord.operator.server");

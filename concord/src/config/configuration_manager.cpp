@@ -4192,7 +4192,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
-                               ConcordConfiguration& config, bool isClient) {
+                               ConcordConfiguration& config, bool isClient,
+                               bool isOperator) {
   Logger logger = Logger::getInstance("concord.configuration");
 
   ConfigurationPath fValPath("f_val", false);
@@ -4206,7 +4207,7 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
 
   vector<ConfigurationPath> requiredParameters(
       {fValPath, cValPath, roReplicasValPath});
-  if (isClient) {
+  if (isClient || isOperator) {
     ConfigurationPath participant_nodes("num_of_participant_nodes", false);
     requiredParameters.push_back(std::move(participant_nodes));
     ConfigurationPath externalClients("clients_per_participant_node", false);
@@ -4335,6 +4336,81 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                           true);
   config.instantiateScope("node");
   config.instantiateScope("ro_node");
+
+  // Now, we load values to parameters in scope templates within node instances.
+  selection = ParameterSelection(
+      config, make_shared<InstancedTemplatedParametersSelector>());
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+
+  // Finally, to enforce the policy that explicit instanced parameter
+  // specifications override values from their templates, we traverse the set of
+  // parameters that are contained in errrinstances of scopes within node
+  // instances, and write to them any values their node instance's template has
+  // for the same parameter.
+  selection = ParameterSelection(
+      config, make_shared<InstancedInstancedParametersSelector>());
+  for (auto iterator = selection.begin(); iterator != selection.end();
+       ++iterator) {
+    ConfigurationPath instancePath = *iterator;
+    ConfigurationPath templatePath(instancePath);
+    templatePath.subpath->useInstance = false;
+    ConfigurationPath containingScopeOfInstancePath(instancePath);
+    containingScopeOfInstancePath.subpath->subpath.reset();
+
+    if (config.hasValue<string>(templatePath)) {
+      string value = config.getValue<string>(templatePath);
+      ConcordConfiguration& subscope =
+          config.subscope(containingScopeOfInstancePath);
+      string failureMessage;
+      if (subscope.loadValue(instancePath.subpath->subpath->name, value,
+                             &failureMessage, true) ==
+          ConcordConfiguration::ParameterStatus::INVALID) {
+        LOG_ERROR(logger, "Cannot load value " + value + " to parameter " +
+                              instancePath.toString() + ": " + failureMessage);
+      }
+    }
+  }
+}
+
+void instantiateOperatorTemplatedConfiguration(YAMLConfigurationInput& input,
+                                               ConcordConfiguration& config) {
+  Logger logger = Logger::getInstance("concord.configuration");
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("num_of_participant_nodes")) {
+    throw ConfigurationResourceNotFoundException(
+        "Cannot instantiate scopes for Concord configuration: required cluster "
+        "size parameters are not loaded.");
+  }
+
+  assert(config.containsScope("node"));
+  ConcordConfiguration& node = config.subscope("node");
+  assert(node.containsScope("replica"));
+
+  // Note this function is complicated by the fact that it handles loading the
+  // contents of templates before instantiating them as well as the fact that
+  // the input could contain parameters in a mixed state of being template or
+  // instance parameters (for example, the input could give a value of the port
+  // number for the first client proxy on each node).
+
+  // First, load any parameters in purely templated scopes, then instantiate the
+  // scopes within the node template.
+  ParameterSelection selection(
+      config, make_shared<StrictlyTemplatedParametersSelector>());
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+  node.instantiateScope("replica");
+
+  // Next, load values for parameters in instances of scopes within the node
+  // template. After that node can be instantiated.
+  selection = ParameterSelection(
+      config, make_shared<TemplatedInstancedParametersSelector>());
+  input.loadConfiguration(config, selection.begin(), selection.end(), &logger,
+                          true);
+  config.instantiateScope("node");
+  config.instantiateScope("operator_node");
 
   // Now, we load values to parameters in scope templates within node instances.
   selection = ParameterSelection(
@@ -4807,6 +4883,34 @@ class ParticipantNodeConfigurationSelector
   }
 };
 
+class OperatorNodeConfigurationSelector
+    : public ParameterSelection::ParameterSelector {
+ public:
+  virtual ~OperatorNodeConfigurationSelector() override {}
+  virtual bool includeParameter(const ConcordConfiguration& config,
+                                const ConfigurationPath& path) override {
+    // The configuration generator does not output tempalted parameters, as it
+    // outputs specific values for each instance of a parameter.
+    const ConfigurationPath* pathStep = &path;
+    while (pathStep->isScope && pathStep->subpath) {
+      if (!(pathStep->useInstance)) {
+        return false;
+      }
+      pathStep = pathStep->subpath.get();
+    }
+
+    if (path.isScope && (path.name == "operator_node")) {
+      return true;
+    }
+    const ConcordConfiguration* containingScope = &config;
+    if (path.isScope) {
+      containingScope = &(config.subscope(path.trimLeaf()));
+    }
+
+    return !(containingScope->isTagged(path.getLeaf().name, "private"));
+  }
+};
+
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
                                         size_t nodeId) {
@@ -4837,6 +4941,37 @@ void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
   }
   ParameterSelection node_config_params(
       node_config, make_shared<ParticipantNodeConfigurationSelector>(nodeId));
+  output.outputConfiguration(node_config, node_config_params.begin(),
+                             node_config_params.end());
+}
+
+void outputOperatorNodeConfiguration(const ConcordConfiguration& config,
+                                     YAMLConfigurationOutput& output) {
+  Logger logger = Logger::getInstance("concord.configuration");
+  ConcordConfiguration node_config = config;
+  node_config.subscope("operator_node", 0) =
+      config.subscope("operator_node", 0);
+  if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
+      config.getValue<bool>("use_loopback_for_local_hosts")) {
+    ParameterSelection node_local_hosts(
+        node_config, make_shared<HostsToMakeLoopbackSelector>(0));
+    for (auto& path : node_local_hosts) {
+      ConcordConfiguration* containing_scope = &node_config;
+      if (path.isScope && path.subpath) {
+        containing_scope = &(node_config.subscope(path.trimLeaf()));
+      }
+      string failure_message;
+      if (containing_scope->loadValue(path.getLeaf().name, "127.0.0.1",
+                                      &failure_message, true) ==
+          ConcordConfiguration::ParameterStatus::INVALID) {
+        throw invalid_argument(
+            "Failed to load 127.0.0.1 for host " + path.toString() +
+            " for operator's configuration: " + failure_message);
+      }
+    }
+  }
+  ParameterSelection node_config_params(
+      node_config, make_shared<OperatorNodeConfigurationSelector>());
   output.outputConfiguration(node_config, node_config_params.begin(),
                              node_config_params.end());
 }
@@ -5264,6 +5399,17 @@ class SingleParticipantNodeSizer : public ConcordConfiguration::ScopeSizer {
   }
 };
 
+class SingleOperatorNodeSizer : public ConcordConfiguration::ScopeSizer {
+ public:
+  virtual ~SingleOperatorNodeSizer() override {}
+  virtual ConcordConfiguration::ParameterStatus sizeScope(
+      const ConcordConfiguration& config, const ConfigurationPath& path,
+      size_t& output) override {
+    output = (size_t)1;
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};
+
 class ExternalClientsSizer : public ConcordConfiguration::ScopeSizer {
  public:
   virtual ~ExternalClientsSizer() override {}
@@ -5518,17 +5664,6 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
       "participant_node_host",
       "IP address or host name this participant node can be reached at.");
   participant_node.tagParameter("participant_node_host", publicInputTags);
-  participant_node.declareParameter(
-      "operator_id", "The ID the operator of this specific participant node");
-  participant_node.tagParameter("operator_id", publicGeneratedTags);
-  participant_node.addGenerator("operator_id",
-                                make_shared<OperatorPrincipalIdCalculator>());
-  participant_node.declareParameter(
-      "operator_port",
-      "Port number this operator participant_node can be reached at.");
-  participant_node.tagParameter("operator_port", publicInputTags);
-  participant_node.addValidator("operator_port",
-                                make_shared<UIntValidator>(0, UINT16_MAX));
   participant_node.declareScope(
       "external_clients",
       "Scope that represent the clients inside this participant node, this "
@@ -5554,6 +5689,50 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
                           "Port number this client can be reached at.");
   client.tagParameter("client_port", publicInputTags);
   client.addValidator("client_port", make_shared<UIntValidator>(0, UINT16_MAX));
+}
+
+void specifyOperatorNodeConfiguration(ConcordConfiguration& config) {
+  vector<std::string> publicGeneratedTags(
+      {"config_generation_time", "generated", "public"});
+
+  vector<std::string> publicInputTags(
+      {"config_generation_time", "input", "public"});
+
+  vector<std::string> privateInputTags(
+      {"config_generation_time", "input", "private"});
+
+  config.declareParameter(
+      "num_of_participant_nodes",
+      "Total number of participant nodes in this deployment.");
+  config.tagParameter("num_of_participant_nodes", privateInputTags);
+  config.declareParameter(
+      "clients_per_participant_node",
+      "Max number of clients that each participant node can have");
+  config.tagParameter("clients_per_participant_node", publicInputTags);
+  config.addValidator(
+      "clients_per_participant_node",
+      make_shared<UIntValidator>(kMinParticipantNodeNumOfClients,
+                                 kMaxParticipantNodeNumOfClients));
+
+  config.declareScope("operator_node", "Operator node scope",
+                      make_shared<SingleOperatorNodeSizer>());
+  auto& operator_node = config.subscope("operator_node");
+
+  operator_node.declareParameter(
+      "operator_node_host",
+      "IP address or host name this participant node can be reached at.");
+  operator_node.tagParameter("operator_node_host", publicInputTags);
+  operator_node.declareParameter(
+      "operator_id", "The ID the operator of this specific participant node");
+  operator_node.tagParameter("operator_id", publicGeneratedTags);
+  operator_node.addGenerator("operator_id",
+                             make_shared<OperatorPrincipalIdCalculator>());
+  operator_node.declareParameter(
+      "operator_port",
+      "Port number this operator participant_node can be reached at.");
+  operator_node.tagParameter("operator_port", publicInputTags);
+  operator_node.addValidator("operator_port",
+                             make_shared<UIntValidator>(0, UINT16_MAX));
 }
 
 void specifyGeneralConfiguration(ConcordConfiguration& config) {
@@ -5754,6 +5933,13 @@ void specifyExternalClientConfiguration(config::ConcordConfiguration& config) {
   specifyGeneralConfiguration(config);
   specifyReplicaConfiguration(config);
   specifyClientConfiguration(config);
+  specifySimpleClientParams(config);
+}
+
+void specifyOperatorConfiguration(config::ConcordConfiguration& config) {
+  specifyGeneralConfiguration(config);
+  specifyReplicaConfiguration(config);
+  specifyOperatorNodeConfiguration(config);
   specifySimpleClientParams(config);
 }
 }  // namespace config
