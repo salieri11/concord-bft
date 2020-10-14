@@ -712,3 +712,4 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
     log.error("**** System is unhealthy")
 
   return crashed_committers, crashed_participants, unexpected_crash_results_dir
+
