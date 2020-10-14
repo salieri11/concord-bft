@@ -31,7 +31,7 @@ docker run -it \
   -v ${DOCKER_DIR}:${MOUNT_POINT} \
   ${DOCKER_IMAGE} \
   /concord/conc_genconfig --configuration-input ${MOUNT_POINT}/${1} \
-                          --output-name ${MOUNT_POINT}/config-public/participant --client-conf true
+                          --output-name ${MOUNT_POINT}/config-public/operator --operator-conf true
 
-bash ${DOCKER_DIR}/config-public/distribute-client-configuration-files.sh
+mv -f ${DOCKER_DIR}/config-public/operator.config ${DOCKER_DIR}/config-operator/operator.config
 

@@ -32,7 +32,8 @@ namespace po = boost::program_options;
 
 void defineOptionsSpec(string& inputFilename, string& outputPrefix,
                        string& nodeMapFilename, bool& clientFlag,
-                       options_description& optionsSpec, string& confType) {
+                       bool& operatorFlag, options_description& optionsSpec,
+                       string& confType) {
   // clang-format off
   optionsSpec.add_options()
       ("help,h", "Display help text and exit.")
@@ -61,15 +62,21 @@ void defineOptionsSpec(string& inputFilename, string& outputPrefix,
       ("client-conf", po::value<bool>(&clientFlag),
        " An optional flag(true/false) that specifies if the current input file is intended for a client configuration."
        "Example: --client-conf true")
+      ("operator-conf", po::value<bool>(&operatorFlag),
+       " An optional flag(true/false) that specifies if the current input file is intended for a operator configuration."
+       "Example: --operator-conf true")
       ("configuration-type", po::value<string>(&confType)->default_value("all"),
        "Which configuration to output.");
 
   // clang-format on
 }
 
-void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
+void configurationSpec(ConcordConfiguration& config, bool clientFlag,
+                       bool operatorFlag) {
   if (clientFlag) {
     specifyExternalClientConfiguration(config);
+  } else if (operatorFlag) {
+    specifyOperatorConfiguration(config);
   } else {
     specifyConfiguration(config);
   }
@@ -78,19 +85,23 @@ void configurationSpec(ConcordConfiguration& config, bool clientFlag) {
 
 int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
                                 ConcordConfiguration& config, bool clientFlag,
+                                bool operatorFlag,
                                 const logging::Logger& concGenconfigLogger) {
   try {
-    loadClusterSizeParameters(yamlInput, config, clientFlag);
+    loadClusterSizeParameters(yamlInput, config, clientFlag, operatorFlag);
   } catch (ConfigurationResourceNotFoundException& e) {
     LOG_FATAL(concGenconfigLogger,
               "Failed to load required parameters from input.");
     return -1;
   }
   try {
-    if (clientFlag)
+    if (clientFlag) {
       instantiateClientTemplatedConfiguration(yamlInput, config);
-    else
+    } else if (operatorFlag) {
+      instantiateOperatorTemplatedConfiguration(yamlInput, config);
+    } else {
       instantiateTemplatedConfiguration(yamlInput, config);
+    }
   } catch (ConfigurationResourceNotFoundException& e) {
     LOG_FATAL(concGenconfigLogger,
               "Failed to size configuration for the requested dimensions.");
@@ -110,7 +121,7 @@ int initiateConfigurationParams(YAMLConfigurationInput& yamlInput,
               "parameters not included in input.");
     return -1;
   }
-  if (!clientFlag) {
+  if (!clientFlag && !operatorFlag) {
     try {
       LOG_INFO(concGenconfigLogger,
                "Beginning key generation for the requested cluster. "
@@ -162,7 +173,7 @@ int valideConfig(ConcordConfiguration& config,
 
 int outputConfig(ConcordConfiguration& config,
                  const logging::Logger& concGenconfigLogger, bool clientFlag,
-                 const string nodeMapFilename,
+                 bool operatorFlag, const string nodeMapFilename,
                  const variables_map& optionsInput, string& outputPrefix) {
   if (clientFlag) {
     size_t numNodes = config.getValue<uint16_t>("num_of_participant_nodes");
@@ -176,6 +187,16 @@ int outputConfig(ConcordConfiguration& config,
       } catch (std::exception& e) {
         return -1;
       }
+    }
+  } else if (operatorFlag) {
+    if (outputPrefix == "concord") outputPrefix = "operator";
+    std::string outputFilename = outputPrefix + ".config";
+    std::ofstream fileOutput(outputFilename);
+    YAMLConfigurationOutput yamlOutput(fileOutput);
+    try {
+      outputOperatorNodeConfiguration(config, yamlOutput);
+    } catch (std::exception& e) {
+      return -1;
     }
   } else {
     size_t numNodes = config.scopeSize("node");
@@ -252,11 +273,12 @@ int main(int argc, char** argv) {
   std::string nodeMapFilename;
   std::string confType;
   bool clientFlag = false;
+  bool operatorFlag = false;
 
   variables_map optionsInput;
   options_description optionsSpec;
   defineOptionsSpec(inputFilename, outputPrefix, nodeMapFilename, clientFlag,
-                    optionsSpec, confType);
+                    operatorFlag, optionsSpec, confType);
 
   store(command_line_parser(argc, argv).options(optionsSpec).run(),
         optionsInput);
@@ -286,6 +308,11 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  if (clientFlag && operatorFlag) {
+    LOG_FATAL(concGenconfigLogger,
+              "client flag and operator flag cannot set both true");
+    return -1;
+  }
   if (optionsInput.count("configuration-input") < 1) {
     LOG_FATAL(
         concGenconfigLogger,
@@ -315,16 +342,16 @@ int main(int argc, char** argv) {
   }
   ConcordConfiguration config;
 
-  if (!clientFlag) {
+  if (!clientFlag && !operatorFlag) {
     config.confType_ = confType;
   }
-  configurationSpec(config, clientFlag);
-  if (initiateConfigurationParams(yamlInput, config, clientFlag,
+  configurationSpec(config, clientFlag, operatorFlag);
+  if (initiateConfigurationParams(yamlInput, config, clientFlag, operatorFlag,
                                   concGenconfigLogger) == -1)
     return -1;
   if (valideConfig(config, concGenconfigLogger) == -1) return -1;
-  if (outputConfig(config, concGenconfigLogger, clientFlag, nodeMapFilename,
-                   optionsInput, outputPrefix) == -1)
+  if (outputConfig(config, concGenconfigLogger, clientFlag, operatorFlag,
+                   nodeMapFilename, optionsInput, outputPrefix) == -1)
     return -1;
   LOG_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
   return 0;

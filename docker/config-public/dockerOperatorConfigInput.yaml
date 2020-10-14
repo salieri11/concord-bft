@@ -32,39 +32,8 @@ node:
   - replica:
       - replica_host: concord4
         replica_port: 3501
-participant_nodes:
-  - participant_node:
-      - participant_node_host: 0.0.0.0
-        operator_id:
-        operator_port: 3600
-        external_clients:
-          - client:
-              - client_port: 3502
-          - client:
-              - client_port: 3503
-          - client:
-              - client_port: 3504
-          - client:
-              - client_port: 3505
-          - client:
-              - client_port: 3506
-          - client:
-              - client_port: 3507
-          - client:
-              - client_port: 3508
-          - client:
-              - client_port: 3509
-          - client:
-              - client_port: 3510
-          - client:
-              - client_port: 3511
-          - client:
-              - client_port: 3512
-          - client:
-              - client_port: 3513
-          - client:
-              - client_port: 3514
-          - client:
-              - client_port: 3515
-          - client:
-              - client_port: 3516
+
+operator_node:
+  - operator_node_host: 0.0.0.0
+    operator_id:
+    operator_port: 3600

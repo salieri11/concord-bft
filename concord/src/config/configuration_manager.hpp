@@ -1420,7 +1420,8 @@ void specifyConfiguration(ConcordConfiguration& config);
 // value is found for any required cluster sizing parameters.
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
                                ConcordConfiguration& config,
-                               bool is_client = false);
+                               bool is_client = false,
+                               bool is_operator = false);
 
 // Instantiates the scopes within the given concord node configuration. This
 // function expects that config was initialized with specifyConfiguration. This
@@ -1446,6 +1447,9 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
 
 void instantiateClientTemplatedConfiguration(YAMLConfigurationInput& input,
                                              ConcordConfiguration& config);
+
+void instantiateOperatorTemplatedConfiguration(YAMLConfigurationInput& input,
+                                               ConcordConfiguration& config);
 
 // Loads all non-generated (i.e. required and optional input) parameters from
 // the given YAMLConfigurationInput to the given ConcordConfiguration object.
@@ -1516,6 +1520,9 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
 void outputParticipantNodeConfiguration(const ConcordConfiguration& config,
                                         YAMLConfigurationOutput& output,
                                         size_t node);
+
+void outputOperatorNodeConfiguration(const ConcordConfiguration& config,
+                                     YAMLConfigurationOutput& output);
 
 // Loads the Concord configuration for a node (presumably the one running this
 // function) from a specified configuration file. This function expects that
@@ -1626,6 +1633,8 @@ void specifyReplicaConfiguration(ConcordConfiguration& config);
 void specifySimpleClientParams(ConcordConfiguration& config);
 
 void specifyExternalClientConfiguration(config::ConcordConfiguration& config);
+
+void specifyOperatorConfiguration(config::ConcordConfiguration& config);
 
 // We enforce a minimum size on communication buffers to ensure at least
 // minimal error responses can be passed through them.
