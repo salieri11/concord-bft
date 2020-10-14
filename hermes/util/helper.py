@@ -471,10 +471,6 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
       if ssh:
          ssh.close()
    return work_around_bc_5021(resp)
-<<<<<<< HEAD
-=======
-
->>>>>>> Pre-execution change 2: Stop f nodes.
 
 def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
   '''
