@@ -15,52 +15,8 @@ from time import time, sleep as time_sleep
 from yaml import load, FullLoader
 from datetime import datetime, timedelta
 from scenario import Scenario
-from dazl import Network as dazl_network, setup_default_logger as dazl_setup_logger
-
-class Remote:
-    '''
-    Manage remote API connection and configuration
-    '''
-    def __init__(self, url, parties=None):
-        '''
-        Constructor
-
-        Args:
-             url(string): Ledger API endpoint in the format http://host:port
-             parties(dict): a role:name data mapping for parties
-        '''
-        self.url = url
-        self.network = None
-        self.parties = {}
-        if parties is not None:
-            self.create_clients(parties)
-
-    def connect(self):
-        '''
-        Establish connection with the remote API (client node)
-        '''
-        if self.network:
-            self.network.shutdown()
-            self.network.join()
-
-        self.network = dazl_network()
-        self.network.set_config(url=self.url, poll_interval=Scenario.DEFAULT_POLLING_INTERVAL)
-
-    def create_clients(self, parties):
-        '''
-        Create asynchronous clients to connect to the API
-
-        Args:
-            parties(dict): a role:name data mapping for parties
-
-        Returns:
-            dict: mapping of role strings to AIOPartyClient objects
-        '''
-        if not self.network:
-            self.connect()
-
-        self.parties = {k:self.network.aio_party(v) for k, v in parties.items()}
-        return self.parties
+from dazl import setup_default_logger as dazl_setup_logger
+from dazl_remote import Remote
 
 def simple_request(url, requests=1, wait=1, retries=3):
     '''
