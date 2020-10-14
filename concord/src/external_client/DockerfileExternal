@@ -2,7 +2,7 @@
 # Dockerfile for building the BFT Client Pool Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v25
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v26
 LABEL Description="External Client Pool"
 
 COPY ./concord /concord

@@ -3,7 +3,7 @@
 # Dockerfile for building the Thin Replica Client Library image.
 
 # Dependencies image.
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v25
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v26
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
