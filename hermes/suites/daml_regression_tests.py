@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from suites.case import describe
 from collections import namedtuple
 import pytest
+import time
+import random
 from util import helper, hermes_logging, blockchain_ops
 from threading import Thread
 import util.daml.daml_helper as daml_helper
@@ -516,6 +518,91 @@ def test_daml_network_failure(fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
+@describe("verify fault tolerance - view change")
+def test_fault_tolerance_view_change(fxLocalSetup, fxHermesRunSettings, fxBlockchain):
+    '''
+    Verify fault tolerance using below steps:
+    - Connect to a blockchain network.
+    - Stop f-1 non primary replica.
+    - Submit client requests continuously.
+    - Stop and start current primary (same) node continuously.
+    - Submit client requests.
+    - Verify that requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: blockchain
+    '''
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        try:
+            install_sdk_deploy_daml(client_host, client_port)
+
+            no_of_txns, wait_time = 2, 0.2
+            url = 'http://{}:{}'.format(client_host, client_port)
+
+            # Submit Daml requests before finding primary replica
+            assert simple_request(url, no_of_txns, wait_time), \
+                "DAML request submission/verification failed for participant \
+            [{}]".format(client_host)
+
+            committers_mapping = blockchain_ops.map_committers_info(
+                fxBlockchain)
+
+            # Find primary replica ip
+            initial_primary_replica_ip = committers_mapping["primary_ip"]
+            log.info("initial_primary_replica_info: {}".format(
+                initial_primary_replica_ip))
+
+            interrupted_nodes = []
+            container_name = 'concord'
+
+            # Stop f-1 non-primary replica
+            for i in range(fxLocalSetup.f_count - 1):
+                concord_host = fxLocalSetup.concord_hosts[i]
+                if concord_host != initial_primary_replica_ip:
+                    log.info(
+                        "Stop concord in non-primary replica: {}".format(concord_host))
+                    intr_helper.stop_container(concord_host, container_name)
+                    interrupted_nodes.append(concord_host)
+
+            log.info("Completed stopping f-1 non-primary replica concord container")
+
+            # Start new thread for daml request submissions and stop & start current primary replica
+            thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                     args=(client_host, client_port, no_of_txns, wait_time, 180))
+            thread_start_stop_primary = Thread(
+                target=intr_helper.continuous_stop_start_container,
+                args=(initial_primary_replica_ip, container_name, 180))
+            interrupted_nodes.append(initial_primary_replica_ip)
+            threads_list = []
+            thread_daml_txn.start()
+            thread_start_stop_primary.start()
+            threads_list.append(thread_daml_txn)
+            threads_list.append(thread_start_stop_primary)
+            for threads in threads_list:
+                threads.join()
+
+            # Find new primary replica ip
+            committers_mapping = blockchain_ops.map_committers_info(
+                fxBlockchain, interrupted_nodes)
+            new_primary_replica_ip = committers_mapping["primary_ip"]
+
+            log.info("\n\nInitial primary replica: {}".format(
+                initial_primary_replica_ip))
+
+            log.info("\n\nNew primary replica: {}".format(
+                new_primary_replica_ip))
+            assert initial_primary_replica_ip != new_primary_replica_ip, "View Change did not happen successfully"
+
+            # Submit Daml requests after view change
+            assert simple_request(url, no_of_txns, wait_time), \
+                "DAML request submission/verification failed for participant \
+            [{}]".format(client_host)
+
+        except Exception as excp:
+            assert False, excp
+
+
 @describe("Verify fault tolerance when nodes started with staggered startup ")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, participant_first):
@@ -587,4 +674,3 @@ def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, parti
         assert simple_request(url, no_of_txns), \
             "DAML request submission/verification failed for participant \
             [{}]".format(client_host)
-
