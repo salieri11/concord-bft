@@ -38,6 +38,8 @@ concord_tag=latest
 ## Create configuration files
 
 Generate the corresponding configuration files with
+in `config-public/dockerConfigurationInput-reconfiguration.yaml` comment out `key_view_path: /tmp`
+Then, type the following:
 ```
 ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-reconfiguration.yaml
 ./gen-docker-operator-config.sh config-public/dockerOperatorConfigInput.yaml
