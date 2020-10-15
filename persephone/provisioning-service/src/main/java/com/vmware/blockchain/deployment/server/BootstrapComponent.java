@@ -44,6 +44,9 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.password}")
     private String password;
 
+    @Value("${provisioning.notary.server.address}")
+    private String notaryServerAddress;
+
     @Value("${ova.template:28b41974-c7a8-41a7-84f8-4438f828e87b}")
     public String template;
 
@@ -60,6 +63,8 @@ public class BootstrapComponent {
     public Endpoint allocationService;
 
     public Endpoint containerRegistry;
+
+    public Endpoint notaryServer;
 
     /**
      * Configuration input.
@@ -91,5 +96,8 @@ public class BootstrapComponent {
                                                                       .build()).build())
 
                 .build();
+
+        notaryServer = Endpoint.newBuilder().setAddress(notaryServerAddress).build();
+
     }
 }

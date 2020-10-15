@@ -342,7 +342,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                                       Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteInfo) {
         sites.getInfoListList().forEach(each -> {
             var id = each.getId();
-            var site = OrchestrationSites.buildSiteInfo(each.getInfo(), bootstrapComponent.containerRegistry);
+            var site = OrchestrationSites.buildSiteInfo(each.getInfo(), bootstrapComponent.containerRegistry,
+                                                        bootstrapComponent.notaryServer);
             siteInfo.put(id, site);
             orchestratorMap.put(id, orchestratorProvider
                     .newOrchestrator(site, new IpamClient(bootstrapComponent.allocationService,
