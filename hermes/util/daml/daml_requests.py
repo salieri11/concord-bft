@@ -117,12 +117,12 @@ def continuous_daml_request_submission(client_host, client_port, no_of_txns, wai
     '''
     try:
         url = 'http://{}:{}'.format(client_host, client_port)
-        start_time = datetime.datetime.now()
-        end_time = start_time + datetime.timedelta(seconds=duration)
+        start_time = datetime.now()
+        end_time = start_time + timedelta(seconds=duration)
         set_event_loop(new_event_loop())
         while start_time <= end_time:
             simple_request(url, no_of_txns, wait_time)
-            start_time = datetime.datetime.now()
+            start_time = datetime.now()
     except Exception as excp:
         info("Failed to submit Daml transactions on participant: {}".format(client_host))
         assert False, excp
