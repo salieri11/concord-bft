@@ -54,6 +54,8 @@ import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
+import com.vmware.blockchain.deployment.v1.Endpoint;
+import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Tag;
@@ -74,6 +76,8 @@ public class NodeStartupOrchestrator {
     private static final String containerNetworkName = "blockchain-fabric";
 
     private static final String configDownloadMarker = "/config/agent/configDownloadMarker";
+
+    private static final String notarySelfSignedCert = "/config/agent/notarySelfSignedCert.crt";
 
     /** Configuration parameters for this agent instance. */
     private final ConcordAgentConfiguration configuration;
@@ -133,6 +137,9 @@ public class NodeStartupOrchestrator {
                 // Download configuration and certs.
                 setupConfig();
 
+                // Write the Notary Server's Self Signed Cert to file if provided
+                writeNotarySelfSignedCertToFile();
+
                 // Pull and order images
                 List<BaseContainerSpec> containerConfigList = pullImages();
                 containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
@@ -167,6 +174,27 @@ public class NodeStartupOrchestrator {
                 log.warn("******Node not Functional********");
             }
         });
+    }
+
+    private void writeNotarySelfSignedCertToFile() {
+        if (configuration.getNotaryServer() != null && configuration.getNotaryServer().getTransportSecurity() != null
+            && configuration.getNotaryServer().getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && !StringUtils.isEmpty(configuration.getNotaryServer().getTransportSecurity().getCertificateData())) {
+            log.info("Writing the notary self signed certificate data to a file");
+            var filepath = Path.of(notarySelfSignedCert);
+
+            // Use synchronous IO (can be changed if this becomes a performance bottleneck).
+            try (var outputStream = new FileOutputStream(filepath.toFile(), false)) {
+                outputStream.write(configuration.getNotaryServer().getTransportSecurity().getCertificateData()
+                                           .getBytes());
+            } catch (Exception error) {
+                log.error("Error populating notary self signed certificate as a file for {}", notarySelfSignedCert,
+                          error);
+                throw new AgentException(ErrorCode.ERROR_POPULATING_NOTARY_SELF_SIGNED_CERT,
+                                         "Error populating notary self signed certificate as a file for "
+                                         + notarySelfSignedCert, error);
+            }
+        }
     }
 
     // Hack to support secondary mounting.
@@ -233,7 +261,7 @@ public class NodeStartupOrchestrator {
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getPassword();
-        final var notaryServerAddress = configuration.getNotaryServer().getAddress();
+        final Endpoint notaryServer = configuration.getNotaryServer();
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
 
@@ -251,14 +279,14 @@ public class NodeStartupOrchestrator {
 
                 // Notary Signature Verification is enabled/disabled based on the presence
                 // of notary server in Agent Config
-                if (StringUtils.isEmpty(notaryServerAddress)) {
+                if (StringUtils.isEmpty(notaryServer.getAddress())) {
                     log.info("Notary signature verification is disabled");
                 } else {
                     log.info("Notary signature verification is enabled");
                 }
 
                 futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
-                        registryUsername, registryPassword, component.getName(), notaryServerAddress)));
+                        registryUsername, registryPassword, component.getName(), notaryServer, notarySelfSignedCert)));
             }
         }
 

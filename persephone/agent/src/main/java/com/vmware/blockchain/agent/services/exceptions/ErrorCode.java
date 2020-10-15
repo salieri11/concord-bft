@@ -28,6 +28,8 @@ public enum ErrorCode {
     CONFIGURATION_RETRIEVAL_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot retrieve node configuration", null),
     NODE_START_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot start node", null),
     ERROR_POPULATING_NODE_CONFIG(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot start node", null),
+    ERROR_POPULATING_NOTARY_SELF_SIGNED_CERT(HttpStatus.INTERNAL_SERVER_ERROR,
+                                             "Cannot populate Notary Self Signed Cert as a file", null),
     DOCKER_CLIENT_PARSING_IMAGE_NAME_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR,
                                              "Parsing image name failure, using default values", null),
     DOCKER_CLIENT_PULLING_IMAGE_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "Pulling image failure", null),
