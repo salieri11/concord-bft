@@ -18,7 +18,6 @@ add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME YamlMergeTest COMMAND YamlMergeTest)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
-add_test(NAME HlfTest COMMAND HlfTest)
 add_test(NAME DamlTest COMMAND DamlTest)
 add_test(NAME PruningSMTest COMMAND PruningSMTest)
 add_test(NAME ReconfigurationSMTest COMMAND ReconfigurationSMTest)
@@ -119,25 +118,6 @@ target_link_libraries(DamlTest
         ${GTEST_LIBRARY}
         ${GMOCK_LIBRARY}
         ${Boost_LIBRARIES}
-        concord_consensus
-        concord_utils
-        concord_common
-        proto
-        logging
-        )
-
-add_executable(HlfTest
-        hlf_test.cpp
-        ../src/hlf/chaincode_invoker.cpp
-        ../src/hlf/kvb_storage.cpp
-        ../src/hlf/kvb_commands_handler.cpp
-        ../src/config/configuration_manager.cpp
-        )
-
-target_link_libraries(HlfTest
-        ${GTEST_LIBRARY}
-        ${Boost_LIBRARIES}
-        ${yaml-cpp_LIBRARIES}
         concord_consensus
         concord_utils
         concord_common

@@ -158,13 +158,3 @@ get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 target_include_directories(conc_genconfig PUBLIC ${thresh_include})
 get_property(thresh_srcs TARGET threshsign PROPERTY SOURCES)
 target_sources(conc_genconfig PUBLIC ${thresh_srcs})
-
-add_executable(conc_hlf_client
-               "conc_hlf_client.cpp"
-               ${PROTO_SRCS} ${PROTO_HDRS})
-
-target_link_libraries(conc_hlf_client
-                      concmdutil
-                      proto
-                      gRPC::grpc++_reflection
-                      ${Boost_LIBRARIES})

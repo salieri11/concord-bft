@@ -230,20 +230,6 @@ contract-compiler() {
     docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
 }
 
-hlf_submodules() {
-    info "Build hlf submodules..."
-    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_base_repo} ${hlf_tools_base_tag}
-    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_base_repo} ${hlf_peer_base_tag}
-    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_base_repo} ${hlf_orderer_base_tag}
-}
-
-hlf() {
-    info "hlf..."
-    docker_build . hlf/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
-    docker_build . hlf/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
-    docker_build . hlf/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
-}
-
 daml() {
     info "Build DAML..."
     DAMLSDKVERSION=$(sed -n -e '/sdkVersion/ s/.*\= *//p' daml/build.sbt | tr -d '"')

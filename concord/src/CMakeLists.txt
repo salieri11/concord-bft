@@ -5,7 +5,6 @@ set(SKVBC_COMMANDS_HANDLER_DIR "${SKVBC_INCLUDE_DIR}/TesterReplica")
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"          "api/*.hpp"
   "daml/*.cpp"         "daml/*.hpp"
-  "hlf/*.cpp"          "hlf/*.hpp"
   "thin_replica/*.cpp" "thin_replica/*.hpp"
   "tee/*.cpp"          "tee/*.hpp"
   "performance/*.cpp"  "performance/*.hpp"

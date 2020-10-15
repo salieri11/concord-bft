@@ -19,7 +19,6 @@
     "EvilTimeTests",
     "EthJsonRpcTests",
     "EthRegressionTests",
-    "HlfTests",
     "PerformanceTests",
     "PersephoneTestsNew",
     "HelenDeployDAMLToSDDC",

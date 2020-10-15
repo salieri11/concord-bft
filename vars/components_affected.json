@@ -34,11 +34,6 @@
         "test_suites": [],
         "build_targets": []
     },
-    "concord/src/hlf": {
-        "changed": true,
-        "test_suites": [],
-        "build_targets": []
-    },
     "concord/src/thin_replica": {
         "changed": true,
         "test_suites": [],

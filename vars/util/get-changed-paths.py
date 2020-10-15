@@ -71,8 +71,8 @@ def main():
     with open("components_affected.json", "r") as f:
       componentsMap = json.loads(f.read())
 
-    # subComponents, e.g. concord/src/daml, concord/src/hlf, concord/src/ethereum
-    # e.g. concord changed, but only hlf sub-component changed ===>  no need to do full vDAML test suite
+    # subComponents, e.g. concord/src/daml or concord/src/ethereum
+    # e.g. concord changed, but only ethereum sub-component changed ===> no need to do full vDAML test suite
     subComponents = list(filter(lambda path: (path.find("/") >= 0), componentsMap.keys()))
 
     # Default committed `components_affected.json` has all set to TRUE (build/test everything)

@@ -247,7 +247,7 @@ You should get 1_1_1a as your version.
 
 ### gRPC
 
-Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. You will need to install grpc version v1.17.x:
+Concord uses [gRPC](https://github.com/grpc/grpc) for ThinReplica, TEE, and Performance api server. You will need to install grpc version v1.17.x:
 
 ```shell
    git clone https://github.com/grpc/grpc

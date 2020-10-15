@@ -19,7 +19,7 @@ message ConcordRequest {
    optional TransactionListRequest transaction_list_request = 7;
    optional LogsRequest logs_request = 8;
    optional TimeRequest time_request = 9;
-   repeated HlfRequest hlf_request = 10;
+   optional Deprecated hlf_deprecated = 10;
    optional DamlRequest daml_request = 11;
    optional ReconfigurationRequest reconfiguration_request = 12;
    optional bytes trace_context = 13;
@@ -46,7 +46,7 @@ message ConcordResponse {
    optional TransactionListResponse transaction_list_response = 7;
    optional LogsResponse logs_response = 8;
    optional TimeResponse time_response = 9;
-   repeated HlfResponse hlf_response = 10;
+   optional Deprecated hlf_deprecated = 10;
    optional DamlResponse daml_response = 11;
    optional ReconfigurationResponse reconfiguration_response = 12;
    // 13: trace_context has no response
@@ -61,6 +61,9 @@ message ConcordResponse {
    optional TestResponse test_response = 2046;
    repeated ErrorResponse error_response = 2047;
 }
+
+// Placeholder to mark deprecated fields
+message Deprecated {}
 
 message ConcordReplicaSpecificInfoResponse {
    message WedgeResponse {
@@ -200,35 +203,6 @@ message EthResponse {
    optional bytes contract_address = 3;
    optional int32 status = 4;
    // filter_response (5) is removed
-}
-
-message HlfRequest {
-  enum HlfMethod {
-    INSTALL = 1;
-    UPGRADE = 2;
-    INVOKE = 3;
-    QUERY = 4;
-  }
-
-  optional HlfMethod method = 1;
-  optional string chain_id = 2;
-  optional string chaincode_name = 3;
-  optional string input = 4;
-  optional string version = 5;
-  optional bytes chaincode_source_bytes = 6;
-  // 'path' indicates the path to store chaincode
-  // if method was INSTALL or UPGRADE
-  optional string path = 7;
-  // type indicates the chaincode type, could be
-  // go, js and java
-  optional string type = 8;
-}
-
-message HlfResponse {
-  // transaction id
-  optional string id = 1;
-  optional string data = 2;
-  optional int32 status = 3;
 }
 
 message LatestPrunableBlock {
