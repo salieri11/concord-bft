@@ -400,7 +400,6 @@ def verify_daml_committers_deployment(replica_details, credentials):
     except Exception as e:
         log.error(e)
         log.error("Failed to deploy DAML committers")
-        raise
 
     return success
 
