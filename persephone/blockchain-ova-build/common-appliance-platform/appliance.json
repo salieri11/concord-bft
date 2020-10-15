@@ -1,0 +1,122 @@
+{
+  "configuration": {
+    "cap_version": "0.1",
+    "appliance_name": "$APPLIANCE_NAME",
+    "delivery_format": "OVF",
+    "parking_directory": "images",
+    "repositories": {
+      "local": [
+        "$INSTALLATION_FOLDER/common-appliance-platform"
+      ],
+      "rpm": [
+        {
+          "csc-photon-vmbase": {
+            "repo": []
+          }
+        }
+      ]
+    },
+    "OVFCustomization": "customizations.json"
+  },
+  "hardware": {
+    "cpu_count": 2,
+    "ram_size": 16,
+    "storage": {
+      "disks": {
+        "system": 32
+      },
+      "lvm_layout": [
+        {
+          "size": 32,
+          "volume_group_name": "vg0",
+          "logical_volume_name": "data",
+          "mount_point": "/",
+          "filesystem_type": "ext4"
+        }
+      ]
+    },
+    "network": {
+      "interface_name_1": {
+        "type": "dhcp",
+        "version": "v4",
+        "mode": "simplex"
+      }
+    }
+  },
+  "build-appliance": {
+    "remote": {
+      "personalization": {
+        "image": "$ISO_BUILD_URL",
+        "root_password": "vmware",
+        "existing_password": "previous"
+      },
+      "machine": {
+        "datastore": "$DATASTORE",
+        "datacenter": "$DATACENTER",
+        "vcenter_address": "$VC_ADDRESS",
+        "password": "$VC_PASSWORD",
+        "username": "$VC_USERNAME",
+        "hostname": "$ESX_HOSTNAME",
+        "network": "VM Network"
+      }
+    },
+    "after-appliance-ready-script": "post-install-blockchain.sh"
+  },
+  "software": {
+    "download": {
+      "misc-files": [
+      ],
+      "rpm": [
+      ]
+    },
+    "exclude": {
+      "rpm": [
+      ]
+    },
+    "install": {
+      "iso": [
+        "acl",
+        "cloud-init",
+        "coreutils",
+        "curl",
+        "diffutils",
+        "docker",
+        "iproute",
+        "libtool",
+        "net-tools",
+        "rsync",
+        "sudo",
+        "time",
+        "wget",
+        "unzip",
+        "tar",
+        "parted",
+        "vim",
+        "libxml2"
+      ],
+      "local": {
+        "files": [
+        ],
+        "target": "/root/blockchain"
+      }
+    },
+    "copy-to-appliance": {
+      "rpm": [],
+      "misc-files": [
+        {
+          "local": {
+            "target": "/root/blockchain",
+            "files": [
+              "vmw_welcome_message.txt"
+            ]
+
+          }
+        }
+      ]
+    },
+    "copy-from-appliance": [],
+    "remove": {
+      "rpm": []
+    }
+  }
+}
