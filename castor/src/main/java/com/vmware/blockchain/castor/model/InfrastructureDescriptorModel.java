@@ -130,6 +130,18 @@ public class InfrastructureDescriptorModel {
     }
 
     /**
+     * Optional Notary Server.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @EqualsAndHashCode
+    public static class NotaryServer {
+        private URL url;
+        private String tlsCertificateData;
+    }
+
+    /**
      * Optional Elasticsearch.
      */
     @Getter
@@ -192,7 +204,8 @@ public class InfrastructureDescriptorModel {
         @Valid
         private ContainerRegistry containerRegistry;
 
-        private URL notaryServer;
+        @Valid
+        private NotaryServer notaryServer;
 
         @Valid
         private Wavefront wavefront;

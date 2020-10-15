@@ -164,9 +164,19 @@
       "required": ["url", "userName", "password"]
     },
     "notaryServer": {
-      "description": "The URL of Notary Server",
-      "type": "string",
-      "format": "url"
+      "description": "Notary Server Details",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "The URL for the Notary Server",
+          "type": "string",
+          "format": "url"
+        },
+        "tlsCertificateData": {
+          "description": "Self-Signed Certificate of Notary Server",
+          "type": "string"
+        }
+      }
     },
     "wavefront": {
       "description": "Wavefront properties",

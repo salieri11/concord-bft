@@ -313,11 +313,22 @@ public class DeploymentHelper {
 
         InfrastructureDescriptorModel.Zone zoneDescriptor = zoneDescriptorOpt.get();
 
+        InfrastructureDescriptorModel.NotaryServer notaryServerDescriptor = zoneDescriptor.getNotaryServer();
         Endpoint.Builder notaryServerBuilder = Endpoint.newBuilder();
-        if (zoneDescriptor.getNotaryServer() != null
-            && StringUtils.hasText(zoneDescriptor.getNotaryServer().toString())) {
-            notaryServerBuilder = notaryServerBuilder
-                    .setAddress(zoneDescriptor.getNotaryServer().toString());
+        if (notaryServerDescriptor != null) {
+            if (notaryServerDescriptor.getUrl() != null) {
+                notaryServerBuilder.setAddress(notaryServerDescriptor.getUrl().toString());
+            }
+
+            if (StringUtils.hasText(notaryServerDescriptor.getTlsCertificateData())) {
+                notaryServerBuilder.setTransportSecurity(TransportSecurity
+                                                                 .newBuilder()
+                                                                 .setType(TransportSecurity.Type.TLSv1_2)
+                                                                 .setCertificateData(notaryServerDescriptor
+                                                                                 .getTlsCertificateData()).build());
+            } else {
+                notaryServerBuilder.setTransportSecurity(TransportSecurity.newBuilder().build());
+            }
         }
 
         InfrastructureDescriptorModel.Wavefront wavefrontDescriptor = zoneDescriptor.getWavefront();
