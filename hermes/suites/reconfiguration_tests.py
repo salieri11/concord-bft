@@ -30,41 +30,58 @@ log = util.hermes_logging.getMainLogger()
 
 # Read by the fxProduct fixture.
 productType = helper.TYPE_DAML
+MAX_TRIES_TO_PERFORM_AN_ACTION = 10
+
+client = docker.from_env()
+operator_docker_name = "docker_operator_1"
+
+def _process_response(response):
+    return response.decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
 
 
-def _system_has_stopped(operator_container):
+def _try_to_perform_an_action(action, stop_condition):
+    for i in range(MAX_TRIES_TO_PERFORM_AN_ACTION):
+        res = action()
+        if stop_condition(res):
+            return res
+        if i == MAX_TRIES_TO_PERFORM_AN_ACTION - 1:
+            log.error("unable to perform reconfiguration actions.")
+            assert False
+        time.sleep(1)
+
+
+def _system_has_stopped():
+    operator_container = client.containers.get(operator_docker_name)
     cmd = "./concop wedge status"
     output = operator_container.exec_run(cmd)
-    assert output[0] == 0
-    msg = output[1].decode('utf-8').rstrip().replace("'", '"')
+    msg = _process_response(output[1])
     if msg.lower() == "none":
-        return False
-    res = json.loads(msg)
-    for v in list(res.values()):
-        if v.lower() == "false":
+        return None
+    else:
+        res = json.loads(msg)
+        for v in list(res.values()):
+            if v.lower() == "false":
+                return False
+        return True
+
+
+def _try_to_wedge():
+    operator_container = client.containers.get(operator_docker_name)
+    cmd = "./concop wedge stop"
+    output = operator_container.exec_run(cmd)
+    msg = _process_response(output[1])
+    if msg.lower() == "none":
+        return None
+    else:
+        res = json.loads(msg)
+        if res["succ"].lower() == "true":
+            return True
+        else:
             return False
-    return True
+
 
 @describe()
 def test_wedge_stop_command(fxProduct, fxHermesRunSettings):
-    client = docker.from_env()
-    operator_container = client.containers.get("docker_operator_1")
-    assert _system_has_stopped(operator_container) is False
-    cmd = "./concop wedge stop"
-    output = operator_container.exec_run(cmd)
-    msg = output[1].decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
-    assert msg.lower() != "none"
-    res = json.loads(msg)
-    assert res["succ"].lower() == "true"
-
-    # Wait for the system to stop
-    tries = 0
-    system_stopped = _system_has_stopped(operator_container)
-    while system_stopped is False and tries < 10:
-        time.sleep(1)
-        tries += 1
-        system_stopped = _system_has_stopped(operator_container)
-
-    # Verify the system has stopped
-    assert _system_has_stopped(operator_container) is True
-
+    assert _try_to_perform_an_action(_system_has_stopped, lambda _: _ is not None) is False
+    assert _try_to_perform_an_action(_try_to_wedge, lambda _: _ is True) is True
+    assert _try_to_perform_an_action(_system_has_stopped, lambda _: _ is True) is True
