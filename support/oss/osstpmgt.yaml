@@ -316,3 +316,9 @@ baseos:deb:sudo:1.8.21p2-3ubuntu1.2:ubuntu:
     version: '1.8.21p2-3ubuntu1.2'
     baseos-style: deb
     baseos-osname: 'ubuntu'
+baseos:deb:net-tools:1.60+git20161116.90da8a0-1ubuntu1:ubuntu:
+    repository: BaseOS
+    name: 'net-tools'
+    version: '1.60+git20161116.90da8a0-1ubuntu1'
+    baseos-style: deb
+    baseos-osname: 'ubuntu'
