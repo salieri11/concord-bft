@@ -36,6 +36,7 @@ import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.Endpoint;
+import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -111,7 +112,7 @@ public class AgentDockerClient {
 
     BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
                                         String registryUsername, String registryPassword,
-                                        String imageName, String notaryServerAddress) {
+                                        String imageName, Endpoint notaryServer, String notarySelfSignedCert) {
 
         var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         log.info("Pulling image {}", imageName);
@@ -135,9 +136,9 @@ public class AgentDockerClient {
 
             // If the notary verification feature is enabled then perform notary verification
             String repoDigestFromNotary = "";
-            if (!StringUtils.isEmpty(notaryServerAddress)) {
-                repoDigestFromNotary = checkNotarySignatureVerification(notaryServerAddress, componentImageName,
-                                                                        componentImage.getTag());
+            if (!StringUtils.isEmpty(notaryServer.getAddress())) {
+                repoDigestFromNotary = checkNotarySignatureVerification(notaryServer, notarySelfSignedCert,
+                                                                        componentImageName, componentImage.getTag());
                 log.info("RepoDigest from Notary: " + repoDigestFromNotary);
             }
 
@@ -177,7 +178,7 @@ public class AgentDockerClient {
             log.info("Container image ID: {}", containerConfig.getImageId());
 
             // Check if the Repo Digest from Docker matches the Digest provided by notary CLI
-            if (!StringUtils.isEmpty(notaryServerAddress)) {
+            if (!StringUtils.isEmpty(notaryServer.getAddress())) {
                 List<String> repoDigestListFromDocker = inspectResponse.getRepoDigests();
                 Boolean matchedRepoDigest = false;
                 for (String repoDigestFromDockerWithRepo: repoDigestListFromDocker) {
@@ -219,15 +220,28 @@ public class AgentDockerClient {
     }
 
     // Performs the notary verification for a docker image using Notary CLI and returns the digest provided by notary
-    String checkNotarySignatureVerification(String notaryServerAddress, String imageName, String imageTag) {
+    String checkNotarySignatureVerification(Endpoint notaryServer, String notarySelfSignedCert, String imageName,
+                                            String imageTag) {
         log.info("Performing notary signature verification for image {} with tag {}", imageName, imageTag);
         int notaryVerificationRetryCount = 3;
 
         String notaryCommandOutput = "";
         while (notaryVerificationRetryCount-- > 0) {
-            ProcessBuilder builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
-                                                        notaryServerAddress, "-d", "~/.docker/trust", "lookup",
-                                                        imageName, imageTag);
+            ProcessBuilder builder;
+
+            // If self signed cert of notary server is passed, use it for tlscacert param for notary command
+            if (notaryServer.getTransportSecurity() != null
+                && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+                && !StringUtils.isEmpty(notaryServer.getTransportSecurity().getCertificateData())) {
+                builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
+                                             notaryServer.getAddress(), "-d", "~/.docker/trust", "--tlscacert",
+                                             notarySelfSignedCert, "lookup", imageName, imageTag);
+            } else {
+                builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
+                                             notaryServer.getAddress(), "-d", "~/.docker/trust", "lookup",
+                                             imageName, imageTag);
+            }
+
             log.info("notaryCommand is {}", builder.command());
             builder.redirectErrorStream(true);
             try {
@@ -249,10 +263,10 @@ public class AgentDockerClient {
             // been pulled, the notary CLI gives error along with the cached sha256 as stale verification
             if (notaryCommandOutput.contains("could not reach")) {
                 if (notaryVerificationRetryCount-- > 0) {
-                    log.warn("Cloud not reach notary server {}", notaryServerAddress);
+                    log.error("Failed to reach notary server. Error:\n{}", notaryCommandOutput);
                     log.info("Retrying to verify trust data for image {} with tag {}", imageName, imageTag);
                 } else {
-                    log.error("Cloud not reach notary server {}", notaryServerAddress);
+                    log.error("Failed to reach notary server. Error:\n{}", notaryCommandOutput);
                 }
                 continue;
             }
@@ -278,9 +292,10 @@ public class AgentDockerClient {
 
         // Handling all negative cases to make agent exit gracefully
         if (notaryCommandOutput.contains("could not reach")) {
-            log.error("Cloud not reach notary server {}", notaryServerAddress);
+            log.error("Failed to reach notary server. Error:\n{}", notaryCommandOutput);
         } else {
-            log.error("Cloud not verify trust data for the image {} with tag {}", imageName, imageTag);
+            log.error("Failed to verify trust data for the image {} with tag {}. Error:\n{}", imageName, imageTag,
+                      notaryCommandOutput);
         }
         throw new AgentException(ErrorCode.NOTARY_SIGNATURE_VERIFICATION_FAILED,
                                  "Error while verifying notary signature", new RuntimeException());
