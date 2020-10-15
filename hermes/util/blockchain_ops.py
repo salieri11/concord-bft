@@ -20,7 +20,7 @@ from util import auth, helper, hermes_logging, infra
 
 log = hermes_logging.getMainLogger()
 
-
+LAST_STABLE_SEQ_NUMBER_CMD = "docker exec -t telegraf /bin/bash -c 'curl concord:9891/metrics' | grep 'lastStableSeqNum{'"
 
 
 # ===================================================================================
@@ -38,6 +38,51 @@ def refresh_current_state_info(fxBlockchain, verbose=False):
   map_participants_submission_endpoints(fxBlockchain, verbose=verbose)
   echo_current_state_info(fxBlockchain)
   return True
+
+
+def wait_for_state_transfer_complete(fxBlockchain, interrupted_replicas=[], timeout=180):
+  '''
+  Determine whether all running replicas have finished state transfer.
+  This is done by checking "lastStableSeqNum" on each replica.  If they
+  are all the same, then they are all in sync.
+  '''
+  all_replicas = committers_of(fxBlockchain)
+  target_replicas = [ip for ip in all_replicas if ip not in interrupted_replicas]
+  username, password = helper.getNodeCredentials()
+  seq_num = None
+  complete = False
+  start_time = time.time()
+
+  while time.time() - start_time < timeout:
+    responses = helper.ssh_parallel(target_replicas, LAST_STABLE_SEQ_NUMBER_CMD, verbose=True)
+
+    for r in responses:
+      output = r["output"]
+
+      try:
+        seq_num_to_check = float(output.split(" ")[-1].strip())
+      except ValueError:
+        complete = False
+        seq_num = None
+        break
+
+      log.info("Replica '{}' lastStableSeqNum is '{}'".format(r["ip"], seq_num_to_check))
+
+      if not seq_num:
+        # First one is in sync with itself.
+        complete = True
+        seq_num = seq_num_to_check
+      else:
+        if not seq_num_to_check == seq_num:
+          complete = False
+          seq_num = None
+          break
+
+    if complete:
+      break
+    else:
+      log.info("State transfer not complete.  Waiting.")
+      time.sleep(1)
 
 def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
@@ -577,7 +622,7 @@ def stop_services(host, user, password, services):
   for svc in services:
     log.info("Stopping {} on {}".format(svc, host))
     cmd = "docker stop {}".format(svc)
-    helper.ssh_connect(host, user, password, cmd)
+    helper.durable_ssh_connect(host, user, password, cmd)
 
 
 def start_services(host, user, password, services):
@@ -587,7 +632,7 @@ def start_services(host, user, password, services):
   for svc in services:
     log.info("Starting {} on {}".format(svc, host))
     cmd = "docker start  {}".format(svc)
-    helper.ssh_connect(host, user, password, cmd)
+    helper.durable_ssh_connect(host, user, password, cmd)
 
 
 def shutdown(host, timeout=10):
@@ -713,3 +758,10 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
 
   return crashed_committers, crashed_participants, unexpected_crash_results_dir
 
+def get_docker_timestamp(host, username, password, service):
+    '''
+    Retrieves the most recent timestamp from `docker logs` for the given service.
+    '''
+    output = helper.durable_ssh_connect(host, username, password,
+                                        "docker logs --tail 1 {}".format(service))
+    return output.split("|")[0]
