@@ -1,12 +1,12 @@
 {
   "configuration": {
     "cap_version": "0.1",
-    "appliance_name": "$APPLIANCE_NAME",
+    "appliance_name": "vmw-blockchain-sh-ovf-BCVERSION",
     "delivery_format": "OVF",
     "parking_directory": "images",
     "repositories": {
       "local": [
-        "$INSTALLATION_FOLDER/common-appliance-platform"
+        "PWD"
       ],
       "rpm": [
         {
@@ -46,17 +46,17 @@
   "build-appliance": {
     "remote": {
       "personalization": {
-        "image": "$ISO_BUILD_URL",
+        "image": "ISO_BUILD_URL",
         "root_password": "vmware",
         "existing_password": "previous"
       },
       "machine": {
-        "datastore": "$DATASTORE",
-        "datacenter": "$DATACENTER",
-        "vcenter_address": "$VC_ADDRESS",
-        "password": "$VC_PASSWORD",
-        "username": "$VC_USERNAME",
-        "hostname": "$ESX_HOSTNAME",
+        "datastore": "DATASTORE",
+        "datacenter": "DATACENTER",
+        "vcenter_address": "VC_ADDRESS",
+        "password": "VC_PASSWORD",
+        "username": "VC_USERNAME",
+        "hostname": "ESX_HOSTNAME",
         "network": "VM Network"
       }
     },
