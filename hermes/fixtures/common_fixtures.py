@@ -20,6 +20,7 @@ from util.daml import daml_helper
 from util.blockchain import eth as eth_helper
 from suites.case import describe
 import util.generate_zones_migration as migration
+from util.node_creator import NodeCreator
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
@@ -271,27 +272,10 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
 
    if not zoneIds:
        raise Exception("No zones available to proceed with deployment.")
-   numNodes = int(hermes_data["hermesCmdlineArgs"].numReplicas)
 
-   client_zone_ids = []
-   # client nodes array
-   client_nodes = []
-   num_participants = 0
+   committers, clients = NodeCreator(conAdminRequest, hermes_data, zoneIds).get_nodes()
    blockchain_type = hermes_data["hermesCmdlineArgs"].blockchainType
-
-   if blockchain_type.lower() == helper.TYPE_DAML:
-       num_participants = int(hermes_data["hermesCmdlineArgs"].numParticipants)
-       client_zone_ids = helper.distributeItemsRoundRobin(num_participants, zoneIds)
-       # How many groups do we have to create?
-       num_groups = int(hermes_data["hermesCmdlineArgs"].numGroups)
-       # We know how many groups, how many clients/participants.
-       client_nodes = helper.getClientNodes(num_groups, client_zone_ids)
-       log.debug("client_nodes after getClientNodes {}".format(client_nodes))
-
-   # numNodes is the number of committers and does not include participants.
-   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
-   response = conAdminRequest.createBlockchain(conId, siteIds, client_nodes, blockchain_type.upper())
-   log.debug("client nodes in common fixtures {}".format(client_nodes))
+   response = conAdminRequest.createBlockchain2(conId, committers, clients, blockchain_type.upper())
 
    if "task_id" not in response:
        raise Exception("task_id not found in response to create blockchain.")
@@ -338,6 +322,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
                                       hermes_data["hermesUserConfig"],
                                       tokenDescriptor=tokenDescriptor,
                                       service=hermes_data["hermesCmdlineArgs"].deploymentService)
+            num_participants = int(hermes_data["hermesCmdlineArgs"].numParticipants)
             success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
                                                                             num_participants)
             daml_participant_replicas = [{**replica_entry, **id_dict} for replica_entry in daml_participant_replicas]
@@ -353,7 +338,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
       create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
-   return blockchainId, conId, replica_dict, client_nodes
+   return blockchainId, conId, replica_dict, clients
 
 
 def verify_ethereum_deployment(replica_details, credentials, blockchain_type, logDir):

@@ -14,7 +14,8 @@ import util
 from suites.case import describe, getStackInfo
 from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
-from util import auth, csp, helper, hermes_logging, html, json_helper, numbers_strings, generate_grpc_bindings, pipeline
+from util import auth, csp, helper, hermes_logging, html, json_helper, node_creator,\
+numbers_strings, generate_grpc_bindings, pipeline
 
 import util.hermes_logging
 
@@ -137,8 +138,8 @@ def removeSkippedTests(testList, ethereumTestRoot):
 @describe("fixture; Set commandline argument dict")
 def hermes_info(request):
     '''
-    Session level fixture to read in commandline arguments and 
-    prepares a dictionary of the arguments. 
+    Session level fixture to read in commandline arguments and
+    prepares a dictionary of the arguments.
     '''
     log.info("Setting up Hermes Commandline Arguments for the session...with Args")
 
@@ -553,6 +554,33 @@ def pytest_addoption(parser):
     nonLocalDeployConfig.addoption("--numGroups",
                                    help="The number of groups for the client node grouping.",
                                    default=1)
+    nonLocalDeployConfig.addoption("--clientSize",
+                                   help="Size of client nodes, must match the SaaS api",
+                                   choices=node_creator.NodeCreator.SAAS_SIZES,
+                                   default=node_creator.NodeCreator.SAAS_SIZES[0])
+    nonLocalDeployConfig.addoption("--clientMemory",
+                                   help="Ability to override the client memory value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--clientCpu",
+                                   help="Ability to override the client cpu value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--clientStorage",
+                                   help="Ability to override the client storage value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--replicaSize",
+                                   help="Size of replica nodes, must match the SaaS api.",
+                                   choices=node_creator.NodeCreator.SAAS_SIZES,
+                                   default=node_creator.NodeCreator.SAAS_SIZES[0])
+    nonLocalDeployConfig.addoption("--replicaMemory",
+                                   help="Ability to override the replica memory value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--replicaCpu",
+                                   help="Ability to override the replica cpu value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--replicaStorage",
+                                   help="Ability to override the replica storage value provided by SaaS.",
+                                   default=None)
+
     parser.addoption("--executeAvoid",
                      help="Required to execute test cases which are marked as 'avoid'")
 
@@ -670,6 +698,14 @@ def _getArgs(request):
         "--hermesZoneConfig"),
     cmdArgs["hermesTestLogDir"] = request.config.getoption(
         "--hermesTestLogDir"),
+    cmdArgs["clientSize"] = request.config.getoption("--clientSize"),
+    cmdArgs["clientMemory"] = request.config.getoption("--clientMemory"),
+    cmdArgs["clientCpu"] = request.config.getoption("--clientCpu"),
+    cmdArgs["clientStorage"] = request.config.getoption("--clientStorage"),
+    cmdArgs["replicaSize"] = request.config.getoption("--replicaSize"),
+    cmdArgs["replicaMemory"] = request.config.getoption("--replicaMemory"),
+    cmdArgs["replicaCpu"] = request.config.getoption("--replicaCpu"),
+    cmdArgs["replicaStorage"] = request.config.getoption("--replicaStorage")
 
     return cmdArgs
 

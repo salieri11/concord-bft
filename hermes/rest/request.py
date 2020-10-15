@@ -234,9 +234,11 @@ class Request():
 
       return self._send(verb="GET")
 
+
    def createBlockchain(self, consortiumId,  siteIds, client_nodes=[],
                         blockchainType=helper.TYPE_ETHEREUM.upper()):
       '''
+      DEPRECATED.  Use createBlockchain2() instead.
       Create a blockchain.  Values are simply passed through to persephone.
       consortiumId: The consoritum UUID.
       f: # of faulty nodes.
@@ -258,6 +260,47 @@ class Request():
 
       return self._send()
 
+
+   def createBlockchain2(self, consortiumId,  replicaNodes, clientNodes=[],
+                        blockchainType=helper.TYPE_ETHEREUM.upper()):
+      '''
+      Arguments passed in reflect the fields defined in
+      https://confluence.eng.vmware.com/display/BLOC/BC-3521%3A+Node+size+template+support
+      {
+        "consortium_id": "04e4f62d-5364-4363-a582-b397075b65a3",
+        "blockchain_type": "DAML",
+        "replica_nodes": [
+          {“zone_id”: “84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
+          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
+          {“zone_id”: "275638a3-8860-4925-85de-c73d45cb7232", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
+          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
+        ],
+        "client_nodes": [
+          {
+            "zone_id": "84b9a0ed-c162-446a-b8c0-2e45755f3844",
+            "auth_url_jwt": "user@server.com",
+            "group_name": “Group 1”,
+            "sizing_info" : {
+              "no_of_cpus": "1",
+              "storage_in_gigs": "100",
+              "memory_in_gigs": "128"
+            }
+          }
+        ]
+      }
+      '''
+      self._subPath = "/api/blockchains"
+      self._params = ""
+      self._data = {
+         "consortium_id": consortiumId,
+         "blockchain_type": blockchainType,
+         "replica_nodes": replicaNodes,
+         "client_nodes": clientNodes
+      }
+      self._endpointName = "create_blockchain"
+      return self._send()
+
+   
    def getBlockchainDetails(self, blockchainId):
       '''
       Get the details for a given blockchain ID.
@@ -711,8 +754,18 @@ class Request():
       self._data = None
       self._endpointName = "deregister_blockchains"
       return self._send(verb="POST")
-      
-      
+
+
+   def getNodeSizeTemplate(self):
+      '''
+      Get the node sizing template for the system.
+      '''
+      self._subPath = "/api/blockchains/node-size-template"
+      self._endpointName = "node-size-template"
+      self._params = ""
+      self._data = None
+      return self._send()
+   
    '''
    =================================================================
    =================================================================
@@ -733,11 +786,3 @@ class Request():
       return self._send()
 
 
-   def getNodeSizeTemplate(self):
-      '''
-      Get the node sizing template for the system.
-      '''
-      self._subPath = "/api/blockchains/node-size-template"
-      self._endpointName = "node-size-template"
-
-      return self._send()

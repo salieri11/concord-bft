@@ -22,7 +22,8 @@ from suites import (
 )
 from suites.case import summarizeExceptions, addExceptionToSummary
 from util import (auth, csp, helper, hermes_logging, html, json_helper,
-                 numbers_strings, generate_grpc_bindings, pipeline)
+                  node_creator, numbers_strings, generate_grpc_bindings,
+                  pipeline)
 from util.product import ProductLaunchException
 import util.chessplus.chessplus_helper as chessplus_helper
 
@@ -336,6 +337,32 @@ def main():
    nonLocalDeployConfig.add_argument("--propertiesString",
                                      help="The string containing comma seperated key value pairs for deployment properties.",
                                      default="")
+   nonLocalDeployConfig.add_argument("--clientSize",
+                                     help="Size of client nodes, must match the SaaS api.",
+                                     choices=node_creator.NodeCreator.SAAS_SIZES,
+                                     default=node_creator.NodeCreator.SAAS_SIZES[0])
+   nonLocalDeployConfig.add_argument("--clientMemory",
+                                     help="Ability to override the client memory value provided by SaaS.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--clientCpu",
+                                     help="Ability to override the client cpu value provided by SaaS.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--clientStorage",
+                                     help="Ability to override the client storage value provided by SaaS.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--replicaSize",
+                                     help="Size of replica nodes, must match the SaaS api.",
+                                     choices=node_creator.NodeCreator.SAAS_SIZES,
+                                     default=node_creator.NodeCreator.SAAS_SIZES[0])
+   nonLocalDeployConfig.add_argument("--replicaMemory",
+                                     help="Ability to override the replica memory value provided by SaaS.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--replicaCpu",
+                                     help="Ability to override the replica cpu value provided by SaaS.",
+                                     default=None)
+   nonLocalDeployConfig.add_argument("--replicaStorage",
+                                     help="Ability to override the replica storage value provided by SaaS.",
+                                     default=None)
 
    args = parser.parse_args()
 

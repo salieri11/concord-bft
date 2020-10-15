@@ -758,7 +758,6 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
 
   return crashed_committers, crashed_participants, unexpected_crash_results_dir
 
-
 def get_docker_timestamp(host, username, password, service):
     '''
     Retrieves the most recent timestamp from `docker logs` for the given service.
