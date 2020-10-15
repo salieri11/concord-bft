@@ -1,0 +1,95 @@
+{
+  "ProductSections": [{
+    "attributes": {
+      "ovf:required": "false"
+    },
+    "Info": "This ova is a baseline for blockchain replica and client nodes.",
+    "Product": "VMware Blockchain photon ova",
+    "Vendor": "VMware Inc.",
+    "Version": "1.0",
+    "FullVersion": "1.0 photon 3.0",
+    "ProductUrl": "",
+    "VendorUrl": "http://www.vmware.com",
+
+    "categories": [{
+      "name": "Cloud-Init Properties",
+      "properties": [
+        {
+          "attributes": {
+            "ovf:key": "user-data",
+            "ovf:type": "string",
+            "ovf:userConfigurable": "true"
+          },
+          "Label": {
+            "ovf:msgid": "user-data.label",
+            "value" : "user-data"
+          },
+          "Description": {
+            "ovf:msgid": "user-data.description",
+            "value" : "Direct user-data input in base64 encoding to be decoded and processed."
+          }
+        },
+        {
+          "attributes": {
+            "ovf:key": "public-keys",
+            "ovf:type": "string",
+            "ovf:userConfigurable": "true"
+          },
+          "Label": {
+            "ovf:msgid": "public-keys.label",
+            "value": "public-keys"
+          },
+          "Description": {
+            "ovf:msgid": "public-keys.description",
+            "value": "Public key to add to users authorized keys."
+          }
+        },
+        {
+          "attributes": {
+            "ovf:key": "hostname",
+            "ovf:type": "string",
+            "ovf:userConfigurable": "true"
+          },
+          "Label": {
+            "ovf:msgid": "hostname.label",
+            "value" : "hostname"
+          },
+          "Description": {
+            "ovf:msgid": "hostname.description",
+            "value" : "Instance hostname."
+          }
+        },
+        {
+          "attributes": {
+            "ovf:key": "instance-id",
+            "ovf:type": "string",
+            "ovf:userConfigurable": "true"
+          },
+          "Label": {
+            "ovf:msgid": "instance-id.label",
+            "value" : "instance-id"
+          },
+          "Description": {
+            "ovf:msgid": "instance-id.description",
+            "value" : "Unique replica instance identifier."
+          }
+        },
+        {
+          "attributes": {
+            "ovf:key": "seedfrom",
+            "ovf:type": "string",
+            "ovf:userConfigurable": "true"
+          },
+          "Label": {
+            "ovf:msgid": "seedfrom.label",
+            "value" : "seedfrom"
+          },
+          "Description": {
+            "ovf:msgid": "seedfrom.description",
+            "value" : "Prefix URL to 'seed' *user-data and *meta-data from. e.g. http://domain/seed-"
+          }
+        }
+      ]
+    }]
+  }]
+}
