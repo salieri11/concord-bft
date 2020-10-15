@@ -330,11 +330,12 @@ public class CastorDescriptorTest {
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInvalidInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
-        // This file has 3 errors:
+        // This file has 4 errors:
         Set<String> expectedErrorCodes = new HashSet<>();
         expectedErrorCodes.add("vcenter.password.not.specified");
         expectedErrorCodes.add("network.name.not.specified");
         expectedErrorCodes.add("vcenter.certificate.invalid");
+        expectedErrorCodes.add("notary.server.cert.present.but.url.not.present");
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.PROVISION, readInvalidInfra, validDeployment);
         Set<String> validationErrorCodes = errors.stream()

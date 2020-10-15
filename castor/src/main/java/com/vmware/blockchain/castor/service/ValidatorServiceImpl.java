@@ -122,26 +122,47 @@ public class ValidatorServiceImpl implements ValidatorService {
         }
 
         // Checks if the Certificate is valid
-        infrastructureDescriptor.getZones().stream().forEach(zone -> {
-            if (StringUtils.hasText(zone.getVCenter().getTlsCertificateData())) {
-                try {
-                    // Implicitly checks for the Certificate Parsing and Encoding Exceptions
-                    X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
-                            .generateCertificate(new ByteArrayInputStream(zone.getVCenter()
-                                                                                  .getTlsCertificateData().getBytes()));
-                    // Throws exception if certificate has expired or not yet valid
-                    tlsCertificate.checkValidity();
-                } catch (Exception e) {
-                    String error = "vcenter.certificate.invalid";
-                    ValidationError validationError = ValidationError.builder()
-                            .errorCode(error)
-                            .propertyPath("tlsCertificate")
-                            .arguments(List.of(String.valueOf(zone.getName())))
-                            .build();
-                    errors.add(validationError);
+        if (infrastructureDescriptor.getZones() != null) {
+            infrastructureDescriptor.getZones().stream().forEach(zone -> {
+                if (StringUtils.hasText(zone.getVCenter().getTlsCertificateData())) {
+                    try {
+                        // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                        X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+                                .generateCertificate(new ByteArrayInputStream(zone.getVCenter()
+                                                                                      .getTlsCertificateData()
+                                                                                      .getBytes()));
+                        // Throws exception if certificate has expired or not yet valid
+                        tlsCertificate.checkValidity();
+                    } catch (Exception e) {
+                        String error = "vcenter.certificate.invalid";
+                        ValidationError validationError = ValidationError.builder()
+                                .errorCode(error)
+                                .propertyPath("tlsCertificate")
+                                .arguments(List.of(zone.getName()))
+                                .build();
+                        errors.add(validationError);
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        // Validate Notary Server Details
+        if (infrastructureDescriptor.getZones() != null) {
+            infrastructureDescriptor.getZones().stream().forEach(zone -> {
+                if (zone.getNotaryServer() != null) {
+                    if (zone.getNotaryServer().getUrl() == null
+                        && StringUtils.hasText(zone.getNotaryServer().getTlsCertificateData())) {
+                        String error = "notary.server.cert.present.but.url.not.present";
+                        ValidationError validationError = ValidationError.builder()
+                                .errorCode(error)
+                                .propertyPath("notaryServer")
+                                .arguments(List.of(zone.getName()))
+                                .build();
+                        errors.add(validationError);
+                    }
+                }
+            });
+        }
 
         // Validate clients
         validateClients(deploymentDescriptor.getClients(), errors);
