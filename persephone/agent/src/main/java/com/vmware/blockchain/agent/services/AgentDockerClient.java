@@ -384,7 +384,7 @@ public class AgentDockerClient {
     public void deleteComponent(DockerClient dockerClient, BaseContainerSpec containerParam,
                               String containerId) {
         log.info("Removing {}: Id {} ", containerParam.getContainerName(), containerId);
-        dockerClient.removeContainerCmd(containerId).exec();
+        dockerClient.removeContainerCmd(containerId).withForce(Boolean.TRUE).exec();
         log.info("Removed container {}: Id {} ", containerParam.getContainerName(), containerId);
     }
 }
