@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from suites.case import describe
 from collections import namedtuple
 import pytest
+import time
+import random
 from util import helper, hermes_logging, blockchain_ops
 from threading import Thread
 import util.daml.daml_helper as daml_helper
@@ -80,6 +82,78 @@ def install_sdk_deploy_daml(client_host, client_port):
 
     assert success or "Party already exists" in output, \
         "Unable to deploy DAML app for one/more parties"
+
+
+def staggered_startup_of_committers(fxHermesRunSettings, concord_hosts):
+    '''
+    Function for staggered startup of committer nodes
+    Args:
+        fxHermesRunSettings: Hermes command line arguments
+        concord_hosts: List of Committer Node IPs
+    Returns:
+        None
+    '''
+    list_of_committer_indexes = list(range(len(concord_hosts)))
+    while list_of_committer_indexes:
+        concord_host_index = random.choice(list_of_committer_indexes)
+        concord_host = concord_hosts[concord_host_index]
+        log.info("Committer on {}: {}".format(
+            concord_host_index, concord_host))
+        assert interrupt_node(fxHermesRunSettings, concord_host,
+                              helper.TYPE_DAML_COMMITTER,
+                              intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                              intr_helper.NODE_RECOVER), \
+            "Failed to power on committer node [{}]".format(
+                concord_host)
+        list_of_committer_indexes.remove(concord_host_index)
+        sleep_time = random.randrange(5, 15)
+        log.info("Sleeping for time {}".format(sleep_time))
+        time.sleep(sleep_time)
+
+
+def power_on_all_participants(fxHermesRunSettings, client_host_items):
+    '''
+    Function to switch on all participant nodes
+    Args:
+        fxHermesRunSettings: Hermes command line arguments
+        client_host_items: List containing pairs of participant IPs and their corresponding port
+    Returns:
+        None
+    '''
+    client_on_count = 1
+    for client_host in client_host_items:
+        log.info("Participant on {}: {}".format(
+            client_on_count, client_host[0]))
+        assert interrupt_node(fxHermesRunSettings, client_host[0],
+                              helper.TYPE_DAML_PARTICIPANT,
+                              intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                              intr_helper.NODE_RECOVER), \
+            "Failed to power on participant node [{}]".format(client_host)
+        client_on_count = client_on_count + 1
+
+
+# If f_count is passed to this method, then it powers off only f nodes. Otherwise all nodes are powered off.
+def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
+    '''
+    Function to power off all or f committer nodes
+    Args:
+        fxHermesRunSettings: Hermes command line arguments
+        concord_hosts: List of Committer Node IPs
+        f_count: If passed, then the number of f nodes is passed
+    Returns:
+        None
+    '''
+    nodes_switched_off = 0
+    for concord_host in concord_hosts:
+        if f_count and f_count == nodes_switched_off:
+            break
+        assert interrupt_node(fxHermesRunSettings, concord_host,
+                              helper.TYPE_DAML_COMMITTER,
+                              intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                              intr_helper.NODE_INTERRUPT), \
+            "Failed to power off committer node [{}]".format(
+                concord_host)
+        nodes_switched_off = nodes_switched_off + 1
 
 
 def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
@@ -527,3 +601,76 @@ def test_fault_tolerance_view_change(fxLocalSetup, fxHermesRunSettings, fxBlockc
 
         except Exception as excp:
             assert False, excp
+
+
+@describe("Verify fault tolerance when nodes started with staggered startup ")
+@pytest.mark.parametrize("participant_first", [True, False])
+def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, participant_first):
+    '''
+    Verify below using DAML tool.
+    - Connect to a blockchain network.
+    - Submit valid requests to it.
+    - Verify that requests are processed correctly.
+    - Stop all nodes
+    - Start the participant Nodes
+    - Perform the staggered startup on replica nodes
+    - Continuously submit and verify requests.
+    - Verify that new requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+    '''
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        # Install sdk only for one iteration
+        if participant_first:
+            install_sdk_deploy_daml(client_host, client_port)
+
+        no_of_txns, wait_time = 1, 1
+        client_off_count = 0
+        url = 'http://{}:{}'.format(client_host, client_port)
+
+        assert simple_request(url, no_of_txns), \
+            "DAML request submission/verification failed for participant \
+            [{}]".format(client_host)
+        log.info("Participant off {}: {}".format(
+            client_off_count, client_host))
+
+        # Power off participant node
+        assert interrupt_node(fxHermesRunSettings, client_host,
+                              helper.TYPE_DAML_PARTICIPANT,
+                              intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                              intr_helper.NODE_INTERRUPT), \
+            "Failed to power off participant node [{}]".format(client_host)
+        client_off_count = client_off_count + 1
+
+    # Power off all committer Nodes
+    power_off_committers(fxHermesRunSettings, fxLocalSetup.concord_hosts)
+
+    if participant_first:
+        # Power on all participant nodes
+        power_on_all_participants(
+            fxHermesRunSettings, fxLocalSetup.client_hosts.items())
+
+        # Power on all committer nodes
+        staggered_startup_of_committers(
+            fxHermesRunSettings, fxLocalSetup.concord_hosts)
+
+    else:
+        # Power on all committer nodes
+        staggered_startup_of_committers(
+            fxHermesRunSettings, fxLocalSetup.concord_hosts)
+
+        # Power on all participant nodes
+        power_on_all_participants(
+            fxHermesRunSettings, fxLocalSetup.client_hosts.items())
+
+    # Wait for sometime before creating transactions
+    time.sleep(60)
+
+    # Create & verify transactions after powering on all nodes
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        no_of_txns, wait_time = 1, 1
+        url = 'http://{}:{}'.format(client_host, client_port)
+        assert simple_request(url, no_of_txns), \
+            "DAML request submission/verification failed for participant \
+            [{}]".format(client_host)
