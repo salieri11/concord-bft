@@ -207,6 +207,7 @@ public class NodeStartupOrchestrator {
                 if (!artifact.getFilePermissions().isEmpty()) {
                     Set<PosixFilePermission> ownerRw = PosixFilePermissions.fromString(artifact.getFilePermissions());
                     FileAttribute<?> permissions = PosixFilePermissions.asFileAttribute(ownerRw);
+                    Files.deleteIfExists(filepath);
                     filepath = Files.createFile(filepath, permissions);
                 }
 
