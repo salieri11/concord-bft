@@ -2,13 +2,10 @@
 
 #include "thin_replica_client_facade.hpp"
 #include <log4cplus/configurator.h>
-#include "thin_replica.grpc.pb.h"
 #include "thin_replica_client.hpp"
 #include "thin_replica_client_facade_impl.hpp"
+#include "trs_connection.hpp"
 
-using grpc::Channel;
-using grpc::ChannelArguments;
-using grpc::InsecureChannelCredentials;
 using log4cplus::Logger;
 using std::endl;
 using std::exception;
@@ -27,6 +24,7 @@ using std::this_thread::sleep_for;
 using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::ThinReplicaClientFacade;
+using thin_replica_client::TrsConnection;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
 
@@ -60,13 +58,21 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     const uint16_t max_read_data_timeout, const uint16_t max_read_hash_timeout,
     const std::string& jaeger_agent)
     : impl(new Impl()) {
+  if (max_read_data_timeout == 0 || max_read_hash_timeout == 0) {
+    throw runtime_error(
+        "Read data/hash timeouts are set to 0 seconds. Please set a timeout "
+        "> 0.");
+  }
+
   try {
-    ChannelArguments args;
-    args.SetMaxReceiveMessageSize(kGrpcMaxInboundMsgSizeInBytes);
-    vector<shared_ptr<Channel>> serverChannels;
-    for (auto& server : servers) {
-      serverChannels.push_back(shared_ptr<Channel>(
-          CreateCustomChannel(server, InsecureChannelCredentials(), args)));
+    vector<std::unique_ptr<TrsConnection>> trs_connections;
+
+    // Create TRS connections and connect to the server
+    for (const auto& address : servers) {
+      auto trsc = std::make_unique<TrsConnection>(address, client_id);
+      LOG4CPLUS_INFO(impl->logger, "Connecting to TRS " << *trsc);
+      trsc->connect();
+      trs_connections.push_back(std::move(trsc));
     }
 
     // Wait (up to a timeout) to validate the server(s) to connect to are
@@ -79,24 +85,23 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     // will more gracefully error-handle this case in the future. Note this
     // check assumes the ThinReplicaClient implementation will need to be able
     // to connect to a total of max_faulty + 1 servers to make progress.
-    assert(serverChannels.size() > 0);
     bool servers_responsive = false;
-    system_clock::time_point time_to_wait_until =
+    system_clock::time_point deadline =
         system_clock::now() + kMaxTimeToWaitForServerConnectivity;
-    while (!servers_responsive && (system_clock::now() <= time_to_wait_until)) {
+    while (system_clock::now() <= deadline) {
       size_t num_responsive_servers = 0;
-      for (const auto& server : serverChannels) {
-        if (server->GetState(true) ==
-            grpc_connectivity_state::GRPC_CHANNEL_READY) {
+      for (const auto& trsc : trs_connections) {
+        if (trsc->isConnected()) {
           ++num_responsive_servers;
         }
       }
       if (num_responsive_servers >= (max_faulty + 1)) {
         servers_responsive = true;
-      } else {
-        sleep_for(kTimeToSleepBetweenConnectionAttempts);
+        break;
       }
+      sleep_for(kTimeToSleepBetweenConnectionAttempts);
     }
+
     if (!servers_responsive) {
       throw runtime_error(
           "Failed to construct Thin Replica Client: could not connect to "
@@ -105,29 +110,15 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
           kMaxTimeToWaitForServerConnectivityUnitLabel + ".");
     }
 
-    if (max_read_data_timeout == 0 || max_read_hash_timeout == 0) {
-      throw runtime_error(
-          "Read data/hash timeouts are set to 0 seconds. Please set a timeout "
-          "> 0.");
-    }
-
-    vector<unique_ptr<ThinReplica::StubInterface>> server_stubs;
-    assert(serverChannels.size() == servers.size());
-    for (size_t i = 0; i < servers.size(); ++i) {
-      server_stubs.push_back(unique_ptr<ThinReplica::StubInterface>{
-          ThinReplica::NewStub(serverChannels[i])});
-    }
-
     impl->trc.reset(new ThinReplicaClient(
         client_id, impl->update_queue, max_faulty, private_key,
-        server_stubs.begin(), server_stubs.end(), max_read_data_timeout,
+        std::move(trs_connections), max_read_data_timeout,
         max_read_hash_timeout, jaeger_agent));
   } catch (const exception& e) {
     LOG4CPLUS_ERROR(
         impl->logger,
         "An exception occurred while trying to construct a ThinReplicaClient "
-        "and connect it to the Thin Replica Server(s). Exception message:"
-            << endl
+        "and connect it to the Thin Replica Server(s). Exception message: "
             << e.what());
     throw;
   }

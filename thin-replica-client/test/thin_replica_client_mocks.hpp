@@ -6,6 +6,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "thin_replica_mock.grpc.pb.h"
+#include "trs_connection.hpp"
+
+class MockTrsConnection : public thin_replica_client::TrsConnection {
+ public:
+  MockTrsConnection();
+  ~MockTrsConnection();
+  com::vmware::concord::thin_replica::MockThinReplicaStub* GetStub();
+  bool isConnected() override;
+};
 
 template <class DataType>
 class MockThinReplicaStream : public grpc::ClientReaderInterface<DataType> {
@@ -244,36 +253,19 @@ class MockOrderedDataStreamHasher {
 };
 
 void SetMockServerBehavior(
-    std::unique_ptr<com::vmware::concord::thin_replica::MockThinReplicaStub>&
-        server,
+    thin_replica_client::TrsConnection* server,
     const std::shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher);
 
-void SetMockServerBehavior(
-    std::vector<std::unique_ptr<
-        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers,
-    const std::shared_ptr<MockDataStreamPreparer>& data_preparer,
-    const MockOrderedDataStreamHasher& hasher);
+void SetMockServerUnresponsive(thin_replica_client::TrsConnection* server);
 
-void SetMockServerUnresponsive(
-    std::unique_ptr<com::vmware::concord::thin_replica::MockThinReplicaStub>&
-        server);
-
-void SetMockServerUnresponsive(
-    std::vector<std::unique_ptr<
-        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers);
-
-void SetSomeMockServersUnresponsive(
-    std::vector<std::unique_ptr<
-        com::vmware::concord::thin_replica::MockThinReplicaStub>>& servers,
-    size_t num_unresponsive);
-
-// Clears the given vector then fills it with num_servers unique pointers to
-// newly-constructed mock servers.
-void InstantiateMockServers(
-    std::vector<std::unique_ptr<
-        com::vmware::concord::thin_replica::MockThinReplicaStub>>& mock_servers,
-    size_t num_servers);
+std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+CreateTrsConnections(size_t num_servers, size_t num_unresponsive = 0);
+std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+CreateTrsConnections(size_t num_servers,
+                     std::shared_ptr<MockDataStreamPreparer> stream_preparer,
+                     MockOrderedDataStreamHasher& hasher,
+                     size_t num_unresponsive = 0);
 
 template <class DataType>
 grpc::ClientReaderInterface<DataType>* CreateUnresponsiveMockStream() {

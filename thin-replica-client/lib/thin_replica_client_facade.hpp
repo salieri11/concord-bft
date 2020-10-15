@@ -25,8 +25,8 @@ namespace thin_replica_client {
 
 // ThinReplicaClientFacade provides a simplified interface to the
 // ThinReplicaClient. Its include footprint is minimal, simplifying the build
-// process of the caller code. Using this class does not enforce having grpc,
-// log4plus or thin replica proto files in the include path.
+// process of the caller code. Using this class does not enforce having log4plus
+// or thin replica proto files in the include path.
 class ThinReplicaClientFacade final {
  public:
   ThinReplicaClientFacade(const std::string& client_id, uint16_t max_faulty,

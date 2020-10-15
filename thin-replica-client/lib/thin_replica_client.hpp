@@ -37,10 +37,10 @@
 #ifndef THIN_REPLICA_CLIENT_HPP_
 #define THIN_REPLICA_CLIENT_HPP_
 
-#include "thin_replica.grpc.pb.h"
+#include "thin_replica.pb.h"
+#include "trs_connection.hpp"
 #include "update.hpp"
 
-#include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
@@ -52,14 +52,6 @@
 #include <thread>
 
 namespace thin_replica_client {
-
-// The default message size for incoming data is 4MiB but certain workloads
-// demand a higher limit. With the tested workloads, the incoming message size
-// from the TRS is less than 16MiB. This correlates with the maximum message
-// size that we specify for the SBFT protocol in Concord's configuration file.
-// Note: We can set the upper bound to unlimited (-1) but we do want to know
-// when & why the message size increases.
-const int kGrpcMaxInboundMsgSizeInBytes = 1 << 24;
 
 // Interface for a synchronized queue to be used to transfer updates between a
 // ThinReplicaClient and an application. The Thin Replica Client Library
@@ -188,9 +180,8 @@ class ThinReplicaClient final {
  private:
   log4cplus::Logger logger_;
   std::string client_id_;
-  std::vector<std::unique_ptr<
-      com::vmware::concord::thin_replica::ThinReplica::StubInterface>>
-      server_stubs_;
+  size_t data_conn_index_;
+  std::vector<std::unique_ptr<TrsConnection>> trs_conns_;
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
 
@@ -203,16 +194,6 @@ class ThinReplicaClient final {
 
   std::unique_ptr<std::thread> subscription_thread_;
   std::atomic_bool stop_subscription_thread_;
-
-  std::unique_ptr<
-      grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>>
-      subscription_data_stream_;
-  std::unique_ptr<grpc::ClientContext> sub_data_context_;
-  size_t current_data_source_;
-  std::vector<std::unique_ptr<
-      grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Hash>>>
-      subscription_hash_streams_;
-  std::vector<std::unique_ptr<grpc::ClientContext>> sub_hash_contexts_;
 
   // TRC metrics
   prometheus::Exposer exposer_;
@@ -285,9 +266,7 @@ class ThinReplicaClient final {
           server_indexes_by_reported_update,
       size_t& maximal_agreeing_subset_size,
       std::pair<uint64_t, UpdateHashType>& maximally_agreed_on_update);
-  template <class ReaderType>
-  void CloseStream(std::unique_ptr<ReaderType>& stream,
-                   std::unique_ptr<grpc::ClientContext>& context);
+  void CloseStream(std::unique_ptr<TrsConnection>& conn);
 
  public:
   // Constructor for ThinReplicaClient. Note that, as the ThinReplicaClient
@@ -308,48 +287,27 @@ class ThinReplicaClient final {
   //   cluster the servers are from).
   // - private_key: Private cryptographic key identifying and authenticating the
   //   ThinReplicaClient being constructed to the Thin Replica Servers.
-  // - begin_servers: Iterator returning elements of type
-  //   std::unique_ptr<
-  //      com::vmware::concord::thin_replica::ThinReplica::StubInterface>
-  //   representing each server available for this ThinReplicaClient to connect
-  //   to; the unique pointer to a
-  //   com::vmware::concord::thin_replica::ThinReplica::StubInterface should
-  //   point to a grpc server stub connecting to that Thin Replica Server. Note
-  //   this ThinReplicaClient object will take ownership of the server stub
-  //   unique pointers; they will be left pointing to null when this constructor
-  //   returns if it is successful, and this object will handle destroying those
-  //   stubs at the time of its own destruction. If this constructor fails, no
-  //   guarantees are made about which StubInterface pointers will have been
-  //   left intact and which will have been moved and set to null, but the
-  //   constructor does guarantee that any pointer that is set to null will be
-  //   destroyed. Furthermore, the order this iterator returns the servers will
-  //   be used by this ThinReplicaClient as the preferred order to try
-  //   connecting to the servers.
-  // - end_servers: End iterator corresponding to begin_servers.
+  // - trs_connections: Vector of connection objects. Each representing a direct
+  //   connection from this TRC to a specific Thin Replica Server.
   // - jaeger_agent: ip:port of the jaeger agent
-  template <class Iterator>
   ThinReplicaClient(std::string client_id,
                     std::shared_ptr<UpdateQueue> update_queue,
                     uint16_t max_faulty, const std::string& private_key,
-                    Iterator begin_servers, Iterator end_servers,
+                    std::vector<std::unique_ptr<TrsConnection>> trs_connections,
                     const uint16_t max_read_data_timeout,
                     const uint16_t max_read_hash_timeout,
                     const std::string& jaeger_agent)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
         client_id_(client_id),
-        server_stubs_(),
+        data_conn_index_(0),
+        trs_conns_(std::move(trs_connections)),
         update_queue_(update_queue),
         max_faulty_(max_faulty),
         key_prefix_(),
         latest_verified_block_id_(0),
         subscription_thread_(),
         stop_subscription_thread_(false),
-        subscription_data_stream_(),
-        sub_data_context_(),
-        current_data_source_(0),
-        subscription_hash_streams_(),
-        sub_hash_contexts_(),
         timeout_read_data_stream_(std::chrono::seconds(max_read_data_timeout)),
         timeout_read_hash_stream_(std::chrono::seconds(max_read_hash_timeout)),
         exposer_("0.0.0.0:9891", "/metrics", 1),
@@ -386,24 +344,9 @@ class ThinReplicaClient final {
         read_ignored_per_update_(0) {
     SetupTracing(jaeger_agent);
     exposer_.RegisterCollectable(registry_);
-    while (begin_servers != end_servers) {
-      auto& server_info = *begin_servers;
-      if (!(server_info)) {
-        server_stubs_.clear();
-        update_queue_.reset();
-        throw std::invalid_argument(
-            "Null ThinReplica::StubInterface provided to ThinReplicaClient "
-            "constructor (only non-null StubInterface pointers are valid for "
-            "this purpose).");
-      }
-      server_stubs_.push_back(std::move(server_info));
-      server_info.reset();
-      ++begin_servers;
-    }
 
-    if (server_stubs_.size() < (3 * (size_t)max_faulty_ + 1)) {
-      size_t num_servers = server_stubs_.size();
-      server_stubs_.clear();
+    if (trs_conns_.size() < (3 * (size_t)max_faulty_ + 1)) {
+      size_t num_servers = trs_conns_.size();
       update_queue_.reset();
       throw std::invalid_argument(
           "Too few servers (" + std::to_string(num_servers) +
