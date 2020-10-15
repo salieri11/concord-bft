@@ -6,8 +6,8 @@
     "Info": "This ova is a baseline for blockchain replica and client nodes.",
     "Product": "VMware Blockchain photon ova",
     "Vendor": "VMware Inc.",
-    "Version": "1.0",
-    "FullVersion": "1.0 photon 3.0",
+    "Version": "BCVERSION",
+    "FullVersion": "FULL_VERSION",
     "ProductUrl": "",
     "VendorUrl": "http://www.vmware.com",
 
