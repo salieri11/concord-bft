@@ -272,11 +272,6 @@ participant-lib() {
     docker_build . concord/src/external_client/DockerfileCombined ${participant_lib_repo} ${participant_lib_tag}  --build-arg "ext_lib_repo=${client_pool_lib_repo}" --build-arg "ext_lib_tag=${client_pool_lib_tag}" --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
 }
 
-operator() {
-    info "Build operator..."
-    docker_build . concord/src/operator/Dockerfile ${operator_repo} ${operator_tag}
-}
-
 PerformanceTests() {
     pushd .
     cd performance/benchmark
@@ -339,9 +334,6 @@ then
 
     concord
     ui
-    waitForProcesses
-
-    operator
     waitForProcesses
 
     fluentd
