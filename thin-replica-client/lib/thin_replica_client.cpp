@@ -3,6 +3,7 @@
 #include "thin_replica_client.hpp"
 
 #include <jaegertracing/Tracer.h>
+#include <log4cplus/mdc.h>
 #include <opentracing/propagation.h>
 #include <opentracing/span.h>
 #include <opentracing/tracer.h>
@@ -21,12 +22,14 @@ using com::vmware::concord::thin_replica::KVPair;
 using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::SubscriptionRequest;
+using std::atomic_bool;
 using std::condition_variable;
 using std::exception;
 using std::future_status;
 using std::hash;
 using std::list;
 using std::lock_guard;
+using std::logic_error;
 using std::make_pair;
 using std::map;
 using std::mutex;
@@ -42,6 +45,7 @@ using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
 using thin_replica_client::BasicUpdateQueue;
+using thin_replica_client::LogCid;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::Update;
 
@@ -87,6 +91,23 @@ class JaegerLogger : public jaegertracing::logging::Logger {
     LOG4CPLUS_INFO(logger, message);
   }
 };
+
+const string LogCid::cid_key_ = "cid";
+atomic_bool LogCid::cid_set_ = false;
+
+LogCid::LogCid(const std::string& cid) {
+  bool expected_cid_set_state_ = false;
+  if (!cid_set_.compare_exchange_strong(expected_cid_set_state_, true)) {
+    throw logic_error(
+        "Attempting to add CID to a logging context that already has a CID.");
+  }
+  log4cplus::getMDC().put(cid_key_, cid);
+}
+
+LogCid::~LogCid() {
+  log4cplus::getMDC().remove(cid_key_);
+  cid_set_ = false;
+}
 
 BasicUpdateQueue::BasicUpdateQueue()
     : queue_data_(), mutex_(), condition_(), release_consumers_(false) {}
@@ -236,7 +257,8 @@ void ThinReplicaClient::CloseStream(unique_ptr<TrsConnection>& stream) {
 
 std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
     Data& update_in, AgreeingSubsetMembers& agreeing_subset_members,
-    size_t& most_agreeing, BlockIdHashPair& most_agreed_block) {
+    size_t& most_agreeing, BlockIdHashPair& most_agreed_block,
+    unique_ptr<LogCid>& cid) {
   auto reader = std::async(std::launch::async, [this, &update_in] {
     return trs_conns_[data_conn_index_]->readData(&update_in);
   });
@@ -264,6 +286,7 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
   }
 
   auto span = GetSpan(update_in, "trc_read_block");
+  cid.reset(new LogCid(update_in.correlation_id()));
   if (update_in.block_id() < latest_verified_block_id_) {
     LOG4CPLUS_WARN(logger_,
                    "Data stream "
@@ -271,6 +294,7 @@ std::pair<bool, ThinReplicaClient::SpanPtr> ThinReplicaClient::ReadBlock(
                        << " gave an update with decreasing block number: "
                        << update_in.block_id());
     read_ignored_per_update_++;
+    cid.reset(nullptr);
     return {false, nullptr};
   }
 
@@ -359,7 +383,8 @@ void ThinReplicaClient::CloseAllHashStreams() {
 
 bool ThinReplicaClient::RotateDataStreamAndVerify(
     Data& update_in, AgreeingSubsetMembers& agreeing_subset_members,
-    BlockIdHashPair& most_agreed_block, SpanPtr& parent_span) {
+    BlockIdHashPair& most_agreed_block, SpanPtr& parent_span,
+    unique_ptr<LogCid>& cid) {
   SpanPtr span = nullptr;
   if (parent_span) {
     span = opentracing::Tracer::Global()->StartSpan(
@@ -404,6 +429,7 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
       continue;
     }
 
+    cid.reset(new LogCid(update_in.correlation_id()));
     if (update_in.block_id() != most_agreed_block.first) {
       LOG4CPLUS_WARN(logger_, "Data stream "
                                   << server_index
@@ -413,6 +439,7 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
                                      "disagreement with the consensus and "
                                      "contradicting its own hash update.");
       read_ignored_per_update_++;
+      cid.reset();
       continue;
     }
 
@@ -428,6 +455,7 @@ bool ThinReplicaClient::RotateDataStreamAndVerify(
                          << ") and contradicting the "
                             "server's own hash update.");
       read_ignored_per_update_++;
+      cid.reset();
       continue;
     }
 
@@ -458,6 +486,7 @@ void ThinReplicaClient::ReceiveUpdates() {
     // validate and return an update.
 
     Data update_in;
+    unique_ptr<LogCid> update_cid;
     SpanPtr span = nullptr;
     vector<bool> servers_tried(trs_conns_.size(), false);
 
@@ -473,8 +502,9 @@ void ThinReplicaClient::ReceiveUpdates() {
     // are already open, starting with the data stream and followed by any hash
     // streams.
     LOG4CPLUS_DEBUG(logger_, "Read from data stream " << data_conn_index_);
-    std::tie(has_data, span) = ReadBlock(update_in, agreeing_subset_members,
-                                         most_agreeing, most_agreed_block);
+    std::tie(has_data, span) =
+        ReadBlock(update_in, agreeing_subset_members, most_agreeing,
+                  most_agreed_block, update_cid);
     servers_tried[data_conn_index_] = true;
 
     LOG4CPLUS_DEBUG(logger_, "Find agreement amongst all servers for block "
@@ -508,8 +538,9 @@ void ThinReplicaClient::ReceiveUpdates() {
     // among them then let's rotate the data stream to one of the servers
     // within the agreeing set.
     if (!has_verified_data) {
-      has_verified_data = RotateDataStreamAndVerify(
-          update_in, agreeing_subset_members, most_agreed_block, span);
+      has_verified_data =
+          RotateDataStreamAndVerify(update_in, agreeing_subset_members,
+                                    most_agreed_block, span, update_cid);
       if (!has_verified_data) {
         LOG4CPLUS_WARN(logger_,
                        "Couldn't get data from agreeing servers. Try again.");
