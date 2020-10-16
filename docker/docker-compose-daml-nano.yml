@@ -4,7 +4,12 @@
 
 version: '3'
 services:
-  # Note: Make sure that Concord's configuration files have `daml_enable` set
+  # Note: Make sure that Concord's configuration files have  -
+  #       1. `daml_enable` set
+  #       2. `trs_tls_enable` set true if using TLS for TRS-TRC communication
+  #       3. correct certificate path in `thin_replica_tls_cert_path` if not using the default path
+  # If `trs_tls_enable` is set, verify `trc_tls_enable` should also be set in THIN_REPLICA_SETTINGS
+  # Path in `thin_replica_tls_cert_path` in THIN_REPLICA_SETTINGS and concord's config file should be same
   concord1:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
@@ -24,6 +29,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
@@ -44,6 +50,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
@@ -64,6 +71,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
@@ -84,6 +92,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
 
   daml_ledger_api1:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
@@ -108,6 +117,7 @@ services:
     volumes:
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"

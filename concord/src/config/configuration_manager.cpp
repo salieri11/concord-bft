@@ -3601,6 +3601,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("daml_enable", deploymentTag);
   config.addValidator("daml_enable", make_shared<BooleanValidator>());
 
+  config.declareParameter("trs_tls_enable",
+                          "Enable TLS support for TRS-TRC connection", "false");
+  config.tagParameter("trs_tls_enable", publicDefaultableTags);
+  config.tagParameter("trs_tls_enable", deploymentTag);
+  config.addValidator("trs_tls_enable", make_shared<BooleanValidator>());
+
   config.declareParameter("pre_execute_all_requests",
                           "Enable pre-execution for all requests", "false");
   config.tagParameter("pre_execute_all_requests", publicDefaultableTags);
@@ -4185,6 +4191,10 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("signing_key_path", "Signing key root folder path");
   config.tagParameter("signing_key_path", publicOptionalTags);
   config.tagParameter("signing_key_path", applicationTag);
+  config.declareParameter("thin_replica_tls_cert_path",
+                          "TRS-TRC TLS certificates folder path");
+  config.tagParameter("thin_replica_tls_cert_path", publicOptionalTags);
+  config.tagParameter("thin_replica_tls_cert_path", applicationTag);
 
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);

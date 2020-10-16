@@ -470,10 +470,49 @@ void start_worker_threads(int number) {
   }
 }
 
+/*
+ * Reads certificates to be used by thin replica server to establish
+ * TLS connection with thin replica client if TLS is enabled for TRS
+ */
+void readCert(const std::string &input_filename, std::string &out_data) {
+  Logger logger = Logger::getInstance("concord.thin_replica");
+
+  std::ifstream input_file(input_filename.c_str(), std::ios::in);
+
+  if (!input_file.is_open()) {
+    LOG_FATAL(logger, "Failed to construct thin replica server.");
+    throw runtime_error(
+        __PRETTY_FUNCTION__ +
+        std::string(": Concord could not open the input file (") +
+        input_filename +
+        std::string(
+            ") to establish TLS connection with the thin replica client."));
+  } else {
+    try {
+      std::stringstream read_buffer;
+      read_buffer << input_file.rdbuf();
+      input_file.close();
+      out_data = read_buffer.str();
+      LOG_INFO(logger,
+               "Successfully loaded the contents of " + input_filename + ".");
+    } catch (const std::exception &e) {
+      LOG_FATAL(logger, "Failed to construct thin replica server.");
+      throw runtime_error(
+          __PRETTY_FUNCTION__ +
+          std::string(
+              ": An exception occurred while trying to read the input file (") +
+          input_filename + std::string("): ") + std::string(e.what()));
+    }
+  }
+  return;
+}
+
 void RunThinReplicaServer(
     std::string server_address, const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
-    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
+    bftEngine::ReplicaConfig *replicaConfig, bool trs_tls_enabled,
+    std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.thin_replica");
 
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
@@ -485,8 +524,42 @@ void RunThinReplicaServer(
   quota.SetMaxThreads(max_num_threads);
 
   grpc::ServerBuilder builder;
+
+  if (trs_tls_enabled) {
+    LOG_INFO(logger,
+             "TLS for thin replica server is enabled, certificate path: "
+                 << thin_replica_tls_cert_path);
+    std::string server_cert_path, server_key_path, root_cert_path;
+    std::string server_cert, server_key, root_cert;
+
+    server_cert_path = thin_replica_tls_cert_path + "/s" +
+                       std::to_string(replicaConfig->replicaId);
+    // Read the certs
+    readCert(server_cert_path + "/server.cert", server_cert);
+    readCert(server_cert_path + "/pk.pem", server_key);
+
+    grpc::SslServerCredentialsOptions::PemKeyCertPair keycert = {server_key,
+                                                                 server_cert};
+
+    grpc::SslServerCredentialsOptions sslOps;
+
+    sslOps.pem_key_cert_pairs.push_back(keycert);
+
+    // Request and verify client certificate for mutual TLS
+    sslOps.client_certificate_request =
+        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+
+    // Use populated ssl server credentials
+    builder.AddListeningPort(server_address,
+                             grpc::SslServerCredentials(sslOps));
+  } else {
+    LOG_WARN(logger,
+             "TLS for thin replica server is disabled, falling back to "
+             "insecure channel");
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  }
+
   builder.SetResourceQuota(quota);
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(thinReplicaService.get());
 
   thin_replica_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
@@ -923,10 +996,19 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       // Limit the amount of gRPC threads
       int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
+      bool trs_tls_enabled = config.hasValue<bool>("trs_tls_enable")
+                                 ? config.getValue<bool>("trs_tls_enable")
+                                 : false;
+      std::string thin_replica_tls_cert_path;
+      if (config.hasValue<std::string>("thin_replica_tls_cert_path")) {
+        thin_replica_tls_cert_path =
+            config.getValue<std::string>("thin_replica_tls_cert_path");
+      }
 
       std::thread(RunThinReplicaServer, daml_addr, &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry)
+                  prometheus_registry, &replicaConfig, trs_tls_enabled,
+                  thin_replica_tls_cert_path)
           .detach();
     } else if (hlf_enabled) {
       // Get listening address for services

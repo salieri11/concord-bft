@@ -50,6 +50,8 @@ object BftClientConfig {
 final case class ExtraConfig(
     override val replicas: Seq[String],
     useThinReplica: Boolean,
+    trcTlsEnable: Boolean,
+    thinReplicaTlsCertPath: String,
     override val maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
     authService: Option[AuthService],
@@ -72,6 +74,8 @@ object ExtraConfig {
   val ReasonableDefault: ExtraConfig = ExtraConfig(
     replicas = Seq("localhost:50051"),
     useThinReplica = false,
+    trcTlsEnable = false,
+    thinReplicaTlsCertPath = "",
     maxFaultyReplicas = 1,
     jaegerAgentAddress = "localhost:6831",
     authService = Some(AuthServiceWildcard),
@@ -186,6 +190,18 @@ object ExtraConfig {
         s"The address of the Jaeger agent in <HOST:PORT> format. Defaults to ${ExtraConfig.ReasonableDefault.jaegerAgentAddress}.")
       .action((hostAndPort, config) =>
         config.copy(extra = config.extra.copy(jaegerAgentAddress = hostAndPort)))
+    parser
+      .opt[Unit]("trc_tls_enable")
+      .optional()
+      .action((_, config) => config.copy(extra = config.extra.copy(trcTlsEnable = true)))
+      .text("Use mTLS for thin replica client and thrn replica server communication.")
+    parser
+      .opt[String]("thin_replica_tls_cert_path")
+      .optional()
+      .action { (path, config) =>
+        config.copy(extra = config.extra.copy(thinReplicaTlsCertPath = path))
+      }
+      .text("Provide directory for all the trc-trs certs.")
   }
 
   private def addAuthCommandLineArguments(parser: OptionParser[Config[ExtraConfig]]): Unit = {
