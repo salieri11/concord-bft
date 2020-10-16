@@ -167,6 +167,31 @@ class BasicUpdateQueue : public UpdateQueue {
   virtual uint64_t Size() override;
 };
 
+// For the life time of an instance of this object we store the correlation ID
+// in the loggers context. Log messages are composed from this context together
+// with a log message. For the CID, it is important to be part of the loggers
+// context so that it gets assigned to the correct field in the log line.
+// Later, fluentd will parse log lines and assumes CIDs at a certain position.
+// This inforamtion is then propagated to LogInsight. As the current log line
+// format assumes at most 1 CID, there should not exist more than 1 LocCid
+// object at a time.
+class LogCid final {
+ public:
+  LogCid(const std::string& cid);
+  ~LogCid();
+
+  // As only one LogCid is allowed to exist at a time, copying or moving it is
+  // not supported.
+  LogCid(const LogCid& other) = delete;
+  LogCid(const LogCid&& other) = delete;
+  LogCid& operator=(const LogCid& other) = delete;
+  LogCid& operator=(const LogCid&& other) = delete;
+
+ private:
+  const static std::string cid_key_;
+  static std::atomic_bool cid_set_;
+};
+
 // Thin Replica Client implementation; used to subscribe to and stream updates
 // from thin replica servers. Note the ThinReplicaClient is intended to
 // error-handle Byzantine failures among the thin replica servers; a
@@ -237,7 +262,7 @@ class ThinReplicaClient final {
   std::pair<bool, SpanPtr> ReadBlock(
       com::vmware::concord::thin_replica::Data& update_in,
       AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
-      BlockIdHashPair& most_agreed_block);
+      BlockIdHashPair& most_agreed_block, std::unique_ptr<LogCid>& cid);
   void FindBlockHashAgreement(std::vector<bool>& servers_tried,
                               AgreeingSubsetMembers& agreeing_subset_members,
                               size_t& most_agreeing,
@@ -247,7 +272,8 @@ class ThinReplicaClient final {
   bool RotateDataStreamAndVerify(
       com::vmware::concord::thin_replica::Data& update_in,
       AgreeingSubsetMembers& agreeing_subset_members,
-      BlockIdHashPair& most_agreed_block, SpanPtr& parent_span);
+      BlockIdHashPair& most_agreed_block, SpanPtr& parent_span,
+      std::unique_ptr<LogCid>& cid);
 
   void ResetDataStreamTo(size_t server_idx);
   void StartHashStreamWith(size_t server_idx);
