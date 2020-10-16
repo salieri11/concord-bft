@@ -89,6 +89,13 @@ upload_bundle() {
   _do_scp "$APACHE_SERVER_PASSWORD" "$source" "$target"
 }
 
+_get_blockchain_version() {
+  local host=(${REPLICAS[0]})
+  local login="$SSHUSER@$host"
+  local command="docker inspect concord | grep com.vmware.blockchain.version "
+  _do_ssh "$login" "$command"
+}
+
 # Dynamic variables.
 init_env() {
   WAVEFRONT_SOURCE=$(_find_tag "source")
@@ -98,6 +105,9 @@ init_env() {
   VM_IP=$(hostname -I | cut -d ' ' -f 1)
   REPLICAS=$(_find_committers)
   BASE_PATH=$BLOCKCHAIN_ID/$(date +%Y-%m-%d_%H-%M_%Z)
+
+  local blockchain_version_temp=$(_get_blockchain_version)
+  BLOCKCHAIN_VERSION=$(echo $blockchain_version_temp  | cut -d ':' -f 2)
 }
 
 # Start docker-compose
