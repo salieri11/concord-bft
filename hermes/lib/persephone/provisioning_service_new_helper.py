@@ -213,13 +213,10 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         :param bc_type: daml, ethereum, hlf
         :return: BlockchainType enum
         """
-        bc_type = bc_type.lower()
         if bc_type == helper.TYPE_DAML:
             blockchain_type = core_pb2.DAML
         elif bc_type == helper.TYPE_ETHEREUM:
             blockchain_type = core_pb2.ETHEREUM
-        elif bc_type == helper.TYPE_HLF:
-            blockchain_type = core_pb2.HLF
         else:
             raise Exception("Unsupported blockchain type: {}".format(bc_type))
         return blockchain_type

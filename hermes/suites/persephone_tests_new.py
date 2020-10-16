@@ -336,6 +336,17 @@ def validate_blockchain_location(location):
         raise Exception("Unsupported location to deploy blockchain: {}".format(blockchain_location))
     return blockchain_location
 
+def validate_blockchain_type(bc_type):
+    """
+    Helper method to get a valid location for Persephone Tests
+    :param location: SDDC or ONPREM
+    :return: Validated location 'sddc' or 'onprem'
+    """
+    blockchain_type = bc_type.lower()
+    if blockchain_type not in [helper.TYPE_ETHEREUM, helper.TYPE_DAML]:
+        raise Exception("Unsupported blockchain type: {}".format(bc_type))
+    return blockchain_type
+
 
 def get_deployment_session_id(deployment_response):
     """
@@ -937,15 +948,12 @@ def test_ethereum_4_node_vmc(request, fxHermesRunSettings, ps_helper, file_root,
 @pytest.mark.smoke
 def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, teardown):
     # TODO: https://jira.eng.vmware.com/browse/BC-4844
-    # TODO: On demand runs pass Ethereum as concord type even after selecting DAML
     blockchain_type = helper.TYPE_DAML
-    # TODO: https://jira.eng.vmware.com/browse/BC-4842
-    # TODO: Resolve issue arising due to unexpected key "local" being passed
     zone_type = helper.LOCATION_ONPREM
-    num_replicas = 7 if not fxHermesRunSettings["hermesCmdlineArgs"].numReplicas else int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
-    num_clients = 3 if not fxHermesRunSettings["hermesCmdlineArgs"].numParticipants else int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
-    num_groups = 2 if not fxHermesRunSettings["hermesCmdlineArgs"].numGroups else int(fxHermesRunSettings["hermesCmdlineArgs"].numGroups)
-    deployment_properties = "" if not fxHermesRunSettings["hermesCmdlineArgs"].propertiesString else fxHermesRunSettings["hermesCmdlineArgs"].propertiesString
+    num_replicas = 7
+    num_clients = 3
+    num_groups = 2
+    deployment_properties = ""
 
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
@@ -978,7 +986,7 @@ def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, 
 def test_cmdline_driven(request, fxHermesRunSettings, ps_helper, file_root, teardown):
     # TODO: https://jira.eng.vmware.com/browse/BC-4844
     # TODO: On demand runs pass Ethereum as concord type even after selecting DAML
-    blockchain_type = helper.TYPE_DAML if not fxHermesRunSettings["hermesCmdlineArgs"].blockchainType else fxHermesRunSettings["hermesCmdlineArgs"].blockchainType
+    blockchain_type = helper.TYPE_DAML if not fxHermesRunSettings["hermesCmdlineArgs"].blockchainType else validate_blockchain_type(fxHermesRunSettings["hermesCmdlineArgs"].blockchainType)
     # TODO: https://jira.eng.vmware.com/browse/BC-4842
     # TODO: Resolve issue arising due to unexpected key "local" being passed
     zone_type = helper.LOCATION_ONPREM if not fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation else validate_blockchain_location(fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation)
