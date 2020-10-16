@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v25
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v26
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -123,26 +123,6 @@ COPY --from=0 /opt/grpc/lib/libabsl_* /opt/grpc/lib/
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 
-
-# Go is required because chaincode installation will
-# compile the chaincode source file to binary.
-COPY --from=0 /usr/local/go /usr/local/go
-ENV GOPATH=/concord
-ENV PATH=$PATH:/usr/local/go/bin
-
-# HLF
-# copy peer executable
-# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
-# this peer is for cli calls for sending chaincode commands from c++ concord
-# to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
-# built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
-COPY --from=athena-docker-local.artifactory.eng.vmware.com/fabric-tools:prereqs-v1 /usr/local/bin/peer /concord/
-
-# HLF_HARDCODED_CONFIG
-COPY ./docker/hlf/crypto-config/ /concord/crypto-config
-COPY ./docker/hlf/core.yaml /concord
-# _HLF_HARDCODED_CONFIG
-
 # evmjit is statically compiled, so we don't need to copy
 
 COPY --from=0 /usr/local/lib/librelic.so /usr/local/lib/
@@ -189,9 +169,6 @@ EXPOSE 5458
 
 # Ledger API service
 EXPOSE 50051
-
-# HLF port
-EXPOSE 50052
 
 # SBFT ports.
 EXPOSE 3501/tcp

@@ -2,7 +2,7 @@
 # Dockerfile for building the concord operator image
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v25 AS build
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v26 AS build
 
 WORKDIR /concord
 COPY ./concord /concord

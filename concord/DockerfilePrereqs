@@ -42,11 +42,6 @@ RUN apt-get update && apt-get -y install \
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
-# Golang for HLF chaincode
-WORKDIR /tmp
-RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
-    tar -C /usr/local -xf go1.11.linux-amd64.tar.gz
-
 # Install CMake 3.16
 RUN wget -q -O cmake-linux.sh \
     https://github.com/Kitware/CMake/releases/download/v3.16.1/cmake-3.16.1-Linux-x86_64.sh && \
@@ -137,7 +132,7 @@ RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com
     cd / && \
     rm -r openssl
 
-# gRPC for DAML and HLF api server
+# gRPC for TRS/TEE/Performance API server
 WORKDIR /
 RUN git clone -b v1.32.x --depth 1 --recurse-submodules https://github.com/grpc/grpc && \
     mkdir -p /grpc/third_party/protobuf/cmake/build && \
