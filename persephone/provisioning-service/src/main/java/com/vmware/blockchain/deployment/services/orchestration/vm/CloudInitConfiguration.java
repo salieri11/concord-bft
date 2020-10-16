@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -111,7 +112,9 @@ public class CloudInitConfiguration {
         this.model = request.getCloudInitData().getModel();
         this.ipAddress = request.getCloudInitData().getPrivateIp();
         this.gateway = getGateway(datacenterInfo);
-        this.nameServers = datacenterInfo.getNetwork().getNameServersList();
+        this.nameServers = datacenterInfo.getNetwork().getNameServersList().isEmpty()
+                           ? Arrays.asList("8.8.8.8", "8.8.4.4")
+                           : datacenterInfo.getNetwork().getNameServersList();
         this.subnet = datacenterInfo.getNetwork().getSubnet();
         this.clusterId = ConcordClusterIdentifier.newBuilder()
                 .setId(request.getBlockchainId().toString())
@@ -152,11 +155,8 @@ public class CloudInitConfiguration {
     }
 
     private String networkSetupCommand() {
-        var dnsEntry = "";
-        if (nameServers != null && !nameServers.isEmpty()) {
-            val dnsString = nameServers.stream().collect(Collectors.joining(" "));
-            dnsEntry = "\\nDNS=" + dnsString;
-        }
+        val dnsString = nameServers.stream().collect(Collectors.joining(" "));
+        var dnsEntry = "\\nDNS=" + dnsString;
         return "echo -e \"[Match]\\nName=eth0"
                + "\\n\\n[Network]\\nAddress=" + ipAddress + "/" + subnet
                + "\\nGateway=" + gateway
@@ -166,12 +166,8 @@ public class CloudInitConfiguration {
     }
 
     private String dockerDnsSetupCommand() {
-        if (nameServers != null && !nameServers.isEmpty()) {
-            val dnsString = nameServers.stream().collect(Collectors.joining(" --dns "));
-            return "--dns " + dnsString;
-        } else {
-            return "";
-        }
+        val dnsString = nameServers.stream().collect(Collectors.joining(" --dns "));
+        return "--dns " + dnsString;
     }
 
     private String setDockerContentTrustServerCommand() {

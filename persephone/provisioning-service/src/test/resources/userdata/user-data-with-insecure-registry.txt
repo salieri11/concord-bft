@@ -1,9 +1,9 @@
 #!/bin/sh
 echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
 
-echo -e "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.0.10/24\nGateway=10.0.0.1\nIPv6AcceptRA=false" > /etc/systemd/network/10-eth0-static.network; chmod 644 /etc/systemd/network/10-eth0-static.network; systemctl restart systemd-networkd;
+echo -e "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.0.10/24\nGateway=10.0.0.1\nDNS=\nIPv6AcceptRA=false" > /etc/systemd/network/10-eth0-static.network; chmod 644 /etc/systemd/network/10-eth0-static.network; systemctl restart systemd-networkd;
 
-sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd  -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock --insecure-registry containerRegistry.com_g' /lib/systemd/system/docker.service
+sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd --dns  -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock --insecure-registry containerRegistry.com_g' /lib/systemd/system/docker.service
 
 
 systemctl daemon-reload
