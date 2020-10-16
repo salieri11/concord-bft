@@ -674,3 +674,73 @@ def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, parti
         assert simple_request(url, no_of_txns), \
             "DAML request submission/verification failed for participant \
             [{}]".format(client_host)
+
+
+@describe("verify fault tolerance - after multiple view changes")
+def test_fault_tolerance_after_multiple_view_changes(fxLocalSetup, fxHermesRunSettings, fxBlockchain):
+   '''
+   Verify fault tolerance view changes after multiple using below steps:
+   - Connect to a blockchain network.
+   - Stop f-1 non primary replica.
+   - Submit client requests continuously.
+   - Stop and start current primary node multiple times.
+   - Submit client requests.
+   - Verify that requests are processed correctly.
+   Args:
+       fxLocalSetup: Local fixture
+       fxHermesRunSettings: Hermes command line arguments
+       fxBlockchain: blockchain
+   '''
+   for client_host, client_port in fxLocalSetup.client_hosts.items():
+      try:
+         install_sdk_deploy_daml(client_host, client_port)
+
+         no_of_txns, wait_time = 1, 0.2
+         url = 'http://{}:{}'.format(client_host, client_port)
+
+         # Submit Daml requests before finding primary replica
+         assert simple_request(url, no_of_txns, wait_time), \
+            "DAML request submission/verification failed for participant \
+        [{}]".format(client_host)
+
+         # Find primary replica ip
+         committers_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+         initial_primary_replica_ip = committers_mapping["primary_ip"]
+         log.info("initial_primary_replica_info: {}".format(initial_primary_replica_ip))
+
+         interrupted_nodes = []
+         container_name = 'concord'
+
+         # List of f non-primary replicas
+         non_primary_replicas = fxLocalSetup.concord_hosts[:]
+         non_primary_replicas.remove(initial_primary_replica_ip)
+
+         # Stop f-1 non-primary replica
+         for i in range(fxLocalSetup.f_count - 1):
+            concord_host = non_primary_replicas[i]
+            intr_helper.stop_container(concord_host, container_name)
+            interrupted_nodes.append(concord_host)
+
+         log.info("Stopped f-1 non-primary replica concord container")
+
+         # Start new thread for daml request submissions
+         thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                  args=(client_host, client_port, no_of_txns, wait_time, 900))
+         thread_daml_txn.start()
+
+         # Stop and Restart the current primary replicas multiple times
+         for _ in range(0, 7):
+            committers_mapping = blockchain_ops.map_committers_info(fxBlockchain, interrupted_nodes)
+            primary_replica_ip = committers_mapping["primary_ip"]
+            intr_helper.stop_container(primary_replica_ip, container_name, 30)
+            intr_helper.start_container(primary_replica_ip, container_name, 90)
+
+         thread_daml_txn.join()
+
+         # Submit Daml requests after multiple view changes
+         assert simple_request(url, no_of_txns, wait_time), \
+            "DAML request submission/verification failed for participant \
+        [{}]".format(client_host)
+
+      except Exception as excp:
+         assert False, excp
