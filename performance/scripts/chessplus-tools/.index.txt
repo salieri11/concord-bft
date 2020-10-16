@@ -6,6 +6,7 @@
 <hr>
 <table>
 <tr><td><b>Test Host:</b></td><td>$VM_IP</td></tr>
+<tr><td><b>Blockchain Version:</b></td><td>$BLOCKCHAIN_VERSION</td></tr>
 <tr><td><b>Logs:</b></td><td><a href="http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/logs/">Logs</a></td></tr>
 <tr><td><b>Reports:</b></td><td><a href="http://$APACHE_SERVER_HOST/$APACHE_SERVER_BASE_DIR/$BASE_PATH/reports/">Reports</a></td></tr></table>
 <h3>Test Config:</h3>
