@@ -15,6 +15,7 @@ NOTE: SDDC does not work with this service.
 - Download all contents of this folder into any directory of your choice.
 - Run "chmod +x startup.sh"
 - Run "./startup.sh". Follow through the instructions. Refer to below links for build urls.
+startup.sh is an interactive tool, enter values as and when asked. Read the instructions popped for each value asked for.
 
 ## Things to remember
 - Run "rm -rf cap/" from your working directory between any two consecutive runs.

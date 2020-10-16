@@ -60,6 +60,12 @@ echo "Enter full version of photon OS used"
 read FULL_VERSION
 sed -i "s/FULL_VERSION/$FULL_VERSION/g" customizations.json
 
+echo "Find your linux kernel version by executing 'cat /etc/lsb-release' or 'uname -a' if you have a VM from the iso you want to deploy"
+echo "If otherwise, get the information from the sh-iso team or enter 4.19.129-1.ph3 for photon-3.0."
+echo "Enter linux kernel version"
+read LINVER
+sed -i "s/LINVER/$LINVER/g" post-install-blockchain.sh
+
 echo "Running CAP appliance creation..."
 ./cap build -f appliance.json
 

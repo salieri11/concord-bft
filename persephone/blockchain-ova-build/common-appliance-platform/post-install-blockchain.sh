@@ -3,7 +3,7 @@ set -x -v
 
 # This is needed to enable docker bridge networking. Ensure that the
 # Kernel version on the base image matches this value.
-LINUX_KERNEL_VERSION=4.19.129-1.ph3
+LINUX_KERNEL_VERSION=LINVER
 
 # The base SH photon image does not have docker bridge enabled. Due to this the
 # docker service fails to start. Enable it here.
