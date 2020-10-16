@@ -32,6 +32,13 @@
           "logical_volume_name": "data",
           "mount_point": "/",
           "filesystem_type": "ext4"
+        },
+        {
+          "size": 2,
+          "volume_group_name": "vg0",
+          "logical_volume_name": "swap",
+          "mount_point": "",
+          "filesystem_type": "swap"
         }
       ]
     },
