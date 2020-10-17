@@ -41,9 +41,6 @@
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "ethereum/evm_init_params.hpp"
-#include "hlf/grpc_services.hpp"
-#include "hlf/kvb_commands_handler.hpp"
-#include "hlf/kvb_storage.hpp"
 #include "kv_types.hpp"
 #include "merkle_tree_storage_factory.h"
 #include "performance/perf_handler.hpp"
@@ -106,11 +103,6 @@ using concord::kvbc::SetOfKeyValuePairs;
 using concord::storage::ConcordBlockMetadata;
 
 using concordUtils::Status;
-
-using concord::hlf::ChaincodeInvoker;
-using concord::hlf::HlfKvbCommandsHandler;
-using concord::hlf::HlfKvbStorage;
-using concord::hlf::RunHlfGrpcServer;
 
 using concord::time::TimePusher;
 using concord::utils::EthSign;
@@ -628,8 +620,8 @@ void RunPerfGrpcServer(
 /*
  * Check whether one and only one out of all provided booleans is true.
  */
-bool OnlyOneTrue(bool a, bool b, bool c, bool d, bool e) {
-  return (a + b + c + d + e) == 1;
+bool OnlyOneTrue(bool a, bool b, bool c, bool d) {
+  return (a + b + c + d) == 1;
 }
 
 std::shared_ptr<concord::utils::PrometheusRegistry>
@@ -758,16 +750,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   SubBufferList subscriber_list;
 
   bool daml_enabled = config.getValue<bool>("daml_enable");
-  bool hlf_enabled = config.getValue<bool>("hlf_enable");
   bool eth_enabled = config.getValue<bool>("eth_enable");
   bool tee_enabled = config.getValue<bool>("tee_enable");
   bool perf_enabled = config.getValue<bool>("perf_enable");
 
-  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled, tee_enabled,
-                   perf_enabled)) {
+  if (!OnlyOneTrue(daml_enabled, eth_enabled, tee_enabled, perf_enabled)) {
     LOG_WARN(logger,
              "Make sure one and only one execution engine (DAML, Eth, "
-             "HLF, TEE or Perf) is set");
+             "TEE or Perf) is set");
     return 0;
   }
 
@@ -860,33 +850,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         throw concord::daml::DamlInitParamException(
             "Unable to load DAML genesis block: " + status.toString());
       }
-    } else if (hlf_enabled) {
-      LOG_INFO(logger, "Hyperledger Fabric feature is enabled");
-
-      // HLF
-      //
-      // Time service feature is causing HLF chaincode transactions
-      // to hang in consensus. FEATURE_time_service needs to be set to false,
-      // this is currently hardcoded for concord deployment as its the only
-      // custom parameter
-      // TODO(JB): debug issue & create task for time service with HLF
-      if (concord::time::IsTimeServiceEnabled(config)) {
-        LOG_WARN(
-            logger,
-            "Time Service Enabled ignored..not supported with HLF enabled");
-        config.loadValue("FEATURE_time_service", "false");
-      }
-
-      assert(!concord::time::IsTimeServiceEnabled(config));
-
-      // Init chaincode invoker
-      ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
-
-      kvb_commands_handler =
-          unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
-              chaincode_invoker, config, nodeConfig, replica, replica, replica,
-              replica.getStateTransfer(), subscriber_list,
-              std::move(reconf_dispatcher), prometheus_registry));
     } else if (tee_enabled) {
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new TeeCommandsHandler(
@@ -1009,24 +972,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                   std::ref(subscriber_list), max_num_threads,
                   prometheus_registry, &replicaConfig, trs_tls_enabled,
                   thin_replica_tls_cert_path)
-          .detach();
-    } else if (hlf_enabled) {
-      // Get listening address for services
-      std::string key_value_service_addr =
-          nodeConfig.getValue<std::string>("hlf_kv_service_address");
-      std::string chaincode_service_addr =
-          nodeConfig.getValue<std::string>("hlf_chaincode_service_address");
-
-      // Create Hlf Kvb Storage instance for Hlf key value service
-      // key value service could put updates to cache, but it is not allowed to
-      // write block
-      const ILocalKeyValueStorageReadOnly &storage = replica;
-      IdleBlockAppender block_appender(&replica);
-      HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender);
-
-      // Start HLF gRPC services
-      std::thread(RunHlfGrpcServer, std::ref(kvb_storage), std::ref(pool),
-                  key_value_service_addr, chaincode_service_addr)
           .detach();
     } else if (tee_enabled) {
       std::string tee_addr{

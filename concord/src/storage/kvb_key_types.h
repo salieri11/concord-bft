@@ -14,10 +14,7 @@ const char kKvbKeyEthCode = 0x04;
 const char kKvbKeyEthStorage = 0x05;
 const char kKvbKeyEthNonce = 0x06;
 
-// HLF 0x10 - 0x1f
-const char kKvbKeyHlfBlock = 0x10;
-const char kKvbKeyHlfTransaction = 0x11;
-const char kKvbKeyHlfState = 0x12;
+// Unused 0x10 - 0x1f
 
 // Concord 0x20 - 0x2f
 const char kKvbKeyTimeSamples = 0x20;

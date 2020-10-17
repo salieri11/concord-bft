@@ -8,11 +8,6 @@ set(DAML_PROTO
   daml_validator.proto
 )
 
-set(HLF_PROTO
-  hlf_services.proto
-  hlf_storage.proto
-)
-
 set(THIN_REPLICA_PROTO ${COMMUNICATION_PATH}/src/main/proto/thin_replica.proto)
 set(PERF_PROTO performance.proto)
 
@@ -23,7 +18,6 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${COMMUNICATION_PATH}/src/main/proto/concord.proto
   concord_storage.proto
   ${DAML_PROTO}
-  ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
   ${TEE_PROTO}
   ${PERF_PROTO}
@@ -31,7 +25,6 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
 
 grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   ${DAML_PROTO}
-  ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
   ${TEE_PROTO}
   ${PERF_PROTO}

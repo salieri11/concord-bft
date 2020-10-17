@@ -1,7 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 //
 // This is the test execution engine commands handler.  It enables the testing
-// of concord without an execution engine (e.g. ethereum, daml, hlf).
+// of concord without an execution engine (e.g. ethereum or daml).
 
 #ifndef CONCORD_TEE_COMMANDS_HANDLER_HPP_
 #define CONCORD_TEE_COMMANDS_HANDLER_HPP_
