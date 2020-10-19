@@ -32,6 +32,10 @@ sys.path.append("lib/persephone")
 log = None
 # Add new test suite in suiteList.
 
+#
+# Decomissioning of main.py is in progress
+# Any updates to suiteList require corresponding update in _get_suite_short_name of contest.py
+#
 suiteList = {
    "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
    "ChessPlusTests": "suites/chess_plus_tests.py",
@@ -102,6 +106,11 @@ def main():
    # Initialize the runtime environment for this instance.
    initialize()
 
+   #
+   # Decomissioning of main.py in progress
+   # Any updates to argument list corresponding update in 
+   # pytest_addoption  and _get_suite_short_name of contest.py
+   #
    parser = argparse.ArgumentParser()
    parser.add_argument("suites", help="Comma delimited list of test suites. " \
                        "Available suites: {}".format([*suiteList]))
@@ -262,8 +271,6 @@ def main():
                        help="Shortened job name running this monitoring script",
                        default=None)
 
-
-
    concordConfig = parser.add_argument_group("Concord configuration")
    concordConfig.add_argument("--runConcordConfigurationGeneration",
       help="Run Concord configuration generation for the test  cluster before "
@@ -393,6 +400,41 @@ def main():
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
    log.info("Allure Reports folder: {0}, parent results dir: {1}".format(args.allureDir, parent_results_dir))
+
+   warncolor = "\033[1;33m"
+   underline = '\033[4m'
+   reset = "\033[0m"
+
+   log.warning("\n\n{0}".format(warncolor))
+   log.warning("**************************************************************************************")
+   log.warning("**************************************************************************************")
+   log.warning("**                                                                                  **")
+   log.warning("** {0}Deprecation Warning:{1}{2}                                                             **".format(underline, reset, warncolor))
+   log.warning("**                                                                                  **") 
+   log.warning("**    'main.py' is being decommissioned in near future (target - 24/Oct/2020).      **") 
+   log.warning("**    All test suites may be executed using '-m pytest' after deprecation.          **")
+   log.warning("**                                                                                  **")
+   log.warning("**    Old method of invoking test suite:                                          **")
+   log.warning("**                          python ./main.py SampleSuite                        **")
+   log.warning("**                                                                             **")
+   log.warning("**    New method of invoking test suite:                                      **")
+   log.warning("**                          python -m suites/sample_suite.py                  **")
+   log.warning("**                                                                            **")
+   log.warning("**    {0}Notes:{1}{2}                                                                  **".format(underline, reset, warncolor))
+   log.warning("**        - Most of the logic of main.py and pytest_suite.py moves            **")
+   log.warning("**          to conftest.py.                                                   **")
+   log.warning("**        - Reference Task Id: BC-4533, 4940, 4667                            **")
+   log.warning("**        - Reference Task Id: BC-4665 (pipelineworks)                        **")
+   log.warning("**        - Change in location of some log files is expected                  **")
+   log.warning("**        - Some report files like .html report will not be generated post    **")
+   log.warning("**          decommisioning. However, summary report will still be produced.   **")
+   log.warning("**        - 'execution_report.json' will have execution summary               **")
+   log.warning("**        - Some of the command line arguments will not be relevant after     **")
+   log.warning("**          migrating to direct invocation through 'pytest'. Such arguments   **")
+   log.warning("**          should be identified and  removed post migration.                 **")
+   log.warning("**                                                                            **")
+   log.warning("********************************************************************************")
+   log.warning("********************************************************************************{}\n\n".format(reset))
 
    suitesRealname = args.suitesRealname.split(",") if args.suites else []
    if args.su:
