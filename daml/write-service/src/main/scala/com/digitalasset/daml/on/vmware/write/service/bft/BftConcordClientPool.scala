@@ -101,7 +101,7 @@ private[bft] class BftConcordClientPool(
   override def currentHealth(): HealthStatus = {
     val nativeHealth = coreClient.currentHealth
     logger.debug(s"The native BFT client health check returned $nativeHealth")
-    nativeHealthToHealthStatus(nativeHealth)
+    ConvertHealth.fromNative(nativeHealth)
   }
 
   override def close(): Unit = {
@@ -135,12 +135,6 @@ private[bft] class BftConcordClientPool(
 
 object BftConcordClientPool {
   object OverloadedException extends RuntimeException
-
-  private def nativeHealthToHealthStatus(currentHealthNative: Int): HealthStatus =
-    currentHealthNative match {
-      case 0 => HealthStatus.healthy
-      case 1 => HealthStatus.unhealthy
-    }
 
   private def nativeSendResultToSubmissionResult(nativeSendResult: Int): SubmissionResult =
     nativeSendResult match {

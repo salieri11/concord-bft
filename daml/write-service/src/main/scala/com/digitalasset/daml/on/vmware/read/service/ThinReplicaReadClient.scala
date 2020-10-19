@@ -5,8 +5,9 @@ package com.digitalasset.daml.on.vmware.read.service
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
 import com.codahale.metrics.{MetricRegistry, Timer}
+import com.daml.ledger.api.health.{HealthStatus, ReportsHealth, Unhealthy}
 import com.daml.metrics.VarGauge
-import com.digitalasset.daml.on.vmware.common.Constants
+import com.digitalasset.daml.on.vmware.common.{Constants, ConvertHealth}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClient, Update}
 import org.slf4j.LoggerFactory
 
@@ -22,7 +23,7 @@ final class ThinReplicaReadClient(
     jaegerAgent: String,
     trcCore: ThinReplicaClient,
     metrics: ThinReplicaReadClientMetrics,
-) {
+) extends ReportsHealth {
 
   import ThinReplicaReadClient._
 
@@ -41,6 +42,12 @@ final class ThinReplicaReadClient(
     logger.info("Thin Replica Client created")
   else
     logger.error("Failed to create Thin Replica Client")
+
+  override def currentHealth(): HealthStatus =
+    if (trcCreated)
+      ConvertHealth.fromNative(trcCore.currentHealth())
+    else
+      Unhealthy
 
   def committedBlocks(offset: Long): Source[Block, NotUsed] =
     if (trcCreated)

@@ -19,6 +19,8 @@ class ThinReplicaClientJni extends ThinReplicaClient {
       jaegerAgentHostPort: String,
   ): Boolean
 
+  @native override def currentHealth(): Int
+
   @native override def subscribe(prefix: String): Boolean
 
   @native override def subscribe(prefix: String, blockId: Long): Boolean

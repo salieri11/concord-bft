@@ -25,6 +25,18 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 /*
  * Class:
  * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Method:    currentHealth
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni_currentHealth(
+    JNIEnv *env, jobject obj) {
+  return 0;
+}
+
+/*
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
  * Method:    subscribe
  * Signature: (Ljava/lang/String;)Z
  */

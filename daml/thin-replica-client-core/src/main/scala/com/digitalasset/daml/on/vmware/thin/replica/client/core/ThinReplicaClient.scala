@@ -7,7 +7,7 @@ final case class Update(
     correlationId: String,
     spanContext: Array[Byte]
 ) {
-  override def toString(): String =
+  override def toString: String =
     this.getClass.getSimpleName +
       "(" + blockId.toString + ",[" +
       kvPairs.map(p => "(" + new String(p._1) + "," + new String(p._2) + ")").mkString(",") + "]," +
@@ -22,12 +22,22 @@ trait ThinReplicaClient {
       servers: Array[String],
       maxReadDataTimeout: Short,
       maxReadHashTimeout: Short,
-      jaegerAgentHostPort: String): Boolean
+      jaegerAgentHostPort: String,
+  ): Boolean
+
+  /**
+    * @return 0 if healthy; 1 if unhealthy
+    */
+  def currentHealth(): Int
+
   def subscribe(prefix: String): Boolean
+
   def subscribe(prefix: String, blockId: Long): Boolean
+
   def unsubscribe(): Boolean
 
   def pop(): Option[Update]
+
   def tryPop(): Option[Update]
 
   def acknowledgeBlockId(blockId: Long): Boolean

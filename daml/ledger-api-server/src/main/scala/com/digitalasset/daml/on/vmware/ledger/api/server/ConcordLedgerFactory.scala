@@ -78,7 +78,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       config.ledgerId,
-      () => concordWriteClient.currentHealth(),
+      () => thinReplicaClient.currentHealth(),
     )
     logger.info(s"Connecting to the first core replica ${config.extra.replicas.head}")
     val writer =
