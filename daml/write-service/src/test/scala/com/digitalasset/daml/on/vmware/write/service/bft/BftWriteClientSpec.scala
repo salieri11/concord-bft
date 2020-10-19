@@ -2,7 +2,8 @@
 
 package com.digitalasset.daml.on.vmware.write.service.bft
 
-import com.daml.ledger.participant.state.kvutils.api.SimpleCommitMetadata
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult.Acknowledged
 import com.digitalasset.daml.on.vmware.write.service.CommitRequest
 import com.google.protobuf.ByteString
@@ -29,7 +30,7 @@ class BftWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar {
       instance
         .commitTransaction(
           CommitRequest.createEmpty().copy(preExecute = true),
-          SimpleCommitMetadata(None))(executionContext)
+          CommitMetadata.Empty)(executionContext)
         .map { actual =>
           actual shouldBe Acknowledged
         }
@@ -46,8 +47,7 @@ class BftWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSugar {
       val instance = new BftWriteClient(mockConcordClientPool, (_, _) => 1.millis)
 
       instance
-        .commitTransaction(CommitRequest.createEmpty(), SimpleCommitMetadata(None))(
-          executionContext)
+        .commitTransaction(CommitRequest.createEmpty(), CommitMetadata.Empty)(executionContext)
         .map { actual =>
           actual shouldBe Acknowledged
         }

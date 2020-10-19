@@ -2,7 +2,8 @@
 
 package com.digitalasset.daml.on.vmware.participant.state
 
-import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.digitalasset.daml.on.vmware.testing.MockitoScala
 import com.digitalasset.daml.on.vmware.write.service.CommitRequest
@@ -30,7 +31,9 @@ class ConcordLedgerWriterSpec extends AsyncWordSpec with Matchers with MockitoSc
       when(commitFunction.commit(requestCaptor.capture(), metadataCaptor.capture()))
         .thenReturn(Future.successful(SubmissionResult.Acknowledged))
       val instance = new ConcordLedgerWriter(aParticipantId, commitFunction.commit)
-      val metadata = SimpleCommitMetadata(estimatedInterpretationCost = Some(60))
+      val metadata = CommitMetadata(
+        DamlSubmission.getDefaultInstance,
+        inputEstimatedInterpretationCost = Some(60))
       instance.commit("aCorrelationId", anEnvelope, metadata).map { actual =>
         actual shouldBe SubmissionResult.Acknowledged
 
