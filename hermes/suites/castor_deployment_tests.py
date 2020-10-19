@@ -25,6 +25,9 @@ import tempfile
 import sys
 import io
 import time
+from datetime import datetime, timezone
+import traceback
+from dataclasses import dataclass, asdict
 
 log = util.hermes_logging.getMainLogger()
 
@@ -209,6 +212,11 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
 
     castorComposeOutputLogFilePath = os.path.join(castorOutputDir, _COMPOSE_CASTOR_LOG)
     deployment_success = False
+
+    # measuring time castor takes for the deployment
+    start_time = datetime.now(timezone.utc).astimezone()
+    log.info("Deployment start time: {}".format(start_time.strftime(helper.TIME_FMT_TIMEZONE)))
+
     with io.open(castorComposeOutputLogFilePath, "a") as composeOutputLogFile, io.open(castorComposeOutputLogFilePath,
                                                                                        'r', 1) as reader:
         # Wait until the docker-compose process terminates
@@ -220,6 +228,15 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
             if _DEPLOYMENT_SUCCESS_MSG in line:
                 log.info("Got deployment success msg")
                 deployment_success = True
+
+    # get the end time after the deployment
+    end_time = datetime.now(timezone.utc).astimezone()
+    log.info("Deployment end time: {}".format(end_time.strftime(helper.TIME_FMT_TIMEZONE)))
+    deployment_time = end_time - start_time
+    m, s = divmod(deployment_time.seconds, 60)
+    log.info("Deployment time taken: {} minutes and {} seconds".format(m, s))
+
+    assert m <= 10, "Deployment took more than 10 minutes"
 
     assert deployment_success, "Castor docker-compose startup failed, output does not contain SUCCESS"
     log.info("docker-compose-castor.yml launched")
@@ -457,3 +474,4 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
             log.error(validation_message_fail)
 
     return status
+
