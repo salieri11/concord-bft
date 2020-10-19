@@ -78,7 +78,8 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
     val reader = new ConcordKeyValueLedgerReader(
       thinReplicaClient.committedBlocks,
       config.ledgerId,
-      () => concordWriteClient.currentHealth)
+      () => concordWriteClient.currentHealth(),
+    )
     logger.info(s"Connecting to the first core replica ${config.extra.replicas.head}")
     val writer =
       createLedgerWriter(config, participantConfig.participantId, metrics, concordWriteClient)
@@ -160,7 +161,7 @@ object ConcordLedgerFactory extends LedgerFactory[ReadWriteService, ExtraConfig]
       commitTransaction =
         ConcordWriteClient.markRequestForPreExecution((commitRequest, commitMedatata) =>
           concordWriteClient.commitTransaction(commitRequest, commitMedatata)(executionContext)),
-      fetchCurrentHealth = () => concordWriteClient.currentHealth
+      fetchCurrentHealth = () => concordWriteClient.currentHealth()
     )
   }
 

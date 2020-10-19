@@ -2,7 +2,7 @@
 
 package com.digitalasset.daml.on.vmware.write.service
 
-import com.daml.ledger.api.health.HealthStatus
+import com.daml.ledger.api.health.ReportsHealth
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
 
@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * ledger and must be thread-safe.
   * They also provide resource management, health check and initialization status information.
   */
-trait ConcordWriteClient extends AutoCloseable {
+trait ConcordWriteClient extends AutoCloseable with ReportsHealth {
 
   /**
     * Asynchronously commits a submission to Concord.
@@ -24,11 +24,6 @@ trait ConcordWriteClient extends AutoCloseable {
     */
   def commitTransaction(request: CommitRequest, metadata: CommitMetadata)(
       executionContext: ExecutionContext): Future[SubmissionResult]
-
-  /**
-    * This function will be polled at regular intervals and needs to return immediately.
-    */
-  def currentHealth: HealthStatus
 }
 
 object ConcordWriteClient {
