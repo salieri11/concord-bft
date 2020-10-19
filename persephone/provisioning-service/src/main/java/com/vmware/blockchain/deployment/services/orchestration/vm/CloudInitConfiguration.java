@@ -108,7 +108,13 @@ public class CloudInitConfiguration {
                                   String vmPassword) {
 
         this.containerRegistry = request.getCloudInitData().getContainerRegistry();
-        this.notaryServer = request.getCloudInitData().getNotaryServer();
+        if (request.getProperties().getOrDefault(
+                DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(), "false").equals("true")) {
+            this.notaryServer = request.getCloudInitData().getNotaryServer();
+        } else {
+            this.notaryServer = Endpoint.newBuilder().build();
+        }
+
         this.model = request.getCloudInitData().getModel();
         this.ipAddress = request.getCloudInitData().getPrivateIp();
         this.gateway = getGateway(datacenterInfo);

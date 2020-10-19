@@ -159,6 +159,7 @@ enum DeploymentAttributes {
     DECENTRALIZED_KEYS = 15;
     NUM_BFT_CLIENTS = 16;
     ADD_DISK_PRIMARY = 17;
+    NOTARY_VERIFICATION_ENABLED = 18;
 }
 
 /* [END messages] */

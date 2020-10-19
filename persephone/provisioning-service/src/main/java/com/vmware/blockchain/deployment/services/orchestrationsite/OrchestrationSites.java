@@ -36,13 +36,14 @@ public class OrchestrationSites {
      * @return info
      */
     public static final OrchestrationSiteInfo buildSiteInfo(OrchestrationSiteInfo originalSiteInfo,
-                                                            Endpoint containerRegistry) {
+                                                            Endpoint containerRegistry, Endpoint notaryServer) {
         OrchestrationSiteInfo original = originalSiteInfo;
         if (originalSiteInfo.getType() == OrchestrationSiteInfo.Type.VSPHERE) {
             if (Strings.isEmpty(originalSiteInfo.getVsphere().getContainerRegistry().getAddress())) {
                 original = OrchestrationSiteInfo.newBuilder(original)
                         .setVsphere(VSphereOrchestrationSiteInfo.newBuilder(original.getVsphere())
-                                            .setContainerRegistry(containerRegistry).build()).build();
+                                            .setContainerRegistry(containerRegistry)
+                                            .setNotaryServer(notaryServer).build()).build();
             }
         }
 
@@ -51,7 +52,8 @@ public class OrchestrationSites {
 
                 original = OrchestrationSiteInfo.newBuilder(original)
                         .setVmc(VmcOrchestrationSiteInfo.newBuilder(original.getVmc())
-                                        .setContainerRegistry(containerRegistry).build()).build();
+                                        .setContainerRegistry(containerRegistry)
+                                        .setNotaryServer(notaryServer).build()).build();
             }
         }
 

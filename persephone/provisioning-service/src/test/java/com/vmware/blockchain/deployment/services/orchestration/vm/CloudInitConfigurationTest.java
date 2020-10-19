@@ -27,6 +27,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ProtocolStringList;
 import com.vmware.blockchain.deployment.server.Application;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
@@ -38,6 +39,7 @@ import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Credential;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
@@ -215,6 +217,8 @@ public class CloudInitConfigurationTest {
         when(cloudInitData.getConfigGenId()).thenReturn(configGenId);
         when(cloudInitData.getConfigServiceRestEndpoint()).thenReturn(configServiceRestEndpoint);
         when(request.getCloudInitData()).thenReturn(cloudInitData);
+        when(request.getProperties()).thenReturn(
+                ImmutableMap.of(DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(), "true"));
 
         cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
@@ -250,12 +254,15 @@ public class CloudInitConfigurationTest {
         when(cloudInitData.getConfigGenId()).thenReturn(configGenId);
         when(cloudInitData.getConfigServiceRestEndpoint()).thenReturn(configServiceRestEndpoint);
         when(request.getCloudInitData()).thenReturn(cloudInitData);
+        when(request.getProperties()).thenReturn(ImmutableMap.of(
+                DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(), "true"));
 
         cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
 
         doCallRealMethod().when(cloudInitConfiguration).getConfiguration();
-        Assert.assertEquals(cloudInitConfiguration.getConfiguration().getNotaryServer().getAddress(), "\"https://notary.new.example.com\"");
+        Assert.assertEquals("\"https://notary.new.example.com\"",
+                            cloudInitConfiguration.getConfiguration().getNotaryServer().getAddress());
         Assert.assertNotNull(cloudInitConfiguration.getConfiguration());
     }
 
