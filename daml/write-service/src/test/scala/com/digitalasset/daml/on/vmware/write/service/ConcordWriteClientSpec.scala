@@ -2,7 +2,8 @@
 
 package com.digitalasset.daml.on.vmware.write.service
 
-import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult.Acknowledged
 import com.daml.ledger.participant.state.v1.{ParticipantId, SubmissionResult}
 import com.google.protobuf.ByteString
@@ -27,7 +28,7 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       val instance = ConcordWriteClient.markRequestForPreExecution(mockDelegate.commitTransaction) _
 
-      instance(commitRequest, aCommitMetadata).map { actual =>
+      instance(commitRequest, CommitMetadata.Empty).map { actual =>
         actual shouldBe Acknowledged
         requestArgumentCaptor.getAllValues should have size 1
         val expectedCommitRequest = CommitRequest(
@@ -52,7 +53,7 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       val instance = ConcordWriteClient.markRequestForPreExecution(mockDelegate.commitTransaction) _
 
-      instance(commitRequest, aCommitMetadata).map { _ =>
+      instance(commitRequest, CommitMetadata.Empty).map { _ =>
         requestArgumentCaptor.getAllValues should have size 1
         requestArgumentCaptor.getValue.preExecute shouldBe true
         succeed
@@ -63,7 +64,6 @@ class ConcordWriteClientSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val anEnvelope = ByteString.copyFromUtf8("some request")
   private val aParticipantId = ParticipantId.assertFromString("aParticipantId")
   private val aCorrelationId = "correlation ID"
-  private val aCommitMetadata = SimpleCommitMetadata(None)
 
   private trait CommitTransaction {
     def commitTransaction(

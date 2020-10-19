@@ -2,7 +2,8 @@
 
 package com.digitalasset.daml.on.vmware.write.service.bft
 
-import com.daml.ledger.participant.state.kvutils.api.SimpleCommitMetadata
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
@@ -14,10 +15,8 @@ class RequestTimeoutStrategySpec extends WordSpec with Matchers {
         slope = 1.0,
         intercept = 0.second,
         defaultTimeout = 30.seconds)
-      val inputNanos = 123.millis.toNanos
-      val commitMetadata = SimpleCommitMetadata(Some(inputNanos))
 
-      instance.calculate(commitMetadata) shouldBe 123.millis
+      instance.calculate(aCommitMetadata) shouldBe 123.millis
     }
 
     "calculate time-out based on slope and intercept" in {
@@ -25,10 +24,8 @@ class RequestTimeoutStrategySpec extends WordSpec with Matchers {
         slope = 2.0,
         intercept = 3.second,
         defaultTimeout = 30.seconds)
-      val inputNanos = 123.millis.toNanos
-      val commitMetadata = SimpleCommitMetadata(Some(inputNanos))
 
-      instance.calculate(commitMetadata) shouldBe (123.millis * 2.0 + 3.second)
+      instance.calculate(aCommitMetadata) shouldBe (123.millis * 2.0 + 3.second)
     }
 
     "return default time-out in case no interpretation time is available" in {
@@ -36,10 +33,13 @@ class RequestTimeoutStrategySpec extends WordSpec with Matchers {
         slope = 1.0,
         intercept = 0.second,
         defaultTimeout = 123.seconds)
-      val noCommitMetadata = SimpleCommitMetadata(None)
 
-      instance.calculate(noCommitMetadata) shouldBe 123.seconds
+      instance.calculate(CommitMetadata.Empty) shouldBe 123.seconds
     }
   }
 
+  private def aCommitMetadata =
+    CommitMetadata(DamlSubmission.getDefaultInstance, Some(inputNanos))
+
+  private def inputNanos = 123.millis.toNanos
 }

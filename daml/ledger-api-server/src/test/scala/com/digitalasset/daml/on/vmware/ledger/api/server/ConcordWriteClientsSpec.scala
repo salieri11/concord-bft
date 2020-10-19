@@ -7,16 +7,17 @@ import java.nio.file.Path
 import com.codahale.metrics.MetricRegistry
 import com.daml.dec.DirectExecutionContext
 import com.daml.ledger.api.health.{Healthy, Unhealthy}
-import com.daml.ledger.participant.state.kvutils.api.{CommitMetadata, SimpleCommitMetadata}
+import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlSubmission
+import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.metrics.Metrics
 import com.digitalasset.daml.on.vmware.ledger.api.server.ConcordWriteClients._
-import com.digitalasset.daml.on.vmware.write.service.{CommitRequest, ConcordWriteClient}
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftWriteClient,
   RequestTimeoutFunction,
   RequestTimeoutStrategy,
   RetryStrategyFactory
 }
+import com.digitalasset.daml.on.vmware.write.service.{CommitRequest, ConcordWriteClient}
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
@@ -138,5 +139,5 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
   private def aMetrics = new Metrics(new MetricRegistry)
   private def aNonPreExecutingCommitRequest = CommitRequest.createEmpty()
   private def aPreExecutingCommitRequest = CommitRequest.createEmpty().copy(preExecute = true)
-  private def aCommitMetadata = SimpleCommitMetadata(Some(1))
+  private def aCommitMetadata = CommitMetadata(DamlSubmission.getDefaultInstance, Some(1))
 }
