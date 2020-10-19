@@ -1,12 +1,11 @@
 // Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates.
 // All rights reserved.
 
-#include <cstring>
-
 #include <jni.h>
 
-#include "com_digitalasset_daml_on_vmware_write_service_bft_BftConcordClientPoolJni.h"
+#include <cstring>
 
+#include "com_digitalasset_daml_on_vmware_write_service_bft_BftConcordClientPoolJni.h"
 #include "concord_client_pool_wrapper.h"
 
 #ifdef __cplusplus

@@ -11,11 +11,12 @@
 // terms and conditions of the sub-component's license, as noted in the LICENSE
 // file.
 
+#include "concord_client_pool_wrapper.h"
+
 #include <log4cplus/configurator.h>
+
 #include <memory>
 #include <unordered_map>
-
-#include "concord_client_pool_wrapper.h"
 
 using bft::client::RequestConfig;
 using bft::client::WriteConfig;

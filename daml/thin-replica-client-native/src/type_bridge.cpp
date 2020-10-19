@@ -2,6 +2,7 @@
 // All rights reserved.
 
 #include "type_bridge.hpp"
+
 #include <algorithm>
 #include <exception>
 #include <functional>

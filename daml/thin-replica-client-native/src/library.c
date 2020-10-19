@@ -2,8 +2,8 @@
 // All rights reserved.
 
 #include <stdio.h>
-#include "com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni.h"
 
+#include "com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni.h"
 #include "type_bridge.hpp"
 
 /*
