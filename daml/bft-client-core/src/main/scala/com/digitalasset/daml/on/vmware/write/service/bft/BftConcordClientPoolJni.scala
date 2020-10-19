@@ -12,13 +12,14 @@ import ch.jodersky.jni.nativeLoader
 @nativeLoader("bft-client-native0")
 private[bft] class BftConcordClientPoolJni(configPath: Path) extends BftConcordClientPoolCore {
 
-  @native def sendRequest(
+  @native override def currentHealth: Int
+
+  @native override def sendRequest(
       request: Array[Byte],
       timeoutMillis: Long,
       preExecute: Boolean,
-      correlationId: String): Int
-
-  @native def currentHealth: Int
+      correlationId: String,
+  ): Int
 
   @native override def close(): Unit
 
