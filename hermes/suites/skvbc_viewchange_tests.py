@@ -6,9 +6,9 @@
 # python main.py --runConcordConfigurationGeneration
 #         --concordConfigurationInput /concord/config/dockerConfigurationInput-tee.yaml
 #         --dockerComposeFile=../docker/docker-compose-tee.yml
-#         ApolloBftTests
+#         SkvbcViewchangeTests
 #
-"""Test BFT protocol"""
+"""Test BFT viewchange protocol"""
 import sys
 import os
 import importlib.util
@@ -58,72 +58,19 @@ productType = helper.TYPE_TEE
 async def bft_network():
     return await create_bft_network()
 
-
 @describe()
-def test_skvbc_fast_path(fxProduct, bft_network):
-    trio.run(_test_skvbc_fast_path, bft_network)
+def test_skvbc_view_change(fxProduct, bft_network):
+    trio.run(_test_skvbc_view_change, bft_network)
 
 
 @with_timeout
-async def _test_skvbc_fast_path(bft_network):
-    skvbc_fast_path_test = SkvbcFastPathTest()
-    skvbc_fast_path_test.setUp()
-    log.info("Running SKVBC (fast path only)...")
-    await skvbc_fast_path_test.test_fast_path_only(
-        bft_network=bft_network,
-        already_in_trio=True,
-        exchange_keys=False
-    )
-    log.info("SKVBC (fast path only): OK")
-
-
-@describe()
-def test_skvbc_get_block_data(fxProduct, bft_network):
-    trio.run(_test_skvbc_get_block_data, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_get_block_data(bft_network):
-    skvbc_test = SkvbcTest()
-    log.info("Running SKVBC test_get_block_data...")
-    await skvbc_test.test_get_block_data(
-        bft_network=bft_network,
-        already_in_trio=True,
-        exchange_keys=False
-    )
-    log.info("SKVBC test_get_block_data: OK.")
-
-
-@describe()
-def test_skvbc_slow_path(fxProduct, bft_network):
-    trio.run(_test_skvbc_slow_path, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_slow_path(bft_network):
-    skvbc_slow_path_test = SkvbcSlowPathTest()
-    skvbc_slow_path_test.setUp()
-    log.info("Running SKVBC slow to fast path transition...")
-    await skvbc_slow_path_test.test_slow_to_fast_path_transition(
+async def _test_skvbc_view_change(bft_network):
+    skvbc_view_change_test = SkvbcViewChangeTest()
+    log.info("Running SKVBC view change test...")
+    await skvbc_view_change_test.test_single_vc_only_primary_down(
         bft_network=bft_network,
         already_in_trio=True,
         disable_linearizability_checks=True,
         exchange_keys=False
     )
-    log.info("SKVBC slow to fast path transition: OK")
-
-
-@describe()
-def test_skvbc_checkpoint_creation(fxProduct, bft_network):
-    trio.run(_test_skvbc_checkpoint_creation, bft_network)
-
-
-@with_timeout
-async def _test_skvbc_checkpoint_creation(bft_network):
-    skvbc_test = SkvbcCheckpointTest()
-    log.info("Running SKVBC checkpoint creation test...")
-    await skvbc_test.test_checkpoint_creation(
-        bft_network=bft_network,
-        already_in_trio=True
-    )
-    log.info("SKVBC checkpoint creation: OK.")
+    log.info("SKVBC view change test: OK")
