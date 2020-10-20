@@ -31,7 +31,7 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
 JNIEXPORT jint JNICALL
 Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni_currentHealth(
     JNIEnv *env, jobject obj) {
-  return 0;
+  return currentHealth(env, obj);
 }
 
 /*

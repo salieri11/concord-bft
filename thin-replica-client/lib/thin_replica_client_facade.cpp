@@ -2,6 +2,7 @@
 
 #include "thin_replica_client_facade.hpp"
 #include <log4cplus/configurator.h>
+#include "health_status.hpp"
 #include "thin_replica_client.hpp"
 #include "thin_replica_client_facade_impl.hpp"
 #include "trs_connection.hpp"
@@ -22,6 +23,7 @@ using std::chrono::seconds;
 using std::chrono::system_clock;
 using std::this_thread::sleep_for;
 using thin_replica_client::BasicUpdateQueue;
+using thin_replica_client::HealthStatus;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::TrsConnection;
@@ -125,6 +127,10 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
 }
 
 ThinReplicaClientFacade::~ThinReplicaClientFacade() {}
+
+HealthStatus ThinReplicaClientFacade::CurrentHealth() {
+  return HealthStatus::Healthy;
+}
 
 void ThinReplicaClientFacade::Subscribe(const std::string& prefix) {
   impl->trc->Subscribe(prefix);

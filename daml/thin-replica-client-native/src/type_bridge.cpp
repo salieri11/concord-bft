@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <thin_replica_client/health_status.hpp>
 #include <thin_replica_client/thin_replica_client_facade.hpp>
 #include <vector>
 
@@ -270,6 +271,12 @@ extern "C" jboolean initialize(JNIEnv* env, jobject obj, jstring j_client_id,
   }
 
   return (trcf != NULL) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" jint currentHealth(JNIEnv* env, jobject obj) {
+  ThinReplicaClientFacade* trcf = TRCFFactory::GetInstance();
+  if (!trcf) return thin_replica_client::Unhealthy;
+  return trcf->CurrentHealth();
 }
 
 extern "C" jboolean subscribe(JNIEnv* env, jobject obj, jstring j_prefix) {
