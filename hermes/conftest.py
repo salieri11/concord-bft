@@ -743,6 +743,7 @@ def _get_suite_short_name(module_name):
         "EvilTimeTests": "hermes.suites.time_service.evil_test",
         "PrivacyTeeTests": "hermes.suites.privacy_tee_tests",
         "ApolloBftTests": "hermes.suites.apollo_bft_tests",
+        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
         "RoReplicaTests": "hermes.suites.ro_replica_tests",
         "SkvbcLinearizabilityTests": "hermes.suites.skvbc_linearizability_tests",
         "SkvbcLinearizabilityWithCrashesTests": "hermes.suites.skvbc_linearizability_with_crashes_tests",
