@@ -11,6 +11,12 @@ import package_management_service_pb2_grpc as daml_package_grpc
 import package_management_service_pb2 as daml_package_pb
 
 def upload_dar(host, port, darfile):
+   '''
+   TODO: Consider using the --timeout parameter.  Would need to regenerate
+   bindings probably; I don't see the timeout parameter in the definition
+   of UplodDarFileRequest().
+   Or use the DAML SDK.
+   '''
    with open(darfile, 'rb') as dar:
       darRequest = daml_package_pb.UploadDarFileRequest(dar_file=dar.read())
 

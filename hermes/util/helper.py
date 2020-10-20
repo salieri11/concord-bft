@@ -558,7 +558,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command, verbose=True, timeout=None, working_dir=None):
+def execute_ext_command(command, verbose=True, timeout=None, working_dir=None, raise_exception=False):
    '''
    Helper method to execute an external command
    :param command: command to be executed
@@ -585,14 +585,27 @@ def execute_ext_command(command, verbose=True, timeout=None, working_dir=None):
    except subprocess.TimeoutExpired as e:
       log.error("Command timed out after {} seconds with exception: {}".format(timeout, e))
       log.error(traceback.format_exc())
-      return False, completedProcess.stdout
+
+      if raise_exception:
+         raise
+      else:
+         return False, None
    except subprocess.CalledProcessError as e:
       if verbose:
          log.error("Subprocess stdout: '{}', Subprocess stderr: '{}'"
                    .format(completedProcess.stdout, completedProcess.stderr))
          log.error("Subprocess failed with exception: {}".format(e))
          log.error(traceback.format_exc())
-      return False, completedProcess.stdout
+
+      if raise_exception:
+         raise
+      else:
+         return False, completedProcess.stdout
+   except Exception as e:
+      if raise_exception:
+         raise
+      else:
+         return False, completedProcess.stdout
 
    return True, completedProcess.stdout
 

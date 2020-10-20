@@ -7,6 +7,7 @@
 import concurrent.futures
 import os
 import pytest
+import subprocess
 import time
 import util.daml.daml_requests
 import util.helper
@@ -15,6 +16,7 @@ import yaml
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 from suites.case import describe, passed, failed
 
+import util.daml.daml_helper
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
@@ -75,13 +77,16 @@ def fxFiboMax(fxBlockchain):
                 log.info("Breaking, new_max is {}".format(new_max))
                 break
             else:
-                 # It is either:
-                 #   1. our first try or
-                 #   2. we have been seeing only successes, which means
-                 #      we have been incrementing from the initial value.
-                 # Either way, keep incrementing and checking.
-                 new_max += 1
-                 log.info("new_max has been incremented to {}".format(new_max))
+                # It is either:
+                #   1. our first try or
+                #   2. we have been seeing only successes, which means
+                #      we have been incrementing from the initial value.
+                # Either way, keep incrementing and checking.
+                if new_max < fibo_absolute_max:
+                    new_max += 1
+                    log.info("new_max has been incremented to {}".format(new_max))
+                else:
+                    break
         else:
             failures += 1
             new_max -= 1
@@ -93,9 +98,6 @@ def fxFiboMax(fxBlockchain):
                 log.info("Breaking, new_max is {}".format(new_max))
                 break
 
-    # For test stability, decrement one more time. It is not reliable to run at max.
-    if new_max > fibo_absolute_max:
-        new_max = fibo_absolute_max
     fibo_max = new_max
 
 
@@ -118,7 +120,8 @@ def run_fibo(host, port=LEDGER_PORT, iterations=1, num_fib_values=1, test_mode=T
 
     for i in range(0, iterations):
         # Note that the app can hang in some cases, so keep the timeout.
-        success, stdout = util.helper.execute_ext_command(cmd, timeout=60, working_dir=REQUEST_TOOL_DIR)
+        log.debug("Running fibo app on host {} with value {}".format(host, num_fib_values))
+        success, stdout = util.helper.execute_ext_command(cmd, timeout=120, working_dir=REQUEST_TOOL_DIR)
         log.debug("Fibonacci app iteration {} success: {}, stdout: {}".format(i, success, stdout))
 
         if test_mode:
@@ -139,6 +142,7 @@ def run_request_tool(host, port=LEDGER_PORT, iterations=1):
     cmd.extend(["--ledger-host", host, "--ledger-port", str(port)])
 
     for i in range(0, iterations):
+        log.debug("Running request tool on host {}".format(host))
         success, stdout = util.helper.execute_ext_command(cmd, timeout=240, working_dir=REQUEST_TOOL_DIR)
         log.debug("Request tool app iteration {} stdout: {}".format(i, stdout))
         assert success, "Running request tool app failed"
@@ -174,6 +178,67 @@ def get_primary_ip(fxBlockchain):
             return primary_ip
 
     raise("Could not find ip for replica '{}' in: '{}'".format(primary_rid, config))
+
+
+def start_tx_failure_ok(ledger):
+    '''
+    Start a tx on the given ledger and do not mind if it fails.
+    Launched in a separate thread.
+    '''
+    username, password = util.helper.getNodeCredentials()
+
+    try:
+        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+        log.info("Starting fibo_max tx at ledger time {}".format(timestamp))
+        run_fibo(ledger, num_fib_values=fibo_max)
+    except Exception as e:
+        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+        log.info("Fibo max failed at ledger time {}, but that is ok.".format(timestamp))
+
+
+def sleep_and_kill(sleep_time, committer, ledger):
+    '''
+    Sleep a while, then kill the given committer.
+    Launched in a separate thread.
+    '''
+    log.info("Sleeping for {} seconds and then killing the primary, {}".format(sleep_time, committer))
+    time.sleep(sleep_time)
+    username, password = util.helper.getNodeCredentials()
+    c_timestamp = util.blockchain_ops.get_docker_timestamp(committer, username, password, "concord")
+    l_timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+    log.info("Stopping concord at concord time {} and ledger time {}".format(c_timestamp, l_timestamp))
+    util.blockchain_ops.stop_services(committer, username, password, ["concord"])
+
+
+@pytest.fixture
+def fxSpiderDar(fxHermesRunSettings):
+    dar_file = "spider-modules.dar"
+    spider_tag = "1.33.98"
+    spider_image_and_tag = util.daml.daml_helper.DA_SPIDER_IMAGE + ":" + spider_tag
+
+    if not os.path.isfile(dar_file):
+        # The dar isn't here.  Is the image present?
+        log.info("Checking to see if the spider docker image is present.")
+        cmd = ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"]
+        status, output = util.helper.execute_ext_command(cmd)
+        log.info(output)
+
+        if not (status and spider_image_and_tag in output):
+            # Looks like we need to fetch it.
+            log.info("Fetching the spider docker image")
+            username = fxHermesRunSettings["hermesCmdlineArgs"].dockerHubUser
+            password = fxHermesRunSettings["hermesCmdlineArgs"].dockerHubPassword
+            util.daml.daml_helper.download_spider_app(username, password, spider_tag)
+
+        # Now extract the file.
+        with open("spider-modules.dar", "w") as f:
+            log.info("Extracting dar from spider docker image")
+            cmd = ["docker", "run", "--rm", "--entrypoint", "cat", spider_image_and_tag, "/home/dlt/dar/{}".format(dar_file)]
+            completedProcess = subprocess.run(cmd, stdout=f,
+                                              stderr=subprocess.STDOUT,
+                                              timeout=120)
+
+    return dar_file
 
 
 @describe("Send multiple very simple transactions.")
@@ -350,31 +415,58 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
     run_fibo(ledger, num_fib_values=1)
 
 
-def start_tx_failure_ok(ledger):
+@describe("Large execution output")
+def test_large_execution_output(fxBlockchain, fxSpiderDar, fxInstallDamlSdk, fxAppSetup):
     '''
-    Start a tx on the given ledger and do not mind if it fails.
-    Launched in a separate thread.
+    Perform a transaction with large output.
+    Simply uploading the CHESS+ dar file is sufficient per DA.
+    We are not running the app; we are just uploading it. Hard coding the version
+    can save a significant amount of time.
     '''
-    username, password = util.helper.getNodeCredentials()
+    # We have a timeout of 1 hour, yes.
+    # We could scp it over, but then we would need to install the DAML SDK on the ledger system,
+    # which seems to invalidate it.
+    # We retry 10x because sometimes what times out is the creation of the GRPC connection,
+    # which seems hard coded to ten seconds.
+    log.info("Yes, despite all the problems with dar upload, we have to do one for a test case.  And check out this timeout!  Here we go...")
+    timeout = 3600
+    attempts = 10
+    success = False
+    host = fxBlockchain.replicas["daml_participant"][0]
+    cmd = ["daml", "ledger", "upload-dar", fxSpiderDar, "--timeout", str(timeout)]
+    cmd.extend(["--host", host, "--port", str(LEDGER_PORT)])
 
-    try:
-        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
-        log.info("Starting fibo_max tx at ledger time {}".format(timestamp))
-        run_fibo(ledger, num_fib_values=fibo_max)
-    except Exception as e:
-        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
-        log.info("Fibo max failed at ledger time {}, but that is ok.".format(timestamp))
+    while attempts and not success:
+        attempts -= 1
+        start = time.time()
+        success = False
+        stdout = None
+
+        try:
+            success, stdout = util.helper.execute_ext_command(cmd, timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            log.info("    Timeout expired.  Trying again.")
+
+        log.info("    Output: {}".format(stdout))
+        log.info("    Time taken: {}".format(time.time() - start))
+
+    assert success, "Failed to upload the chess+ dar file"
 
 
-def sleep_and_kill(sleep_time, committer, ledger):
-    '''
-    Sleep a while, then kill the given committer.
-    Launched in a separate thread.
-    '''
-    log.info("Sleeping for {} seconds and then killing the primary, {}".format(sleep_time, committer))
-    time.sleep(sleep_time)
-    username, password = util.helper.getNodeCredentials()
-    c_timestamp = util.blockchain_ops.get_docker_timestamp(committer, username, password, "concord")
-    l_timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
-    log.info("Stopping concord at concord time {} and ledger time {}".format(c_timestamp, l_timestamp))
-    util.blockchain_ops.stop_services(committer, username, password, ["concord"])
+@describe("Send requests in parallel, but from different clients.")
+def test_parallel_clients(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax):
+    alice = fxBlockchain.replicas["daml_participant"][0]
+    bob = fxBlockchain.replicas["daml_participant"][1]
+    futures = []
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers = 2) as executor:
+        futures.append(executor.submit(run_fibo, alice, iterations=2, num_fib_values=fibo_max-3))
+        futures.append(executor.submit(run_request_tool, alice, iterations=3))
+        futures.append(executor.submit(run_request_tool, alice, iterations=3))
+
+        futures.append(executor.submit(run_fibo, bob, iterations=2, num_fib_values=fibo_max-3))
+        futures.append(executor.submit(run_request_tool, bob, iterations=3))
+        futures.append(executor.submit(run_request_tool, bob, iterations=3))
+
+    for f in futures:
+        f.result()
