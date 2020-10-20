@@ -3,7 +3,7 @@
  */
 
 import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterEvent, NavigationEnd, NavigationStart } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
@@ -102,6 +102,17 @@ export class MainComponent implements OnInit, OnDestroy {
     this.routerFragmentChange = this.route.fragment.subscribe(fragment => this.handleFragment(fragment));
     this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
     this.handleUrl();
+    this.loading = false;
+    this.router.events.subscribe(
+      (event: RouterEvent): void => {
+        if (event instanceof NavigationStart) {
+          this.loading = true;
+          this.routeService.outletEnabled = true;
+        } else if (event instanceof NavigationEnd) {
+          this.loading = false;
+        }
+      }
+    );
   }
 
   ngOnDestroy(): void {
