@@ -15,20 +15,21 @@ from suites.case import describe, getStackInfo
 from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
 from util import auth, csp, helper, hermes_logging, html, json_helper, node_creator,\
-numbers_strings, generate_grpc_bindings, pipeline
+    numbers_strings, generate_grpc_bindings, pipeline
 
+import event_recorder
 import util.hermes_logging
 
 local_modules = [os.path.join(".", "lib", "persephone")]
 for path in local_modules:
     sys.path.append(path)
 
-log = util.hermes_logging.getMainLogger()
+log = hermes_logging.getMainLogger()
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 
 TEST_LOGDIR = "test_logs"
-UNINTENTIONALLY_SKIPPED = "unintentionallySkippedTests.json"
 SUPPORT_BUNDLE = "support_bundles.json"
+REPORT = "execution_results.json"
 
 
 def pytest_generate_tests(metafunc):
@@ -41,6 +42,7 @@ def pytest_generate_tests(metafunc):
     '''
     if "fxEthCoreVmTests" in metafunc.fixturenames:
         metafunc.parametrize("fxEthCoreVmTests", getEthCoreVmTests(metafunc))
+
 
 def getEthCoreVmTests(metafunc):
     '''
@@ -68,7 +70,8 @@ def getEthCoreVmTests(metafunc):
             "ethereum"]["testRoot"]
     else:
         cmdline_args = metafunc.config.option
-        user_config = helper.getUserConfig() if cmdline_args.su else helper.loadConfigFile(cmdline_args)
+        user_config = helper.getUserConfig(
+        ) if cmdline_args.su else helper.loadConfigFile(cmdline_args)
         ethereumTestRoot = user_config["ethereum"]["testRoot"]
 
     vmTests = os.path.join(ethereumTestRoot, "VMTests")
@@ -126,12 +129,28 @@ def removeSkippedTests(testList, ethereumTestRoot):
     Loads the skipped test file and removes skipped tests from the given
     test list.
     '''
-    skippedConfig = util.json_helper.readJsonFile(INTENTIONALLY_SKIPPED_TESTS)
+    skippedConfig = json_helper.readJsonFile(INTENTIONALLY_SKIPPED_TESTS)
     for key in list(skippedConfig.keys()):
         skippedTest = os.path.join(ethereumTestRoot, key)
         if skippedTest in testList:
             log.info("Skipping: {}".format(key))
             testList.remove(skippedTest)
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_makereport(item, call):
+    '''
+    Set item attribute for  item result at setup, call and teardown
+    '''
+    outcome = yield
+    report = outcome.get_result()
+    setattr(item, "rep_" + report.when, report)
+    if call.when == 'call' or call.when == 'setup':
+        # Mark outcome xfailed if when.call executed and  outcome is skipped
+        if call.when == 'call' and report.outcome == 'skipped':
+            report.outcome = 'xfailed'
+        setattr(item, "result", {report.nodeid: {
+                'result': report.outcome, 'duration': report.duration}})
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -141,7 +160,7 @@ def hermes_info(request):
     Session level fixture to read in commandline arguments and
     prepares a dictionary of the arguments.
     '''
-    log.info("Setting up Hermes Commandline Arguments for the session...with Args")
+    log.info("Setting up Hermes Commandline Arguments for the session...")
 
     if (request.config.getoption("--hermesCmdlineArgs")):
         cmdline_args_dict = json.loads(
@@ -187,7 +206,28 @@ def hermes_info(request):
         helper.CMDLINE_ARGS = vars(cmdline_args)
 
     def post_session_processing():
-        log.info("Teardown at Session Level...")
+        log.info("Teardown session...")
+        if not cmdline_args.fromMain:
+            complete_success = False
+            complete_success = prepare_report(
+                request.session.items, cmdline_args.resultsDir)
+            log.info("Complete Success? ({})".format(complete_success))
+        if not cmdline_args.fromMain and not complete_success:
+            all_replicas_and_type = None
+            if cmdline_args.replicasConfig:
+                all_replicas_and_type = helper.parseReplicasConfig(
+                    cmdline_args.replicasConfig)
+            elif cmdline_args.damlParticipantIP != "localhost":
+                all_replicas_and_type = {
+                    helper.TYPE_DAML_PARTICIPANT: [cmdline_args.damlParticipantIP]}
+
+            if all_replicas_and_type:
+                log.info("*************************************")
+                log.info("Collecting support bundle(s)...")
+                for blockchain_type, replica_ips in all_replicas_and_type.items():
+                    helper.create_concord_support_bundle(
+                        replica_ips, blockchain_type, log_dir)
+                log.info("*************************************")
 
     request.addfinalizer(post_session_processing)
     return {
@@ -203,12 +243,15 @@ def hermes_info(request):
 @describe("fixture; Hermes run settings")
 def set_hermes_info(request, hermes_info):
     '''
-    Hermes setup at module level
+    Hermes module level setup
     '''
     short_name = _get_suite_short_name(request.module.__name__)
     log.info("Setting up Hermes run time settings for {0} Test Suite".format(
         short_name))
 
+    if hermes_info["hermesCmdlineArgs"].eventsFile:
+        event_recorder.record_event(
+            short_name, "Start", hermes_info["hermesCmdlineArgs"].eventsFile)
     resultsDir = _createResultsDir(
         short_name, hermes_info["hermesCmdlineArgs"].resultsDir)
     hermes_info["hermesTestLogDir"] = resultsDir
@@ -217,12 +260,13 @@ def set_hermes_info(request, hermes_info):
     if (not hermes_info["hermesCmdlineArgs"].fromMain):
         # Set some helpers - update for each module
         short_name = _get_suite_short_name(request.module.__name__)
-
+        helper.map_run_id_to_this_run(hermes_info["hermesCmdlineArgs"].runID,
+                                      hermes_info["hermesCmdlineArgs"].resultsDir,
+                                      resultsDir)
         # Set Real Name same as Current Name
-        if not hermes_info["hermesCmdlineArgs"].suitesRealname:
-            hermes_info["hermesCmdlineArgs"].suitesRealname = short_name
+        helper.CURRENT_SUITE_NAME = hermes_info["hermesCmdlineArgs"].suitesRealname if hermes_info[
+            "hermesCmdlineArgs"].suitesRealname else short_name
 
-        helper.CURRENT_SUITE_NAME = hermes_info["hermesCmdlineArgs"].suitesRealname
         helper.CURRENT_SUITE_LOG_FILE = os.path.join(
             resultsDir, helper.CURRENT_SUITE_NAME + ".log")
 
@@ -240,36 +284,24 @@ def set_hermes_info(request, hermes_info):
         if helper.thisHermesIsFromJenkins():
             pipeline.markInvocationAsExecuted()
 
-        logHandler = util.hermes_logging.addFileHandler(
+        logHandler = hermes_logging.addFileHandler(
             helper.CURRENT_SUITE_LOG_FILE, hermes_info["hermesCmdlineArgs"].logLevel)
 
         support_bundle_file = os.path.join(
             resultsDir, SUPPORT_BUNDLE)
         hermes_info["supportBundleFile"] = support_bundle_file
 
-        results = {
-            helper.CURRENT_SUITE_NAME: {
-                "result": "",
-                "tests": collections.OrderedDict()
-            }
-        }
-
-        result_file = os.path.join(resultsDir,
-                                   helper.CURRENT_SUITE_NAME + ".json")
-        with open(result_file, "w") as f:
-            f.write(json.dumps(results))
-
-        unintentionallySkippedFile = os.path.join(resultsDir,
-                                                  UNINTENTIONALLY_SKIPPED
-                                                  )
-        unintentionallySkippedTests = {}
-
     def post_module_processing():
-        log.info("Teardown at Module level...")
+        log.info("Teardown module...")
+
         if (not hermes_info["hermesCmdlineArgs"].fromMain):
             helper.collectSupportBundles(
                 hermes_info["supportBundleFile"], resultsDir)
-            #TODO:  parsePytestResults()
+
+            if hermes_info["hermesCmdlineArgs"].eventsFile:
+                event_recorder.record_event(
+                    short_name, "End",  hermes_info["hermesCmdlineArgs"].eventsFile)
+
             log.removeHandler(logHandler)
 
     request.addfinalizer(post_module_processing)
@@ -300,14 +332,6 @@ def fxHermesRunSettings(request, set_hermes_info):
     os.makedirs(set_hermes_info["hermesTestLogDir"])
 
     return set_hermes_info
-
-
-def pytest_collection_modifyitems(config, items):
-    skip_the_test = pytest.mark.skip(
-        reason="Execution of this test requires --executeAvoid option")
-    for item in items:
-        if "avoid" in item.keywords:
-            item.add_marker(skip_the_test)
 
 
 def _createResultsDir(module_name, resultsDir):
@@ -461,26 +485,26 @@ def pytest_addoption(parser):
                      default=helper.get_time_now_in_milliseconds(),
                      help="Unique ID to differentiate runs")
     parser.addoption("--runDuration",
-                        type=int,
-                        default=6,
-                        help="No. of hrs to monitor replicas (default 6 hrs)")
+                     type=int,
+                     default=6,
+                     help="No. of hrs to monitor replicas (default 6 hrs)")
     parser.addoption("--loadInterval",
-                        type=int,
-                        default=60,
-                        help="Minutes to wait between monitors (default 60 mins)")
+                     type=int,
+                     default=60,
+                     help="Minutes to wait between monitors (default 60 mins)")
     parser.addoption("--testset",
-                        default="basic_tests",
-                        help="Set of test sets to be picked up from testlist file.  e.g. " \
-                        "'basic_tests'")
+                     default="basic_tests",
+                     help="Set of test sets to be picked up from testlist file.  e.g. "
+                     "'basic_tests'")
     parser.addoption("--testlistFile",
-                        help="json file containing the list of tests",
-                        default=helper.LONG_RUN_TEST_FILE)
+                     help="json file containing the list of tests",
+                     default=helper.LONG_RUN_TEST_FILE)
     parser.addoption("--notifyTarget",
-                        help="Slack channel name or email address, default will skip notification",
-                        default=None)
+                     help="Slack channel name or email address, default will skip notification",
+                     default=None)
     parser.addoption("--notifyJobName",
-                        help="Shortened job name running this monitoring script",
-                        default=None)
+                     help="Shortened job name running this monitoring script",
+                     default=None)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
@@ -581,8 +605,9 @@ def pytest_addoption(parser):
                                    help="Ability to override the replica storage value provided by SaaS.",
                                    default=None)
 
-    parser.addoption("--executeAvoid",
-                     help="Required to execute test cases which are marked as 'avoid'")
+    nonLocalDeployConfig.addoption("--propertiesString",
+                                   help="The string containing comma seperated key value pairs for deployment properties.",
+                                   default="")
 
     #### Required to invoke pytest from main program #######
     #### This is a stop gap arrangement till main.py is deprecated. ####
@@ -689,13 +714,12 @@ def _getArgs(request):
     cmdArgs["supportBundleFile"] = request.config.getoption(
         "--supportBundleFile")
     cmdArgs["hermes_dir"] = os.path.dirname(os.path.realpath(__file__))
-    cmdArgs["executeAvoid"] = request.config.getoption("--executeAvoid")
     cmdArgs["hermesCmdlineArgs"] = request.config.getoption(
-        "--hermesCmdlineArgs"),
+        "--hermesCmdlineArgs")
     cmdArgs["hermesUserConfig"] = request.config.getoption(
-        "--hermesUserConfig"),
+        "--hermesUserConfig")
     cmdArgs["hermesZoneConfig"] = request.config.getoption(
-        "--hermesZoneConfig"),
+        "--hermesZoneConfig")
     cmdArgs["hermesTestLogDir"] = request.config.getoption(
         "--hermesTestLogDir"),
     cmdArgs["clientSize"] = request.config.getoption("--clientSize"),
@@ -706,6 +730,8 @@ def _getArgs(request):
     cmdArgs["replicaMemory"] = request.config.getoption("--replicaMemory"),
     cmdArgs["replicaCpu"] = request.config.getoption("--replicaCpu"),
     cmdArgs["replicaStorage"] = request.config.getoption("--replicaStorage")
+    cmdArgs['propertiesString'] = request.config.getoption(
+        "--propertiesString")
 
     return cmdArgs
 
@@ -735,6 +761,7 @@ def _get_suite_short_name(module_name):
         "HelenZoneTests": "zone_test",
         "HelenRoleTests": "roles",
         "NodeInterruptionTests": "hermes.suites.node_interruption_tests",
+        "LongRunningTests": "hermes.suites.long_running_tests",
         "LoggingTests": "hermes.suites.logging_tests",
         "PersephoneTestsNew": "hermes.suites.persephone_tests_new",
         "SampleSuite": "hermes.suites.sample_suite",
@@ -768,3 +795,70 @@ def _get_suite_short_name(module_name):
         suite_list.values()).index(module_name)]
 
     return short_name
+
+
+def prepare_report(items, results_dir):
+    complete_success = True
+    skipped = 0
+    success = 0
+    xfailed = 0
+    failed = 0
+    not_executed = 0
+    total = len(items)
+
+    fail = "\033[1;91m"
+    ok = "\033[1;92m"
+    yellow = "\033[1;33m"
+    reset = "\033[0m"
+    blue = "\033[1;94m"
+    cyan = '\033[96m'
+
+    msg = ""
+    jobj = {}
+    for item in items:
+        if hasattr(item, 'result'):
+            res = item.result
+            k = list(res.keys())
+            suite = k[0].split('.')[0]
+            test = k[0].split(':')[2]
+            if suite in jobj.keys():
+                jobj.get(suite)[test] = list(res.values())[0]
+            else:
+                jobj[suite] = {test: list(res.values())[0]}
+
+        if hasattr(item, 'rep_call'):
+            if item.rep_call.outcome == 'failed':
+                msg = "Test Result: Not a Complete Success...."
+                complete_success = False
+                failed += 1
+            elif item.rep_call.outcome == 'xfailed':
+                xfailed += 1
+            else:
+                success += 1
+        elif hasattr(item, 'rep_setup') and item.rep_setup.outcome == 'skipped':
+            skipped += 1
+        else:
+            not_executed += 1
+
+    if complete_success:
+        msg = "Test Result: Successfully completed test session..."
+
+    result_summary = {'succeeded': success, 'expected-failed': xfailed,
+                      'skipped': skipped, 'failed': failed,
+                      'not-executed': not_executed, 'total': total}
+    session_results = {'report': {'result': result_summary, 'tests': jobj}}
+
+    result_file = os.path.join(
+        results_dir, REPORT)
+    with open(result_file, "w") as f:
+        f.write(json.dumps(session_results))
+    log.info("Result file location: {}".format(result_file))
+    log.info("Result Summary: {0}{1}{2}".format(cyan,result_summary,reset))
+
+    log.info(msg)
+    log.info("Summary: {0}[\u2714]tests succeeded {1}, {2}[\u2717]tests failed {3}, "
+             "{4}tests skipped {5}, tests expected-failed {6}, "
+             "tests not-executed {7}, {8}Total Tests {9}{10}"
+             .format(ok, success, fail, failed, yellow, skipped,
+                     xfailed, not_executed, blue, total, reset))
+    return complete_success

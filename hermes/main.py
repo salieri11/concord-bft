@@ -247,9 +247,12 @@ def main():
                        "Only needed if the DAML SDK version is not in {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
    parser.add_argument("--runID", default=helper.get_time_now_in_milliseconds(),
                        help="Unique ID to differentiate runs")
-   parser.add_argument("--allureDir",
-                       default=tempfile.gettempdir(),
+   parser.add_argument("--alluredir",
+                       default=None,
                        help="Location for storing data for Allure reports")
+   parser.add_argument("--json",
+                       default=tempfile.gettempdir(),
+                       help="Location of json report")
    parser.add_argument("--runDuration",
                        type=int,
                        default=6,
@@ -380,9 +383,6 @@ def main():
 
    parent_results_dir = args.resultsDir
 
-   args.allureDir = parent_results_dir if args.allureDir is tempfile.gettempdir() else args.allureDir
-
-
    # In future, if the location of main.py changes from hermes/,
    # update args.hermes_dir accordingly
    dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -400,7 +400,7 @@ def main():
    totalSuccess = True
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
-   log.info("Allure Reports folder: {0}, parent results dir: {1}".format(args.allureDir, parent_results_dir))
+   log.debug("Allure Reports folder: {0}, parent results dir: {1}".format(args.alluredir, parent_results_dir))
 
    warncolor = "\033[1;33m"
    underline = '\033[4m'
@@ -480,7 +480,7 @@ def main():
                                             parent_results_dir=parent_results_dir)
          log.info("Results directory: {}".format(args.resultsDir))
          suite = pytest_suite.PytestSuite(args, suiteName, suiteList[suiteName], product)
-         map_run_id_to_this_run(args, parent_results_dir)
+         helper.map_run_id_to_this_run(args.runID, parent_results_dir, args.resultsDir)
          if suite is None:
             try: raise Exception("Unknown test suite")
             except Exception as e: log.error(e); addExceptionToSummary(e)
@@ -704,50 +704,6 @@ def tallyResults(results):
             skippedCount += 1
 
     return totalCount, passCount, failCount, skippedCount
-
-def map_run_id_to_this_run(args, parent_results_dir):
-   '''
-   Map a run ID for each run. This helps mapping iterations and log directorey
-   in long running test runs
-   :param args: all command line args
-   :param parent_results_dir: base results diir
-   '''
-   hermes_testrun_info_file = os.path.join(parent_results_dir,
-                                           helper.hermes_testrun_info_filename)
-   data = {
-      helper.testrun_info_results_dir_key_name: args.resultsDir
-   }
-
-   hermes_testrun_info_lock_file = "{}.lock".format(hermes_testrun_info_file)
-   max_tries = 5
-   count = 0
-   while count < max_tries: # avoid deadlock if a parallel run is writing into the file
-      if os.path.exists(hermes_testrun_info_lock_file):
-         sleep(1)
-      else:
-         break
-      count += 1
-
-   if not os.path.exists(hermes_testrun_info_lock_file):
-      try:
-         # create lock file if we have parallel runs in future
-         with open(hermes_testrun_info_lock_file, 'x') as f:
-            pass
-
-         if os.path.exists(hermes_testrun_info_file):
-            with open(hermes_testrun_info_file) as json_fp:
-               json_data = json.load(json_fp)
-         else:
-            json_data = {}
-         json_data[args.runID] = data
-
-         with open(hermes_testrun_info_file, "w") as fp:
-            json.dump(json_data, fp, indent=2)
-
-         # delete lock file
-         os.remove(hermes_testrun_info_lock_file)
-      except FileExistsError:
-         pass
 
 
 main()
