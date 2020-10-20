@@ -170,6 +170,7 @@ target_link_libraries(ThinReplicaTest
         concord_utils
         concord_consensus
         concord_common
+        concord_trs
         logging)
 
 add_executable(TrsSubBufferTest
