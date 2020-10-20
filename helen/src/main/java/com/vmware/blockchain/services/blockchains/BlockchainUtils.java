@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
@@ -43,6 +44,7 @@ import com.vmware.blockchain.services.blockchains.zones.OnPremZone;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
+import com.vmware.blockchain.services.profiles.Organization;
 
 /**
  * Convenient utilities for Blockchain stuff.
@@ -100,7 +102,7 @@ public class BlockchainUtils {
     /**
      * Convert a Helen Zone to a Fleet Orchestration Site.
      */
-    public static OrchestrationSiteInfo toInfo(Zone zone)  {
+    public static OrchestrationSiteInfo toInfo(Zone zone, Organization organization)  {
         Zone.Wavefront wf = zone.getWavefront();
         Wavefront wavefront = Wavefront.newBuilder().build();
 
@@ -112,6 +114,9 @@ public class BlockchainUtils {
                     .setUrl(wf.getUrl())
                     .setToken(wf.getToken())
                     .build();
+        } else if (organization.getOrganizationProperties().getOrDefault(Constants.USE_WAVEFRONT, "True")
+                .equalsIgnoreCase("False")) {
+            logger.info("Use of wavefront is set to false. Will not send metrics to wavefront.");
         } else {
             // Hack to default to our SRE wavefront.
             wavefront = Wavefront.newBuilder()
