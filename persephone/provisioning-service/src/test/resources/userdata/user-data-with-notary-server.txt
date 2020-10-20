@@ -28,6 +28,14 @@ echo '{
 }' > /config/agent/config.json
 chmod 600 /config/agent/config.json
 
+# Output Notary Server's Self-Signed Certificate
+if false
+then
+   mkdir -p ~/.docker/tls/notary.example.com
+   echo '' > ~/.docker/tls/notary.example.com/ca.crt
+   chmod 600 ~/.docker/tls/notary.example.com/ca.crt
+fi
+
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
@@ -39,7 +47,7 @@ until [ $retry -ge 3 ]
 do
    docker login https://containerRegistry.com -u username -p 'password'
    docker network create -d bridge blockchain-fabric
-   export DOCKER_CONTENT_TRUST_SERVER="https://notary.example.com"
+   export DOCKER_CONTENT_TRUST_SERVER=https://notary.example.com
    export DOCKER_CONTENT_TRUST=1
    docker run -d --name=agent --restart=always --network=blockchain-fabric -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock containerRegistry.com/agent && break
    retry=$[$retry+1]

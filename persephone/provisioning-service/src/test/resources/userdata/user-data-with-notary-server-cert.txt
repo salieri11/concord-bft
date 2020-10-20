@@ -29,11 +29,31 @@ echo '{
 chmod 600 /config/agent/config.json
 
 # Output Notary Server's Self-Signed Certificate
-if false
+if true
 then
-   mkdir -p ~/.docker/tls/
-   echo '' > ~/.docker/tls//ca.crt
-   chmod 600 ~/.docker/tls//ca.crt
+   mkdir -p ~/.docker/tls/127.0.0.1:4443
+   echo '-----BEGIN CERTIFICATE-----
+MIIDhDCCAmwCCQCqJ2ReGXJGSTANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgMAkNBMRIwEAYDVQQHDAlTdW5ueXZhbGUxDzANBgNVBAoMBlZN
+d2FyZTENMAsGA1UECwwET0NUTzETMBEGA1UEAwwKdm13YXJlLmNvbTEeMBwGCSqG
+SIb3DQEJARYPdGVzdEB2bXdhcmUuY29tMB4XDTIwMDgyNDIyMDI0M1oXDTIxMDgy
+NDIyMDI0M1owgYMxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTESMBAGA1UEBwwJ
+U3Vubnl2YWxlMQ8wDQYDVQQKDAZWTXdhcmUxDTALBgNVBAsMBE9DVE8xEzARBgNV
+BAMMCnZtd2FyZS5jb20xHjAcBgkqhkiG9w0BCQEWD3Rlc3RAdm13YXJlLmNvbTCC
+ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKQ53M+a9Rl2n6uR6+Gl2ErT
+MMwXRixfcdQkBaSfnENf4rSLCo/9nbUFzSDI2N7USY1FlmzHeyvopRNmuyCda6Jv
+oleleiaHhyrR0FMAUZ8Vz0sI4fMRaRqKBsMJ+QgX4USdmghAkmys7ig5MUJjcU8D
+UoQ4LoUDiGARkw0oD6cNWa3pdWVfJ3mvaHuq1OlZfQ3kC1luyklhihPIMGrisuua
+49tGBZs3F6n3Ky3hU09I3okKkBtioXTkYz3Bdszt/XMS5HeyrX/nG2NO60RT3OVX
+nvdb0bmPSJNmnvSGEzTD8WnA+9Vg13e8xLLA1W6+oFhG6rUD5g5IKnfl6zE8sL0C
+AwEAATANBgkqhkiG9w0BAQsFAAOCAQEANb0u4elmBugWqAR9reQRlk66Nx3Velab
+NSI8f78WGHMCS4ryG8fwFKwcJ9XlDJZA81FcRDrycvk0qaLgnSWnBrrauDDkGRL4
+mJsFnjBIfJkJXDvfp6LYhgubleVj5kiNHCp/Pp9wFnuP7/Q8fgygZrXSiT/tzAQy
+Au90vbEzxvpCvbf0lQYcL5M9jFt9D2RxMLWQCbf+PrluXe+leWOiPlrvXY/sYqxW
+hlkQfaYjauR4qTbqo9VX4q142tbAsGnq8tmXbAlL+NK12HHZvGjOlsyOUjAbD0Vt
+398Vtqg3kiL/IAe1weda08BdTkA/Dj4DKHZQHs2ndKoDVV5icoIXHw==
+-----END CERTIFICATE-----' > ~/.docker/tls/127.0.0.1:4443/ca.crt
+   chmod 600 ~/.docker/tls/127.0.0.1:4443/ca.crt
 fi
 
 # Update guest-info's network information in vSphere.
@@ -47,8 +67,8 @@ until [ $retry -ge 3 ]
 do
    docker login https://containerRegistry.com -u username -p 'password'
    docker network create -d bridge blockchain-fabric
-   export DOCKER_CONTENT_TRUST_SERVER=""
-   export DOCKER_CONTENT_TRUST=0
+   export DOCKER_CONTENT_TRUST_SERVER=https://127.0.0.1:4443
+   export DOCKER_CONTENT_TRUST=1
    docker run -d --name=agent --restart=always --network=blockchain-fabric -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock containerRegistry.com/agent && break
    retry=$[$retry+1]
    sleep 10

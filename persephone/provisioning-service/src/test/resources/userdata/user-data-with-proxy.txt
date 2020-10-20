@@ -28,6 +28,14 @@ echo '{
 }' > /config/agent/config.json
 chmod 600 /config/agent/config.json
 
+# Output Notary Server's Self-Signed Certificate
+if false
+then
+   mkdir -p ~/.docker/tls/
+   echo '' > ~/.docker/tls//ca.crt
+   chmod 600 ~/.docker/tls//ca.crt
+fi
+
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
