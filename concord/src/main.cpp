@@ -506,8 +506,8 @@ void RunThinReplicaServer(
     std::string server_address, const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
-    bftEngine::ReplicaConfig *replicaConfig, bool is_insecure_trs,
-    std::string thin_replica_tls_cert_path) {
+    bftEngine::ReplicaConfig *replicaConfig, CommConfig *commConfig,
+    bool is_insecure_trs, std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.thin_replica");
 
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
@@ -524,25 +524,31 @@ void RunThinReplicaServer(
     LOG_INFO(logger,
              "TLS for thin replica server is enabled, certificate path: "
                  << thin_replica_tls_cert_path);
-    std::string server_cert_path, server_key_path, root_cert_path;
-    std::string server_cert, server_key, root_cert;
+    std::string server_cert, server_key, server_root;
 
-    server_cert_path = thin_replica_tls_cert_path + "/s" +
-                       std::to_string(replicaConfig->replicaId);
+    std::string server_cert_path =
+        thin_replica_tls_cert_path + "/" +
+        commConfig->nodes[replicaConfig->replicaId].host;
+
     // Read the certs
     readCert(server_cert_path + "/server.cert", server_cert);
     readCert(server_cert_path + "/pk.pem", server_key);
+
+    // client.cert is a composite cert file i.e., a concatentation of the
+    // certificates of all known clients
+    readCert(server_cert_path + "/client.cert", server_root);
 
     grpc::SslServerCredentialsOptions::PemKeyCertPair keycert = {server_key,
                                                                  server_cert};
 
     grpc::SslServerCredentialsOptions sslOps;
 
+    sslOps.pem_root_certs = server_root;
     sslOps.pem_key_cert_pairs.push_back(keycert);
 
     // Request and verify client certificate for mutual TLS
     sslOps.client_certificate_request =
-        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+        GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY;
 
     // Use populated ssl server credentials
     builder.AddListeningPort(server_address,
@@ -977,8 +983,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       std::thread(RunThinReplicaServer, daml_addr, &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry, &replicaConfig, is_insecure_trs,
-                  thin_replica_tls_cert_path)
+                  prometheus_registry, &replicaConfig, &commConfig,
+                  is_insecure_trs, thin_replica_tls_cert_path)
           .detach();
     } else if (tee_enabled) {
       std::string tee_addr{

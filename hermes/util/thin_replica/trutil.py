@@ -25,10 +25,11 @@ class ThinReplica:
             # verify the thin replica server is also using TLS
             log.info("TLS enabled for the trutil client")
 
-            # for simplicity, the trutil client uses the same cert as daml_ledger_api1
-            with open("../docker/trs_trc_tls_certs/s{}/server.cert".format(int(host_name[-1]) - 1), 'rb') as root,\
-                 open("../docker/trs_trc_tls_certs/c0/client.cert", 'rb') as cert,\
-                 open("../docker/trs_trc_tls_certs/c0/pk.pem", 'rb') as key:
+            # The trutil client uses the certs in ../docker/trs_trc_tls_certs/trutil folder
+            # server.cert is a composite cert file i.e., a concatentation of the certificates of all known servers
+            with open("../docker/trs_trc_tls_certs/{}/server.cert".format(client_id.split('.')[0]), 'rb') as root,\
+                 open("../docker/trs_trc_tls_certs/{}/client.cert".format(client_id.split('.')[0]), 'rb') as cert,\
+                 open("../docker/trs_trc_tls_certs/{}/pk.pem".format(client_id.split('.')[0]), 'rb') as key:
                 creds = grpc.ssl_channel_credentials(root.read(), key.read(), cert.read())
             # override ssl target name with the host_name, as certificates are generated
             # with CN=hostname
