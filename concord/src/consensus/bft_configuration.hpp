@@ -154,6 +154,15 @@ inline bool InitializeSbftConfiguration(
       repConf->preExecConcurrencyLevel =
           config.getValue<uint16_t>("preexec_concurrency_level");
 
+      repConf->batchingPolicy =
+          config.getValue<uint32_t>("consensus_batching_policy");
+
+      repConf->maxInitialBatchSize =
+          config.getValue<uint32_t>("max_initial_batch_size");
+
+      repConf->batchingFactorCoefficient =
+          config.getValue<uint32_t>("batching_factor_coefficient");
+
       // TODO(IG): add to config file
       repConf->viewChangeProtocolEnabled = true;
 
