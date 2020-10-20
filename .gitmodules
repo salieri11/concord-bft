@@ -1,9 +1,6 @@
 [submodule "submodules/concord-bft"]
 	path = concord/submodules/concord-bft
 	url = https://github.com/vmware/concord-bft
-[submodule "submodules/hlf-chaincode-engine"]
-	path = submodules/hlf-chaincode-engine
-	url = git@gitlab.eng.vmware.com:blockchain/hlf-chaincode-engine.git
 [submodule "concord/submodules/HdrHistogram_c"]
 	path = concord/submodules/HdrHistogram_c
 	url = https://github.com/HdrHistogram/HdrHistogram_c
