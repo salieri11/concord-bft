@@ -599,7 +599,8 @@ void ThinReplicaClient::ReceiveUpdates() {
     // the fact it shouldn't may or not be used as a simplifying assumption in
     // the loop's implementation.
     for (size_t trsc = 0; trsc < trs_conns_.size(); ++trsc) {
-      if (agreeing_subset_members[most_agreed_block].count(trsc) < 1) {
+      if (agreeing_subset_members[most_agreed_block].count(trsc) < 1 &&
+          trs_conns_[trsc]->hasHashStream()) {
         LOG4CPLUS_DEBUG(logger_, "Close hash stream " << trsc << " after block "
                                                       << update_in.block_id());
         trs_conns_[trsc]->closeHashStream();
