@@ -67,7 +67,7 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
     "storage_in_gigs": 
     {
       "min": 64,
-      "max": 4096 
+      "max": 4096
     },
     "memory_in_gigs": 
     {
