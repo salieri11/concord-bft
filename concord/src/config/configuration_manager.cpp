@@ -3898,6 +3898,34 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("preexec_concurrency_level",
                       make_shared<UIntValidator>(0, UINT16_MAX));
 
+  config.declareParameter("consensus_batching_policy",
+                          "Batching policy to use combining client"
+                          " requests into one consensus operation "
+                          "(BATCH_SELF_ADJUSTED (0) by default).",
+                          "0");
+  config.tagParameter("consensus_batching_policy", publicDefaultableTags);
+  config.tagParameter("consensus_batching_policy", applicationTag);
+  config.addValidator("consensus_batching_policy",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
+
+  config.declareParameter("max_initial_batch_size",
+                          "Maximum initial number of requests to be batched "
+                          "together (350 by default).",
+                          "350");
+  config.tagParameter("max_initial_batch_size", publicDefaultableTags);
+  config.tagParameter("max_initial_batch_size", applicationTag);
+  config.addValidator("max_initial_batch_size",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
+
+  config.declareParameter("batching_factor_coefficient",
+                          "Batching factor coefficient used in calculation of "
+                          "a batching size (4 by default).",
+                          "4");
+  config.tagParameter("batching_factor_coefficient", publicDefaultableTags);
+  config.tagParameter("batching_factor_coefficient", applicationTag);
+  config.addValidator("batching_factor_coefficient",
+                      make_shared<UIntValidator>(0, UINT32_MAX));
+
   auto service_host_param = [&](ConcordConfiguration& c) {
     c.declareParameter("service_host",
                        "Public IP address or hostname on which this replica's "
