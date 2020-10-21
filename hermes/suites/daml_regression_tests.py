@@ -14,6 +14,8 @@ from util.daml.daml_requests import simple_request, continuous_daml_request_subm
 import util.node_interruption_helper as intr_helper
 import asyncio
 from fixtures.common_fixtures import fxNodeInterruption, fxBlockchain, fxProduct
+import json
+from subprocess import check_output, CalledProcessError
 
 log = hermes_logging.getMainLogger()
 
@@ -185,6 +187,56 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
         fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
 
 
+def wf_api_token():
+    config_obj = helper.getUserConfig()
+    return config_obj["dashboard"]["devops"]["wavefront"]["token"]
+
+
+def call_wavefront_chart_api(blockchain_id, metric_query, start_epoch, end_epoch):
+    '''
+    Local function to call <wavefront_url>/api/v2/chart/api
+    Args:
+        blockchain_id: Blockchain Id in current context
+        metric_query: Metric name along with filter parameters
+        start_epoch: Start time in epoch 
+        end_epoch: End time in epoch
+    Returns:
+        Output of API call.
+    '''
+    wf_url = 'https://vmware.wavefront.com/api/v2/chart/api'
+    wf_url = wf_url + '?q={}'.format(metric_query)
+    wf_url = wf_url + '&s={}'.format(start_epoch)
+    wf_url = wf_url + '&e={}'.format(end_epoch)
+    # Below parameters are default set, if not provided.
+    wf_url = wf_url + '&g=m' + '&view=METRIC'
+    wf_url = wf_url + '&includeObsoleteMetrics=false' + '&sorted=false'
+    wf_url = wf_url + '&cached=true' + '&useRawQK=false'
+    # Strict must be true, otherwise data outside start time and end time range is fetched.
+    wf_url = wf_url + '&strict=true'
+
+    wavefront_cmd = ["curl", "-X", "GET",
+                     "-H", "Accept: application/json",
+                     "-H", "Content-Type: application/json",
+                     "-H", "Authorization: Bearer {}".format(wf_api_token()),
+                     "--connect-timeout", "5",  # Connection timeout for each retry
+                     "--max-time", "10",  # Wait time for each retry
+                     "--retry", "5",  # Maximum retries
+                     "--retry-delay", "0",  # Delay in next retry
+                     "--retry-max-time", "60",  # Total time before this call is considered a failure
+                     wf_url]
+    str_output = check_output(wavefront_cmd).decode('utf8')
+    try:
+        json_output = json.loads(str_output)
+        assert "warnings" not in json_output.keys(), json_output["warnings"]
+        assert "errorType" not in json_output.keys(
+        ), "{} - {}".format(json_output["errorType"], json_output["errorMessage"])
+
+        return json_output
+    except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
+        log.error("Error is : [{}]".format(e))
+        assert False, str_output
+
+
 @describe("daml test for single transaction")
 def test_daml_single_transaction(fxLocalSetup):
     '''
@@ -198,6 +250,7 @@ def test_daml_single_transaction(fxLocalSetup):
     for client_host, client_port in fxLocalSetup.client_hosts.items():
         try:
             install_sdk_deploy_daml(client_host, client_port)
+
             no_of_txns, wait_time = 2, 1
             url = 'http://{}:{}'.format(client_host, client_port)
             # Create & verify transactions of count no_of_txns
@@ -678,69 +731,210 @@ def test_system_after_staggered_startup(fxLocalSetup, fxHermesRunSettings, parti
 
 @describe("verify fault tolerance - after multiple view changes")
 def test_fault_tolerance_after_multiple_view_changes(fxLocalSetup, fxHermesRunSettings, fxBlockchain):
-   '''
-   Verify fault tolerance view changes after multiple using below steps:
-   - Connect to a blockchain network.
-   - Stop f-1 non primary replica.
-   - Submit client requests continuously.
-   - Stop and start current primary node multiple times.
-   - Submit client requests.
-   - Verify that requests are processed correctly.
-   Args:
-       fxLocalSetup: Local fixture
-       fxHermesRunSettings: Hermes command line arguments
-       fxBlockchain: blockchain
-   '''
-   for client_host, client_port in fxLocalSetup.client_hosts.items():
-      try:
-         install_sdk_deploy_daml(client_host, client_port)
+    '''
+    Verify fault tolerance view changes after multiple using below steps:
+    - Connect to a blockchain network.
+    - Stop f-1 non primary replica.
+    - Submit client requests continuously.
+    - Stop and start current primary node multiple times.
+    - Submit client requests.
+    - Verify that requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: blockchain
+    '''
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        try:
+            install_sdk_deploy_daml(client_host, client_port)
 
-         no_of_txns, wait_time = 1, 0.2
-         url = 'http://{}:{}'.format(client_host, client_port)
+            no_of_txns, wait_time = 1, 0.2
+            url = 'http://{}:{}'.format(client_host, client_port)
 
-         # Submit Daml requests before finding primary replica
-         assert simple_request(url, no_of_txns, wait_time), \
-            "DAML request submission/verification failed for participant \
+            # Submit Daml requests before finding primary replica
+            assert simple_request(url, no_of_txns, wait_time), \
+                "DAML request submission/verification failed for participant \
         [{}]".format(client_host)
 
-         # Find primary replica ip
-         committers_mapping = blockchain_ops.map_committers_info(fxBlockchain)
-         initial_primary_replica_ip = committers_mapping["primary_ip"]
-         log.info("initial_primary_replica_info: {}".format(initial_primary_replica_ip))
+            # Find primary replica ip
+            committers_mapping = blockchain_ops.map_committers_info(
+                fxBlockchain)
+            initial_primary_replica_ip = committers_mapping["primary_ip"]
+            log.info("initial_primary_replica_info: {}".format(
+                initial_primary_replica_ip))
 
-         interrupted_nodes = []
-         container_name = 'concord'
+            interrupted_nodes = []
+            container_name = 'concord'
 
-         # List of f non-primary replicas
-         non_primary_replicas = fxLocalSetup.concord_hosts[:]
-         non_primary_replicas.remove(initial_primary_replica_ip)
+            # List of f non-primary replicas
+            non_primary_replicas = fxLocalSetup.concord_hosts[:]
+            non_primary_replicas.remove(initial_primary_replica_ip)
 
-         # Stop f-1 non-primary replica
-         for i in range(fxLocalSetup.f_count - 1):
-            concord_host = non_primary_replicas[i]
-            intr_helper.stop_container(concord_host, container_name)
-            interrupted_nodes.append(concord_host)
+            # Stop f-1 non-primary replica
+            for i in range(fxLocalSetup.f_count - 1):
+                concord_host = non_primary_replicas[i]
+                intr_helper.stop_container(concord_host, container_name)
+                interrupted_nodes.append(concord_host)
 
-         log.info("Stopped f-1 non-primary replica concord container")
+            log.info("Stopped f-1 non-primary replica concord container")
 
-         # Start new thread for daml request submissions
-         thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                  args=(client_host, client_port, no_of_txns, wait_time, 900))
-         thread_daml_txn.start()
+            # Start new thread for daml request submissions
+            thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                     args=(client_host, client_port, no_of_txns, wait_time, 900))
+            thread_daml_txn.start()
 
-         # Stop and Restart the current primary replicas multiple times
-         for _ in range(0, 7):
-            committers_mapping = blockchain_ops.map_committers_info(fxBlockchain, interrupted_nodes)
-            primary_replica_ip = committers_mapping["primary_ip"]
-            intr_helper.stop_container(primary_replica_ip, container_name, 30)
-            intr_helper.start_container(primary_replica_ip, container_name, 90)
+            # Stop and Restart the current primary replicas multiple times
+            for _ in range(0, 7):
+                committers_mapping = blockchain_ops.map_committers_info(
+                    fxBlockchain, interrupted_nodes)
+                primary_replica_ip = committers_mapping["primary_ip"]
+                intr_helper.stop_container(
+                    primary_replica_ip, container_name, 30)
+                intr_helper.start_container(
+                    primary_replica_ip, container_name, 90)
 
-         thread_daml_txn.join()
+            thread_daml_txn.join()
 
-         # Submit Daml requests after multiple view changes
-         assert simple_request(url, no_of_txns, wait_time), \
-            "DAML request submission/verification failed for participant \
+            # Submit Daml requests after multiple view changes
+            assert simple_request(url, no_of_txns, wait_time), \
+                "DAML request submission/verification failed for participant \
         [{}]".format(client_host)
 
-      except Exception as excp:
-         assert False, excp
+        except Exception as excp:
+            assert False, excp
+
+
+@describe("verify that blockchain is connected to Wavefront")
+def test_wavefront_smoke(fxBlockchain):
+    '''
+    Verify that Blockchain is connected to Wavefront
+    - Call Wavefront API which returns success for valid blockchain.
+    Args:
+        fxBlockchain: blockchain fixture to get blockchain Id
+    API Reference:
+        https://vmware.wavefront.com/api-docs/ui
+    '''
+    blockchain_id = fxBlockchain.blockchainId
+    assert blockchain_id, "Blockchain Id not found, can't proceed with this test"
+
+    wf_url = 'https://vmware.wavefront.com/api/v2/source/{}'.format(
+        blockchain_id)
+
+    wavefront_cmd = ["curl", "-X", "GET",
+                     "-H", "Accept: application/json",
+                     "-H", "Content-Type: application/json",
+                     "-H", "Authorization: Bearer {}".format(wf_api_token()),
+                     "--connect-timeout", "5",  # Connection timeout for each retry
+                     "--max-time", "10",  # Wait time for each retry
+                     "--retry", "5",  # Maximum retries
+                     "--retry-delay", "0",  # Delay in next retry
+                     "--retry-max-time", "60",  # Total time before this call is considered a failure
+                     wf_url]
+
+    str_output = check_output(wavefront_cmd).decode('utf8')
+    try:
+        json_output = json.loads(str_output)
+    except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
+        log.error("Error is : [{}]".format(e))
+        assert False, str_output
+
+    assert "error" not in json_output.keys(), json_output["message"]
+    assert json_output["status"]["code"] == 200 \
+        or json_output["status"]["result"] == "OK", json_output["status"]["message"]
+
+
+@describe("verify that blockchain is generating Wavefront metrics")
+@pytest.mark.parametrize(
+    ("counter", "metric_name", "operation", "filter"), [
+        (1, "vmware.blockchain.concord.concordbft.receivedClientRequestMsgs.counter",
+         None, "blockchain"),
+        (2, "vmware.blockchain.concord.command.handler.operation.counters.total.counter",
+         "daml_writes", "host")
+    ])
+def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, operation, filter):
+    '''
+    Verify that Blockchain is generating Wavefront metrics
+    - Call Wavefront API which returns Client requests per second details.
+    - Output contains data blocks.
+    - Make a DAML client request
+    - Call the API again to check if a data block was added.
+    Args:
+        fxLocalSetup: Local fixture for client hosts details.
+        fxBlockchain: blockchain fixture to get blockchain Id
+        counter: To ensure daml sdk install function is called only once.
+        metric_name: Metric name to be tested
+        operation: Metric operation
+        filter: Different metrics uses different filter names, like host or blockchain for same field.
+    API Reference:
+        https://vmware.wavefront.com/api-docs/ui
+    Note:
+        This test should run standalone and not in parallel with any other test.
+        A warning message has been added for display to notify the same.
+    '''
+    warncolor = "\033[1;33m"
+    reset = "\033[0m"
+    log.warning("\n\n{}".format(warncolor))
+    log.warning(
+        "{}".format("*"*85))
+    log.warning(
+        "** This test assumes that no other test is running in parallel for given blockchain")
+    log.warning(
+        "** There could be wrong impact on test outcome otherwise")
+    log.warning(
+        "{}{}\n\n".format("*"*85, reset))
+    log.info("Running this test for \nMetric name [{}] and Operation [{}]".format(
+        metric_name, operation))
+
+    blockchain_id = fxBlockchain.blockchainId
+    assert blockchain_id, "Blockchain Id not found, can't proceed with this test"
+
+    metric_query = "ts({}".format(metric_name)
+
+    if operation is not None:
+        metric_query = metric_query + ",operation={}".format(operation)
+
+    metric_query = metric_query + ",{}={})".format(filter, blockchain_id)
+
+    # Get start and end datetime in epoch
+    # Time range is a crucial parameter, do not increase/decrease
+    # without analyzing the API calls properly.
+    start_epoch = (datetime.now() - timedelta(seconds=60)).strftime('%s')
+    end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
+    log.info("Start time is {} and end time is {}".format(
+        start_epoch, end_epoch))
+
+    # Check Wavefront before Client request
+    output = call_wavefront_chart_api(
+        blockchain_id, metric_query, start_epoch, end_epoch)
+
+    before_data = output["timeseries"][0]["data"]
+    log.info("\nMetric {} data before daml transaction is {} \n\n".format(
+        metric_name, before_data))
+
+    # Adding 10 seconds sleep so that generated transaction's epoch
+    # does not overlap with above timeseries data epoch.
+    time.sleep(10)
+
+    # Make a client request
+    for client_host, client_port in fxLocalSetup.client_hosts.items():
+        try:
+            # Call function to install sdk only first time.
+            if counter == 1:
+                install_sdk_deploy_daml(client_host, client_port)
+            no_of_txns, wait_time = 1, 20
+            url = 'http://{}:{}'.format(client_host, client_port)
+            # Create & verify transactions of count no_of_txns
+            assert simple_request(url, no_of_txns, wait_time), \
+                "DAML request submission/verification failed"
+        except Exception as excp:
+            assert False, excp
+
+    # Check Wavefront after Client request
+    output = call_wavefront_chart_api(
+        blockchain_id, metric_query, start_epoch, end_epoch)
+    after_data = output["timeseries"][0]["data"]
+    log.info(
+        "\nMetric {} data after daml transaction is {} \n\n".format(metric_name, after_data))
+
+    assert len(after_data) and len(after_data) > len(
+        before_data), "Blockchain didn't generate metric for given transaction on Wavefront"
