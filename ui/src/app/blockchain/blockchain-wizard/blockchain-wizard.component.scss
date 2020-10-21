@@ -158,10 +158,13 @@ label {
     transform: translate(0, -0.2rem);
   }
   .auth-input {
-    max-width: 9rem;
-    min-width: 9rem;
+    max-width: 7rem;
+    min-width: 7rem;
     display: inline-block;
     transform: translate(0, -0.1rem);
+  }
+  .btn.btn-link {
+    margin: 0;
   }
   .zone-selector {
     margin-top: -0.2rem;
@@ -188,6 +191,15 @@ label {
       transform: translate(0.5rem,-0.3rem);
     }
   }
+}
+.hide {
+  display: none;
+}
+
+.compact-input-container .columned.certs {
+  padding-bottom: .5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid $clr-light-midtone-gray;
 }
 
 :host ::ng-deep .grid-min-height .datagrid-table {
@@ -220,7 +232,6 @@ label {
   text-align: center;
   color: $clr-red;
   margin-top:0.05rem;
-  float: right;
   cursor: pointer;
 }
 
@@ -265,14 +276,14 @@ label {
 
 .as-single-client {
   margin-bottom: 0.4rem;
-  padding: 0rem 0.8rem;
+  padding: 0.5rem 0.8rem 0.5rem 0;
   padding-top: 0.35rem;
   padding-bottom: 0.7rem;
 }
 
 .as-client-group {
   margin-bottom: 0.4rem;
-  padding: 0.5rem 0.8rem;
+  padding: 0.5rem 0.8rem 0.5rem 0;
   padding-top: 0.7rem;
   padding-bottom: 1.25rem;
 }

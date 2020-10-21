@@ -1,8 +1,8 @@
 {
   "node_list": true,
   "developer_logging": true,
-  "deploy_HLF": false,
   "node_dashboard": false,
 
-  "daml_contracts_explorer": false
+  "daml_contracts_explorer": false,
+  "tls": false
 }

@@ -73,6 +73,9 @@ export interface NodeClientParam {
   auth_url_jwt: string;
   group_name: string;
   sizing_info: TemplateItem;
+  pem?: string;
+  crt?: string;
+  cacrt?: string;
 }
 
 export enum GeoCoordinate {
