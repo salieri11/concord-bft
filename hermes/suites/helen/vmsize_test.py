@@ -113,15 +113,11 @@ def validate_size(actual_nodes_size, vm_node_size):
     for node in actual_nodes_size:
         assert float(vm_node_size.get("storage")) == float(node[
             'size_info']['storage']), "Storage of {} IP Address-{} is not {}GB but {}GB". \
-            format(node['name'], node['ip'],
-                   vm_node_size.get('storage_in_gigs'),
-                   node["size_info"]['storage'])
+            format(node['name'], node['ip'], vm_node_size.get('storage_in_gigs'), node["size_info"]['storage'])
 
         assert vm_node_size.get("cpu") == node['size_info']['cpu'], \
             "CPU of {} IP Address-{} is not {} ".\
-            format(node['name'], node['ip'],
-                   vm_node_size.get('no_of_cpus'),
-                   node['size_info']['cpu'])
+            format(node['name'], node['ip'], vm_node_size.get('no_of_cpus'), node['size_info']['cpu'])
 
         # Actual memory of VM wont match exactly to the specified json value
         # memory details obtained are in KB
