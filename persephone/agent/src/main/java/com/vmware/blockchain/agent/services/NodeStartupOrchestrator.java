@@ -417,6 +417,10 @@ public class NodeStartupOrchestrator {
             hostConfig.withPrivileged(true);
         }
 
+        if (containerParam.getMemory() != null) {
+            hostConfig.withMemory(containerParam.getMemory());
+        }
+
         var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
                 .withName(containerParam.getContainerName())
                 .withImage(containerParam.getImageId())
