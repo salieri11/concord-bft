@@ -287,7 +287,8 @@ public class CloudInitConfiguration {
             builder.setNodeId(nodeIdString);
         }
         if (this.notaryServer != null) {
-            builder = builder.setNotaryServer(this.notaryServer);
+            // Passing only notary server address as self-signed certificate is passed and created in Cloud Init itself
+            builder = builder.setNotaryServer(Endpoint.newBuilder().setAddress(this.notaryServer.getAddress()).build());
         }
         return builder.build();
     }
