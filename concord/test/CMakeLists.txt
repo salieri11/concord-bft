@@ -62,20 +62,19 @@ target_link_libraries(SignTests
         logging)
 
 add_executable(ConfigTests
-        config_test.cpp
-        ../src/config/configuration_manager.cpp)
+        config_test.cpp)
 
 target_link_libraries(ConfigTests
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
         concord_utils
+        concord_config
         concord_consensus
         logging
         )
 
 add_executable(ReplicaStateSyncTests
-        ../src/config/configuration_manager.cpp
         ../src/storage/concord_block_metadata.cpp
         replicaStateSync_test.cpp
         )
@@ -85,12 +84,12 @@ target_link_libraries(ReplicaStateSyncTests
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
         logging
+        concord_config
         concord_storage
         kvbc)
 
 add_executable(TimeContractTests
-        time_contract_test.cpp
-        ../src/config/configuration_manager.cpp)
+        time_contract_test.cpp)
 
 target_link_libraries(TimeContractTests
         ${Boost_LIBRARIES}
@@ -101,6 +100,7 @@ target_link_libraries(TimeContractTests
         concord_utils
         concord_consensus
         concord_common
+        concord_config
         concord_time
         )
 
@@ -111,7 +111,6 @@ add_executable(DamlTest
         mocks.cpp
         ../src/daml/daml_kvb_commands_handler.cpp
         ../src/daml/daml_validator_client.cpp
-        ../src/config/configuration_manager.cpp
         )
 
 target_link_libraries(DamlTest
@@ -121,6 +120,7 @@ target_link_libraries(DamlTest
         concord_consensus
         concord_utils
         concord_common
+        concord_config
         proto
         logging
         )
@@ -128,8 +128,7 @@ target_link_libraries(DamlTest
 add_executable(PruningSMTest
         pruning_sm_test.cpp
         mocks.hpp
-        mocks.cpp
-        ../src/config/configuration_manager.cpp)
+        mocks.cpp)
 
 target_link_libraries(PruningSMTest
         ${Boost_LIBRARIES}
@@ -140,13 +139,13 @@ target_link_libraries(PruningSMTest
         concord_utils
         concord_consensus
         concord_common
+        concord_config
         concord_pruning
         logging)
 
 add_executable(ReconfigurationSMTest
-		mocks.cpp
-		../src/config/configuration_manager.cpp
-        reconfiguration_sm_test.cpp)
+               mocks.cpp
+               reconfiguration_sm_test.cpp)
 
 target_link_libraries(ReconfigurationSMTest
 		${Boost_LIBRARIES}
@@ -156,12 +155,12 @@ target_link_libraries(ReconfigurationSMTest
 		cmf_messages
 		concord_utils
 		concord_common
+		concord_config
 		concord_reconfiguration
 		logging)
 
 add_executable(ThinReplicaTest
-        thin_replica_test.cpp
-        ../src/config/configuration_manager.cpp)
+        thin_replica_test.cpp)
 
 target_link_libraries(ThinReplicaTest
         ${Boost_LIBRARIES}
@@ -170,6 +169,8 @@ target_link_libraries(ThinReplicaTest
         concord_utils
         concord_consensus
         concord_common
+        concord_config
+        concord_trs
         logging)
 
 add_executable(TrsSubBufferTest
@@ -184,8 +185,7 @@ target_link_libraries(TrsSubBufferTest
         logging)
 
 add_executable(KVBFilterTest
-        kvbfilter_test.cpp
-        ../src/config/configuration_manager.cpp)
+        kvbfilter_test.cpp)
 
 target_link_libraries(KVBFilterTest
         ${Boost_LIBRARIES}
@@ -195,6 +195,7 @@ target_link_libraries(KVBFilterTest
         concord_utils
         concord_consensus
         concord_common
+        concord_config
         concord_pruning
         logging)
 
@@ -218,14 +219,14 @@ target_link_libraries(OpenSSLCryptoWrapperTest
                       logging)
 
 add_executable(YamlMergeTest
-        yaml_merge_test.cpp
-        ../src/config/configuration_manager.cpp)
+        yaml_merge_test.cpp)
 
 target_link_libraries(YamlMergeTest
         ${Boost_LIBRARIES}
         ${GTEST_LIBRARY}
         ${yaml-cpp_LIBRARIES}
         concord_utils
+        concord_config
         concord_consensus
         logging
         )
