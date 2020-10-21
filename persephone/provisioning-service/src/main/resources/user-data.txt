@@ -33,6 +33,8 @@ then
    mkdir -p ~/.docker/tls/{{notaryServerSelfSignedCertDir}}
    echo '{{notarySelfSignedCert}}' > ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt
    chmod 600 ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt
+   # Copying crt to /config/agent such that this crt will be accessible inside Agent container
+   cp ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt /config/agent/notarySelfSignedCert.crt
 fi
 
 # Update guest-info's network information in vSphere.

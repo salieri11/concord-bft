@@ -54,6 +54,8 @@ hlkQfaYjauR4qTbqo9VX4q142tbAsGnq8tmXbAlL+NK12HHZvGjOlsyOUjAbD0Vt
 398Vtqg3kiL/IAe1weda08BdTkA/Dj4DKHZQHs2ndKoDVV5icoIXHw==
 -----END CERTIFICATE-----' > ~/.docker/tls/127.0.0.1:4443/ca.crt
    chmod 600 ~/.docker/tls/127.0.0.1:4443/ca.crt
+   # Copying crt to /config/agent such that this crt will be accessible inside Agent container
+   cp ~/.docker/tls/127.0.0.1:4443/ca.crt /config/agent/notarySelfSignedCert.crt
 fi
 
 # Update guest-info's network information in vSphere.

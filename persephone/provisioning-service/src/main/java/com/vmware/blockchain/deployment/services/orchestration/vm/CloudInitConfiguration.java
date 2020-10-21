@@ -192,10 +192,7 @@ public class CloudInitConfiguration {
 
     // This enables/disables the actual code to write Notary Self-Signed Cert to file accordingly
     private String enableNotarySelfSignedCert() {
-        if (notaryServer != null && !notaryServer.getAddress().equals("")
-            && notaryServer.getTransportSecurity() != null
-            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
-            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
+        if (isNotaryServerSelfSigned()) {
             return "true";
         } else {
             return "false";
@@ -205,14 +202,14 @@ public class CloudInitConfiguration {
     // Sets the directory name for Notary Self-Signed Cert as required by Docker
     // Format required is host:port
     private String setDirForNotarySelfSignedCert() {
-        if (notaryServer != null && !notaryServer.getAddress().equals("")) {
+        if (isNotaryServerSelfSigned()) {
             try {
                 URL url = new URL(notaryServer.getAddress());
                 String dirName = "";
                 if (StringUtils.hasText(url.getHost())) {
                     dirName += url.getHost();
                 } else {
-                    throw new PersephoneException(new MalformedURLException(),
+                    throw new BadRequestPersephoneException(new MalformedURLException(),
                                                   ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED, notaryServer.getAddress());
                 }
                 if (url.getPort() != -1) {
@@ -221,7 +218,8 @@ public class CloudInitConfiguration {
                 }
                 return dirName;
             } catch (Exception e) {
-                throw new PersephoneException(e, ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED, notaryServer.getAddress());
+                throw new BadRequestPersephoneException(e, ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED,
+                                                        notaryServer.getAddress());
             }
         } else {
             return "";
@@ -229,15 +227,21 @@ public class CloudInitConfiguration {
     }
 
     private String setNotarySelfSignedCert() {
-        if (notaryServer != null && !notaryServer.getAddress().equals("")
-            && notaryServer.getTransportSecurity() != null
-            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
-            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
-
+        if (isNotaryServerSelfSigned()) {
             return notaryServer.getTransportSecurity().getCertificateData();
         } else {
             return "";
         }
+    }
+
+    private Boolean isNotaryServerSelfSigned() {
+        if (notaryServer != null && !notaryServer.getAddress().equals("")
+            && notaryServer.getTransportSecurity() != null
+            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
+            return true;
+        }
+        return false;
     }
 
     private String enableDockerContentTrustCommand() {
