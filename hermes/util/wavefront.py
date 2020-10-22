@@ -8,6 +8,7 @@ import logging
 import time
 import json
 import importlib
+import subprocess
 import traceback
 from . import hermes_logging, helper, cert
 log = hermes_logging.getMainLogger()
@@ -32,7 +33,7 @@ WF_DEFAULT_STATIC_SPAN_TAGS = {
   # application, service, cluster, shards are MANDATORY span tags in Wavefront
   "application" : WF_DEFAULT_DEVOPS_APP,
   "service": WF_DEFAULT_DEVOPS_SERVICE,
-  "cluster": "none", 
+  "cluster": "none",
   "shard": "none",
 }
 
@@ -50,7 +51,7 @@ else:
       TODO: populate with no-SDK, pure REST-based publish
     '''
     def __init__(self, server, token, max_queue_size, batch_size, flush_interval_seconds): return
-    def send_metric(self, name, value, timestamp, source, tags): return 
+    def send_metric(self, name, value, timestamp, source, tags): return
     def send_span(self, name, start_millis, duration_millis, source, trace_id, span_id, parents, follows_from, tags, span_logs): return
     def flush_now(self): return
   WavefrontDirectClient = WavefrontDirectClientMock
@@ -108,7 +109,7 @@ def queueSpan(name, start, duration, traceId=None, parents=[], tags={}):
     tagsStr = []
     for tagName in tags: tagsStr.append('{}="{}"'.format(tagName, tags[tagName]))
     tagsStr = ' '.join(tagsStr)
-    
+
     # output for info
     log.debug("Queueing Wavefront span for publish: [{}/{}] {} {} {}".format(
       runInfo["jobName"], runInfo["buildNumber"], name, start, duration))
@@ -228,7 +229,7 @@ def getName(setName, caseName):
 def tagsAppend(tags, defaultTags={}):
   '''
     Populate default tags that are used to look-up data sets which
-    is then used for generating charts. 
+    is then used for generating charts.
   '''
   result = json.loads(json.dumps(defaultTags), strict=False) # copy of default static tags
   # default dynamically added tags
@@ -243,8 +244,48 @@ def tagsAppend(tags, defaultTags={}):
     if type(tagValue) == int or type(tagValue) == float:
       tagValue = str(tagValue)
     if type(tagValue) != str:
-      log.info("Only string type tag values are allowed; " + 
+      log.info("Only string type tag values are allowed; " +
         "tag name {} has value {}, which is not str.".format(tagName, tagValue))
       continue
     result[tagName] = tagValue
   return result
+
+
+def wf_api_token():
+    config_obj = helper.getUserConfig()
+    return config_obj["dashboard"]["devops"]["wavefront"]["token"]
+
+
+def call_wavefront_chart_api(blockchain_id, metric_query, start_epoch, end_epoch):
+    '''
+    Local function to call <wavefront_url>/api/v2/chart/api
+    Args:
+        blockchain_id: Blockchain Id in current context
+        metric_query: Metric name along with filter parameters
+        start_epoch: Start time in epoch
+        end_epoch: End time in epoch
+    Returns:
+        Output of API call.
+    '''
+    wf_url = 'https://vmware.wavefront.com/api/v2/chart/api'
+    wf_url = wf_url + '?q={}'.format(metric_query)
+    wf_url = wf_url + '&s={}'.format(start_epoch)
+    wf_url = wf_url + '&e={}'.format(end_epoch)
+    # Below parameters are default set, if not provided.
+    wf_url = wf_url + '&g=m' + '&view=METRIC'
+    wf_url = wf_url + '&includeObsoleteMetrics=false' + '&sorted=false'
+    wf_url = wf_url + '&cached=true' + '&useRawQK=false'
+    # Strict must be true, otherwise data outside start time and end time range is fetched.
+    wf_url = wf_url + '&strict=true'
+
+    wavefront_cmd = ["curl", "-X", "GET",
+                     "-H", "Accept: application/json",
+                     "-H", "Content-Type: application/json",
+                     "-H", "Authorization: Bearer {}".format(wf_api_token()),
+                     "--connect-timeout", "5",  # Connection timeout for each retry
+                     "--max-time", "10",  # Wait time for each retry
+                     "--retry", "5",  # Maximum retries
+                     "--retry-delay", "0",  # Delay in next retry
+                     "--retry-max-time", "60",  # Total time before this call is considered a failure
+                     wf_url]
+    return subprocess.check_output(wavefront_cmd).decode('utf8')
