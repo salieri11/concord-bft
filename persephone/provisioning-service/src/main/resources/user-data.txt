@@ -27,6 +27,16 @@ mkdir -p /config/agent
 echo '{{agentConfig}}' > /config/agent/config.json
 chmod 600 /config/agent/config.json
 
+# Output Notary Server's Self-Signed Certificate
+if {{enableNotarySelfSignedCert}}
+then
+   mkdir -p ~/.docker/tls/{{notaryServerSelfSignedCertDir}}
+   echo '{{notarySelfSignedCert}}' > ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt
+   chmod 600 ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt
+   # Copying crt to /config/agent such that this crt will be accessible inside Agent container
+   cp ~/.docker/tls/{{notaryServerSelfSignedCertDir}}/ca.crt /config/agent/notarySelfSignedCert.crt
+fi
+
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
