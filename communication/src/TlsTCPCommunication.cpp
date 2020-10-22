@@ -234,6 +234,14 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
     ConcordAssert(true == option.value());
   }
 
+  void set_non_blocking() {
+    bool b = get_socket().native_non_blocking();
+    LOG_INFO(_logger, "non_blocking : " << b);
+    get_socket().native_non_blocking(false);
+    b = get_socket().native_non_blocking();
+    LOG_INFO(_logger, "non_blocking set to : " << b);
+  }
+
   /**
    * returns message length - first 4 bytes of the buffer
    * @param buffer Data received from the stream
@@ -607,6 +615,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       _connectTimer.cancel();
       LOG_DEBUG(_logger, "connected, node " << _selfId << ", dest: " << _expectedDestId << ", res: " << res);
       set_no_delay();
+      // set_non_blocking();
       _socket->async_handshake(boost::asio::ssl::stream_base::client,
                                boost::bind(&AsyncTlsConnection::on_handshake_complete_outbound,
                                            shared_from_this(),
@@ -839,13 +848,16 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       return;
     }
 
-    lock_guard<mutex> l(_writeLock);
+    auto size = 0;
+    _writeLock.lock();
     // remove the message that has been sent
     _outQueue.pop_front();
+    size = _outQueue.size();
+    _writeLock.unlock();
 
     // if there are more messages, continue to send but don' renmove, s.t.
     // the send() method will not trigger concurrent write
-    if (_outQueue.size() > 0) {
+    if (size > 0) {
       start_async_write();
     }
   }
@@ -918,10 +930,24 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
 
   void start() {
     set_no_delay();
+    // set_non_blocking();
     _socket->async_handshake(
         boost::asio::ssl::stream_base::server,
         boost::bind(
             &AsyncTlsConnection::on_handshake_complete_inbound, shared_from_this(), boost::asio::placeholders::error));
+  }
+
+  void send_sync(const char *data, uint32_t length) {
+    boost::system::error_code ec;
+    uint32_t sent = 0;
+    while(sent < length) {
+      sent += _socket->write_some(boost::asio::buffer(data + sent, length - sent), ec);
+      bool err = was_error(ec, "send_sync");
+      if (err) {
+        dispose_connection(true);
+        return;
+      }
+    }
   }
 
   /**
@@ -931,7 +957,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
    * @param data data to be sent
    * @param length data length
    */
-  void send(const char *data, uint32_t length) {
+  bool send(const char *data, uint32_t length) {
     if (!data) {
       LOG_ERROR(_logger, "Error, message has never been initialized");
       throw std::invalid_argument("data = nullptr");
@@ -942,14 +968,16 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       throw std::invalid_argument("Invalid payload size");
     }
 
+    // here we lock to protect multiple thread access and to synch with callback
+    // queue access
+    lock_guard<mutex> l(_writeLock);
+    if(_outQueue.size() > 1000)
+      return false;
+
     char *buf = new char[length + MSG_HEADER_SIZE];
     memset(buf, 0, length + MSG_HEADER_SIZE);
     put_message_header(buf, length);
     memcpy(buf + MSG_HEADER_SIZE, data, length);
-
-    // here we lock to protect multiple thread access and to synch with callback
-    // queue access
-    lock_guard<mutex> l(_writeLock);
 
     // push to the output queue
     OutMessage out = OutMessage(buf, length + MSG_HEADER_SIZE);
@@ -962,8 +990,8 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
     if (_outQueue.size() == 1) {
       _service->post(boost::bind(&AsyncTlsConnection::do_write, shared_from_this()));
     }
-
-    LOG_DEBUG(_logger, "from: " << _selfId << ", to: " << _destId << ", length: " << length);
+    static int count = 0;
+    LOG_DEBUG(_logger, "from: " << _selfId << ", to: " << _destId << ", length: " << length << ", total " << ++count);
 
     if (_statusCallback && _isReplica) {
       PeerConnectivityStatus pcs{};
@@ -974,6 +1002,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       // in the upcoming version timestamps should be reviewed
       _statusCallback(pcs);
     }
+    return true;
   }
 
   void setReceiver(NodeNum nodeId, IReceiver *rec) { _receiver = rec; }
@@ -1334,9 +1363,9 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
     lock_guard<mutex> lock(_connectionsGuard);
     auto temp = _connections.find(destNode);
     if (temp != _connections.end()) {
-      temp->second->send(message, messageLength);
+      return temp->second->send(message, messageLength) ? 0 : -1;
     } else {
-      LOG_DEBUG(_logger, "connection NOT found, from: " << _selfId << ", to: " << destNode);
+      LOG_INFO(_logger, "connection NOT found, from: " << _selfId << ", to: " << destNode);
     }
 
     return 0;

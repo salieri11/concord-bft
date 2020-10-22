@@ -14,6 +14,11 @@ endif()
 
 add_library(bftcommunication ${bftcommunication_src})
 add_library(bftcommunication_shared SHARED ${bftcommunication_src})
+add_executable(comm_micro_bench  src/Microbenchmark.cpp)
+
+target_include_directories(comm_micro_bench PUBLIC include)
+target_link_libraries(comm_micro_bench PUBLIC util bftcommunication)
+
 target_include_directories(bftcommunication PUBLIC include)
 target_link_libraries(bftcommunication PUBLIC util)
 target_include_directories(bftcommunication_shared PUBLIC include)
