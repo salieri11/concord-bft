@@ -7,8 +7,8 @@ Hermes is the testing framework for VMW Blockchain.
   framework.
 
 ## Code organization:
-- hermes/main.py: The main script, which uses Python 3.  Can be executed
-  directly.
+- hermes/conftest.py: Defines fixtures used accross all pytests.
+- hermes/fixtures/common_fixtures.py: Place for common fixtures.
 - hermes/resources: Configuration files.
 - hermes/rpc: RPC calls.
 - hermes/suites: Test suite classes.
@@ -23,49 +23,23 @@ Pytest:
 - Pytest doc: https://docs.pytest.org/en/latest/
 - Create new suites using pytest.  See "SampleSuite" as a basic, functional
   example.
-- Add a friendly, human readable name to the "suites" array near the top of
-  main.py.
-- Add a mapping of the friendly name to your pytest file in createTestSuite()
-  in main.py.  Be sure it returns a PytestSuite object.  e.g.
+- Add a friendly, human readable name to the "suites" in _get_suite_short_name
+  defined in conftest.py
+- Add a mapping of the friendly name to your pytest file.
+  e.g.
   ```
-   elif (args.suite == "SampleSuite"):
-      return pytest_suite.PytestSuite(args, "suites/sample_suite.py")
+    suite_list = {
+        "CastorDeploymentTests": "hermes.suites.castor_deployment_tests",
+        "SampleSuite": "hermes.suites.sample_suite",
+    }
   ```
 - Write your test cases in your pytest file.
 
-Non-pytest:
-- This is not preferred and should only be used if pytest cannot be used.
-- Create a new class under suites.
-- The new class should extend TestSuite and implement the abstract methods
-  defined in it.
-- In main.py:
-  - Add an import statement for the new suite.
-  - In createTestSuite(), add an entry to detect that your test suite has been
-    requested, and return an instance of it.
-- The new test suite's run() method should return the path to a JSON file with the following
-  format:
-```
-{
-  "suite-name": {
-  "result": "pass" or "fail",
-    "tests": {
-      "test1-name": {
-        "result": "pass" or "fail",
-        "info": String of text containing error messages, stack traces, etc...
-      },
-      ...
-    }
-  }
-}
-```
-- Note that a suite does not have to use any additional Hermes infrastructure.
-  For example, it could just launch another process and wait for it to finish.
-  The only requirement is that it return a path to a file formatted as specified
-  above.
+
 
 ## Requirements:
 - Python 3.7.1.  Installation reference: https://docs.python.org/3/using/
-- Python packages: matplotlib, numpy, pyyaml, pytest==4.3.1, pytest-json, web3,
+- Python packages: matplotlib, numpy, pyyaml, pytest==5.3.5, pytest-json, web3,
   and xvfbwrapper. Pip may be fussy if Python on the system was upgraded it's
   easier to use virtualenv (see below).  Try:
   `python3 -m pip install <package>` if having trouble.
@@ -88,7 +62,7 @@ Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
 
 ## Running a test suite:
 - Build the product into docker images. See (../README.md) for instructions.
-- Run `./main.py EthCoreVmTests`
+- Run `python -m pytest suites/sample_suite.py`
 - Hermes will use docker-compose to launch the product. The default tag it tries to look for is
   \<component\>:latest.
 - The docker tag is defined in a file called .env.  To use a differently tagged docker image,
@@ -135,42 +109,48 @@ Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
     which python
     ```
 
-- Modify the first line `#!/usr/bin/python3` of `main.py` to match the path you got in previous step, for example, mine is
-   `#!/home/perfecthu/anaconda3/envs/hermes/bin/python`
 
 All set! Run hermes as usual.
 
-## Running the Performance Test suite:
-- The performance test sub-module is under blockchain/performance, majorly written in Java
-- To run the test from hermes, the sub-module has to be maven built
-```
-blockchain/performance$ mvn clean install assembly:single
-```
+## Running Sample Test suite:
+- Sample test suite is a demo test and helps in checking the environment setup
 - Usage:
 ```
-herme$ ./main.py PerformanceTests
+herme$ python -m pytest suites/sample_suite.py
 ```
+
 - Result:
 ```
-Starting test 'performance_test'
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Authentication Enabled: true
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Connected to Ethereum client version: Helen/v1.1.0/linux/java1.8.0
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Smart contract deployed to address 0x06ca9f6b9d4f010af085004f1a750c8da75be1a3
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Transaction info about deploying contract:
-TransactionReceipt{transactionHash='0x7adade17e7db68373062d1581b139b74c67722a9cf622ab89ad32cea108a0c2a', transactionIndex='0', blockHash='0xe6bc52f7663e69f8f323d7d912e9d2f4806c765cb0db8e738a8460de2bc1bd7e', blockNumber='2', cumulativeGasUsed='null', gasUsed='null', contractAddress='0x06ca9f6b9d4f010af085004f1a750c8da75be1a3', root='null', status='0x1', from='null', to='null', logs=[], logsBloom='null'}
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Total Time for Granting Right is 1324749481 nano seconds
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency Start Time is: 94065573556276
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency End time is: 94065588616412
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency Total Time is: 15060136
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Average time response time: 1.854121627E8
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Start time of processing Voting: 94065581834528
-[main] INFO com.vmware.blockchain.performance.BallotDApp - End time of processing Voting: 94065857089154
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Total time for process: 275254626 nano seconds
-[main] INFO com.vmware.blockchain.performance.BallotDApp - Transaction Rate: 36.329997956146975
-
-PASS
-Tests are done.
-
+2020-10-22 23:39:14 INFO Setting up Hermes run time settings for SampleSuite Test Suite
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_example' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_example_with_fixture' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_parameterize_example[stop_primary_node-stop_non_primary_node]' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Demo... stop_primary_node
+2020-10-22 23:39:14 INFO Push transactions...now!!
+2020-10-22 23:39:14 INFO Demo.. stop_non_primary_node(2)
+2020-10-22 23:39:14 INFO Push transactions...again!!
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_parameterize_example[stop_non_primary_node-stop_primary_node]' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Demo.. stop_non_primary_node(2)
+2020-10-22 23:39:14 INFO Push transactions...now!!
+2020-10-22 23:39:14 INFO Demo... stop_primary_node
+2020-10-22 23:39:14 INFO Push transactions...again!!
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_parameterize_example[crash_primary-crash_non_primary]' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Demo... crash_primary
+2020-10-22 23:39:14 INFO Push transactions...now!!
+2020-10-22 23:39:14 INFO Demo.... crash non primary
+2020-10-22 23:39:14 INFO Push transactions...again!!
+2020-10-22 23:39:14 INFO Setting up Hermes for 'test_parameterize_example[crash_non_primary-crash_primary]' of 'SampleSuite'
+2020-10-22 23:39:14 INFO Demo.... crash non primary
+2020-10-22 23:39:14 INFO Push transactions...now!!
+2020-10-22 23:39:14 INFO Demo... crash_primary
+2020-10-22 23:39:14 INFO Push transactions...again!!
+2020-10-22 23:39:14 INFO Teardown module...
+2020-10-22 23:39:14 INFO Teardown session...
+2020-10-22 23:39:14 INFO Result file location: /tmp/execution_results.json
+2020-10-22 23:39:14 INFO Result Summary: {'succeeded': 6, 'expected-failed': 0, 'skipped': 0, 'failed': 0, 'not-executed': 0, 'total': 6}
+2020-10-22 23:39:14 INFO Test Result: Successfully completed test session...
+2020-10-22 23:39:14 INFO Summary: [✔]tests succeeded 6, [✗]tests failed 0, tests skipped 0, tests expected-failed 0, tests not-executed 0, Total Tests 6
+2020-10-22 23:39:14 INFO Complete Success? (True)
 ```
 
 ## Launching geth:
@@ -201,7 +181,7 @@ miner.start(2)
 
 ## Results
 - The results directory is output at the beginning of a test run.  e.g.
-  "Results directory: /tmp/EthCoreVmTests_20180322_1437_80ccst1i"
+  "Results directory: /tmp/SampleSuite_20201022_233914/test_logs/"
 - product_logs directory: Product logs.
 - test_logs directory: One subdirectory is created for each test.  Each of these
   should contain whatever information will help triage a failure.  For example,
@@ -216,22 +196,7 @@ miner.start(2)
   triaging.  There will usually be many eth_getTransactionReceipt calls when
   using --ethereumMode because it takes time to wait for a transaction to be
   mined.
-- `<suitename>`.json: JSON file of test results for the suite run.  The json must
-  be consistent across test suites.  Sample:
-```
-  $ cat coreVMTestResults.json
-  {
-      "EthCoreVmTests": {
-          "result": "PASS",
-          "tests": {
-              "not2": {
-                  "info": "Log: /tmp/EthCoreVmTests_20180322_1437_80ccst1i/test_logs/not2",
-                  "result": "PASS"
-              }
-          }
-      }
-  }
-```
+
 - unintentionallySkippedTests.json: When a test was expected to run, but skipped,
   the name of the test and the reason are stored in this file.  Example reasons
   include missing expected results and a transaction not being mined within the
@@ -341,7 +306,7 @@ THIS BLOCK SHOULD BE TESTED AND THEN MOVED TO THE TOP SECTION OF THIS PAGE
 - The performance test utility assumes the format specified [here](https://vmwblockchain.atlassian.net/browse/ATH-4?filter=-5)
   for the test file.
 - A sample test file can be downloaded from [here](http://pa-dbc1122.eng.vmware.com/bfink/vmwathena/test-data/NORMALIZED_COMMANDS.txt.gz)
-- Note: The test file should be a *.txt.gz file and it should be present in the same location as main.py.
+- Note: The test file should be a *.txt.gz file and it should be present in the hermes root folder.
 - The name of the file may be specified in resources/user_config.json under performance->filename.
 - Install dependencies:
 ```
@@ -350,6 +315,6 @@ sudo pip3 install numpy
 ```
 - Usage:
 ```
-./main.py PerformanceTests
+python -m pytest suites/performance_tests.py
 ```
 - To terminate the test early use command-C. This will stop the test and will only parse results attained up until that point.

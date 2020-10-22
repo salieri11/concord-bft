@@ -51,4 +51,4 @@ npm run lint-fix
 
 1. Navigate to the `blockchain/hermes` directory
 1. Either start a dev server using the command above or start the `contract-compiler` image with `docker-compose up`
-1. Then `python3 main.py ContractCompilerTests --noLaunch`
+1. Then `python3 -m pytest suites/contract_compiler_tests.py --noLaunch`
