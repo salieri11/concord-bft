@@ -785,7 +785,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     CommConfig commConfig;
     StatusAggregator sag;
     commConfig.statusCallback = sag.get_update_connectivity_fn();
-    ReplicaConfig replicaConfig;
+    ReplicaConfig &replicaConfig = ReplicaConfig::instance();
 
     bool success = InitializeSbftConfiguration(
         config, nodeConfig, &commConfig, nullptr, 0, &replicaConfig,
@@ -1039,7 +1039,7 @@ int run_ro_service(ConcordConfiguration &config,
     CommConfig commConfig;
     StatusAggregator sag;
     commConfig.statusCallback = sag.get_update_connectivity_fn();
-    ReplicaConfig replicaConfig;
+    ReplicaConfig &replicaConfig = ReplicaConfig::instance();
 
     bool success =
         InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
