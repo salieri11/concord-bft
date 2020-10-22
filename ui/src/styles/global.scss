@@ -77,7 +77,6 @@ div.ngxp__container {
   background-color: white;
   max-width: 300px;
 
-
   .ngxp-title {
     color: $clr-near-black !important;
     font-size: 0.916667rem;
@@ -275,7 +274,7 @@ concord-code-highlighter[ng-reflect-plugins~="autolinker"] {
   text-align:left;
   pre {
     a {
-      text-decoration: underline;    
+      text-decoration: underline;
     }
   }
 }
@@ -339,4 +338,11 @@ ngx-tooltip-content.ngx-charts-tooltip-content.type-tooltip {
 select:invalid,
 select option[value=""] {
   opacity: 0.5;
+}
+
+.card {
+  .list-title {
+    margin-top: 0;
+    margin-bottom: .25rem;
+  }
 }

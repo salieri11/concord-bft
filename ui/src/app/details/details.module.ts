@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { DetailsComponent } from './details/details.component';
 import { SharedModule } from '../shared/shared.module';
 import { RouterModule } from '@angular/router';
+import { SystemComponent } from './system/system.component';
 
 @NgModule({
   imports: [
@@ -17,6 +18,11 @@ import { RouterModule } from '@angular/router';
   ],
   declarations: [
     DetailsComponent,
+    SystemComponent,
+  ],
+  exports: [
+    DetailsComponent,
+    SystemComponent,
   ]
 })
 export class DetailsModule { }

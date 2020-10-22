@@ -14,6 +14,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { GraphsModule } from '../graphs/graphs.module';
 import { BlocksModule } from '../blocks/blocks.module';
 import { DashboardListComponent } from './dashboard-list/dashboard-list.component';
+import { DetailsModule } from '../details/details.module';
 
 @NgModule({
   imports: [
@@ -25,6 +26,7 @@ import { DashboardListComponent } from './dashboard-list/dashboard-list.componen
     GraphsModule,
     TourNgxPopperModule,
     NgxChartsModule,
+    DetailsModule,
   ],
   declarations: [
     DashboardComponent,

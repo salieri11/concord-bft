@@ -2,7 +2,7 @@
   <div class="ps-1 fadein">
     <h6 class="list-title">
       <!-- Overridden by Details Page (might come back later) -->
-      <!-- {{ 'dashboard.consortiumId' | translate }}: 
+      <!-- {{ 'dashboard.consortiumId' | translate }}:
       <span>{{ blockchainService?.selectedBlockchain?.consortium_id }}</span>
       »
       {{ 'dashboard.blockchainId' | translate }}:
@@ -55,11 +55,12 @@
   <div class="ps-1 fadein dasharea-bottom">
     <div class="clr-row">
       <div class="clr-col-sm-6 mt-1 cards-max-width" *ngFor="let list of infoLists">
-          <concord-dashboard-list 
+          <concord-dashboard-list
             [listConfig]="list.config" [items]="list.items" [tourAnchor]="list.tourAnchor"
             [timeStart]="timeStart" [timeEnd]="timeEnd" [graphConfig]="list.graphConfig">
           </concord-dashboard-list>
       </div>
+      <concord-system class="clr-col-sm-6 mt-1 cards-max-width"></concord-system>
     </div>
   </div>
 </ng-container>

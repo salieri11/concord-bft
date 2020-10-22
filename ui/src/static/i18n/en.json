@@ -9,6 +9,7 @@
     "clone": "Clone",
     "close": "Close",
     "copyToClip": "Copy to clipboard",
+    "copyAll": "Copy All",
     "countNoun": "Count",
     "cpu": "vCPU",
     "create": "Create",
@@ -1325,7 +1326,7 @@
     "blockchain": "Blockchain",
     "title": "Details & Support",
     "about": "About This Blockchain",
-    "cardTitle": "Blockchain Internal Properties",
+    "cardTitle": "System Properties",
     "supportHint": "When contacting support, please have the following information ready as it will help us help you faster.",
     "logo": {
       "exec": "Exec. Engine",
