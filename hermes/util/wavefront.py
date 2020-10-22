@@ -256,7 +256,7 @@ def wf_api_token():
     return config_obj["dashboard"]["devops"]["wavefront"]["token"]
 
 
-def call_wavefront_chart_api(blockchain_id, metric_query, start_epoch, end_epoch):
+def call_wavefront_chart_api(metric_query, start_epoch, end_epoch):
     '''
     Local function to call <wavefront_url>/api/v2/chart/api
     Args:

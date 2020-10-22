@@ -5,6 +5,7 @@
 # Test plan: https://confluence.eng.vmware.com/display/BLOC/Pre-Execution+System+Test+Plan
 ##########################################################################################
 import concurrent.futures
+import json
 import os
 import pytest
 import subprocess
@@ -470,3 +471,61 @@ def test_parallel_clients(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax)
 
     for f in futures:
         f.result()
+
+
+def get_wf_measurements(fxBlockchain, start_epoch, end_epoch):
+    '''
+    Fetches measurements needed for the test case for Wavefront metrics.
+    fxBlockchain: Supplied by the fxBlockchain fixture
+    start_epoch: Epoch time for the start of the window for Wavefront
+    end_epoch: Epoch time for the end of the window for Wavefront
+    Return: Tuple of (num_measurements, highest_measurement) for the
+    metric we are testing in this test suite.
+    '''
+    num_measurements = 0
+    highest_measurement = 0
+    metric_name = "vmware.blockchain.concord.concordbft.preProcReqReceived.counter"
+    filt = "vm_ip"
+    str_output = None
+
+    for ip in fxBlockchain.replicas["daml_committer"]:
+        metric_query = "ts({},{}={})".format(metric_name, filt, ip)
+        str_output = util.wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch)
+        output = json.loads(str_output)
+
+        for series in output["timeseries"]:
+            if series["data"]:
+                num_measurements += len(series["data"])
+                for d in series["data"]:
+                    if d[1] > highest_measurement:
+                        highest_measurement = d[1]
+
+    log.debug("Wavefront data: {}".format(str_output))
+    log.info("num_measurements: {}".format(num_measurements))
+    log.info("highest_measurement: {}".format(highest_measurement))
+
+    return num_measurements, highest_measurement
+
+
+@describe("Verify that pre-execution metrics are being sent.")
+def test_metrics(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
+    import util.wavefront
+
+    ledger = fxBlockchain.replicas["daml_participant"][0]
+    num_measurements_before = 0
+    num_measurements_after = 0
+    highest_before = 0
+    highest_after = 0
+    start_epoch = time.time() - 1800 # Clock skew issues.
+
+    end_epoch = time.time()
+    num_measurements_before, highest_before = get_wf_measurements(fxBlockchain, start_epoch, end_epoch)
+
+    run_request_tool(ledger)
+    time.sleep(65) # Wait for nodes to update Wavefront; they are on a heartbeat.
+
+    end_epoch = time.time()
+    num_measurements_after, highest_after = get_wf_measurements(fxBlockchain, start_epoch, end_epoch)
+
+    assert num_measurements_after > num_measurements_before, "Did not find additional metrics"
+    assert highest_after > highest_before, "Number of pre-exec requests should have increased"
