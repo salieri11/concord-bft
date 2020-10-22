@@ -309,7 +309,7 @@ public class BlockchainController {
             zoneIds.add(k.getZoneId());
         });
 
-        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds, organization);
 
 
         var deploymentSpec = DeploymentSpec.newBuilder()
@@ -384,9 +384,9 @@ public class BlockchainController {
             zoneIds.add(k.getZoneId());
         });
 
-        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
-
         Organization organization = organizationService.get(authHelper.getOrganizationId());
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds, organization);
+
         var genericProperties = getPropertySpec(organization);
         genericProperties.putValues(DeploymentAttributes.NO_LAUNCH.name(), "True");
         var deploymentSpec = DeploymentSpec.newBuilder()
@@ -435,7 +435,9 @@ public class BlockchainController {
                                    .collect(Collectors.toList()));
             zoneIds.addAll(clientService.getClientsByParentId(blockchain.getId()).stream().map(k -> k.getZoneId())
                                    .collect(Collectors.toList()));
-            List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds);
+
+            Organization organization = organizationService.get(authHelper.getOrganizationId());
+            List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds, organization);
 
             // This will need modification when versioning kicks in.
             List<DeployedResource> resource = blockchain.getRawResourceInfo().values().stream()
@@ -602,7 +604,7 @@ public class BlockchainController {
 
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
 
-        List<OrchestrationSite> sitesInfo = getOrchestrationSites(new HashSet(zoneIds));
+        List<OrchestrationSite> sitesInfo = getOrchestrationSites(new HashSet(zoneIds), organization);
 
         var deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(body.getConsortiumId().toString())
@@ -783,12 +785,12 @@ public class BlockchainController {
         return m == 0 ? Integer.MAX_VALUE : m;
     }
 
-    private List<OrchestrationSite> getOrchestrationSites(Set<UUID> zoneIds) {
+    private List<OrchestrationSite> getOrchestrationSites(Set<UUID> zoneIds, Organization organization) {
         return zoneIds.stream()
                 .distinct() // Until prov service fixes it.
                 .map(zoneService::get)
                 .map(z -> OrchestrationSite.newBuilder()
-                        .setInfo(toInfo(z))
+                        .setInfo(toInfo(z, organization))
                         .setId(OrchestrationSiteIdentifier.newBuilder()
                                        .setId(z.getId().toString())
                                        .build())
