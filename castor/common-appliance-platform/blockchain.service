@@ -1,13 +1,14 @@
 [Unit]
 Description=VMware Blockchain Configuration+Provisioning Service Launcher
-Wants=docker.service
-Wants=network-online.target
-After=docker.service
 After=network-online.target
+Requires=network-online.target
+After=docker.service
+Requires=docker.service
 
 [Service]
 ExecStart=/opt/vmware/blockchain/orchestrator-prereqs-launcher.sh
 Restart=on-failure
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
