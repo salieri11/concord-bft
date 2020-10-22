@@ -92,6 +92,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
+      - INDEXDB_PASSWORD=indexdb
       - INDEX_DB_SCHEMA=daml_ledger_api1
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - ENABLE_BATCHING=false
@@ -157,6 +158,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=indexdb
+      - POSTGRES_PASSWORD=indexdb
       - POSTGRES_MULTIPLE_SCHEMAS=daml_ledger_api1
       - USE_POSTGRES_CONFIG_FILE=true
     volumes:

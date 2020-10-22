@@ -14,7 +14,7 @@ fi
 API_SERVER=/doc/daml/ledger-api-server/target/universal/stage/bin/daml-on-vmware-ledger-api-server
 DATE_CMD="date --iso-8601=seconds | awk -F'+' '{print \$1}'"
 
-INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER"
+INDEXDB_JDBC_URL="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$INDEX_DB_SCHEMA?user=$INDEXDB_USER&password=$INDEXDB_PASSWORD"
 
 # Check for --version or --dump-index-metadata.
 # If present, print the required information and exit.
@@ -35,7 +35,7 @@ done
 sysctl kernel.core_pattern=/config/daml-ledger-api/cores/core.%e.%h.%s.%t >/dev/null
 
 # Try to connect to PostgreSQL
-until psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
+until PGPASSWORD="$INDEXDB_PASSWORD" psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
   >&2 echo $(eval $DATE_CMD) "Postgres is unavailable - sleeping"
   sleep 5
 done
@@ -68,10 +68,10 @@ MAX_TRC_READ_HASH_TIMEOUT=${MAX_TRC_READ_HASH_TIMEOUT:=3}
 
 LOGBACK_CONFIG_FILE="/doc/daml/ledger-api-server/resources/logback.xml"
 
-$API_SERVER \
+INDEXDB_JDBC_URL="${INDEXDB_JDBC_URL}" $API_SERVER \
   -Dlogback.configurationFile=$LOGBACK_CONFIG_FILE \
   --replicas $REPLICAS \
-  --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url="$INDEXDB_JDBC_URL" \
+  --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url-env=INDEXDB_JDBC_URL \
   --batching "enable=$ENABLE_BATCHING,max-queue-size=$MAX_BATCH_QUEUE_SIZE,max-batch-size-bytes=$MAX_BATCH_SIZE_BYTES,max-wait-millis=$MAX_BATCH_WAIT_MILLIS,max-concurrent-commits=$MAX_CONCURRENT_COMMITS" \
   --max-inbound-message-size 67108864 \
   --maxFaultyReplicas ${MAX_FAULTY_REPLICAS} \
