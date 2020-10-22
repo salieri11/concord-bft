@@ -206,7 +206,7 @@ public class DamlLedgerApiUtilTest {
         String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
 
         ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfig.txt")
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfigWithPreDisabled.txt")
                 .getFile());
         String expected = new String(Files.readAllBytes(file.toPath()));
 
