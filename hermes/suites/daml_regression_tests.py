@@ -7,7 +7,7 @@ from collections import namedtuple
 import pytest
 import time
 import random
-from util import helper, hermes_logging, blockchain_ops
+from util import helper, hermes_logging, blockchain_ops, wavefront
 from threading import Thread
 import util.daml.daml_helper as daml_helper
 from util.daml.daml_requests import simple_request, continuous_daml_request_submission
@@ -185,56 +185,6 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
             custom_params
     return intr_helper.perform_interrupt_recovery_operation(
         fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
-
-
-def wf_api_token():
-    config_obj = helper.getUserConfig()
-    return config_obj["dashboard"]["devops"]["wavefront"]["token"]
-
-
-def call_wavefront_chart_api(blockchain_id, metric_query, start_epoch, end_epoch):
-    '''
-    Local function to call <wavefront_url>/api/v2/chart/api
-    Args:
-        blockchain_id: Blockchain Id in current context
-        metric_query: Metric name along with filter parameters
-        start_epoch: Start time in epoch 
-        end_epoch: End time in epoch
-    Returns:
-        Output of API call.
-    '''
-    wf_url = 'https://vmware.wavefront.com/api/v2/chart/api'
-    wf_url = wf_url + '?q={}'.format(metric_query)
-    wf_url = wf_url + '&s={}'.format(start_epoch)
-    wf_url = wf_url + '&e={}'.format(end_epoch)
-    # Below parameters are default set, if not provided.
-    wf_url = wf_url + '&g=m' + '&view=METRIC'
-    wf_url = wf_url + '&includeObsoleteMetrics=false' + '&sorted=false'
-    wf_url = wf_url + '&cached=true' + '&useRawQK=false'
-    # Strict must be true, otherwise data outside start time and end time range is fetched.
-    wf_url = wf_url + '&strict=true'
-
-    wavefront_cmd = ["curl", "-X", "GET",
-                     "-H", "Accept: application/json",
-                     "-H", "Content-Type: application/json",
-                     "-H", "Authorization: Bearer {}".format(wf_api_token()),
-                     "--connect-timeout", "5",  # Connection timeout for each retry
-                     "--max-time", "10",  # Wait time for each retry
-                     "--retry", "5",  # Maximum retries
-                     "--retry-delay", "0",  # Delay in next retry
-                     "--retry-max-time", "60",  # Total time before this call is considered a failure
-                     wf_url]
-    str_output = check_output(wavefront_cmd).decode('utf8')
-    try:
-        json_output = json.loads(str_output)
-        assert "warnings" not in json_output.keys(), json_output["warnings"]
-        assert "errorType" not in json_output.keys(
-        ), "{} - {}".format(json_output["errorType"], json_output["errorMessage"])
-
-        return json_output
-    except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
-        log.error("Error is : [{}]".format(e))
-        assert False, str_output
 
 
 @describe("daml test for single transaction")
@@ -823,7 +773,7 @@ def test_wavefront_smoke(fxBlockchain):
     wavefront_cmd = ["curl", "-X", "GET",
                      "-H", "Accept: application/json",
                      "-H", "Content-Type: application/json",
-                     "-H", "Authorization: Bearer {}".format(wf_api_token()),
+                     "-H", "Authorization: Bearer {}".format(wavefront.wf_api_token()),
                      "--connect-timeout", "5",  # Connection timeout for each retry
                      "--max-time", "10",  # Wait time for each retry
                      "--retry", "5",  # Maximum retries
@@ -904,8 +854,18 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
         start_epoch, end_epoch))
 
     # Check Wavefront before Client request
-    output = call_wavefront_chart_api(
+    str_output = wavefront.call_wavefront_chart_api(
         blockchain_id, metric_query, start_epoch, end_epoch)
+    output = None
+
+    try:
+        output = json.loads(str_output)
+        assert "warnings" not in output.keys(), json_output["warnings"]
+        assert "errorType" not in output.keys(
+        ), "{} - {}".format(output["errorType"], output["errorMessage"])
+    except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
+        log.error("Error is : [{}]".format(e))
+        assert False, str_output
 
     before_data = output["timeseries"][0]["data"]
     log.info("\nMetric {} data before daml transaction is {} \n\n".format(
@@ -930,8 +890,17 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
             assert False, excp
 
     # Check Wavefront after Client request
-    output = call_wavefront_chart_api(
+    str_output = wavefront.call_wavefront_chart_api(
         blockchain_id, metric_query, start_epoch, end_epoch)
+    try:
+        output = json.loads(str_output)
+        assert "warnings" not in output.keys(), output["warnings"]
+        assert "errorType" not in output.keys(
+        ), "{} - {}".format(output["errorType"], output["errorMessage"])
+    except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
+        log.error("Error is : [{}]".format(e))
+        assert False, str_output
+
     after_data = output["timeseries"][0]["data"]
     log.info(
         "\nMetric {} data after daml transaction is {} \n\n".format(metric_name, after_data))
