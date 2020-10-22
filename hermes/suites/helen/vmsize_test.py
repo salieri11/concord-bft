@@ -44,7 +44,7 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection):
         if node['name'] is None:
             node['name'] = "Client"
 
-        # get vm size for only Client and Replica, there may be other types of node as well
+        # check for only Client and Replica, there may be other types of node as well
         if node['name'] == "Client":
             vm_size = get_vm_size(ip)
             node_info = {
@@ -65,8 +65,8 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection):
         log.info("checking {} IP Address - {}".format(node['name'], ip))
 
     log.debug("Specified sizing details {}".format(node_sizing))
-    log.debug("Participant nodes {}".format(participant_nodes))
-    log.debug("Committer nodes {}".format(committer_nodes))
+    log.debug("Participant node details{}".format(participant_nodes))
+    log.debug("Committer node details{}".format(committer_nodes))
     return LocalSetupfixture(flag=flag, node_size=node_sizing, participant_nodes=participant_nodes,
                              committer_nodes=committer_nodes, warning=warning)
 
@@ -91,9 +91,7 @@ def get_node_size(fxHermesRunSettings, fxConnection):
             "storage": fxHermesRunSettings["hermesCmdlineArgs"].clientStorage,
             "cpu": fxHermesRunSettings["hermesCmdlineArgs"].clientCpu
         }]
-    log.debug("Before modification {}".format(node_sizing))
     res = fxConnection.request.getNodeSizeTemplate()
-    log.debug("Node size template {}".format(res))
     templates = res.get("templates")
     for node_size in node_sizing:
         for template in templates:
@@ -102,17 +100,12 @@ def get_node_size(fxHermesRunSettings, fxConnection):
                     if item.get("type") == node_size.get("type"):
                         node_size["mem"] = item.get("memory_in_gigs") \
                             if node_size["mem"] is None or node_size["mem"] == '' else node_size["mem"]
-                        log.debug("node memory {}".format(node_size["mem"]))
                         node_size["storage"] = item.get("storage_in_gigs") \
                             if node_size["storage"] is None or node_size["storage"] == '' else node_size["storage"]
                         node_size["cpu"] = item.get("no_of_cpus") \
                             if node_size["cpu"] is None or node_size["cpu"] == '' else node_size["cpu"]
                         break
-                    else:
-                        log.debug("type {} {}".format(item.get("type"), node_size.get("type")))
                 break
-            else:
-                log.debug("name match failed {} {}".format(template.get("name").lower(), node_size.get("name").lower()))
     return node_sizing
 
 
@@ -134,7 +127,7 @@ def validate_size(actual_nodes_size, vm_node_size):
         # Actual memory of VM wont match exactly to the specified json value
         # memory details obtained are in KB
         # obtaining two limits for comparison with specified value by dividing actual value by 1000*1000 and 1024*1024
-        # we can ensure that the actual value is within +3.5% or -3.5% from the specified value
+        # we can ensure that the actual value is within certain limit from the specified value
         assert (float(node['size_info']['memory']) / (1000 * 1000)) >= float(vm_node_size.get("mem")) \
                >= (float(node['size_info']['memory']) / (1024 * 1024)), "Memory of {} IP Address-{} is not " \
                                                                         "{}".format(node['name'], node["ip"],
@@ -156,6 +149,7 @@ def validate_range(fxConnection, actual_nodes_size):
     min_storage = range_template.get("storage_in_gigs").get("min")
     for node in actual_nodes_size:
         cpu = int(node["size_info"].get("cpu"))
+        # storage will contain decimals, hence not converting to int
         storage = node["size_info"].get("storage")
         memory = int(node["size_info"].get("memory"))
 
@@ -194,7 +188,6 @@ def get_vm_size(ip):
     # cpu command may result in one or two line output. hence checking the length of the output
     # when storage is greater than 1024 GB, the output will be in-terms of TB. changing it to equivalent GB value
     index = 2 if len(output) == 3 else 3
-    log.debug("VM storage: {}".format(output[index]))
     vm_actual_size["storage"] = str(float(output[index].split()[2])*1024) \
         if "TiB" in output[index].split()[3] else output[index].split()[2]
 
