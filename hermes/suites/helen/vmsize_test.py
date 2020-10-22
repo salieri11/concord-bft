@@ -63,6 +63,10 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection):
             committer_nodes.append(node_info)
 
         log.info("checking {} IP Address - {}".format(node['name'], ip))
+
+    log.debug("Specified sizing details {}".format(node_sizing))
+    log.debug("Participant nodes {}".format(participant_nodes))
+    log.debug("Committer nodes {}".format(committer_nodes))
     return LocalSetupfixture(flag=flag, node_size=node_sizing, participant_nodes=participant_nodes,
                              committer_nodes=committer_nodes, warning=warning)
 
@@ -87,20 +91,28 @@ def get_node_size(fxHermesRunSettings, fxConnection):
             "storage": fxHermesRunSettings["hermesCmdlineArgs"].clientStorage,
             "cpu": fxHermesRunSettings["hermesCmdlineArgs"].clientCpu
         }]
-
+    log.debug("Before modification {}".format(node_sizing))
     res = fxConnection.request.getNodeSizeTemplate()
+    log.debug("Node size template {}".format(res))
     templates = res.get("templates")
     for node_size in node_sizing:
         for template in templates:
             if template.get("name").lower() == node_size.get("name").lower():
                 for item in template.get("items"):
                     if item.get("type") == node_size.get("type"):
-                        node_size["mem"] = item.get("memory_in_gigs") if node_size["mem"] is None else node_size["mem"]
-                        node_size["storage"] = item.get("storage_in_gigs") if node_size["storage"] is None \
-                            else node_size["storage"]
-                        node_size["cpu"] = item.get("no_of_cpus") if node_size["cpu"] is None else node_size["cpu"]
+                        node_size["mem"] = item.get("memory_in_gigs") \
+                            if node_size["mem"] is None or node_size["mem"] == '' else node_size["mem"]
+                        log.debug("node memory {}".format(node_size["mem"]))
+                        node_size["storage"] = item.get("storage_in_gigs") \
+                            if node_size["storage"] is None or node_size["storage"] == '' else node_size["storage"]
+                        node_size["cpu"] = item.get("no_of_cpus") \
+                            if node_size["cpu"] is None or node_size["cpu"] == '' else node_size["cpu"]
                         break
+                    else:
+                        log.debug("type {} {}".format(item.get("type"), node_size.get("type")))
                 break
+            else:
+                log.debug("name match failed {} {}".format(template.get("name").lower(), node_size.get("name").lower()))
     return node_sizing
 
 
@@ -144,7 +156,7 @@ def validate_range(fxConnection, actual_nodes_size):
     min_storage = range_template.get("storage_in_gigs").get("min")
     for node in actual_nodes_size:
         cpu = int(node["size_info"].get("cpu"))
-        storage = int(node["size_info"].get("storage"))
+        storage = node["size_info"].get("storage")
         memory = int(node["size_info"].get("memory"))
 
         assert cpu <= max_cpu or cpu >= min_cpu, \
