@@ -56,8 +56,8 @@ def connect_to_log_insight(log_insight_host, username, password):
        return False, "Could not connect to LogInsight. Check error message for more details"
 
 
-@pytest.mark.smoke
 @describe("Verify Log Insight is connecting")
+@pytest.mark.smoke
 def test_log_insight_smoke():
     '''
     Verify Log Insight is connecting using below steps:
