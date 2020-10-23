@@ -503,7 +503,7 @@ void RunThinReplicaServer(
     std::string server_address, const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
-    bftEngine::ReplicaConfig *replicaConfig, bool trs_tls_enabled,
+    bftEngine::ReplicaConfig *replicaConfig, bool is_insecure_trs,
     std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.thin_replica");
 
@@ -517,7 +517,7 @@ void RunThinReplicaServer(
 
   grpc::ServerBuilder builder;
 
-  if (trs_tls_enabled) {
+  if (not is_insecure_trs) {
     LOG_INFO(logger,
              "TLS for thin replica server is enabled, certificate path: "
                  << thin_replica_tls_cert_path);
@@ -959,9 +959,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       // Limit the amount of gRPC threads
       int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
-      bool trs_tls_enabled = config.hasValue<bool>("trs_tls_enable")
-                                 ? config.getValue<bool>("trs_tls_enable")
-                                 : false;
+      bool is_insecure_trs =
+          config.hasValue<bool>("insecure_thin_replica_server")
+              ? config.getValue<bool>("insecure_thin_replica_server")
+              : true;
       std::string thin_replica_tls_cert_path;
       if (config.hasValue<std::string>("thin_replica_tls_cert_path")) {
         thin_replica_tls_cert_path =
@@ -970,7 +971,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       std::thread(RunThinReplicaServer, daml_addr, &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry, &replicaConfig, trs_tls_enabled,
+                  prometheus_registry, &replicaConfig, is_insecure_trs,
                   thin_replica_tls_cert_path)
           .detach();
     } else if (tee_enabled) {

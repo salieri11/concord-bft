@@ -6,10 +6,11 @@ version: '3'
 services:
   # Note: Make sure that Concord's configuration files have  -
   #       1. `daml_enable` set
-  #       2. `trs_tls_enable` set true if using TLS for TRS-TRC communication
+  #       2. `insecure_thin_replica_server` set false if using TLS for TRS-TRC communication
   #       3. correct certificate path in `thin_replica_tls_cert_path` if not using the default path
-  # If `trs_tls_enable` is set, verify `trc_tls_enable` should also be set in THIN_REPLICA_SETTINGS
-  # Path in `thin_replica_tls_cert_path` in THIN_REPLICA_SETTINGS and concord's config file should be same
+  # If `insecure_thin_replica_server` is set to false, verify `insecure-thin-replica-client` should also
+  # be set to false in THIN_REPLICA_SETTINGS
+  # Path in `thin-replica-tls-cert-path` in THIN_REPLICA_SETTINGS and concord's config file should be same
   concord1:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
