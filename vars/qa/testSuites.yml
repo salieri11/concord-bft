@@ -1,0 +1,208 @@
+# This file defines the test suites that should be executed
+# with the Blockchain product.
+- PersephoneSmokeNew:
+    enabled: true
+    baseCommand: '${PERSEPHONE_BASE_COMMAND}'
+    dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
+    runWithGenericTests: true
+- PersephoneOnDemandNew:
+    enabled: true
+    baseCommand: '${PERSEPHONE_BASE_COMMAND}'
+    dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
+    runWithGenericTests: false
+- PersephoneDamlOnly:
+    enabled: true
+    baseCommand: '${DAML_BASE_COMMAND}'
+    dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
+    runWithGenericTests: false
+- ReconfigurationTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml ${COMPOSE_PREFIX}-operator.yml'
+    concordConfigurationInput: '/concord/config/dockerConfigurationInput-reconfiguration.yaml'
+- ApolloBftTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- RoReplicaTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${RO_COMPOSE}'
+    concordConfigurationInput: '${RO_CONCORD_INPUT}'
+- SkvbcLinearizabilityTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- SkvbcLinearizabilityWithCrashesTests:
+    enabled: false
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- SkvbcStateTransferTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- SkvbcPreexecutionTests:
+    # redundant because of the more realistic DamlPreexecutionTests
+    enabled: false
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- SkvbcViewchangeTests:
+      enabled: true
+      runAlone: true
+      dockerComposeFiles: '${TEE_COMPOSE}'
+      concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- ChessPlusTestsOnPredeployedBlockchain:
+    baseCommand: '${CHESS_BASE_COMMAND}'
+- DamlTestsOnPredeployedBlockchain:
+    enabled: false
+    baseCommand: '${MAIN_PY} DamlTests --damlParticipantIP "${concord_ips}"'
+- NodeInterruptionTests:
+    enabled: true
+    runWithGenericTests: false
+- SampleSuite:
+    enabled: true
+- SampleDAppTests:
+    enabled: true
+- EthCoreVmTests:
+    enabled: true
+- PerformanceSmoke:
+    enabled: true
+    concordConfigurationInput: '${PERFORMANCE_TEST_INPUT}'
+    baseCommand: '${PERFORMANCE_BASE_COMMAND}'
+    performanceVotes: 10
+    runWithGenericTests: true
+- PerformanceNightly:
+    enabled: true
+    concordConfigurationInput: '${PERFORMANCE_TEST_INPUT}'
+    baseCommand: '${PERFORMANCE_BASE_COMMAND}'
+    performanceVotes: 10000
+    runWithGenericTests: false
+- HelenAPITests:
+    enabled: true
+- HelenBlockTests:
+    enabled: true
+- HelenBlockchainTests:
+    enabled: true
+- HelenClientTests:
+    enabled: true
+- HelenConsortiumTests:
+    enabled: true
+- HelenContractTests:
+    enabled: true
+- HelenOrganizationTests:
+    enabled: true
+- HelenMemberTests:
+    enabled: true
+- HelenReplicaTests:
+    enabled: true
+- HelenZoneTests:
+    enabled: true
+- HelenNodeSizeTemplateTests:
+    enabled: true
+- HelenRoleTests:
+    enabled: true
+    runWithGenericTests: false
+- CastorDeploymentTests:
+    enabled: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
+- EthJsonRpcTests:
+    enabled: true
+- EthJsonRpcTestsEthrpc:
+    enabled: true
+    baseCommand: '${MAIN_PY} EthJsonRpcTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+- EthRegressionTests:
+    enabled: true
+    runAlone: true
+- DamlTests:
+    enabled: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano-pool.yml'
+    concordConfigurationInput: '${DAML_INPUT}'
+- ClientPoolDamlTests:
+    enabled: false
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-pool.yml'
+    concordConfigurationInput: '${DAML_INPUT}'
+- DamlPreexecutionTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-preexecution.yml'
+    concordConfigurationInput: '${CONCORD_PREFIX}-daml-preexecution.yaml'
+- ThinReplicaServerTests:
+    enabled: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml'
+    concordConfigurationInput: '${CONCORD_PREFIX}-daml-nano.yaml'
+- PrivacyTeeTests:
+    enabled: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+- SimpleStateTransferTest:
+    # unsupported (Ethereum based), and duplicate with SkvbcStateTransferTests
+    enabled: false
+    dockerComposeFiles: '${COMPOSE_PREFIX}.yml ${COMPOSE_PREFIX}-static-ips.yml'
+- ContractCompilerTests:
+    enabled: true
+- MetadataPersistencyTests:
+    enabled: false
+    dockerComposeFiles: '${COMPOSE_PREFIX}.yml ${COMPOSE_PREFIX}-static-ips.yml'
+    baseCommand: '${MAIN_PY} MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth'
+- TimeTests:
+    enabled: true
+    concordConfigurationInput: '${CONCORD_PREFIX}-time_service.yaml'
+    setupFunction: '${ENABLE_TIME_SERVICE_FUNCTION}'
+- EvilTimeTests:
+    enabled: true
+    concordConfigurationInput: '${CONCORD_PREFIX}-time_service.yaml'
+    setupFunction: '${ENABLE_TIME_SERVICE_FUNCTION}'
+- MemoryLeakNightly:
+    enabled: true
+    suiteDir: '${DEFAULT_SUITE_DIR}'
+    baseCommand: 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 6 --suitesRealname MemoryLeakNightly'
+    runWithGenericTests: false
+- MemoryLeakSmoke:
+    enabled: true
+    suiteDir: '${DEFAULT_SUITE_DIR}'
+    baseCommand: "echo \"${PASSWORD}\" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --suitesRealname MemoryLeakSmoke"
+    runWithGenericTests: true
+- UiTests:
+    enabled: true
+    setupFunction: '${DELETE_FILES_FUNCTION}'
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '"${python}" main.py UiTests'
+- LoggingTests:
+    enabled: false
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    runWithGenericTests: false
+    baseCommand: '${MAIN_PY} LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
+- UiDAMLDeploy:
+    enabled: false
+    runWithGenericTests: false
+    setupFunction: '${DELETE_FILES_FUNCTION}'
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '"${python}" main.py DeployDamlTests'
+- HelenDeployEthereumToSDDC:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '${MAIN_PY} EthCoreVmTests --blockchainLocation sddc --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
+- HelenDeployDAMLToSDDC:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '${MAIN_PY} HelenAPITests --blockchainType daml --blockchainLocation onprem --numReplicas 7 --numParticipants 1 --tests="-m deployment_only" --suitesRealname HelenDeployDAMLToSDDC'
+- HelenDeployToSDDCTemplate:
+    enabled: false
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '${MAIN_PY} HelenAPITests --tests="-k test_daml_deployment" --suitesRealname=HelenDeployToSDDCTemplate'
+- ClientGroupTests:
+    enabled: false
+    runWithGenericTests: false
+    setupFunction: '${DELETE_FILES_FUNCTION}'
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '"${python}" main.py ClientGroupTests --numGroups 3 --numReplicas 7 --numParticipants 6 --blockchainType daml --blockchainLocation onprem'
+- DamlRegressionTests:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    runWithGenericTests: false
+    baseCommand: '${MAIN_PY} DamlRegressionTests --blockchainLocation onprem --blockchainType daml'
