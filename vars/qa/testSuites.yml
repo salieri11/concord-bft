@@ -16,7 +16,7 @@
     dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
     runWithGenericTests: false
 - ReconfigurationTests:
-    enabled: true
+    enabled: false
     runAlone: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml ${COMPOSE_PREFIX}-operator.yml'
     concordConfigurationInput: '/concord/config/dockerConfigurationInput-reconfiguration.yaml'
