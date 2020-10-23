@@ -29,7 +29,7 @@ final class ThinReplicaReadClient(
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
-  private val trcCreated = trcCore.initialize(
+  private val clientInitialized = trcCore.initialize(
     clientId,
     maxFaulty,
     privateKey,
@@ -38,19 +38,19 @@ final class ThinReplicaReadClient(
     maxReadHashTimeout,
     jaegerAgent
   )
-  if (trcCreated)
+  if (clientInitialized)
     logger.info("Thin Replica Client created")
   else
     logger.error("Failed to create Thin Replica Client")
 
   override def currentHealth(): HealthStatus =
-    if (trcCreated)
+    if (clientInitialized)
       ConvertHealth.fromNative(trcCore.currentHealth())
     else
       Unhealthy
 
   def committedBlocks(offset: Long): Source[Block, NotUsed] =
-    if (trcCreated)
+    if (clientInitialized)
       createRestartSource(offset)
         .dropWhile { committedTx =>
           committedTx.blockId < offset
@@ -86,15 +86,16 @@ final class ThinReplicaReadClient(
         // read
         subsResult =>
           // None return signals end of resource
-          if (subsResult)
+          if (subsResult) {
             metrics.getBlockTimer
               .timeSupplier[Option[Update]](() => trcCore.pop())
-              .map(block => {
+              .map { block =>
                 metrics.lastBlockId.updateValue(block.blockId)
                 block
-              })
-          else
-          None,
+              }
+          } else {
+            None
+        },
         // close
         subsResult =>
           // Do nothing, unsubscribe should not be called here.
