@@ -141,6 +141,7 @@ public class ZoneController {
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
+        OnPremZone.NotaryServer notaryServer;
         Zone.Wavefront wavefront;
         Zone.Elasticsearch elasticsearch;
         List<OnPremZone.LogManagementOnPrem> logManagements;
@@ -155,6 +156,7 @@ public class ZoneController {
             this.network = z.getNetwork();
             this.outboundProxy = z.getOutboundProxy();
             this.containerRepo = z.getContainerRepo();
+            this.notaryServer = z.getNotaryServer();
             this.wavefront = z.getWavefront();
             this.elasticsearch = z.getElasticsearch();
             this.logManagements = (z.getLogManagements() == null) ? Collections.emptyList() : z.getLogManagements();
@@ -214,6 +216,7 @@ public class ZoneController {
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
+        OnPremZone.NotaryServer notaryServer;
         Zone.Wavefront wavefront;
         Zone.Elasticsearch elasticsearch;
         List<OnPremZone.LogManagementOnPrem> logManagements;
@@ -380,6 +383,9 @@ public class ZoneController {
             }
             if (onpremRequest.getContainerRepo() != null) {
                 op.setContainerRepo(onpremRequest.getContainerRepo());
+            }
+            if (onpremRequest.getNotaryServer() != null) {
+                op.setNotaryServer(onpremRequest.getNotaryServer());
             }
             if (onpremRequest.getWavefront() != null) {
                 op.setWavefront(onpremRequest.getWavefront());

@@ -58,6 +58,17 @@ public class OnPremZone extends Zone {
         String password;
     }
 
+    /**
+     * Notary Server for Signature Verification of Images.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NotaryServer {
+        private String url;
+        private String tlsCertificateData;
+    }
+
     @LinkedEntityId
     UUID orgId;
 
@@ -68,5 +79,6 @@ public class OnPremZone extends Zone {
     Network network;
     Zone.OutboundProxy outboundProxy;
     EndPoint containerRepo;
+    NotaryServer notaryServer;
     List<LogManagementOnPrem> logManagements;
 }

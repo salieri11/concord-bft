@@ -153,6 +153,9 @@ class ZoneControllerTest {
                                                    + "    \"url\": \"https://wavefront.com\",\n"
                                                    + "    \"token\": \"token\"\n"
                                                    + "  },\n"
+                                                   + "  \"notary_server\": {\n"
+                                                   + "    \"url\": \"https://notary.test.com\"\n"
+                                                   + "  },\n"
                                                    + "  \"log_managements\": [{\n"
                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                    + "    \"address\": \"10.78.20.10\",\n"
@@ -390,6 +393,248 @@ class ZoneControllerTest {
                                                     + "    \"password\": \"bar\"\n"
                                                     + "  }]\n"
                                                     + "}";
+
+    private static final String POST_ONPREM_BODY_NOTARY_VALID_CERT = "{\n"
+                                               + "  \"name\": \"OnPrem\",\n"
+                                               + "  \"type\": \"ON_PREM\",\n"
+                                               + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                               + "  \"vcenter\": {\n"
+                                               + "    \"url\": \"www.vcenter.com\",\n"
+                                               + "    \"username\": \"admin\",\n"
+                                               + "    \"password\": \"password\"\n"
+                                               + "  },\n"
+                                               + "  \"resource_pool\": \"pool\",\n"
+                                               + "  \"storage\": \"datastore\",\n"
+                                               + "  \"folder\": \"folder\",\n"
+                                               + "  \"network\": {\n"
+                                               + "    \"name\": \"Network 1\",\n"
+                                               + "    \"ip_pool\": [\n"
+                                               + "      \"10.1.1.16-10.1.1.64\",\n"
+                                               + "      \"10.1.1.100-10.1.1.200\"\n"
+                                               + "    ],\n"
+                                               + "    \"gateway\": \"10.1.1.1\",\n"
+                                               + "    \"subnet\": \"24\",\n"
+                                               + "    \"name_servers\": [\n"
+                                               + "      \"10.1.1.3\"\n"
+                                               + "    ]\n"
+                                               + "  },\n"
+                                               + "  \"outbound_proxy\": {\n"
+                                               + "    \"http_host\": \"localhost\",\n"
+                                               + "    \"http_port\": 8080\n"
+                                               + "  },\n"
+                                               + "  \"container_repo\": {\n"
+                                               + "    \"url\": \"https://docker-repo.com\",\n"
+                                               + "    \"username\": \"user\",\n"
+                                               + "    \"password\": \"docker\"\n"
+                                               + "  },\n"
+                                               + "  \"wavefront\": {\n"
+                                               + "    \"url\": \"https://wavefront.com\",\n"
+                                               + "    \"token\": \"token\"\n"
+                                               + "  },\n"
+                                               + "  \"notary_server\": {\n"
+                                               + "    \"url\": \"https://notary.test.com\",\n"
+                                               + "    \"tls_certificate_data\": "
+                                               + "\"-----BEGIN CERTIFICATE-----\\n"
+                                               + "MIIFhjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
+                                               + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
+                                               + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
+                                               + "MTMwMzM4MzBaFw0yOTAzMTAwMzM4MzBaMF8xCzAJBgNVBAYTAlVTMQswCQYDVQQI\\n"
+                                               + "DAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0GA1UECgwGRG9ja2VyMRow\\n"
+                                               + "GAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIP\\n"
+                                               + "ADCCAgoCggIBALhYY5zNWlDlHIgNhQ2PCDUxZYe9IL8OuIVQMrfbihD5Y16wNBRs\\n"
+                                               + "S+LgADFoLuOqk2+46A84kFPfUdsAzj+RME2MvhscJ06TsmWRc86GG+YWTtBR87cA\\n"
+                                               + "A/HTSTrKgRmy4wOYn3sLhjhuFENPZLMnAcLb+SW1OXNyirLOmL4U3DUERpliYgjp\\n"
+                                               + "wpXlWiq2eS/txhzTDd3+Js6FwWq61PxFxf3A5snz4h9FlCP17tRfeBxIseCfDGRl\\n"
+                                               + "fSWiCnpl9rRWINtwkViyz6V2ik1VPZdatoWIiH1+PnFREwCxp42dZopH8hqr3Vlk\\n"
+                                               + "Grtro+cp5p3s/QCrYWx7hAieLqUX1MXpR69PoOqggmJADRPvTlUeSjesIMkHyzVd\\n"
+                                               + "wAlgQWUlBG5MLjmmj5Qu0oeYzPRojG0bvkp4eX0NCT2cjNi0tAnVoDaHKabaU1V+\\n"
+                                               + "Hau1X6/jv/G88R4lHujKOmVdbVFw+Wsh9JcRm7YBhL9v3XJD7gF2Yzl+3Dst9EZn\\n"
+                                               + "T1fEkf2cmatxKCzcHENqJ7q/nZbaThHSVZ6p9b13wkdzRVHd5ZIRXh8R/hAKtXPT\\n"
+                                               + "8PeVsIPWmMmtFQdwytOGB/K6Zt3azd73MezRIIQmVTKzAxXMAI/20eiiKVTSC+/4\\n"
+                                               + "Y/sb9jp/6QlKm7+XItXgH7Us3e1TrFU0hJ3pXskBuDdFTsM4BnXBSh8DAgMBAAGj\\n"
+                                               + "RTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgFGMB0GA1UdDgQW\\n"
+                                               + "BBRUPtrEw+QIsXMuw9jkngUmzBR3QjANBgkqhkiG9w0BAQsFAAOCAgEAE65LEkhz\\n"
+                                               + "acwPiKhnTAWXGNANTYN2vbo+RxolqEbIfFWp0mQNYPZG9KwpR7r5R7U9yOjgQgMd\\n"
+                                               + "9jC6rbJiFmu8IhLUvWuuhDAQqw+FaUFyvswmUVKXbsxt9Y1uzgBhAbyS5Cqxcmlv\\n"
+                                               + "0b/emiiUO/wBiar2SJzJ+YNAW54ncllYdEU6m/rxpTujW4SV9fIzPngHyaQza4Y7\\n"
+                                               + "hH6H8qF/FBT9ljcTdTcZFPpjJn6EFhdf8rCSDe5VQ6SpKUzR7R/cSJWKrfsp40aw\\n"
+                                               + "jRj2oVPVPs1mAHummr8Ti7m6ozkfsrO2p0cX8xImKvr7AGenRu4cMk1iSH3GHCDC\\n"
+                                               + "/x2Bmw0uIQqh8dFU22273LvWEfyAdbjsTvCjlG04aUHPyKHAluUo5FdJBTZ33uMp\\n"
+                                               + "R0C3cKK2is9tHc3d9kTtQpA3dhvgx6CR4ZHSY0++YRyx5RA/RyxWNx1xsj0G6tAr\\n"
+                                               + "iOJGyea1H1IP3GWnDDFMmlGl5WwabGO3PB5crvWEyd1fZz3PZHszuKerR4VgQT7z\\n"
+                                               + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
+                                               + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
+                                               + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
+                                               + "-----END CERTIFICATE-----\"\n  },\n"
+                                               + "  \"log_managements\": [{\n"
+                                               + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                               + "    \"address\": \"10.78.20.10\",\n"
+                                               + "    \"port\": 9000,\n"
+                                               + "    \"username\": \"foo\",\n"
+                                               + "    \"password\": \"bar\"\n"
+                                               + "  }]\n"
+                                               + "}";
+
+    private static final String POST_ONPREM_BODY_NOTARY_INVALID_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"url\": \"https://notary.test.com\",\n"
+                                                + "    \"tls_certificate_data\": "
+                                                + "\"-----BEGIN CERTIFICATE-----\\n"
+                                                + "jCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
+                                                + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
+                                                + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
+                                                + "MTMwMzM4MzBaFw0yOTAzMTAwMzM4MzBaMF8xCzAJBgNVBAYTAlVTMQswCQYDVQQI\\n"
+                                                + "DAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0GA1UECgwGRG9ja2VyMRow\\n"
+                                                + "GAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIP\\n"
+                                                + "ADCCAgoCggIBALhYY5zNWlDlHIgNhQ2PCDUxZYe9IL8OuIVQMrfbihD5Y16wNBRs\\n"
+                                                + "S+LgADFoLuOqk2+46A84kFPfUdsAzj+RME2MvhscJ06TsmWRc86GG+YWTtBR87cA\\n"
+                                                + "A/HTSTrKgRmy4wOYn3sLhjhuFENPZLMnAcLb+SW1OXNyirLOmL4U3DUERpliYgjp\\n"
+                                                + "wpXlWiq2eS/txhzTDd3+Js6FwWq61PxFxf3A5snz4h9FlCP17tRfeBxIseCfDGRl\\n"
+                                                + "fSWiCnpl9rRWINtwkViyz6V2ik1VPZdatoWIiH1+PnFREwCxp42dZopH8hqr3Vlk\\n"
+                                                + "Grtro+cp5p3s/QCrYWx7hAieLqUX1MXpR69PoOqggmJADRPvTlUeSjesIMkHyzVd\\n"
+                                                + "wAlgQWUlBG5MLjmmj5Qu0oeYzPRojG0bvkp4eX0NCT2cjNi0tAnVoDaHKabaU1V+\\n"
+                                                + "Hau1X6/jv/G88R4lHujKOmVdbVFw+Wsh9JcRm7YBhL9v3XJD7gF2Yzl+3Dst9EZn\\n"
+                                                + "T1fEkf2cmatxKCzcHENqJ7q/nZbaThHSVZ6p9b13wkdzRVHd5ZIRXh8R/hAKtXPT\\n"
+                                                + "8PeVsIPWmMmtFQdwytOGB/K6Zt3azd73MezRIIQmVTKzAxXMAI/20eiiKVTSC+/4\\n"
+                                                + "Y/sb9jp/6QlKm7+XItXgH7Us3e1TrFU0hJ3pXskBuDdFTsM4BnXBSh8DAgMBAAGj\\n"
+                                                + "RTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgFGMB0GA1UdDgQW\\n"
+                                                + "BBRUPtrEw+QIsXMuw9jkngUmzBR3QjANBgkqhkiG9w0BAQsFAAOCAgEAE65LEkhz\\n"
+                                                + "acwPiKhnTAWXGNANTYN2vbo+RxolqEbIfFWp0mQNYPZG9KwpR7r5R7U9yOjgQgMd\\n"
+                                                + "9jC6rbJiFmu8IhLUvWuuhDAQqw+FaUFyvswmUVKXbsxt9Y1uzgBhAbyS5Cqxcmlv\\n"
+                                                + "0b/emiiUO/wBiar2SJzJ+YNAW54ncllYdEU6m/rxpTujW4SV9fIzPngHyaQza4Y7\\n"
+                                                + "hH6H8qF/FBT9ljcTdTcZFPpjJn6EFhdf8rCSDe5VQ6SpKUzR7R/cSJWKrfsp40aw\\n"
+                                                + "jRj2oVPVPs1mAHummr8Ti7m6ozkfsrO2p0cX8xImKvr7AGenRu4cMk1iSH3GHCDC\\n"
+                                                + "/x2Bmw0uIQqh8dFU22273LvWEfyAdbjsTvCjlG04aUHPyKHAluUo5FdJBTZ33uMp\\n"
+                                                + "R0C3cKK2is9tHc3d9kTtQpA3dhvgx6CR4ZHSY0++YRyx5RA/RyxWNx1xsj0G6tAr\\n"
+                                                + "iOJGyea1H1IP3GWnDDFMmlGl5WwabGO3PB5crvWEyd1fZz3PZHszuKerR4VgQT7z\\n"
+                                                + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
+                                                + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
+                                                + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
+                                                + "-----END CERTIFICATE-----\"\n  },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
+    private static final String POST_ONPREM_BODY_NO_NOTARY_URL_BUT_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"tls_certificate_data\": "
+                                                + "\"-----BEGIN CERTIFICATE-----\\n"
+                                                + "MIIFhjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
+                                                + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
+                                                + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
+                                                + "MTMwMzM4MzBaFw0yOTAzMTAwMzM4MzBaMF8xCzAJBgNVBAYTAlVTMQswCQYDVQQI\\n"
+                                                + "DAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0GA1UECgwGRG9ja2VyMRow\\n"
+                                                + "GAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIP\\n"
+                                                + "ADCCAgoCggIBALhYY5zNWlDlHIgNhQ2PCDUxZYe9IL8OuIVQMrfbihD5Y16wNBRs\\n"
+                                                + "S+LgADFoLuOqk2+46A84kFPfUdsAzj+RME2MvhscJ06TsmWRc86GG+YWTtBR87cA\\n"
+                                                + "A/HTSTrKgRmy4wOYn3sLhjhuFENPZLMnAcLb+SW1OXNyirLOmL4U3DUERpliYgjp\\n"
+                                                + "wpXlWiq2eS/txhzTDd3+Js6FwWq61PxFxf3A5snz4h9FlCP17tRfeBxIseCfDGRl\\n"
+                                                + "fSWiCnpl9rRWINtwkViyz6V2ik1VPZdatoWIiH1+PnFREwCxp42dZopH8hqr3Vlk\\n"
+                                                + "Grtro+cp5p3s/QCrYWx7hAieLqUX1MXpR69PoOqggmJADRPvTlUeSjesIMkHyzVd\\n"
+                                                + "wAlgQWUlBG5MLjmmj5Qu0oeYzPRojG0bvkp4eX0NCT2cjNi0tAnVoDaHKabaU1V+\\n"
+                                                + "Hau1X6/jv/G88R4lHujKOmVdbVFw+Wsh9JcRm7YBhL9v3XJD7gF2Yzl+3Dst9EZn\\n"
+                                                + "T1fEkf2cmatxKCzcHENqJ7q/nZbaThHSVZ6p9b13wkdzRVHd5ZIRXh8R/hAKtXPT\\n"
+                                                + "8PeVsIPWmMmtFQdwytOGB/K6Zt3azd73MezRIIQmVTKzAxXMAI/20eiiKVTSC+/4\\n"
+                                                + "Y/sb9jp/6QlKm7+XItXgH7Us3e1TrFU0hJ3pXskBuDdFTsM4BnXBSh8DAgMBAAGj\\n"
+                                                + "RTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgFGMB0GA1UdDgQW\\n"
+                                                + "BBRUPtrEw+QIsXMuw9jkngUmzBR3QjANBgkqhkiG9w0BAQsFAAOCAgEAE65LEkhz\\n"
+                                                + "acwPiKhnTAWXGNANTYN2vbo+RxolqEbIfFWp0mQNYPZG9KwpR7r5R7U9yOjgQgMd\\n"
+                                                + "9jC6rbJiFmu8IhLUvWuuhDAQqw+FaUFyvswmUVKXbsxt9Y1uzgBhAbyS5Cqxcmlv\\n"
+                                                + "0b/emiiUO/wBiar2SJzJ+YNAW54ncllYdEU6m/rxpTujW4SV9fIzPngHyaQza4Y7\\n"
+                                                + "hH6H8qF/FBT9ljcTdTcZFPpjJn6EFhdf8rCSDe5VQ6SpKUzR7R/cSJWKrfsp40aw\\n"
+                                                + "jRj2oVPVPs1mAHummr8Ti7m6ozkfsrO2p0cX8xImKvr7AGenRu4cMk1iSH3GHCDC\\n"
+                                                + "/x2Bmw0uIQqh8dFU22273LvWEfyAdbjsTvCjlG04aUHPyKHAluUo5FdJBTZ33uMp\\n"
+                                                + "R0C3cKK2is9tHc3d9kTtQpA3dhvgx6CR4ZHSY0++YRyx5RA/RyxWNx1xsj0G6tAr\\n"
+                                                + "iOJGyea1H1IP3GWnDDFMmlGl5WwabGO3PB5crvWEyd1fZz3PZHszuKerR4VgQT7z\\n"
+                                                + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
+                                                + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
+                                                + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
+                                                + "-----END CERTIFICATE-----\"\n  },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
 
     private static final String POST_MANGO_BODY = "{\n"
                                                    + "  \"name\": \"Mango\",\n"
@@ -703,6 +948,38 @@ class ZoneControllerTest {
                                                    + "    \"token\": \"token\"\n"
                                                    + "  }\n"
                                                    + "}";
+
+    private static final String POST_NO_CONTAINER_BODY_BUT_NOTARY = "{\n"
+                                                         + "  \"name\": \"OnPrem\",\n"
+                                                         + "  \"type\": \"ON_PREM\",\n"
+                                                         + "  \"vcenter\": {\n"
+                                                         + "    \"url\": \"http://vcenter\",\n"
+                                                         + "    \"username\": \"admin\",\n"
+                                                         + "    \"password\": \"password\"\n"
+                                                         + "  },\n"
+                                                         + "  \"resource_pool\": \"pool\",\n"
+                                                         + "  \"storage\": \"datastore\",\n"
+                                                         + "  \"folder\": \"folder\",\n"
+                                                         + "  \"network\": {\n"
+                                                         + "    \"name\": \"Network 1\",\n"
+                                                         + "    \"ip_pool\": [\n"
+                                                         + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                         + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                         + "    ],\n"
+                                                         + "    \"gateway\": \"10.1.1.1\",\n"
+                                                         + "    \"subnet\": \"24\",\n"
+                                                         + "    \"name_servers\": [\n"
+                                                         + "      \"10.1.1.3\"\n"
+                                                         + "    ]\n"
+                                                         + "  },\n"
+                                                         + "  \"notary_server\": {\n"
+                                                         + "    \"url\": \"https://notary.test.com\"\n"
+                                                         + "  },\n"
+                                                         + "  \"wavefront\": {\n"
+                                                         + "    \"url\": \"https://wavefront.com\",\n"
+                                                         + "    \"token\": \"token\"\n"
+                                                         + "  }\n"
+                                                         + "}";
 
     private static final String POST_ZONE_BODY = "{\n"
                                                  + "  \"name\": \"OnPrem\",\n"
@@ -1112,6 +1389,86 @@ class ZoneControllerTest {
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(POST_NO_CONTAINER_BODY))
                 .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
+    void testOnPremNoNotaryUrlButCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_NO_NOTARY_URL_BUT_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
+    void testSiteNoContainerButNotary() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_NO_CONTAINER_BODY_BUT_NOTARY))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
+    void testSiteNotaryWithValidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_NOTARY_VALID_CERT))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
+    void testSiteNotaryInvalidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_NOTARY_INVALID_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
     }
 
     @Test
