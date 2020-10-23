@@ -52,10 +52,10 @@
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
 - SkvbcViewchangeTests:
-      enabled: true
-      runAlone: true
-      dockerComposeFiles: '${TEE_COMPOSE}'
-      concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${TEE_COMPOSE}'
+    concordConfigurationInput: '${TEE_CONCORD_INPUT}'
 - ChessPlusTestsOnPredeployedBlockchain:
     baseCommand: '${CHESS_BASE_COMMAND}'
 - DamlTestsOnPredeployedBlockchain:
