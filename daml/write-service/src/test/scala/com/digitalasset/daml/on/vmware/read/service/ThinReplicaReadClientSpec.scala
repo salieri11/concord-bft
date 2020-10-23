@@ -4,22 +4,17 @@ package com.digitalasset.daml.on.vmware.read.service
 
 import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
-
-import collection.JavaConverters._
-
 import com.codahale.metrics.MetricRegistry
-
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClientJni, Update}
-
 import org.mockito.AdditionalAnswers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 
 class ThinReplicaReadClientSpec
     extends AsyncWordSpec
@@ -51,7 +46,7 @@ class ThinReplicaReadClientSpec
 
     "return a stream of distinctive updates from a Thin Replica" in {
       val numUpdates = 10
-      val originalUpdates = (1 to numUpdates).map(genUpdate(_))
+      val originalUpdates = (1 to numUpdates).map(genUpdate)
       val thinReplicaClient = createThinReplicaReadClientGiviningManyUpdates(originalUpdates.toList)
       takeBlocks(thinReplicaClient.committedBlocks(0), numUpdates).map { returnedUpdates =>
         returnedUpdates.size shouldBe numUpdates
