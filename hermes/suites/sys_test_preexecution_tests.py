@@ -1,6 +1,5 @@
 ##########################################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
-#
 # These are system tests for pre-execution.
 # Test plan: https://confluence.eng.vmware.com/display/BLOC/Pre-Execution+System+Test+Plan
 ##########################################################################################
@@ -12,6 +11,7 @@ import subprocess
 import time
 import util.daml.daml_requests
 import util.helper
+import util.wavefront
 import yaml
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
@@ -35,14 +35,16 @@ LEDGER_PORT = 6865
 @pytest.fixture(scope="module")
 def fxInstallDamlSdk(fxBlockchain):
     global daml_sdk_path
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     daml_sdk_version = util.daml.daml_helper.get_ledger_api_version(host)
     daml_sdk_path = util.daml.daml_helper.install_daml_sdk(daml_sdk_version)
 
 
 @pytest.fixture(scope="module")
 def fxAppSetup(fxBlockchain):
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     cmd = [REQUEST_TOOL_SETUP, host]
     success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=REQUEST_TOOL_DIR)
 
@@ -64,7 +66,8 @@ def fxFiboMax(fxBlockchain):
     success = True
     successes = 0
     failures = 0
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
 
     while True:
         success, output = run_fibo(host, num_fib_values=new_max, test_mode=False)
@@ -93,6 +96,9 @@ def fxFiboMax(fxBlockchain):
             new_max -= 1
             log.info("new_max has been decremented to {}".format(new_max))
 
+            if new_max <= 1:
+                raise Exception("The Fibonacci test app cannot run, so tests cannot proceed.")
+
             if successes > 0 and "outside of range" in output:
                 # It worked last time, not this time. That means we went too high.
                 # We have already decremented; just save that value.
@@ -111,7 +117,7 @@ def run_fibo(host, port=LEDGER_PORT, iterations=1, num_fib_values=1, test_mode=T
     WARNING: This must remain able to run in multiple threads or subprocesses.
     '''
     input_file = os.path.join(REQUEST_TOOL_DIR, "{}.txt".format(num_fib_values))
-    cmd = ["daml", "script", "--dar", ".daml/dist/ledgerclient-0.0.1.dar", "--script-name", "Fibo:run"]
+    cmd = [daml_sdk_path, "script", "--dar", ".daml/dist/ledgerclient-0.0.1.dar", "--script-name", "Fibo:run"]
     cmd.extend(["--ledger-host", host, "--ledger-port", str(port)])
     cmd.extend(["--input-file", input_file])
 
@@ -139,7 +145,7 @@ def run_request_tool(host, port=LEDGER_PORT, iterations=1):
     iterations: How many times to run it.
     WARNING: This must remain able to run in multiple threads or subprocesses.
     '''
-    cmd = ["daml", "script", "--dar", ".daml/dist/ledgerclient-0.0.1.dar", "--script-name", "AssetCheck:asset_check"]
+    cmd = [daml_sdk_path, "script", "--dar", ".daml/dist/ledgerclient-0.0.1.dar", "--script-name", "AssetCheck:asset_check"]
     cmd.extend(["--ledger-host", host, "--ledger-port", str(port)])
 
     for i in range(0, iterations):
@@ -149,13 +155,13 @@ def run_request_tool(host, port=LEDGER_PORT, iterations=1):
         assert success, "Running request tool app failed"
 
 
-def get_primary_ip(fxBlockchain):
+def get_primary_ip(committers):
     '''
-    Noopur is implementing this in blockchain_ops.py.  This is just a
-    placeholder.
+    committers: List of committers.
+    Returns the IP of the primary.
     '''
-    primary_rid = util.blockchain_ops.get_primary_rid(fxBlockchain)
-    arbitrary_committer_ip = fxBlockchain.replicas["daml_committer"][0]
+    primary_rid = util.blockchain_ops.get_primary_rid(committers)
+    arbitrary_committer_ip = committers[0]
     username, password = util.helper.getNodeCredentials()
     success = False
     msg = None
@@ -248,7 +254,8 @@ def test_simple_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax):
     '''
     Send a few short transactions, then a few long transactions.
     '''
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     run_fibo(host, iterations=5)
     run_fibo(host, iterations=5, num_fib_values=fibo_max)
 
@@ -260,7 +267,8 @@ def test_realistic_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
     Run a more realistic scenario.
     python3 daml_requests.py --url https://10.72.230.8:6865 scenario --complex 1
     '''
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     run_request_tool(host, iterations=5)
 
 
@@ -270,7 +278,8 @@ def test_parallel_short_long_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxF
     '''
     Start the 30 second fibo transaction, then do a few iterations of the request tool.
     '''
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     futures = []
     num_slow_procs = 1
     num_realistic_procs = 5
@@ -296,7 +305,8 @@ def test_parallel_short_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMa
     '''
     Launch several iterations of the request tool, in parallel.
     '''
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     futures = []
     num_procs = 5
 
@@ -317,7 +327,8 @@ def test_parallel_long_txs(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax
     Note that multiple transactions with fibo_max will result in timeouts.  So reduce
     the num_fib_values.
     '''
-    host = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
     futures = []
     num_procs = 3
 
@@ -336,15 +347,16 @@ def test_stop_nonprimary_nodes(fxBlockchain, fxFiboMax, fxAppSetup, fxInstallDam
     '''
     Stop f nonprimary nodes and verify that txs work.
     '''
-    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain)
-    ledger = fxBlockchain.replicas["daml_participant"][0]
-    primary_ip = get_primary_ip(fxBlockchain)
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    ledger = participants[0]
+    util.blockchain_ops.wait_for_state_transfer_complete(committers)
+    primary_ip = get_primary_ip(committers)
     log.info("primary: {}".format(primary_ip))
-    f = (len(fxBlockchain.replicas["daml_committer"]) - 1) / 3
+    f = (len(committers) - 1) / 3
     username, password = util.helper.getNodeCredentials()
     stopped_nodes = []
 
-    for committer in fxBlockchain.replicas["daml_committer"]:
+    for committer in committers:
         if not committer == primary_ip:
             timestamp = util.blockchain_ops.get_docker_timestamp(committer, username, password, "concord")
             log.info("Stopping Concord on {} at timestamp {}".format(committer, timestamp))
@@ -365,7 +377,7 @@ def test_stop_nonprimary_nodes(fxBlockchain, fxFiboMax, fxAppSetup, fxInstallDam
         log.info("Restarting Concord {} at {}".format(committer, timestamp))
         util.blockchain_ops.start_services(committer, username, password, ["concord"])
 
-    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain)
+    util.blockchain_ops.wait_for_state_transfer_complete(committers)
     run_fibo(ledger, num_fib_values=1)
     run_request_tool(ledger)
 
@@ -380,8 +392,9 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
     Bring up that node and wait for view change to complete. (There is a function in Hermes to help with this. Could also use Wavefront. See the sample dashboard.)
     Resubmit the long transaction and verify that it works.
     '''
-    orig_primary_ip = get_primary_ip(fxBlockchain)
-    ledger = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    orig_primary_ip = get_primary_ip(committers)
+    ledger = participants[0]
     log.info("ledger: {}".format(ledger))
     log.info("primary ip: {}".format(orig_primary_ip))
 
@@ -405,13 +418,13 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
     # Give plenty of time for nodes to notice that the primary is gone before restarting this one.
     time.sleep(30)
     util.blockchain_ops.start_services(orig_primary_ip, username, password, ["concord"])
-    new_primary_ip = get_primary_ip(fxBlockchain)
+    new_primary_ip = get_primary_ip(committers)
     start_time = time.time()
 
     while new_primary_ip == orig_primary_ip and time.time() - start_time < 180:
         log.info("Waiting for primary to change. Current primary: {}".format(new_primary_ip))
         time.sleep(5)
-        new_primary_ip = get_primary_ip(fxBlockchain)
+        new_primary_ip = get_primary_ip(committers)
 
     run_fibo(ledger, num_fib_values=1)
 
@@ -433,8 +446,9 @@ def test_large_execution_output(fxBlockchain, fxSpiderDar, fxInstallDamlSdk, fxA
     timeout = 3600
     attempts = 10
     success = False
-    host = fxBlockchain.replicas["daml_participant"][0]
-    cmd = ["daml", "ledger", "upload-dar", fxSpiderDar, "--timeout", str(timeout)]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    host = participants[0]
+    cmd = [daml_sdk_path, "ledger", "upload-dar", fxSpiderDar, "--timeout", str(timeout)]
     cmd.extend(["--host", host, "--port", str(LEDGER_PORT)])
 
     while attempts and not success:
@@ -456,8 +470,9 @@ def test_large_execution_output(fxBlockchain, fxSpiderDar, fxInstallDamlSdk, fxA
 
 @describe("Send requests in parallel, but from different clients.")
 def test_parallel_clients(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax):
-    alice = fxBlockchain.replicas["daml_participant"][0]
-    bob = fxBlockchain.replicas["daml_participant"][1]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    alice = participants[0]
+    bob = participants[1]
     futures = []
 
     with concurrent.futures.ProcessPoolExecutor(max_workers = 2) as executor:
@@ -473,10 +488,10 @@ def test_parallel_clients(fxBlockchain, fxInstallDamlSdk, fxAppSetup, fxFiboMax)
         f.result()
 
 
-def get_wf_measurements(fxBlockchain, start_epoch, end_epoch):
+def get_wf_measurements(committers, start_epoch, end_epoch):
     '''
     Fetches measurements needed for the test case for Wavefront metrics.
-    fxBlockchain: Supplied by the fxBlockchain fixture
+    committers: List of committers for which data is gathered
     start_epoch: Epoch time for the start of the window for Wavefront
     end_epoch: Epoch time for the end of the window for Wavefront
     Return: Tuple of (num_measurements, highest_measurement) for the
@@ -488,7 +503,7 @@ def get_wf_measurements(fxBlockchain, start_epoch, end_epoch):
     filt = "vm_ip"
     str_output = None
 
-    for ip in fxBlockchain.replicas["daml_committer"]:
+    for ip in committers:
         metric_query = "ts({},{}={})".format(metric_name, filt, ip)
         str_output = util.wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch)
         output = json.loads(str_output)
@@ -509,9 +524,8 @@ def get_wf_measurements(fxBlockchain, start_epoch, end_epoch):
 
 @describe("Verify that pre-execution metrics are being sent.")
 def test_metrics(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
-    import util.wavefront
-
-    ledger = fxBlockchain.replicas["daml_participant"][0]
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    ledger = participants[0]
     num_measurements_before = 0
     num_measurements_after = 0
     highest_before = 0
@@ -519,13 +533,13 @@ def test_metrics(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
     start_epoch = time.time() - 1800 # Clock skew issues.
 
     end_epoch = time.time()
-    num_measurements_before, highest_before = get_wf_measurements(fxBlockchain, start_epoch, end_epoch)
+    num_measurements_before, highest_before = get_wf_measurements(committers, start_epoch, end_epoch)
 
     run_request_tool(ledger)
     time.sleep(65) # Wait for nodes to update Wavefront; they are on a heartbeat.
 
     end_epoch = time.time()
-    num_measurements_after, highest_after = get_wf_measurements(fxBlockchain, start_epoch, end_epoch)
+    num_measurements_after, highest_after = get_wf_measurements(committers, start_epoch, end_epoch)
 
     assert num_measurements_after > num_measurements_before, "Did not find additional metrics"
     assert highest_after > highest_before, "Number of pre-exec requests should have increased"

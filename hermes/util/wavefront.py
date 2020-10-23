@@ -260,7 +260,6 @@ def call_wavefront_chart_api(metric_query, start_epoch, end_epoch):
     '''
     Local function to call <wavefront_url>/api/v2/chart/api
     Args:
-        blockchain_id: Blockchain Id in current context
         metric_query: Metric name along with filter parameters
         start_epoch: Start time in epoch
         end_epoch: End time in epoch

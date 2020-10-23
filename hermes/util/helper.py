@@ -2477,3 +2477,62 @@ def map_run_id_to_this_run(run_id, parent_results_dir, results_dir):
          os.remove(hermes_testrun_info_lock_file)
       except FileExistsError:
          pass
+
+
+def extract_ip_lists_from_fxBlockchain(fxBlockchain):
+   '''
+   Warning about blockchain.replicas["daml_participant"]:
+     If Hermes was passed --replicasConfig, we get arrays of IPs.
+     If Hermes did the deployment, we get arrays of objects with the IP in one of the fields.
+   Needed now, releated to BC-5236.
+   '''
+   participant_ips = []
+   committer_ips = []
+
+   if isinstance(fxBlockchain.replicas[TYPE_DAML_PARTICIPANT][0], str):
+      participant_ips = fxBlockchain.replicas[TYPE_DAML_PARTICIPANT]
+      committer_ips = fxBlockchain.replicas[TYPE_DAML_COMMITTER]
+   else:
+      participant_ips = fetch_ips_from_fxBlockchain_entry(
+         fxBlockchain.replicas[TYPE_DAML_PARTICIPANT])
+      committer_ips = fetch_ips_from_fxBlockchain_entry(
+         fxBlockchain.replicas[TYPE_DAML_COMMITTER])
+
+   return participant_ips, committer_ips
+
+
+def fetch_ips_from_fxBlockchain_entry(node_list):
+   '''
+   Receives a list of fxBlockchain nodes in this format:
+   [
+      {
+         "id": "8b26df49-5682-4f18-9a4b-32b49ff7c813",
+         "name": "Replica0",
+         "ip": "w.x.y.z",
+         "public_ip": "w.x.y.z",
+         "private_ip": "w.x.y.z",
+         "rpc_url": "",
+         "status": "live",
+         "millis_since_last_message": 0,
+         "millis_since_last_message_threshold": 1,
+         "certificate": null,
+         "zone_id": "e0551ad2-60-4be0-aa50-5e469995b399"
+     }, ...
+   ]
+   and returns a list of IP addresses, in this priority:
+     ip: Appears to be no longer used in 1.0. Earlier versions though?
+     public_ip: A "cloud" (aka "sddc") node's public IP address
+     private_ip: An "on prem" node's IP address
+   Needed now, related to BC-5236.
+   '''
+   ips = []
+
+   for n in node_list:
+     if "ip" in n and n["ip"]:
+        ips.append(n["ip"])
+     elif "public_ip" in n and n["public_ip"]:
+        ips.append(n["public_ip"])
+     elif "private_ip" in n and n["private_ip"]:
+        ips.append(n["private_ip"])
+
+   return ips

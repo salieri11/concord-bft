@@ -40,13 +40,14 @@ def refresh_current_state_info(fxBlockchain, verbose=False):
   return True
 
 
-def wait_for_state_transfer_complete(fxBlockchain, interrupted_replicas=[], timeout=180):
+def wait_for_state_transfer_complete(all_replicas, interrupted_replicas=[], timeout=180):
   '''
+  all_replicas: List of IP addresses of replicas
+  interrupted_replicas: Replicas expected to not be running
   Determine whether all running replicas have finished state transfer.
   This is done by checking "lastStableSeqNum" on each replica.  If they
   are all the same, then they are all in sync.
   '''
-  all_replicas = committers_of(fxBlockchain)
   target_replicas = [ip for ip in all_replicas if ip not in interrupted_replicas]
   username, password = helper.getNodeCredentials()
   seq_num = None
@@ -87,12 +88,32 @@ def wait_for_state_transfer_complete(fxBlockchain, interrupted_replicas=[], time
 def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     Get primary rid (id used internally for concord nodes)
-    This is different from persephone-returned list of committers
     Nodes can differ opinions on what the primary is, in that case
-    output warning to which rid is thought to be primary by which nodes
+    output warning to which rid is thought to be primary by which nodes.
+    fxBlockchain: Varies depending on context.  It could be a list of IP addresses,
+      a dict of lists of IP addresses, or a dict of lists of data structures
+      containing IP addresses.  All it really NEEDS is a list of IP addresses.
+      BC-5236 will resolve this. Don't force the caller to create a special
+      data structure when all it needs is a list of IP addresses.
   '''
-  all_committers = committers_of(fxBlockchain)
+  all_committers = []
+
+  if isinstance(fxBlockchain, list) and isinstance(fxBlockchain[0], str):
+    # After BC-5236, this should be the only code path.
+    all_committers = fxBlockchain
+  elif helper.TYPE_DAML_COMMITTER in fxBlockchain.replicas and \
+       isinstance(committers_of(fxBlockchain)[0], str):
+    # What we currently get when someone uses --replicasConfig: A dict with
+    # two entries, one for committer IPs and another for participant IPs.
+    all_committers = committers_of(fxBlockchain)
+  else:
+    # What we get with a deployment: A dict with two entries, one for committer
+    # nodes and one for participant nodes.  Each node is a dict with an IP.
+    objs = committers_of(fxBlockchain)
+    all_committers = helper.extract_ip_lists_from_fxBlockchain(objs)
+
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
+  log.debug("get_primary_rid target_committers: {}".format(target_committers))
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
   current_active_view_match = 'concord_concordbft_currentActiveView{source="concordbft",component="replica"} '
   cmd = ';'.join([
@@ -131,7 +152,9 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
         highest_agreed_count = len(replicas)
         highest_agreed_idx = idx
     if highest_agreed_count > 0:
-      if highest_agreed_count >= get_f_count(fxBlockchain):
+      # get_f_count() requires one of the flavors of fxBlockchain.  Mock one up for it.
+      # TEMPORARY.  Will be fixed by BC-5236.
+      if highest_agreed_count >= get_f_count(type('obj', (object,), {'replicas': {helper.TYPE_DAML_COMMITTER: target_committers}})):
         # no problem if (n-f) agrees on primary. e.g. 5/7 => quorum achieved
         log.warning("         Going with {} (most votes, {})"
                       .format(highest_agreed_idx, highest_agreed_count))
@@ -171,7 +194,7 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   except Exception as e:
     msg = "Error fetching deployment config from one of committer nodes is : '{}'".format(str(e))
     log.error(msg)
-  
+
   if not success:
         raise(e)
 
