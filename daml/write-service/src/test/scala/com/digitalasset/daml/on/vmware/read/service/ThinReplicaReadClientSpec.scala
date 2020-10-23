@@ -6,7 +6,7 @@ import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
 import com.codahale.metrics.MetricRegistry
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
-import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClientJni, Update}
+import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClient, Update}
 import org.mockito.AdditionalAnswers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
@@ -57,7 +57,7 @@ class ThinReplicaReadClientSpec
     "update metrics" in {
       val metrics = new ThinReplicaReadClientMetrics(new MetricRegistry)
       val thinReplicaReadClient = createThinReplicaReadClientGivenMetrics(
-        createPerfectMockOfThinReplicaClient,
+        createPerfectMockOfThinReplicaClient(),
         metrics
       )
       testBlockDelivery(thinReplicaReadClient).map(_ => {
@@ -79,84 +79,82 @@ class ThinReplicaReadClientSpec
   }
 
   private def createPerfectThinReplicaReadClient: ThinReplicaReadClient = {
-    createThinReplicaReadClient(createPerfectMockOfThinReplicaClient)
+    createThinReplicaReadClient(createPerfectMockOfThinReplicaClient())
   }
 
-  private def createPerfectMockOfThinReplicaClient: ThinReplicaClientJni = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+  private def createPerfectMockOfThinReplicaClient(): ThinReplicaClient = {
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
+    when(client.subscribe(any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.pop())
+    when(client.pop())
       .thenReturn(anUpdate)
-    thinReplicaClientJni
+    client
   }
 
   private def createThinReplicaReadClientFailingToInitialize: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(false)
-    createThinReplicaReadClient(thinReplicaClientJni)
+    createThinReplicaReadClient(client)
   }
 
   private def createThinReplicaReadClientFailingFirstSubscribe: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
+    when(client.subscribe(any()))
       .thenReturn(false, true)
-    when(thinReplicaClientJni.pop())
+    when(client.pop())
       .thenReturn(anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+    createThinReplicaReadClient(client)
   }
 
   private def createThinReplicaReadClientFailingFirstPop: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
+    when(client.subscribe(any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.pop())
+    when(client.pop())
       .thenReturn(None, anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+    createThinReplicaReadClient(client)
   }
 
   private def createThinReplicaReadClientFailingSecondPop: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
+    when(client.subscribe(any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.pop())
+    when(client.pop())
       .thenReturn(anUpdate, None, anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+    createThinReplicaReadClient(client)
   }
 
   private def createThinReplicaReadClientGiviningManyUpdates(
       updateRange: List[Option[Update]]): ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
+    when(client.subscribe(any()))
       .thenReturn(true)
-    when(thinReplicaClientJni.pop())
+    when(client.pop())
       .thenAnswer(AdditionalAnswers.returnsElementsOf(updateRange.asJava))
-    createThinReplicaReadClient(thinReplicaClientJni)
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClient(thinReplicaClientJni: ThinReplicaClientJni) = {
+  private def createThinReplicaReadClient(client: ThinReplicaClient) = {
     val metricsRegistry = new MetricRegistry
     val metrics = new ThinReplicaReadClientMetrics(metricsRegistry)
-    createThinReplicaReadClientGivenMetrics(
-      thinReplicaClientJni,
-      metrics
-    )
+    createThinReplicaReadClientGivenMetrics(client, metrics)
   }
 
   private def createThinReplicaReadClientGivenMetrics(
-      thinReplicaClientJni: ThinReplicaClientJni,
-      metrics: ThinReplicaReadClientMetrics) =
+      client: ThinReplicaClient,
+      metrics: ThinReplicaReadClientMetrics,
+  ) =
     new ThinReplicaReadClient(
       clientId = "doesntmatter",
       maxFaulty = 0,
@@ -165,7 +163,7 @@ class ThinReplicaReadClientSpec
       maxReadDataTimeout = 0,
       maxReadHashTimeout = 0,
       jaegerAgent = "doesntmatter",
-      trcCore = thinReplicaClientJni,
+      trcCore = client,
       metrics = metrics
     )
 
