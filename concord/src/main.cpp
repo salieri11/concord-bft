@@ -163,6 +163,9 @@ static void signalHandler(int signum) {
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
   }
+
+  signal(signum, SIG_DFL);
+  raise(signum);
 }
 
 // Directs Jaeger log messages to Log4cpp
