@@ -39,25 +39,26 @@ Pytest:
 
 ## Requirements:
 - Python 3.7.1.  Installation reference: https://docs.python.org/3/using/
-- Python packages: matplotlib, numpy, pyyaml, pytest==5.3.5, pytest-json, web3,
-  and xvfbwrapper. Pip may be fussy if Python on the system was upgraded it's
+- Python packages: Hermes uses pytest vesion 5.3.5 and hermes/requirement.txt has list of dependent packages. Dependencies can be installed using pip: 
+  `pip3 install -r hermes/requirements.txt`
+- Pip may be fussy if Python on the system was upgraded it's
   easier to use virtualenv (see below).  Try:
-  `python3 -m pip install <package>` if having trouble.
+  `python3 -m pip install <package>`, if having trouble.
 - To run the "EthCoreVmTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
   Then adjust the path to it in resources/user_config.json.
 - Install Maven: `sudo apt-get install maven`
 - For the UITests to pass you need to export your LINT_API_KEY and FLUENTD key, which can be (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens]
 
-```shell
-export LINT_API_KEY=XXXXXXXXX
-```
+  ```shell
+    export LINT_API_KEY=XXXXXXXXX
+  ```
 
-Update Fluentd Key in `docker/fluentd/fluentd.conf` here
+- Update Fluentd Key in `docker/fluentd/fluentd.conf` here
 
-```shell
-Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
-```
+  ```shell
+  Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
+  ```
 
 
 ## Running a test suite:
