@@ -15,6 +15,7 @@ public class Constants {
     public static final String DAML_SDK_INFO_OVERRIDE = "daml_sdk_info";
     public static final String ORG_TEMPLATE_ID_OVERRIDE = "org_template_id_override";
     public static final String ORG_MAX_CHAINS = "max_chains";
+    public static final String ORG_NOTARY_VERIFICATION_ENABLED = "notary_verification_enabled";
     public static final String ORG_GENERATE_PASSWORD = "secure-password";
     public static final String ORG_PREEXECUTION_ENABLED = "preexecution_enabled";
     public static final String ORG_PREEXECUTION_THRESHOLD = "preexecution_threshold";
