@@ -6,23 +6,29 @@ set -x -v
 #* **************************************************************************** */
 # This script does post install tasks for the blockchain appliance.
 
-# blockchain user
-BLOCKCHAIN_USER=blockchain
-ONPREM_BLOCKCHAIN_ARTIFACTORY=athena-docker-local.artifactory.eng.vmware.com
-CONFIG_SERVICE_NAME=persephone-configuration
-PROVISIONING_SERVICE_NAME=persephone-provisioning
-CASTOR_SERVICE_NAME=castor
-ONPREM_BLOCKCHAIN_VERSION=0.0.0.2447
-
-CONFIG_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CONFIG_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
-PROVISIONING_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$PROVISIONING_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
-CASTOR_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CASTOR_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
-
 # This needs to match the /software/copy-to-appliance/misc-files/local/target value
 # in the CAP appliance json. This is the location to which files are copied over from
 # the build machine to the appliance. From here, they are distributed to various other
 # appliance directories/files.
 APPLIANCE_FILES=/root/blockchain
+
+# Source build variables: automation build, docker repo / tag etc.
+source $APPLIANCE_FILES/build.properties
+
+ORCHESTRATOR_AUTOMATION_BUILD=${ORCHESTRATOR_AUTOMATION_BUILD:-false}
+
+# blockchain user
+BLOCKCHAIN_USER=blockchain
+ONPREM_BLOCKCHAIN_ARTIFACTORY=${ONPREM_BLOCKCHAIN_ARTIFACTORY:-athena-docker-local.artifactory.eng.vmware.com}
+ONPREM_BLOCKCHAIN_VERSION=${ONPREM_BLOCKCHAIN_VERSION:-NOT-SET-0.0.0} # Set to dummy so build will fail
+CONFIG_SERVICE_NAME=persephone-configuration
+PROVISIONING_SERVICE_NAME=persephone-provisioning
+CASTOR_SERVICE_NAME=castor
+
+CONFIG_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CONFIG_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
+PROVISIONING_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$PROVISIONING_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
+CASTOR_SERVICE=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CASTOR_SERVICE_NAME:$ONPREM_BLOCKCHAIN_VERSION
+
 
 # This is needed to enable docker bridge networking. Ensure that the
 # Kernel version on the base image matches this value.
@@ -145,6 +151,16 @@ chmod 555 $EULA_DIR/eula.script
 cp $APPLIANCE_FILES/VMware_EULA_20190913_English.txt $EULA_DIR
 chmod 444 $EULA_DIR/VMware_EULA_20190913_English.txt
 # End EULA acceptance setup
+
+# If this is an automation build (e.g. for testing), accept EULAs for root and
+# blockchain users.
+if [[ $ORCHESTRATOR_AUTOMATION_BUILD = "true" ]]
+then
+    echo "Running a TEST BUILD"
+    # Do what eula.script would have done if the user had accepted the EULA
+    echo "TEST BUILD: User root accepted EULA on $(date -u)" >> $EULA_DIR/.root-eula
+    echo "TEST BUILD: User blockchain accepted EULA on $(date -u)" >> $EULA_DIR/.blockchain-eula
+fi
 
 # Remove the default DHCP network configuration set up by CAP, so when users instantiate the image,
 # a network will be set up at first-boot that will be DHCP or static, based on user input.

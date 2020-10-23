@@ -1,12 +1,12 @@
 {
     "configuration": {
         "cap_version": "0.1",
-        "appliance_name": "vmbco-network-config",
-        "delivery_format": "OVF",
+        "appliance_name": "<ORCHESTRATOR_APPLIANCE_NAME>",
+        "delivery_format": "OVA",
         "parking_directory": "images",
         "repositories": {
             "local": [
-                "/dbc/sc-dbc1218/dinkarr/cap-network-config"
+                "<ORCHESTRATOR_BUILD_FILES_REPOSITORY>"
             ],
             "rpm": [
                 {
@@ -59,17 +59,17 @@
     "build-appliance": {
         "remote": {
             "personalization": {
-                "image": "http://build-squid.eng.vmware.com/build/mts/release/sb-40659881/publish/sh-40659881.iso",
+                "image": "<ORCHESTRATOR_CAP_BASE_IMAGE>",
                 "root_password": "vmware",
                 "existing_password": "previous"
             },
             "machine": {
                 "datastore": "datastore1",
                 "datacenter": "Datacenter",
-                "vcenter_address": "10.185.30.6",
+                "vcenter_address": "<ORCHESTRATOR_BUILD_VCENTER>",
                 "password": "Admin!23",
                 "username": "administrator@vsphere.local",
-                "hostname": "10.185.28.185",
+                "hostname": "<ORCHESTRATOR_BUILD_HOST>",
                 "network": "VM Network"
             }
         },
@@ -88,20 +88,6 @@
         },
         "install": {
             "iso": [
-                "acl",
-                "cloud-init",
-                "coreutils",
-                "curl",
-                "diffutils",
-                "docker",
-                "iproute",
-                "libtool",
-                "net-tools",
-                "rsync",
-                "sudo",
-                "wget",
-                "unzip",
-                "tar"
             ],
             "local": {
                 "files": [
@@ -117,6 +103,7 @@
                     "local": {
                         "target": "/root/blockchain",
                         "files": [
+                            "build.properties",
                             "blockchain.service",
                             "orchestrator-prereqs-launcher.sh",
                             "cap-firstboot.sh",
