@@ -855,7 +855,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
 
     # Check Wavefront before Client request
     str_output = wavefront.call_wavefront_chart_api(
-        blockchain_id, metric_query, start_epoch, end_epoch)
+        metric_query, start_epoch, end_epoch)
     output = None
 
     try:
@@ -891,7 +891,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
 
     # Check Wavefront after Client request
     str_output = wavefront.call_wavefront_chart_api(
-        blockchain_id, metric_query, start_epoch, end_epoch)
+        metric_query, start_epoch, end_epoch)
     try:
         output = json.loads(str_output)
         assert "warnings" not in output.keys(), output["warnings"]
