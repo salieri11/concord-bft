@@ -16,7 +16,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
-class ThinReplicaReadClientSpec
+final class ThinReplicaReadClientSpec
     extends AsyncWordSpec
     with AkkaBeforeAndAfterAll
     with Matchers
@@ -24,7 +24,7 @@ class ThinReplicaReadClientSpec
 
   "ThinReplicaReadClient" should {
     "return a stream of updates from a perfect Thin Replica" in {
-      testBlockDelivery(createPerfectThinReplicaReadClient)
+      testBlockDelivery(createPerfectThinReplicaReadClient())
     }
 
     "return an empty stream of updates from a Thin Replica that fails to initialize" in {
@@ -78,14 +78,18 @@ class ThinReplicaReadClientSpec
     }
   }
 
-  private def createPerfectThinReplicaReadClient: ThinReplicaReadClient = {
+  private def createPerfectThinReplicaReadClient(): ThinReplicaReadClient =
     createThinReplicaReadClient(createPerfectMockOfThinReplicaClient())
-  }
 
-  private def createPerfectMockOfThinReplicaClient(): ThinReplicaClient = {
+  private def createInitializableThinReplicaClient(): ThinReplicaClient = {
     val client = mock[ThinReplicaClient]
     when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(true)
+    client
+  }
+
+  private def createPerfectMockOfThinReplicaClient(): ThinReplicaClient = {
+    val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
     when(client.pop())
@@ -101,9 +105,7 @@ class ThinReplicaReadClientSpec
   }
 
   private def createThinReplicaReadClientFailingFirstSubscribe: ThinReplicaReadClient = {
-    val client = mock[ThinReplicaClient]
-    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
+    val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(false, true)
     when(client.pop())
@@ -112,9 +114,7 @@ class ThinReplicaReadClientSpec
   }
 
   private def createThinReplicaReadClientFailingFirstPop: ThinReplicaReadClient = {
-    val client = mock[ThinReplicaClient]
-    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
+    val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
     when(client.pop())
@@ -123,9 +123,7 @@ class ThinReplicaReadClientSpec
   }
 
   private def createThinReplicaReadClientFailingSecondPop: ThinReplicaReadClient = {
-    val client = mock[ThinReplicaClient]
-    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
+    val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
     when(client.pop())
@@ -135,9 +133,7 @@ class ThinReplicaReadClientSpec
 
   private def createThinReplicaReadClientGiviningManyUpdates(
       updateRange: List[Option[Update]]): ThinReplicaReadClient = {
-    val client = mock[ThinReplicaClient]
-    when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
+    val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
     when(client.pop())
