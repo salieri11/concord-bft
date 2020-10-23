@@ -58,6 +58,7 @@ suiteList = {
    "NodeInterruptionTests": "suites/node_interruption_tests.py",
    "LongRunningTests": "suites/long_running_tests.py",
    "LoggingTests": "suites/logging_tests.py",
+   "LogInsightTests": "suites/log_insight_tests.py",
    "PersephoneTestsNew": "suites/persephone_tests_new.py",
    "SampleSuite": "suites/sample_suite.py",
    "ThinReplicaServerTests": "suites/thin_replica_server_tests.py",

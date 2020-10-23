@@ -763,6 +763,7 @@ def _get_suite_short_name(module_name):
         "NodeInterruptionTests": "hermes.suites.node_interruption_tests",
         "LongRunningTests": "hermes.suites.long_running_tests",
         "LoggingTests": "hermes.suites.logging_tests",
+        "LogInsightTests": "hermes.suites.log_insight_tests",
         "PersephoneTestsNew": "hermes.suites.persephone_tests_new",
         "SampleSuite": "hermes.suites.sample_suite",
         "ThinReplicaServerTests": "hermes.suites.thin_replica_server_tests",
