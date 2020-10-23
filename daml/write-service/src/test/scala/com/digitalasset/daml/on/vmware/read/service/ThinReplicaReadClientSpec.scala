@@ -28,20 +28,20 @@ final class ThinReplicaReadClientSpec
     }
 
     "return an empty stream of updates from a Thin Replica that fails to initialize" in {
-      val thinReplicaClient = createThinReplicaReadClientFailingToInitialize
+      val thinReplicaClient = createThinReplicaReadClientFailingToInitialize()
       thinReplicaClient.committedBlocks(0) shouldBe Source.empty
     }
 
     "return a stream of updates from a Thin Replica that fails the first subscribe" in {
-      testBlockDelivery(createThinReplicaReadClientFailingFirstSubscribe)
+      testBlockDelivery(createThinReplicaReadClientFailingFirstSubscribe())
     }
 
     "return a stream of updates from a Thin Replica that fails the first pop" in {
-      testBlockDelivery(createThinReplicaReadClientFailingFirstPop)
+      testBlockDelivery(createThinReplicaReadClientFailingFirstPop())
     }
 
     "return a stream of updates from a Thin Replica that fails the second pop" in {
-      testBlockDelivery(createThinReplicaReadClientFailingSecondPop)
+      testBlockDelivery(createThinReplicaReadClientFailingSecondPop())
     }
 
     "return a stream of distinctive updates from a Thin Replica" in {
@@ -97,14 +97,14 @@ final class ThinReplicaReadClientSpec
     client
   }
 
-  private def createThinReplicaReadClientFailingToInitialize: ThinReplicaReadClient = {
+  private def createThinReplicaReadClientFailingToInitialize(): ThinReplicaReadClient = {
     val client = mock[ThinReplicaClient]
     when(client.initialize(any(), any(), any(), any(), any(), any(), any()))
       .thenReturn(false)
     createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingFirstSubscribe: ThinReplicaReadClient = {
+  private def createThinReplicaReadClientFailingFirstSubscribe(): ThinReplicaReadClient = {
     val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(false, true)
@@ -113,7 +113,7 @@ final class ThinReplicaReadClientSpec
     createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingFirstPop: ThinReplicaReadClient = {
+  private def createThinReplicaReadClientFailingFirstPop(): ThinReplicaReadClient = {
     val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
@@ -122,7 +122,7 @@ final class ThinReplicaReadClientSpec
     createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingSecondPop: ThinReplicaReadClient = {
+  private def createThinReplicaReadClientFailingSecondPop(): ThinReplicaReadClient = {
     val client = createInitializableThinReplicaClient()
     when(client.subscribe(any()))
       .thenReturn(true)
