@@ -62,6 +62,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         DeploymentRequest deploymentRequest = DeploymentHelper.constructDeploymentRequest(
                 infrastructureDescriptorModel, provisioningDescriptorModel);
 
+        String consortiumName = provisioningDescriptorModel.getBlockchain().getConsortiumName();
+        String consortiumId = deploymentRequest.getSpec().getConsortiumId();
+        printWriter.printf("Consortium Name: %s, Consortium Id: %s\n", consortiumName, consortiumId);
+
         // Request a deployment from the provisioning service
         log.debug("Requesting a deployment with request info: {}", deploymentRequest);
         String deploymentRequestId = submitDeploymentRequest(deploymentRequest, deploymentCompletionFuture);
