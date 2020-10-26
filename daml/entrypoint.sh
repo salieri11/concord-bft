@@ -68,7 +68,7 @@ MAX_TRC_READ_HASH_TIMEOUT=${MAX_TRC_READ_HASH_TIMEOUT:=3}
 
 LOGBACK_CONFIG_FILE="/doc/daml/ledger-api-server/resources/logback.xml"
 
-INDEXDB_JDBC_URL="${INDEXDB_JDBC_URL}" $API_SERVER \
+INDEXDB_JDBC_URL="${INDEXDB_JDBC_URL}" exec $API_SERVER \
   -Dlogback.configurationFile=$LOGBACK_CONFIG_FILE \
   --replicas $REPLICAS \
   --participant participant-id=$PARTICIPANT_ID,address=0.0.0.0,port=6865,server-jdbc-url-env=INDEXDB_JDBC_URL \
