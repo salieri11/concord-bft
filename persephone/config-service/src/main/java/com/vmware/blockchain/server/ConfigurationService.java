@@ -90,8 +90,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         initialize();
 
         cacheByNodeId = CacheBuilder.newBuilder()
-                .expireAfterAccess(20, TimeUnit.MINUTES)
-                .expireAfterWrite(2, TimeUnit.HOURS)
+                .expireAfterAccess(45, TimeUnit.MINUTES)
                 .build();
     }
 
