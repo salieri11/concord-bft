@@ -104,7 +104,7 @@ public class DamlLedgerApiUtil {
 
     private void addPreexecutionThreshold(StringBuilder builder, Properties properties) {
         if (properties.getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")
                 .equalsIgnoreCase("True")) {
             builder.append("export PRE_EXECUTION_TIME_THRESHOLD=");
             builder.append(properties.getValuesMap()

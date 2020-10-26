@@ -1,0 +1,20 @@
+# This file lists the components that should be pushed to Artifactory.
+- concord
+- ethrpc
+- fluentd
+- helen
+- castor
+- memleak_concord
+- persephone_agent
+- persephone_configuration
+- persephone_provisioning
+- ui
+- contract_compiler
+- daml_ledger_api
+- daml_execution_engine
+- daml_index_db
+- trc_lib
+- trc_test_app
+- client_pool_lib
+- participant_lib
+- operator

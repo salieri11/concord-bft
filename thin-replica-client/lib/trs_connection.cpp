@@ -24,14 +24,15 @@ using namespace std::chrono_literals;
 namespace thin_replica_client {
 
 // Daml ledger api container is loaded with the environment variable
-// THIN_REPLICA_SETTINGS. If the value of the key `trc_tls_enable` set in
-// THIN_REPLICA_SETTINGS is true, TLS enabled secure channel will be opened
-// by the thin replica client, else an insecure channel will be employed.
-// The value of the key `thin_replica_tls_cert_path` in THIN_REPLICA_SETTINGS
+// THIN_REPLICA_SETTINGS. If the value of the key `insecure-thin-replica-client`
+// set in THIN_REPLICA_SETTINGS is false, TLS enabled secure channel will be
+// opened by the thin replica client, else an insecure channel will be employed.
+// The value of the key `thin-replica-tls-cert-path` in THIN_REPLICA_SETTINGS
 // specifies the path of the certificates used for the TLS channel.
 const static std::string kThinReplicaSettings = "THIN_REPLICA_SETTINGS";
-const static std::string kTrcTlsEnable = "trc_tls_enable";
-const static std::string kThinReplicaTlsCertPath = "thin_replica_tls_cert_path";
+const static std::string kInsecureThinReplicaClient =
+    "insecure-thin-replica-client";
+const static std::string kThinReplicaTlsCertPath = "thin-replica-tls-cert-path";
 
 void TrsConnection::createStub() {
   assert(channel_);
@@ -44,15 +45,16 @@ void TrsConnection::createChannel() {
 
   auto tr_env = std::getenv(kThinReplicaSettings.c_str());
 
-  std::string trc_tls_enable_val, thin_replica_tls_cert_path;
+  std::string is_insecure_trc_val, thin_replica_tls_cert_path;
   if (tr_env != NULL) {
     // Check if TLS has been enabled in THIN_REPLICA_SETTINGS environment
     // variable
-    trc_tls_enable_val = parseThinReplicaEnv(tr_env, kTrcTlsEnable);
+    is_insecure_trc_val =
+        parseThinReplicaEnv(tr_env, kInsecureThinReplicaClient);
 
     // Transform the tls_enable_val to lowercase for comparison
-    std::transform(trc_tls_enable_val.begin(), trc_tls_enable_val.end(),
-                   trc_tls_enable_val.begin(),
+    std::transform(is_insecure_trc_val.begin(), is_insecure_trc_val.end(),
+                   is_insecure_trc_val.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
     // Get TLS certificate paths set in THIN_REPLICA_SETTINGS environment
@@ -60,10 +62,10 @@ void TrsConnection::createChannel() {
     thin_replica_tls_cert_path =
         parseThinReplicaEnv(tr_env, kThinReplicaTlsCertPath);
   } else {
-    trc_tls_enable_val = "false";
+    is_insecure_trc_val = "true";
   }
 
-  if (trc_tls_enable_val == "true") {
+  if (is_insecure_trc_val == "false") {
     LOG4CPLUS_INFO(
         logger_, "TLS for thin replica client is enabled, certificate path: "
                      << thin_replica_tls_cert_path << ", server: " << address_);

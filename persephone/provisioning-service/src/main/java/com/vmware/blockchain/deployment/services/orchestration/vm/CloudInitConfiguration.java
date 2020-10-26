@@ -6,13 +6,16 @@ package com.vmware.blockchain.deployment.services.orchestration.vm;
 
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.assertj.core.util.Strings;
+import org.springframework.util.StringUtils;
 
 import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
@@ -31,6 +34,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
+import com.vmware.blockchain.deployment.v1.TransportSecurity;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 
 import lombok.Data;
@@ -186,6 +190,60 @@ public class CloudInitConfiguration {
         }
     }
 
+    // This enables/disables the actual code to write Notary Self-Signed Cert to file accordingly
+    private String enableNotarySelfSignedCert() {
+        if (isNotaryServerSelfSigned()) {
+            return "true";
+        } else {
+            return "false";
+        }
+    }
+
+    // Sets the directory name for Notary Self-Signed Cert as required by Docker
+    // Format required is host:port
+    private String setDirForNotarySelfSignedCert() {
+        if (isNotaryServerSelfSigned()) {
+            try {
+                URL url = new URL(notaryServer.getAddress());
+                String dirName = "";
+                if (StringUtils.hasText(url.getHost())) {
+                    dirName += url.getHost();
+                } else {
+                    throw new BadRequestPersephoneException(new MalformedURLException(),
+                                                  ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED, notaryServer.getAddress());
+                }
+                if (url.getPort() != -1) {
+                    dirName += ":";
+                    dirName += url.getPort();
+                }
+                return dirName;
+            } catch (Exception e) {
+                throw new BadRequestPersephoneException(e, ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED,
+                                                        notaryServer.getAddress());
+            }
+        } else {
+            return "";
+        }
+    }
+
+    private String setNotarySelfSignedCert() {
+        if (isNotaryServerSelfSigned()) {
+            return notaryServer.getTransportSecurity().getCertificateData();
+        } else {
+            return "";
+        }
+    }
+
+    private Boolean isNotaryServerSelfSigned() {
+        if (notaryServer != null && !notaryServer.getAddress().equals("")
+            && notaryServer.getTransportSecurity() != null
+            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
+            return true;
+        }
+        return false;
+    }
+
     private String enableDockerContentTrustCommand() {
         if (notaryServer != null && !notaryServer.getAddress().equals("")) {
             return "export DOCKER_CONTENT_TRUST=1";
@@ -233,7 +291,8 @@ public class CloudInitConfiguration {
             builder.setNodeId(nodeIdString);
         }
         if (this.notaryServer != null) {
-            builder = builder.setNotaryServer(this.notaryServer);
+            // Passing only notary server address as self-signed certificate is passed and created in Cloud Init itself
+            builder = builder.setNotaryServer(Endpoint.newBuilder().setAddress(this.notaryServer.getAddress()).build());
         }
         return builder.build();
     }
@@ -320,6 +379,9 @@ public class CloudInitConfiguration {
                              toRegistrySecuritySetting(containerRegistry.getAddress()))
                     .replace("{{agentConfig}}",
                              com.google.protobuf.util.JsonFormat.printer().print(getConfiguration()))
+                    .replace("{{enableNotarySelfSignedCert}}", enableNotarySelfSignedCert())
+                    .replace("{{notaryServerSelfSignedCertDir}}", setDirForNotarySelfSignedCert())
+                    .replace("{{notarySelfSignedCert}}", setNotarySelfSignedCert())
                     .replace("{{networkSetupCommand}}", networkSetupCommand())
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy())

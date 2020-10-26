@@ -9,6 +9,7 @@ import os
 import pytest
 import traceback
 import collections
+import tempfile
 
 import util.json_helper
 import util.helper
@@ -26,8 +27,6 @@ SUPPORT_BUNDLE = "support_bundles.json"
 UNINTENTIONALLY_SKIPPED = "unintentionallySkippedTests.json"
 REPORT = "report.json"
 ALLURE_DIR = "allure_results"
-# HTML_REPORT_DIR = "html-report"
-# HTML_REPORT = "test_report.html"
 
 
 class PytestSuite():
@@ -37,7 +36,10 @@ class PytestSuite():
         self._testFile = testFile
         self._args = passedArgs
         self._testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR)
-        self._reportFile = os.path.join(self._testLogDir, REPORT)
+
+        self._reportFile = os.path.join(
+            self._testLogDir, REPORT) if os.path.realpath(passedArgs.json) in os.path.realpath(tempfile.gettempdir()) else passedArgs.json
+
         self._testLogFile = os.path.join(
             self._args.resultsDir, self._suiteName + ".log")
         self._resultFile = os.path.join(passedArgs.resultsDir,
@@ -57,15 +59,17 @@ class PytestSuite():
             self._testLogDir, SUPPORT_BUNDLE)
         self._logHandler = util.hermes_logging.addFileHandler(
             self._testLogFile, self._args.logLevel)
-        
-        self.allure_report_dir = os.path.join(passedArgs.allureDir,
-                                              ALLURE_DIR)
-        
-        os.makedirs(self.allure_report_dir, exist_ok=True)                                
-        
-        # self.html_report = os.path.join(
-        #     passedArgs.resultsDir, HTML_REPORT)
-        # If running multiple suites, just keep the same product object.
+
+        self._results_parent = os.path.dirname(
+            os.path.normpath(passedArgs.resultsDir)
+        ) if os.path.realpath(passedArgs.resultsDir) not in os.path.realpath(
+            tempfile.gettempdir()) else passedArgs.resultsDir
+   
+        self._allure_report_dir = os.path.join(
+             self._results_parent, ALLURE_DIR) if not passedArgs.alluredir else passedArgs.alluredir
+        os.makedirs(self._allure_report_dir, exist_ok=True)
+        log.info("Allure Directory: {}".format(self._allure_report_dir))
+
         self.product = product if product else Product(
             self._args, self._userConfig)
 
@@ -111,7 +115,7 @@ class PytestSuite():
 
         zoneConfigJson = json.dumps(self._zoneConfig)
         params = ["--capture=no", "--verbose", "--json", self._reportFile,
-                  "--alluredir", self.allure_report_dir,
+                  "--alluredir", self._allure_report_dir,
                   "--hermesCmdlineArgs", cmdlineArgsJson,
                   "--hermesUserConfig", userConfigJson,
                   "--hermesZoneConfig", zoneConfigJson,
@@ -127,36 +131,12 @@ class PytestSuite():
             params += self._args.tests.split(" ")
 
         pytest.main(params)
-        util.helper.collectSupportBundles(self._supportBundleFile, self._testLogDir)
+        util.helper.collectSupportBundles(
+            self._supportBundleFile, self._testLogDir)
         self.parsePytestResults(self._reportFile, self._testLogDir)
 
         log.removeHandler(self._logHandler)
         return self._resultFile, self.product
-
-    # def collectSupportBundles(self):
-    #     '''
-    #     Collect support bundles found in support_bundles.json.  The structure must be:
-    #     {
-    #       "<host>": {
-    #         "type": "daml | ethereum",  (mandatory)
-    #         "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
-    #       }
-    #     }
-    #     '''
-    #     if os.path.isfile(self._supportBundleFile):
-    #         with open(self._supportBundleFile, "r") as f:
-    #             bundles = json.load(f)
-
-    #         log.info("bundles: {}".format(bundles))
-
-    #         for bundleHost in bundles:
-    #             if "dir" in bundles[bundleHost]:
-    #                 logDir = bundles[bundleHost]["dir"]
-    #             else:
-    #                 logDir = self._testLogDir
-
-    #             util.helper.create_concord_support_bundle(
-    #                 [bundleHost], bundles[bundleHost]["type"], logDir)
 
     def parsePytestResults(self, report_file, log_dir):
         '''
@@ -180,7 +160,8 @@ class PytestSuite():
             stackInfo = getStackInfo()
             testName = util.helper.parsePytestTestName(testResult["name"])
             testLogDir = os.path.join(log_dir, testName)
-            relativeLogDir = util.helper.makeRelativeTestPath(log_dir, testLogDir)
+            relativeLogDir = util.helper.makeRelativeTestPath(
+                log_dir, testLogDir)
             info += "\nLog: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                           testLogDir)
             self.writeResult(testResult["name"],
@@ -188,13 +169,8 @@ class PytestSuite():
                              info,
                              stackInfo)
 
-    # def parsePytestTestName(self, parseMe):
-    #     '''
-    #     Returns a condensed name, just used to reduce noise.
-    #     '''
-    #     return parseMe[parseMe.rindex(":")+1:]
-
     # TODO: Remove after direct invocation of pytest, used in main.py
+
     def getResultFile(self):
         '''
         Typically, a suite will return its file.  However, in case
@@ -205,14 +181,6 @@ class PytestSuite():
     # TODO: Remove after direct invocation of pytest, used in main.py
     def getTestLogDir(self):
         return self._testLogDir
-
-    # TODO: To be deleted after porting of all testSuites to pytest
-    # def makeRelativeTestPath(self, fullTestPath):
-    #     '''
-    #     Given the full test path (in the results directory), return the
-    #     relative path.
-    #     '''
-    #     return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
 
     def writeResult(self, testName, result, info, stackInfo=None):
         '''

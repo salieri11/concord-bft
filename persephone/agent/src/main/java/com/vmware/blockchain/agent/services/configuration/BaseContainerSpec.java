@@ -42,4 +42,8 @@ public interface BaseContainerSpec {
     default RestartPolicy getRestartPolicy() {
         return RestartPolicy.onFailureRestart(5);
     }
+
+    default Long getMemory() {
+        return null;
+    }
 }

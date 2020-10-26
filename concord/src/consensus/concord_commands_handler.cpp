@@ -548,23 +548,21 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   LOG_DEBUG(logger_,
             "ConcordCommandsHandler::addBlock, before add block, updates: "
                 << updates.size());
+  auto start = std::chrono::steady_clock::now();
   concordUtils::Status status =
       appender_.addBlock(amended_updates, out_block_id, span);
+  auto end = std::chrono::steady_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   if (!status.isOK()) {
     return status;
   }
-  LOG_DEBUG(logger_,
-            "ConcordCommandsHandler::addBlock, after add block, updates: "
-                << updates.size());
   written_blocks_.Increment();
 
-  auto start = std::chrono::steady_clock::now();
   PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
-  auto end = std::chrono::steady_clock::now();
-  auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   LOG_INFO(logger_,
            "ConcordCommandsHandler::addBlock, exit, updates: "
-               << updates.size() << ", dur: " << dur.count()
+               << updates.size() << ", duration: " << duration.count()
                << ", block_id: " << out_block_id << ", clock: "
                << std::chrono::steady_clock::now().time_since_epoch().count());
   return status;

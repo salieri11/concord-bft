@@ -72,6 +72,8 @@ import com.vmware.blockchain.services.blockchains.zones.ZoneController.Dependent
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 import io.grpc.stub.StreamObserver;
@@ -737,6 +739,9 @@ class ZoneControllerTest {
     ReplicaService replicaService;
 
     @MockBean
+    OrganizationService organizationService;
+
+    @MockBean
     OrchestrationSiteServiceStub orchestrationClient;
 
     private Client c1;
@@ -1213,7 +1218,7 @@ class ZoneControllerTest {
     @Test
     void testUtils() throws Exception {
         Zone op = getOnpremZone(OP_SITE, ORG_ID);
-        OrchestrationSiteInfo info = BlockchainUtils.toInfo(op);
+        OrchestrationSiteInfo info = BlockchainUtils.toInfo(op, new Organization());
         System.out.println(info);
     }
 

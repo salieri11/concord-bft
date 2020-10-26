@@ -5,7 +5,6 @@ set(SKVBC_COMMANDS_HANDLER_DIR "${SKVBC_INCLUDE_DIR}/TesterReplica")
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"          "api/*.hpp"
   "daml/*.cpp"         "daml/*.hpp"
-  "thin_replica/*.cpp" "thin_replica/*.hpp"
   "tee/*.cpp"          "tee/*.hpp"
   "performance/*.cpp"  "performance/*.hpp"
   "${SKVBC_COMMANDS_HANDLER_DIR}/internalCommandsHandler.hpp"
@@ -33,6 +32,7 @@ add_subdirectory("pruning")
 add_subdirectory("reconfiguration")
 add_subdirectory("storage")
 add_subdirectory("time")
+add_subdirectory("thin_replica")
 add_subdirectory("utils")
 
 add_executable(concord
@@ -62,6 +62,7 @@ target_link_libraries(concord
   concord_reconfiguration
   concord_storage
   concord_time
+  concord_trs
   concord_utils
   kvbc
   gRPC::grpc++_reflection

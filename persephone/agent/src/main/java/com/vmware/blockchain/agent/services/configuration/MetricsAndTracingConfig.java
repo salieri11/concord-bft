@@ -30,7 +30,7 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
             List.of(new PortBinding(Ports.Binding.bindPort(14267), ExposedPort.tcp(14267))),
             null, null, null,
             List.of("WAVEFRONT_PROXY_ARGS=-f /config/wavefront-proxy/wavefront.conf -m 2g",
-                    "JAVA_HEAP_USAGE=\"1650m\"")),
+                    "JAVA_HEAP_USAGE=\"1650m\""), 4000000000L),
     JAEGER_AGENT("jaeger-agent",
             List.of(new PortBinding(Ports.Binding.bindPort(5775), ExposedPort.udp(5775)),
                     new PortBinding(Ports.Binding.bindPort(6831), ExposedPort.udp(6831)),
@@ -64,6 +64,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
     @Setter
     private List<String> environment;
 
+    private Long memory;
+
     MetricsAndTracingConfig(String containerName,
                             List<PortBinding> portBindings, List<Bind> volumeBindings,
                             List<Link> links, List<String> cmds, List<String> environment) {
@@ -74,6 +76,14 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
         this.cmds = cmds;
         this.environment = environment;
         this.ordinal = 2;
+    }
+
+    MetricsAndTracingConfig(String containerName,
+                            List<PortBinding> portBindings, List<Bind> volumeBindings,
+                            List<Link> links, List<String> cmds, List<String> environment,
+                            long memory) {
+        this(containerName, portBindings, volumeBindings, links, cmds, environment);
+        this.memory = memory;
     }
 
     @Override

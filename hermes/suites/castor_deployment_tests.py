@@ -142,6 +142,18 @@ def upPrereqsDocker(fxHermesRunSettings, product):
 
     atexit.register(downCastorDockerCompose, prereqsComposeFile)
 
+    # Update provisioning service application-test.properties with local docker base image versions.
+    # This is needed because further DAML validation below requires the image versions to be updated to their latest.
+    tags_info = helper.get_agent_pulled_tags_info()
+    concord_current_tag = tags_info["tags"]["concord"]["tag"]
+    log.info("concord_current_tag: %s" % concord_current_tag)
+    log.info("command line docker compose files: %s" % dockerComposeFiles)
+    persephone_config_file = helper.get_deployment_service_config_file(dockerComposeFiles,
+                                                                       Product.PERSEPHONE_SERVICE_PROVISIONING)
+    log.info("Updating provisioning service application properties file: %s with concord_current_tag: %s" %
+             (persephone_config_file, concord_current_tag))
+    helper.set_props_file_value(persephone_config_file, 'docker.image.base.version', concord_current_tag)
+
     if not product.validatePaths(dockerComposeFiles):
         raise Exception("Docker compose file is not present: %s" % dockerComposeFiles)
 

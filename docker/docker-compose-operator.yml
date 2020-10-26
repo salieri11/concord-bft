@@ -5,7 +5,7 @@
 version: '3'
 services:
   operator:
-    image: "operator:latest"
+    image: "${operator_repo}:${operator_tag}"
     volumes:
       - ./config-operator:/operator/config-local
       - ./config-public:/operator/config-public:ro

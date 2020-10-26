@@ -5,4 +5,5 @@ export REPLICAS=10.0.0.1:50051
 export JAVA_OPTS="-XX:+UseG1GC -Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log"
 export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831"
 export PARTICIPANT_ID=pTEST_NODE
+export PRE_EXECUTION_TIME_THRESHOLD=0s
 export BFT_CLIENT_SETTINGS="--use-bft-client --bft-client-config-path=/config/daml-ledger-api/config-public/bftclient.config"

@@ -25,6 +25,10 @@ COPY communication/src/main/proto /doc/communication/src/main/proto
 COPY daml/execution-engine /doc/daml/execution-engine
 COPY daml/common /doc/daml/common
 COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/entrypoint.sh
+
+# Common logging configuration, also pointed at by path in `daml/execution-engine/src/main/resources/logback.xml`
+COPY daml/common/src/main/resources/logback-common.xml /doc/daml/execution-engine/resources/logback-common.xml
+
 COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-engine/resources/logback.xml
 
 RUN sbt execution_engine/scalafmtCheck execution_engine/stage

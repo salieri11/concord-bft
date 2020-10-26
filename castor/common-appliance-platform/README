@@ -1,5 +1,14 @@
 To build the VMware Blockchain Orchestrator appliance:
 
+0. The following steps are taken care of in build-orchestrator-with-cap.sh, 
+so to trigger a build simply:
+    0A: Modify build.properties with correct values for the build environment
+    0B: Launch build-orchestrator-with-cap.sh
+    0C: Go to step #12
+
+------------------------------------------------------------------------------
+The following lists the details in the build-orchestrator-with-cap.sh script.
+
 1. Prepare a Common Appliance Platform (CAP) environment as described here:
 https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP+-+Getting+Started
 
@@ -7,14 +16,16 @@ https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP
 
 3. Copy the following files from this directory to $CommonAppliancePlatform
 
+    VMware_EULA_20190913_English.txt
+    blockchain.service
+    build-orchestrator-with-cap.sh
+    build.properties
+    cap-firstboot.sh
+    eula.script
     orchestrator-appliance-customizations.json
     orchestrator-appliance-remote.json
-    blockchain.service
     orchestrator-prereqs-launcher.sh
-    cap-firstboot.sh
     post-install-castor.sh
-    VMware_EULA_20190913_English.txt
-    eula.script
 
 4. Modify the configuration/repositories/local json 
    entry in orchestrator-appliance-remote.json to point to the absolute path for $CommonAppliancePlatform.
@@ -41,8 +52,7 @@ https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=CPDVC&title=CAP
     ./cap build -f orchestrator-appliance-remote.json
 
 11B. To build an OVF for automation/QE, where EULA is already accepted:
-    In orchestrator-appliance-remote.json, set this:
-	"after-appliance-ready-script": "post-install-castor-TESTBUILD.sh"
+    In build.properties, set ORCHESTRATOR_AUTOMATION_BUILD=true
 
 12. The new OVF should be available under $CommonAppliancePlatform/images.
 

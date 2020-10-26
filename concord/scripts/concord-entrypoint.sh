@@ -14,6 +14,14 @@ chown concord /concord/config-generated
 chown concord /concord/log
 chown concord /concord/cores
 
+# For development and testing, we set environment variables directly with docker
+# or docker-compose options. However, for an automated deployment we need a more
+# generic way to set these application specific variables.
+CONFIG_FILE=/config/concord/environment-vars
+if [ -e ${CONFIG_FILE} ]; then
+  . ${CONFIG_FILE}
+fi
+
 # If we have a custom rocksdb configuration file in config-public, then copy it to the rocksdb folder
 if [ -f /concord/config-public/rocksdb_default_conf.ini ]; then
   cp /concord/config-public/rocksdb_default_conf.ini /concord/rocksdbdata/OPTIONS_DEFAULT.ini

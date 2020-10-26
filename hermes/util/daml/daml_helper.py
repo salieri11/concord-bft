@@ -65,6 +65,8 @@ _ledger_api_version = ""
 _ledger_api_test_tool_path = ""
 _ledger_api_dars = []
 
+_docker_logged_in = False
+
 # File which contains mappings of DAML SDK to Spider version.
 DA_SPIDER_MAPPING_FILE = "resources/da_spider_sdk_mappings.json"
 
@@ -363,8 +365,7 @@ def get_spider_version(product_sdk_version, username, password):
       return spider_version
    else:
       # This is for docker system calls.
-      cmd = ["docker", "login", "--username", username, "--password-stdin"]
-      subprocess.run(cmd, input=password, text=True)
+      docker_login(username, password)
 
       # This is for the API call.
       token = util.auth.get_dockerhub_auth_token(username, password)
@@ -478,7 +479,32 @@ def get_sdk_spider_version_mappings():
    return util.json_helper.readJsonFile(DA_SPIDER_MAPPING_FILE)
 
 
-def download_spider_app(tag):
+def docker_login(username, password):
+   # This is for docker system calls.
+   global _docker_logged_in
+   exc = None
+
+   if not _docker_logged_in:
+      cmd = ["docker", "login", "--username", username, "--password-stdin"]
+      attempts = 5
+
+      for i in range(0, attempts):
+         try:
+            if i > 0:
+               time.sleep(pow(2, i))
+
+            subprocess.run(cmd, input=password, text=True)
+            _docker_logged_in = True
+            return
+         except Exception as e:
+            log.error("Error logging into docker: {}".format(e))
+            exc = e
+            if i >= attempts:
+               raise
+
+
+def download_spider_app(username, password, tag):
+   docker_login(username, password)
    cmd = ["docker", "pull", "digitalasset/spider-application:" + tag]
    num_attempts = 3
 

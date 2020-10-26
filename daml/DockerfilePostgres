@@ -8,6 +8,7 @@ RUN chmod 755 /doc/daml/daml-index-db-entrypoint.sh
 
 # Default environment variable values.
 ENV POSTGRES_USER=indexdb
+ENV POSTGRES_PASSWORD=indexdb
 ENV POSTGRES_MULTIPLE_SCHEMAS=daml_ledger_api
 
 ENTRYPOINT ["/doc/daml/daml-index-db-entrypoint.sh"]

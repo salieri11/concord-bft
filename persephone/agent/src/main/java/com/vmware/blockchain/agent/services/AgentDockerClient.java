@@ -36,7 +36,6 @@ import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.deployment.v1.Endpoint;
-import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -112,7 +111,7 @@ public class AgentDockerClient {
 
     BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
                                         String registryUsername, String registryPassword,
-                                        String imageName, Endpoint notaryServer, String notarySelfSignedCert) {
+                                        String imageName, Endpoint notaryServer, String notarySelfSignedCertPath) {
 
         var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         log.info("Pulling image {}", imageName);
@@ -137,7 +136,7 @@ public class AgentDockerClient {
             // If the notary verification feature is enabled then perform notary verification
             String repoDigestFromNotary = "";
             if (!StringUtils.isEmpty(notaryServer.getAddress())) {
-                repoDigestFromNotary = checkNotarySignatureVerification(notaryServer, notarySelfSignedCert,
+                repoDigestFromNotary = checkNotarySignatureVerification(notaryServer, notarySelfSignedCertPath,
                                                                         componentImageName, componentImage.getTag());
                 log.info("RepoDigest from Notary: " + repoDigestFromNotary);
             }
@@ -220,7 +219,7 @@ public class AgentDockerClient {
     }
 
     // Performs the notary verification for a docker image using Notary CLI and returns the digest provided by notary
-    String checkNotarySignatureVerification(Endpoint notaryServer, String notarySelfSignedCert, String imageName,
+    String checkNotarySignatureVerification(Endpoint notaryServer, String notarySelfSignedCertPath, String imageName,
                                             String imageTag) {
         log.info("Performing notary signature verification for image {} with tag {}", imageName, imageTag);
         int notaryVerificationRetryCount = 3;
@@ -230,12 +229,10 @@ public class AgentDockerClient {
             ProcessBuilder builder;
 
             // If self signed cert of notary server is passed, use it for tlscacert param for notary command
-            if (notaryServer.getTransportSecurity() != null
-                && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
-                && !StringUtils.isEmpty(notaryServer.getTransportSecurity().getCertificateData())) {
+            if (!StringUtils.isEmpty(notarySelfSignedCertPath)) {
                 builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
                                              notaryServer.getAddress(), "-d", "~/.docker/trust", "--tlscacert",
-                                             notarySelfSignedCert, "lookup", imageName, imageTag);
+                                             notarySelfSignedCertPath, "lookup", imageName, imageTag);
             } else {
                 builder = new ProcessBuilder("/usr/bin/notary-Linux-amd64", "-s",
                                              notaryServer.getAddress(), "-d", "~/.docker/trust", "lookup",

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
     <property name="application_name" value="daml-execution-engine" />
-    <include resource="logback-common.xml" />
+
+    <!-- Relies on the specific path determined by `daml/DockerfileExecutionEngine` and must be kept aligned -->
+    <include file="/doc/daml/execution-engine/resources/logback-common.xml" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

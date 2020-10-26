@@ -45,6 +45,7 @@ else:
    import util.blockchain_ops as blockchain_ops
    import rest
 
+from time import strftime, localtime, sleep
 
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
@@ -557,7 +558,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
    return result
 
 
-def execute_ext_command(command, verbose=True, timeout=None, working_dir=None):
+def execute_ext_command(command, verbose=True, timeout=None, working_dir=None, raise_exception=False):
    '''
    Helper method to execute an external command
    :param command: command to be executed
@@ -584,14 +585,27 @@ def execute_ext_command(command, verbose=True, timeout=None, working_dir=None):
    except subprocess.TimeoutExpired as e:
       log.error("Command timed out after {} seconds with exception: {}".format(timeout, e))
       log.error(traceback.format_exc())
-      return False, completedProcess.stdout
+
+      if raise_exception:
+         raise
+      else:
+         return False, None
    except subprocess.CalledProcessError as e:
       if verbose:
          log.error("Subprocess stdout: '{}', Subprocess stderr: '{}'"
                    .format(completedProcess.stdout, completedProcess.stderr))
          log.error("Subprocess failed with exception: {}".format(e))
          log.error(traceback.format_exc())
-      return False, completedProcess.stdout
+
+      if raise_exception:
+         raise
+      else:
+         return False, completedProcess.stdout
+   except Exception as e:
+      if raise_exception:
+         raise
+      else:
+         return False, completedProcess.stdout
 
    return True, completedProcess.stdout
 
@@ -2418,3 +2432,48 @@ def makeRelativeTestPath(resultsDir, fullTestPath):
    relative path.
    '''
    return fullTestPath[len(resultsDir)+1:len(fullTestPath)]
+
+def map_run_id_to_this_run(run_id, parent_results_dir, results_dir):
+   '''
+   Map a run ID for each run. This helps mapping iterations and log directorey
+   in long running test runs
+   :param run_id: run_id from command line argss
+   :param parent_results_dir: base results diir
+   :param results_dir: location of test results
+   '''
+   hermes_testrun_info_file = os.path.join(parent_results_dir,
+                                           hermes_testrun_info_filename)
+   data = {
+      testrun_info_results_dir_key_name: results_dir
+   }
+
+   hermes_testrun_info_lock_file = "{}.lock".format(hermes_testrun_info_file)
+   max_tries = 5
+   count = 0
+   while count < max_tries: # avoid deadlock if a parallel run is writing into the file
+      if os.path.exists(hermes_testrun_info_lock_file):
+         sleep(1)
+      else:
+         break
+      count += 1
+
+   if not os.path.exists(hermes_testrun_info_lock_file):
+      try:
+         # create lock file if we have parallel runs in future
+         with open(hermes_testrun_info_lock_file, 'x') as f:
+            pass
+
+         if os.path.exists(hermes_testrun_info_file):
+            with open(hermes_testrun_info_file) as json_fp:
+               json_data = json.load(json_fp)
+         else:
+            json_data = {}
+         json_data[run_id] = data
+
+         with open(hermes_testrun_info_file, "w") as fp:
+            json.dump(json_data, fp, indent=2)
+
+         # delete lock file
+         os.remove(hermes_testrun_info_lock_file)
+      except FileExistsError:
+         pass
