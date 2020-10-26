@@ -37,7 +37,8 @@ log = None
 # Any updates to suiteList require corresponding update in _get_suite_short_name of contest.py
 #
 suiteList = {
-   "CastorDeploymentTests" : "suites/castor_deployment_tests.py",
+   "CastorDeploymentTests": "suites/castor_deployment_tests.py",
+   "CastorDeploymentSystemTests": "suites/sys_test_castor_deployment_tests.py",
    "ChessPlusTests": "suites/chess_plus_tests.py",
    "ClientGroupTests": "suites/sys_test_client_group_tests.py",
    "EthCoreVmTests": "suites/eth_core_vm_tests.py",

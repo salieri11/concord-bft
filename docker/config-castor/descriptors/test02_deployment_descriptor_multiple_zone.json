@@ -1,0 +1,30 @@
+{
+    "committers": [
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - B"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - B"
+        }
+    ],
+    "clients": [
+        {
+            "zoneName": "hermes-castor-zone-1 - A",
+            "clientGroupName": "Group1"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - B",
+            "clientGroupName": "Group2"
+        }
+    ],
+    "blockchain": {
+        "consortiumName": "hermes-castor-consortium",
+        "blockchainType": "DAML"
+    }
+}
