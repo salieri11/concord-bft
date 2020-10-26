@@ -165,6 +165,7 @@ export class NodesService {
       } else {
         client.zone_name = undefined;
       }
+      client.info = JSON.stringify(client);
       if (!client.name) {
         client.name = client.host_name ? client.host_name : 'Client' + (i + 1);
       }
@@ -215,6 +216,7 @@ export class NodesService {
       const committerNameI18N = this.translate.instant('nodes.committer');
       committer.name = this.trimNodeName(committerNameI18N, committer, i);
       committer.name_ordinal = this.trimNodeName(committerNameI18N, null, i);
+      committer.info = JSON.stringify(committer);
     });
     this.clients.forEach((client, i) => {
       const clientNameI18N = this.translate.instant('nodes.client');
@@ -226,7 +228,7 @@ export class NodesService {
     this.committersWithoutRPCURL = true;
     this.committersWithNoZoneInfo = true;
     for (const committer of this.committers) {
-      committer.node_type = NodeType.committers;
+      committer.node_type = NodeType.replicas;
       this.allNodesList.push(committer);
       if (committer.public_ip) { this.committersWithOnlyPrivateIP = false; }
       if (committer.private_ip) { this.committersWithOnlyPublicIP = false; }
@@ -250,7 +252,7 @@ export class NodesService {
       if (zone) {
         node.zone = zone;
         node.zone_name = zone.name;
-        if (node.node_type === NodeType.committers) { this.committersWithNoZoneInfo = false; }
+        if (node.node_type === NodeType.replicas) { this.committersWithNoZoneInfo = false; }
         if (node.zone.type !== ZoneType.ON_PREM) { this.allOnPremZones = false; }
         if (node.zone.type !== ZoneType.VMC_AWS) { this.allCloudZones = false; }
       }

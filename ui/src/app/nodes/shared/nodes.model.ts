@@ -28,6 +28,7 @@ export interface NodeInfo {
   zone_name?: string;
   node_type?: NodeType;
   strong_password?: string;
+  info?: string;
 }
 
 export interface ClientNode {
@@ -42,11 +43,13 @@ export interface ClientNode {
   zone_id?: string;
   zone_type?: ZoneType;
   zone_name?: string;
+  group_name?: string;
   node_type?: NodeType;
   strong_password?: string;
   auth_url_jwt?: string;
   cert?: string;
   group_id?: string;
+  info?: string;
 }
 
 export type BlockchainNode = NodeInfo // Committer
@@ -121,7 +124,7 @@ export interface NodesResponse {
 }
 
 export enum NodeType {
-  committers = 'committers',
+  replicas = 'replicas',
   clients = 'clients',
 }
 

@@ -4,7 +4,7 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { ClrDatagrid } from '@clr/angular';
+import { ClrDatagrid, ClrDatagridComparatorInterface, ClrDatagridSortOrder } from '@clr/angular';
 
 import { NodeInfo, NodeType, ClientNode } from '../shared/nodes.model';
 import { DeployClientComponent } from '../deploy-client/deploy-client.component';
@@ -15,6 +15,11 @@ import { Personas } from '../../shared/persona.service';
 import { FeatureFlagService } from '../../shared/feature-flag.service';
 import { ZoneType } from '../../zones/shared/zones.model';
 
+class Sorter implements ClrDatagridComparatorInterface<ClientNode> {
+  compare(a: ClientNode, b: ClientNode) {
+    return a.group_name.localeCompare(b.group_name);
+  }
+}
 @Component({
   selector: 'concord-node-list',
   templateUrl: './node-list.component.html',
@@ -35,7 +40,8 @@ export class NodeListComponent implements OnInit {
   blockchainType: ContractEngines;
   engines = ContractEngines;
   cloudZone = ZoneType.VMC_AWS;
-
+  sorter: Sorter = new Sorter();
+  ascSort = ClrDatagridSortOrder.ASC;
   // ! temporary feature flag
   nodeDashboardEnabled: boolean = false;
 
@@ -120,6 +126,9 @@ export class NodeListComponent implements OnInit {
     document.body.removeChild(element);
   }
 
+  getNodeInfo(node) {
+    return JSON.stringify(node);
+  }
   //
   // Commenting out node start stop functionality until it's ready to be implemented on the backend.
   //
