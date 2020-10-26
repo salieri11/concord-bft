@@ -507,8 +507,11 @@ void ThinReplicaClient::ReceiveUpdates() {
                   most_agreed_block, update_cid);
     servers_tried[data_conn_index_] = true;
 
-    LOG4CPLUS_DEBUG(logger_, "Find agreement amongst all servers for block "
-                                 << update_in.block_id());
+    LOG4CPLUS_DEBUG(
+        logger_,
+        "Find hash agreement amongst all servers for block " << has_data
+            ? to_string(update_in.block_id())
+            : "n/a");
     FindBlockHashAgreement(servers_tried, agreeing_subset_members,
                            most_agreeing, most_agreed_block, span);
     if (stop_subscription_thread_) {

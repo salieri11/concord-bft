@@ -15,8 +15,7 @@ import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration._
+import scala.concurrent.duration.{Duration, _}
 import scala.util.{Failure, Success, Try}
 
 class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoSugar {
@@ -167,8 +166,8 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
         RetryStrategy.constant(shouldRetry, retries = 1, waitTime = 1.milli),
   ): (BftConcordClientPool, Future[SubmissionResult]) = {
     val metrics = new Metrics(new MetricRegistry)
-    val bftConcordClientPoolJni = mock[BftConcordClientPoolJni]
-    val premise = when(bftConcordClientPoolJni.sendRequest(any(), any(), any(), any()))
+    val bftConcordClientPoolCore = mock[BftConcordClientPoolCore]
+    val premise = when(bftConcordClientPoolCore.sendRequest(any(), any(), any(), any()))
     nativeResult match {
       case Success(nativeReturnValue) =>
         premise
@@ -177,15 +176,15 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
         premise
           .thenThrow(expectedException)
     }
-    val bftConcordClientPool =
-      new BftConcordClientPool(
-        bftConcordClientPoolJni,
-        () => sendRetryStrategyFactory(shouldRetry),
-        metrics)
+    val bftConcordClientPool = new BftConcordClientPool(
+      bftConcordClientPoolCore,
+      () => sendRetryStrategyFactory(shouldRetry),
+      metrics,
+    )
     (
       bftConcordClientPool,
-      bftConcordClientPool
-        .sendRequest(anEnvelope, aDuration, preExecute = false, aCorrelationId))
+      bftConcordClientPool.sendRequest(anEnvelope, aDuration, preExecute = false, aCorrelationId),
+    )
   }
 
   private val anEnvelope = ByteString.copyFrom(Array[Byte](0, 1, 2))

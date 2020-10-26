@@ -50,7 +50,7 @@ object BftClientConfig {
 final case class ExtraConfig(
     override val replicas: Seq[String],
     useThinReplica: Boolean,
-    trcTlsEnable: Boolean,
+    insecureThinReplicaClient: Boolean,
     thinReplicaTlsCertPath: String,
     override val maxFaultyReplicas: Short,
     jaegerAgentAddress: String,
@@ -74,7 +74,7 @@ object ExtraConfig {
   val ReasonableDefault: ExtraConfig = ExtraConfig(
     replicas = Seq("localhost:50051"),
     useThinReplica = false,
-    trcTlsEnable = false,
+    insecureThinReplicaClient = true,
     thinReplicaTlsCertPath = "",
     maxFaultyReplicas = 1,
     jaegerAgentAddress = "localhost:6831",
@@ -191,12 +191,13 @@ object ExtraConfig {
       .action((hostAndPort, config) =>
         config.copy(extra = config.extra.copy(jaegerAgentAddress = hostAndPort)))
     parser
-      .opt[Unit]("trc_tls_enable")
+      .opt[Unit]("insecure-thin-replica-client")
       .optional()
-      .action((_, config) => config.copy(extra = config.extra.copy(trcTlsEnable = true)))
+      .action((_, config) =>
+        config.copy(extra = config.extra.copy(insecureThinReplicaClient = false)))
       .text("Use mTLS for thin replica client and thrn replica server communication.")
     parser
-      .opt[String]("thin_replica_tls_cert_path")
+      .opt[String]("thin-replica-tls-cert-path")
       .optional()
       .action { (path, config) =>
         config.copy(extra = config.extra.copy(thinReplicaTlsCertPath = path))

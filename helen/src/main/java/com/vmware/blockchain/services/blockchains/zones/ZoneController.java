@@ -51,6 +51,8 @@ import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.OnPremZone.EndPoint;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Action;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -67,17 +69,20 @@ public class ZoneController {
     private ReplicaService replicaService;
     private AuthHelper authHelper;
     private OrchestrationSiteServiceStub orchestrationClient;
+    private OrganizationService organizationService;
 
     private static final Logger logger = LogManager.getLogger(ZoneController.class);
 
     @Autowired
     public ZoneController(ZoneService zoneService, ClientService clientService, ReplicaService replicaService,
-                          AuthHelper authHelper, OrchestrationSiteServiceStub orchestrationClient) {
+                          AuthHelper authHelper, OrchestrationSiteServiceStub orchestrationClient,
+                          OrganizationService organizationService) {
         this.zoneService = zoneService;
         this.clientService = clientService;
         this.replicaService = replicaService;
         this.authHelper = authHelper;
         this.orchestrationClient = orchestrationClient;
+        this.organizationService = organizationService;
     }
 
     // Response for get list.  We only want a few fields, and no subtyping.
@@ -304,9 +309,10 @@ public class ZoneController {
             }
         }
         if (TEST.equals(action)) {
+            Organization organization = organizationService.get(authHelper.getOrganizationId());
             ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
                     .setHeader(MessageHeader.newBuilder().build())
-                    .setSite(BlockchainUtils.toInfo(zone))
+                    .setSite(BlockchainUtils.toInfo(zone, organization))
                     .build();
 
             CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
@@ -385,9 +391,10 @@ public class ZoneController {
                 op.setLogManagements(onpremRequest.getLogManagements());
             }
 
+            Organization organization = organizationService.get(authHelper.getOrganizationId());
             ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
                     .setHeader(MessageHeader.newBuilder().build())
-                    .setSite(BlockchainUtils.toInfo(zone))
+                    .setSite(BlockchainUtils.toInfo(zone, organization))
                     .build();
 
             CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();

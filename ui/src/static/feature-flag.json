@@ -2,7 +2,8 @@
   "node_list": true,
   "developer_logging": true,
   "node_dashboard": false,
-
   "daml_contracts_explorer": false,
-  "tls": false
+  "tls": false,
+  "ethereum": false
+
 }

@@ -1,53 +1,135 @@
 {
-    "ProductSections": [{
-        "attributes": {
-            "ovf:required": "false"
-        },
-        "Info": "Appliance ISV branding information",
-        "Product": "VMware Blockchain Appliance",
-        "Vendor": "VMware Inc.",
-        "Version": "1.0",
-        "FullVersion": "1.0",
-        "ProductUrl": "",
-        "VendorUrl": "http://www.vmware.com",
- 
-        "categories": [{
-            "name": "Application",
-            "attributes": {
-                "ovf:msgid": "app.category"
+  "ProductSections": [
+    {
+      "FullVersion": "1.0",
+      "Info": "Appliance ISV branding information",
+      "Product": "VMware Blockchain Appliance",
+      "ProductUrl": "",
+      "Vendor": "VMware Inc.",
+      "VendorUrl": "http://www.vmware.com",
+      "Version": "1.0",
+      "attributes": {
+        "ovf:required": "false"
+      },
+      "categories": [
+        {
+          "attributes": {
+            "ovf:msgid": "app.category"
+          },
+          "name": "Application",
+          "properties": [
+            {
+              "Description": {
+                "value": "This will be used as an initial password for the root user account."
+              },
+              "Label": {
+                "value": "Initial root password"
+              },
+              "attributes": {
+                "ovf:key": "root-password",
+                "ovf:password": "true",
+                "ovf:qualifiers": "MinLen(8),MaxLen(32)",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
             },
-            "properties": [
-                {
-                    "attributes": {
-                        "ovf:key": "root-password",
-                        "ovf:type": "string",
-                        "ovf:userConfigurable": "true",
-                        "ovf:password": "true",
-                        "ovf:qualifiers": "MinLen(8),MaxLen(32)"
-                    },
-                    "Label": {
-                        "value" : "Initial root password"
-                    },
-                    "Description": {
-                        "value" : "This will be used as an initial password for the root user account."
-                    }
-                },
-                {
-                    "attributes": {
-                        "ovf:key": "blockchain-password",
-                        "ovf:type": "string",
-                        "ovf:userConfigurable": "true",
-                        "ovf:password": "true",
-                        "ovf:qualifiers": "MinLen(8),MaxLen(32)"
-                    },
-                    "Label": {
-                        "value" : "Initial blockchain user password"
-                    },
-                    "Description": {
-                        "value" : "This will be used as an initial password for the blockchain user account."
-                    }
-                }
-            ]
-        }]
-    }]
+            {
+              "Description": {
+                "value": "This will be used as an initial password for the blockchain user account."
+              },
+              "Label": {
+                "value": "Initial blockchain user password"
+              },
+              "attributes": {
+                "ovf:key": "blockchain-password",
+                "ovf:password": "true",
+                "ovf:qualifiers": "MinLen(8),MaxLen(32)",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
+            }
+          ]
+        },
+        {
+          "attributes": {
+            "ovf:msgid": "network.category"
+          },
+          "name": "Networking Properties",
+          "properties": [
+            {
+              "Description": {
+                "value": "The hostname for the appliance. Underscores are not allowed."
+              },
+              "Label": {
+                "value": "Host Name"
+              },
+              "attributes": {
+                "ovf:key": "hostname",
+                "ovf:required": "false",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
+            },
+            {
+              "Description": {
+                "value": "The IPv4 address for the interface, e.g. 198.51.0.2. Leave this and following properties unset to enable DHCP"
+              },
+              "Label": {
+                "value": "Network IP Address"
+              },
+              "attributes": {
+                "ovf:key": "netipaddress",
+                "ovf:required": "false",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
+            },
+            {
+              "Description": {
+                "value": "The network prefix for the interface, e.g. 24"
+              },
+              "Label": {
+                "value": "Network Prefix"
+              },
+              "attributes": {
+                "ovf:key": "netprefix",
+                "ovf:required": "false",
+                "ovf:type": "int",
+                "ovf:userConfigurable": "true",
+                "ovf:value": "0"
+              }
+            },
+            {
+              "Description": {
+                "value": "The default IPv4 gateway for the interface, e.g. 198.51.0.1"
+              },
+              "Label": {
+                "value": "Default IPv4 Gateway"
+              },
+              "attributes": {
+                "ovf:key": "netgateway",
+                "ovf:required": "false",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
+            },
+            {
+              "Description": {
+                "value": "[space-separated] domain name server IPv4 addresses for the appliance."
+              },
+              "Label": {
+                "value": "Domain Name Servers"
+              },
+              "attributes": {
+                "ovf:key": "netdns",
+                "ovf:required": "false",
+                "ovf:type": "string",
+                "ovf:userConfigurable": "true"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

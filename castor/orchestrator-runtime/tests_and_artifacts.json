@@ -1,0 +1,4 @@
+{
+  "test_suites": ["SampleSuite"],
+  "build_targets": ["nothing"]
+}

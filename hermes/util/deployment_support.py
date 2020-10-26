@@ -19,6 +19,7 @@ import time
 DEFAULT_SUPPORT_LOG_PREFIX = "support"
 files_folders_to_backup = [
    "/config",
+   "/mnt/data/cores",
    "/var/log/healthd.log",
    "/var/log/cloud-init.log",
    "/var/log/cloud-init-output.log",

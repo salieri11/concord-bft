@@ -195,7 +195,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "False")
+                .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")
                 .equalsIgnoreCase("True");
 
         Map<String, Map<String, String>> concordConfig = null;

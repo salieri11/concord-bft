@@ -20,6 +20,7 @@ public final class ErrorCode {
     public static final String NOT_FOUND_NETWORK = "Error retrieving network: {0}";
     public static final String NOT_FOUND_RESOURCE_POOL = "Error retrieving resource pool: {0}";
     public static final String NOT_FOUND_VM_INFO = "Unable to get VM info: {0}";
+    public static final String NOTARY_SERVER_ADDRESS_MALFORMED = "Notary Server Address is malformed: {0}";
     public static final String OPERATION_TIMEOUT = "Failed to complete the operation in time";
     public static final String RESOURCE_CREATION_FAILED = "Failed to create resource";
     public static final String RESOURCE_DELETION_FAILED = "Failed to delete resource";

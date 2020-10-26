@@ -14,7 +14,7 @@ CONCORD_USER_GROUP:=--user `id -u`:`id -g`
 
 CONCORD_ADDITIONAL_RUN_PARAMS:=
 
-BASIC_RUN_PARAMS:=--rm \
+BASIC_RUN_PARAMS:=-it --init --rm \
 				  --name=${CONCORD_BUILD_CONTAINER} \
 				  --workdir=${CONCORD_WORK_DIR} \
 				  --mount type=bind,source=${CURDIR},target=${CONCORD_WORK_DIR} \
@@ -38,7 +38,7 @@ help: ## The Makefile helps to build Concord in a docker container
 .PHONY: login
 login: ## Login to the container
 	@if [ "${IF_CONTAINER_RUNS}" != "true" ]; then \
-		docker run -it ${BASIC_RUN_PARAMS} \
+		docker run ${BASIC_RUN_PARAMS} \
 			${CONCORD_CONTAINER_SHELL};exit 0; \
 	else \
 		docker exec -it ${CONCORD_BUILD_CONTAINER} \
@@ -47,7 +47,7 @@ login: ## Login to the container
 
 .PHONY: build
 build: ## Build Concord-BFT source. Note: this is the default target
-	docker run -it ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
+	docker run ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -58,7 +58,7 @@ build: ## Build Concord-BFT source. Note: this is the default target
 
 .PHONY: operator
 operator:
-	docker run -it ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
+	docker run ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -69,7 +69,7 @@ operator:
 
 .PHONY: format
 format: ## Format Concord source
-	docker run -it ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
+	docker run ${CONCORD_USER_GROUP} ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"mkdir -p ${CONCORD_BUILD_DIR} && \
 		cd ${CONCORD_BUILD_DIR} && \
@@ -80,21 +80,21 @@ format: ## Format Concord source
 
 .PHONY: test
 test: ## Run all tests
-	docker run -it ${BASIC_RUN_PARAMS} \
+	docker run ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
 
 .PHONY: single-test
 single-test: ## Run a single test `make single-test TEST_NAME=<test name>`
-	docker run -it ${BASIC_RUN_PARAMS} \
+	docker run ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"cd ${CONCORD_BUILD_DIR} && \
 		ctest -R ${TEST_NAME} --timeout ${CONCORD_CTEST_TIMEOUT} --output-on-failure"
 
 .PHONY: clean
 clean: ## Clean Concord build directory
-	docker run -it ${BASIC_RUN_PARAMS} \
+	docker run ${BASIC_RUN_PARAMS} \
 		${CONCORD_CONTAINER_SHELL} -c \
 		"rm -rf ${CONCORD_BUILD_DIR}"
 

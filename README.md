@@ -339,25 +339,228 @@ blockchain$ docker build helen -f helen/packaging.Dockerfile -t helen:latest
 
 Once your containers are built, run the tests using hermes:
 
+- Usage:
 ```
-blockchain/hermes$ sudo ./main.py TEST_NAME
+blockchain/hermes$ sudo python -m pytest --help <TEST_MODULE_NAME>
 ```
-
-Replace TEST_NAME with any of the suites available:
-
+- Example
 ```
-blockchain/hermes$ ./main.py --help
-usage: main.py [-h] [--ethereumMode] [--logLevel LOGLEVEL]
-               [--resultsDir RESULTSDIR] [--tests TESTS] [--config CONFIG]
-               [--dockerComposeFile DOCKERCOMPOSEFILE] [--noLaunch]
-               [--keepconcordDB] [--repeatSuiteRun REPEATSUITERUN]
-               suite
+blockchain/hermes$ sudo python -m pytest suites/sample_suite.py
+```
+- Available options (--help)
+```
+blockchain/hermes$ python -m pytest --help
+usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]
 
 positional arguments:
-  suite                 Test suite name. Available suites: [
-                        'ContractCompilerTests', 'EthCoreVmTests',
-                        'LintTests', 'EthJsonRpcTests', 'HelenAPITests',
-                        'PerformanceTests', 'EthRegressionTests', 'SampleDAppTests',
-                        'SimpleStateTransferTest', 'TruffleTests', 'UiTests',
-                        'LoggingTests']
+  file_or_dir
+
+general:
+  -k EXPRESSION         only run tests which match the given substring expression. 
+                        An expression is a python evaluatable expression where all names 
+                        are substring-matched against test names and their parent classes.
+                        Example: -k 'test_method or test_other' matches all test functions 
+                        and classes whose name contains 'test_method' or 'test_other', 
+                        while -k 'not test_method' matches those that don't contain 'test_method' 
+                        in their names. -k 'not test_method and not test_other' will eliminate 
+                        the matches. Additionally keywords are matched to classes and functions
+                        containing extra names in their 'extra_keyword_matches' set, as well 
+                        as functions which have names assigned directly to them. The matching
+                        is case-insensitive.
+  -m MARKEXPR           only run tests matching given mark expression.
+                        For example: -m 'mark1 and not mark2'.
+  --markers             show markers (builtin, plugin and per-project ones).
+  -x, --exitfirst       exit instantly on first error or failed test.
+  --maxfail=num         exit after first num failures or errors.
+
+reporting:
+  --durations=N         show N slowest setup/test durations (N=0 for all).
+  --json=JSON_PATH      where to store the JSON report
+  --jsonapi             make the report conform to jsonapi
+
+
+reporting:
+  --alluredir=DIR       Generate Allure report in the specified directory (may not exist)
+
+Concord Options::
+  --runConcordConfigurationGeneration
+                        Run Concord configuration generation for the test  cluster before 
+                        launching and launch with the newly generated configuration files. 
+                        If this option is not given, then
+                        configuration generation will be skipped and the currently existing 
+                        configuration files will be used.
+  --concordConfigurationInput=CONCORDCONFIGURATIONINPUT
+                        The input file to the configuration generation utility. 
+                        Note: --runConcordConfigurationGeneration has to be set. 
+                        Note: The path specified is the absolute path within a 
+                        Concord container.
+
+SDDC Deployment Parameters::
+  --blockchainLocation=BLOCKCHAINLOCATION
+                        Location of the blockchain being tested.  
+                        Values: local (default), sddc, onprem. onprem not implemented.
+  --blockchainType=BLOCKCHAINTYPE
+                        Type of blockchain to deploy if --blockchainLocation is not 'local'.  
+                        Values: ethereum (default), daml, hlf, tee
+  --numReplicas=NUMREPLICAS
+                        The number of blockchain replicas to deploy. The 'f' value will be 
+                        calculated automatically using f = (numReplicas - 1)/3. If Helen 
+                        does not like the combination of the replica count and f value, 
+                        deployment will fail.
+  --keepBlockchains=KEEPBLOCKCHAINS
+                        Whether to keep the blockchain(s) deployed by this run. 
+                        Valid values: ['always', 'on-failure', 'never'].  Default: 'never'
+  --numParticipants=NUMPARTICIPANTS
+                        The number of participant/client nodes to deploy.
+  --migrationFile=MIGRATIONFILE
+                        Helen Flyway migration file to write generated configurations into, 
+                        before launching Helen
+  --damlParticipantIP=DAMLPARTICIPANTIP
+                        Public IP of the DAML participant to upload DAR and run tests
+  --replicasConfig=REPLICASCONFIG
+                        Replicas config file obtained after a helen/persephone deployment.
+                        Sample format: { "daml_committer": [ { "ip": "10.73.232.56", ... }, 
+                        ... ], "daml_participant": [ {"ip": "10.73.232.65", ... } ] }
+  --deploymentOrg=DEPLOYMENTORG
+                        Org to use for the deployment for long running tests.
+                        An org can specify details such as the Concord version to deploy
+                        and feature flags. Note that this org must first be created in CSP, 
+                        with vmbc_test_con_admin@csp.local having the consortium admin role. 
+                        Also, an API key with deployment permissions must be created and 
+                        added to hermes/util/auth.py.
+  --deploymentService=DEPLOYMENTSERVICE
+                        The blockchain service to use for long running tests. 
+                        (Feel free to adopt for other tests.) Valid values: A url or the word 
+                        'staging'. 
+                        Defaults to https://localhost/blockchains/local (same as reverseProxyApiBaseUrl)
+  --numGroups=NUMGROUPS
+                        The number of groups for the client node grouping.
+  --clientSize={small,medium,large}
+                        Size of client nodes, must match the SaaS api
+  --clientMemory=CLIENTMEMORY
+                        Ability to override the client memory value provided by SaaS.
+  --clientCpu=CLIENTCPU
+                        Ability to override the client cpu value provided by SaaS.
+  --clientStorage=CLIENTSTORAGE
+                        Ability to override the client storage value provided by SaaS.
+  --replicaSize={small,medium,large}
+                        Size of replica nodes, must match the SaaS api.
+  --replicaMemory=REPLICAMEMORY
+                        Ability to override the replica memory value provided by SaaS.
+  --replicaCpu=REPLICACPU
+                        Ability to override the replica cpu value provided by SaaS.
+  --replicaStorage=REPLICASTORAGE
+                        Ability to override the replica storage value provided by SaaS.
+  --propertiesString=PROPERTIESSTRING
+                        The string containing comma seperated key value pairs for deployment properties.
+
+custom options:
+  --ethereumMode        Run tests against Ethereum
+  --logLevel=LOGLEVEL   Set the log level.  Valid values:'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+  --resultsDir=RESULTSDIR
+                        Results directory
+  --eventsFile=EVENTSFILE
+                        File to receive timing events.
+  --tests=TESTS         Run specific tests. Details depend on the suite being run. 
+                        For EthCoreVmTests, this is a directory or specific file 
+                        relative to the VMTests directory. e.g. '--tests 
+                        vmArithmeticTest' or '--tests vmArithmeticTest/add0.json'
+  --config=CONFIG       User config file to be considered.
+  --zoneConfig=ZONECONFIG
+                        Zone config file to load zones from
+  --zoneOverride=ZONEOVERRIDE
+                        override specific cloud/onprems zone segments. 
+                        e.g. 'sddc1.mr.*, sddc4.mr.*' (to use sddc1 & 
+                        sddc4 MR segs for both cloud/onprem)
+  --zoneOverrideFolder=ZONEOVERRIDEFOLDER
+                        override deployments to a specific folder
+  --dockerComposeFile=[DOCKERCOMPOSEFILE [DOCKERCOMPOSEFILE ...]]
+                        REQUIRES SUDO. Accepts a docker compose file which starts 
+                        concord and helen.  The product will be launched in docker 
+                        images instead of on the command line.  May be a space-separated 
+                        list of files, in the order in which the files should be applied.
+  --noLaunch            Will not launch the product, assuming it is already running
+  --productLaunchAttempts=PRODUCTLAUNCHATTEMPTS
+                        Number of times to attempt to launch the product before failing.  
+                        Used to work around intermittent bugs with product startup.
+  --keepconcordDB       Keep and re-use the existing concord database files.
+  --repeatSuiteRun=REPEATSUITERUN
+                        Number of times to repeat test runs
+  --endpoint=ENDPOINT   Endpoint for Sample DApp tests
+  --user=USER           User name for Sample DApp tests
+  --password=PASSWORD   Password for Sample DApp tests
+  --deploymentComponents=DEPLOYMENTCOMPONENTS
+                        Optional set of docker images required for Persephone Tests 
+                        to bypass the default components defined in user_config.json 
+                        e.g. vmwblockchain/concord- core:e7cb6c3,
+                        vmwblockchain/ethrpc:e7cb6c3,vmwblockchain/agent:e7cb6c3, etc...
+  --helenDeploymentComponentsVersion=HELENDEPLOYMENTCOMPONENTSVERSION
+                        Optional version number of components to deploy.  
+                        e.g. 0.0.0.123Defaults to concord_tag in .env>
+  --useLocalConfigService
+                        Optional parameter to use local config-service container
+  --externalProvisioningServiceEndpoint=EXTERNALPROVISIONINGSERVICEENDPOINT
+                        External Persephone provisioning service Endpoint. 
+                        Example: provisioningservice-vmbc.vdp.vmware.com:9002
+  --performanceVotes=PERFORMANCEVOTES
+                        Number of votes in Ballot App for Performance Testrun
+  --reverseProxyApiBaseUrl=REVERSEPROXYAPIBASEURL
+                        Base URL for Helen REST API calls. Test cases drill down 
+                        further into the API with values such as '/api/users', 
+                        '/api/concord/blocks', '/api/concord/eth', etc...).
+  --inDockerReverseProxyApiBaseUrl=INDOCKERREVERSEPROXYAPIBASEURL
+                        Base URL for accessing the reverse proxy server from 
+                        within the docker environment.
+  --ethrpcApiUrl=ETHRPCAPIURL
+                        By default, Helen's getMembers API is used to fetch ethrpc 
+                        nodes, and test cases randomly select nodes from that pool.  
+                        To force use of one node, or to use an official Ethereum setup, 
+                        specify its url here.  e.g. 'http://localhost:8545'. 
+                        NOTE: VMware IT only allows https traffic over port 443 
+                        if you are in the 'vmware' network. Use a different network 
+                        (e.g. 'vmwareguest') if you must use a different port and 
+                        the replicas will be outside of VMware's network.
+  --contractCompilerApiBaseUrl=CONTRACTCOMPILERAPIBASEURL
+                        Base URL for the contract compiler microservice
+  --suitesRealname=SUITESREALNAME
+                        Comma-separated list of real names for supplied suites argument
+  --su                  Super user privilege with all Jenkins injected credentials available.
+  --spiderImageTag=SPIDERIMAGETAG
+                        Spider image tag, optional. If not passed in, 
+                        an appropriate one will be determined.
+  --marketFlavor=MARKETFLAVOR
+                        market flavor (sample, cde7, etc)
+  --concurrency=CONCURRENCY
+                        Concurrency
+  --noOfRequests=NOOFREQUESTS
+                        No. of requests from chess+
+  --dockerHubUser=DOCKERHUBUSER
+                        DockerHub user which has read access to the digitalasset private repos. 
+                        Only needed if the DAML SDK version is not one of 
+                        ['1.4.0-snapshot.20200715.4733.0.d6e58626',
+                        '1.3.0-snapshot.20200610.4412.0.0544323d', 
+                        '1.2.0-snapshot.20200513.4172.0.021f4af3', '1.0.0'].
+  --dockerHubPassword=DOCKERHUBPASSWORD
+                        DockerHub password which has read access to the digitalasset 
+                        private repos. Only needed if the DAML SDK version is not in 
+                        ['1.4.0-snapshot.20200715.4733.0.d6e58626',
+                        '1.3.0-snapshot.20200610.4412.0.0544323d', 
+                        '1.2.0-snapshot.20200513.4172.0.021f4af3', '1.0.0'].
+  --runID=RUNID         Unique ID to differentiate runs
+  --runDuration=RUNDURATION
+                        No. of hrs to monitor replicas (default 6 hrs)
+  --loadInterval=LOADINTERVAL
+                        Minutes to wait between monitors (default 60 mins)
+  --testset=TESTSET     Set of test sets to be picked up from testlist file.
+                        e.g. 'basic_tests'
+  --testlistFile=TESTLISTFILE
+                        json file containing the list of tests
+  --notifyTarget=NOTIFYTARGET
+                        Slack channel name or email address, default will skip notification
+  --notifyJobName=NOTIFYJOBNAME
+                        Shortened job name running this monitoring script
+  --supportBundleFile=SUPPORTBUNDLEFILE
+                        Path to a file a test suite should create to have the framework 
+                        create support bundles. POPULATED BY HERMES.
+
 ```

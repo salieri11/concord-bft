@@ -3600,11 +3600,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("daml_enable", deploymentTag);
   config.addValidator("daml_enable", make_shared<BooleanValidator>());
 
-  config.declareParameter("trs_tls_enable",
-                          "Enable TLS support for TRS-TRC connection", "false");
-  config.tagParameter("trs_tls_enable", publicDefaultableTags);
-  config.tagParameter("trs_tls_enable", deploymentTag);
-  config.addValidator("trs_tls_enable", make_shared<BooleanValidator>());
+  config.declareParameter("insecure_thin_replica_server",
+                          "Use insecure TRS-TRC connection", "true");
+  config.tagParameter("insecure_thin_replica_server", publicDefaultableTags);
+  config.tagParameter("insecure_thin_replica_server", deploymentTag);
+  config.addValidator("insecure_thin_replica_server",
+                      make_shared<BooleanValidator>());
 
   config.declareParameter("pre_execute_all_requests",
                           "Enable pre-execution for all requests", "false");
