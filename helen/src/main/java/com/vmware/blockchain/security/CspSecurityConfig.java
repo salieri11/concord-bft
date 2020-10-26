@@ -80,6 +80,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)
                 .and().anonymous().and().httpBasic();
+        http.headers().contentSecurityPolicy("script-src 'self'");
         http.addFilterBefore(new TokenAuthenticationFilter(authenticationManager(),
                              tokenAuthenticationConfig, CookieCsrfTokenRepository.withHttpOnlyFalse()),
                              UsernamePasswordAuthenticationFilter.class);
