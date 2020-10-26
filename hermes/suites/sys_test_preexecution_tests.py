@@ -515,10 +515,10 @@ def get_wf_measurements(committers, start_epoch, end_epoch):
                     if d[1] > highest_measurement:
                         highest_measurement = d[1]
 
-    log.debug("Wavefront data: {}".format(str_output))
+        log.debug("Wavefront data: {}".format(str_output))
+
     log.info("num_measurements: {}".format(num_measurements))
     log.info("highest_measurement: {}".format(highest_measurement))
-
     return num_measurements, highest_measurement
 
 
@@ -535,6 +535,7 @@ def test_metrics(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
     end_epoch = time.time()
     num_measurements_before, highest_before = get_wf_measurements(committers, start_epoch, end_epoch)
 
+    run_request_tool(ledger)
     run_request_tool(ledger)
     time.sleep(65) # Wait for nodes to update Wavefront; they are on a heartbeat.
 
