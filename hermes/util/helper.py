@@ -46,6 +46,7 @@ else:
    import rest
 
 from time import strftime, localtime, sleep
+import ast
 
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
@@ -1952,7 +1953,7 @@ def parseReplicasConfig(replicas):
   if not replicas: replicas = REPLICAS_JSON_PATH
   if isinstance(replicas, str): # path supplied
     with open(replicas, 'r') as f:
-      replicasObject = json.loads(f.read())
+      replicasObject = ast.literal_eval(f.read())
   else: # fxBlockchain dict or replicas dict directly.
     if hasattr(replicas, "replicas"):
       replicasObject = replicas
@@ -1963,6 +1964,8 @@ def parseReplicasConfig(replicas):
     TYPE_DAML_PARTICIPANT, TYPE_HLF, TYPE_TEE,
   ]
   result = {} # clean up and enforce replicas structure
+  if isinstance(replicasObject, dict):
+    replicasObject = json.loads(json.dumps(replicasObject)) 
   for nodeType in replicasObject:
     nodeWithThisType = replicasObject[nodeType]
     if nodeType == "others":
