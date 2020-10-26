@@ -18,6 +18,5 @@ else
   BUFFER_SIZE_OPT="-c shared_buffers=${BUFFER_SIZE:-80MB}"
 fi
 
-
 echo "Running entry point script with $@ ${MAX_CONNECTIONS_OPT} ${BUFFER_SIZE_OPT} ${POSTGRES_CONFIG_FILE_OPT}"
-docker-entrypoint.sh $@ ${MAX_CONNECTIONS_OPT} ${BUFFER_SIZE_OPT} ${POSTGRES_CONFIG_FILE_OPT}
+exec docker-entrypoint.sh $@ ${MAX_CONNECTIONS_OPT} ${BUFFER_SIZE_OPT} ${POSTGRES_CONFIG_FILE_OPT}

@@ -13,7 +13,7 @@ fi
 
 LOGBACK_CONFIG_FILE="/doc/daml/execution-engine/resources/logback.xml"
 
-/doc/daml/execution-engine/target/universal/stage/bin/daml-on-vmware-execution-engine \
+exec /doc/daml/execution-engine/target/universal/stage/bin/daml-on-vmware-execution-engine \
   -Dlogback.configurationFile=$LOGBACK_CONFIG_FILE \
   $VALIDATION_SETTINGS \
   $@
