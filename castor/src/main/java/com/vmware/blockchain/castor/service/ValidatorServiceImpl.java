@@ -107,12 +107,12 @@ public class ValidatorServiceImpl implements ValidatorService {
 
         // Ensure that zones used in deployment are present in infrastructure
         Set<String> allDeploymentZones = new HashSet<>();
-        List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptor.getCommitters();
-        if (committers != null) {
-            Set<String> committerZones =
-                    committers.stream().map(DeploymentDescriptorModel.Committer::getZoneName).collect(
+        List<DeploymentDescriptorModel.Replica> replicas = deploymentDescriptor.getReplicas();
+        if (replicas != null) {
+            Set<String> replicaZones =
+                    replicas.stream().map(DeploymentDescriptorModel.Replica::getZoneName).collect(
                             Collectors.toSet());
-            allDeploymentZones.addAll(committerZones);
+            allDeploymentZones.addAll(replicaZones);
         }
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptor.getClients();
         if (clients != null) {
@@ -208,17 +208,17 @@ public class ValidatorServiceImpl implements ValidatorService {
             errors.add(e);
         }
 
-        // Ensure IP addresses are specified or all clients and committers.
-        long committerIpCount = deploymentDescriptor.getCommitters().stream().mapToInt(c -> {
+        // Ensure IP addresses are specified or all clients and replicas.
+        long replicaIpCount = deploymentDescriptor.getReplicas().stream().mapToInt(c -> {
             return StringUtils.hasText(c.getProvidedIp()) ? 1 : 0;
         }).sum();
         long clientIpCount = deploymentDescriptor.getClients().stream().mapToInt(c -> {
             return StringUtils.hasText(c.getProvidedIp()) ? 1 : 0;
         }).sum();
-        long totalIPs = committerIpCount + clientIpCount;
-        int totalClientsAndCommitters =
-                deploymentDescriptor.getCommitters().size() + deploymentDescriptor.getClients().size();
-        if (totalIPs != totalClientsAndCommitters) {
+        long totalIPs = replicaIpCount + clientIpCount;
+        int totalClientsAndReplicass =
+                deploymentDescriptor.getReplicas().size() + deploymentDescriptor.getClients().size();
+        if (totalIPs != totalClientsAndReplicass) {
             String error = "not.all.ips.specified.for.deployment";
             ValidationError e = ValidationError.builder()
                     .errorCode(error)
@@ -232,7 +232,7 @@ public class ValidatorServiceImpl implements ValidatorService {
     }
 
     // If VM IPs are specified:
-    // (1) they must be specified for ALL nodes (both client and committer,
+    // (1) they must be specified for ALL nodes (both client and replicas,
     // (2) they must all be unique.
     private void validateIPs(
             DeploymentDescriptorModel deploymentDescriptor, List<ValidationError> errors) {
@@ -245,16 +245,16 @@ public class ValidatorServiceImpl implements ValidatorService {
                         .filter(StringUtils::hasText)
                         .collect(Collectors.toList());
 
-        List<DeploymentDescriptorModel.Committer> committers = deploymentDescriptor.getCommitters();
-        committers = Objects.requireNonNullElse(committers, Collections.emptyList());
-        List<String> committerProvidedIps = committers.stream()
-                .map(DeploymentDescriptorModel.Committer::getProvidedIp)
+        List<DeploymentDescriptorModel.Replica> replicas = deploymentDescriptor.getReplicas();
+        replicas = Objects.requireNonNullElse(replicas, Collections.emptyList());
+        List<String> replicaProvidedIps = replicas.stream()
+                .map(DeploymentDescriptorModel.Replica::getProvidedIp)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
 
-        // Verify that all committers have IPs, or none do
-        int numProvidedIps = clientProvidedIps.size() + committerProvidedIps.size();
-        int numNodes = clients.size() + committers.size();
+        // Verify that all replicas have IPs, or none do
+        int numProvidedIps = clientProvidedIps.size() + replicaProvidedIps.size();
+        int numNodes = clients.size() + replicas.size();
         if (numProvidedIps > 0 && numProvidedIps != numNodes) {
             String error = "not.all.ips.specified.for.deployment";
             ValidationError e = ValidationError.builder()
@@ -268,7 +268,7 @@ public class ValidatorServiceImpl implements ValidatorService {
         Set<String> uniqueIps = new HashSet<>();
         List<String> allProvidedIps = new ArrayList<>();
         uniqueIps.addAll(clientProvidedIps);
-        uniqueIps.addAll(committerProvidedIps);
+        uniqueIps.addAll(replicaProvidedIps);
         if (numProvidedIps != uniqueIps.size()) {
             String error = "provided.ips.not.unique";
             ValidationError e = ValidationError.builder()
@@ -277,9 +277,6 @@ public class ValidatorServiceImpl implements ValidatorService {
                     .build();
             errors.add(e);
         }
-
-        // DINKARTODO: Do we need to validate that ips provided fall within the subnet for the zone in which
-        // the client/committer is placed ?
     }
 
     /**

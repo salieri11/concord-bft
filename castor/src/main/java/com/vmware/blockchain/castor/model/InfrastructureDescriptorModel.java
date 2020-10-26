@@ -221,8 +221,8 @@ public class InfrastructureDescriptorModel {
     @NotNull(message = "organization.not.specified")
     private Organization organization;
 
-    // List of all zones identified by their ids, to be used for Committers and Clients in the deployment descriptor.
-    // This *should* match the zoneId fields specified in Committers and Clients in the deployment descriptor.
+    // List of all zones identified by their ids, to be used for Replicas and Clients in the deployment descriptor.
+    // This *should* match the zoneId fields specified in Replicas and Clients in the deployment descriptor.
     @Valid
     @NotEmpty(message = "zones.not.specified")
     private List<Zone> zones;

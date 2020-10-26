@@ -138,7 +138,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         log.info("Initiating deprovisioning for deployment with request id: {}", requestId);
         List<OrchestrationSite> orchestrationSites =
                 DeploymentHelper.buildSites(infrastructureDescriptorModel,
-                                            provisioningDescriptorModel.getCommitters(),
+                                            provisioningDescriptorModel.getReplicas(),
                                             provisioningDescriptorModel.getClients());
         Sites sites = Sites.newBuilder()
                 .addAllInfoList(orchestrationSites)

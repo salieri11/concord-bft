@@ -37,7 +37,7 @@ There are 2 descriptor files:
 
 - deployment descriptor 
 > This file contains blockchain specific information, e.g. the type of blockchain, the number and placement across
-> zones of committers and clients, the IP addresses to be used for the committers and clients, etc.
+> zones of replicas and clients, the IP addresses to be used for the replicas and clients, etc.
 
 After Castor runs, the results of the provisioning are available in the output directory provided by users when
 they launch the Castor docker-compose file. This file contains human-readable data, e.g. the login information

@@ -144,7 +144,7 @@ public class DescriptorTestUtills {
         DeploymentDescriptorModel.NodeSpecification clientNodeSpec =
                 DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(4).memoryGb(32).diskSizeGb(100).build();
 
-        DeploymentDescriptorModel.NodeSpecification committerNodeSpec =
+        DeploymentDescriptorModel.NodeSpecification replicaNodeSpec =
                 DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(2).memoryGb(16).diskSizeGb(64).build();
 
         DeploymentDescriptorModel.Blockchain blockchain = DeploymentDescriptorModel.Blockchain.builder()
@@ -169,18 +169,18 @@ public class DescriptorTestUtills {
 
         List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
 
-        List<DeploymentDescriptorModel.Committer> committers =
+        List<DeploymentDescriptorModel.Replica> replicas =
                 zones.stream()
-                        .map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
+                        .map(n -> DeploymentDescriptorModel.Replica.builder().zoneName(n).build())
                         .collect(Collectors.toList());
 
-        // Add Client and Committer nodeSpec to deployment model.
+        // Add Client and Replicas nodeSpec to deployment model.
         return ProvisionDescriptorDescriptorModel.builder()
                 .blockchain(blockchain)
                 .clients(List.of(client1, client2, client3))
-                .committers(committers)
+                .replicas(replicas)
                 .clientNodeSpec(clientNodeSpec)
-                .committerNodeSpec(committerNodeSpec)
+                .replicaNodeSpec(replicaNodeSpec)
                 .build();
     }
 }
