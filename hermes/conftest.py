@@ -43,6 +43,11 @@ def pytest_generate_tests(metafunc):
     if "fxEthCoreVmTests" in metafunc.fixturenames:
         metafunc.parametrize("fxEthCoreVmTests", getEthCoreVmTests(metafunc))
 
+    if metafunc.config.option.repeatSuiteRun > 1:
+        repeatSuiteRun = metafunc.config.option.repeatSuiteRun
+        metafunc.fixturenames.append('repeat_cnt')
+        metafunc.parametrize('repeat_cnt', range(repeatSuiteRun))
+
 
 def getEthCoreVmTests(metafunc):
     '''
@@ -329,7 +334,7 @@ def fxHermesRunSettings(request, set_hermes_info):
 
     set_hermes_info["hermesTestLogDir"] = os.path.join(
         results_dir, request.node.name)
-    os.makedirs(set_hermes_info["hermesTestLogDir"])
+    os.makedirs(set_hermes_info["hermesTestLogDir"], exist_ok=True)
 
     return set_hermes_info
 
@@ -789,7 +794,8 @@ def _get_suite_short_name(module_name):
         "MetadataPersistencyTests": "hermes.suites.persistency_tests",
         "HelenNodeSizeTemplateTests": "nodesize_test",
         "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
-        "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests"
+        "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests",
+        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests"
     }
 
     short_name = list(suite_list.keys())[list(
@@ -839,6 +845,7 @@ def prepare_report(items, results_dir):
         elif hasattr(item, 'rep_setup') and item.rep_setup.outcome == 'skipped':
             skipped += 1
         else:
+            complete_success = False
             not_executed += 1
 
     if complete_success:
@@ -854,7 +861,7 @@ def prepare_report(items, results_dir):
     with open(result_file, "w") as f:
         f.write(json.dumps(session_results))
     log.info("Result file location: {}".format(result_file))
-    log.info("Result Summary: {0}{1}{2}".format(cyan,result_summary,reset))
+    log.info("Result Summary: {0}{1}{2}".format(cyan, result_summary, reset))
 
     log.info(msg)
     log.info("Summary: {0}[\u2714]tests succeeded {1}, {2}[\u2717]tests failed {3}, "
