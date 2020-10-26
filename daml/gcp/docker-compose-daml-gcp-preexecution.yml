@@ -114,7 +114,7 @@ services:
       - MAX_BATCH_WAIT_MILLIS=100
       - MAX_CONCURRENT_COMMITS=2
       - JAVA_OPTS=-XX:+UseG1GC -Xmx8G
-      - PRE_EXECUTION_COST_THRESHOLD=0s
+      - PRE_EXECUTION_TIME_THRESHOLD=0s
       - BFT_CLIENT_SETTINGS=--bft-client enable=true,config-path=/concord/config-public/participant.config
     depends_on:
       - concord1
