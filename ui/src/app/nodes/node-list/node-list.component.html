@@ -45,6 +45,9 @@
                 <concord-copy-to-clipboard-button [tooltip]="'common.copyToClip' | translate"
                   tooltipDirection="top-right" [value]="getNodeInfo(node)" [classList]="'action-item'" [size]="12" [btnLabel]="'common.copyAll' | translate">
                 </concord-copy-to-clipboard-button>
+                <button [disabled]="!securePasswordEnabled" class="action-item" (click)="fetchSecurePassword(node)">
+                  {{ 'details.ssh.buttonTitle' | translate }}
+                </button>
               </clr-dg-action-overflow>
               <clr-dg-cell>
                 {{ node.name }}
@@ -143,7 +146,10 @@
                 <concord-copy-to-clipboard-button [tooltip]="'common.copyToClip' | translate" tooltipDirection="top-right"
                   [value]="node.info" [classList]="'action-item'" [size]="12" [btnLabel]="'common.copyAll' | translate">
                 </concord-copy-to-clipboard-button>
-                <button class="action-item">{{'common.ssh' | translate}}</button>
+                <button [disabled]="!securePasswordEnabled" class="action-item"
+                  (click)="fetchSecurePassword(node)">
+                  {{ 'details.ssh.buttonTitle' | translate }}
+                </button>
               </clr-dg-action-overflow>
               <clr-dg-cell>
                 {{ node.group_name }}
@@ -214,3 +220,45 @@
 </clr-tabs>
 
 <concord-deploy-client #deployClient></concord-deploy-client>
+
+<clr-modal [(clrModalOpen)]="securePasswordModalShown" class="ssh-info">
+  <h3 class="modal-title">{{ securePasswordNode?.name_ordinal }} - {{ 'details.ssh.modalTitle' | translate }}</h3>
+  <div class="modal-body ssh-info-body">
+    <div *ngIf="securePasswordFetching" class="spinner-container">
+      <clr-spinner clrMedium class="spinner spinner-margin"></clr-spinner>
+    </div>
+    <div *ngIf="!securePasswordFetching">
+      <p class="no-margin-top">{{ 'details.ssh.description' | translate }}</p>
+      <p class="p4">{{ 'details.ssh.credentialsName' | translate }}</p>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.username' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{ securePasswordData?.username }}</div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="securePasswordData?.username" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </div>
+      </div>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.password' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{
+          securePasswordHidden ? '•••••••••••••••' : securePasswordData?.password
+        }}<span class="password-view-toggle">
+            <button class="btn btn-link button-show-hide-password" (click)="securePasswordHiddenToggle()">
+              <clr-icon shape="eye" class="icon-show-hide-password"></clr-icon>
+            </button>
+          </span>
+        </div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="securePasswordData?.password" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary"
+      (click)="securePasswordModalClose()">{{ 'details.ssh.close' | translate }}</button>
+  </div>
+</clr-modal>
