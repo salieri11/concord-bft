@@ -122,6 +122,7 @@ void startServer(concord::op::Operations& ops) {
             std::get<1>(rsi).wedge_response().stopped() ? "true" : "false";
       }
       res.set_content(j.dump(), "application/json");
+      LOG_INFO(logger, "done running wedge status command");
     });
   } catch (std::exception& e) {
     std::cerr << "An exception occurred while trying to svr.Get: "
@@ -146,6 +147,7 @@ void startServer(concord::op::Operations& ops) {
             result.res.reconfiguration_sm_response().additionaldata();
       }
       res.set_content(j.dump(), "application/json");
+      LOG_INFO(logger, "done running wedge stop command");
     });
   } catch (std::exception& e) {
     std::cerr << "An exception occurred while trying to svr.Put: "
