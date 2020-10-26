@@ -4,24 +4,19 @@ package com.digitalasset.daml.on.vmware.read.service
 
 import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
-
-import collection.JavaConverters._
-
 import com.codahale.metrics.MetricRegistry
-
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
-import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClientJni, Update}
-
+import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClient, Update}
 import org.mockito.AdditionalAnswers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 
-class ThinReplicaReadClientSpec
+final class ThinReplicaReadClientSpec
     extends AsyncWordSpec
     with AkkaBeforeAndAfterAll
     with Matchers
@@ -29,30 +24,31 @@ class ThinReplicaReadClientSpec
 
   "ThinReplicaReadClient" should {
     "return a stream of updates from a perfect Thin Replica" in {
-      testBlockDelivery(createPerfectThinReplicaReadClient)
+      testBlockDelivery(createHappyPathThinReplicaReadClient())
     }
 
     "return an empty stream of updates from a Thin Replica that fails to initialize" in {
-      val thinReplicaClient = createThinReplicaReadClientFailingToInitialize
+      val thinReplicaClient = createThinReplicaReadClientFailingToInitialize()
       thinReplicaClient.committedBlocks(0) shouldBe Source.empty
     }
 
     "return a stream of updates from a Thin Replica that fails the first subscribe" in {
-      testBlockDelivery(createThinReplicaReadClientFailingFirstSubscribe)
+      testBlockDelivery(createThinReplicaReadClientFailingFirstSubscribe())
     }
 
     "return a stream of updates from a Thin Replica that fails the first pop" in {
-      testBlockDelivery(createThinReplicaReadClientFailingFirstPop)
+      testBlockDelivery(createThinReplicaReadClientFailingFirstPop())
     }
 
     "return a stream of updates from a Thin Replica that fails the second pop" in {
-      testBlockDelivery(createThinReplicaReadClientFailingSecondPop)
+      testBlockDelivery(createThinReplicaReadClientFailingSecondPop())
     }
 
     "return a stream of distinctive updates from a Thin Replica" in {
       val numUpdates = 10
-      val originalUpdates = (1 to numUpdates).map(genUpdate(_))
-      val thinReplicaClient = createThinReplicaReadClientGiviningManyUpdates(originalUpdates.toList)
+      val originalUpdates = (1 to numUpdates).map(genUpdate)
+      val thinReplicaClient =
+        createThinReplicaReadClientThatOutputsManyUpdates(originalUpdates.toList)
       takeBlocks(thinReplicaClient.committedBlocks(0), numUpdates).map { returnedUpdates =>
         returnedUpdates.size shouldBe numUpdates
         returnedUpdates should equal(originalUpdates.flatten)
@@ -61,10 +57,8 @@ class ThinReplicaReadClientSpec
 
     "update metrics" in {
       val metrics = new ThinReplicaReadClientMetrics(new MetricRegistry)
-      val thinReplicaReadClient = createThinReplicaReadClientGivenMetrics(
-        createPerfectMockOfThinReplicaClient,
-        metrics
-      )
+      val thinReplicaReadClient =
+        createThinReplicaReadClientWithMetrics(createHappyPathThinReplicaClient(), metrics)
       testBlockDelivery(thinReplicaReadClient).map(_ => {
         val actualTimingValues = metrics.getBlockTimer.getSnapshot.getValues
         actualTimingValues.size should be >= 10
@@ -83,85 +77,67 @@ class ThinReplicaReadClientSpec
     }
   }
 
-  private def createPerfectThinReplicaReadClient: ThinReplicaReadClient = {
-    createThinReplicaReadClient(createPerfectMockOfThinReplicaClient)
+  private def createHappyPathThinReplicaReadClient(): ThinReplicaReadClient =
+    createThinReplicaReadClient(createHappyPathThinReplicaClient())
+
+  private def createInitializableThinReplicaClient(): ThinReplicaClient = {
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any())).thenReturn(true)
+    client
   }
 
-  private def createPerfectMockOfThinReplicaClient: ThinReplicaClientJni = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.pop())
-      .thenReturn(anUpdate)
-    thinReplicaClientJni
+  private def createHappyPathThinReplicaClient(): ThinReplicaClient = {
+    val client = createInitializableThinReplicaClient()
+    when(client.subscribe(any())).thenReturn(true)
+    when(client.pop()).thenReturn(anUpdate)
+    client
   }
 
-  private def createThinReplicaReadClientFailingToInitialize: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(false)
-    createThinReplicaReadClient(thinReplicaClientJni)
+  private def createThinReplicaReadClientFailingToInitialize(): ThinReplicaReadClient = {
+    val client = mock[ThinReplicaClient]
+    when(client.initialize(any(), any(), any(), any(), any(), any(), any())).thenReturn(false)
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingFirstSubscribe: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
-      .thenReturn(false, true)
-    when(thinReplicaClientJni.pop())
-      .thenReturn(anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+  private def createThinReplicaReadClientFailingFirstSubscribe(): ThinReplicaReadClient = {
+    val client = createInitializableThinReplicaClient()
+    when(client.subscribe(any())).thenReturn(false, true)
+    when(client.pop()).thenReturn(anUpdate)
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingFirstPop: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.pop())
-      .thenReturn(None, anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+  private def createThinReplicaReadClientFailingFirstPop(): ThinReplicaReadClient = {
+    val client = createInitializableThinReplicaClient()
+    when(client.subscribe(any())).thenReturn(true)
+    when(client.pop()).thenReturn(None, anUpdate)
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientFailingSecondPop: ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.pop())
-      .thenReturn(anUpdate, None, anUpdate)
-    createThinReplicaReadClient(thinReplicaClientJni)
+  private def createThinReplicaReadClientFailingSecondPop(): ThinReplicaReadClient = {
+    val client = createInitializableThinReplicaClient()
+    when(client.subscribe(any())).thenReturn(true)
+    when(client.pop()).thenReturn(anUpdate, None, anUpdate)
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClientGiviningManyUpdates(
+  private def createThinReplicaReadClientThatOutputsManyUpdates(
       updateRange: List[Option[Update]]): ThinReplicaReadClient = {
-    val thinReplicaClientJni = mock[ThinReplicaClientJni]
-    when(thinReplicaClientJni.initialize(any(), any(), any(), any(), any(), any(), any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.subscribe(any()))
-      .thenReturn(true)
-    when(thinReplicaClientJni.pop())
-      .thenAnswer(AdditionalAnswers.returnsElementsOf(updateRange.asJava))
-    createThinReplicaReadClient(thinReplicaClientJni)
+    val client = createInitializableThinReplicaClient()
+    when(client.subscribe(any())).thenReturn(true)
+    when(client.pop()).thenAnswer(AdditionalAnswers.returnsElementsOf(updateRange.asJava))
+    createThinReplicaReadClient(client)
   }
 
-  private def createThinReplicaReadClient(thinReplicaClientJni: ThinReplicaClientJni) = {
+  private def createThinReplicaReadClient(client: ThinReplicaClient) = {
     val metricsRegistry = new MetricRegistry
     val metrics = new ThinReplicaReadClientMetrics(metricsRegistry)
-    createThinReplicaReadClientGivenMetrics(
-      thinReplicaClientJni,
-      metrics
-    )
+    createThinReplicaReadClientWithMetrics(client, metrics)
   }
 
-  private def createThinReplicaReadClientGivenMetrics(
-      thinReplicaClientJni: ThinReplicaClientJni,
-      metrics: ThinReplicaReadClientMetrics) =
+  private def createThinReplicaReadClientWithMetrics(
+      client: ThinReplicaClient,
+      metrics: ThinReplicaReadClientMetrics,
+  ) =
     new ThinReplicaReadClient(
       clientId = "doesntmatter",
       maxFaulty = 0,
@@ -170,7 +146,7 @@ class ThinReplicaReadClientSpec
       maxReadDataTimeout = 0,
       maxReadHashTimeout = 0,
       jaegerAgent = "doesntmatter",
-      trcCore = thinReplicaClientJni,
+      trcCore = client,
       metrics = metrics
     )
 
