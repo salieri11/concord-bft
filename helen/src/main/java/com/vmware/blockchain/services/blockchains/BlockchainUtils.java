@@ -8,6 +8,9 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.LAT_KEY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.LONG_KEY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.NAME_KEY;
 
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -157,6 +161,38 @@ public class BlockchainUtils {
                         .build();
 
             }
+
+            Endpoint.Builder notaryServerBuilder = Endpoint.newBuilder();
+            if (op.getNotaryServer() != null) {
+                if (op.getContainerRepo() == null) {
+                    logger.error("Notary Server provided but container repo not provided");
+                    throw new BadRequestException(ErrorCode.NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY);
+                }
+                if (StringUtils.hasText(op.getNotaryServer().getUrl())) {
+                    notaryServerBuilder.setAddress(op.getNotaryServer().getUrl());
+                    if (StringUtils.hasText(op.getNotaryServer().getTlsCertificateData())) {
+                        try {
+                            // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                            X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+                                    .generateCertificate(new ByteArrayInputStream(op.getNotaryServer()
+                                                                                          .getTlsCertificateData()
+                                                                                          .getBytes()));
+                            // Throws exception if certificate has expired or not yet valid
+                            tlsCertificate.checkValidity();
+                        } catch (Exception e) {
+                            logger.error("Notary Server's certificate data is invalid, error: ", e);
+                            throw new BadRequestException(ErrorCode.NOTARY_BAD_CERTIFICATE);
+                        }
+                        notaryServerBuilder.setTransportSecurity(
+                                TransportSecurity.newBuilder().setType(TransportSecurity.Type.TLSv1_2)
+                                        .setCertificateData(op.getNotaryServer().getTlsCertificateData()).build());
+                    }
+                } else if (StringUtils.hasText(op.getNotaryServer().getTlsCertificateData())) {
+                    logger.error("Notary Server's certificate data provided but url not provided");
+                    throw new BadRequestException(ErrorCode.NOTARY_URL_EMPTY_BUT_CERT_PROVIDED);
+                }
+            }
+
             Zone.Network n = op.getNetwork();
             if (n == null) {
                 logger.info("Missing required field network");
@@ -206,6 +242,7 @@ public class BlockchainUtils {
             VSphereOrchestrationSiteInfo vSphereInfo = VSphereOrchestrationSiteInfo.newBuilder()
                     .setApi(api)
                     .setContainerRegistry(container)
+                    .setNotaryServer(notaryServerBuilder.build())
                     .setVsphere(dcInfo)
                     .setWavefront(wavefront)
                     .setElasticsearch(elasticSearch)

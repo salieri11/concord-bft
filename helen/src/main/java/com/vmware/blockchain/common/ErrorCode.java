@@ -14,6 +14,10 @@ public final class ErrorCode {
     public static final String BAD_LOGIN_REQUEST = "Invalid email/password";
     public static final String BAD_PASSWORD_CHANGE = "Can't use same password!";
     public static final String BAD_REQUEST = "Bad request (e.g. missing request body).";
+    public static final String NOTARY_BAD_CERTIFICATE = "Invalid certificate provided for Notary Server";
+    public static final String NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY = "Notary server details provided but "
+                                                                          + "container repo details not provided";
+    public static final String NOTARY_URL_EMPTY_BUT_CERT_PROVIDED = "Notary URL not provided but certificate provided";
     public static final String BAD_NUMBER_FORMAT = "Bad number format {0}";
     public static final String BAD_ORG_REMOVE = "Cannot remove the Consortium Owner Org";
     public static final String BAD_TOKEN = "Bad token";

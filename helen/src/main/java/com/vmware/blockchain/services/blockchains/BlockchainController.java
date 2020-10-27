@@ -694,6 +694,12 @@ public class BlockchainController {
                 basePropBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "true");
             }
 
+            if (organization.getOrganizationProperties().containsKey(Constants.ORG_NOTARY_VERIFICATION_ENABLED)) {
+                basePropBuilder.putValues(DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(),
+                                          organization.getOrganizationProperties()
+                                                  .get(Constants.ORG_NOTARY_VERIFICATION_ENABLED));
+            }
+
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_PREEXECUTION_ENABLED)) {
                 basePropBuilder.putValues(DeploymentAttributes.PREEXECUTION_ENABLED.name(),
                                           organization.getOrganizationProperties()
