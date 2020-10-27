@@ -182,6 +182,7 @@ def findVMByInternalIP(ip, sddcs=None, checkNew=False):
   for result in results:
     if result: return result # result vmHandle
   log.info("Cannot find vm with internal IP '{}' in datacenters {}".format(ip, sddcs))
+
   return None
 
 
@@ -389,22 +390,38 @@ def save_fatal_errors_to_summary(fatal_errors):
 
 
 def fetch_vm_handles(ips):
-   '''
-   Fetch vm handles for the supplied IPs
-   :param ips: list of ips
-   :return: vm handles
-   '''
-   log.info("Fetching vm handles...")
-   vm_handles = {}
-   for ip in ips:
-      vm_handle = findVMByInternalIP(ip)
-      if vm_handle:
-         vm_handles[ip] = vm_handle
-      else:
-         log.warning("Unable to fetch VM handle for IP: {}".format(ip))
-         vm_handles[ip] = None
+  '''
+  Fetch vm handles for the supplied IPs
+  :param ips: list of ips
+  :return: vm handles
+  '''
+  log.info("Fetching vm handles...")
+  vm_handles = {}
+  for ip in ips:
+    # Code fix for handling ip variable 
+    # when the test runs on Jenkins, input type is <dict> 
+    # So ip address is to be picked explicitly.
+    # When the test runs on local machine, input type is <str>
+    # Nothing to be done in this case, as the variable contains just the ip address.
+    if(isinstance(ip, dict)):
+      log.info("\nWhen the test uses replicas from already deployed blockchain")
+      ip_dict = None
+      if "ip" in ip.keys() and ip["ip"] is not None:
+        ip_dict = ip["ip"]
+      if "private_ip" in ip.keys() and ip["private_ip"] is not None:
+        ip_dict = ip["private_ip"]
+      if "public_ip" in ip.keys() and ip["public_ip"] is not None:
+        ip_dict = ip["public_ip"]
+      ip = ip_dict
 
-   return vm_handles
+    vm_handle = findVMByInternalIP(ip)
+    if vm_handle:
+        vm_handles[ip] = vm_handle
+    else:
+        log.warning("Unable to fetch VM handle for IP: {}".format(ip))
+        vm_handles[ip] = None
+
+  return vm_handles
 
 
 def resetIPAM(targetSegsStr, dryRun=True):
