@@ -1,6 +1,7 @@
 #########################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+from datetime import datetime, timedelta
 from suites.case import describe
 import pytest
 from util import helper, hermes_logging
@@ -102,13 +103,20 @@ def test_log_insight_event_logs(fxBlockchain):
 
     assert success, session_id_msg
 
-    # Timestamp to fetch Latest 5 minutes of data
-    timestamp = 300000  # Timestamp has to be provided in milliseconds
+    # Timestamp to fetch Latest 15 minutes of data
+    timestamp = 900000  # Timestamp has to be provided in milliseconds
+
+    start_time = datetime.now()
+    log.info("\n\nStart time: {}".format(start_time))
+    end_time = start_time + timedelta(milliseconds=timestamp)
+    log.info("\n\nEnd time: {}".format(end_time))
 
     # Url to verify logs using events api by filtering using consortium id for the given timestamp
     fetch_logs_url = "https://{}:{}/api/v1/events/{}/CONTAINS%20{}/timestamp/LAST%20{}". \
       format(log_insight_details["address"], log_insight_details["port"], 'consortium_id', bc_consortium_id,
              timestamp)
+
+    log.info("LogInsight Url to fetch events logs: {}".format(fetch_logs_url))
 
     # Command to fetch logs
     consortium_filter = ["curl", "-k", fetch_logs_url,
@@ -118,5 +126,4 @@ def test_log_insight_event_logs(fxBlockchain):
 
     consortium_filter_output = check_output(consortium_filter).decode('utf8')
     output = json.loads(consortium_filter_output)
-    log.info("\n\noutput: {}".format(output))
     assert len(output['events']), "Logs not generated for the blockchain"
