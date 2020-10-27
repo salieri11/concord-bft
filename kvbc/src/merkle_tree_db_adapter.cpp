@@ -399,12 +399,23 @@ SetOfKeyValuePairs DBAdapter::lastReachableBlockDbUpdates(const SetOfKeyValuePai
   }
 
   // update metrics
+  uint32_t keysCount = 0;
+  uint32_t valuesCount = 0;
+  uint32_t keysSize = 0;
+  uint32_t valuesSize = 0;
   uint64_t sizeOfUpdatesInBytes = 0;
   for (auto &kv : dbUpdates) {
     sizeOfUpdatesInBytes += kv.first.length() + kv.second.length();
+    ++keysCount;
+    ++valuesCount;
+    keysSize += kv.first.length();
+    valuesSize += kv.second.length();
   }
   histograms.dba_size_of_updates->record(sizeOfUpdatesInBytes);
   commitSizeSummary_->Observe(sizeOfUpdatesInBytes);
+  LOG_INFO(logger_, "lastReachableBlockUpdates, keys:size " << keysCount << ":" << keysSize
+                                                 << ", values:size"
+                                                 << valuesCount << valuesSize);
   return dbUpdates;
 }
 
