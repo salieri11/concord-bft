@@ -206,3 +206,8 @@
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
     baseCommand: '${MAIN_PY} DamlRegressionTests --blockchainLocation onprem --blockchainType daml'
+- PreexecutionSystemTests:
+    enabled: false
+    runWithGenericTests: false
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    baseCommand: '${MAIN_PY} PreExecutionTests --numGroups 2 --numReplicas 7 --numParticipants 2 --blockchainType daml --blockchainLocation onprem --clientSize medium --replicaSize medium --dockerHubPassword ''DOCKERHUB_REPO_READER_PASSWORD'''
