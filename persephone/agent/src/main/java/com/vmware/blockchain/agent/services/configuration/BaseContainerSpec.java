@@ -46,4 +46,8 @@ public interface BaseContainerSpec {
     default Long getMemory() {
         return null;
     }
+
+    default boolean isDownloadImageOnly() {
+        return false;
+    }
 }

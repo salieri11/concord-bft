@@ -149,13 +149,15 @@ public class NodeStartupOrchestrator {
                 var dockerClient = DockerClientBuilder.getInstance().build();
                 try {
                     containerConfigList.forEach(container ->  {
-                        var containerResponse = createContainer(dockerClient, container);
-                        if (launchComponents) {
-                            log.info("Not Launching {}: Id {} ",
-                                    container.getContainerName(), containerResponse.getId());
-                        } else {
-                            agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
-                            counter.increment();
+                        if (!container.isDownloadImageOnly()) {
+                            var containerResponse = createContainer(dockerClient, container);
+                            if (launchComponents) {
+                                log.info("Not Launching {}: Id {} ",
+                                         container.getContainerName(), containerResponse.getId());
+                            } else {
+                                agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
+                                counter.increment();
+                            }
                         }
                     });
                 } catch (ConflictException e) {

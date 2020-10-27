@@ -28,8 +28,9 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
 
     DAML_LEDGER_API("daml_ledger_api", List.of(
             new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
-                    List.of(new Link("daml_index_db", "daml_index_db")));
+                    List.of(new Link("daml_index_db", "daml_index_db"))),
 
+    CONCORD_OPERATOR("concord_operator", null, null, null, true);
 
     @Setter
     private String imageId;
@@ -42,6 +43,8 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
     private List<Link> links;
     private int ordinal;
 
+    private boolean downloadImageOnly;
+
     DamlParticipantConfig(String containerName,
                           List<PortBinding> portBindings, List<Bind> volumeBindings, List<Link> links) {
         this.containerName = containerName;
@@ -51,4 +54,10 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
         this.ordinal = 1;
     }
 
+    DamlParticipantConfig(String containerName,
+                          List<PortBinding> portBindings, List<Bind> volumeBindings, List<Link> links,
+                          boolean downloadImageOnly) {
+        this(containerName, portBindings, volumeBindings, links);
+        this.downloadImageOnly = downloadImageOnly;
+    }
 }
