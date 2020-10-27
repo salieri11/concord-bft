@@ -208,6 +208,30 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
           ))
     }
 
+    "not parse a BFT client config with a mixed timeout strategy" in {
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "constant-timeout=2.0s," +
+              "linear-timeout-slope=2.0"
+          ))
+      }
+
+      a[TestFailedException] should be thrownBy {
+        parseExtraConfig(
+          Array(
+            "--bft-client",
+            "enable=true," +
+              "config-path=/conf," +
+              "linear-timeout-slope=2.0," +
+              "constant-timeout=2.0s"
+          ))
+      }
+    }
+
     "parse a BFT client config with a constant send retry wait time" in {
       val config =
         parseExtraConfig(
@@ -260,28 +284,56 @@ class ExtraConfigSpec extends AsyncWordSpec with Matchers {
       RetryStrategy.isExponential(config.extra.bftClient.sendRetryStrategy) should be(true)
     }
 
-    "not parse a BFT client config with a mixed timeout strategy" in {
-      a[TestFailedException] should be thrownBy {
+    "parse a BFT client config with a constant init retry wait time" in {
+      val config =
         parseExtraConfig(
           Array(
             "--bft-client",
             "enable=true," +
               "config-path=/conf," +
-              "constant-timeout=2.0s," +
-              "linear-timeout-slope=2.0"
+              "init-retry-strategy=constant-wait-time," +
+              "init-retries=5," +
+              "init-retry-first-wait=1ms"
           ))
-      }
+      config.extra.bftClient should be(
+        BftClientConfig
+          .withReasonableDefaults(Paths.get("/conf"))
+          .copy(
+            initRetryStrategy = BftClientConfig.DefaultInitRetryStrategy
+              .copy(
+                retries = 5,
+                firstWaitTime = 1.milli,
+                waitTimeCap = 1.millis,
+                progression = config.extra.bftClient.initRetryStrategy.progression,
+              )
+          ))
+      RetryStrategy.isConstant(config.extra.bftClient.initRetryStrategy) should be(true)
+    }
 
-      a[TestFailedException] should be thrownBy {
+    "parse a BFT client config with an exponential backoff init retry strategy" in {
+      val config =
         parseExtraConfig(
           Array(
             "--bft-client",
             "enable=true," +
               "config-path=/conf," +
-              "linear-timeout-slope=2.0," +
-              "constant-timeout=2.0s"
+              "init-retry-strategy=exponential-backoff," +
+              "init-retries=5," +
+              "init-retry-first-wait=1ms"
           ))
-      }
+      config.extra.bftClient should be(
+        BftClientConfig
+          .withReasonableDefaults(Paths.get("/conf"))
+          .copy(
+            initRetryStrategy = BftClientConfig.DefaultInitRetryStrategy
+              .copy(
+                retries = 5,
+                firstWaitTime = 1.milli,
+                waitTimeCap = RetryStrategy.exponentialBackoffWaitTimeCap(5, 1.milli),
+                progression = config.extra.bftClient.initRetryStrategy.progression,
+              )
+          ))
+      RetryStrategy.isExponential(config.extra.bftClient.initRetryStrategy) should be(true)
     }
 
     "not parse a BFT client config with an unsupported key" in {

@@ -44,9 +44,10 @@ object RetryStrategy {
     }
 
   def exponentialBackoff(
-      shouldRetry: Throwable => Boolean,
       retries: Int,
-      firstWaitTime: Duration): RetryStrategy =
+      firstWaitTime: Duration,
+      shouldRetry: Throwable => Boolean = _ => true,
+  ): RetryStrategy =
     new RetryStrategy(
       shouldRetry,
       retries,
@@ -60,7 +61,11 @@ object RetryStrategy {
   def exponentialBackoffWaitTimeCap(retries: Int, firstWaitTime: Duration): Duration =
     firstWaitTime * math.pow(ExponentialBackoffMultiplier.toDouble, retries.toDouble)
 
-  def constant(shouldRetry: Throwable => Boolean, retries: Int, waitTime: Duration): RetryStrategy =
+  def constant(
+      retries: Int,
+      waitTime: Duration,
+      shouldRetry: Throwable => Boolean = _ => true,
+  ): RetryStrategy =
     new RetryStrategy(shouldRetry, retries, waitTime, waitTime, identity)
 
   // The following predicates are accurate only under the assumption that 'progression' is stateless (as it should)
@@ -75,7 +80,6 @@ object RetryStrategy {
     retryStrategy.progression(1.milli) == ExponentialBackoffMultiplier.millis
 
   val ExponentialBackoffMultiplier = 2
-
 }
 
 final case class RetryStrategy(
@@ -96,18 +100,21 @@ final case class RetryStrategy(
           case err =>
             if (attempt <= retries && shouldRetry(err)) {
               synchronized { waits += wait }
-              after(wait)(go(attempt + 1, clip(progression(wait))))
+              after(wait)(go(attempt + 1, nextWait(wait)))
             } else {
               Future.failed(err)
             }
         }
     }
-    go(1, clip(firstWaitTime))
+    go(attempt = 1, wait = clip(firstWaitTime))
   }
 
   def extractTotalWait: Duration = extractWaits.reduceLeftOption(_ plus _).getOrElse(Duration.Zero)
 
   def getAttemptsCount: Integer = attemptsCount
+
+  def nextWait(wait: Duration): Duration =
+    clip(progression(wait))
 
   private def extractWaits: Seq[Duration] = waits.result()
 

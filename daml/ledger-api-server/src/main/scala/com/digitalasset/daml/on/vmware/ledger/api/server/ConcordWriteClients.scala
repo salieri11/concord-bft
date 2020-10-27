@@ -6,20 +6,19 @@ import java.nio.file.Path
 
 import com.daml.ledger.api.health.Healthy
 import com.daml.metrics.Metrics
-import com.digitalasset.daml.on.vmware.write.service.ConcordWriteClient
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftWriteClient,
   RequestTimeoutFunction,
   RequestTimeoutStrategy,
   RetryStrategyFactory
 }
+import com.digitalasset.daml.on.vmware.write.service.{ConcordWriteClient, RetryStrategy}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 private[server] object ConcordWriteClients {
-
-  private[this] val DefaultReplicaPort = 50051
 
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -31,8 +30,12 @@ private[server] object ConcordWriteClients {
         createBftWriteClient,
         config.bftClient.requestTimeoutStrategy,
         () => config.bftClient.sendRetryStrategy,
-        metrics)
-    waitForConcordWriteClientsToBeReady(Seq(concordWriteClient), clientsToBeWaitedFor = 1)
+        metrics,
+      )
+    waitForConcordWriteClientsToBeReady(
+      Seq(concordWriteClient),
+      config.bftClient.initRetryStrategy,
+    )
     concordWriteClient
   }
 
@@ -85,21 +88,27 @@ private[server] object ConcordWriteClients {
     )
   }
 
-  private[this] val WaitForConcordToBeReadyAttempts: Int = 30
-  private[this] val WaitForConcordToBeReadySleepMillis: Int = 1000
-
   private[server] def waitForConcordWriteClientsToBeReady(
       concordWriteClients: Seq[ConcordWriteClient],
+      retryStrategy: RetryStrategy,
       writeClientLabel: String = "primary",
-      clientsToBeWaitedFor: Int,
-      attempts: Int = WaitForConcordToBeReadyAttempts,
-      sleepMillis: Int = WaitForConcordToBeReadySleepMillis,
   ): Unit = {
-    var remainingAttempts = attempts
+    val clientsToBeWaitedFor = concordWriteClients.size
+    val totalAttempts = retryStrategy.retries + 1
 
-    def missingReadyWriteClients: Stream[Int] = {
+    var remainingAttempts = totalAttempts
+    var waitTime: Option[Duration] = None
+
+    def nextWait(waitTime: Option[Duration]): Duration =
+      waitTime match {
+        case None => retryStrategy.firstWaitTime
+        case Some(duration) => retryStrategy.nextWait(duration)
+      }
+
+    def missingReadyWriteClientsAndWaitTime: Stream[(Int, Duration)] = {
       if (remainingAttempts <= 0) {
-        sys.error(s"""Couldn't connect to enough replicas in $attempts attempts. Please check that
+        sys.error(
+          s"""Couldn't connect to enough replicas in $totalAttempts attempts. Please check that
              |at least $clientsToBeWaitedFor $writeClientLabel replicas are healthy and restart the
              |ledger API server.
              |""".stripMargin)
@@ -107,17 +116,20 @@ private[server] object ConcordWriteClients {
         val ready = concordWriteClients.count(_.currentHealth == Healthy)
         if (ready < clientsToBeWaitedFor) {
           remainingAttempts -= 1
-          (clientsToBeWaitedFor - ready) #:: missingReadyWriteClients
+          val nextWaitTime = nextWait(waitTime)
+          waitTime = Some(nextWaitTime)
+          (clientsToBeWaitedFor - ready -> nextWaitTime) #:: missingReadyWriteClientsAndWaitTime
         } else {
           Stream.empty
         }
       }
     }
 
-    for (numMissing <- missingReadyWriteClients) {
+    for ((numMissing, waitTime) <- missingReadyWriteClientsAndWaitTime) {
       logger.info(
-        s"Waiting for $clientsToBeWaitedFor $writeClientLabel Concord replicas to be ready for writing (missing: $numMissing)")
-      Thread.sleep(sleepMillis)
+        s"Waiting $waitTime for $clientsToBeWaitedFor $writeClientLabel Concord replicas " +
+          s"to be ready for writing (missing: $numMissing)")
+      Thread.sleep(waitTime.toMillis)
     }
   }
 }
