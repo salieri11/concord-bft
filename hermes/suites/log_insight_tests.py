@@ -6,6 +6,7 @@ import pytest
 from util import helper, hermes_logging
 import json
 from subprocess import check_output
+from fixtures.common_fixtures import fxBlockchain, fxProduct
 
 log = hermes_logging.getMainLogger()
 
