@@ -216,7 +216,7 @@
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
     baseCommand: '${MAIN_PY} LogInsightTests --blockchainLocation onprem --blockchainType daml'
-- WaveFrontTests:
+- WavefrontTests:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
