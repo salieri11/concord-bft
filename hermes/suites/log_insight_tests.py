@@ -108,29 +108,10 @@ def test_log_insight_event_logs(fxBlockchain):
     timestamp = 900000  # Timestamp has to be provided in milliseconds
 
     start_time = datetime.now()
-    log.info("\n\nStart time: {}".format(start_time))
     end_time = start_time + timedelta(milliseconds=timestamp)
-    log.info("\n\nEnd time: {}".format(end_time))
+    log.info("\n\nStart time: {} and End time: {}".format(start_time, end_time))
 
-    # Using hard coded value
-    fetch_logs_url_1 = "https://{}:{}/api/v1/events/{}/CONTAINS%20{}/timestamp/LAST%20{}". \
-       format(log_insight_details["address"], log_insight_details["port"], 'consortium_id',
-              'f570b580-2d44-45a6-b670-c5487a4059e6',
-              timestamp)
-
-    log.info("\n\nLogInsight Url to fetch events logs: {}".format(fetch_logs_url_1))
-
-    # Command to fetch logs
-    consortium_filter_1 = ["curl", "-k", fetch_logs_url_1,
-                         "-H", "Accept: application/json",
-                         "-H", "Content-Type: application/json",
-                         "-H", "Authorization: Bearer {}".format(session_id_msg)]
-
-    consortium_filter_output = check_output(consortium_filter_1).decode('utf8')
-    output = json.loads(consortium_filter_output)
-    log.info("\n\nLength of events of hard code value: {}".format(len(output['events'])))
-
-    time.sleep(180)
+    time.sleep(300)
 
     # Url to verify logs using events api by filtering using consortium id for the given timestamp
     fetch_logs_url = "https://{}:{}/api/v1/events/{}/CONTAINS%20{}/timestamp/LAST%20{}". \
@@ -147,5 +128,4 @@ def test_log_insight_event_logs(fxBlockchain):
 
     consortium_filter_output = check_output(consortium_filter).decode('utf8')
     output = json.loads(consortium_filter_output)
-    log.info("\n\nLength of events of fxBlockchain: {}".format(len(output['events'])))
-    #assert len(output['events']), "Logs not generated for the blockchain"
+    assert len(output['events']), "Logs not generated for the blockchain"
