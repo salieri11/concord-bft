@@ -1,5 +1,5 @@
+
 <csp-header
-  *ngIf="env.csp; else notCSP"
   #header
   [serviceRefLink]="serviceRefLink"
   [options]="headerOptions"
@@ -7,63 +7,4 @@
   [authToken]="authToken"
   [alert]="alertStream">
 </csp-header>
-<!-- <nav *ngIf="env.csp" class="subnav">
-  <ul class="nav">
-    <li class="nav-item">
-      <concord-theme-switch-button></concord-theme-switch-button>
-    </li>
-    <li class="nav-item">
-      <clr-dropdown>
-        <button class="nav-link nav-icon guides" clrDropdownTrigger>
-          <clr-icon shape="book"></clr-icon> Guides
-        </button>
-        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a [routerLink]="['dashboard']" fragment="orgTour" clrDropdownItem class="guides-tour">
-            {{'tourSteps.title' | translate}}
-          </a>
-          <div class="dropdown-divider"></div>
-          <concord-version clrDropdownItem></concord-version>
-        </clr-dropdown-menu>
-      </clr-dropdown>
-    </li>
-  </ul>
-</nav> -->
 
-<ng-template #notCSP>
-  <clr-header class="header-6">
-    <div class="branding">
-      <a routerLink="/" class="nav-link">
-        <clr-icon shape="vm-bug"></clr-icon>
-        <span class="title">{{'title' | translate}}</span>
-      </a>
-    </div>
-    <div class="header-actions">
-      <clr-dropdown>
-        <button class="nav-link nav-icon" clrDropdownTrigger>
-          <clr-icon shape="help"></clr-icon>
-        </button>
-        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a [routerLink]="['dashboard']" fragment="orgTour" clrDropdownItem>
-            {{'tourSteps.title' | translate}}
-          </a>
-        <div class="dropdown-divider"></div>
-        <concord-version clrDropdownItem></concord-version>
-        </clr-dropdown-menu>
-      </clr-dropdown>
-      <concord-theme-switch-button></concord-theme-switch-button>
-      <clr-dropdown #userProfileMenu>
-        <button id="profileMenu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
-          <clr-icon shape="user" class="is-solid"></clr-icon>
-          {{ username }}
-          <clr-icon shape="caret down"></clr-icon>
-        </button>
-        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a clrDropdownItem [routerLink]="['/users/settings']">
-            {{'nav.settings' | translate}}
-          </a>
-          <a id="logOutButton" clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
-        </clr-dropdown-menu>
-      </clr-dropdown>
-    </div>
-  </clr-header>
-</ng-template>

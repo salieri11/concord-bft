@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ViewChild, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import {
@@ -23,7 +23,7 @@ import { ErrorAlertService } from '../../global-error-handler.service';
   templateUrl: './app-header.component.html',
   styleUrls: ['./app-header.component.scss']
 })
-export class AppHeaderComponent implements OnDestroy, AfterViewInit {
+export class AppHeaderComponent implements AfterViewInit {
   @ViewChild('header', { static: false }) header: any;
   authenticationChange: Subscription;
   userProfileMenuToggleChanges: Subscription;
@@ -41,7 +41,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
 
   constructor(
     private authenticationService: AuthenticationService,
-    private personaService: PersonaService,
     private cspApiService: CspApiService,
     private translateService: TranslateService,
     private alertService: ErrorAlertService
@@ -49,11 +48,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     if (this.env.csp) {
       this.alertStream = this.alertService.cspAlertStream;
       this.setupCSP();
-    } else {
-      this.authenticationChange = authenticationService.user.subscribe(user => {
-        this.username = user.email;
-        this.personaService.currentPersonas.push(user.persona);
-      });
     }
   }
 
@@ -71,21 +65,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.header.tokenRefreshNeeded.subscribe(() => this.authenticationService.saveLastLocationAndReAuth());
     }
   }
-
-  ngOnDestroy(): void {
-    if (this.authenticationChange) { this.authenticationChange.unsubscribe(); }
-  }
-
-  onLogOut() {
-    this.authenticationService.logOut();
-  }
-
-  onPersonaChange(persona: Personas) {
-    localStorage.setItem('helen.persona', persona);
-    this.personaService.currentPersonas.push(persona);
-    location.reload();
-  }
-
 
   private setupCSP() {
     this.authToken = this.authenticationService.accessToken;
@@ -112,9 +91,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.enableSignout = true;
     this.headerOptions.showNotificationsMenu = true;
     this.headerOptions.helpPinnable = true;
-    // this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
-    // this.headerOptions.docsProducts = ['VMware Blockchain'];
-    // this.headerOptions.docsDefaultSearch = 'VMware Blockchain';
     this.headerOptions.disableDocsSearch = true;
     this.headerOptions.userMenuIconified = true;
     this.headerOptions.notifications = null;

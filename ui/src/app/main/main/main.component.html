@@ -11,7 +11,10 @@
   <concord-app-header></concord-app-header>
   <div class="content-container">
     <main class="content-area">
-      <router-outlet *ngIf="routeService.outletEnabled"></router-outlet>
+      <div class="main-spinner" *ngIf="loading">
+        <clr-spinner></clr-spinner>
+      </div>
+      <router-outlet *ngIf="!loading && routeService.outletEnabled"></router-outlet>
       <div *ngIf="!routeService.outletEnabled && showErrorMessage" class="clr-row clr-justify-content-center">
         <div class="clr-col-lg-5 clr-col-md-8 clr-col-12">
           <div class="card error">

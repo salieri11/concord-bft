@@ -9,6 +9,7 @@ import { ForbiddenComponent } from './errors/forbidden/forbidden.component';
 import { AuthenticatedGuard } from './shared/authenticated-guard.service';
 import { ErrorComponent } from './errors/error/error.component';
 
+
 const appRoutes: Routes = [
   // General, 1st level
   {

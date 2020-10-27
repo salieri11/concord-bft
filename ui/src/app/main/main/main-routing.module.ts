@@ -17,16 +17,15 @@ import { DeployingComponent } from '../deploying/deploying.component';
 import { mainRoutes } from './../../shared/urls.model';
 import { zonesRoutes } from '../../zones/zones-routing';
 import { dashboardRoutes } from '../../dashboard/dashboard-routing';
-import { transactionsRoutes } from '../../transactions/transactions-routing';
-import { blockRoutes } from '../../blocks/blocks-routing';
 import { nodeRoutes } from '../../nodes/nodes-routing';
 import { consortiumRoutes } from '../../consortium/consortium-routing';
-import { smartContractRoutes } from '../../smart-contracts/smart-contracts-routing';
 import { orgRoutes } from '../../orgs/orgs-routing';
-import { usersRoutes } from '../../users/users-routing';
-import { loggingRoutes } from '../../logging/logging-routing';
-import { developerRoutes } from '../../developer/developer-routing';
+// import { usersRoutes } from '../../users/users-routing';
+// import { loggingRoutes } from '../../logging/logging-routing';
+// import { developerRoutes } from '../../developer/developer-routing';
 import { detailsRoutes } from '../../details/details-routing';
+import { blockRoutes } from '../../blocks/blocks-routing';
+import { transactionsRoutes } from '../../transactions/transactions-routing';
 
 
 const routes: Routes = [
@@ -36,47 +35,64 @@ const routes: Routes = [
     component: MainComponent,
     canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
-    resolve: {blockchain: BlockchainResolver},
+    resolve: { blockchain: BlockchainResolver },
     runGuardsAndResolvers: 'pathParamsChange',
     children: [{
-        // ROUTE: /blockchain/welcome
-        path: mainRoutes.welcome, component: WelcomeComponent
-      }, {
-        // ROUTE: /blockchain/deploy
-        path: mainRoutes.deploy, component: DeployComponent
-      }, {
-        // ROUTE: /blockchain/deploying/*
-        path: mainRoutes.deploying, children: [{
-          // ROUTE: /blockchain/deploying/:taskId
-          path: ':taskId', component: DeployingComponent
-        }]
-      },
-      // ROUTE: /:consortiumId/zones
-      { path: mainRoutes.zones, children: zonesRoutes, component: ZonesComponent },
-      // ROUTE: /:consortiumId/dashboard
-      { path: mainRoutes.dashboard, children: dashboardRoutes },
-      // ROUTE: /:consortiumId/blocks
-      { path: mainRoutes.blocks, children: blockRoutes },
-      // ROUTE: /:consortiumId/nodes
-      { path: mainRoutes.nodes, children: nodeRoutes },
-      // ROUTE: /:consortiumId/smart-contracts
-      { path: mainRoutes.smartContracts, children: smartContractRoutes },
-      // ROUTE: /:consortiumId/logging
-      { path: mainRoutes.logging, children: loggingRoutes },
-      // ROUTE: /:consortiumId/consortiums
-      { path: mainRoutes.consortiums, children: consortiumRoutes },
-      // ROUTE: /:consortiumId/organizations
-      { path: mainRoutes.organizations, children: orgRoutes },
-      // ROUTE: /:consortiumId/users
-      { path: mainRoutes.system, children: usersRoutes },
-      // ROUTE: /:consortiumId/transactions
-      { path: mainRoutes.transactions, children: transactionsRoutes },
-      // ROUTE: /:consortiumId/developer
-      { path: mainRoutes.developer, children: developerRoutes },
-      // ROUTE: /:consortiumId/details
-      { path: mainRoutes.details, children: detailsRoutes },
-    ]
-  },
+      path: mainRoutes.welcome, component: WelcomeComponent
+    }, {
+      path: mainRoutes.deploy, component: DeployComponent
+    }, {
+      path: mainRoutes.deploying, children: [{
+        path: ':taskId', component: DeployingComponent
+      }]
+    },
+    {
+      path: mainRoutes.zones,
+      children: zonesRoutes,
+      component: ZonesComponent
+    },
+    {
+      path: mainRoutes.dashboard,
+      children: dashboardRoutes
+    },
+    {
+      path: mainRoutes.blocks,
+      children: blockRoutes
+    },
+    {
+      path: mainRoutes.nodes,
+      children: nodeRoutes
+    },
+    {
+      path: mainRoutes.smartContracts,
+      loadChildren: () => import('./../../smart-contracts/smart-contracts.module').then(m => m.SmartContractsModule)
+    },
+    {
+      path: mainRoutes.logging,
+      loadChildren: () => import('./../../logging/logging.module').then(m => m.LoggingModule)
+
+    },
+    {
+      path: mainRoutes.consortiums,
+      children: consortiumRoutes
+    },
+    {
+      path: mainRoutes.organizations,
+      children: orgRoutes
+    },
+    {
+      path: mainRoutes.transactions,
+      children: transactionsRoutes
+    },
+    {
+      path: mainRoutes.developer,
+      loadChildren: () => import('./../../developer/developer.module').then(m => m.DeveloperModule)
+    },
+    {
+      path: mainRoutes.details,
+      children: detailsRoutes
+    }]
+  }
 ];
 
 
