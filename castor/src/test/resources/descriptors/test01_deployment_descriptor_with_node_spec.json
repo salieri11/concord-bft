@@ -1,5 +1,5 @@
 {
-  "committers": [
+  "replicas": [
     {
       "zoneName": "test-zone-1 - A"
     },
@@ -13,7 +13,7 @@
       "zoneName": "test-zone-1 - A"
     }
   ],
-  "committerNodeSpec": {
+  "replicaNodeSpec": {
     "cpuCount": 2,
     "memoryGb": 16,
     "diskSizeGb": 64

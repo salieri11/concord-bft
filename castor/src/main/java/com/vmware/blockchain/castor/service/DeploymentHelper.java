@@ -79,12 +79,12 @@ public class DeploymentHelper {
             InfrastructureDescriptorModel infrastructureDescriptorModel,
             DeploymentDescriptorModel deploymentDescriptorModel) {
 
-        // Build committer and client nodes
+        // Build replica and client nodes
         NodeAssignment.Builder nodeAssignmentBuilder = NodeAssignment.newBuilder();
-        // Build Committers
-        List<DeploymentDescriptorModel.Committer>
-                committers = deploymentDescriptorModel.getCommitters();
-        buildCommitters(deploymentDescriptorModel, committers, nodeAssignmentBuilder);
+        // Build Replicas
+        List<DeploymentDescriptorModel.Replica>
+                replicas = deploymentDescriptorModel.getReplicas();
+        buildReplicas(deploymentDescriptorModel, replicas, nodeAssignmentBuilder);
         // Build Clients
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
         buildClients(deploymentDescriptorModel, clients, nodeAssignmentBuilder);
@@ -92,7 +92,7 @@ public class DeploymentHelper {
         // Build sites
         List<OrchestrationSite> orchestrationSites =
                 buildSites(infrastructureDescriptorModel,
-                           deploymentDescriptorModel.getCommitters(), deploymentDescriptorModel.getClients());
+                           deploymentDescriptorModel.getReplicas(), deploymentDescriptorModel.getClients());
 
         // Build deployment spec
         DeploymentDescriptorModel.Blockchain blockchainDescriptor = deploymentDescriptorModel.getBlockchain();
@@ -122,31 +122,31 @@ public class DeploymentHelper {
     }
 
 
-    private static void buildCommitters(
+    private static void buildReplicas(
             DeploymentDescriptorModel deploymentDescriptorModel,
-            List<DeploymentDescriptorModel.Committer> committers,
+            List<DeploymentDescriptorModel.Replica> replicas,
             NodeAssignment.Builder nodeAssignmentBuilder) {
-        committers.forEach(committer -> {
+        replicas.forEach(replica -> {
             Properties.Builder propBuilder = Properties.newBuilder();
-            if (StringUtils.hasText(committer.getProvidedIp())) {
-                propBuilder.putValues(NodeProperty.Name.VM_IP.name(), committer.getProvidedIp());
+            if (StringUtils.hasText(replica.getProvidedIp())) {
+                propBuilder.putValues(NodeProperty.Name.VM_IP.name(), replica.getProvidedIp());
                 propBuilder.putValues(
-                        DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), committer.getProvidedIp());
+                        DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), replica.getProvidedIp());
             }
 
-            if (deploymentDescriptorModel.getCommitterNodeSpec() != null) {
-                int diskSize = deploymentDescriptorModel.getCommitterNodeSpec().getDiskSizeGb();
+            if (deploymentDescriptorModel.getReplicaNodeSpec() != null) {
+                int diskSize = deploymentDescriptorModel.getReplicaNodeSpec().getDiskSizeGb();
                 if (diskSize > 0) {
                     String clientDiskSizeString = String.valueOf(diskSize);
                     propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
                 }
 
-                int cpuCount = deploymentDescriptorModel.getCommitterNodeSpec().getCpuCount();
+                int cpuCount = deploymentDescriptorModel.getReplicaNodeSpec().getCpuCount();
                 if (cpuCount > 0) {
                     propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
                 }
 
-                int memory = deploymentDescriptorModel.getCommitterNodeSpec().getMemoryGb();
+                int memory = deploymentDescriptorModel.getReplicaNodeSpec().getMemoryGb();
                 if (memory > 0) {
                     propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
                 }
@@ -156,7 +156,7 @@ public class DeploymentHelper {
                     NodeAssignment.Entry.newBuilder()
                             .setType(NodeType.REPLICA)
                             .setNodeId(UUID.randomUUID().toString())
-                            .setSite(OrchestrationSiteIdentifier.newBuilder().setId(committer.getZoneName()).build())
+                            .setSite(OrchestrationSiteIdentifier.newBuilder().setId(replica.getZoneName()).build())
                             .setProperties(propBuilder)
             );
         });
@@ -227,18 +227,18 @@ public class DeploymentHelper {
     /**
      * Build sites info.
      * @param infrastructureDescriptorModel the infra descriptor
-     * @param committers the list of committers specified in the deployment descriptor
+     * @param replicas the list of replicas specified in the deployment descriptor
      * @param clients the list of clients specified in the deployment descriptor
      * @return a list of orchestration sites (one per zone)
      */
     public static List<OrchestrationSite> buildSites(
             InfrastructureDescriptorModel infrastructureDescriptorModel,
-            List<DeploymentDescriptorModel.Committer> committers, List<DeploymentDescriptorModel.Client> clients) {
+            List<DeploymentDescriptorModel.Replica> replicas, List<DeploymentDescriptorModel.Client> clients) {
 
         Set<String> allUniqueZoneNames = new HashSet<>();
-        Set<String> committerZoneNames = committers.stream().map(
-                DeploymentDescriptorModel.Committer::getZoneName).collect(Collectors.toSet());
-        allUniqueZoneNames.addAll(committerZoneNames);
+        Set<String> replicaZoneNames = replicas.stream().map(
+                DeploymentDescriptorModel.Replica::getZoneName).collect(Collectors.toSet());
+        allUniqueZoneNames.addAll(replicaZoneNames);
         Set<String> clientZoneNames = clients.stream()
                 .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet());
         allUniqueZoneNames.addAll(clientZoneNames);

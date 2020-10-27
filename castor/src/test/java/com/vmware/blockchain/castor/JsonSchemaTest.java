@@ -164,7 +164,7 @@ public class JsonSchemaTest {
         String[] expectedMessages = new String[]{
             "#/clients/0: required key [zoneName] not found",
             "#/blockchain: required key [consortiumName] not found",
-            "#/committers/1/providedIp: [127374948] is not a valid ipv4 address"
+            "#/replicas/1/providedIp: [127374948] is not a valid ipv4 address"
         };
 
         List<String> actualMessages = validationException.getAllMessages();

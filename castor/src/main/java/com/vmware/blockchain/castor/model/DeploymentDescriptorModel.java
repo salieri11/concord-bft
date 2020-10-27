@@ -49,15 +49,15 @@ public interface DeploymentDescriptorModel {
     }
 
     /**
-     * Required committer.
+     * Required replica.
      */
     @Getter
     @Setter
     @Builder
     @EqualsAndHashCode
-    public static class Committer {
+    public static class Replica {
         // This MUST match the zone name in the Infrastructure descriptor.
-        @NotBlank(message = "deployment.committer.zone.invalid")
+        @NotBlank(message = "deployment.replica.zone.invalid")
         private String zoneName;
         private String providedIp;
     }
@@ -99,17 +99,17 @@ public interface DeploymentDescriptorModel {
     }
 
     /**
-     * Get committer node specification from deployment model.
+     * Get replica node specification from deployment model.
      * @return node spec
      */
-    NodeSpecification getCommitterNodeSpec();
+    NodeSpecification getReplicaNodeSpec();
 
 
     /**
-     * Get committers from the deployment model.
-     * @return a list of committers
+     * Get replicas from the deployment model.
+     * @return a list of replicas
      */
-    List<Committer> getCommitters();
+    List<Replica> getReplicas();
 
     /**
      * Get clients from the deployment model.

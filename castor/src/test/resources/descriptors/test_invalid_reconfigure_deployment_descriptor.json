@@ -1,5 +1,5 @@
 {
-  "committers": [
+  "replicas": [
     {
       "zoneName": "test-zone-1 - A",
       "providedIp": "10.72.216.94"

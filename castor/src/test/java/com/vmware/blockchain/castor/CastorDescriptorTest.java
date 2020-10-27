@@ -137,7 +137,7 @@ public class CastorDescriptorTest {
                      "deployment descriptor blochchain model mismatch");
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
-        assertEquals(validDeployment.getCommitters(), readDeployment.getCommitters(),
+        assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
                      "deployment descriptor blochchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
@@ -172,7 +172,7 @@ public class CastorDescriptorTest {
                      "deployment descriptor blochchain model mismatch");
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
-        assertEquals(validDeployment.getCommitters(), readDeployment.getCommitters(),
+        assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
                      "deployment descriptor blochchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
@@ -194,10 +194,10 @@ public class CastorDescriptorTest {
 
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
-        assertEquals(validDeployment.getCommitters(), readDeployment.getCommitters(),
+        assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
                      "deployment descriptor blochchain model mismatch");
 
-        // Validate Node Specification for both clients and committers.
+        // Validate Node Specification for both clients and replicas.
         checkNodeSpecValues(readDeployment);
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
@@ -218,7 +218,7 @@ public class CastorDescriptorTest {
                      "deployment descriptor blochchain model mismatch");
         assertEquals(validDeployment.getClients().size(), readDeployment.getClients().size(),
                      "deployment descriptor client model mismatch");
-        assertEquals(validDeployment.getCommitters().size(), readDeployment.getCommitters().size(),
+        assertEquals(validDeployment.getReplicas().size(), readDeployment.getReplicas().size(),
                      "deployment descriptor blochchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
@@ -242,13 +242,13 @@ public class CastorDescriptorTest {
     @Test
     public void testInValidDescriptorModel() {
         Set<String> expectedErrorCodes = new HashSet<>();
-        final List<DeploymentDescriptorModel.Committer> originalCommitters = validDeployment.getCommitters();
-        // Deployment spec committers zone missing from Infra spec
+        final List<DeploymentDescriptorModel.Replica> originalReplicas = validDeployment.getReplicas();
+        // Deployment spec replicas zone missing from Infra spec
         List<String> unknownZones = List.of("unz-1", "unz-2", "unz-3");
-        List<DeploymentDescriptorModel.Committer> unknownZoneCommitters =
-                unknownZones.stream().map(n -> DeploymentDescriptorModel.Committer.builder().zoneName(n).build())
+        List<DeploymentDescriptorModel.Replica> unknownZoneReplicas =
+                unknownZones.stream().map(n -> DeploymentDescriptorModel.Replica.builder().zoneName(n).build())
                         .collect(Collectors.toList());
-        validDeployment.setCommitters(unknownZoneCommitters);
+        validDeployment.setReplicas(unknownZoneReplicas);
         expectedErrorCodes.add("deployment.zones.not.present.in.infrastructure");
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.PROVISION, validInfra, validDeployment);
@@ -256,8 +256,8 @@ public class CastorDescriptorTest {
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
-        // Restore committers
-        validDeployment.setCommitters(originalCommitters);
+        // Restore replicas
+        validDeployment.setReplicas(originalReplicas);
 
         // Deployment spec clients zone missing from Infra spec
         List<DeploymentDescriptorModel.Client> clients = validDeployment.getClients();
@@ -274,16 +274,16 @@ public class CastorDescriptorTest {
         validationErrorCodes = errors.stream().map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
 
-        // clear all required committers
-        validDeployment.setCommitters(null);
-        expectedErrorCodes.add("deployment.commiters.not.specified");
+        // clear all required replicas
+        validDeployment.setReplicas(null);
+        expectedErrorCodes.add("deployment.replicas.not.specified");
         errors = validatorService.validate(CastorDeploymentType.PROVISION, validInfra, validDeployment);
         assertEquals(2, errors.size());
         validationErrorCodes = errors.stream().map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
 
-        // Restore committers, clients from the previous updates
-        validDeployment.setCommitters(originalCommitters);
+        // Restore replicas, clients from the previous updates
+        validDeployment.setReplicas(originalReplicas);
         for (int i = 0; i < clients.size(); ++i) {
             DeploymentDescriptorModel.Client c = clients.get(i);
             c.setZoneName(originalClientZones.get(i));
@@ -362,16 +362,16 @@ public class CastorDescriptorTest {
     public void testValidProvidedIpAssignment() {
         InfrastructureDescriptorModel validIpsInfra = DescriptorTestUtills.buildInfraDescriptorModel();
         ProvisionDescriptorDescriptorModel validIpsDeployment = DescriptorTestUtills.buildDeploymentDescriptorModel();
-        // Add valid (unique, for all) IP addresses to clients and committers
+        // Add valid (unique, for all) IP addresses to clients and replicas
         List<DeploymentDescriptorModel.Client> clients = validIpsDeployment.getClients();
         for (int i = 0; i < clients.size(); ++i) {
             DeploymentDescriptorModel.Client client = clients.get(i);
             client.setProvidedIp("10.11.12." + (i * 10));
         }
-        List<DeploymentDescriptorModel.Committer> committers = validIpsDeployment.getCommitters();
-        for (int i = 0; i < committers.size(); ++i) {
-            DeploymentDescriptorModel.Committer committer = committers.get(i);
-            committer.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
+        List<DeploymentDescriptorModel.Replica> replicas = validIpsDeployment.getReplicas();
+        for (int i = 0; i < replicas.size(); ++i) {
+            DeploymentDescriptorModel.Replica replica = replicas.get(i);
+            replica.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
         }
 
         List<ValidationError> constraints = validatorService.validate(
@@ -389,8 +389,8 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("provided.ips.not.unique");
         List<DeploymentDescriptorModel.Client> clients = invalidIpsDeployment.getClients();
         clients.forEach(c -> c.setProvidedIp("1.1.1.1"));
-        List<DeploymentDescriptorModel.Committer> committers = invalidIpsDeployment.getCommitters();
-        committers.forEach(c -> c.setProvidedIp("2.2.2.2"));
+        List<DeploymentDescriptorModel.Replica> replicas = invalidIpsDeployment.getReplicas();
+        replicas.forEach(c -> c.setProvidedIp("2.2.2.2"));
 
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.PROVISION, validIpsInfra, invalidIpsDeployment);
@@ -408,13 +408,13 @@ public class CastorDescriptorTest {
             }
         }
         // Add IPs only for certain clients
-        committers = invalidIpsDeployment.getCommitters();
-        for (int i = 0; i < committers.size(); i++) {
-            DeploymentDescriptorModel.Committer committer = committers.get(i);
+        replicas = invalidIpsDeployment.getReplicas();
+        for (int i = 0; i < replicas.size(); i++) {
+            DeploymentDescriptorModel.Replica replica = replicas.get(i);
             if (i % 2 == 0) {
-                committer.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
+                replica.setProvidedIp("10.11.12." + ((clients.size() + i) * 10));
             } else {
-                committer.setProvidedIp("         ");
+                replica.setProvidedIp("         ");
             }
         }
 
@@ -564,7 +564,7 @@ public class CastorDescriptorTest {
     /**
      * Test invalid "reconfigure" deployment descriptor.
      * For reconfiguration:
-     * - all clients + committer entries must have providedIps
+     * - all clients + replicas entries must have providedIps
      * - the blockchain Id must be specified
      */
     @Test
@@ -594,7 +594,7 @@ public class CastorDescriptorTest {
     /**
      * Test invalid "reconfigure" deployment descriptor.
      * For reconfiguration:
-     * - all clients + committer entries must have providedIps
+     * - all clients + replicas entries must have providedIps
      * - the blockchain Id must be specified
      */
     @Test
@@ -615,15 +615,15 @@ public class CastorDescriptorTest {
     }
 
     /**
-     * Validate node specification for Client and Committer nodes.
+     * Validate node specification for Client and Replica nodes.
      * @param readDeployment deployment model
      */
     private void checkNodeSpecValues(DeploymentDescriptorModel readDeployment) {
-        assertEquals(2, readDeployment.getCommitterNodeSpec().getCpuCount(),
+        assertEquals(2, readDeployment.getReplicaNodeSpec().getCpuCount(),
                      "deployment descriptor node spec cpu model mismatch");
-        assertEquals(16, readDeployment.getCommitterNodeSpec().getMemoryGb(),
+        assertEquals(16, readDeployment.getReplicaNodeSpec().getMemoryGb(),
                      "deployment descriptor node spec memory model mismatch");
-        assertEquals(64, readDeployment.getCommitterNodeSpec().getDiskSizeGb(),
+        assertEquals(64, readDeployment.getReplicaNodeSpec().getDiskSizeGb(),
                      "deployment descriptor node spec disk model mismatch");
 
         assertEquals(4, readDeployment.getClientNodeSpec().getCpuCount(),

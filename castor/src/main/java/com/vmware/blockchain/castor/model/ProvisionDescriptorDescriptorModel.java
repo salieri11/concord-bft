@@ -23,14 +23,14 @@ import lombok.Setter;
 @EqualsAndHashCode
 public class ProvisionDescriptorDescriptorModel implements DeploymentDescriptorModel {
 
-    // List of zone ids on which the committers should be deployed
+    // List of zone ids on which the replicas should be deployed
     // These MUST match the zone name in the Infrastructure descriptor.
-    @NotEmpty(message = "deployment.commiters.not.specified")
+    @NotEmpty(message = "deployment.replicas.not.specified")
     @Valid
-    private List<Committer> committers;
+    private List<Replica> replicas;
 
     @Valid
-    private NodeSpecification committerNodeSpec;
+    private NodeSpecification replicaNodeSpec;
 
     @NotEmpty(message = "deployment.clients.not.specified")
     @Valid

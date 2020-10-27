@@ -48,16 +48,16 @@
       },
       "required": ["zoneName"]
     },
-    "committer": {
-      "description": "Committer properties",
+    "replica": {
+      "description": "Replica properties",
       "type": "object",
       "properties": {
         "zoneName": {
-          "description": "Zone where committer is to be placed",
+          "description": "Zone where replica is to be placed",
           "type": "string"
         },
         "providedIp": {
-          "description": "The user-provided IP address to be assigned to the committer",
+          "description": "The user-provided IP address to be assigned to the replica",
           "type": "string",
           "format": "ipv4"
         }
@@ -87,10 +87,10 @@
     "blockchain": {
       "$ref": "#/definitions/blockchain"
     },
-    "committers": {
+    "replicas": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/committer"
+        "$ref": "#/definitions/replica"
       },
       "minItems": 1
     },
@@ -100,8 +100,8 @@
         "$ref": "#/definitions/client"
       }
     },
-    "committerNodeSpec": {
-      "description": "Committer node specification",
+    "replicaNodeSpec": {
+      "description": "Replica node specification",
       "$ref": "#/definitions/nodeSpec"
     },
     "clientNodeSpec": {
@@ -111,7 +111,7 @@
   },
   "required": [
     "blockchain",
-    "committers",
+    "replicas",
     "clients"
   ]
 }
