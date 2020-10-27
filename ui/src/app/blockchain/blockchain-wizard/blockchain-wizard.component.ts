@@ -163,10 +163,21 @@ export class BlockchainWizardComponent implements AfterViewInit {
       member_clients: new FormArray([]),
     }));
     this.addClientNodeToGroup(g);
+    // Focus group name input
+    setTimeout(() => {
+      this.clientsForm
+        .nativeElement
+        .querySelector('#deploy-page-clients-group-' + g + '-name-input').focus();
+    }, 500);
+
   }
+
   getClientGroup(g: number) { return this.clientGroups.at(g); }
+
   removeClientGroup(g: number) { this.clientGroups.removeAt(g); }
+
   getClientGroupMembers(g: number) { return this.getClientGroup(g)['controls'].member_clients; }
+
   addClientNodeToGroup(g: number) {
     const defaultZoneId = this.getActiveZones().length === 1 ? this.getActiveZones()[0].id : '';
     this.getClientGroupMembers(g).push(
@@ -175,9 +186,13 @@ export class BlockchainWizardComponent implements AfterViewInit {
         zone_id: new FormControl(defaultZoneId, Validators.required),
         auth_url_jwt: new FormControl('', Validators.pattern(urlValidateRegex)),
         zone_name: new FormControl(''),
+        pem: new FormControl(''),
+        crt: new FormControl(''),
+        cacrt: new FormControl(''),
       })
     );
   }
+
   removeClientNodeToGroup(g: number, c: number) {
     if (this.getClientGroupMembers(g).length > 1) {
       this.getClientGroupMembers(g).removeAt(c);
@@ -185,6 +200,16 @@ export class BlockchainWizardComponent implements AfterViewInit {
       this.removeClientGroup(g);
     }
   }
+
+  addTLSCert(c: number) {
+    const client = document.querySelector(`#Client-${c}`);
+    if (client.classList.contains('hide')) {
+      client.classList.remove('hide');
+    } else {
+      client.classList.add('hide');
+    }
+  }
+
   clientNodeIndex(g: number, c: number) {
     let total = 0;
     for (let g2 = 0; g2 < this.clientGroups.length; ++g2) {
@@ -193,6 +218,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
     return total + c;
   }
+
   totalClientsCount() {
     let total = 0;
     for (let g = 0; g < this.clientGroups.length; ++g) {
@@ -314,19 +340,20 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const clients: NodeClientParam[] = [];
     for (let g = 0; g < this.clientGroups.length; ++g) {
       const clientGroup = this.clientGroups.at(g) as FormGroup;
-      const groupName = clientGroup.controls.group_name as FormControl;
+      const groupName = clientGroup.controls.group_name.value;
       const memberClients = clientGroup.controls.member_clients as FormArray;
       for (let c = 0; c < memberClients.length; ++c) {
-        const clientNode = memberClients.at(c) as FormGroup;
-        const zoneId = clientNode.controls.zone_id as FormControl;
-        const authUrl = clientNode.controls.auth_url_jwt as FormControl;
+        const clientNode = memberClients.at(c).value;
         const clientSizing = this.nodeSizingTemplate.clientSizing;
 
         clients.push({
           // should be groupName.value in the future
-          group_name: groupName.value,
-          zone_id: zoneId.value,
-          auth_url_jwt: authUrl.value,
+          group_name: groupName,
+          zone_id: clientNode.zone_id,
+          auth_url_jwt: clientNode.authUrl,
+          pem: clientNode.pem,
+          crt: clientNode.crt,
+          cacrt: clientNode.cacrt,
           // Node sizing for client nodes
           sizing_info: {
             no_of_cpus: clientSizing.no_of_cpus,

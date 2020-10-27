@@ -40,21 +40,6 @@
           </div>
         </div>
       </div>
-      <div class="clr-row" *concordFeatureFlag="'deploy_HLF'">
-        <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.HLF)"
-            [ngClass]="{'active': selectedEngine === engines.HLF}">
-            <div class="card-icon">
-              <img src="static/images/contract-types/hlf.svg"
-                [attr.alt]="'blockchainWizard.engine.hlfTitle' | translate">
-            </div>
-            <div class="card-endorsement">
-              <h3>{{ 'blockchainWizard.engine.hlfTitle' | translate }}</h3>
-              <p>{{ 'blockchainWizard.engine.hlfInfo' | translate }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </clr-wizard-page>
 
     <clr-wizard-page #detailPage formGroupName="details" [clrWizardPageNextDisabled]="form.controls.details.invalid">
@@ -203,9 +188,6 @@
                 <clr-input-container>
                   <input clrInput [id]="'deploy-page-clients-group-'+g+'-name-input'" formControlName="group_name"
                         type="text" class="group-name-input" [placeholder]="'blockchainWizard.clients.groupNamePH' | translate "/>
-                  <clr-control-helper class="error-helper red-text" *ngIf="clientGroup.controls.group_name.value === ''">
-                    {{ 'blockchainWizard.clients.groupNameErrorHelper' | translate }}
-                  </clr-control-helper>
                   <clr-control-error class="error-helper" *ngIf="clientGroup.controls.group_name.errors?.message">
                     {{ clientGroup.controls.group_name.errors.message }}
                   </clr-control-error>
@@ -225,7 +207,7 @@
           <div formGroupName="member_clients" class="compact-input-container">
             <label class="short-label">{{ 'blockchainWizard.clients.clientNode' | translate }}</label>
             <div class="clr-row columned no-height">
-              <div class="col-min-1"></div>
+              <div class="col-min-0"></div>
               <div class="clr-col-md-4">
                 <div class="column-label-container"><label class="column-label">{{ 'blockchainWizard.clients.zone' | translate }}</label></div>
               </div>
@@ -239,8 +221,9 @@
                 </div>
               </div>
             </div>
-            <div *ngFor="let client of getClientGroupMembers(g).controls; let c = index;" [formGroupName]="c" class="clr-row columned">
-              <div class="col-min-1">
+            <div *ngFor="let client of getClientGroupMembers(g).controls; let c = index;" [formGroupName]="c">
+            <div  class="clr-row columned">
+              <div class="col-min-0">
                 <div class="no-width client-node-index-cont"><label class="client-node-index">{{ clientNodeIndex(g,c)+1 }}</label></div>
               </div>
               <div class="clr-col-md-4">
@@ -258,7 +241,7 @@
                 </clr-select-container>
               </div>
               <div class="col-min-2"></div>
-              <div class="clr-col-md-6">
+              <div class="clr-col-md-4">
                 <clr-input-container>
                   <input clrInput [id]="'deploy-page-clients-group-'+g+'-client-'+c+'-auth-url-input'" type="text" class="auth-input"
                     formControlName="auth_url_jwt" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
@@ -269,10 +252,39 @@
                     </clr-control-error>
                 </clr-input-container>
               </div>
-              <button class="btn btn-sm remove-col-button" (click)="removeClientNodeToGroup(g,c)" *ngIf="totalClientsCount() > 1">
-                <clr-icon size="20" shape="minus-circle"></clr-icon>
-              </button>
+              <div class="clr-col-md-3">
+                <button class="btn btn-sm btn-link" (click)="addTLSCert(c)" *concordFeatureFlag="'tls'">
+                  {{ 'blockchainWizard.clients.tls' | translate }}
+                </button>
+                <button class="btn btn-sm btn-danger btn-link remove-col-button" (click)="removeClientNodeToGroup(g,c)" *ngIf="totalClientsCount() > 1">
+                  <clr-icon size="20" shape="minus-circle"></clr-icon>
+                </button>
+              </div>
             </div>
+            <div [id]="'Client-' + c" class="clr-row columned certs hide">
+              <div class="clr-col-md-4">
+                <clr-textarea-container>
+                  <label>{{ 'blockchainWizard.clients.pem' | translate }}</label>
+                  <textarea clrTextarea formControlName="pem"
+                    [placeholder]="'blockchainWizard.clients.pemPH' | translate"></textarea>
+                </clr-textarea-container>
+              </div>
+              <div class="clr-col-md-4">
+                <clr-textarea-container>
+                  <label>{{ 'blockchainWizard.clients.crt' | translate }}</label>
+                  <textarea clrTextarea formControlName="crt"
+                    [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                </clr-textarea-container>
+              </div>
+              <div class="clr-col-md-4">
+                <clr-textarea-container>
+                  <label>{{ 'blockchainWizard.clients.cacrt' | translate }}</label>
+                  <textarea clrTextarea formControlName="cacrt"
+                    [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                </clr-textarea-container>
+              </div>
+            </div>
+          </div>
           </div>
           <div class="compact-input-container">
             <div class="clr-row columned no-height">
