@@ -93,8 +93,10 @@ def format_hosts_structure(all_replicas):
                     if concord_host["private_ip"] is not None else concord_host["public_ip"]
             concord_hosts_list.append(concord_host)
 
-    client_hosts = client_hosts_list if len(client_hosts_list) else client_hosts
-    concord_hosts = concord_hosts_list if len(concord_hosts_list) else concord_hosts
+    client_hosts = client_hosts_list if len(
+        client_hosts_list) else client_hosts
+    concord_hosts = concord_hosts_list if len(
+        concord_hosts_list) else concord_hosts
 
     return client_hosts, concord_hosts
 
@@ -294,6 +296,43 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
         log.info("\n*** Sanity check successfully done for given test ***\n")
     except Exception as excp:
         assert False, excp
+
+
+def stop_for_replica_list(replica_list, container_name, count):
+    '''
+    Function to stop committer nodes from list of replicas
+    for maximum count provided
+    Args:
+        replica_list: List of committer IPs
+        container_name: Name of the container
+        count: Number of committer nodes to be stopped
+    Returns:
+        None
+    '''
+    log.info("Stopping process")
+    for i in range(count):
+        concord_host = replica_list[i]
+        assert intr_helper.stop_container(
+            concord_host, container_name), "Failed to stop committer node [{}]".format(concord_host)
+    log.info("\nStopped {} replicas".format(count))
+
+
+def start_for_replica_list(replica_list, container_name, count):
+    '''
+    Function to start committer nodes from list of replicas
+    for maximum count provided
+    Args:
+        replica_list: List of committer IPs
+        container_name: Name of the container
+        count: Number of committer nodes to be started
+    Returns:
+        None
+    '''
+    for i in range(count):
+        concord_host = replica_list[i]
+        assert intr_helper.start_container(
+            concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
+    log.info("\nStarted {} replicas".format(count))
 
 
 @describe("daml test for single transaction without any interruption")

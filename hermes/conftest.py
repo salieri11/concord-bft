@@ -795,7 +795,8 @@ def _get_suite_short_name(module_name):
         "HelenNodeSizeTemplateTests": "nodesize_test",
         "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
         "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests",
-        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests"
+        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
+        "WavefrontTests": "hermes.suites.wavefront_tests"
     }
 
     short_name = list(suite_list.keys())[list(

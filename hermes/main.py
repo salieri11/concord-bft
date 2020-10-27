@@ -84,7 +84,8 @@ suiteList = {
    "HelenNodeSizeTemplateTests": "suites/helen/nodesize_test.py",
    "ReconfigurationTests": "suites/reconfiguration_tests.py",
    "PreExecutionTests": "suites/sys_test_preexecution_tests.py",
-   "SkvbcViewchangeTests": "suites/skvbc_viewchange_tests.py"
+   "SkvbcViewchangeTests": "suites/skvbc_viewchange_tests.py",
+   "WavefrontTests": "suites/wavefront_tests.py"
 }
 
 local_modules = [os.path.join(".", "lib", "persephone")]
