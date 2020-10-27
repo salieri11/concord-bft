@@ -276,7 +276,7 @@ object ExtraConfig {
         s"Configure the BFT Client. The accepted keys are " +
           s"'$ConfigPathKey' (default = ${bftClientDefaultConfig.configPath}) " +
           s"as well as timeout strategy and send retry strategy keys " +
-          s"(use --bft-timeout-strategies or --bft-send-retry-strategies for more info).")
+          s"(use --bft-timeout-strategies, --bft-init-retry-strategies or --bft-send-retry-strategies for more info).")
 
     parser
       .opt[Unit]("bft-timeout-strategies")
@@ -311,6 +311,21 @@ object ExtraConfig {
         sys.exit(0)
       })
       .text("Prints the BFT client send retry strategies and exits.")
+
+    parser
+      .opt[Unit]("bft-init-retry-strategies")
+      .optional()
+      .action((_, _) => {
+        println(
+          s"""BFT init retry strategies determine how the Ledger API Server retries initializing the BFT client, if not yet available, at bootstrap time. They can be selected through the '$InitRetryStrategyKey' key that supports the following values:
+             |
+             | * $ExponentialBackOff (default; the multiplier is fixed to ${RetryStrategy.ExponentialBackoffMultiplier})
+             | * $ConstantWaitTime
+             |
+             |All strategies also support the additional '$InitRetryFirstWaitKey' (default value: ${durationToCommandlineText(BftClientConfig.DefaultInitRetryStrategy.firstWaitTime)}) and '$InitRetriesKey' (default value: ${BftClientConfig.DefaultInitRetryStrategy.retries}) keys.""".stripMargin)
+        sys.exit(0)
+      })
+      .text("Prints the BFT client init retry strategies and exits.")
 
     addDeprecatedBftClientCommandLineArguments(parser)
   }
