@@ -13,7 +13,7 @@ import util.daml.daml_helper as daml_helper
 from util.daml.daml_requests import simple_request, continuous_daml_request_submission
 import util.node_interruption_helper as intr_helper
 from asyncio import set_event_loop, new_event_loop
-from fixtures.common_fixtures import fxNodeInterruption, fxBlockchain, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxNodeInterruption, fxProduct
 import json
 from pathlib import Path
 import os
@@ -25,11 +25,11 @@ log = hermes_logging.getMainLogger()
 LocalSetupFixture = namedtuple(
     "LocalSetupFixture", "client_hosts, concord_hosts, f_count")
 
-PARTICIPANT_GENERIC_ERROR_MSG = "DAML request submission/verification failed"
-COMMITTER_POWER_ON_ERROR_MSG = "Failed to power on committer node"
-COMMITTER_POWER_OFF_ERROR_MSG = "Failed to power off committer node"
-PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node"
-PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node"
+PARTICIPANT_GENERIC_ERROR_MSG = "DAML request submission/verification failed "
+COMMITTER_POWER_ON_ERROR_MSG = "Failed to power on committer node "
+COMMITTER_POWER_OFF_ERROR_MSG = "Failed to power off committer node "
+PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node "
+PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
 DAML_LEDGER_API_PORT = '6865'
 
 
@@ -39,7 +39,7 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
     '''
     Function scoped fixture to enable all the test cases utilize common func.
     Args:
-        fxHermesRunSettings: Hermes command line arguments.
+        fxHermesRunSettings: Hermes command line arguments (part of conftest.py so no explicit import).
         fxNodeInterruption: Node Interruption fixture for related functions
         fxBlockchain: Blockchain fixture required to get f_count
         fxProduct: Product fixture
@@ -48,10 +48,10 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
         concord_hosts: Concord (committer) replicas
         f_count: Maximum faulty replicas allowed.
     '''
-    # log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
+    log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
     f_count = intr_helper.get_f_count(fxBlockchain)
     client_hosts, concord_hosts = format_hosts_structure(fxBlockchain.replicas)
-    log.info("\nIn fxLocalSetup fixture,\nParticipants are {}\nCommitters are {}\n".format(
+    log.info("\nIn fxLocalSetup fixture, Participants are {}\nCommitters are {}\n".format(
         client_hosts, concord_hosts))
 
     local_tuple = LocalSetupFixture(
@@ -59,21 +59,26 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
 
     def fin():
         perform_sanity_check(reraise, local_tuple, fxHermesRunSettings)
+
     request.addfinalizer(fin)
 
     return local_tuple
 
 
 def format_hosts_structure(all_replicas):
+    '''
+    Currently the structure of replicas is different when blockchain is deployed 
+    and when replicasConfig argument is provided.
+    Once the utility functions are corrected to allow only single format, 
+    this function would be removed.
+    '''
     client_hosts = all_replicas["daml_participant"]
     concord_hosts = all_replicas["daml_committer"]
 
-    client_hosts_list = []
-    concord_hosts_list = []
+    client_hosts_list, concord_hosts_list = [], []
 
     # Parse through the participants and committers
-    for client_host, concord_host \
-            in list(zip_longest(client_hosts, concord_hosts)):
+    for client_host, concord_host in list(zip_longest(client_hosts, concord_hosts)):
         # Participant hosts
         if client_host:
             if (isinstance(client_host, dict)):
@@ -88,10 +93,8 @@ def format_hosts_structure(all_replicas):
                     if concord_host["private_ip"] is not None else concord_host["public_ip"]
             concord_hosts_list.append(concord_host)
 
-    client_hosts = client_hosts_list if len(
-        client_hosts_list) else client_hosts
-    concord_hosts = concord_hosts_list if len(
-        concord_hosts_list) else concord_hosts
+    client_hosts = client_hosts_list if len(client_hosts_list) else client_hosts
+    concord_hosts = concord_hosts_list if len(concord_hosts_list) else concord_hosts
 
     return client_hosts, concord_hosts
 
@@ -108,7 +111,7 @@ def install_sdk_deploy_daml(client_host):
     home = str(Path.home())
     daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
     cmd = [daml_sdk_path, "deploy", "--host",
-        client_host, "--port", get_port(client_host)]
+           client_host, "--port", get_port(client_host)]
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
         cmd, timeout=180, working_dir=party_project_dir, verbose=True)
@@ -162,11 +165,11 @@ def power_on_all_participants(fxHermesRunSettings, client_hosts):
         log.info("Participant no {} : {} is on".format(count + 1, client_host))
 
 
-# If f_count is passed to this method, then it powers off only f nodes.
-# Otherwise all nodes are powered off.
 def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
     '''
     Function to power off all or f committer nodes
+    If f_count is passed to this method, then it powers off only f nodes.
+    Otherwise all nodes are powered off.
     Args:
         fxHermesRunSettings: Hermes command line arguments
         concord_hosts: List of Committer Node IPs
@@ -221,11 +224,14 @@ def make_daml_request_in_thread(reraise, client_host, no_of_txns=1, wait_time=1)
     log.info("\nStarting thread for daml transaction")
     url = 'http://{}:{}'.format(client_host, get_port(client_host))
 
-    set_event_loop(new_event_loop())
-    thread_daml_txn = Thread(target=simple_request, args=(url, no_of_txns, wait_time))
+    def make_daml_request(url, no_of_txns, wait_time):
+        set_event_loop(new_event_loop())
+        simple_request(url, no_of_txns, wait_time)
+
+    thread_daml_txn = Thread(target=make_daml_request,
+                             args=(url, no_of_txns, wait_time))
     thread_daml_txn.start()
-    thread_daml_txn.join()
-    time.sleep(20)
+    time.sleep(90)
     log.info("\nIs thread alive? {}".format(thread_daml_txn.isAlive()))
     if(thread_daml_txn.isAlive()):
         reraise()
@@ -240,7 +246,57 @@ def get_port(client_host):
     return client_port
 
 
-@describe("daml test for single transaction")
+def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
+    '''
+    Function to perform sanity check after executing every test.
+    It powers on the node and start containers, if brought down or stopped during any test
+    Performs daml transaction as last check. 
+    Args:
+        fixture_tuple: Local setup fixture tuple.
+        fxHermesRunSettings: Hermes command line arguments.
+    Returns:
+        None
+    '''
+    log.info("\n**** Performing sanity check after every test ****")
+    try:
+        log.info("\nCheck if all the participant nodes are up")
+        for client_host in fixture_tuple.client_hosts:
+            # Check if client host is up
+            assert interrupt_node(fxHermesRunSettings, client_host,
+                                  helper.TYPE_DAML_PARTICIPANT,
+                                  intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                                  intr_helper.NODE_RECOVER), \
+                "Failed to power on participant {}".format(client_host)
+
+        log.info("\nCheck if all the committer nodes are up")
+        for concord_host in fixture_tuple.concord_hosts:
+            # Check if concord host is up
+            assert interrupt_node(fxHermesRunSettings, concord_host,
+                                  helper.TYPE_DAML_COMMITTER,
+                                  intr_helper.NODE_INTERRUPT_VM_STOP_START,
+                                  intr_helper.NODE_RECOVER), \
+                "Failed to power on committer {}".format(concord_host)
+
+        cmd = "docker start daml_ledger_api; docker inspect --format {{.State.Status}} daml_ledger_api"
+        helper.ssh_parallel(fixture_tuple.client_hosts, cmd, verbose=False)
+
+        cmd = "docker start daml_index_db; docker inspect --format {{.State.Status}} daml_index_db"
+        helper.ssh_parallel(fixture_tuple.client_hosts, cmd, verbose=False)
+
+        cmd = "docker start concord; docker inspect --format {{.State.Status}} concord"
+        helper.ssh_parallel(fixture_tuple.concord_hosts, cmd, verbose=False)
+
+        log.info("\nPerform daml transaction as final check")
+        for client_host in fixture_tuple.client_hosts:
+            assert make_daml_request_in_thread(reraise, client_host), \
+                PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
+
+        log.info("\n*** Sanity check successfully done for given test ***\n")
+    except Exception as excp:
+        assert False, excp
+
+
+@describe("daml test for single transaction without any interruption")
 def test_daml_single_transaction(reraise, fxLocalSetup):
     '''
     Verify case by submitting sequential client requests using DAML tool.
@@ -262,7 +318,7 @@ def test_daml_single_transaction(reraise, fxLocalSetup):
             assert False, excp
 
 
-@describe("fault tolerance when f replicas are stopped/started")
+@describe("fault tolerance - f replicas are stopped/started, powered off/on")
 def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
@@ -275,6 +331,7 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     - Continuously submit and verify requests.
     - Restart the stopped replicas.
     - Verify that new requests are processed correctly.
+    - Submit and verify requests for power off/on of committer nodes as well.
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
@@ -335,18 +392,19 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
-@describe("verify fault tolerance - participant restart")
-def test_fault_tolerance_participant_restart(reraise, fxLocalSetup,
-                                             fxHermesRunSettings):
+@describe("fault tolerance - participant ledger api restarted, node is powered off/on")
+def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
+                                       fxHermesRunSettings):
     '''
     Verify fault tolerance - stop/start participant node and submit
     sequential client requests using DAML tool.
     - Connect to a blockchain network.
     - Submit valid requests to it.
     - Verify that requests are processed correctly.
-    - Stop and start participant node.
+    - Stop and start participant's ledger api container.
     - Submit valid requests to it.
     - Verify that requests are processed correctly.
+    - Submit and verify requests for power off/on of given participant node as well.
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
@@ -393,7 +451,7 @@ def test_fault_tolerance_participant_restart(reraise, fxLocalSetup,
             assert False, excp
 
 
-@describe("fault tolerance on restart of participant,ledger api, index db")
+@describe("fault tolerance - participant node powered off/on, ledger api, index db restarted")
 def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
@@ -451,7 +509,7 @@ def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRu
             assert False, excp
 
 
-@describe("recovery test after checkpoints (network failure)")
+@describe("fault tolerance - recovery after checkpoints (network failure), f nodes powered off/on")
 def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
@@ -461,6 +519,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
     - Enable the network interface on all replicas.
     - Submit a small number of sequential client requests
     - Verify that new requests are processed correctly.
+    - Submit and verify requests for power off/on of f committer nodes as well.    
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
@@ -541,7 +600,78 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
-@describe("Verify fault tolerance when nodes started with staggered startup ")
+@describe("fault tolerance - requests not to be processed without quorum")
+@pytest.mark.parametrize("step", [0, 1])
+def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
+    '''
+    Verify below using DAML tool.
+    - Connect to a blockchain network.
+    - Stop f + 1 non-primary replicas.
+    - Submit and verify requests, it is expected to fail.
+    - Restart the stopped replicas.
+    - Verify that new requests are processed correctly.
+    - Stop f non-primary replicas and primary replica.
+    - Submit and verify requests, it is expected to fail.
+    - Restart the stopped replicas.
+    - Verify that new requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+    '''
+    for client_host in fxLocalSetup.client_hosts:
+        try:
+            # Install sdk only for one iteration
+            if step == 0:
+                install_sdk_deploy_daml(client_host)
+
+            # Find primary replica and primary replica id
+            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            primary_rip = replicas_mapping["primary_ip"]
+            log.info("Primary Replica IP: {}".format(primary_rip))
+
+            all_replicas = fxLocalSetup.concord_hosts[:]
+            container_name = 'concord'
+
+            non_primary_replicas = [
+                n for n in all_replicas if n != primary_rip]
+            primary_and_non_primary_replicas = [
+                primary_rip] + [n for n in non_primary_replicas]
+
+            # Step 0 - f+1 non primary replicas to be stopped
+            # Step 1 - f non primary and 1 primary replicas to be stopped
+            if step == 0:
+                stop_for_replica_list(
+                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            else:
+                stop_for_replica_list(
+                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+
+            # Transactions should fail at this moment
+            success = make_daml_request_in_thread(reraise, client_host, 1)
+            log.info("daml txn after f+1 down is {}".format(success))
+            if success:
+                log.info(
+                    "Daml transaction was successful even with f+1 replicas down")
+                assert False, "Expected daml transaction to fail after f+1 replicas are down"
+
+            # Step 0 - f+1 non primary replicas to be started
+            # Step 1 - f non primary and 1 primary replicas to be started
+            if step == 0:
+                start_for_replica_list(
+                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            else:
+                start_for_replica_list(
+                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+
+            # Create & verify transactions after powering on stopped replicas
+            assert make_daml_request_in_thread(reraise, client_host), \
+                PARTICIPANT_GENERIC_ERROR_MSG
+
+        except Exception as excp:
+            assert False, excp
+
+
+@describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
     '''
@@ -603,7 +733,7 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
             PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
 
 
-@describe("verify fault tolerance - view change")
+@describe("fault tolerance - view change")
 def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance using below steps:
@@ -688,7 +818,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             assert False, excp
 
 
-@describe("verify fault tolerance - after multiple view changes")
+@describe("fault tolerance - multiple view changes")
 def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance view changes after multiple using below steps:
@@ -759,205 +889,3 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
         except Exception as excp:
             assert False, excp
-
-
-@describe("verify that requests are not processed without quorum")
-@pytest.mark.parametrize("step", [0, 1])
-def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
-    '''
-    Verify below using DAML tool.
-    - Connect to a blockchain network.
-    - Stop f + 1 non-primary replicas.
-    - Submit and verify requests, it is expected to fail.
-    - Restart the stopped replicas.
-    - Verify that new requests are processed correctly.
-    - Stop f non-primary replicas and primary replica.
-    - Submit and verify requests, it is expected to fail.
-    - Restart the stopped replicas.
-    - Verify that new requests are processed correctly.
-    Args:
-        fxLocalSetup: Local fixture
-        fxHermesRunSettings: Hermes command line arguments
-    '''
-    for client_host in fxLocalSetup.client_hosts:
-        try:
-            # Install sdk only for one iteration
-            if step == 0:
-                install_sdk_deploy_daml(client_host)
-
-            # Find primary replica and primary replica id
-            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
-            primary_rip = replicas_mapping["primary_ip"]
-            log.info("Primary Replica IP: {}".format(primary_rip))
-
-            all_replicas = fxLocalSetup.concord_hosts[:]
-            container_name = 'concord'
-
-            non_primary_replicas = [
-                n for n in all_replicas if n != primary_rip]
-            primary_and_non_primary_replicas = [
-                primary_rip] + [n for n in non_primary_replicas]
-
-            # Step 0 - f+1 non primary replicas to be stopped
-            # Step 1 - f non primary and 1 primary replicas to be stopped
-            if step == 0:
-                thread_stop_replica = Thread(target=stop_replica, args=(
-                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1))
-            else:
-                thread_stop_replica = Thread(target=stop_replica, args=(
-                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1))
-
-            thread_stop_replica.start()
-            thread_stop_replica.join()
-            time.sleep(10)
-            log.info("\nIs thread alive? {}".format(
-                thread_stop_replica.isAlive()))
-            if(thread_stop_replica.isAlive()):
-                log.info("\nKilling this thread in 10 seconds")
-                thread_stop_replica.join(10)
-                assert False, "while stopping f+1 replicas"
-
-            # Transactions should fail at this moment
-            success = make_daml_request_in_thread(reraise, client_host, 1)
-            log.info("daml txn after f+1 down is {}".format(success))
-            if success:
-                log.info("Daml transaction was successful even with f+1 replicas down")
-                assert False, "Expected daml transaction to fail after f+1 replicas are down"
-
-            # Step 0 - f+1 non primary replicas to be started
-            # Step 1 - f non primary and 1 primary replicas to be started
-            if step == 0:
-                thread_start_replica = Thread(target=stop_replica, args=(
-                    [non_primary_replicas], container_name, fxLocalSetup.f_count + 1))
-            else:
-                thread_start_replica = Thread(target=stop_replica, args=(
-                    [primary_and_non_primary_replicas], container_name, fxLocalSetup.f_count + 1))
-
-            thread_start_replica.start()
-            thread_start_replica.join()
-            time.sleep(10)
-            log.info("\nIs thread alive? {}".format(
-                thread_start_replica.isAlive()))
-            if(thread_start_replica.isAlive()):
-                log.info("\nKilling this thread in 10 seconds")
-                thread_start_replica.join(10)
-                assert False, "while starting f+1 replicas"
-
-            # Create & verify transactions after powering on stopped replicas
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG
-
-        except Exception as excp:
-            assert False, excp
-
-
-def stop_replica(replica_list, container_name, count):
-    '''
-    Function to stop committer nodes from list of replicas provided
-    Args:
-        replica_list: List of committer IPs
-        container_name: Name of the container
-        count: Number of committer nodes to be stopped
-    Returns:
-        None
-    '''
-    for i in range(count):
-        concord_host = replica_list[i]
-        log.info("Stopping container {} for replica {}".format(
-            container_name, concord_host))
-        assert intr_helper.stop_container(concord_host, container_name), \
-            "Failed to stop committer node [{}]".format(concord_host)
-
-
-
-def start_replica(replica_list, container_name, count):
-    '''
-    Function to start committer nodes from list of replicas provided
-    Args:
-        replica_list: List of committer IPs
-        container_name: Name of the container
-        count: Number of committer nodes to be started
-    Returns:
-        None
-    '''
-    for i in range(count):
-        concord_host = replica_list[i]
-        log.info("Starting container {} for replica {}".format(
-            container_name, concord_host))
-        assert intr_helper.start_container(concord_host, container_name), \
-            "Failed to start committer node [{}]".format(concord_host)
-
-
-def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
-    '''
-    Function to perform sanity check after executing every test.
-    It powers on the node and start containers, if brought down or stopped during any test
-    Performs daml transaction as last check. 
-    Args:
-        fixture_tuple: Local setup fixture tuple.
-        fxHermesRunSettings: Hermes command line arguments.
-    Returns:
-        None
-    '''
-    log.info("\n**** Performing sanity check after every test ****")
-    username, password = helper.getNodeCredentials()
-    client_containers = ['daml_ledger_api', 'daml_index_db']
-    concord_containers = ['concord']
-
-    try:
-        log.info("\nCheck if all the participant nodes and their containers are up")
-        for client_host in fixture_tuple.client_hosts:
-            # Check if client host is up
-            assert interrupt_node(fxHermesRunSettings, client_host,
-                                  helper.TYPE_DAML_PARTICIPANT,
-                                  intr_helper.NODE_INTERRUPT_VM_STOP_START,
-                                  intr_helper.NODE_RECOVER), \
-                "Failed to power on participant {}".format(client_host)
-            
-            time.sleep(10)
-            log.info("Participant nodes are up, now checking for containers")
-            # Check if containers are up
-            for container in client_containers:
-                is_container_up = False
-                while not is_container_up:
-                    get_container_status = "docker inspect --format '{}' {}".format(
-                        '{{.State.Status}}', container)
-                    status = helper.ssh_connect(
-                        client_host, username, password, get_container_status)
-                    if not "running" in status:
-                        intr_helper.start_container(client_host, container, 40)
-                    else:
-                        is_container_up = True
-
-        log.info("\nCheck if all the committer nodes and their containers are up")
-        for concord_host in fixture_tuple.concord_hosts:
-            # Check if concord host is up
-            assert interrupt_node(fxHermesRunSettings, concord_host,
-                                  helper.TYPE_DAML_COMMITTER,
-                                  intr_helper.NODE_INTERRUPT_VM_STOP_START,
-                                  intr_helper.NODE_RECOVER), \
-                "Failed to power on committer {}".format(concord_host)
-            
-            time.sleep(10)
-            log.info("Committer nodes are up, now checking for containers")
-            # Check if containers are up
-            for container in concord_containers:
-                is_container_up = False
-                while not is_container_up:
-                    get_container_status = "docker inspect --format '{}' {}".format(
-                        '{{.State.Status}}', container)
-                    status = helper.ssh_connect(
-                        concord_host, username, password, get_container_status)
-                    if not "running" in status:
-                        intr_helper.start_container(client_host, container, 40)
-                    else:
-                        is_container_up = True
-
-        log.info("\nPerform daml transaction as final check")
-        for client_host in fixture_tuple.client_hosts:
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
-
-        log.info("\n*** Sanity check successfully done for given test ***\n")
-    except Exception as excp:
-        assert False, excp
