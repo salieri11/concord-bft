@@ -498,7 +498,7 @@ def get_wf_measurements(committers, start_epoch, end_epoch):
     metric we are testing in this test suite.
     '''
     num_measurements = 0
-    highest_measurement = 0
+    total_measurement = 0
     metric_name = "vmware.blockchain.concord.concordbft.preProcReqReceived.counter"
     filt = "vm_ip"
     str_output = None
@@ -512,35 +512,43 @@ def get_wf_measurements(committers, start_epoch, end_epoch):
             if series["data"]:
                 num_measurements += len(series["data"])
                 for d in series["data"]:
-                    if d[1] > highest_measurement:
-                        highest_measurement = d[1]
+                    total_measurement += d[1]
 
         log.debug("Wavefront data: {}".format(str_output))
 
     log.info("num_measurements: {}".format(num_measurements))
-    log.info("highest_measurement: {}".format(highest_measurement))
-    return num_measurements, highest_measurement
+    log.info("total_measurement: {}".format(total_measurement))
+    return num_measurements, total_measurement
 
 
 @describe("Verify that pre-execution metrics are being sent.")
 def test_metrics(fxBlockchain, fxInstallDamlSdk, fxAppSetup):
+    '''
+    Notes:
+    - Metrics values are stored in memory in Concord, so if there has been a
+    Concord restart, the counters all reset to 0.
+    - Time skew between Concord and the system this test is running on can occur,
+    so we cannot for certain query Wavefront for Concord's metrics at the time this
+    test case starts.
+    So, we verify that non-zero values are added between (a fixed point in the past and test start time)
+    and (the same fixed point + time to run some transactions + some sleep time).
+    '''
     participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
     ledger = participants[0]
     num_measurements_before = 0
     num_measurements_after = 0
-    highest_before = 0
-    highest_after = 0
-    start_epoch = time.time() - 1800 # Clock skew issues.
+    total_before = 0
+    total_after = 0
+    start_epoch = time.time() - 900 # Clock skew issues...just cover a long period.
 
     end_epoch = time.time()
-    num_measurements_before, highest_before = get_wf_measurements(committers, start_epoch, end_epoch)
+    num_measurements_before, total_before = get_wf_measurements(committers, start_epoch, end_epoch)
 
-    run_request_tool(ledger)
     run_request_tool(ledger)
     time.sleep(65) # Wait for nodes to update Wavefront; they are on a heartbeat.
 
     end_epoch = time.time()
-    num_measurements_after, highest_after = get_wf_measurements(committers, start_epoch, end_epoch)
+    num_measurements_after, total_after = get_wf_measurements(committers, start_epoch, end_epoch)
 
     assert num_measurements_after > num_measurements_before, "Did not find additional metrics"
-    assert highest_after > highest_before, "Number of pre-exec requests should have increased"
+    assert total_after > total_before, "Total number of pre-exec requests should have increased"
