@@ -6,7 +6,6 @@ import com.daml.ledger.api.health.HealthStatus
 import com.daml.ledger.participant.state.kvutils.api.CommitMetadata
 import com.daml.ledger.participant.state.v1.SubmissionResult
 
-import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -39,10 +38,4 @@ object ConcordWriteClient {
     val flaggedRequest = request.copy(preExecute = true)
     delegate(flaggedRequest, commitMetadata)
   }
-
-  def exponentialBackOff(shouldRetry: Throwable => Boolean)(
-      retries: Int = 10,
-      firstWaitTime: Duration = 100.milliseconds,
-  ): RetryStrategy =
-    RetryStrategy.exponentialBackoff(shouldRetry, retries, firstWaitTime)
 }

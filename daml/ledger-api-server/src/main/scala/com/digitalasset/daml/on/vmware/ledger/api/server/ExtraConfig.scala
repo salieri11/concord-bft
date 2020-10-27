@@ -11,7 +11,7 @@ import com.daml.ledger.api.auth.{AuthService, AuthServiceJWT, AuthServiceWildcar
 import com.daml.ledger.participant.state.kvutils.app.Config
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.daml.lf.data.Ref.IdString
-import com.digitalasset.daml.on.vmware.write.service.{ConcordWriteClient, RetryStrategy}
+import com.digitalasset.daml.on.vmware.write.service.RetryStrategy
 import com.digitalasset.daml.on.vmware.write.service.bft.{
   BftConcordClientPool,
   ConstantRequestTimeout,
@@ -31,19 +31,30 @@ sealed trait WriteClientsConfig {
 final case class BftClientConfig(
     configPath: Path,
     requestTimeoutStrategy: RequestTimeoutStrategy,
+    initRetryStrategy: RetryStrategy,
     sendRetryStrategy: RetryStrategy,
 )
 
 object BftClientConfig {
   val DefaultRequestTimeoutStrategy: LinearAffineInterpretationTimeTransform =
     LinearAffineInterpretationTimeTransform.ReasonableDefault
+  val DefaultInitRetryStrategy: RetryStrategy =
+    RetryStrategy.exponentialBackoff(
+      retries = 8,
+      firstWaitTime = 100.millis,
+    ) // ~ 26 secs maximum
   val DefaultSendRetryStrategy: RetryStrategy =
-    ConcordWriteClient.exponentialBackOff(_ == BftConcordClientPool.OverloadedException)()
+    RetryStrategy.exponentialBackoff(
+      retries = 10,
+      firstWaitTime = 100.millis,
+      _ == BftConcordClientPool.OverloadedException,
+    ) // ~ 102 secs maximum
 
   def withReasonableDefaults(configPath: Path): BftClientConfig = BftClientConfig(
     configPath = configPath,
     requestTimeoutStrategy = DefaultRequestTimeoutStrategy,
-    sendRetryStrategy = DefaultSendRetryStrategy
+    initRetryStrategy = DefaultInitRetryStrategy,
+    sendRetryStrategy = DefaultSendRetryStrategy,
   )
 }
 
@@ -349,9 +360,12 @@ object ExtraConfig {
   private val SendRetryStrategyKey = "send-retry-strategy"
   private val SendRetriesKey = "send-retries"
   private val SendRetryFirstWaitKey = "send-retry-first-wait"
+  private val InitRetryStrategyKey = "init-retry-strategy"
+  private val InitRetriesKey = "init-retries"
+  private val InitRetryFirstWaitKey = "init-retry-first-wait"
 
   private val GeneralParametersKeySet =
-    Set(EnableKey, ConfigPathKey, SendRetryStrategyKey, SendRetriesKey, SendRetryFirstWaitKey)
+    Set(EnableKey, ConfigPathKey, SendRetryStrategyKey, SendRetriesKey, SendRetryFirstWaitKey, InitRetryStrategyKey, InitRetriesKey, InitRetryFirstWaitKey)
 
   private val ConstantTimeoutKey = "constant-timeout"
   private val LinearTimeoutSlopeKey = "linear-timeout-slope"
@@ -408,12 +422,20 @@ object ExtraConfig {
           config.copy(configPath = pathReader.reads(value))
         case (config, (SendRetriesKey, value)) =>
           val retries = Read.intRead.reads(value)
-          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, retries = Some(retries)))
+          config.copy(sendRetryStrategy = updateRetryStrategy(config.sendRetryStrategy, retries = Some(retries)))
         case (config, (SendRetryFirstWaitKey, value)) =>
           val waitTime = Read.durationRead.reads(value)
-          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, firstWaitTime = Some(waitTime)))
+          config.copy(sendRetryStrategy = updateRetryStrategy(config.sendRetryStrategy, firstWaitTime = Some(waitTime)))
         case (config, (SendRetryStrategyKey, value)) =>
-          config.copy(sendRetryStrategy = updateSendRetryStrategy(config.sendRetryStrategy, progression = Some(parseProgression(value))))
+          config.copy(sendRetryStrategy = updateRetryStrategy(config.sendRetryStrategy, progression = Some(parseProgression(value))))
+        case (config, (InitRetriesKey, value)) =>
+          val retries = Read.intRead.reads(value)
+          config.copy(initRetryStrategy = updateRetryStrategy(config.initRetryStrategy, retries = Some(retries)))
+        case (config, (InitRetryFirstWaitKey, value)) =>
+          val waitTime = Read.durationRead.reads(value)
+          config.copy(initRetryStrategy = updateRetryStrategy(config.initRetryStrategy, firstWaitTime = Some(waitTime)))
+        case (config, (InitRetryStrategyKey, value)) =>
+          config.copy(initRetryStrategy = updateRetryStrategy(config.initRetryStrategy, progression = Some(parseProgression(value))))
       }
 
   private def parseProgression(value: String): Duration => Duration =
@@ -422,21 +444,21 @@ object ExtraConfig {
       case ExponentialBackOff => RetryStrategy.exponentialBackoffProgression
     }
 
-  private def updateSendRetryStrategy(
-    sendRetryStrategy: RetryStrategy,
+  private def updateRetryStrategy(
+    retryStrategy: RetryStrategy,
     retries: Option[Int] = None,
     firstWaitTime: Option[Duration] = None,
     progression: Option[Duration => Duration] = None,
   ): RetryStrategy = {
-    val updatedProgression = progression.getOrElse(sendRetryStrategy.progression)
-    val updatedRetries = retries.getOrElse(sendRetryStrategy.retries)
-    val updatedFirstWaitTime = firstWaitTime.getOrElse(sendRetryStrategy.firstWaitTime)
-    sendRetryStrategy.copy(
+    val updatedProgression = progression.getOrElse(retryStrategy.progression)
+    val updatedRetries = retries.getOrElse(retryStrategy.retries)
+    val updatedFirstWaitTime = firstWaitTime.getOrElse(retryStrategy.firstWaitTime)
+    retryStrategy.copy(
       retries = updatedRetries,
       firstWaitTime = updatedFirstWaitTime,
       progression = updatedProgression,
       waitTimeCap = if (RetryStrategy.isProgressionConstant(updatedProgression))
-        sendRetryStrategy.firstWaitTime
+        updatedFirstWaitTime
       else
         RetryStrategy.exponentialBackoffWaitTimeCap(updatedRetries, updatedFirstWaitTime)
     )

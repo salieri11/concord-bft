@@ -163,7 +163,7 @@ class BftConcordClientPoolSpec extends AsyncWordSpec with Matchers with MockitoS
       nativeResult: Try[Int],
       shouldRetry: Throwable => Boolean = _ => false,
       sendRetryStrategyFactory: (Throwable => Boolean) => RetryStrategy = shouldRetry =>
-        RetryStrategy.constant(shouldRetry, retries = 1, waitTime = 1.milli),
+        RetryStrategy.constant(retries = 1, waitTime = 1.milli, shouldRetry),
   ): (BftConcordClientPool, Future[SubmissionResult]) = {
     val metrics = new Metrics(new MetricRegistry)
     val bftConcordClientPoolCore = mock[BftConcordClientPoolCore]

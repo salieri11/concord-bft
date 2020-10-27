@@ -17,7 +17,11 @@ import com.digitalasset.daml.on.vmware.write.service.bft.{
   RequestTimeoutStrategy,
   RetryStrategyFactory
 }
-import com.digitalasset.daml.on.vmware.write.service.{CommitRequest, ConcordWriteClient}
+import com.digitalasset.daml.on.vmware.write.service.{
+  CommitRequest,
+  ConcordWriteClient,
+  RetryStrategy
+}
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
@@ -35,8 +39,8 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
       when(writeClient.currentHealth).thenReturn(Unhealthy, Healthy)
       waitForConcordWriteClientsToBeReady(
         Seq(writeClient),
-        clientsToBeWaitedFor = 1,
-        sleepMillis = 1)
+        retryStrategy = RetryStrategy.constant(retries = 1, waitTime = 1.milli),
+      )
       verify(writeClient, times(2)).currentHealth
     }
 
@@ -45,9 +49,8 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
       when(writeClient.currentHealth).thenReturn(Unhealthy)
       a[RuntimeException] should be thrownBy waitForConcordWriteClientsToBeReady(
         Seq(writeClient),
-        clientsToBeWaitedFor = 1,
-        sleepMillis = 1,
-        attempts = 1)
+        retryStrategy = RetryStrategy.constant(retries = 0, waitTime = 0.millis),
+      )
       verify(writeClient, times(1)).currentHealth
     }
 
@@ -65,8 +68,8 @@ class ConcordWriteClientsSpec extends WordSpec with Matchers with MockitoSugar {
       waitForConcordWriteClientsToBeReady(
         Seq(writeClient, writeClient),
         writeClientLabel = "secondary",
-        clientsToBeWaitedFor = 2,
-        sleepMillis = 1)
+        retryStrategy = RetryStrategy.constant(retries = 7, waitTime = 1.millis),
+      )
       verify(writeClient, times(8)).currentHealth
     }
   }
