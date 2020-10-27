@@ -598,6 +598,7 @@ def verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_typ
         docker_images_found = False
         command_to_run = "docker ps --format '{{.Names}}'"
         log.info("Waiting for all docker containers to be up on {} within {} mins".format(ip, max_timeout / 60))
+        check_agent_for_errors = True
         while (time.time() - start_time) <= max_timeout and not docker_images_found:
             count += 1
             log.debug("Verifying docker containers (attempt: {})".format(count))
@@ -612,9 +613,17 @@ def verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_typ
                 else:
                     docker_images_found = True
                     log.debug("Container {} found in node {}".format(container_name, ip))
+                    if 'fluentd' in container_name:
+                        # Fluentd is the first container that Agent starts. If Agent has crashed and is restarting,
+                        # Fluentd is not up. However, if Fluentd was found, no need to inspect Agent.
+                        check_agent_for_errors = False
 
         if not docker_images_found:
             error_msg = "Not all containers are up and running on node '{}'".format(ip)
+            if check_agent_for_errors:
+                # Check if Agent has crashed by getting Agent logs
+                agent_error_lines = parse_agent_logs(ip, node)
+                error_msg = error_msg + "\n" + agent_error_lines
             break  # break out of node in node_info_list for-loop
         else:
             log.info("Docker containers verified on {}".format(ip))
@@ -676,6 +685,27 @@ def ssh_connect_node(ip, username, password, mode=None):
             log.error(validation_message_fail)
 
     return status
+
+
+def parse_agent_logs(ip, node):
+    """
+    Parses and publishes agent container logs for the given node
+    :param ip: IP of the node
+    :param node: Node for which agent logs are to be parsed
+    :return: Exception stacktrace to be published
+    """
+    command = "docker logs agent"
+    agent_log_lines = helper.ssh_connect(ip, node.username, node.password, command, log_response=False).splitlines()
+    error_lines = []
+    for i in range(len(agent_log_lines)):
+        if "ERROR" in agent_log_lines[i]:
+            # Get starting index - 5 lines prior or 0
+            start = (0, i-5)[i-5 >= 0]  # (falseValue, trueValue)[test]
+            # Add 5 lines prior, error line, 20 lines after = 26 total; or until end of agent_log_lines
+            error_lines = agent_log_lines[start: start + 26]
+            break
+
+    return '\n'.join(error_lines)
 
 
 def verify_ethrpc_block_0(fxHermesRunSettings, ps_helper, ip, username, password, file_root, deployment_session_id):

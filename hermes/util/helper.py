@@ -425,7 +425,7 @@ def durable_ssh_connect(host, username, password, command, log_mode=None, verbos
 
    raise exc
 
-def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
+def ssh_connect(host, username, password, command, log_mode=None, verbose=True, log_response=True):
    '''
    Helper method to execute a command on a host via SSH
    :param host: IP of the destination host
@@ -433,6 +433,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
    :param password: password for username
    :param command: command, as a string, to be executed on the remote host.
    :param log_mode: Override to log connectivity issue as a warning
+   :param log_response: Whether to log the remote command response
    :return: Output of the command
    '''
    warnings.simplefilter("ignore", cryptography.utils.CryptographyDeprecationWarning)
@@ -454,7 +455,8 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True):
             del outlines[i]
             break
       resp = ''.join(outlines)
-      log.debug(resp)
+      if log_response:
+         log.debug(resp)
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
       raise
