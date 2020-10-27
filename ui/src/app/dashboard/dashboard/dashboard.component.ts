@@ -177,6 +177,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['name', 'url', 'zone_name'],
       tableHeader: 'nodes.clients',
       paginationSummary: 'nodes.clientPaginationSummary',
+      link: ['/' + this.blockchainId, mainRoutes.nodes, mainRoutes.clients]
     };
   }
 
@@ -281,6 +282,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tableHeader: 'nodes.committers', paginationSummary: 'nodes.paginationSummary',
       };
     }
+    this.commitersConfig.link = ['/' + this.blockchainId, mainRoutes.nodes, mainRoutes.replicas];
 
     switch (this.blockchainType) {
       case ContractEngines.DAML:

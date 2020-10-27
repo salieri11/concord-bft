@@ -64,6 +64,7 @@ export const mainRoutes = {
   smartContracts: 'smart-contracts',
   logging: 'logging',
   consortiums: 'consortiums',
+  replicas: 'replicas',
   organizations: 'organizations',
   system: 'system',
   transactions: 'transactions',

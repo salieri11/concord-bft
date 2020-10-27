@@ -1,17 +1,16 @@
 <clr-tabs>
     <clr-tab>
-        <button clrTabLink id="link1" [routerLink]="['../committers']">{{'nodes.committers' | translate}}</button>
-        <clr-tab-content id="content1" *clrIfActive="type === options.committers">
+        <button clrTabLink id="link1" [routerLink]="['../replicas']">{{'nodes.committers' | translate}}</button>
+        <clr-tab-content id="content1" *clrIfActive="type === options.replicas">
           <clr-datagrid #grid>
-
-          <!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
-          <!--     <clr-dg-action-bar>
-                <div class="btn-group pull-right">
-                  <button class="btn btn-sm btn-outline-danger" [disabled]="!batchStartEnabled" (click)="confirmAction('start', selected)">{{'nodes.start' | translate}}</button>
-                  <button class="btn btn-sm btn-outline-danger" [disabled]="!batchStopEnabled" (click)="confirmAction('stop', selected)">{{'nodes.stop' | translate}}</button>
-                </div>
-              </clr-dg-action-bar> -->
-            <clr-dg-column [clrDgField]="'hostname'">{{'nodes.hostname' | translate}}</clr-dg-column>
+            <clr-dg-column [clrDgField]="'hostname'">
+              {{'nodes.committerName' | translate}}
+            </clr-dg-column>
+            <clr-dg-column [clrDgField]="'id'">
+              <ng-container *clrDgHideableColumn="{hidden: true}">
+                {{'common.id' | translate}}
+              </ng-container>
+            </clr-dg-column>
             <clr-dg-column>
               {{'nodes.status' | translate}}
               <clr-dg-filter [clrDgFilter]="statusFilter">
@@ -31,22 +30,29 @@
               {{'nodes.addressPrivate' | translate}}
             </clr-dg-column>
             <clr-dg-column *ngIf="!nodesService.committersWithNoZoneInfo">
-              {{'nodes.zoneId' | translate}}
+              {{'nodes.zone' | translate}}
+            </clr-dg-column>
+            <clr-dg-column *ngIf="!nodesService.committersWithNoZoneInfo">
+              <ng-container *clrDgHideableColumn="{hidden: true}">
+               {{'nodes.zoneId' | translate}}
+              </ng-container>
             </clr-dg-column>
 
             <clr-dg-row *clrDgItems="let node of committers" [clrDgItem]="node">
               <clr-dg-action-overflow>
                 <button [disabled]="!node.certificate" class="action-item" (click)="downloadCert(node)">{{'nodes.getCert' | translate}}</button>
 
-          <!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
-          <!--       <button class="action-item" [disabled]="node.state === 'live'" (click)="confirmAction('start', node)">{{'nodes.start' | translate}}</button>
-                <button class="action-item" [disabled]="node.state !== 'live'" (click)="confirmAction('stop', node)">{{'nodes.stop' | translate}}</button> -->
-
+                <concord-copy-to-clipboard-button [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-right" [value]="getNodeInfo(node)" [classList]="'action-item'" [size]="12" [btnLabel]="'common.copyAll' | translate">
+                </concord-copy-to-clipboard-button>
+                <button [disabled]="!securePasswordEnabled" class="action-item" (click)="fetchSecurePassword(node)">
+                  {{ 'details.ssh.buttonTitle' | translate }}
+                </button>
               </clr-dg-action-overflow>
               <clr-dg-cell>
-                <a *ngIf="nodeDashboardEnabled" [routerLink]="['../' + node.id]">{{ node.name }}</a>
-                <span *ngIf="!nodeDashboardEnabled">{{ node.name }}</span>
+                {{ node.name }}
               </clr-dg-cell>
+              <clr-dg-cell>{{node.id}}</clr-dg-cell>
               <clr-dg-cell>{{node.state}}</clr-dg-cell>
               <clr-dg-cell [innerHTML]="node.healthHTML"></clr-dg-cell>
               <clr-dg-cell *ngIf="!nodesService.committersWithoutRPCURL">
@@ -85,7 +91,14 @@
                 <a *ngIf="node?.zone?.id && node?.zone?.type !== cloudZone" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
                 <span *ngIf="!node?.zone?.id || node?.zone?.type === cloudZone">{{ node.zone_name }}</span>
               </clr-dg-cell>
+              <clr-dg-cell>
+                {{ node.zone_id }}
+                <concord-copy-to-clipboard-button classList="ctc-btn-inline dash-list" [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-left" [value]="node.zone_id" [size]="12">
+                </concord-copy-to-clipboard-button>
+              </clr-dg-cell>
             </clr-dg-row>
+            <clr-dg-footer></clr-dg-footer>
           </clr-datagrid>
         </clr-tab-content>
     </clr-tab>
@@ -93,15 +106,21 @@
         <button clrTabLink [routerLink]="['../clients']">{{'nodes.clients' | translate}}</button>
         <clr-tab-content *clrIfActive="type === options.clients">
           <clr-datagrid #grid>
-          <!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
-              <!-- Client Deployment is no longer supported after initial deployment -->
-              <!-- <clr-dg-action-bar *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-                <div class="btn-group pull-right">
-                  <button class="btn btn-sm" (click)="openDeployClient()">{{ 'nodes.deployClient' | translate }}</button>
-                </div>
-              </clr-dg-action-bar> -->
+            <clr-dg-column [clrDgField]="'group_name'" [clrDgSortOrder]="ascSort">
+              {{'nodes.groupName' | translate}}
+            </clr-dg-column>
+            <clr-dg-column [clrDgField]="'group_id'">
+              <ng-container *clrDgHideableColumn="{hidden: true}">
+                {{'nodes.groupID' | translate}}
+              </ng-container>
+            </clr-dg-column>
             <clr-dg-column [clrDgField]="'hostname'">
-              {{'nodes.hostname' | translate}}
+              {{'nodes.clientName' | translate}}
+            </clr-dg-column>
+            <clr-dg-column [clrDgField]="'id'">
+              <ng-container *clrDgHideableColumn="{hidden: true}">
+                {{'nodes.clientId' | translate}}
+              </ng-container>
             </clr-dg-column>
             <clr-dg-column *ngIf="!nodesService.clientsWithoutRPCURL">
               {{'nodes.endpoint' | translate}}
@@ -113,21 +132,43 @@
               {{'nodes.addressPrivate' | translate}}
             </clr-dg-column>
             <clr-dg-column>
-              {{'nodes.zoneId' | translate}}
+              {{'nodes.zone' | translate}}
+            </clr-dg-column>
+            <clr-dg-column>
+              <ng-container *clrDgHideableColumn="{hidden: true}">
+                {{'nodes.zoneId' | translate}}
+              </ng-container>
             </clr-dg-column>
 
             <clr-dg-row *clrDgItems="let node of clients" [clrDgItem]="node">
               <clr-dg-action-overflow>
                 <button [disabled]="!node.certificate" class="action-item" (click)="downloadCert(node)">{{'nodes.getCert' | translate}}</button>
-
-          <!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
-          <!--       <button class="action-item" [disabled]="node.state === 'live'" (click)="confirmAction('start', node)">{{'nodes.start' | translate}}</button>
-                <button class="action-item" [disabled]="node.state !== 'live'" (click)="confirmAction('stop', node)">{{'nodes.stop' | translate}}</button> -->
-
+                <concord-copy-to-clipboard-button [tooltip]="'common.copyToClip' | translate" tooltipDirection="top-right"
+                  [value]="node.info" [classList]="'action-item'" [size]="12" [btnLabel]="'common.copyAll' | translate">
+                </concord-copy-to-clipboard-button>
+                <button [disabled]="!securePasswordEnabled" class="action-item"
+                  (click)="fetchSecurePassword(node)">
+                  {{ 'details.ssh.buttonTitle' | translate }}
+                </button>
               </clr-dg-action-overflow>
+              <clr-dg-cell>
+                {{ node.group_name }}
+              </clr-dg-cell>
+              <clr-dg-cell>
+                {{ node.group_id }}
+                <concord-copy-to-clipboard-button classList="ctc-btn-inline dash-list" [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-left" [value]="node.group_id" [size]="12">
+                </concord-copy-to-clipboard-button>
+              </clr-dg-cell>
               <clr-dg-cell>
                 <a *ngIf="nodeDashboardEnabled" [routerLink]="['../' + node.id]">{{ node.name }}</a>
                 <span *ngIf="!nodeDashboardEnabled">{{ node.name }}</span>
+              </clr-dg-cell>
+              <clr-dg-cell>
+                {{ node.id }}
+                <concord-copy-to-clipboard-button classList="ctc-btn-inline dash-list" [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-left" [value]="node.id" [size]="12">
+                </concord-copy-to-clipboard-button>
               </clr-dg-cell>
               <clr-dg-cell *ngIf="!nodesService.clientsWithoutRPCURL">
                 {{node.url}}
@@ -165,10 +206,59 @@
                 <a *ngIf="node?.zone?.id && node?.zone?.type !== cloudZone" [routerLink]="['../../zones/' + node.zone.id]">{{ node.zone_name }}</a>
                 <span *ngIf="!node?.zone?.id || node?.zone?.type === cloudZone">{{ node.zone_name }}</span>
               </clr-dg-cell>
+              <clr-dg-cell>
+                {{ node.zone_id }}
+                <concord-copy-to-clipboard-button classList="ctc-btn-inline dash-list" [tooltip]="'common.copyToClip' | translate"
+                  tooltipDirection="top-left" [value]="node.zone_id" [size]="12">
+                </concord-copy-to-clipboard-button>
+              </clr-dg-cell>
             </clr-dg-row>
+            <clr-dg-footer></clr-dg-footer>
           </clr-datagrid>
         </clr-tab-content>
     </clr-tab>
 </clr-tabs>
 
 <concord-deploy-client #deployClient></concord-deploy-client>
+
+<clr-modal [(clrModalOpen)]="securePasswordModalShown" class="ssh-info">
+  <h3 class="modal-title">{{ securePasswordNode?.name_ordinal }} - {{ 'details.ssh.modalTitle' | translate }}</h3>
+  <div class="modal-body ssh-info-body">
+    <div *ngIf="securePasswordFetching" class="spinner-container">
+      <clr-spinner clrMedium class="spinner spinner-margin"></clr-spinner>
+    </div>
+    <div *ngIf="!securePasswordFetching">
+      <p class="no-margin-top">{{ 'details.ssh.description' | translate }}</p>
+      <p class="p4">{{ 'details.ssh.credentialsName' | translate }}</p>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.username' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{ securePasswordData?.username }}</div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="securePasswordData?.username" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </div>
+      </div>
+      <div class="clr-row ssh-field">
+        <div class="clr-col-3">{{ 'details.ssh.password' | translate }}</div>
+        <div class="clr-col-7 ssh-value">{{
+          securePasswordHidden ? '•••••••••••••••' : securePasswordData?.password
+        }}<span class="password-view-toggle">
+            <button class="btn btn-link button-show-hide-password" (click)="securePasswordHiddenToggle()">
+              <clr-icon shape="eye" class="icon-show-hide-password"></clr-icon>
+            </button>
+          </span>
+        </div>
+        <div class="clr-col-1">
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="securePasswordData?.password" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary"
+      (click)="securePasswordModalClose()">{{ 'details.ssh.close' | translate }}</button>
+  </div>
+</clr-modal>

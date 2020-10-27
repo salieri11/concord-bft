@@ -4,9 +4,9 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { ClrDatagrid } from '@clr/angular';
+import { ClrDatagrid, ClrDatagridComparatorInterface, ClrDatagridSortOrder } from '@clr/angular';
 
-import { NodeInfo, NodeType, ClientNode } from '../shared/nodes.model';
+import { NodeInfo, NodeType, ClientNode, BlockchainNode, NodeCredentials } from '../shared/nodes.model';
 import { DeployClientComponent } from '../deploy-client/deploy-client.component';
 import { NodesService } from '../shared/nodes.service';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -14,7 +14,13 @@ import { ContractEngines } from '../../blockchain/shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
 import { FeatureFlagService } from '../../shared/feature-flag.service';
 import { ZoneType } from '../../zones/shared/zones.model';
+import { OrgService } from '../../orgs/shared/org.service';
 
+class Sorter implements ClrDatagridComparatorInterface<ClientNode> {
+  compare(a: ClientNode, b: ClientNode) {
+    return a.group_name.localeCompare(b.group_name);
+  }
+}
 @Component({
   selector: 'concord-node-list',
   templateUrl: './node-list.component.html',
@@ -35,15 +41,26 @@ export class NodeListComponent implements OnInit {
   blockchainType: ContractEngines;
   engines = ContractEngines;
   cloudZone = ZoneType.VMC_AWS;
-
+  sorter: Sorter = new Sorter();
+  ascSort = ClrDatagridSortOrder.ASC;
   // ! temporary feature flag
   nodeDashboardEnabled: boolean = false;
+
+
+  securePasswordEnabled: boolean = false;
+  securePasswordModalShown: boolean = false;
+  securePasswordFetching: boolean = false;
+  securePasswordHidden: boolean = true;
+  securePasswordNode: BlockchainNode;
+  securePasswordData: NodeCredentials;
+  securePasswordCached: { [nodeId: string]: NodeCredentials } = {};
 
   constructor(
     public nodesService: NodesService,
     private route: ActivatedRoute,
     private blockchainService: BlockchainService,
-    private ff: FeatureFlagService
+    private ff: FeatureFlagService,
+    private orgService: OrgService
   ) {
     this.blockchainType = this.blockchainService.type;
     this.nodeDashboardEnabled = this.ff.check('node_dashboard');
@@ -55,49 +72,16 @@ export class NodeListComponent implements OnInit {
     this.route.params.subscribe(params => {
       this.type = params.nodeTypeOrId;
     });
-    //
-    // Commenting out node start stop functionality until it's ready to be implemented on the backend.
-    //
-    // this.confirm.confirmed.subscribe(response => {
-    //   console.log(response);
-    //   this[response.action](response.node);
-    // });
 
-    // this.grid.selectedChanged
-    //   .subscribe(selections => this.handleSelections(selections));
+    this.orgService.getList().subscribe(resp => {
+      this.securePasswordEnabled = resp[0].organization_properties['secure-password'];
+    });
+
   }
 
   openDeployClient() {
     this.deployClient.openModal();
   }
-
-  //
-  // Commenting out node start stop functionality until it's ready to be implemented on the backend.
-  //
-  // confirmAction(action: string, node: Node | Node[]) {
-  //   this.confirm.open(action, node);
-  // }
-
-  // start(node: Node | Node[]) {
-  //   this.nodesService.action('start', node).subscribe(
-  //     response => this.handleResponse(response),
-  //     error => this.handleError(error)
-  //   );
-  // }
-
-  // stop(node: Node | Node[]) {
-  //   this.nodesService.action('stop', node).subscribe(
-  //     response => this.handleResponse(response),
-  //     error => this.handleError(error)
-  //   );
-  // }
-
-  // restart(node: Node | Node[]) {
-  //   this.nodesService.action('restart', node).subscribe(
-  //     response => this.handleResponse(response),
-  //     error => this.handleError(error)
-  //   );
-  // }
 
   downloadCert(node) {
     let cert;
@@ -120,29 +104,43 @@ export class NodeListComponent implements OnInit {
     document.body.removeChild(element);
   }
 
-  //
-  // Commenting out node start stop functionality until it's ready to be implemented on the backend.
-  //
-  // private handleResponse(response) {
-  //   console.log('response')
-  //   console.log(response)
-  // }
+  getNodeInfo(node) {
+    return JSON.stringify(node);
+  }
 
-  // private handleError(error) {
-  //   console.log('error')
-  //   console.log(error)
-  // }
+  fetchSecurePassword(node: BlockchainNode) {
+    const t1 = Date.now();
+    const minLoadingTime = 350; // ms
+    this.securePasswordNode = node;
+    this.securePasswordModalShown = true;
+    this.securePasswordFetching = true;
+    const finalizeNodeCredentialInfo = (credentials: NodeCredentials) => {
+      this.securePasswordFetching = false;
+      this.securePasswordHidden = true;
+      this.securePasswordData = credentials;
+    };
+    const cachedSecurePassword = this.securePasswordCached[node.id];
+    if (cachedSecurePassword) { return finalizeNodeCredentialInfo(cachedSecurePassword); }
+    this.nodesService.getNodeCredentials(node).subscribe(credentials => {
+      this.securePasswordCached[node.id] = credentials;
+      const t2 = Date.now();
+      // Give minimum half-second loading time to give more consistent UX feel
+      // (for both slow/fast server response)
+      if (t2 - t1 > minLoadingTime) {
+        finalizeNodeCredentialInfo(credentials);
+      } else {
+        setTimeout(() => { finalizeNodeCredentialInfo(credentials); }, minLoadingTime - (t2 - t1));
+      }
+    });
+  }
 
-  // private handleSelections(selections: any[]) {
-  //   this.batchStartEnabled = false;
-  //   this.batchStopEnabled = false;
-  //   const liveSel = selections.filter(sel => sel.state === 'live');
+  securePasswordModalClose() {
+    this.securePasswordModalShown = false;
+    this.securePasswordFetching = false;
+  }
 
-  //   if (liveSel.length) {
-  //     this.batchStopEnabled = true;
-  //   } else if (selections.length) {
-  //     this.batchStartEnabled = true;
-  //   }
-  // }
+  securePasswordHiddenToggle() {
+    this.securePasswordHidden = !this.securePasswordHidden;
+  }
 
 }

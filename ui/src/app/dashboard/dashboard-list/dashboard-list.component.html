@@ -1,5 +1,8 @@
 <div class="card">
-  <h6 *ngIf="listConfig?.tableHeader" class="list-title">{{listConfig?.tableHeader | translate}}</h6>
+  <h6 *ngIf="listConfig?.tableHeader" class="list-title">
+    {{listConfig?.tableHeader | translate}}
+    <a *ngIf="listConfig?.link" class="btn-link" [routerLink]="listConfig?.link">VIEW</a>
+  </h6>
   <concord-wavefront-graph *ngIf="graphConfig"
     [graphConfig]="graphConfig"
     [timeStart]="timeStart"

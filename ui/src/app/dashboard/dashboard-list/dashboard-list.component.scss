@@ -14,6 +14,13 @@ clr-datagrid,
   .dash-item {
     float: left;
   }
+  a.btn-link {
+    float: right;
+    line-height: calc(1rem - 1px);
+    letter-spacing: .073em;
+    font-size: .458333rem;
+    font-weight: 500;
+  }
 }
 
 

@@ -1,0 +1,96 @@
+
+<div class="card blockchain-card">
+  <h6 class="list-title">
+    {{ 'details.cardTitle' | translate }}
+      <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+        tooltipDirection="top-right" [value]="systemInfoJSON" [size]="12" [classList]="'btn-link btn-sm'" [btnLabel]="'common.copyAll' | translate"></concord-copy-to-clipboard-button>
+  </h6>
+  <div class="card-block">
+  <table class="table table-vertical">
+    <tbody>
+      <tr>
+        <th>{{ 'dashboard.organizationId' | translate }}</th>
+        <td>
+          {{ orgId }}
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="orgId" [size]="12"></concord-copy-to-clipboard-button>
+        </td>
+      </tr>
+      <tr>
+        <th>{{ 'dashboard.blockchainId' | translate }}</th>
+        <td>
+          {{ blockchainService?.selectedBlockchain?.id }}
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="blockchainService?.selectedBlockchain?.id" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </td>
+      </tr>
+      <tr>
+        <th>{{ 'details.productVersion' | translate }}</th>
+        <td>
+          {{ productVersion }}
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="productVersion" [size]="12"></concord-copy-to-clipboard-button>
+        </td>
+      </tr>
+      <tr>
+        <th>{{ 'details.execEngineVersion' | translate }}</th>
+        <td>
+          {{ execEngineVersionFull }}
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="execEngineVersionFull" [size]="12">
+          </concord-copy-to-clipboard-button>
+        </td>
+      </tr>
+      <tr>
+        <th>{{ 'details.createdBy' | translate }}</th>
+        <td>
+          {{ createdBy }}
+        <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="createdBy" [size]="12"></concord-copy-to-clipboard-button>
+        </td>
+      </tr>
+    <tr>
+      <th>{{ 'details.createdDate' | translate }}</th>
+      <td>
+        <span class="prop-small">{{ createdDateISO }} (UTC, ISO 8601)</span>
+          <concord-copy-to-clipboard-button class="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right" [value]="createdDateISO" [size]="12"></concord-copy-to-clipboard-button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="clr-row logos-container">
+    <div class="logo-column clr-col-sm-3 clr-offset-md-2">
+      <div *ngIf="blockchainType === 'DAML'">
+        <div class="logo-card">
+          <img width="100" class="daml-logo" src="static/images/contract-types/daml.svg"
+            [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
+        </div>
+        <div class="logo-version">
+          {{ execEngineName }}
+        </div>
+      </div>
+      <div *ngIf="blockchainType === 'ETHEREUM'">
+        <div class="logo-card">
+          <img width="50" class="eth-logo" src="static/images/contract-types/eth.svg"
+            [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
+        </div>
+        <div class="logo-version">
+          {{ execEngineName }}
+        </div>
+      </div>
+    </div>
+    <div class="clr-col-sm-2">
+      <clr-icon class="icon-link" shape="link" size="48" style="transform: rotate(45deg);"></clr-icon>
+    </div>
+    <div class="logo-column clr-col-sm-3">
+      <div class="logo-card">
+        <img width="100" class="concord-logo" src="static/images/concord/concord-logo.png" [attr.alt]="'concord'">
+      </div>
+      <div class="logo-version">
+        {{ concordVersion }}
+      </div>
+    </div>
+  </div>
+</div>

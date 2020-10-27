@@ -4,30 +4,33 @@
 import { Component, OnInit } from '@angular/core';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { OrgService } from '../../orgs/shared/org.service';
-import { NodesService } from '../../nodes/shared/nodes.service';
 import { ContractEngines } from '../../blockchain/shared/blockchain.model';
-import { ActivatedRoute } from '@angular/router';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { BlockchainNode, NodeCredentials } from '../../nodes/shared/nodes.model';
 import { Personas } from '../../shared/persona.service';
 
-// Only used for keeping tab button clients/commiter count less jumpy while loading
-let lastKnownCommitters = [];
-let lastKnownClients = [];
+
+class SystemInfo {
+  organization_id: string;
+  blockchain_id: string;
+  product_version: string;
+  engine_version: string;
+  engine_type: string;
+  created_by: string;
+  created_date: string;
+}
 
 @Component({
-  selector: 'concord-details',
-  templateUrl: './details.component.html',
-  styleUrls: ['./details.component.scss']
+  selector: 'concord-system',
+  templateUrl: './system.component.html',
+  styleUrls: ['./system.component.scss']
 })
-export class DetailsComponent implements OnInit {
+export class SystemComponent implements OnInit {
 
   personas = Personas;
 
   selectedTab = '';
-  committers = lastKnownCommitters;
-  clients = lastKnownClients;
-  zones: {[id: string]: Zone} = {};
+  zones: { [id: string]: Zone } = {};
   zoneFirst: Zone = null;
   blockchainType: ContractEngines;
 
@@ -37,7 +40,7 @@ export class DetailsComponent implements OnInit {
   securePasswordHidden: boolean = true;
   securePasswordNode: BlockchainNode;
   securePasswordData: NodeCredentials;
-  securePasswordCached: {[nodeId: string]: NodeCredentials } = {};
+  securePasswordCached: { [nodeId: string]: NodeCredentials } = {};
 
   // Blockchain Info
   orgId = '';
@@ -54,29 +57,26 @@ export class DetailsComponent implements OnInit {
   execEngineVersionFull = '';
   concordName = 'Concord';
   concordVersion = 'Concord BFT';
+  systemInfo: SystemInfo = new SystemInfo();
+
+  get systemInfoJSON(): string {
+    return JSON.stringify(this.systemInfo);
+  }
+
 
   ready: boolean = false;
   fetchedList = { organizations: false, nodes: false, zones: false };
 
+
+
   constructor(
     public blockchainService: BlockchainService,
     private orgService: OrgService,
-    private nodeService: NodesService,
-    private route: ActivatedRoute,
   ) {
-    this.route.url.subscribe(url => {
-      this.selectedTab = url[0].path;
-    });
     this.orgService.getList().subscribe(resp => {
       this.orgId = resp[0].organization_id;
-      this.securePasswordEnabled = resp[0].organization_properties['secure-password'];
-      this.fetchedList.organizations = true;
-      this.ready = true;
+      this.systemInfo.organization_id = this.orgId;
     });
-    this.committers = this.nodeService.committers;
-    this.clients = this.nodeService.clients;
-    lastKnownCommitters = this.committers;
-    lastKnownClients = this.clients;
     this.fetchedList.nodes = true;
     this.updateBaseOnSelectedBlockchain();
   }
@@ -128,41 +128,13 @@ export class DetailsComponent implements OnInit {
     }
     this.createdDateLocalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     this.createdBy = blockchain.created_by;
-  }
 
-  fetchSecurePassword(node: BlockchainNode) {
-    const t1 = Date.now();
-    const minLoadingTime = 350; // ms
-    this.securePasswordNode = node;
-    this.securePasswordModalShown = true;
-    this.securePasswordFetching = true;
-    const finalizeNodeCredentialInfo = (credentials: NodeCredentials) => {
-      this.securePasswordFetching = false;
-      this.securePasswordHidden = true;
-      this.securePasswordData = credentials;
-    };
-    const cachedSecurePassword = this.securePasswordCached[node.id];
-    if (cachedSecurePassword) { return finalizeNodeCredentialInfo(cachedSecurePassword); }
-    this.nodeService.getNodeCredentials(node).subscribe(credentials => {
-      this.securePasswordCached[node.id] = credentials;
-      const t2 = Date.now();
-      // Give minimum half-second loading time to give more consistent UX feel
-      // (for both slow/fast server response)
-      if (t2 - t1 > minLoadingTime) {
-        finalizeNodeCredentialInfo(credentials);
-      } else {
-        setTimeout(() => { finalizeNodeCredentialInfo(credentials); }, minLoadingTime - (t2 - t1));
-      }
-    });
-  }
-
-  securePasswordModalClose() {
-    this.securePasswordModalShown = false;
-    this.securePasswordFetching = false;
-  }
-
-  securePasswordHiddenToggle() {
-    this.securePasswordHidden = !this.securePasswordHidden;
+    this.systemInfo.engine_type = this.execEngineName;
+    this.systemInfo.engine_version = this.execEngineVersion;
+    this.systemInfo.product_version = this.productVersion;
+    this.systemInfo.blockchain_id = this.blockchainService.selectedBlockchain.id;
+    this.systemInfo.created_date = new Date(blockchain.created).toISOString();
+    this.systemInfo.created_by = blockchain.created_by;
   }
 
 }

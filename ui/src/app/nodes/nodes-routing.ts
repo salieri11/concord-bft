@@ -13,7 +13,7 @@ export const nodeRoutes: Routes = [
     canActivate: [AuthenticatedGuard]
   },
   {
-    path: '', redirectTo: 'committers', pathMatch: 'full'
+    path: '', redirectTo: 'replicas', pathMatch: 'full'
   }
 ];
 
