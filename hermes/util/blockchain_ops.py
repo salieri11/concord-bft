@@ -172,6 +172,8 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid, ip and map out committer idx and rid relation.
   '''
+  log.info("\nInside map_committers_info, blockchain fixture is as below")
+  log.info("\n{}".format(fxBlockchain))
   if verbose: log.info("")
   all_committers = committers_of(fxBlockchain)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
