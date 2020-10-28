@@ -23,7 +23,7 @@ from itertools import zip_longest
 log = hermes_logging.getMainLogger()
 
 LocalSetupFixture = namedtuple(
-    "LocalSetupFixture", "client_hosts, concord_hosts, f_count")
+    "LocalSetupFixture", "client_hosts, concord_hosts, f_count, fx_blockchain")
 
 PARTICIPANT_GENERIC_ERROR_MSG = "DAML request submission/verification failed "
 COMMITTER_POWER_ON_ERROR_MSG = "Failed to power on committer node "
@@ -48,14 +48,14 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
         concord_hosts: Concord (committer) replicas
         f_count: Maximum faulty replicas allowed.
     '''
-    log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
+    log.info("\n\nIn fxLocalSetup, Blockchain fixture is {}".format(fxBlockchain))
     f_count = intr_helper.get_f_count(fxBlockchain)
     client_hosts, concord_hosts = format_hosts_structure(fxBlockchain.replicas)
-    log.info("\nIn fxLocalSetup fixture, Participants are {}\nCommitters are {}\n".format(
+    log.info("\nIn fxLocalSetup, Participants are {}\nCommitters are {}\n".format(
         client_hosts, concord_hosts))
 
     local_tuple = LocalSetupFixture(
-        client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count)
+        client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count, fx_blockchain=fxBlockchain)
 
     def fin():
         perform_sanity_check(reraise, local_tuple, fxHermesRunSettings)
@@ -233,7 +233,8 @@ def make_daml_request_in_thread(reraise, client_host, no_of_txns=1, wait_time=1)
     thread_daml_txn = Thread(target=make_daml_request,
                              args=(url, no_of_txns, wait_time))
     thread_daml_txn.start()
-    time.sleep(90)
+    time_to_sleep = 60 * no_of_txns
+    time.sleep(time_to_sleep)
     log.info("\nIs thread alive? {}".format(thread_daml_txn.isAlive()))
     if(thread_daml_txn.isAlive()):
         reraise()
@@ -641,7 +642,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
 
 @describe("fault tolerance - requests not to be processed without quorum")
 @pytest.mark.parametrize("step", [0, 1])
-def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
+def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, step):
     '''
     Verify below using DAML tool.
     - Connect to a blockchain network.
@@ -656,6 +657,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
+        step: Parametrization argument
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -664,7 +666,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
                 install_sdk_deploy_daml(client_host)
 
             # Find primary replica and primary replica id
-            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            replicas_mapping = blockchain_ops.map_committers_info(fxLocalSetup.fx_blockchain)
             primary_rip = replicas_mapping["primary_ip"]
             log.info("Primary Replica IP: {}".format(primary_rip))
 
@@ -773,7 +775,7 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
 
 
 @describe("fault tolerance - view change")
-def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
+def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify fault tolerance using below steps:
     - Connect to a blockchain network.
@@ -785,7 +787,6 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
-        fxBlockchain: blockchain
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -796,7 +797,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
                 reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
 
             committers_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain)
+                fxLocalSetup.fx_blockchain)
 
             # Find primary replica ip
             init_primary_rip = committers_mapping["primary_ip"]
@@ -842,7 +843,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
 
             # Find new primary replica ip
             committers_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain, interrupted_nodes)
+                fxLocalSetup.fx_blockchain, interrupted_nodes)
             new_primary_rip = committers_mapping["primary_ip"]
 
             log.info("New Primary Replica IP is : {}".format(new_primary_rip))
@@ -858,7 +859,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
 
 
 @describe("fault tolerance - multiple view changes")
-def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
+def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify fault tolerance view changes after multiple using below steps:
     - Connect to a blockchain network.
@@ -870,7 +871,6 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
-        fxBlockchain: blockchain
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -882,7 +882,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
             # Find primary replica ip
             committers_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain)
+                fxLocalSetup.fx_blockchain)
             init_primary_rip = committers_mapping["primary_ip"]
             log.info("Primary Replica IP is : {}".format(init_primary_rip))
 
@@ -909,7 +909,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
             # Stop and Restart the current primary replicas multiple times
             for _ in range(0, 7):
                 committers_mapping = blockchain_ops.map_committers_info(
-                    fxBlockchain, interrupted_nodes)
+                    fxLocalSetup.fx_blockchain, interrupted_nodes)
                 primary_rip = committers_mapping["primary_ip"]
                 intr_helper.stop_container(primary_rip, container_name, 30)
                 intr_helper.start_container(primary_rip, container_name, 30)
