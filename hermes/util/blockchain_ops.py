@@ -110,8 +110,11 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     # What we get with a deployment: A dict with two entries, one for committer
     # nodes and one for participant nodes.  Each node is a dict with an IP.
     objs = committers_of(fxBlockchain)
+    log.info("\nBefore calling helper.extract_ip_lists_from_fxBlockchain, blockchain is as below\n")
+    log.info(fxBlockchain)
+    log.info("\nobjs is : {}".format(fxBlockchain))
     all_committers = helper.extract_ip_lists_from_fxBlockchain(objs)
-
+  log.info("\nAll committers are : {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   log.debug("get_primary_rid target_committers: {}".format(target_committers))
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
@@ -230,16 +233,17 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
     mappingComplete = (committerRespondedCount == len(target_committers))
     if mappingComplete: print("Committer index, rid and IP mapping:\n" + "\n".join(committersOutput))
     else: log.warning("Mapping is incomplete; problem IPs: {}".format(errored))
-  if "primary_index" in fxBlockchain.replicas and fxBlockchain.replicas["primary_index"] is not None:
-    primary_idx_before = fxBlockchain.replicas["primary_index"]
+  if "primary_index" in fx_blockchain.replicas and fx_blockchain.replicas["primary_index"] is not None:
+    primary_idx_before = fx_blockchain.replicas["primary_index"]
     primary_idx_now = committersMapping["primary_index"]
     if primary_idx_before != primary_idx_now:
       log.warning("       View Change detected: primary from rid={} to rid={}" \
                         .format(primary_idx_before, primary_idx_now))
-  fxBlockchain.replicas["primary_index"] = committersMapping["primary_index"]
-  fxBlockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
-  fxBlockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
-  fxBlockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
+  fx_blockchain.replicas["primary_index"] = committersMapping["primary_index"]
+  fx_blockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
+  fx_blockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
+  fx_blockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
+  log.info("\nEnd of map_committers_info, fx_blockchain is {}".format(fx_blockchain))
   return committersMapping
 
 # Below must change once participants are able to connect to multiple committers
@@ -386,10 +390,6 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
     map_participants_submission_endpoints(fxBlockchain, verbose)
   if verbose: log.info("Blockchain network reset completed.")
   return state_info
-
-
-
-
 
 # ===================================================================================
 #   Convenience functions
