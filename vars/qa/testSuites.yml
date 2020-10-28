@@ -216,3 +216,8 @@
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
     baseCommand: '${MAIN_PY} WavefrontTests --blockchainLocation onprem --blockchainType daml'
+- HelenVMSizeTests:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    runWithGenericTests: false
+    baseCommand: '${MAIN_PY} HelenVMSizeTests --blockchainLocation onprem --blockchainType daml --clientSize "${client_size}" --clientMemory "${client_memory}" --clientCpu "${client_cpu}" --clientStorage "${client_storage}" --replicaSize "${replica_size}" --replicaMemory "${replica_memory}" --replicaCpu "${replica_cpu}" --replicaStorage "${replica_storage}"'
