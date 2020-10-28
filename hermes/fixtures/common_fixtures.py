@@ -658,12 +658,14 @@ def fxBlockchain(request, hermes_info, fxProduct):
          all_nodes = []
          for blockchain_type, ips in replicas.items():
             all_nodes = all_nodes + ips
+
          vm_handles = infra.fetch_vm_handles(all_nodes)
+         log.debug("vm handles: {}".format(vm_handles))
          hermes_data["hermesCmdlineArgs"].vm_handles = vm_handles
 
       # All the nodes have same Blockchain and Consortium Id values
       # So picking the first one
-      first_handle = next(iter(vm_handles.items()))[1]
+      first_handle = next(iter(hermes_data["hermesCmdlineArgs"].vm_handles.items()))[1]
       if "attrMap" in first_handle.keys():
          attr_map = first_handle["attrMap"]
          blockchainId = attr_map["blockchain_id"] if "blockchain_id" in attr_map.keys() else None
@@ -716,12 +718,13 @@ def fxNodeInterruption(request, fxBlockchain, set_hermes_info):
    committers = blockchain_ops.committers_of(fxBlockchain)
    participants = blockchain_ops.participants_of(fxBlockchain)
 
+   log.info("Committers: {}".format(committers))
+   log.info("Participants: {}".format(participants))
+
    all_nodes = []
    for blockchain_type, ips in fxBlockchain.replicas.items():
       all_nodes = all_nodes + ips
 
-   log.info("Committers: {}".format(committers))
-   log.info("Participants: {}".format(participants))
    vm_handles = infra.fetch_vm_handles(all_nodes)
    log.debug("vm handles: {}".format(vm_handles))
    set_hermes_info["hermesCmdlineArgs"].vm_handles = vm_handles
