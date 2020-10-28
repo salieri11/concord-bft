@@ -125,7 +125,6 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
       data structure when all it needs is a list of IP addresses.
   '''
   all_committers = get_all_committers(fxBlockchain)
-  log.info("\nAll committers are : {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
   current_active_view_match = 'concord_concordbft_currentActiveView{source="concordbft",component="replica"} '
@@ -187,7 +186,6 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   '''
   if verbose: log.info("")
   all_committers = get_all_committers(fx_blockchain)
-  log.info("\nAll committers are : {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
