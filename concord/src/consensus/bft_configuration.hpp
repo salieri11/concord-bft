@@ -73,6 +73,11 @@ inline bool initializeSBFTPrincipals(
     outCommConfig->certificatesRootPath =
         config.getValue<std::string>("tls_certificates_folder_path");
     outCommConfig->commType = config.getValue<std::string>("comm_to_use");
+
+    if (selfNumber >= numOfReplicas) {
+      // listenPort is not used for RO replica
+      outCommConfig->listenPort = 0;
+    }
   }
 
   return true;
