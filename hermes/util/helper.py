@@ -2340,7 +2340,7 @@ def getClientNodes(num_groups, client_zone_ids):
       return client_nodes
 
    for client_zone_id in client_zone_ids:
-      node = {"zone_id": client_zone_id, "auth_url_jwt": "", "group_name": None, "sizing_info": {"no_of_cpus": "2", "storage_in_gigs": "128", "memory_in_gigs": "32"}}
+      node = {"zone_id": client_zone_id, "auth_url_jwt": "", "group_name": None}
       client_nodes.append(node)
 
    if num_groups <= 0:
