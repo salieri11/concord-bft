@@ -313,10 +313,6 @@ def verify_ledger_api_test_tool(ledger_endpoints=[('localhost','6861')],
    :param ledger_endpoints: List of 2-tuples representing ledger endpoint (host, port)
    '''
    if verbose: log.info("Performing DAML sanity checks...")
-
-   # RV: Do not run when testing
-   return
-
    host = ledger_endpoints[0][0] # First ledger api host
 
    if results_dir:
