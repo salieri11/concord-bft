@@ -726,14 +726,14 @@ def _getArgs(request):
     cmdArgs["hermesZoneConfig"] = request.config.getoption(
         "--hermesZoneConfig")
     cmdArgs["hermesTestLogDir"] = request.config.getoption(
-        "--hermesTestLogDir"),
-    cmdArgs["clientSize"] = request.config.getoption("--clientSize"),
-    cmdArgs["clientMemory"] = request.config.getoption("--clientMemory"),
-    cmdArgs["clientCpu"] = request.config.getoption("--clientCpu"),
-    cmdArgs["clientStorage"] = request.config.getoption("--clientStorage"),
-    cmdArgs["replicaSize"] = request.config.getoption("--replicaSize"),
-    cmdArgs["replicaMemory"] = request.config.getoption("--replicaMemory"),
-    cmdArgs["replicaCpu"] = request.config.getoption("--replicaCpu"),
+        "--hermesTestLogDir")
+    cmdArgs["clientSize"] = request.config.getoption("--clientSize")
+    cmdArgs["clientMemory"] = request.config.getoption("--clientMemory")
+    cmdArgs["clientCpu"] = request.config.getoption("--clientCpu")
+    cmdArgs["clientStorage"] = request.config.getoption("--clientStorage")
+    cmdArgs["replicaSize"] = request.config.getoption("--replicaSize")
+    cmdArgs["replicaMemory"] = request.config.getoption("--replicaMemory")
+    cmdArgs["replicaCpu"] = request.config.getoption("--replicaCpu")
     cmdArgs["replicaStorage"] = request.config.getoption("--replicaStorage")
     cmdArgs['propertiesString'] = request.config.getoption(
         "--propertiesString")
