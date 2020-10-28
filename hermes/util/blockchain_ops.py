@@ -112,8 +112,12 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     objs = committers_of(fxBlockchain)
     log.info("\nBefore calling helper.extract_ip_lists_from_fxBlockchain, blockchain is as below\n")
     log.info(fxBlockchain)
-    log.info("\nobjs is : {}".format(fxBlockchain))
-    all_committers = helper.extract_ip_lists_from_fxBlockchain(objs)
+    log.info("\nobjs is : {}".format(objs))
+    # Code fix - Committer array (objs) was passed to extract_ip_lists_from_fxBlockchain
+    # But that function expects Blockchain fixture
+    # Correct function to call is fetch_ips_from_fxBlockchain_entry here.
+    all_committers = helper.fetch_ips_from_fxBlockchain_entry(objs)
+
   log.info("\nAll committers are : {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   log.debug("get_primary_rid target_committers: {}".format(target_committers))
@@ -175,11 +179,8 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid, ip and map out committer idx and rid relation.
   '''
-  log.info("\nInside map_committers_info, blockchain fixture is as below")
-  log.info("\n{}".format(fx_blockchain))
   if verbose: log.info("")
   all_committers = committers_of(fx_blockchain)
-  log.info("\nAll committers are {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
