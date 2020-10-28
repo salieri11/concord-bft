@@ -182,7 +182,6 @@ def findVMByInternalIP(ip, sddcs=None, checkNew=False):
   for result in results:
     if result: return result # result vmHandle
   log.info("Cannot find vm with internal IP '{}' in datacenters {}".format(ip, sddcs))
-
   return None
 
 
@@ -404,7 +403,7 @@ def fetch_vm_handles(ips):
     # When the test runs on local machine, input type is <str>
     # Nothing to be done in this case, as the variable contains just the ip address.
     if(isinstance(ip, dict)):
-      log.info("\nWhen the test uses replicas from already deployed blockchain")
+      log.info("\nType of IP is dictionary")
       ip_dict = None
       if "ip" in ip.keys() and ip["ip"] is not None:
         ip_dict = ip["ip"]
@@ -414,6 +413,7 @@ def fetch_vm_handles(ips):
         ip_dict = ip["public_ip"]
       ip = ip_dict
 
+    log.info("\nCalling findVMByInternalIP for IP : {}".format(ip))
     vm_handle = findVMByInternalIP(ip)
     if vm_handle:
         vm_handles[ip] = vm_handle
