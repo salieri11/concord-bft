@@ -2491,7 +2491,8 @@ def extract_ip_lists_from_fxBlockchain(fxBlockchain):
    '''
    participant_ips = []
    committer_ips = []
-
+   log.info("\nInside extract_ip_lists_from_fxBlockchain, fxBlockchain is below\n")
+   log.info(fxBlockchain)
    if isinstance(fxBlockchain.replicas[TYPE_DAML_PARTICIPANT][0], str):
       participant_ips = fxBlockchain.replicas[TYPE_DAML_PARTICIPANT]
       committer_ips = fxBlockchain.replicas[TYPE_DAML_COMMITTER]

@@ -168,14 +168,15 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     return last_added_index
 
 
-def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
+def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid, ip and map out committer idx and rid relation.
   '''
   log.info("\nInside map_committers_info, blockchain fixture is as below")
-  log.info("\n{}".format(fxBlockchain))
+  log.info("\n{}".format(fx_blockchain))
   if verbose: log.info("")
-  all_committers = committers_of(fxBlockchain)
+  all_committers = committers_of(fx_blockchain)
+  log.info("\nAll committers are {}".format(all_committers))
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
@@ -188,7 +189,7 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   }
   committersOutput = [""] * len(all_committers)
   if verbose: log.info("Mapping out the rid and index relationship in committers...")
-  primary_rid = get_primary_rid(fxBlockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
+  primary_rid = get_primary_rid(fx_blockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
   success = False
   try:
     results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
@@ -198,7 +199,7 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
     log.error(msg)
 
   if not success:
-        raise(e)
+    raise(e)
 
   committerRespondedCount = 0; errored = []
   for result in results:

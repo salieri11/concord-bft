@@ -58,10 +58,10 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
     local_tuple = LocalSetupFixture(
         client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count, fx_blockchain=fxBlockchain)
 
-    def fin():
-        perform_sanity_check(reraise, local_tuple, fxHermesRunSettings)
+    # def fin():
+    #     perform_sanity_check(reraise, local_tuple, fxHermesRunSettings)
 
-    request.addfinalizer(fin)
+    # request.addfinalizer(fin)
 
     return local_tuple
 
@@ -337,30 +337,8 @@ def start_for_replica_list(replica_list, container_name, count):
     log.info("\nStarted {} replicas".format(count))
 
 
-@describe("daml test for single transaction without any interruption")
-def test_daml_single_transaction(reraise, fxLocalSetup):
-    '''
-    Verify case by submitting sequential client requests using DAML tool.
-    - Connect to a blockchain network.
-    - Submit valid requests to it.
-    - Verify that requests are processed correctly.
-    Args:
-        fxLocalSetup: Local fixture
-    '''
-    for client_host in fxLocalSetup.client_hosts:
-        try:
-            install_sdk_deploy_daml(client_host)
-
-            # Create & verify transactions
-            assert make_daml_request_in_thread(
-                reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
-
-        except Exception as excp:
-            assert False, excp
-
-
 @describe("fault tolerance - requests not to be processed without quorum")
-def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, step):
+def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
     - Connect to a blockchain network.
