@@ -16,6 +16,8 @@ jboolean initialize(JNIEnv *env, jobject obj, jstring j_client_id,
                     jshort j_max_read_hash_timeout,
                     jstring j_jaeger_agent_host_port);
 
+jint currentHealth(JNIEnv *env, jobject obj);
+
 jboolean subscribe(JNIEnv *env, jobject obj, jstring j_prefix);
 jboolean subscribeFrom(JNIEnv *env, jobject obj, jstring j_prefix,
                        jlong j_block_id);

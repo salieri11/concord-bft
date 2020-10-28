@@ -8,19 +8,19 @@ extern "C" {
 #endif
 /*
  * Class:     com.digitalasset.daml.on.vmware.write.service.bft.BftConcordClientPoolJni
- * Method:    sendRequest
- * Signature: ([BJZLjava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_digitalasset_daml_on_vmware_write_service_bft_BftConcordClientPoolJni_sendRequest
-  (JNIEnv *, jobject, jbyteArray, jlong, jboolean, jstring);
-
-/*
- * Class:     com.digitalasset.daml.on.vmware.write.service.bft.BftConcordClientPoolJni
  * Method:    currentHealth
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_com_digitalasset_daml_on_vmware_write_service_bft_BftConcordClientPoolJni_currentHealth
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com.digitalasset.daml.on.vmware.write.service.bft.BftConcordClientPoolJni
+ * Method:    sendRequest
+ * Signature: ([BJZLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_digitalasset_daml_on_vmware_write_service_bft_BftConcordClientPoolJni_sendRequest
+  (JNIEnv *, jobject, jbyteArray, jlong, jboolean, jstring);
 
 /*
  * Class:     com.digitalasset.daml.on.vmware.write.service.bft.BftConcordClientPoolJni

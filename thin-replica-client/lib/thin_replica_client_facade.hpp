@@ -17,6 +17,7 @@
 #ifndef THIN_REPLICA_CLIENT_FACADE_HPP_
 #define THIN_REPLICA_CLIENT_FACADE_HPP_
 
+#include "health_status.hpp"
 #include "update.hpp"
 
 #include <memory>
@@ -36,6 +37,8 @@ class ThinReplicaClientFacade final {
                           const uint16_t max_read_hash_timeout,
                           const std::string& jaeger_agent);
   ~ThinReplicaClientFacade();
+
+  HealthStatus CurrentHealth();
 
   void Subscribe(const std::string& prefix);
   void Subscribe(const std::string& prefix, uint64_t block_id);

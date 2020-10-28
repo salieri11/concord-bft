@@ -3,11 +3,11 @@
 package com.digitalasset.daml.on.vmware.write.service.bft
 
 import com.codahale.metrics.{Counter, Histogram, Timer}
-import com.daml.ledger.api.health.HealthStatus
+import com.daml.ledger.api.health.{HealthStatus, ReportsHealth}
 import com.daml.ledger.participant.state.pkvutils.metrics.Timed
 import com.daml.ledger.participant.state.v1.SubmissionResult
 import com.daml.metrics.{MetricName, Metrics}
-import com.digitalasset.daml.on.vmware.write.service.RetryStrategy
+import com.digitalasset.daml.on.vmware.common.ConvertHealth
 import com.google.protobuf.ByteString
 import org.slf4j.LoggerFactory
 
@@ -23,7 +23,8 @@ private[bft] class BftConcordClientPool(
     coreClient: BftConcordClientPoolCore,
     sendRetryStrategyFactory: RetryStrategyFactory,
     metrics: Metrics,
-) extends AutoCloseable {
+) extends AutoCloseable
+    with ReportsHealth {
 
   import com.digitalasset.daml.on.vmware.write.service.bft.BftConcordClientPool._
 
@@ -97,10 +98,10 @@ private[bft] class BftConcordClientPool(
     )
   }
 
-  def currentHealth: HealthStatus = {
+  override def currentHealth(): HealthStatus = {
     val nativeHealth = coreClient.currentHealth
     logger.debug(s"The native BFT client health check returned $nativeHealth")
-    nativeHealthToHealthStatus(nativeHealth)
+    ConvertHealth.fromNative(nativeHealth)
   }
 
   override def close(): Unit = {
@@ -134,12 +135,6 @@ private[bft] class BftConcordClientPool(
 
 object BftConcordClientPool {
   object OverloadedException extends RuntimeException
-
-  private def nativeHealthToHealthStatus(currentHealthNative: Int): HealthStatus =
-    currentHealthNative match {
-      case 0 => HealthStatus.healthy
-      case 1 => HealthStatus.unhealthy
-    }
 
   private def nativeSendResultToSubmissionResult(nativeSendResult: Int): SubmissionResult =
     nativeSendResult match {

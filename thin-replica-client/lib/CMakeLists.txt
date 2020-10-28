@@ -27,6 +27,7 @@ add_library(thin_replica_client SHARED
   "thin_replica_client.cpp" "thin_replica_client.hpp"
   "thin_replica_client_facade.cpp" "thin_replica_client_facade.hpp"
   "trs_connection.cpp" "trs_connection.hpp"
+  "health_status.hpp"
   "update.hpp")
 target_link_libraries(thin_replica_client
   proto
@@ -40,5 +41,5 @@ target_link_libraries(thin_replica_client
 )
 
 install(TARGETS thin_replica_client DESTINATION lib)
-install(FILES thin_replica_client.hpp thin_replica_client_facade.hpp update.hpp DESTINATION "include/thin_replica_client")
+install(FILES thin_replica_client.hpp thin_replica_client_facade.hpp health_status.hpp update.hpp DESTINATION "include/thin_replica_client")
 

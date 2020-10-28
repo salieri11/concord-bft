@@ -7,11 +7,12 @@ package com.digitalasset.daml.on.vmware.write.service.bft
   */
 private[bft] trait BftConcordClientPoolCore extends AutoCloseable {
 
+  def currentHealth: Int
+
   def sendRequest(
       request: Array[Byte],
       timeoutMillis: Long,
       preExecute: Boolean,
-      correlationId: String): Int
-
-  def currentHealth: Int
+      correlationId: String
+  ): Int
 }

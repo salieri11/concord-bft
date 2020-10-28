@@ -5,6 +5,7 @@ package com.digitalasset.daml.on.vmware.read.service
 import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
 import com.codahale.metrics.MetricRegistry
+import com.daml.ledger.api.health.{Healthy, Unhealthy}
 import com.daml.ledger.api.testing.utils.AkkaBeforeAndAfterAll
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.{ThinReplicaClient, Update}
 import org.mockito.AdditionalAnswers
@@ -55,6 +56,21 @@ final class ThinReplicaReadClientSpec
       }
     }
 
+    "return the current health when healthy" in {
+      val thinReplicaClient = createThinReplicaReadClient(createThinReplicaClientWithHealth(0))
+      thinReplicaClient.currentHealth() should be(Healthy)
+    }
+
+    "return the current health when unhealthy" in {
+      val thinReplicaClient = createThinReplicaReadClient(createThinReplicaClientWithHealth(1))
+      thinReplicaClient.currentHealth() should be(Unhealthy)
+    }
+
+    "return a health status of unhealthy when it is not initialized" in {
+      val thinReplicaClient = createThinReplicaReadClientFailingToInitialize()
+      thinReplicaClient.currentHealth() should be(Unhealthy)
+    }
+
     "update metrics" in {
       val metrics = new ThinReplicaReadClientMetrics(new MetricRegistry)
       val thinReplicaReadClient =
@@ -90,6 +106,12 @@ final class ThinReplicaReadClientSpec
     val client = createInitializableThinReplicaClient()
     when(client.subscribe(any())).thenReturn(true)
     when(client.pop()).thenReturn(anUpdate)
+    client
+  }
+
+  private def createThinReplicaClientWithHealth(health: Int): ThinReplicaClient = {
+    val client = createInitializableThinReplicaClient()
+    when(client.currentHealth()).thenReturn(health)
     client
   }
 

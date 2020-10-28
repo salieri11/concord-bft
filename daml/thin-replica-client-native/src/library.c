@@ -2,8 +2,8 @@
 // All rights reserved.
 
 #include <stdio.h>
-#include "com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni.h"
 
+#include "com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni.h"
 #include "type_bridge.hpp"
 
 /*
@@ -20,6 +20,18 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJ
   return initialize(env, obj, client_id, max_faulty, private_key, servers,
                     max_read_data_timeout, max_read_hash_timeout,
                     jaeger_agent_host_port);
+}
+
+/*
+ * Class:
+ * com.digitalasset.daml.on.vmware.thin.replica.client.core.ThinReplicaClientJni
+ * Method:    currentHealth
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_ThinReplicaClientJni_currentHealth(
+    JNIEnv *env, jobject obj) {
+  return currentHealth(env, obj);
 }
 
 /*
