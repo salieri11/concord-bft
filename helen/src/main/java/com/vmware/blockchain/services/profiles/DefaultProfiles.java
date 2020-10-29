@@ -164,21 +164,19 @@ public class DefaultProfiles {
     private User createUserIfNotExist() {
         logger.info("Application ready");
         String email = "admin@blockchain.local";
-        String password = "Admin!23";
         List<User> oUser = userService.list();
         if (oUser.isEmpty()) {
             logger.info("Creating Initial User");
             User u = new User();
             u.setName("ADMIN");
             u.setEmail(email);
-            u.setPassword(passwordEncoder.encode(password));
             u.setServiceRoles(ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.SYSTEM_ADMIN));
             u.setOrganization(organization.getId());
             // Note: The order of next 5 statements is very important, The user
             // object must be saved before it can be added and saved into
             // consortium & organization objects.
             u = userService.put(u);
-            logger.info("Admin user created. Username: {} Password: {}", email, password);
+            logger.info("Admin user created. Username: {}", email);
             return u;
         } else {
             return oUser.get(0);
@@ -264,7 +262,7 @@ public class DefaultProfiles {
             Replica r = new Replica(ips[i],
                                     ips[i],
                                     urlParts[0], urlParts[1], cert, zoneId, Replica.ReplicaType.NONE,
-                                    b.getId(), "Password!23");
+                                    b.getId(), "");
             r.setId(UUID.randomUUID());
             replicas.add(replicaService.put(r));
         }
