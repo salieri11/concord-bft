@@ -166,6 +166,10 @@ fi
 # a network will be set up at first-boot that will be DHCP or static, based on user input.
 rm -rf /etc/systemd/network/*
 
+# Replace /etc/issue file with copyright information
+cat > /etc/issue <<EOF
+Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
+EOF
 
 # The last statement needs to return code 0 for CAP to assume success.
 echo "post-install-castor.sh run finished"
