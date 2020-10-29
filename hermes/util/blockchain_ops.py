@@ -187,6 +187,7 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   if verbose: log.info("")
   all_committers = get_all_committers(fx_blockchain)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
+  log.info("\nTarget committers (interrupted nodes excluded) are : {}".format(target_committers))
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
   committersMapping = {

@@ -19,12 +19,11 @@ from pathlib import Path
 import os
 from subprocess import check_output, CalledProcessError
 from itertools import zip_longest
-import queue
 
 log = hermes_logging.getMainLogger()
 
 LocalSetupFixture = namedtuple(
-    "LocalSetupFixture", "client_hosts, concord_hosts, f_count, fx_blockchain")
+    "LocalSetupFixture", "client_hosts, concord_hosts, f_count")
 
 PARTICIPANT_GENERIC_ERROR_MSG = "DAML request submission/verification failed "
 COMMITTER_POWER_ON_ERROR_MSG = "Failed to power on committer node "
@@ -49,14 +48,14 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
         concord_hosts: Concord (committer) replicas
         f_count: Maximum faulty replicas allowed.
     '''
-    log.info("\n\nIn fxLocalSetup, Blockchain fixture is {}".format(fxBlockchain))
+    log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
     f_count = intr_helper.get_f_count(fxBlockchain)
     client_hosts, concord_hosts = format_hosts_structure(fxBlockchain.replicas)
-    log.info("\nIn fxLocalSetup, Participants are {}\nCommitters are {}\n".format(
+    log.info("\nIn fxLocalSetup fixture, Participants are {}\nCommitters are {}\n".format(
         client_hosts, concord_hosts))
 
     local_tuple = LocalSetupFixture(
-        client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count, fx_blockchain=fxBlockchain)
+        client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count)
 
     def fin():
         perform_sanity_check(reraise, local_tuple, fxHermesRunSettings)
@@ -68,9 +67,9 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
 
 def format_hosts_structure(all_replicas):
     '''
-    Currently the structure of replicas is different when blockchain is deployed
+    Currently the structure of replicas is different when blockchain is deployed 
     and when replicasConfig argument is provided.
-    Once the utility functions are corrected to allow only single format,
+    Once the utility functions are corrected to allow only single format, 
     this function would be removed.
     '''
     client_hosts = all_replicas["daml_participant"]
@@ -142,13 +141,12 @@ def staggered_start_committers(fxHermesRunSettings, concord_hosts):
                               intr_helper.NODE_RECOVER), \
             COMMITTER_POWER_ON_ERROR_MSG + "[{}]".format(
                 concord_host)
-        log.info("\nCommitter on index {}: {} is powered on".format(
+        log.info("Committer on index {}: {} is on".format(
             concord_host_index, concord_host))
         list_of_committer_indexes.remove(concord_host_index)
-        sleep_time = random.randrange(10, 20)
-        log.info("\nSleeping for time {}".format(sleep_time))
+        sleep_time = random.randrange(5, 10)
+        log.info("Sleeping for time {}".format(sleep_time))
         time.sleep(sleep_time)
-    log.info("\nAll the committers are powered on")
 
 
 def power_on_all_participants(fxHermesRunSettings, client_hosts):
@@ -166,10 +164,7 @@ def power_on_all_participants(fxHermesRunSettings, client_hosts):
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_RECOVER), \
             PARTICIPANT_POWER_ON_ERROR_MSG + "[{}]".format(client_host)
-        time.sleep(20)
-        log.info("\nParticipant no {} : {} is powered on".format(
-            count + 1, client_host))
-    log.info("\nAll the participants are powered on")
+        log.info("Participant no {} : {} is on".format(count + 1, client_host))
 
 
 def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
@@ -193,10 +188,6 @@ def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
                               intr_helper.NODE_INTERRUPT), \
             COMMITTER_POWER_OFF_ERROR_MSG + "[{}]".format(
                 concord_host)
-        time.sleep(20)
-        log.info("\nCommitter no {} : {} is powered off".format(
-            count + 1, concord_host))
-    log.info("\nAll the committers are powered off")
 
 
 def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
@@ -242,8 +233,7 @@ def make_daml_request_in_thread(reraise, client_host, no_of_txns=1, wait_time=1)
     thread_daml_txn = Thread(target=make_daml_request,
                              args=(url, no_of_txns, wait_time))
     thread_daml_txn.start()
-    time_to_sleep = 60 * no_of_txns
-    time.sleep(time_to_sleep)
+    time.sleep(90)
     log.info("\nIs thread alive? {}".format(thread_daml_txn.isAlive()))
     if(thread_daml_txn.isAlive()):
         reraise()
@@ -262,7 +252,7 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
     '''
     Function to perform sanity check after executing every test.
     It powers on the node and start containers, if brought down or stopped during any test
-    Performs daml transaction as last check.
+    Performs daml transaction as last check. 
     Args:
         fixture_tuple: Local setup fixture tuple.
         fxHermesRunSettings: Hermes command line arguments.
@@ -345,6 +335,7 @@ def start_for_replica_list(replica_list, container_name, count):
     log.info("\nStarted {} replicas".format(count))
 
 
+@pytest.mark.skip
 @describe("daml test for single transaction without any interruption")
 def test_daml_single_transaction(reraise, fxLocalSetup):
     '''
@@ -367,6 +358,7 @@ def test_daml_single_transaction(reraise, fxLocalSetup):
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - f replicas are stopped/started, powered off/on")
 def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -441,6 +433,7 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - participant ledger api restarted, node is powered off/on")
 def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
                                        fxHermesRunSettings):
@@ -500,6 +493,7 @@ def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - participant node powered off/on, ledger api, index db restarted")
 def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -558,6 +552,7 @@ def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRu
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - recovery after checkpoints (network failure), f nodes powered off/on")
 def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -568,7 +563,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
     - Enable the network interface on all replicas.
     - Submit a small number of sequential client requests
     - Verify that new requests are processed correctly.
-    - Submit and verify requests for power off/on of f committer nodes as well.
+    - Submit and verify requests for power off/on of f committer nodes as well.    
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
@@ -649,9 +644,10 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - requests not to be processed without quorum")
 @pytest.mark.parametrize("step", [0, 1])
-def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, step):
+def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
     '''
     Verify below using DAML tool.
     - Connect to a blockchain network.
@@ -666,7 +662,6 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
-        step: Parametrization argument
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -675,8 +670,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
                 install_sdk_deploy_daml(client_host)
 
             # Find primary replica and primary replica id
-            replicas_mapping = blockchain_ops.map_committers_info(
-                fxLocalSetup.fx_blockchain)
+            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
             primary_rip = replicas_mapping["primary_ip"]
             log.info("Primary Replica IP: {}".format(primary_rip))
 
@@ -696,11 +690,10 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
             else:
                 stop_for_replica_list(
                     primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
-            log.info("\nAt the moment, f+1 replicas are down")
 
             # Transactions should fail at this moment
             success = make_daml_request_in_thread(reraise, client_host, 1)
-            log.info("Daml txn after f+1 down is {}".format(success))
+            log.info("daml txn after f+1 down is {}".format(success))
             if success:
                 log.info(
                     "Daml transaction was successful even with f+1 replicas down")
@@ -715,8 +708,6 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
                 start_for_replica_list(
                     primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
 
-            log.info("\nAt the moment, all the replicas are up")
-
             # Create & verify transactions after powering on stopped replicas
             assert make_daml_request_in_thread(reraise, client_host), \
                 PARTICIPANT_GENERIC_ERROR_MSG
@@ -725,6 +716,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
             assert False, excp
 
 
+@pytest.mark.skip
 @describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
@@ -783,12 +775,12 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
 
     # Create & verify transactions after powering on all nodes
     for client_host in fxLocalSetup.client_hosts:
-        assert make_daml_request_in_thread(reraise, client_host),\
+        assert make_daml_request_in_thread(reraise, client_host), \
             PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
 
 
 @describe("fault tolerance - view change")
-def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings):
+def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance using below steps:
     - Connect to a blockchain network.
@@ -800,6 +792,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings)
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: blockchain
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -810,7 +803,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings)
                 reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
 
             committers_mapping = blockchain_ops.map_committers_info(
-                fxLocalSetup.fx_blockchain)
+                fxBlockchain)
 
             # Find primary replica ip
             init_primary_rip = committers_mapping["primary_ip"]
@@ -820,33 +813,39 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings)
             interrupted_nodes = []
             container_name = 'concord'
 
+            non_primary_replicas = fxLocalSetup.concord_hosts[:]
+            non_primary_replicas.remove(init_primary_rip)
+
             # Stop f-1 non-primary replica
             for index in range(fxLocalSetup.f_count - 1):
-                concord_host = fxLocalSetup.concord_hosts[index]
-                if concord_host != init_primary_rip:
-                    log.info(
-                        "Stop concord in non-primary replica: {}".format(concord_host))
-                    intr_helper.stop_container(concord_host, container_name)
-                    interrupted_nodes.append(concord_host)
+                concord_host = non_primary_replicas[index]
+                log.info(
+                    "Stop concord in non-primary replica: {}".format(concord_host))
+                intr_helper.stop_container(concord_host, container_name)
+                interrupted_nodes.append(concord_host)
 
             log.info("Stopped f-1 non-primary replica concord containers")
+            log.info("\nInterrupted nodes are : {}".format(interrupted_nodes))
 
             # Start new thread for daml request submissions and stop & start current primary replica
             thread_daml_txn = Thread(target=continuous_daml_request_submission,
                                      args=(client_host, get_port(client_host), 2, 0.2, 180))
-            thread_start_stop_primary = Thread(
-                target=intr_helper.continuous_stop_start_container,
-                args=(init_primary_rip, container_name, 180))
+            thread_stop_start_primary = Thread(target=intr_helper.continuous_stop_start_container,
+                                     args=(init_primary_rip, container_name, 180))
             interrupted_nodes.append(init_primary_rip)
-            threads_list = []
-            thread_daml_txn.start()
-            thread_start_stop_primary.start()
-            threads_list.append(thread_daml_txn)
-            threads_list.append(thread_start_stop_primary)
-            for thread in threads_list:
-                thread.join()
 
-            time.sleep(10)
+            log.info("\nAfter adding primary replica to interrupted nodes are : {}".format(
+                interrupted_nodes))
+            threads_list = []
+            log.info("\nStarting Daml transaction thread")
+            thread_daml_txn.start()
+            log.info("\nStarting Stop start primary thread")
+            thread_stop_start_primary.start()
+            threads_list.append(thread_daml_txn)
+            threads_list.append(thread_stop_start_primary)
+            for thread in threads_list:
+                thread.join(200)
+
             for thread in threads_list:
                 log.info("\nIs thread alive? {}".format(thread.isAlive()))
                 if(thread.isAlive()):
@@ -856,7 +855,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings)
 
             # Find new primary replica ip
             committers_mapping = blockchain_ops.map_committers_info(
-                fxLocalSetup.fx_blockchain, interrupted_nodes)
+                fxBlockchain, interrupted_nodes)
             new_primary_rip = committers_mapping["primary_ip"]
 
             log.info("New Primary Replica IP is : {}".format(new_primary_rip))
@@ -872,7 +871,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings)
 
 
 @describe("fault tolerance - multiple view changes")
-def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings):
+def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance view changes after multiple using below steps:
     - Connect to a blockchain network.
@@ -884,6 +883,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: blockchain
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
@@ -895,10 +895,9 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
             # Find primary replica ip
             committers_mapping = blockchain_ops.map_committers_info(
-                fxLocalSetup.fx_blockchain)
+                fxBlockchain)
             init_primary_rip = committers_mapping["primary_ip"]
-            log.info("Initial Primary Replica IP is : {}".format(
-                init_primary_rip))
+            log.info("Primary Replica IP is : {}".format(init_primary_rip))
 
             interrupted_nodes = []
             container_name = 'concord'
@@ -913,23 +912,24 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
                 intr_helper.stop_container(concord_host, container_name)
                 interrupted_nodes.append(concord_host)
 
-            log.info("Stopped f-1 non-primary replica concord container")
+            log.info("Stopped f-1 non-primary replica concord containers")
+            log.info("\nInterrupted nodes are : {}".format(interrupted_nodes))
 
             # Start new thread for daml request submissions
             thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                     args=(client_host, get_port(client_host), 1, 0.2, 480))
+                                     args=(client_host, get_port(client_host), 1, 0.2, 900))
             thread_daml_txn.start()
 
             # Stop and Restart the current primary replicas multiple times
             for _ in range(0, 7):
                 committers_mapping = blockchain_ops.map_committers_info(
-                    fxLocalSetup.fx_blockchain, interrupted_nodes)
+                    fxBlockchain, interrupted_nodes)
                 primary_rip = committers_mapping["primary_ip"]
                 intr_helper.stop_container(primary_rip, container_name, 30)
-                intr_helper.start_container(primary_rip, container_name, 30)
+                intr_helper.start_container(primary_rip, container_name, 90)
 
             thread_daml_txn.join()
-            time.sleep(10)
+            time.sleep(60)
             log.info("\nIs thread alive? {}".format(thread_daml_txn.isAlive()))
             if(thread_daml_txn.isAlive()):
                 log.info("\nKilling this thread in 10 seconds")
