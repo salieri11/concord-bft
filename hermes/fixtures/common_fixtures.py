@@ -553,7 +553,8 @@ def fxProduct(request, hermes_info):
             waitForStartupFunction = helper.verify_daml_test_ready
             waitForStartupParams = {
                "endpoint_hosts": endpoint_hosts,
-               "endpoint_port": endpoint_port}
+               "endpoint_port": endpoint_port,
+               "max_tries": 20}
             checkProductStatusParams = {
                "endpoint_hosts": endpoint_hosts,
                "endpoint_port": endpoint_port, "max_tries": 1}

@@ -774,7 +774,7 @@ def no_blockchain_readiness_verification_required(max_tries=1):
    return True
 
 
-def verify_daml_test_ready(endpoint_hosts, endpoint_port, max_tries=10):
+def verify_daml_test_ready(endpoint_hosts, endpoint_port, max_tries=20):
    '''
    Checks the connectivity of endpoints
    :param endpoint_hosts: list of endpoints (hosts/ips)
