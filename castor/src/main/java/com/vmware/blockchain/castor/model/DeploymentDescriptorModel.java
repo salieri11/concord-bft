@@ -80,7 +80,7 @@ public interface DeploymentDescriptorModel {
         private int memoryGb;
 
         @Min(value = 64, message = "invalid.mindisk")
-        @Max(value = 1024, message = "invalid.maxdisk")
+        @Max(value = 62 * 4096, message = "invalid.maxdisk")
         private int diskSizeGb;
     }
 

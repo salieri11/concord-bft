@@ -16,7 +16,8 @@
   "replicaNodeSpec": {
     "cpuCount": 64,
     "memoryGb": 256,
-    "diskSizeGb": 2000
+    "_comment_": "the following is 66 * 4096 GB, greater than the allowed max of 62 * 4096 GB",
+    "diskSizeGb": 270336
   },
   "clients": [
     {
@@ -35,7 +36,8 @@
   "clientNodeSpec": {
     "cpuCount": -1,
     "memoryGb": 2,
-    "diskSizeGb": 2000
+    "_comment_": "the following is 66 * 4096 GB, greater than the allowed max of 62 * 4096 GB",
+    "diskSizeGb": 270336
   },
   "blockchain": {
     "consortiumName": "consortium-1",
