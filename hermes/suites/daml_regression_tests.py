@@ -647,6 +647,82 @@ def start_for_replica_list(replica_list, container_name, count):
 #             assert False, excp
 
 
+@describe("fault tolerance - requests not to be processed without quorum")
+@pytest.mark.parametrize("step", [0, 1])
+def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, step):
+    '''
+    Verify below using DAML tool.
+    - Connect to a blockchain network.
+    - Stop f + 1 non-primary replicas.
+    - Submit and verify requests, it is expected to fail.
+    - Restart the stopped replicas.
+    - Verify that new requests are processed correctly.
+    - Stop f non-primary replicas and primary replica.
+    - Submit and verify requests, it is expected to fail.
+    - Restart the stopped replicas.
+    - Verify that new requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+        step: Parametrization argument
+    '''
+    for client_host in fxLocalSetup.client_hosts:
+        try:
+            # Install sdk only for one iteration
+            if step == 0:
+                install_sdk_deploy_daml(client_host)
+
+            # Find primary replica and primary replica id
+            replicas_mapping = blockchain_ops.map_committers_info(
+                fxLocalSetup.fx_blockchain)
+            primary_rip = replicas_mapping["primary_ip"]
+            log.info("Primary Replica IP: {}".format(primary_rip))
+
+            all_replicas = fxLocalSetup.concord_hosts[:]
+            container_name = 'concord'
+
+            non_primary_replicas = [
+                n for n in all_replicas if n != primary_rip]
+            primary_and_non_primary_replicas = [
+                primary_rip] + [n for n in non_primary_replicas]
+
+            # Step 0 - f+1 non primary replicas to be stopped
+            # Step 1 - f non primary and 1 primary replicas to be stopped
+            if step == 0:
+                stop_for_replica_list(
+                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            else:
+                stop_for_replica_list(
+                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            log.info("\nAt the moment, f+1 replicas are down")
+
+            # Transactions should fail at this moment
+            success = make_daml_request_in_thread(reraise, client_host, 1)
+            log.info("Daml txn after f+1 down is {}".format(success))
+            if success:
+                log.info(
+                    "Daml transaction was successful even with f+1 replicas down")
+                assert False, "Expected daml transaction to fail after f+1 replicas are down"
+
+            # Step 0 - f+1 non primary replicas to be started
+            # Step 1 - f non primary and 1 primary replicas to be started
+            if step == 0:
+                start_for_replica_list(
+                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            else:
+                start_for_replica_list(
+                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
+            
+            log.info("\nAt the moment, all the replicas are up")
+
+            # Create & verify transactions after powering on stopped replicas
+            assert make_daml_request_in_thread(reraise, client_host), \
+                PARTICIPANT_GENERIC_ERROR_MSG
+
+        except Exception as excp:
+            assert False, excp
+
+
 @describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
@@ -707,79 +783,6 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
     for client_host in fxLocalSetup.client_hosts:
         assert make_daml_request_in_thread(reraise, client_host),\
              PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
-
-
-@describe("fault tolerance - requests not to be processed without quorum")
-@pytest.mark.parametrize("step", [0, 1])
-def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, step):
-    '''
-    Verify below using DAML tool.
-    - Connect to a blockchain network.
-    - Stop f + 1 non-primary replicas.
-    - Submit and verify requests, it is expected to fail.
-    - Restart the stopped replicas.
-    - Verify that new requests are processed correctly.
-    - Stop f non-primary replicas and primary replica.
-    - Submit and verify requests, it is expected to fail.
-    - Restart the stopped replicas.
-    - Verify that new requests are processed correctly.
-    Args:
-        fxLocalSetup: Local fixture
-        fxHermesRunSettings: Hermes command line arguments
-        step: Parametrization argument
-    '''
-    for client_host in fxLocalSetup.client_hosts:
-        try:
-            # Install sdk only for one iteration
-            if step == 0:
-                install_sdk_deploy_daml(client_host)
-
-            # Find primary replica and primary replica id
-            replicas_mapping = blockchain_ops.map_committers_info(
-                fxLocalSetup.fx_blockchain)
-            primary_rip = replicas_mapping["primary_ip"]
-            log.info("Primary Replica IP: {}".format(primary_rip))
-
-            all_replicas = fxLocalSetup.concord_hosts[:]
-            container_name = 'concord'
-
-            non_primary_replicas = [
-                n for n in all_replicas if n != primary_rip]
-            primary_and_non_primary_replicas = [
-                primary_rip] + [n for n in non_primary_replicas]
-
-            # Step 0 - f+1 non primary replicas to be stopped
-            # Step 1 - f non primary and 1 primary replicas to be stopped
-            if step == 0:
-                stop_for_replica_list(
-                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
-            else:
-                stop_for_replica_list(
-                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
-
-            # Transactions should fail at this moment
-            success = make_daml_request_in_thread(reraise, client_host, 1)
-            log.info("daml txn after f+1 down is {}".format(success))
-            if success:
-                log.info(
-                    "Daml transaction was successful even with f+1 replicas down")
-                assert False, "Expected daml transaction to fail after f+1 replicas are down"
-
-            # Step 0 - f+1 non primary replicas to be started
-            # Step 1 - f non primary and 1 primary replicas to be started
-            if step == 0:
-                start_for_replica_list(
-                    non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
-            else:
-                start_for_replica_list(
-                    primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
-
-            # Create & verify transactions after powering on stopped replicas
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG
-
-        except Exception as excp:
-            assert False, excp
 
 
 # @describe("fault tolerance - view change")
