@@ -240,6 +240,10 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
             if _DEPLOYMENT_SUCCESS_MSG in line:
                 log.info("Got deployment success msg")
                 deployment_success = True
+            if "Error starting ApplicationContext" in line:
+                return
+            if "Deployment completed with status: FAILURE" in line:
+                return
 
     # get the end time after the deployment
     end_time = datetime.now(timezone.utc).astimezone()
@@ -486,4 +490,3 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
             log.error(validation_message_fail)
 
     return status
-
