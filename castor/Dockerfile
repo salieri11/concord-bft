@@ -27,7 +27,7 @@ COPY ./castor/src ./castor/src
 RUN mvn -f castor/pom.xml package
 
 ## Runtime image.
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.5
 LABEL description="VMware Blockchain Orchestrator"
 
 COPY ./helen/wait-for-it.sh ./castor/wait-for-it.sh
