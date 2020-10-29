@@ -109,7 +109,7 @@ def get_all_committers(fxBlockchain):
     # Correct function to call is fetch_ips_from_fxBlockchain_entry here.
     all_committers = helper.fetch_ips_from_fxBlockchain_entry(objs)
 
-  log.info("\n\nReturning all the committers {}".format(all_committers))
+  # log.info("\n\nReturning all the committers {}".format(all_committers))
   return all_committers
 
 
@@ -187,7 +187,7 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   if verbose: log.info("")
   all_committers = get_all_committers(fx_blockchain)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
-  log.info("\nTarget committers (interrupted nodes excluded) are : {}".format(target_committers))
+  # log.info("\nTarget committers (interrupted nodes excluded) are : {}".format(target_committers))
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
   committersMapping = {
@@ -250,7 +250,7 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   fx_blockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
   fx_blockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
   fx_blockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
-  log.info("\nEnd of map_committers_info, fx_blockchain is {}".format(fx_blockchain))
+  # log.info("\nEnd of map_committers_info, fx_blockchain is {}".format(fx_blockchain))
   return committersMapping
 
 # Below must change once participants are able to connect to multiple committers

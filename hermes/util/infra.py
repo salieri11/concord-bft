@@ -396,7 +396,7 @@ def fetch_vm_handles(ips):
   '''
   log.info("Fetching vm handles...")
   vm_handles = {}
-  for ip in ips:
+  for ip in ips: 
     # Code fix for handling ip variable 
     # when the test runs on Jenkins, input type is <dict> 
     # So ip address is to be picked explicitly.
@@ -413,7 +413,7 @@ def fetch_vm_handles(ips):
         ip_dict = ip["public_ip"]
       ip = ip_dict
 
-    log.info("\nCalling findVMByInternalIP for IP : {}".format(ip))
+    # log.info("\nCalling findVMByInternalIP for IP : {}".format(ip))
     vm_handle = findVMByInternalIP(ip)
     if vm_handle:
         vm_handles[ip] = vm_handle

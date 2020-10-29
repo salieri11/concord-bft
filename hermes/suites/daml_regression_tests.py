@@ -335,7 +335,6 @@ def start_for_replica_list(replica_list, container_name, count):
     log.info("\nStarted {} replicas".format(count))
 
 
-@pytest.mark.skip
 @describe("daml test for single transaction without any interruption")
 def test_daml_single_transaction(reraise, fxLocalSetup):
     '''
@@ -358,7 +357,6 @@ def test_daml_single_transaction(reraise, fxLocalSetup):
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - f replicas are stopped/started, powered off/on")
 def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -433,7 +431,6 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - participant ledger api restarted, node is powered off/on")
 def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
                                        fxHermesRunSettings):
@@ -493,7 +490,6 @@ def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - participant node powered off/on, ledger api, index db restarted")
 def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -552,7 +548,6 @@ def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRu
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - recovery after checkpoints (network failure), f nodes powered off/on")
 def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -644,7 +639,6 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - requests not to be processed without quorum")
 @pytest.mark.parametrize("step", [0, 1])
 def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
@@ -716,7 +710,6 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
             assert False, excp
 
 
-@pytest.mark.skip
 @describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
@@ -779,6 +772,8 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
             PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
 
 
+# This test has been skipped temporarily for a fix which needs time.
+@pytest.mark.skip
 @describe("fault tolerance - view change")
 def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -816,7 +811,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             non_primary_replicas = fxLocalSetup.concord_hosts[:]
             non_primary_replicas.remove(init_primary_rip)
 
-            # Stop f-1 non-primary replica
+            # # Stop f-1 non-primary replica
             for index in range(fxLocalSetup.f_count - 1):
                 concord_host = non_primary_replicas[index]
                 log.info(
@@ -829,23 +824,26 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
 
             # Start new thread for daml request submissions and stop & start current primary replica
             thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                     args=(client_host, get_port(client_host), 2, 0.2, 180))
+                                     args=(client_host, get_port(client_host), 1, 0.5, 240))
             thread_stop_start_primary = Thread(target=intr_helper.continuous_stop_start_container,
-                                     args=(init_primary_rip, container_name, 180))
+                                     args=(init_primary_rip, container_name, 240))
             interrupted_nodes.append(init_primary_rip)
 
             log.info("\nAfter adding primary replica to interrupted nodes are : {}".format(
                 interrupted_nodes))
-            threads_list = []
-            log.info("\nStarting Daml transaction thread")
+            
+            log.info("\nStarting daml transaction thread")
             thread_daml_txn.start()
-            log.info("\nStarting Stop start primary thread")
+            log.info("\nStarting stop start primary thread")
             thread_stop_start_primary.start()
+            threads_list = []
             threads_list.append(thread_daml_txn)
             threads_list.append(thread_stop_start_primary)
-            for thread in threads_list:
-                thread.join(200)
-
+            log.info("\nThreads list is {}".format(threads_list))
+            for count, thread in enumerate(threads_list):
+                log.info("\nJoining thread - {}".format(count+1))
+                thread.join()
+            time.sleep(120)
             for thread in threads_list:
                 log.info("\nIs thread alive? {}".format(thread.isAlive()))
                 if(thread.isAlive()):
@@ -870,6 +868,8 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             assert False, excp
 
 
+# This test has been skipped temporarily for a fix which needs time.
+@pytest.mark.skip
 @describe("fault tolerance - multiple view changes")
 def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
