@@ -24,7 +24,7 @@ RUN mvn -f pom.xml package -pl provisioning-service -am -B
 #RUN mvn -f persephone/provisioning-service/pom.xml install
 
 # Runtime image (Provisioning Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.5
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
 WORKDIR /persephone-provisioning-service

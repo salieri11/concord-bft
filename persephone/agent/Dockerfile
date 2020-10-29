@@ -27,7 +27,7 @@ RUN apt-get update \
 RUN wget --directory-prefix=/tmp/ https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64
 
 # Runtime image.
-FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.4
+FROM athena-docker-local.artifactory.eng.vmware.com/vmbc-photon-3:1.0.5
 LABEL description="Node Agent"
 
 ## Get the notary binary from environment stage
