@@ -199,6 +199,43 @@ public class CloudInitConfiguration {
         }
     }
 
+    // This enables/disables the actual code to write Container Registry's Self-Signed Cert to file accordingly
+    private String enableContainerRegSelfSignedCert() {
+        if (isContainerRegSelfSigned()) {
+            return "true";
+        } else {
+            return "false";
+        }
+    }
+
+    // Sets the directory name for Container Registry's Self-Signed Cert as required by Docker
+    // Format required is host:port
+    private String setDirForContainerRegSelfSignedCert() {
+        if (isContainerRegSelfSigned()) {
+            try {
+                URL url = new URL(containerRegistry.getAddress());
+                String dirName = "";
+                if (StringUtils.hasText(url.getHost())) {
+                    dirName += url.getHost();
+                } else {
+                    throw new BadRequestPersephoneException(new MalformedURLException(),
+                                                            ErrorCode.CONTAINER_REG_ADDRESS_MALFORMED,
+                                                            containerRegistry.getAddress());
+                }
+                if (url.getPort() != -1) {
+                    dirName += ":";
+                    dirName += url.getPort();
+                }
+                return dirName;
+            } catch (Exception e) {
+                throw new BadRequestPersephoneException(e, ErrorCode.CONTAINER_REG_ADDRESS_MALFORMED,
+                                                        containerRegistry.getAddress());
+            }
+        } else {
+            return "";
+        }
+    }
+
     // Sets the directory name for Notary Self-Signed Cert as required by Docker
     // Format required is host:port
     private String setDirForNotarySelfSignedCert() {
@@ -244,6 +281,24 @@ public class CloudInitConfiguration {
         return false;
     }
 
+    private String setContainerRegSelfSignedCert() {
+        if (isContainerRegSelfSigned()) {
+            return containerRegistry.getTransportSecurity().getCertificateData();
+        } else {
+            return "";
+        }
+    }
+
+    private Boolean isContainerRegSelfSigned() {
+        if (containerRegistry != null && !containerRegistry.getAddress().equals("")
+            && containerRegistry.getTransportSecurity() != null
+            && containerRegistry.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && StringUtils.hasText(containerRegistry.getTransportSecurity().getCertificateData())) {
+            return true;
+        }
+        return false;
+    }
+
     private String enableDockerContentTrustCommand() {
         if (notaryServer != null && !notaryServer.getAddress().equals("")) {
             return "export DOCKER_CONTENT_TRUST=1";
@@ -279,7 +334,6 @@ public class CloudInitConfiguration {
             propBuilder.putValues(AgentAttributes.NEW_DATA_DISK.name(), "True");
         }
         var builder = ConcordAgentConfiguration.newBuilder()
-                .setContainerRegistry(containerRegistry)
                 .setCluster(clusterId)
                 .setModel(model)
                 .setConfigService(configServiceRestEndpoint)
@@ -290,9 +344,21 @@ public class CloudInitConfiguration {
         if (!Strings.isNullOrEmpty(nodeIdString)) {
             builder.setNodeId(nodeIdString);
         }
+        if (this.containerRegistry != null) {
+            // Clearing TransportSecurity of ContainerRegistry as Cloud Init creates and handles the required cert file
+            if (isContainerRegSelfSigned()) {
+                builder = builder.setContainerRegistry(containerRegistry.toBuilder().clearTransportSecurity());
+            } else {
+                builder = builder.setContainerRegistry(containerRegistry);
+            }
+        }
         if (this.notaryServer != null) {
-            // Passing only notary server address as self-signed certificate is passed and created in Cloud Init itself
-            builder = builder.setNotaryServer(Endpoint.newBuilder().setAddress(this.notaryServer.getAddress()).build());
+            // Clearing TransportSecurity of NotaryServer as Cloud Init creates and handles the required cert file
+            if (notaryServer.getTransportSecurity() != null) {
+                builder = builder.setNotaryServer(notaryServer.toBuilder().clearTransportSecurity());
+            } else {
+                builder = builder.setNotaryServer(notaryServer);
+            }
         }
         return builder.build();
     }
@@ -379,6 +445,9 @@ public class CloudInitConfiguration {
                              toRegistrySecuritySetting(containerRegistry.getAddress()))
                     .replace("{{agentConfig}}",
                              com.google.protobuf.util.JsonFormat.printer().print(getConfiguration()))
+                    .replace("{{enableContainerRegSelfSignedCert}}", enableContainerRegSelfSignedCert())
+                    .replace("{{containerRegSelfSignedCertDir}}", setDirForContainerRegSelfSignedCert())
+                    .replace("{{containerRegSelfSignedCert}}", setContainerRegSelfSignedCert())
                     .replace("{{enableNotarySelfSignedCert}}", enableNotarySelfSignedCert())
                     .replace("{{notaryServerSelfSignedCertDir}}", setDirForNotarySelfSignedCert())
                     .replace("{{notarySelfSignedCert}}", setNotarySelfSignedCert())

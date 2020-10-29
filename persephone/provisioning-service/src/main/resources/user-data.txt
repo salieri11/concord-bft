@@ -27,6 +27,14 @@ mkdir -p /config/agent
 echo '{{agentConfig}}' > /config/agent/config.json
 chmod 600 /config/agent/config.json
 
+# Output Container Registry's Self-Signed Certificate
+if {{enableContainerRegSelfSignedCert}}
+then
+   mkdir -p /etc/docker/certs.d/{{containerRegSelfSignedCertDir}}
+   echo '{{containerRegSelfSignedCert}}' > /etc/docker/certs.d/{{containerRegSelfSignedCertDir}}/ca.crt
+   chmod 600 /etc/docker/certs.d/{{containerRegSelfSignedCertDir}}/ca.crt
+fi
+
 # Output Notary Server's Self-Signed Certificate
 if {{enableNotarySelfSignedCert}}
 then
