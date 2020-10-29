@@ -67,7 +67,6 @@ def verify_node_interruption_testing_readiness(fxHermesRunSettings):
             log.error("**** Failed to fetch VM handles; aborting Run! ****")
             sys.exit(1)
 
-
 def get_nodes_available_for_interruption(fxBlockchain,
                                          scenario_details):
     '''
@@ -97,7 +96,6 @@ def get_nodes_available_for_interruption(fxBlockchain,
         nodes_available_for_interruption))
     return nodes_available_for_interruption
 
-
 def get_f_count(fxBlockchain):
     '''
     Return f count
@@ -105,7 +103,6 @@ def get_f_count(fxBlockchain):
     :return: f count
     '''
     return blockchain_ops.get_f_count(fxBlockchain)
-
 
 def get_list_of_nodes_not_to_interrupt(fxBlockchain,
                                        nodes_to_interrupt):
@@ -117,7 +114,6 @@ def get_list_of_nodes_not_to_interrupt(fxBlockchain,
     available_nodes = blockchain_ops.get_all_node(fxBlockchain)
     return [node for node in available_nodes if node not in nodes_to_interrupt]
 
-
 def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
                                    no_of_nodes_to_interrupt,
                                    last_interrupted_node_index=None):
@@ -128,26 +124,21 @@ def get_list_of_nodes_to_interrupt(nodes_available_for_interruption,
     :param last_interrupted_node_index: last interrupted node index in the list of nodes
     :return: f nodes to be interrupted
     '''
-    no_of_available_committers_for_interruption = len(
-        nodes_available_for_interruption)
+    no_of_available_committers_for_interruption = len(nodes_available_for_interruption)
     if not last_interrupted_node_index:
-        last_interrupted_node_index = randrange(
-            no_of_available_committers_for_interruption)
+        last_interrupted_node_index = randrange(no_of_available_committers_for_interruption)
 
-    start_node_index = (last_interrupted_node_index +
-                        1) % no_of_available_committers_for_interruption
+    start_node_index = (last_interrupted_node_index + 1) % no_of_available_committers_for_interruption
     nodes_to_interrupt = []
     for j in range(no_of_nodes_to_interrupt):
         node_index_to_interrupt = start_node_index + j
         if node_index_to_interrupt >= no_of_available_committers_for_interruption:
-            node_index_to_interrupt = node_index_to_interrupt - \
-                no_of_available_committers_for_interruption
+            node_index_to_interrupt = node_index_to_interrupt - no_of_available_committers_for_interruption
         log.debug(nodes_available_for_interruption[node_index_to_interrupt])
         nodes_to_interrupt.append(
             nodes_available_for_interruption[node_index_to_interrupt])
 
     return nodes_to_interrupt, last_interrupted_node_index + 1
-
 
 def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                                            scenario_details,
@@ -164,8 +155,7 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
     :return: True if blockchain is healthy and ran tests, else False, & crashed node count
     '''
     global interrupted_nodes
-    run_txn_in_background = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS].get(
-        RUN_TXNS_IN_BACKGROUND)
+    run_txn_in_background = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS].get(RUN_TXNS_IN_BACKGROUND)
     crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
         fxBlockchain, results_dir, scenario_details[NODE_TYPE_TO_INTERRUPT], interrupted_nodes)
     crashed_committer_count = len(crashed_committers)
@@ -181,8 +171,7 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
             list_of_participant_nodes_to_run_txns = crashed_participants
         else:
             uninterrupted_participants = [ip for ip in
-                                          blockchain_ops.participants_of(
-                                              fxBlockchain)
+                                          blockchain_ops.participants_of(fxBlockchain)
                                           if ip not in crashed_participants]
             list_of_participant_nodes_to_run_txns = uninterrupted_participants
 
@@ -208,13 +197,11 @@ def check_node_health_and_run_sanity_check(fxBlockchain, results_dir,
                     if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
                         break
                     else:
-                        elapsed_time = round(
-                            ((datetime.datetime.now() - start_time).seconds / 60), 1)
+                        elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60), 1)
                         log.info(
                             "Repeating Daml transactions ({} / {} mins)...".format(elapsed_time, duration_to_run_transaction))
             else:
-                log.info(
-                    "** Skipping DAML test as all participant nodes are interrupted")
+                log.info("** Skipping DAML test as all participant nodes are interrupted")
                 status = True
 
     return status, crashed_committer_count
@@ -246,7 +233,6 @@ def workaround_to_rejoin_node(node):
         log.debug("Output from script '{}': {}".format(
             remote_rejoin_node_script_path,
             ssh_output))
-
 
 def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, nodes_to_interrupt,
                                          node, node_interruption_details, mode):
@@ -300,7 +286,8 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
     elif node_interruption_type == NODE_INTERRUPT_CONTAINER_CRASH:
         if mode == NODE_INTERRUPT:
             if custom_interruption_params[CONTAINERS_TO_CRASH] == ALL_CONTAINERS:
-                containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"]["modelService"]["defaults"]["deployment_components"][
+                containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"] \
+                    ["modelService"]["defaults"]["deployment_components"][
                     node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
             else:
                 containers = custom_interruption_params[CONTAINERS_TO_CRASH]
@@ -308,57 +295,42 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
             username, password = helper.getNodeCredentials()
             log.info("containers to be crashed: {}".format(containers))
             for container in containers:
-                log.info("Performing container crash for VM: {} and container: {}".format(
-                    node, container))
+                log.info("Performing container crash for VM: {} and container: {}".format(node, container))
                 command_to_get_pid_and_status = "docker inspect --format='{}' {}; docker inspect --format='{}'\
                          {}".format('{{.State.Pid}}', container, '{{.State.Status}}', container)
-                command_to_get_status = "docker inspect --format '{}' {}".format(
-                    '{{.State.Status}}', container)
-                pid_and_status_before_crash = helper.ssh_connect(
-                    node, username, password, command_to_get_pid_and_status)
-                log.debug("process id and status before crash: {}".format(
-                    pid_and_status_before_crash))
+                command_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container)
+                pid_and_status_before_crash = helper.ssh_connect(node, username, password, command_to_get_pid_and_status)
+                log.debug("process id and status before crash: {}".format(pid_and_status_before_crash))
 
-                pid_before_crash, status_before_crash = pid_and_status_before_crash.split(
-                    "\r\n", 1)
-                command_to_crash_container = "kill -9 {}".format(
-                    pid_before_crash)
-                crash_output = helper.ssh_connect(
-                    node, username, password, command_to_crash_container)
-                log.debug("Container crash output for VM {} and container {}: {}".format(
-                    node, container, crash_output))
+                pid_before_crash, status_before_crash = pid_and_status_before_crash.split("\r\n", 1)
+                command_to_crash_container = "kill -9 {}".format(pid_before_crash)
+                crash_output = helper.ssh_connect(node, username, password, command_to_crash_container)
+                log.debug("Container crash output for VM {} and container {}: {}".format(node, container, crash_output))
 
                 status_of_container = None
                 count = 0
                 while status_of_container != "running\r\n" and count <= 5:
                     count = count + 1
                     time.sleep(2)
-                    status_of_container = helper.ssh_connect(
-                        node, username, password, command_to_get_status)
+                    status_of_container = helper.ssh_connect(node, username, password, command_to_get_status)
 
-                pid_and_status_after_crash = helper.ssh_connect(
-                    node, username, password, command_to_get_pid_and_status)
-                pid_after_crash, status_after_crash = pid_and_status_after_crash.split(
-                    "\r\n", 1)
+                pid_and_status_after_crash = helper.ssh_connect(node, username, password, command_to_get_pid_and_status)
+                pid_after_crash, status_after_crash = pid_and_status_after_crash.split("\r\n", 1)
 
                 if pid_before_crash != pid_after_crash and status_of_container == "running\r\n":
-                    log.info("Container: {} crashed and started automatically for VM: {}".format(
-                        container, node))
+                    log.info("Container: {} crashed and started automatically for VM: {}".format(container, node))
                 elif pid_before_crash == pid_after_crash:
-                    log.error("Container: {} could not be crashed for VM: {}".format(
-                        container, node))
+                    log.error("Container: {} could not be crashed for VM: {}".format(container, node))
                     sys.exit(1)
                 elif status_of_container != "running\r\n":
-                    log.error("container: {} did not start automatically for VM: {}".format(
-                        container, node))
+                    log.error("container: {} did not start automatically for VM: {}".format(container, node))
                     sys.exit(1)
 
     elif node_interruption_type == NODE_INTERRUPT_INDEX_DB_READ_WRITE_FAIL:
         username, password = helper.getNodeCredentials()
         command_to_get_index_db_locations = "docker inspect  --format '{}' {}".format('{{json .Mounts}}',
                                                                                       INDEX_DB_CONTAINER_NAME)
-        index_db_locations = helper.ssh_connect(
-            node, username, password, command_to_get_index_db_locations)
+        index_db_locations = helper.ssh_connect(node, username, password, command_to_get_index_db_locations)
         index_db_locations = json.loads(index_db_locations)
         for location in index_db_locations:
             if "postgresql" in location["Destination"]:
@@ -369,14 +341,11 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
             command_for_index_db_permission_status = \
                 "docker exec -it daml_index_db bash -c \"chmod 000 {} ; ls -ld {} | cut -c2-10\"" \
                 .format(index_db_location, index_db_location)
-            index_db_status = helper.ssh_connect(
-                node, username, password, command_for_index_db_permission_status)
+            index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
             if index_db_status == "---------\r\n":
-                log.debug("removed access (000) on container: {}".format(
-                    INDEX_DB_CONTAINER_NAME))
+                log.debug("removed access (000) on container: {}".format(INDEX_DB_CONTAINER_NAME))
             else:
-                log.error("failed to remove access (000) on container: {}".format(
-                    INDEX_DB_CONTAINER_NAME))
+                log.error("failed to remove access (000) on container: {}".format(INDEX_DB_CONTAINER_NAME))
                 sys.exit(1)
 
         if mode == NODE_RECOVER:
@@ -384,14 +353,11 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
             command_for_index_db_permission_status = \
                 "docker exec -it daml_index_db bash -c \"chmod 700 {} ; ls -ld {} | cut -c2-10\"" \
                 .format(index_db_location, index_db_location)
-            index_db_status = helper.ssh_connect(
-                node, username, password, command_for_index_db_permission_status)
+            index_db_status = helper.ssh_connect(node, username, password, command_for_index_db_permission_status)
             if index_db_status == "rwx------\r\n":
-                log.debug("restored access (700) on container: {}".format(
-                    INDEX_DB_CONTAINER_NAME))
+                log.debug("restored access (700) on container: {}".format(INDEX_DB_CONTAINER_NAME))
             else:
-                log.error("failed to restore access (700) on container: {}".format(
-                    INDEX_DB_CONTAINER_NAME))
+                log.error("failed to restore access (700) on container: {}".format(INDEX_DB_CONTAINER_NAME))
                 sys.exit(1)
 
     elif node_interruption_type == NODE_INTERRUPT_NETWORK_DISCONNECT:
@@ -403,41 +369,32 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
                     log.info("Container disconnect: {}".format(container))
                     command_to_disconnect_container = "docker network disconnect {} {}".format(CONTAINER_BLOCKCHAIN_NETWORK,
                                                                                                container)
-                    disconnect_output = helper.ssh_connect(
-                        node, username, password, command_to_disconnect_container)
+                    disconnect_output = helper.ssh_connect(node, username, password, command_to_disconnect_container)
                     log.debug("Output of network disconnect for container: {} and VM: {}".format(container, node),
                               disconnect_output)
                     command_to_get_container_network = "docker inspect --format '{}' {}".format(
                         '{{.NetworkSettings.Networks}}',
                         container)
-                    container_network = helper.ssh_connect(
-                        node, username, password, command_to_get_container_network)
+                    container_network = helper.ssh_connect(node, username, password, command_to_get_container_network)
                     if not CONTAINER_BLOCKCHAIN_NETWORK in container_network:
-                        log.debug("{} Container disconnected successfully from blockchain on VM {}".format(
-                            container, node))
+                        log.debug("{} Container disconnected successfully from blockchain on VM {}".format(container, node))
                     else:
-                        log.error("Unable to disconnect {} container from blockchain on VM: {}".format(
-                            container, node))
+                        log.error("Unable to disconnect {} container from blockchain on VM: {}".format(container, node))
                         sys.exit(1)
                 elif mode == NODE_RECOVER:
                     log.info("Container reconnect: {}".format(container))
                     command_to_reconnect_container = "docker network connect {} {}".format(CONTAINER_BLOCKCHAIN_NETWORK,
                                                                                            container)
-                    reconnect_output = helper.ssh_connect(
-                        node, username, password, command_to_reconnect_container)
-                    log.debug("Output of VM reconnect command for VM: {}".format(
-                        node), reconnect_output)
+                    reconnect_output = helper.ssh_connect(node, username, password, command_to_reconnect_container)
+                    log.debug("Output of VM reconnect command for VM: {}".format(node), reconnect_output)
                     command_to_get_container_network = "docker inspect --format '{}' {}".format(
                         '{{.NetworkSettings.Networks}}',
                         container)
-                    container_network = helper.ssh_connect(
-                        node, username, password, command_to_get_container_network)
+                    container_network = helper.ssh_connect(node, username, password, command_to_get_container_network)
                     if CONTAINER_BLOCKCHAIN_NETWORK in container_network:
-                        log.debug(
-                            "Container: {} reconnected successfully to blockchain".format(container))
+                        log.debug("Container: {} reconnected successfully to blockchain".format(container))
                     else:
-                        log.error(
-                            "Unable to reconnect container: {} to blockchain".format(container))
+                        log.error("Unable to reconnect container: {} to blockchain".format(container))
                         sys.exit(1)
 
         elif custom_interruption_params[NETWORK_DISCONNECT_LEVEL] == NETWORK_DISCONNECT_VM_LEVEL:
@@ -445,80 +402,59 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
             if mode == NODE_INTERRUPT:
                 log.info("Performing network disconnect for VM: {}".format(node))
                 command_to_disconnect_vm = "network_id=$(ifconfig -a | grep br- | cut -f 1 -d ' '); ifconfig $network_id down"
-                disconnect_output = helper.ssh_connect(
-                    node, username, password, command_to_disconnect_vm)
-                log.debug("Output of VM disconnect command for VM: {}".format(
-                    node), disconnect_output)
-                network_id = helper.ssh_connect(
-                    node, username, password, command_to_get_network_id_if_running)
+                disconnect_output = helper.ssh_connect(node, username, password, command_to_disconnect_vm)
+                log.debug("Output of VM disconnect command for VM: {}".format(node), disconnect_output)
+                network_id = helper.ssh_connect(node, username, password, command_to_get_network_id_if_running)
                 if network_id == "":
                     log.info("VM disconnect successful")
                 else:
-                    log.error(
-                        "Network disconnect failed for VM: {}".format(node))
+                    log.error("Network disconnect failed for VM: {}".format(node))
                     sys.exit(1)
             elif mode == NODE_RECOVER:
                 log.info("VM reconnect")
                 command_to_reconnect_vm = "network_id=$(ifconfig -a | grep br- | cut -f 1 -d ' '); ifconfig $network_id up"
-                reconnect_output = helper.ssh_connect(
-                    node, username, password, command_to_reconnect_vm)
-                log.debug("Output of VM reconnect command for VM: {}".format(
-                    node), reconnect_output)
-                network_id = helper.ssh_connect(
-                    node, username, password, command_to_get_network_id_if_running)
+                reconnect_output = helper.ssh_connect(node, username, password, command_to_reconnect_vm)
+                log.debug("Output of VM reconnect command for VM: {}".format(node), reconnect_output)
+                network_id = helper.ssh_connect(node, username, password, command_to_get_network_id_if_running)
                 if network_id == "":
-                    log.error(
-                        "Network reconnect failed for VM: {}".format(node))
+                    log.error("Network reconnect failed for VM: {}".format(node))
                     sys.exit(1)
                 else:
-                    log.debug(
-                        "Network reconnect successful for VM: {}".format(node))
+                    log.debug("Network reconnect successful for VM: {}".format(node))
 
     elif node_interruption_type == NODE_INTERRUPT_NETWORK_PARTITION:
-        nodes_not_to_interrupt = get_list_of_nodes_not_to_interrupt(
-            fxBlockchain, nodes_to_interrupt)
+        nodes_not_to_interrupt = get_list_of_nodes_not_to_interrupt(fxBlockchain, nodes_to_interrupt)
         username, password = helper.getNodeCredentials()
         if mode == NODE_INTERRUPT:
             for node_of_second_partition in nodes_not_to_interrupt:
-                log.info("Begin network partition for: {}".format(
-                    node_of_second_partition))
+                log.info("Begin network partition for: {}".format(node_of_second_partition))
                 command_to_create_partition = "iptables -I FORWARD -s {} -m state --state ESTABLISHED,RELATED -j DROP"\
                     .format(node)
-                helper.ssh_connect(
-                    node_of_second_partition, username, password, command_to_create_partition)
-                command_to_get_iptables_info = "iptables -L | grep '{}'".format(
-                    node)
-                iptables_info = helper.ssh_connect(
-                    node_of_second_partition, username, password, command_to_get_iptables_info)
+                helper.ssh_connect(node_of_second_partition, username, password, command_to_create_partition)
+                command_to_get_iptables_info = "iptables -L | grep '{}'".format(node)
+                iptables_info = helper.ssh_connect(node_of_second_partition, username, password, command_to_get_iptables_info)
                 if node in iptables_info:
-                    log.debug("Partition completed for node: {}".format(
-                        node_of_second_partition))
+                    log.debug("Partition completed for node: {}".format(node_of_second_partition))
                 else:
                     log.error("Failed to create partition")
                     sys.exit(1)
         elif mode == NODE_RECOVER:
             for node_of_second_partition in nodes_not_to_interrupt:
-                log.info("Revert network partition for: {}".format(
-                    node_of_second_partition))
+                log.info("Revert network partition for: {}".format(node_of_second_partition))
                 command_to_revert_partition = "iptables -D FORWARD -s {} -m state --state ESTABLISHED,RELATED -j DROP"\
                     .format(node)
-                helper.ssh_connect(
-                    node_of_second_partition, username, password, command_to_revert_partition)
-                command_to_get_iptables_info = "iptables -L | grep '{}'".format(
-                    node)
-                iptables_info = helper.ssh_connect(
-                    node_of_second_partition, username, password, command_to_get_iptables_info)
+                helper.ssh_connect(node_of_second_partition, username, password, command_to_revert_partition)
+                command_to_get_iptables_info = "iptables -L | grep '{}'".format(node)
+                iptables_info = helper.ssh_connect(node_of_second_partition, username, password, command_to_get_iptables_info)
                 if node in iptables_info:
                     log.error("Failed to revert partition")
                     sys.exit(1)
                 else:
-                    log.debug("Partition reverted successfully for node: {}".format(
-                        node_of_second_partition))
+                    log.debug("Partition reverted successfully for node: {}".format(node_of_second_partition))
 
     log.info("{}".format(vm_handle["entity"].runtime.powerState))
 
     return True
-
 
 def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                             nodes_to_interrupt, scenario_details,
@@ -535,8 +471,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
     '''
     custom_interruption_params = node_interruption_details[CUSTOM_INTERRUPTION_PARAMS]
     node_offline_time = custom_interruption_params.get(NODE_OFFLINE_TIME)
-    time_between_interruptions = custom_interruption_params.get(
-        TIME_BETWEEN_INTERRUPTIONS)
+    time_between_interruptions = custom_interruption_params.get(TIME_BETWEEN_INTERRUPTIONS)
     # If time gaps are not specified, assign default value
     if node_offline_time is None:
         node_offline_time = 0
@@ -577,15 +512,13 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                 mode=NODE_INTERRUPT)
         else:
             log.error("")
-            log.error(
-                "** There are already >= {} crashed committers".format(f_count))
+            log.error("** There are already >= {} crashed committers".format(f_count))
             log.error("** Not proceeding with node interruption")
             return False
 
     # restore nodes
     if node_interruption_details[NODE_INTERRUPTION_TYPE] == NODE_INTERRUPT_CONTAINER_CRASH:
-        log.info(
-            "Skipping nodes restore as this should be done automatically for container crash test")
+        log.info("Skipping nodes restore as this should be done automatically for container crash test")
     else:
         # Run DAML test for the period of node_offline_time
         result, crashed_committer_count = check_node_health_and_run_sanity_check(
@@ -616,7 +549,6 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
             status = txn_run_status
     return status
 
-
 def run_daml_sanity(fxBlockchain,
                     daml_tests_results_dir,
                     daml_txn_result_queue=None,
@@ -639,8 +571,7 @@ def run_daml_sanity(fxBlockchain,
         node_type_to_interrupt = scenario_details[NODE_TYPE_TO_INTERRUPT]
     global interrupted_nodes
     if not list_of_participant_nodes_to_run_txns:
-        list_of_participant_nodes_to_run_txns = blockchain_ops.participants_of(
-            fxBlockchain)
+        list_of_participant_nodes_to_run_txns = blockchain_ops.participants_of(fxBlockchain)
 
     status = helper.run_daml_sanity(
         list_of_participant_nodes_to_run_txns,
@@ -652,12 +583,10 @@ def run_daml_sanity(fxBlockchain,
             and node_type_to_interrupt == helper.TYPE_DAML_PARTICIPANT \
             and node_interruption_type in EXCEPTION_LIST_OF_INTR_TYPES_TO_RUN_DAML_TEST:
         if not status:
-            log.info("DAML transactions failed as expected for test type: {}".format(
-                node_interruption_type))
+            log.info("DAML transactions failed as expected for test type: {}".format(node_interruption_type))
             status = True
         else:
-            log.error("DAML transactions succeeded, whereas test type is: {}".format(
-                node_interruption_type))
+            log.error("DAML transactions succeeded, whereas test type is: {}".format(node_interruption_type))
             status = False
     if not status:
         log.info(
@@ -673,7 +602,6 @@ def run_daml_sanity(fxBlockchain,
             verbose=False)
     return status
 
-
 def run_daml_sanity_in_background_loop(fxBlockchain, daml_txn_result_queue, daml_tests_results_dir):
     '''
     Util to run daml txns in continuously in loop concurrently with node interruption & recovery operation
@@ -685,8 +613,7 @@ def run_daml_sanity_in_background_loop(fxBlockchain, daml_txn_result_queue, daml
     # While True run daml txns in concurrency with node interruption.
     while getattr(t, "do_run", True):
         log.info("")
-        log.info(
-            "** Running DAML tests concurrently with node interruption operation in background")
+        log.info("** Running DAML tests concurrently with node interruption operation in background")
         status = run_daml_sanity(fxBlockchain, daml_tests_results_dir,
                                  daml_txn_result_queue=daml_txn_result_queue)
         if not status:
@@ -695,7 +622,6 @@ def run_daml_sanity_in_background_loop(fxBlockchain, daml_txn_result_queue, daml
             break
         log.info("")
         log.info("** DAML test PASSED in background")
-
 
 def start_daml_txn_background_thread(fxBlockchain, daml_txn_result_queue,
                                      node_interruption_details, fxHermesRunSettings):
@@ -712,8 +638,7 @@ def start_daml_txn_background_thread(fxBlockchain, daml_txn_result_queue,
     results_dir = helper.create_results_sub_dir(
         fxHermesRunSettings["hermesTestLogDir"],
         results_dir_name)
-    daml_tests_results_dir = helper.create_results_sub_dir(
-        results_dir, "daml_tests")
+    daml_tests_results_dir = helper.create_results_sub_dir(results_dir, "daml_tests")
     daml_txn_background_thread = threading.Thread(target=run_daml_sanity_in_background_loop,
                                                   args=(fxBlockchain, daml_txn_result_queue, daml_tests_results_dir))
 
@@ -738,8 +663,7 @@ def start_container(ip, container_name, start_wait_time=30):
     cmd_to_start_primary = "docker start {}".format(container_name)
     helper.ssh_connect(ip, username, password, cmd_to_start_primary)
     time.sleep(start_wait_time)
-    cmd_to_get_status = "docker inspect --format '{}' {}".format(
-        '{{.State.Status}}', container_name)
+    cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
     status = helper.ssh_connect(
         ip, username, password, cmd_to_get_status)
     if "running" in status:
@@ -749,7 +673,6 @@ def start_container(ip, container_name, start_wait_time=30):
         log.debug("Container status is {}. Failed to restart {} container for {}".format(
             status, container_name, ip))
         return False
-
 
 def stop_container(ip, container_name, stop_wait_time=60):
     '''
@@ -765,8 +688,7 @@ def stop_container(ip, container_name, stop_wait_time=60):
     cmd_to_stop_primary = "docker stop {}".format(container_name)
     helper.ssh_connect(ip, username, password, cmd_to_stop_primary)
     time.sleep(stop_wait_time)
-    cmd_to_get_status = "docker inspect --format '{}' {}".format(
-        '{{.State.Status}}', container_name)
+    cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
     status = helper.ssh_connect(ip, username, password, cmd_to_get_status)
     if "exited" in status:
         log.info("{} container stopped for {}".format(container_name, ip))
@@ -793,8 +715,7 @@ def continuous_stop_start_container(ip, container_name, duration=60):
         end_time = start_time + datetime.timedelta(seconds=duration)
         username, password = helper.getNodeCredentials()
         while status and start_time <= end_time:
-            cmd = "docker inspect --format '{}' {}".format(
-                '{{.State.Status}}', container_name)
+            cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
             concord_status = helper.ssh_connect(ip, username, password, cmd)
 
             if "running" in concord_status:
@@ -807,84 +728,3 @@ def continuous_stop_start_container(ip, container_name, duration=60):
         log.debug("Failed to stop and start primary replica:{}".format(ip))
         assert False, excp
 
-
-def sleep_and_check(init_sleep_time, step, max_sleep_time, transactions, replica_ips):
-    '''
-    Function to wait and check successfull completion of State transfer 
-    Args:
-       init_sleep_time: Initial wait time for the completion of State trasnfer
-       step: Value which the wait time will be increased in each iteration
-       max_sleep_time: Maximum wait time for the completion of State trasnfer
-       transactions: Number of transactions completed 
-       replica_ips: List of replicas ip to be checked for State trasnfer
-    Returns:
-       bool: True if the State transfer is completed within max_sleep_time, False otherwise
-    '''
-    res = False
-    total_sleep_time = 0
-    try:
-        while not res and total_sleep_time < max_sleep_time:
-            log.info("Waiting for State Transfer to finish, estimated time {0} seconds".format(
-                init_sleep_time))
-            time.sleep(init_sleep_time)
-            res = check_replica_block_data(0, transactions, replica_ips)
-            total_sleep_time += init_sleep_time
-            init_sleep_time = step
-        return res
-    except Exception as excp:
-        return excp
-
-
-def check_replica_block_data(block_to_start, blocks_count, replica_ips):
-   '''
-   Function to check the data in data blocks of replica_ips are same
-   Args:
-      block_to_start: Initial wait time for the completion of State trasnfer
-      blocks_count: Number of blocks to be checked
-      replica_ips: List of replicas ip to be checked for data
-   Returns:
-      bool: True if the all the data blocks of replica_ips are having same data, False otherwise
-   '''
-   block_data = []
-   block_data_length = []
-
-   log.info("Checking data from {} to {}".format(
-      block_to_start, block_to_start + blocks_count))
-
-   tool_path = "/concord/conc_rocksdb_adp"
-   path_param = "-path=/concord/rocksdbdata"
-   op_param = "-op=getDigest"
-   username, password = helper.getNodeCredentials()
-
-   try:
-      for ip in replica_ips:
-         p_param = "-p={0}:{1}".format(block_to_start,
-                                       block_to_start + blocks_count)
-         cmd = ' '.join([tool_path, path_param, op_param, p_param])
-
-         # Docker command for getting block_data_output
-         container = 'concord'
-         final_cmd = 'docker exec {0} {1}'.format(container, cmd)
-         log.info("\nCommand to get block data is {}".format(final_cmd))
-         block_data_output = helper.ssh_connect(
-               ip, username, password, final_cmd)
-
-         # Check block_data_output is valid
-         assert "start, data size" in str(block_data_output), str(block_data_output)
-
-         block_data.append(block_data_output)
-         length = int(str(block_data_output).split(":")[
-               1].replace("\\n", "").replace("'", ""))
-
-         if length == 0:
-            log.error("Blocks length 0")
-            return False
-         log.info("Data length from replica {0} is {1} bytes".format(ip, length))
-         block_data_length.append(length)
-
-      if all(i == block_data_length[0] for i in block_data_length):
-         return True if all(i == block_data[0] for i in block_data) else False
-      else:
-         return False
-   except Exception as excp:
-      return excp

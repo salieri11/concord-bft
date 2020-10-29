@@ -182,6 +182,7 @@ def findVMByInternalIP(ip, sddcs=None, checkNew=False):
   for result in results:
     if result: return result # result vmHandle
   log.info("Cannot find vm with internal IP '{}' in datacenters {}".format(ip, sddcs))
+
   return None
 
 
@@ -413,7 +414,6 @@ def fetch_vm_handles(ips):
         ip_dict = ip["public_ip"]
       ip = ip_dict
 
-    # log.info("\nCalling findVMByInternalIP for IP : {}".format(ip))
     vm_handle = findVMByInternalIP(ip)
     if vm_handle:
         vm_handles[ip] = vm_handle

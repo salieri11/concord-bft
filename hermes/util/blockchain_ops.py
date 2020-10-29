@@ -85,34 +85,6 @@ def wait_for_state_transfer_complete(all_replicas, interrupted_replicas=[], time
       log.info("State transfer not complete.  Waiting.")
       time.sleep(1)
 
-
-def get_all_committers(fxBlockchain):
-  '''
-  This function will return the list of committers based on the type of Blockchain fixture.
-  '''
-  all_committers = []
-
-  if isinstance(fxBlockchain, list) and isinstance(fxBlockchain[0], str):
-    # After BC-5236, this should be the only code path.
-    all_committers = fxBlockchain
-  elif helper.TYPE_DAML_COMMITTER in fxBlockchain.replicas and \
-        isinstance(committers_of(fxBlockchain)[0], str):
-    # What we currently get when someone uses --replicasConfig: A dict with
-    # two entries, one for committer IPs and another for participant IPs.
-    all_committers = committers_of(fxBlockchain)
-  else:
-    # What we get with a deployment: A dict with two entries, one for committer
-    # nodes and one for participant nodes.  Each node is a dict with an IP.
-    objs = committers_of(fxBlockchain)
-    # Code fix - Committer array (objs) was passed to extract_ip_lists_from_fxBlockchain
-    # But that function expects Blockchain fixture
-    # Correct function to call is fetch_ips_from_fxBlockchain_entry here.
-    all_committers = helper.fetch_ips_from_fxBlockchain_entry(objs)
-
-  # log.info("\n\nReturning all the committers {}".format(all_committers))
-  return all_committers
-
-
 def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     Get primary rid (id used internally for concord nodes)
@@ -180,14 +152,13 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     return last_added_index
 
 
-def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
+def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid, ip and map out committer idx and rid relation.
   '''
   if verbose: log.info("")
-  all_committers = get_all_committers(fx_blockchain)
+  all_committers = get_all_committers(fxBlockchain)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
-  # log.info("\nTarget committers (interrupted nodes excluded) are : {}".format(target_committers))
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
   committersMapping = {
@@ -199,7 +170,7 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
   }
   committersOutput = [""] * len(all_committers)
   if verbose: log.info("Mapping out the rid and index relationship in committers...")
-  primary_rid = get_primary_rid(fx_blockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
+  primary_rid = get_primary_rid(fxBlockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
   success = False
   try:
     results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
@@ -240,17 +211,16 @@ def map_committers_info(fx_blockchain, interrupted_nodes=[], verbose=True):
     mappingComplete = (committerRespondedCount == len(target_committers))
     if mappingComplete: print("Committer index, rid and IP mapping:\n" + "\n".join(committersOutput))
     else: log.warning("Mapping is incomplete; problem IPs: {}".format(errored))
-  if "primary_index" in fx_blockchain.replicas and fx_blockchain.replicas["primary_index"] is not None:
-    primary_idx_before = fx_blockchain.replicas["primary_index"]
+  if "primary_index" in fxBlockchain.replicas and fxBlockchain.replicas["primary_index"] is not None:
+    primary_idx_before = fxBlockchain.replicas["primary_index"]
     primary_idx_now = committersMapping["primary_index"]
     if primary_idx_before != primary_idx_now:
       log.warning("       View Change detected: primary from rid={} to rid={}" \
                         .format(primary_idx_before, primary_idx_now))
-  fx_blockchain.replicas["primary_index"] = committersMapping["primary_index"]
-  fx_blockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
-  fx_blockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
-  fx_blockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
-  # log.info("\nEnd of map_committers_info, fx_blockchain is {}".format(fx_blockchain))
+  fxBlockchain.replicas["primary_index"] = committersMapping["primary_index"]
+  fxBlockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
+  fxBlockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
+  fxBlockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
   return committersMapping
 
 # Below must change once participants are able to connect to multiple committers
@@ -293,10 +263,6 @@ def map_participants_submission_endpoints(fxBlockchain, verbose=True):
   all_submission_endpoints = list(set(all_submission_endpoints)) # unique
   fxBlockchain.replicas["submission_endpoints"] = all_submission_endpoints
   return participantsMapping
-
-
-
-
 
 # ===================================================================================
 #   Fixture Reset Operations
@@ -798,3 +764,29 @@ def get_docker_timestamp(host, username, password, service):
     output = helper.durable_ssh_connect(host, username, password,
                                         "docker logs --tail 1 {}".format(service))
     return output.split("|")[0]
+
+def get_all_committers(fxBlockchain):
+  '''
+  This function will return the list of committers based on the type of Blockchain fixture.
+  '''
+  all_committers = []
+
+  if isinstance(fxBlockchain, list) and isinstance(fxBlockchain[0], str):
+    # After BC-5236, this should be the only code path.
+    all_committers = fxBlockchain
+  elif helper.TYPE_DAML_COMMITTER in fxBlockchain.replicas and \
+        isinstance(committers_of(fxBlockchain)[0], str):
+    # What we currently get when someone uses --replicasConfig: A dict with
+    # two entries, one for committer IPs and another for participant IPs.
+    all_committers = committers_of(fxBlockchain)
+  else:
+    # What we get with a deployment: A dict with two entries, one for committer
+    # nodes and one for participant nodes.  Each node is a dict with an IP.
+    objs = committers_of(fxBlockchain)
+    # Code fix - Committer array (objs) was passed to extract_ip_lists_from_fxBlockchain
+    # But that function expects Blockchain fixture
+    # Correct function to call is fetch_ips_from_fxBlockchain_entry here.
+    all_committers = helper.fetch_ips_from_fxBlockchain_entry(objs)
+
+  # log.info("\n\nReturning all the committers {}".format(all_committers))
+  return all_committers
