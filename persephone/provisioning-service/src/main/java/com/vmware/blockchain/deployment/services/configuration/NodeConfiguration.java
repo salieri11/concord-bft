@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.configuration;
 
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.CONCORD;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.CONCORD_OPERATOR;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_CONCORD;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_INDEX_DB;
@@ -76,7 +77,7 @@ public class NodeConfiguration {
     private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, ETHEREUM_API);
 
     private static final List<ConcordComponent.ServiceType> DAML_CLIENT_COMPONENTS = List.of(DAML_INDEX_DB,
-            DAML_LEDGER_API);
+            DAML_LEDGER_API, CONCORD_OPERATOR);
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
             DAML_EXECUTION_ENGINE);
 
@@ -103,6 +104,7 @@ public class NodeConfiguration {
                     .put(DAML_EXECUTION_ENGINE, "vmwblockchain/daml-execution-engine")
                     .put(DAML_INDEX_DB, "vmwblockchain/daml-index-db")
                     .put(DAML_LEDGER_API, "vmwblockchain/daml-ledger-api")
+                    .put(CONCORD_OPERATOR, "vmwblockchain/operator")
                     .put(CONCORD, "vmwblockchain/concord-core")
                     .put(DAML_CONCORD, "vmwblockchain/concord-core")
                     .put(ETHEREUM_API, "vmwblockchain/ethrpc")
@@ -125,7 +127,8 @@ public class NodeConfiguration {
     List<ConcordComponent> getComponentsByNodeType(BlockchainType blockchainType,
                                                    NodeType nodeType,
                                                    Properties properties,
-                                                   boolean excludeWavefront) {
+                                                   boolean excludeWavefront,
+                                                   boolean deployOperator) {
 
         var componentsByNode = componentListForBlockchainNodeType.get(blockchainType);
         if (componentsByNode == null || componentsByNode.get(nodeType) == null) {
@@ -136,13 +139,16 @@ public class NodeConfiguration {
                                                                     dockerImageBaseVersion);
         List<ConcordComponent> components = new ArrayList<>();
         componentsByNode.get(nodeType).forEach(service -> {
-            if (!(service.equals(WAVEFRONT_PROXY) && excludeWavefront)) {
-                components.add(ConcordComponent.newBuilder()
-                        .setType(ConcordComponent.Type.CONTAINER_IMAGE)
-                        .setServiceType(service)
-                        .setName(getImageTag(service, properties.getValuesOrDefault(service.name(),
-                                dockerVersionToUse)))
-                        .build());
+            if ((!(service.equals(WAVEFRONT_PROXY) && excludeWavefront))) {
+                if (deployOperator || !(service.equals(CONCORD_OPERATOR))) {
+                    components.add(ConcordComponent.newBuilder()
+                                           .setType(ConcordComponent.Type.CONTAINER_IMAGE)
+                                           .setServiceType(service)
+                                           .setName(getImageTag(service,
+                                                                properties.getValuesOrDefault(service.name(),
+                                                                                              dockerVersionToUse)))
+                                           .build());
+                }
             }
         });
         return components;
@@ -161,6 +167,10 @@ public class NodeConfiguration {
 
         Map<UUID, List<ConcordComponent>> output = new HashMap<>();
 
+        // TODO Remove after rollout
+        boolean deployOperator = nodeAssignment.getEntries(0).getProperties().containsValues(
+                DeploymentAttributes.DEPLOY_OPERATOR.name()
+        );
         nodeAssignment.getEntriesList().stream()
                 .forEach(k -> {
                     var siteInfo = siteMap.get(k.getSite());
@@ -171,7 +181,7 @@ public class NodeConfiguration {
                     boolean excludeWavefront = wavfrontUrl.isBlank() || wavfrontUrl.isEmpty();
                     output.put(UUID.fromString(k.getNodeId()),
                                getComponentsByNodeType(blockchainType, k.getType(),
-                                       k.getProperties(), excludeWavefront));
+                                       k.getProperties(), excludeWavefront, deployOperator));
                 });
         return output;
     }
