@@ -2493,7 +2493,7 @@ def extract_ip_lists_from_fxBlockchain(fxBlockchain):
    '''
    participant_ips = []
    committer_ips = []
-
+   
    if isinstance(fxBlockchain.replicas[TYPE_DAML_PARTICIPANT][0], str):
       participant_ips = fxBlockchain.replicas[TYPE_DAML_PARTICIPANT]
       committer_ips = fxBlockchain.replicas[TYPE_DAML_COMMITTER]
@@ -2531,13 +2531,13 @@ def fetch_ips_from_fxBlockchain_entry(node_list):
    Needed now, related to BC-5236.
    '''
    ips = []
-
+   log.info("\nNode list is {}".format(node_list))
    for n in node_list:
-     if "ip" in n and n["ip"]:
-        ips.append(n["ip"])
-     elif "public_ip" in n and n["public_ip"]:
-        ips.append(n["public_ip"])
-     elif "private_ip" in n and n["private_ip"]:
-        ips.append(n["private_ip"])
-
+      if "ip" in n and n["ip"]:
+         ips.append(n["ip"])
+      elif "public_ip" in n and n["public_ip"]:
+         ips.append(n["public_ip"])
+      elif "private_ip" in n and n["private_ip"]:
+         ips.append(n["private_ip"])
+   log.info("\nReturning all committers : {}".format(ips))
    return ips

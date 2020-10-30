@@ -397,14 +397,14 @@ def fetch_vm_handles(ips):
   '''
   log.info("Fetching vm handles...")
   vm_handles = {}
-  for ip in ips:
+  for ip in ips: 
     # Code fix for handling ip variable 
     # when the test runs on Jenkins, input type is <dict> 
     # So ip address is to be picked explicitly.
     # When the test runs on local machine, input type is <str>
     # Nothing to be done in this case, as the variable contains just the ip address.
     if(isinstance(ip, dict)):
-      log.info("\nWhen the test uses replicas from already deployed blockchain")
+      log.info("\nType of IP is dictionary")
       ip_dict = None
       if "ip" in ip.keys() and ip["ip"] is not None:
         ip_dict = ip["ip"]
