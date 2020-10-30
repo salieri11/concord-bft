@@ -87,7 +87,8 @@
             ]
         },
         "install": {
-            "iso": [
+            "os": [
+                "python3-pip"
             ],
             "local": {
                 "files": [
