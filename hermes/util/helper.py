@@ -46,7 +46,6 @@ else:
    import rest
 
 from time import strftime, localtime, sleep
-import ast
 
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
