@@ -42,13 +42,16 @@ import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
 import com.vmware.blockchain.agent.services.configuration.HlfConfig;
 import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
+import com.vmware.blockchain.agent.services.configuration.ReadReplicaConfig;
 import com.vmware.blockchain.agent.services.configuration.VolumeBindHelper;
 import com.vmware.blockchain.agent.services.exceptions.AgentException;
 import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
+import com.vmware.blockchain.agent.services.exceptions.InvalidConfigurationException;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
+import com.vmware.blockchain.agent.services.util.ValidationUtil;
 import com.vmware.blockchain.deployment.v1.AgentAttributes;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -242,6 +245,8 @@ public class NodeStartupOrchestrator {
         final Endpoint notaryServer = configuration.getNotaryServer();
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
+        log.info("Configuration model and components list {} {}", configuration.getModel(),
+                 configuration.getModel().getComponentsList());
 
         for (var component : configuration.getModel().getComponentsList()) {
             // Bypass non service type image pull...
@@ -290,6 +295,17 @@ public class NodeStartupOrchestrator {
     private BaseContainerSpec getCoreContainerSpec(ConcordModelSpecification.BlockchainType blockchainType,
                                                    ConcordComponent component) {
         BaseContainerSpec containerSpec;
+        if (!ValidationUtil.isValidBlockchainType(blockchainType)) {
+            throw new InvalidConfigurationException("Invalid blockchain type.");
+        }
+        if (!ValidationUtil.isValidNodeType(configuration.getModel().getNodeType())) {
+            throw new InvalidConfigurationException("Invalid blockchain node type.");
+        }
+        // Support Read replicas, which are not tied to any block chain type.
+        if (configuration.getModel().getNodeType() == ConcordModelSpecification.NodeType.READ_REPLICA) {
+            log.info("Node type " + configuration.getModel().getNodeType());
+            return ReadReplicaConfig.valueOf(component.getServiceType().name());
+        }
 
         switch (blockchainType) {
             case ETHEREUM:

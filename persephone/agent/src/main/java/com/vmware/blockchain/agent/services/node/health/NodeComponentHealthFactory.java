@@ -10,10 +10,12 @@ import org.springframework.stereotype.Component;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
+import com.vmware.blockchain.agent.services.exceptions.InvalidConfigurationException;
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealth;
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealthServiceInvoker;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealth;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
+import com.vmware.blockchain.agent.services.util.ValidationUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -51,8 +53,25 @@ public class NodeComponentHealthFactory {
      * @return {@link ComponentHealth}
      */
     public ComponentHealth getHealthComponent(ConcordComponent.ServiceType serviceType)
-            throws UnsupportedOperationException, IllegalArgumentException {
+            throws UnsupportedOperationException, IllegalArgumentException, InvalidConfigurationException {
 
+        if (!ValidationUtil.isValidBlockchainType(getConcordAgentConfiguration().getModel().getBlockchainType())) {
+            throw new InvalidConfigurationException("Invalid blockchain type.");
+        }
+        if (!ValidationUtil.isValidNodeType(getConcordAgentConfiguration().getModel().getNodeType())) {
+            throw new InvalidConfigurationException("Invalid node type.");
+        }
+        if (!ValidationUtil.isValidServiceType(serviceType)) {
+            throw new InvalidConfigurationException("Invalid service type.");
+        }
+
+        // A read replica is of type "READ_REPLICA" and service type is Concord.
+        // It is not really tied to DAML or ETH.
+        if (getConcordAgentConfiguration().getModel().getNodeType()
+                    .equals(ConcordModelSpecification.NodeType.READ_REPLICA) && serviceType
+                    .equals(ConcordComponent.ServiceType.CONCORD)) {
+            return getComponent(serviceType);
+        }
         switch (getConcordAgentConfiguration().getModel().getBlockchainType()) {
             case ETHEREUM:
                 if (!serviceType.equals(ConcordComponent.ServiceType.CONCORD)) {
@@ -109,9 +128,28 @@ public class NodeComponentHealthFactory {
      * TODO: to be also used in node start workflow.
      * @param containerNetworkName container network name.
      */
-    public void initHealthChecks(String containerNetworkName) {
-        if (getConcordAgentConfiguration()
-                .getModel().getBlockchainType().equals(ConcordModelSpecification.BlockchainType.DAML)) {
+    public void initHealthChecks(String containerNetworkName) throws InvalidConfigurationException {
+
+        if (getConcordAgentConfiguration().getModel() == null) {
+            throw new InvalidConfigurationException("Invalid model configuration.");
+        }
+        if (!ValidationUtil.isValidBlockchainType(getConcordAgentConfiguration().getModel().getBlockchainType())) {
+            throw new InvalidConfigurationException("Invalid Blockchain type.");
+        }
+        if (!ValidationUtil.isValidNodeType(getConcordAgentConfiguration().getModel().getNodeType())) {
+            throw new InvalidConfigurationException("Invalid Blockchain node type.");
+        }
+
+        // Read replica is independent of DAML/ETH
+        if (getConcordAgentConfiguration().getModel().getNodeType()
+                .equals(ConcordModelSpecification.NodeType.READ_REPLICA)) {
+            String host = getHost(concordHealthServiceInvoker.getContainer(), containerNetworkName);
+            concordHealthServiceInvoker.registerHost(host);
+            return;
+        }
+
+        if (getConcordAgentConfiguration().getModel().getBlockchainType()
+                .equals(ConcordModelSpecification.BlockchainType.DAML)) {
             if (getConcordAgentConfiguration().getModel().getNodeType()
                     .equals(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)) {
                 String host = getHost(DamlHealthServiceInvoker.Service.PARTICIPANT.getHost(), containerNetworkName);
