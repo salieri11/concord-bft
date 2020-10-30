@@ -1955,7 +1955,7 @@ def parseReplicasConfig(replicas):
   if not replicas: replicas = REPLICAS_JSON_PATH
   if isinstance(replicas, str): # path supplied
     with open(replicas, 'r') as f:
-      replicasObject = ast.literal_eval(f.read())
+      replicasObject = json.loads(f.read()) 
   else: # fxBlockchain dict or replicas dict directly.
     if hasattr(replicas, "replicas"):
       replicasObject = replicas
