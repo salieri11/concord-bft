@@ -8,22 +8,30 @@ This service customizes the ova as required by vmw-blockchain.
 NOTE: SDDC does not work with this service.
 - You should know the username/password of the VC and the datastore details.
 - The datastore should have enough space (atleast 100GB) for a VM to be created.
-- The VC should have "VM Network" segment (This is usually default for any VC).
+- [To remove later] The VC should have "blockchain-network" segment.
 - You have a mac or linux machine to run on.
+- You have python3 installed.
+- You have installed core-utils in your pip environment.
 
 ## Instructions to run
+### Using interactive tool
 - Download all contents of this folder into any directory of your choice.
-- Run "chmod +x startup.sh"
-- Run "./startup.sh". Follow through the instructions. Refer to below links for build urls.
-startup.sh is an interactive tool, enter values as and when asked. Read the instructions popped for each value asked for.
+- Run "chmod +x build-blockchain-ovf-interactive.sh"
+- Launch "./build-blockchain-ovf-interactive.sh". Follow through the instructions. Refer to below links for build urls.
+build-blockchain-ovf-interactive.sh is an interactive tool, enter values as and when asked. Read the instructions popped for each value asked for.
 
-## Things to remember
-- Run "rm -rf cap/" from your working directory between any two consecutive runs.
-- You can not provide the same version number for more than one runs if the run has succeeded.
+### Using build properties
+- Download all contents of this folder into any directory of your choice.
+- Modify build.properties with correct values for the build environment
+- Run "chmod +x build-blockchain-ovf.sh"
+- Launch "./build-blockchain-ovf.sh"
+
+## Things to Note
+- "make_vcsp_2018.py" is a downloaded file from VMWare public docs: https://code.vmware.com/samples/4388/automating-the-creation-of-3rd-party-content-library-directly-on-amazon-s3
+- [CAP Limitation] You can not provide the same version number with the same VC details for more than one runs if the run has succeeded.
 If you indeed need to redo the same ova, log in to your VC and delete the VM created with the name "vmw-blockchain-sh-ovf-<your version number>".
 
 ## Does not support/todo
-- (TODO) Enable multiple runs with the same installation of CAP.
 - (TODO) Creation of content library.
 - (TODO) Creation of on-premises nginx content library docker image.
 - (Does not support) Creation of content library on SDDCs.

@@ -1,12 +1,12 @@
 {
   "configuration": {
     "cap_version": "0.1",
-    "appliance_name": "vmw-blockchain-sh-ovf-BCVERSION",
+    "appliance_name": "APPLIANCE_NAME",
     "delivery_format": "OVF",
     "parking_directory": "images",
     "repositories": {
       "local": [
-        "PWD"
+        "BUILD_FILES_REPOSITORY"
       ],
       "rpm": [
         {
@@ -16,7 +16,7 @@
         }
       ]
     },
-    "OVFCustomization": "customizations.json"
+    "OVFCustomization": "BUILD_FILES_REPOSITORY/customizations.json"
   },
   "hardware": {
     "cpu_count": 2,
@@ -53,7 +53,7 @@
   "build-appliance": {
     "remote": {
       "personalization": {
-        "image": "ISO_BUILD_URL",
+        "image": "CAP_BASE_IMAGE",
         "root_password": "vmware",
         "existing_password": "previous"
       },
@@ -64,10 +64,10 @@
         "password": "VC_PASSWORD",
         "username": "VC_USERNAME",
         "hostname": "ESX_HOSTNAME",
-        "network": "VM Network"
+        "network": "NETWORK_SEGMENT"
       }
     },
-    "after-appliance-ready-script": "post-install-blockchain.sh"
+    "after-appliance-ready-script": "BUILD_FILES_REPOSITORY/post-install-blockchain.sh"
   },
   "software": {
     "download": {
