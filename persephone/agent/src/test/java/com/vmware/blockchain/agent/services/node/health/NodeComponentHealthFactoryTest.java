@@ -90,6 +90,7 @@ public class NodeComponentHealthFactoryTest {
     @Test
     void getHealthComponentEthereumWhenServiceTypeDaml() {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.ETHEREUM);
+        when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.READ_REPLICA);
         Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
             nodeComponentHealthFactory.getHealthComponent(ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE);
         });
@@ -197,6 +198,7 @@ public class NodeComponentHealthFactoryTest {
     @Test
     void initHealthChecksEthereum() {
         when(model.getBlockchainType()).thenReturn(ConcordModelSpecification.BlockchainType.ETHEREUM);
+        when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.NONE);
         nodeComponentHealthFactory.initHealthChecks(any());
         verify(damlHealthServiceInvoker, never()).start(any());
         verify(concordHealthServiceInvoker, times(1)).registerHost("concord");
