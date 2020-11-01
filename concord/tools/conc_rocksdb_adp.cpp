@@ -143,7 +143,12 @@ int main(int argc, char **argv) {
     }
     case OpType::GetBlockRaw: {
       std::vector<Sliver> results = get_data(from, to, dbAdapter);
-      print_result(results);
+      try {
+        print_result(results);
+      } catch (const std::exception &e) {
+        cout << "Error, failed to print result, reason: " << e.what() << endl;
+        return -1;
+      }
       break;
     }
   }
