@@ -1,5 +1,5 @@
 {
-    "committers": [
+    "replicas": [
         {
             "zoneName": "hermes-castor-zone-1 - A"
         },
@@ -17,10 +17,6 @@
         {
             "zoneName": "hermes-castor-zone-1 - A",
             "clientGroupName": "Group1"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - B",
-            "clientGroupName": "Group2"
         }
     ],
     "blockchain": {

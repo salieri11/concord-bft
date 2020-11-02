@@ -1,37 +1,37 @@
 {
-  "replicas": [
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
+    "replicas": [
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        }
+    ],
+    "clients": [
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        },
+        {
+            "zoneName": "hermes-castor-zone-1 - A"
+        }
+    ],
+    "blockchain": {
+        "consortiumName": "hermes-castor-consortium",
+        "blockchainType": "DAML"
     }
-  ],
-  "clients": [
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    },
-    {
-      "zoneName": "hermes-castor-zone-1 - A"
-    }
-  ],
-  "blockchain": {
-    "consortiumName": "hermes-castor-consortium",
-    "blockchainType": "DAML"
-  }
 }

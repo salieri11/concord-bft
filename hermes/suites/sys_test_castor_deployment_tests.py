@@ -26,6 +26,15 @@ import sys
 import io
 import time
 from datetime import datetime, timezone
+import string
+import grpc
+from lib.persephone.rpc_helper import RPCHelper
+from lib.persephone.provisioning_service_new_helper import ProvisioningServiceNewRPCHelper
+from lib.persephone.vmware.blockchain.deployment.v1 import core_pb2
+from lib.persephone.vmware.blockchain.deployment.v1 import orchestration_pb2
+from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_new_pb2 as ps_apis
+
+
 
 log = util.hermes_logging.getMainLogger()
 
@@ -53,108 +62,9 @@ _CONSORTIUM_NAME = "hermes-castor-consortium"
 _CASTOR_OUTPUT_CLIENT_NODE_PATTERN = "CLIENT_GROUP_ID"
 _COMPOSE_CONFIG_SERVICE_LOG = "docker-compose-config-service.log"
 
-
-def match_pattern(lines, pattern):
-    matches = 0
-    for line in lines:
-        if pattern.search(line):
-            matches += 1
-    return matches
-
-
-def add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients):
-    if num_replicas > 0 or num_clients > 0:
-        with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE)) as deploy_desc:
-            data = json.load(deploy_desc)
-
-        if len(data["committers"]) > num_replicas:
-            data["committers"] = data["committers"][:-(len(data["committers"]) - num_replicas)]
-
-        if len(data["clients"]) > num_clients:
-            data["clients"] = data["clients"][:-(len(data["clients"]) - num_clients)]
-
-        if len(data["committers"]) < num_replicas:
-            no_of_committers_req = len(data["committers"]) - num_replicas
-            clone_committers = [data["committers"][0]] * abs(no_of_committers_req)
-            data["committers"] = [*data["committers"], *clone_committers]
-
-        if len(data["clients"]) < num_clients:
-            no_of_clients_req = len(data["clients"]) - num_clients
-            clone_clients = [data["clients"][0]] * abs(no_of_clients_req)
-            data["clients"] = [*data["clients"], *clone_clients]
-
-        with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE), 'w') as w_deploy_desc:
-            json.dump(data, w_deploy_desc, indent=4)
-
-        log.info("Deployment descriptor is updated")
-
-    else:
-        return
-
-
-def _populateInfraDescriptorFile(fxHermesRunSettings, deployment_descriptor, infra_descriptor):
-
-    default_zone_path = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem']
-
-    # get zone name from deployment descriptor
-    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)) as deploy_desc:
-        ds_data = json.load(deploy_desc)
-
-    available_zones = []
-
-    for item in ds_data["committers"]:
-        zoneName = item["zoneName"]
-        if zoneName not in available_zones:
-            available_zones.append(zoneName)
-
-    for item in ds_data["clients"]:
-        zoneName = item["zoneName"]
-        if zoneName not in available_zones:
-            available_zones.append(zoneName)
-
-    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, infra_descriptor)) as infraFile:
-        infraDescriptor = json.load(infraFile)
-
-    if len(default_zone_path) > len(infraDescriptor['zones']):
-        no_of_zones_req = len(default_zone_path) - len(infraDescriptor['zones'])
-        clone_zones = [infraDescriptor['zones'][0]] * abs(no_of_zones_req)
-        infraDescriptor['zones'] = [*infraDescriptor['zones'], *clone_zones]
-
-    for item in range(len(default_zone_path)):
-        url = default_zone_path[item]['api']['address']
-        userName = default_zone_path[item]['api']['credential']['passwordCredential']['username']
-        password = default_zone_path[item]['api']['credential']['passwordCredential']['password']
-        resource = default_zone_path[item]['vsphere']['resourcePool']
-        storage = default_zone_path[item]['vsphere']['datastore']
-        folder = default_zone_path[item]['vsphere']['folder']
-        networkName = default_zone_path[item]['vsphere']['network']['name']
-        gateway = default_zone_path[item]['vsphere']['network']['gateway']
-        subnet = default_zone_path[item]['vsphere']['network']['subnet']
-        nameServers = default_zone_path[item]['vsphere']['network']['nameServers']
-
-        # update infra keys
-        infraDescriptor['zones'][item]["name"] = available_zones[item]
-        infraDescriptor['zones'][item]['vCenter']['url'] = url
-        infraDescriptor['zones'][item]['vCenter']['userName'] = userName
-        infraDescriptor['zones'][item]['vCenter']['password'] = password
-        infraDescriptor['zones'][item]['vCenter']['resourcePool'] = resource
-        infraDescriptor['zones'][item]['vCenter']['storage'] = storage
-        infraDescriptor['zones'][item]['vCenter']['folder'] = folder
-
-        infraDescriptor['zones'][item]['network']['name'] = networkName
-        infraDescriptor['zones'][item]['network']['gateway'] = gateway
-        infraDescriptor['zones'][item]['network']['subnet'] = subnet
-        infraDescriptor['zones'][item]['network']['nameServers'] = nameServers
-
-    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, infra_descriptor), "w") as infraFile:
-        json.dump(infraDescriptor, infraFile, indent=4)
-
-    log.info("Infrastructure descriptor is updated")
-    log.info(infraFile)
-
-
-def downCastorDockerCompose(dockerComposeFiles):
-    log.info("Stopping docker containers for: %s" % dockerComposeFiles)
+"""
+All fixtures
+"""
 
 
 @pytest.fixture
@@ -178,8 +88,18 @@ def upPrereqsDocker(fxHermesRunSettings, product):
     for dcf in dockerComposeFiles:
         if "prereqs.yml" in dcf:
             prereqsComposeFile = dcf
-
-    atexit.register(downCastorDockerCompose, prereqsComposeFile)
+            
+    # Update provisioning service application-test.properties with local docker base image versions.
+    # This is needed because further DAML validation below requires the image versions to be updated to their latest.
+    tags_info = helper.get_agent_pulled_tags_info()
+    concord_current_tag = tags_info["tags"]["concord"]["tag"]
+    log.info("concord_current_tag: %s" % concord_current_tag)
+    log.info("command line docker compose files: %s" % dockerComposeFiles)
+    persephone_config_file = helper.get_deployment_service_config_file(dockerComposeFiles,
+                                                                       Product.PERSEPHONE_SERVICE_PROVISIONING)
+    log.info("Updating provisioning service application properties file: %s with concord_current_tag: %s" %
+             (persephone_config_file, concord_current_tag))
+    helper.set_props_file_value(persephone_config_file, 'docker.image.base.version', concord_current_tag)
 
     if not product.validatePaths(dockerComposeFiles):
         raise Exception("Docker compose file is not present: %s" % dockerComposeFiles)
@@ -209,9 +129,14 @@ def upPrereqsDocker(fxHermesRunSettings, product):
     log.info("Config service and provisioning service is started")
     log.info("docker-compose-castor-prereqs.yml launched")
 
+    # Take the backup of existing deployment and infrastructure descriptor
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)) as from_file, \
+            open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, "infra_backup.json"), "w+") as to:
+        to.write(from_file.read())
+
 
 @pytest.fixture
-def upCastorDockerCompose(fxHermesRunSettings, product, request):
+def upCastorDockerCompose(request, fxHermesRunSettings, product):
     """
     Launch docker-compose-castor.yml, and wait for it to finish.
     The whole test is predicated on the successful launch and completion of the castor docker process:
@@ -220,14 +145,14 @@ def upCastorDockerCompose(fxHermesRunSettings, product, request):
 
     :return success or failure of launching the compose file:
     """
-    # _populateDescriptorFiles(fxHermesRunSettings)
-    num_replicas, num_clients, deployment_descriptor, infra_descriptor = request.param
+
+    num_replicas, num_clients, deployment_descriptor, infra_descriptor, is_multiple_zone = request.param
     if deployment_descriptor is not _DEPLOY_DESC_FILENAME_VALUE and infra_descriptor is not _INFRA_DESC_FILENAME_VALUE:
         log.info("Not updating infrastructure and deployment descriptor. customized ones are {} and {}".
                  format(infra_descriptor, deployment_descriptor))
     else:
         add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients)
-        _populateInfraDescriptorFile(fxHermesRunSettings, deployment_descriptor, infra_descriptor)
+        _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone)
     dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     os.makedirs(castorOutputDir, exist_ok=True)
@@ -235,8 +160,6 @@ def upCastorDockerCompose(fxHermesRunSettings, product, request):
     for dcf in dockerComposeFiles:
         if "docker-compose-castor.yml" in dcf:
             castorComposeFile = dcf
-
-    atexit.register(downCastorDockerCompose, castorComposeFile)
 
     if not product.validatePaths(dockerComposeFiles):
         raise Exception("Docker compose file is not present: %s" % dockerComposeFiles)
@@ -273,7 +196,11 @@ def upCastorDockerCompose(fxHermesRunSettings, product, request):
                 log.info("Got deployment success msg")
                 deployment_success = True
             if "Deployment completed with status: FAILURE" in line:
-                return
+                deployment_success = False
+                break
+            if "docker_castor_1 exited with code 1" in line:
+                deployment_success = False
+                break
 
     # get the end time after the deployment
     end_time = datetime.now(timezone.utc).astimezone()
@@ -283,9 +210,130 @@ def upCastorDockerCompose(fxHermesRunSettings, product, request):
     log.info("Deployment time taken: {} minutes and {} seconds".format(m, s))
 
     assert m <= 15, "Deployment took more than 15 minutes"
-
-    assert deployment_success, "Castor docker-compose startup failed, output does not contain SUCCESS"
     log.info("docker-compose-castor.yml launched")
+    return deployment_success
+
+
+@pytest.fixture
+def castor_teardown(fxHermesRunSettings):
+    """
+    This is a teardown function which will deprovision the deployed blockchain and revert the infra and deployment descriptor
+    """
+    yield True
+    log.info("Starting teardown")
+    deprovision_blockchain(fxHermesRunSettings)
+
+    # Revert modified descriptors
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, "infra_backup.json")) as from_file, \
+            open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE), "w+") as to:
+        to.write(from_file.read())
+
+
+"""
+Generic Functions
+"""
+
+
+def match_pattern(lines, pattern):
+    matches = 0
+    for line in lines:
+        if pattern.search(line):
+            matches += 1
+    return matches
+
+
+def add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients):
+    """
+    This function is to prepare deployment descriptor
+    """
+    if num_replicas > 0 or num_clients > 0:
+        with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE)) as deploy_desc:
+            data = json.load(deploy_desc)
+
+        if len(data["replicas"]) > num_replicas:
+            data["replicas"] = data["replicas"][:-(len(data["replicas"]) - num_replicas)]
+
+        if len(data["clients"]) > num_clients:
+            data["clients"] = data["clients"][:-(len(data["clients"]) - num_clients)]
+
+        if len(data["replicas"]) < num_replicas:
+            no_of_committers_req = len(data["replicas"]) - num_replicas
+            clone_committers = [data["replicas"][0]] * abs(no_of_committers_req)
+            data["replicas"] = [*data["replicas"], *clone_committers]
+
+        if len(data["clients"]) < num_clients:
+            no_of_clients_req = len(data["clients"]) - num_clients
+            clone_clients = [data["clients"][0]] * abs(no_of_clients_req)
+            data["clients"] = [*data["clients"], *clone_clients]
+
+        with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE), 'w') as w_deploy_desc:
+            json.dump(data, w_deploy_desc, indent=4)
+
+        log.info("Deployment descriptor is updated")
+
+    else:
+        return
+
+
+def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
+    """
+    This function is to prepare infrastructure descriptor
+    """
+    available_zones = list(string.ascii_uppercase)
+
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)) as infraFile:
+        infraDescriptor = json.load(infraFile)
+    default_zone_path = fxHermesRunSettings['hermesZoneConfig']['zones']['onprem']
+    len_default_zone_path = len(default_zone_path)
+    log.info("Length of default zone is {}".format(len_default_zone_path))
+    if is_multiple_zone is True:
+        if len(default_zone_path) > len(infraDescriptor['zones']):
+            no_of_zones_req = len(default_zone_path) - len(infraDescriptor['zones'])
+            log.info("Number of zone required {}".format(no_of_zones_req))
+            clone_zones = [infraDescriptor['zones'][0]] * abs(no_of_zones_req)
+            infraDescriptor['zones'] = [*infraDescriptor['zones'], *clone_zones]
+            time.sleep(5)
+
+    else:
+        len_default_zone_path = 1
+
+    for item in range(len_default_zone_path):
+        url = default_zone_path[item]['api']['address']
+        userName = default_zone_path[item]['api']['credential']['passwordCredential']['username']
+        password = default_zone_path[item]['api']['credential']['passwordCredential']['password']
+        resource = default_zone_path[item]['vsphere']['resourcePool']
+        storage = default_zone_path[item]['vsphere']['datastore']
+        folder = default_zone_path[item]['vsphere']['folder']
+        networkName = default_zone_path[item]['vsphere']['network']['name']
+        gateway = default_zone_path[item]['vsphere']['network']['gateway']
+        subnet = default_zone_path[item]['vsphere']['network']['subnet']
+        nameServers = default_zone_path[item]['vsphere']['network']['nameServers']
+
+        # update infra keys
+        infraDescriptor['zones'][item]["name"] = "hermes-castor-zone-1 - {}".format(available_zones[item])
+        log.info("Logging zone {}".format(infraDescriptor['zones'][item]["name"]))
+        infraDescriptor['zones'][item]['vCenter']['url'] = url
+        infraDescriptor['zones'][item]['vCenter']['userName'] = userName
+        infraDescriptor['zones'][item]['vCenter']['password'] = password
+        infraDescriptor['zones'][item]['vCenter']['resourcePool'] = resource
+        infraDescriptor['zones'][item]['vCenter']['storage'] = storage
+        infraDescriptor['zones'][item]['vCenter']['folder'] = folder
+
+        infraDescriptor['zones'][item]['network']['name'] = networkName
+        infraDescriptor['zones'][item]['network']['gateway'] = gateway
+        infraDescriptor['zones'][item]['network']['subnet'] = subnet
+        infraDescriptor['zones'][item]['network']['nameServers'] = nameServers
+        time.sleep(5)
+
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE), "w") as infraFile:
+        json.dump(infraDescriptor, infraFile, indent=4)
+
+    log.info("Infrastructure descriptor is updated")
+    log.info(infraFile)
+
+
+def downCastorDockerCompose(dockerComposeFiles):
+    log.info("Stopping docker containers for: %s" % dockerComposeFiles)
 
 
 def _get_all_nodes(castor_output_file):
@@ -467,10 +515,127 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
     return status
 
 
+def create_resources(site_id, castor_output_file):
+    '''
+    parse the output file to retrieve resource properties and create resource instances
+    return the array of Resource
+    '''
+    with open(castor_output_file, 'r') as cof:
+        lines = cof.readlines()
+    patternString = "^Node Id:.*, name: (.*), key: (.*), value: (.*)$"
+    pattern = re.compile(patternString)
+    seennames = set()
+    resources = []
+    for line in lines:
+        m = pattern.match(line)
+        if m:
+            resname = m.group(1)
+            if resname.startswith('/'):
+                if resname not in seennames:
+                    seennames.add(resname)
+                    resource = ps_apis.DeployedResource(type='NETWORK_RESOURCE', name=resname, site_id=site_id)
+                    resources.append(resource)
+            elif resname.startswith('http'):
+                if resname not in seennames:
+                    seennames.add(resname)
+                    resource = ps_apis.DeployedResource(type='COMPUTE_RESOURCE', name=resname, site_id=site_id)
+                    resources.append(resource)
+
+    return resources
+
+
+def deprovision_blockchain(fxHermesRunSettings):
+    """
+    De-provisioning the deployment
+    """
+
+    session_id = None
+    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
+    files = os.listdir(castorOutputDir)
+
+    filePatternStr = _CONSORTIUM_NAME + "*"
+    outputFileBases = fnmatch.filter(files, filePatternStr)
+
+    outputFileBase = outputFileBases[0]
+    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
+    with open(castorOutputFile) as cof:
+        lines = cof.readlines()
+        for line in lines:
+            if "Deployment Request Id" in line:
+                request_id_pattern = re.search(r'(Id: )(.*$)', line)
+                session_id = request_id_pattern.group(2)
+
+    log.info("De-provisioning the deployment using session id - {}".format(session_id))
+    cmdlineArgs = fxHermesRunSettings["hermesCmdlineArgs"]
+    cmdlineArgs.cancel_stream = True
+    logs_for_stream_all_deploy_events = os.path.join(castorOutputDir, "stream_deployment_events")
+    os.makedirs(logs_for_stream_all_deploy_events, exist_ok=True)
+    cmdlineArgs.fileRoot = logs_for_stream_all_deploy_events
+
+    ps_helper = ProvisioningServiceNewRPCHelper(cmdlineArgs)
+
+    zone_type = "onprem"
+    zone_config = fxHermesRunSettings["hermesZoneConfig"]
+
+    site_ids, site_infos = ps_helper.get_orchestration_site_ids_and_infos(zone_type, zone_config)
+    sites = ps_helper.create_sites(site_ids, site_infos)
+
+    deployment_stream_events = ps_helper.stream_deployment_session_events(session_id)
+
+    log.info("Streaming deployment events {}".format(deployment_stream_events))
+    if not deployment_stream_events:
+        raise Exception("Error while streaming deployment events")
+
+    resource = []
+    for event in deployment_stream_events:
+        if event.type == ps_apis.DeploymentExecutionEvent.RESOURCE:
+            resource.append(event.resource)
+
+    log.info("This is resource {}".format(resource))
+    site_id = site_ids[0].id
+    resources = create_resources(site_id, castorOutputFile)
+
+    log.info("Deprovisioning session id: {}".format(session_id))
+    
+    header = core_pb2.MessageHeader()
+
+    cleaned_up = False
+    max_timeout = 480  # seconds
+    sleep_time = 15  # seconds
+    start_time = time.time()
+    while ((time.time() - start_time) < max_timeout) and not cleaned_up:
+        deprovision_deployment_request = ps_apis.DeprovisionDeploymentRequest(header=header, session_id=session_id,
+                                                                              sites=sites, resource=resources)
+        log.info("deprovision deployment request {}".format(deprovision_deployment_request))
+        deprovision_deployment_response = ps_helper.call_api(ps_helper.stub.DeprovisionDeployment,
+                                                             deprovision_deployment_request)
+
+        if deprovision_deployment_response:
+            log.debug("Deprovisioning response: {}".format(deprovision_deployment_response))
+            cleaned_up = True
+            break
+        else:
+            log.info("Sleep for {} seconds and retry".format(sleep_time))
+            time.sleep(sleep_time)
+
+    if cleaned_up:
+        log.info("Deprovisioning successful")
+    else:
+        log.info("Deprovisioning failed")
+
+    return cleaned_up
+
+
+"""
+TEST CASES
+"""
+
+
 @describe("Deploy 7 node daml blockchain and verify blockchain health")
-@pytest.mark.parametrize('upCastorDockerCompose', [(7, 2, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE)],
+@pytest.mark.parametrize('upCastorDockerCompose',
+                         [(7, 2, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE, False)],
                          indirect=True)
-def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
+def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
     """
     The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose.
     Once the provisioning and config service is up then the castor deployment is initiated
@@ -480,9 +645,10 @@ def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSe
     3. Docker containers in each node
     4. After the above 3 are verified then the Daml sanity is executed for the participant nodes
     """
-    # num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
-    # num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
-    # upCastorDockerCompose(fxHermesRunSettings, product, num_replicas, num_clients)
+    # Check if deployment started
+    assert upCastorDockerCompose, "Deployment did not start"
+
+    # start the test
     num_of_nodes = 9
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
@@ -511,7 +677,7 @@ def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSe
         assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
             _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
-    # -------------post deployment validations -----------------
+    # # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
     all_nodes, client_nodes = _get_all_nodes(castorOutputFile)
 
@@ -526,15 +692,19 @@ def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSe
     # run daml sanity
     log.info("Running daml sanity tests to validate health of the deployed blockchain")
     daml_sanity_status = helper.run_daml_sanity(ledger_api_hosts=client_nodes, results_dir=castorOutputDir,
-                                                run_all_tests=True)
+                                                run_all_tests=False)
     assert daml_sanity_status, "Daml Sanity test did not pass, deployment is failed"
+
+    # validate teardown
+    assert castor_teardown, "Teardown failed"
 
 
 @describe("Deploy 4 node daml blockchain and verify blockchain health")
 @pytest.mark.smoke
-@pytest.mark.parametrize('upCastorDockerCompose', [(4, 1, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE)],
+@pytest.mark.parametrize('upCastorDockerCompose',
+                         [(4, 1, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE, False)],
                          indirect=True)
-def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
+def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
     """
     The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose.
     Once the provisioning and config service is up then the castor deployment is initiated
@@ -544,6 +714,10 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     3. Docker containers in each node
     4. After the above 3 are verified then the Daml sanity is executed for the participant nodes
     """
+    # Check if deployment started
+    assert upCastorDockerCompose, "Deployment did not start"
+
+    # start the test
     num_of_nodes = 5
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
@@ -586,20 +760,24 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     # run daml sanity
     log.info("Running daml sanity tests to validate health of the deployed blockchain")
     daml_sanity_status = helper.run_daml_sanity(ledger_api_hosts=client_nodes, results_dir=castorOutputDir,
-                                                run_all_tests=True)
+                                                run_all_tests=False)
     assert daml_sanity_status, "Daml Sanity test did not pass, deployment is failed"
+
+    # validate teardown
+    assert castor_teardown, "Teardown failed"
 
 
 @describe("Test multiple zone deployment")
 @pytest.mark.smoke
 @pytest.mark.parametrize('upCastorDockerCompose', [(4, 1, "test02_deployment_descriptor_multiple_zone.json",
-                                                    "test02_infrastructure_descriptor_multiple_zone.json")],
+                                                    _INFRA_DESC_FILENAME_VALUE, True)],
                          indirect=True)
-def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
-    # upCastorDockerCompose(fxHermesRunSettings, product, 4, 1,
-    #                       deployment_descriptor='test02_deployment_descriptor_multiple_zone.json',
-    #                       infra_descriptor='test02_infrastructure_descriptor_multiple_zone.json')
-    num_of_nodes = 6
+def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
+    # check if deployment started
+    assert upCastorDockerCompose, "Deployment did not start"
+
+    # start the test
+    num_of_nodes = 5
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     files = os.listdir(castorOutputDir)
@@ -640,31 +818,21 @@ def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     # run daml sanity
     log.info("Running daml sanity tests to validate health of the deployed blockchain")
     daml_sanity_status = helper.run_daml_sanity(ledger_api_hosts=client_nodes, results_dir=castorOutputDir,
-                                                run_all_tests=True)
+                                                run_all_tests=False)
     assert daml_sanity_status, "Daml Sanity test did not pass, deployment is failed"
+
+    # validate teardown
+    assert castor_teardown, "Teardown failed"
 
 
 @describe("Deployment on invalid host")
 @pytest.mark.smoke
 @pytest.mark.parametrize('upCastorDockerCompose', [(4, 1, "test03_deployment_descriptor_invalid_host.json",
-                                                    "test03_infrastructure_descriptor_invalid_host.json")],
+                                                    "test03_infrastructure_descriptor_invalid_host.json", False)],
                          indirect=True)
 def test_deployment_invalid_host(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
-    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    files = os.listdir(castorOutputDir)
-
-    filePatternStr = _CONSORTIUM_NAME + "*"
-    outputFileBases = fnmatch.filter(files, filePatternStr)
-
-    outputFileBase = outputFileBases[0]
-    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
-    log.info("Processing castor output file: {}".format(castorOutputFile))
-
-    # Check that the output file says "FAILURE"
-    outputSuccessMatchPattern = re.compile("Deployment finished at .* with status FAILURE")
-    with open(castorOutputFile) as cof:
-        lines = cof.readlines()
-        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
-        assert matchingLines == 1, "Castor output file does not have failure marker: "
-
-
+    """
+    This is a negative test. We don't need teardown here
+    """
+    assert upCastorDockerCompose == False, "Somehow Castor docker compose started the deployment. " \
+                                           "It should have been failed"
