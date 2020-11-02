@@ -137,6 +137,10 @@
         "password": {
           "description": "The password for the docker container registry",
           "type": "string"
+        },
+        "tlsCertificateData": {
+            "description": "Container Registry's Self-Signed Certificate",
+            "type": "string"
         }
       },
       "required": ["url", "userName", "password"]
