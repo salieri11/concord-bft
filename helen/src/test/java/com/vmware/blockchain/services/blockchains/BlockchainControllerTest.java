@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.blockchains;
 
 import static com.vmware.blockchain.security.MvcTestSecurityConfig.createContext;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPatch;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -1047,6 +1049,73 @@ public class BlockchainControllerTest {
         NodeSizeTemplate nst = NodeSizeTemplateUtil.createNodeSizeTemplate(DEFAULT_TEMPLATE_ID, DEFAULT_TEMPLATE_NAME);
 
         when(nodeSizeTemplateService.getTemplate()).thenReturn(nst);
+    }
+
+    @Test
+    public void testUpdateBlockchainVersion() throws Exception {
+        String patchValues = "{\n"
+                             + "    \"blockchain_version\": \"new version\"\n"
+                             + "}";
+
+        Blockchain bNewVersion = new Blockchain();
+        bNewVersion.setId(UUID.randomUUID());
+
+        when(blockchainService.update(any(Blockchain.class), any(BlockchainPatch.class))).thenReturn(bNewVersion);
+        mockMvc.perform(patch("/api/blockchains/" + BC_ID.toString()).with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(patchValues)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    public void testUpdateBlockchainVersionAndExecEngineVersion() throws Exception {
+        String patchValues = "{\n"
+                             + "    \"blockchain_version\": \"new version\",\n"
+                             + "    \"execution_engine_version\": \"new exec eng version\"\n"
+                             + "}";
+
+        Blockchain bNewVersion = new Blockchain();
+        bNewVersion.setId(UUID.randomUUID());
+
+        when(blockchainService.update(any(Blockchain.class), any(BlockchainPatch.class))).thenReturn(bNewVersion);
+        mockMvc.perform(patch("/api/blockchains/" + BC_ID.toString()).with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(patchValues)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    public void testUpdateExecEngineVersion() throws Exception {
+        String patchValues = "{\n"
+                             + "    \"execution_engine_version\": \"new exec eng version\"\n"
+                             + "}";
+
+        Blockchain bNewVersion = new Blockchain();
+        bNewVersion.setId(UUID.randomUUID());
+
+        when(blockchainService.update(any(Blockchain.class), any(BlockchainPatch.class))).thenReturn(bNewVersion);
+        mockMvc.perform(patch("/api/blockchains/" + BC_ID.toString()).with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(patchValues)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    public void testUpdateBlockchainVersionUnsuccessful() throws Exception {
+        String patchValues = "{\n"
+                              + "    \"blockchain_version\": \"new version\"\n"
+                              + "}";
+
+        when(blockchainService.update(any(Blockchain.class), any(BlockchainPatch.class))).thenThrow(
+                new RuntimeException("test"));
+        mockMvc.perform(patch("/api/blockchains/" + BC_ID.toString()).with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(patchValues)
+                                .characterEncoding("utf-8"))
+                .andExpect(status().isInternalServerError());
     }
 
     @Test

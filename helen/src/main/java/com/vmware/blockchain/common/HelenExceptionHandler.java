@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -53,6 +54,7 @@ public class HelenExceptionHandler {
                     .put(IOException.class, HttpStatus.INTERNAL_SERVER_ERROR)
                     .put(MissingServletRequestParameterException.class, HttpStatus.BAD_REQUEST)
                     .put(MethodArgumentNotValidException.class, HttpStatus.BAD_REQUEST)
+                    .put(HttpMessageNotReadableException.class, HttpStatus.BAD_REQUEST)
                     .put(UnsupportedOperationException.class, HttpStatus.METHOD_NOT_ALLOWED)
                     .put(InvalidFormatException.class, HttpStatus.BAD_REQUEST)
                     .build();

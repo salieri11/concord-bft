@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -243,22 +244,20 @@ public class BlockchainController {
      * Update the given blockchain.
      * @throws NotFoundException NotFoundException
      */
-    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.PATCH)
+    @PatchMapping(path = "/api/blockchains/{bid}")
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID bid,
-            @RequestBody BlockchainPatch body) throws NotFoundException {
-        // TODO: Actual PATCH
+                                                           @RequestBody BlockchainPatch body) throws NotFoundException {
 
-        // Temporary: create a completed task that points to the default blockchain
         Blockchain blockchain = safeGetBlockchain(bid);
+
+        blockchainService.update(blockchain, body);
 
         Task task = new Task();
         task.setState(State.SUCCEEDED);
-        task.setMessage("Default Blockchain");
-        task.setResourceId(defaultProfiles.getBlockchain().getId());
-        if (task.getResourceId() != null) {
-            task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
-        }
+        task.setMessage("Updated Blockchain");
+        task.setResourceId(blockchain.getId());
+        task.setResourceLink("/api/blockchains/".concat(blockchain.getId().toString()));
         task = taskService.put(task);
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);

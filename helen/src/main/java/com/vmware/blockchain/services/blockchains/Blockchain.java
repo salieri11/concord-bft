@@ -29,10 +29,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Blockchain extends AbstractEntity {
-
-    static String BLOCKCHAIN_VERSION = "version";
-    static String DAML_SDK_VERSION = "daml-sdk-version";
-
     /**
      * A node entry.
      */
@@ -70,6 +66,12 @@ public class Blockchain extends AbstractEntity {
     @LinkedEntityId
     UUID consortium;
 
+    @Builder.Default
+    String blockchainVersion = "NA";
+
+    @Builder.Default
+    String executionEngineVersion = "NA";
+
     BlockchainType type;
 
     BlockchainState state;
@@ -88,18 +90,15 @@ public class Blockchain extends AbstractEntity {
      * Get the version string for the blockchain.
      * @return version.
      */
+    @Deprecated
     public String getBlockchainVersionString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Blockchain Version: ");
-
         // For backward data compatibility.
-        if (metadata != null) {
-            sb.append(metadata.getOrDefault(BLOCKCHAIN_VERSION, "NA"));
-
-            if (type == BlockchainType.DAML) {
-                sb.append(", DAML SDK Version: ");
-                sb.append(metadata.getOrDefault(DAML_SDK_VERSION, "NA"));
-            }
+        sb.append(this.getBlockchainVersion());
+        if (type == BlockchainType.DAML) {
+            sb.append(", DAML SDK Version: ");
+            sb.append(this.executionEngineVersion);
         }
         return sb.toString();
     }

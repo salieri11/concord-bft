@@ -4,9 +4,15 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPatch;
+
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -20,7 +26,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 
 /**
  * Test the blockchain manager.
@@ -28,6 +33,10 @@ import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
  */
 @ExtendWith(SpringExtension.class)
 public class BlockchainServiceTest {
+
+    private static final String blockchainVersion = "new version";
+    private static final String execEngineVersion = "new EE version";
+
     @MockBean
     private GenericDao genericDao;
 
@@ -46,6 +55,12 @@ public class BlockchainServiceTest {
     void init() {
         // Trying to autowire pulls in too many things
         manager = new BlockchainService(genericDao, publisher);
+
+    }
+
+    @Test
+    void testCreateNode() {
+
         when(genericDao.put(any(Blockchain.class), any())).thenAnswer(invocation -> {
             Blockchain b = invocation.getArgument(0);
             if (b.getId() == null) {
@@ -53,15 +68,38 @@ public class BlockchainServiceTest {
             }
             return b;
         });
-    }
 
-    @Test
-    void testCreateNode() {
         NodeEntry node = new NodeEntry(UUID.fromString("d1740514-606b-4e88-ab54-fc8182630890"), "1.2.3.4",
                                        "1.2.3.4",
                                        "http://localhost", "",
                                        UUID.fromString("2dd3386d-69f4-4fcf-9fc2-42607929c0b8"));
         Assertions.assertEquals("1.2.3.4", node.getHostName());
+    }
+
+    @Test
+    public void testUpdate() {
+        HashMap<String, String> metadata = new HashMap<>();
+        metadata.put("concord", "1.0");
+        Blockchain blockchain = new Blockchain(new UUID(1, 2), "NA test version", "NA exec eng version",
+                                               Blockchain.BlockchainType.ETHEREUM, Blockchain.BlockchainState.INACTIVE,
+                                               Collections.emptyList(), metadata, null);
+        blockchain.setId(UUID.fromString("fb212e5a-0428-46f9-8faa-b3f15c9843e8"));
+
+        BlockchainPatch patch = new BlockchainPatch();
+        patch.setBlockchainVersion(blockchainVersion);
+        patch.setExecutionEngineVersion(execEngineVersion);
+
+        when(genericDao.put(blockchain, blockchain)).thenAnswer(invocation -> {
+            Blockchain b = invocation.getArgument(0);
+            b.setBlockchainVersion(blockchainVersion);
+            b.setExecutionEngineVersion(execEngineVersion);
+            return b;
+        });
+
+        Blockchain result = manager.update(blockchain, patch);
+
+        assertEquals(result.blockchainVersion, blockchainVersion);
+        assertEquals(result.executionEngineVersion, execEngineVersion);
     }
 
 }
