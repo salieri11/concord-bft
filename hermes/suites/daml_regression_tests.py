@@ -942,3 +942,97 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
         except Exception as excp:
             assert False, excp
+
+
+@describe("fault tolerance - temporary lack of quorum after view change")
+@pytest.mark.parametrize("step", [0, 1])
+def test_temporary_lack_of_quorum_after_view_change\
+           (reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
+    '''
+    Verify below using DAML tool
+    - Connect to a blockchain network.
+    - Stop f non-primary replicas.
+    - Submit requests continuously.
+    - Start and restart current primary replica or non primary replica.
+    - Verify that new requests are processed correctly.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: blockchain
+    '''
+    for client_host in fxLocalSetup.client_hosts:
+        try:
+            # Install sdk only for one iteration
+            if step == 0:
+                install_sdk_deploy_daml(client_host)
+
+            interrupted_nodes =[]
+
+            # Find primary replica and primary replica id
+            init_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            init_primary_rip = init_mapping["primary_ip"]
+            init_primary_index = init_mapping["primary_index"]
+            log.info("Primary Replica IP and index: {} and {}".format(init_primary_rip, init_primary_index))
+
+            all_replicas = fxLocalSetup.concord_hosts[:]
+            container_name = 'concord'
+
+            non_primary_replicas = [
+                n for n in all_replicas if n != init_primary_rip]
+
+            # Stop f non-primary replica
+            for i in range(fxLocalSetup.f_count):
+                concord_host = non_primary_replicas[i]
+                intr_helper.stop_container(concord_host, container_name)
+                interrupted_nodes.append(concord_host)
+            log.info("\n\nStopped f non primary replica")
+
+            # Start new thread for daml request submissions
+            thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                     args=(client_host, get_port(client_host), 1, 1, 240))
+            thread_daml_txn.start()
+
+            # Step 0 - current primary replica to be stopped and restarted
+            # Step 1 - non primary replica to be stopped and restarted
+            if step == 0:
+                log.info("\n\nDoing Step 0 - current primary replica to be stopped and restarted")
+                intr_helper.stop_container(init_primary_rip, container_name, 30)
+                intr_helper.start_container(init_primary_rip, container_name, 90)
+                log.info("\n\nStopped and restarted current primary replica: {}".format(init_primary_rip))
+            if step == 1:
+                log.info("\n\nDoing Step 1 - non primary replica to be stopped and restarted")
+                uninterrupted_non_primary_replicas = \
+                    [i for i in non_primary_replicas if i not in interrupted_nodes]
+
+                log.info("\n\nUninterrupted non primary replicas: {}".
+                         format(uninterrupted_non_primary_replicas))
+
+                non_primary_replica_to_be_interrupted = random.choice(uninterrupted_non_primary_replicas)
+
+                intr_helper.stop_container(non_primary_replica_to_be_interrupted, container_name, 30)
+                intr_helper.start_container(non_primary_replica_to_be_interrupted, container_name, 90)
+                log.info("\n\nStopped and restarted non primary replica: {}".
+                         format(non_primary_replica_to_be_interrupted))
+
+            thread_daml_txn.join(10)
+
+            time.sleep(60)
+
+            # Find current primary replica
+            new_mapping = blockchain_ops.map_committers_info(
+                fxBlockchain, interrupted_nodes)
+            new_primary_rip = new_mapping["primary_ip"]
+            new_primary_index = new_mapping["primary_index"]
+
+            log.info("New Primary Replica IP and index: {} and {}".
+                     format(new_primary_rip, new_primary_index))
+
+            assert init_primary_index != new_primary_index or init_primary_rip != new_primary_rip, \
+                "View Change did not happen successfully"
+
+            # Submit daml requests after view change
+            assert make_daml_request_in_thread(reraise, client_host), \
+                PARTICIPANT_GENERIC_ERROR_MSG + "after view change"
+
+        except Exception as excp:
+            assert False, excp
