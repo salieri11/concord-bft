@@ -5,224 +5,282 @@
     baseCommand: '${PERSEPHONE_BASE_COMMAND}'
     dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
     runWithGenericTests: true
+    testModule: 'suites/persephone_tests_new.py'
 - PersephoneOnDemandNew:
     enabled: true
     baseCommand: '${PERSEPHONE_BASE_COMMAND}'
     dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
     runWithGenericTests: false
+    testModule: 'suites/persephone_tests_new.py'
 - PersephoneDamlOnly:
     enabled: true
     baseCommand: '${DAML_BASE_COMMAND}'
     dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
     runWithGenericTests: false
+    testModule: 'suites/persephone_tests_new.py'
 - ReconfigurationTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml ${COMPOSE_PREFIX}-operator.yml'
     concordConfigurationInput: '/concord/config/dockerConfigurationInput-reconfiguration.yaml'
+    testModule: 'suites/reconfiguration_tests.py'
 - ApolloBftTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/apollo_bft_tests.py'
 - RoReplicaTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${RO_COMPOSE}'
     concordConfigurationInput: '${RO_CONCORD_INPUT}'
+    testModule: 'suites/ro_replica_tests.py'
 - SkvbcLinearizabilityTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/skvbc_linearizability_tests.py'
 - SkvbcLinearizabilityWithCrashesTests:
     enabled: false
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/skvbc_linearizability_with_crashes_tests.py'
 - SkvbcStateTransferTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/skvbc_state_transfer_tests.py'
 - SkvbcPreexecutionTests:
     # redundant because of the more realistic DamlPreexecutionTests
     enabled: false
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/skvbc_preexecution_tests.py'
 - SkvbcViewchangeTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/skvbc_viewchange_tests.py'
 - ChessPlusTestsOnPredeployedBlockchain:
     baseCommand: '${CHESS_BASE_COMMAND}'
+    testModule: 'suites/chess_plus_tests.py'
 - DamlTestsOnPredeployedBlockchain:
     enabled: false
-    baseCommand: '${MAIN_PY} DamlTests --damlParticipantIP "${concord_ips}"'
+    baseCommand: '${MAIN_PYTEST} suites/daml_tests.py --damlParticipantIP "${concord_ips}"'
+    testModule: 'suites/daml_tests.py'
 - NodeInterruptionTests:
     enabled: true
     runWithGenericTests: false
+    testModule: 'suites/node_interruption_tests.py'
 - SampleSuite:
     enabled: true
+    testModule: 'suites/sample_suite.py'
 - SampleDAppTests:
     enabled: true
+    testModule: 'suites/sample_dapp_tests.py'
 - EthCoreVmTests:
     enabled: true
+    testModule: 'suites/eth_core_vm_tests.py'
 - PerformanceSmoke:
     enabled: true
     concordConfigurationInput: '${PERFORMANCE_TEST_INPUT}'
     baseCommand: '${PERFORMANCE_BASE_COMMAND}'
     performanceVotes: 10
     runWithGenericTests: true
+    testModule: 'suites/performance_tests.py'
 - PerformanceNightly:
     enabled: true
     concordConfigurationInput: '${PERFORMANCE_TEST_INPUT}'
     baseCommand: '${PERFORMANCE_BASE_COMMAND}'
     performanceVotes: 10000
     runWithGenericTests: false
+    testModule: 'suites/performance_tests.py'
 - HelenAPITests:
     enabled: true
+    testModule: 'suites/helen/api_test.py'
 - HelenBlockTests:
     enabled: true
+    testModule: 'suites/helen/block_test.py'
 - HelenBlockchainTests:
     enabled: true
+    testModule: 'suites/helen/blockchain_test.py'
 - HelenClientTests:
     enabled: true
+    testModule: 'suites/helen/client_test.py'
 - HelenConsortiumTests:
     enabled: true
+    testModule: 'suites/helen/consortium_test.py'
 - HelenContractTests:
     enabled: true
+    testModule: 'suites/helen/contract_test.py'
 - HelenOrganizationTests:
     enabled: true
+    testModule: 'suites/helen/organization_test.py'
 - HelenMemberTests:
     enabled: true
+    testModule: 'suites/helen/members_test.py'
 - HelenReplicaTests:
     enabled: true
+    testModule: 'suites/helen/replica_test.py'
 - HelenZoneTests:
     enabled: true
+    testModule: 'suites/helen/zone_test.py'
 - HelenNodeSizeTemplateTests:
     enabled: true
+    testModule: 'suites/helen/nodesize_test.py'
 - HelenRoleTests:
     enabled: true
     runWithGenericTests: false
+    testModule: 'suites/helen/roles.py'
 - CastorDeploymentTests:
     enabled: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
+    testModule: 'suites/castor_deployment_tests.py'
 - EthJsonRpcTests:
     enabled: true
+    testModule: 'suites/eth_jsonrpc_tests.py'
 - EthJsonRpcTestsEthrpc:
     enabled: true
-    baseCommand: '${MAIN_PY} EthJsonRpcTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+    baseCommand: '${MAIN_PYTEST} suites/eth_jsonrpc_tests.py --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
 - EthRegressionTests:
     enabled: true
     runAlone: true
+    testModule: 'suites/eth_regression_tests.py'
 - DamlTests:
     enabled: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano-pool.yml'
     concordConfigurationInput: '${DAML_INPUT}'
+    testModule: 'suites/daml_tests.py'
 - ClientPoolDamlTests:
     enabled: false
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-pool.yml'
     concordConfigurationInput: '${DAML_INPUT}'
+    testModule: 'suites/daml_tests.py'
 - DamlPreexecutionTests:
     enabled: true
     runAlone: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-preexecution.yml'
     concordConfigurationInput: '${CONCORD_PREFIX}-daml-preexecution.yaml'
+    testModule: 'suites/daml_tests.py'
 - ThinReplicaServerTests:
     enabled: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml'
     concordConfigurationInput: '${CONCORD_PREFIX}-daml-nano.yaml'
+    testModule: 'suites/thin_replica_server_tests.py'
 - PrivacyTeeTests:
     enabled: true
     dockerComposeFiles: '${TEE_COMPOSE}'
     concordConfigurationInput: '${TEE_CONCORD_INPUT}'
+    testModule: 'suites/privacy_tee_tests.py'
 - SimpleStateTransferTest:
     # unsupported (Ethereum based), and duplicate with SkvbcStateTransferTests
     enabled: false
     dockerComposeFiles: '${COMPOSE_PREFIX}.yml ${COMPOSE_PREFIX}-static-ips.yml'
+    testModule: 'suites/simple_st_test.py'
 - ContractCompilerTests:
     enabled: true
+    testModule: 'suites/contract_compiler_tests.py'
 - MetadataPersistencyTests:
     enabled: false
     dockerComposeFiles: '${COMPOSE_PREFIX}.yml ${COMPOSE_PREFIX}-static-ips.yml'
-    baseCommand: '${MAIN_PY} MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth'
+    baseCommand: '${MAIN_PYTEST} suites/persistency_tests.py --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth'
+    testModule: 'suites/persistency_tests.py'
 - TimeTests:
     enabled: true
     concordConfigurationInput: '${CONCORD_PREFIX}-time_service.yaml'
     setupFunction: '${ENABLE_TIME_SERVICE_FUNCTION}'
+    testModule: 'suites/time_service/basic_test.py'
 - EvilTimeTests:
     enabled: true
     concordConfigurationInput: '${CONCORD_PREFIX}-time_service.yaml'
     setupFunction: '${ENABLE_TIME_SERVICE_FUNCTION}'
+    testModule: 'suites/time_service/evil_test.py'
 - MemoryLeakNightly:
     enabled: true
     suiteDir: '${DEFAULT_SUITE_DIR}'
-    baseCommand: 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 6 --suitesRealname MemoryLeakNightly'
+    baseCommand: 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite "suites/eth_core_vm_tests.py" --repeatSuiteRun 6 --suitesRealname MemoryLeakNightly'
     runWithGenericTests: false
+    testModule: 'suites/eth_core_vm_tests.py'
 - MemoryLeakSmoke:
     enabled: true
     suiteDir: '${DEFAULT_SUITE_DIR}'
-    baseCommand: "echo \"${PASSWORD}\" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --suitesRealname MemoryLeakSmoke"
+    baseCommand: 'echo ${PASSWORD} | sudo -SE ./memory_leak_test.sh --testSuite "suites/eth_core_vm_tests.py" --repeatSuiteRun 2 --tests "vmArithmeticTest/add0.json" --suitesRealname MemoryLeakSmoke'
     runWithGenericTests: true
+    testModule: 'suites/eth_core_vm_tests.py'
 - UiTests:
     enabled: true
     setupFunction: '${DELETE_FILES_FUNCTION}'
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '"${python}" main.py UiTests'
+    baseCommand: '"${python}" -m pytest suites/ui_tests.py'
+    testModule: 'suites/ui_tests.py'
 - LoggingTests:
     enabled: false
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PY} LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
+    baseCommand: '${MAIN_PYTEST} suites/logging_tests.py --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
+    testModule: 'suites/logging_tests.py'
 - UiDAMLDeploy:
     enabled: false
     runWithGenericTests: false
     setupFunction: '${DELETE_FILES_FUNCTION}'
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '"${python}" main.py DeployDamlTests'
+    baseCommand: '"${python}" -m pytest suites/ui_e2e_deploy_daml.py'
+    testModule: 'suites/ui_e2e_deploy_daml.py'
 - HelenDeployEthereumToSDDC:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '${MAIN_PY} EthCoreVmTests --blockchainLocation sddc --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
+    baseCommand: '${MAIN_PYTEST} suites/eth_core_vm_tests.py --blockchainLocation sddc --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
+    testModule: 'suites/eth_core_vm_tests.py'
 - HelenDeployDAMLToSDDC:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '${MAIN_PY} HelenAPITests --blockchainType daml --blockchainLocation onprem --numReplicas 7 --numParticipants 1 --tests="-m deployment_only" --suitesRealname HelenDeployDAMLToSDDC'
+    baseCommand: '${MAIN_PYTEST} suites/helen/api_test.py --blockchainType daml --blockchainLocation onprem --numReplicas 7 --numParticipants 1 -m deployment_only --suitesRealname HelenDeployDAMLToSDDC'
+    testModule: 'suites/helen/api_test.py'
 - HelenDeployToSDDCTemplate:
     enabled: false
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '${MAIN_PY} HelenAPITests --tests="-k test_daml_deployment" --suitesRealname=HelenDeployToSDDCTemplate'
+    baseCommand: '${MAIN_PYTEST} suites/helen/api_test.py -k test_daml_deployment --suitesRealname=HelenDeployToSDDCTemplate'
+    testModule: 'suites/helen/api_test.py'
 - ClientGroupTests:
     enabled: false
     runWithGenericTests: false
     setupFunction: '${DELETE_FILES_FUNCTION}'
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '"${python}" main.py ClientGroupTests --numGroups 3 --numReplicas 7 --numParticipants 6 --blockchainType daml --blockchainLocation onprem'
+    baseCommand: '"${python}" -m pytest suites/st_client_group_tests.py --numGroups 3 --numReplicas 7 --numParticipants 6 --blockchainType daml --blockchainLocation onprem'
+    testModule: 'suites/st_client_group_tests.py'
 - DamlRegressionTests:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PY} DamlRegressionTests --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py --blockchainLocation onprem --blockchainType daml'
+    testModule: 'suites/daml_regression_tests.py'
 - PreexecutionSystemTests:
     enabled: false
     runWithGenericTests: false
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '${MAIN_PY} PreExecutionTests --numGroups 2 --numReplicas 7 --numParticipants 2 --blockchainType daml --blockchainLocation onprem --clientSize medium --replicaSize medium --dockerHubPassword ''DOCKERHUB_REPO_READER_PASSWORD'''
+    baseCommand: '${MAIN_PYTEST} suites/sys_test_preexecution_tests.py --numGroups 2 --numReplicas 7 --numParticipants 2 --blockchainType daml --blockchainLocation onprem --clientSize medium --replicaSize medium --dockerHubPassword ''DOCKERHUB_REPO_READER_PASSWORD'''
+    testModule: 'suites/sys_test_preexecution_tests.py'
 - LogInsightTests:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PY} LogInsightTests --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/log_insight_tests.py --blockchainLocation onprem --blockchainType daml'
+    testModule: 'suites/log_insight_tests.py'
 - WavefrontTests:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PY} WavefrontTests --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/wavefront_tests.py --blockchainLocation onprem --blockchainType daml'
+    testModule: 'suites/wavefront_tests.py'
 - HelenVMSizeTests:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PY} HelenVMSizeTests --blockchainLocation onprem --blockchainType daml --clientSize "${client_size}" --clientMemory "${client_memory}" --clientCpu "${client_cpu}" --clientStorage "${client_storage}" --replicaSize "${replica_size}" --replicaMemory "${replica_memory}" --replicaCpu "${replica_cpu}" --replicaStorage "${replica_storage}"'
+    baseCommand: '${MAIN_PYTEST} suites/helen/vmsize_test.py --blockchainLocation onprem --blockchainType daml --clientSize "${client_size}" --clientMemory "${client_memory}" --clientCpu "${client_cpu}" --clientStorage "${client_storage}" --replicaSize "${replica_size}" --replicaMemory "${replica_memory}" --replicaCpu "${replica_cpu}" --replicaStorage "${replica_storage}"'
+    testModule: 'suites/helen/vmsize_test.py'

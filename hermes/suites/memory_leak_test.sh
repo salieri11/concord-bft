@@ -22,6 +22,13 @@ while [ "$1" != "" ] ; do
          shift
          SUITES_REALNAME="$1"
          ;;
+      "--alluredir")
+         shift
+         ALLUREDIR="$1"
+         ;;
+      "--json")
+         shift
+         JSONREP="$1"
    esac
    shift
 done
@@ -32,6 +39,8 @@ echo - NO_OF_RUNS: "${NO_OF_RUNS}"
 echo - TESTS: "${TESTS}"
 echo - RESULTS_DIR: "${RESULTS_DIR}"
 echo - SUITES_REALNAME: "${SUITES_REALNAME}"
+echo - ALLUREDIR: "${ALLUREDIR}"
+echo - JSONREP: "${JSONREP}"
 
 retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
@@ -40,13 +49,21 @@ if [ -z "${RESULTS_DIR}" ]
 then
     RESULTS_DIR="${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}"
 fi
+if [ -z "${ALLUREDIR}" ]
+then
+    ALLUREDIR="${BASE_LOG_DIR}/allure_results"
+fi
+if [ -z "${JSONREP}" ]
+then
+    JSONREP="${RESULTS_DIR}/report.json"
+fi
 MEMORY_INFO_LOG_FILE="${RESULTS_DIR}"/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE="${RESULTS_DIR}"/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
 VALGRIND_LOG_FILENAME="valgrind_concord1.log"
 concord1_VALGRIND_LOG_FILE="/tmp/$VALGRIND_LOG_FILENAME"
-HERMES_START_FILE="./main.py"
+HERMES_START_FILE="pytest"
 SPECIFIC_TESTS=""
 HERMES_PID_FILE="/tmp/hermes_pid"
 # to represent leak summary on graph
@@ -59,7 +76,7 @@ LEAK_SPIKE_BUFFER=500
 check_usage() {
     if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
     then
-        echo "Usage: $0 --testSuite <Testsuite to run e.g EthCoreVmTests> --repeatSuiteRun <No. of times to repeat complete test runs>"
+        echo "Usage: $0 --testSuite <Testsuite to run e.g suites/eth_core_vm_tests.py> --repeatSuiteRun <No. of times to repeat complete test runs>"
         exit 1
     fi
 }
@@ -72,7 +89,7 @@ launch_memory_test() {
         SPECIFIC_TESTS="\"--tests=-k ${TESTS}\""
     fi
 
-    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --suitesRealname ${SUITES_REALNAME} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug > \"${RESULTS_DIR}/memory_leak_tests.log\" 2>&1 &"
+    COMMAND=" -m ${HERMES_START_FILE} \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --suitesRealname ${SUITES_REALNAME} --alluredir \"${ALLUREDIR}\" --json \"${JSONREP}\" --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel DEBUG > \"${RESULTS_DIR}/memory_leak_tests.log\" 2>&1 &"
     echo python: "${python}"
     echo COMMAND: "${COMMAND}"
     eval "${python}" "${COMMAND}"
@@ -85,8 +102,7 @@ launch_memory_test() {
     cd "$CWD"
     while true
     do
-        is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep ${HERMES_PID}`
-        if [ "x$is_process_still_running" = "x" ]
+        if [ -z "$(ps -p $HERMES_PID -o pid=)" ]
         then
             sleep 5
             echo "Done running Memory Leak Tests"

@@ -83,6 +83,7 @@ def main(args):
 
    if args.replicasConfig:
       replicas_config = args.replicasConfig
+      log.info("Replica Configuration: {}".format(replicas_config))
       all_replicas_and_type = helper.parseReplicasConfig(args.replicasConfig)
    else:
       replicas_config_data = {}
