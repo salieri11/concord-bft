@@ -79,9 +79,8 @@ public class BlockchainApiObjects {
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class BlockchainPatch {
-        private String ipList;
-        private String rpcUrls;
-        private String rpcCerts;
+        private String blockchainVersion;
+        private String executionEngineVersion;
     }
 
     @Getter

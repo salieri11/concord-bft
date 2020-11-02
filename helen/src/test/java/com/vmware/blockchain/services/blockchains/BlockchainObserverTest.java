@@ -99,9 +99,9 @@ public class BlockchainObserverTest {
             return i.getArgument(0);
         });
         when(authHelper.getOrganizationId()).thenReturn(ORG_ID);
-        blockchain = new Blockchain(new UUID(1, 2), BlockchainType.ETHEREUM,
-                                    Blockchain.BlockchainState.INACTIVE, Collections.emptyList(), metadata,
-                                    null);
+        blockchain = new Blockchain(new UUID(1, 2), "NA test version", "NA exec eng test version",
+                                    BlockchainType.ETHEREUM, Blockchain.BlockchainState.INACTIVE,
+                                    Collections.emptyList(), metadata, null);
         blockchain.setId(CLUSTER_ID);
         when(blockchainService.create(any(), any(), any(), any()))
                 .thenAnswer(i -> {

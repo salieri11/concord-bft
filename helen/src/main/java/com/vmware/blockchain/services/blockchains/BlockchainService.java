@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPatch;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,6 +58,20 @@ public class BlockchainService {
         b.setId(id);
         b.setState(Blockchain.BlockchainState.ACTIVE);
         return genericDao.put(b, null);
+    }
+
+    /**
+     * Patches a blockchain instance with new values.
+     */
+    public Blockchain update(Blockchain blockchain, BlockchainPatch newValues) {
+
+        if (newValues.getBlockchainVersion() != null) {
+            blockchain.setBlockchainVersion(newValues.getBlockchainVersion());
+        }
+        if (newValues.getExecutionEngineVersion() != null) {
+            blockchain.setExecutionEngineVersion(newValues.getExecutionEngineVersion());
+        }
+        return genericDao.put(blockchain, blockchain);
     }
 
     /**

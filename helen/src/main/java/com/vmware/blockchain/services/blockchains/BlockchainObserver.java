@@ -123,14 +123,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                     rawBlockchain.setId(UUID.fromString(deploymentExecutionEvent.getBlockchainId()));
 
                     rawBlockchain.getMetadata()
-                            .put(Blockchain.BLOCKCHAIN_VERSION,
+                            .put(rawBlockchain.getBlockchainVersion(),
                                  deploymentExecutionEvent.getResource()
                                          .getAdditionalInfo()
                                          .getValuesOrDefault(DeploymentAttributes.BLOCKCHAIN_VERSION.name(),
                                                              "NA"));
 
                     rawBlockchain.getMetadata()
-                            .put(Blockchain.DAML_SDK_VERSION,
+                            .put(rawBlockchain.getExecutionEngineVersion(),
                                  deploymentExecutionEvent.getResource()
                                          .getAdditionalInfo()
                                          .getValuesOrDefault(DeploymentAttributes.DAML_SDK_VERSION.name(),
