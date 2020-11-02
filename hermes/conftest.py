@@ -30,6 +30,7 @@ INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 TEST_LOGDIR = "test_logs"
 SUPPORT_BUNDLE = "support_bundles.json"
 REPORT = "execution_results.json"
+TESTSTATUS = "test_status.pass"
 
 
 def pytest_generate_tests(metafunc):
@@ -142,6 +143,24 @@ def removeSkippedTests(testList, ethereumTestRoot):
             testList.remove(skippedTest)
 
 
+def pytest_configure(config):
+    '''
+    Read in all provided options and set required options
+    '''
+    global cmdLineArguments
+    cmdLineArguments = config.option
+    if config.option.hermesCmdlineArgs:
+        cmdLineArguments.fromMain = True
+    else:
+        cmdLineArguments.fromMain = False
+        cmdLineArguments.hermes_dir = os.path.dirname(
+            os.path.realpath(__file__))
+        cmdLineArguments.logLevel = hermes_logging.logStringToInt(
+            config.option.logLevel)
+        if config.option.deploymentService == "staging":
+            cmdLineArguments.deploymentService = auth.SERVICE_STAGING
+
+
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_makereport(item, call):
     '''
@@ -151,9 +170,18 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
     setattr(item, "rep_" + report.when, report)
     if call.when == 'call' or call.when == 'setup':
-        # Mark outcome xfailed if when.call executed and  outcome is skipped
-        if call.when == 'call' and report.outcome == 'skipped':
+        # Mark outcome xfailed if when.call executed and  outcome is skipped 
+        # and test is marked as xfailed
+        if call.when == 'call' and report.outcome == 'skipped' \
+            and 'xfail' in list(report.keywords.keys()):
             report.outcome = 'xfailed'
+
+        # Mark outcome xpassed if when.call executed and  outcome is passed 
+        # and test is marked as xfailed
+        if call.when == 'call' and report.outcome == 'passed' \
+            and 'xfail' in list(report.keywords.keys()):
+            report.outcome = 'xpassed'
+
         setattr(item, "result", {report.nodeid: {
                 'result': report.outcome, 'duration': report.duration}})
 
@@ -167,7 +195,7 @@ def hermes_info(request):
     '''
     log.info("Setting up Hermes Commandline Arguments for the session...")
 
-    if (request.config.getoption("--hermesCmdlineArgs")):
+    if (cmdLineArguments.fromMain):
         cmdline_args_dict = json.loads(
             request.config.getoption("--hermesCmdlineArgs"))
         cmdline_args = types.SimpleNamespace(**cmdline_args_dict)
@@ -179,9 +207,7 @@ def hermes_info(request):
         support_bundle_file = request.config.getoption("--supportBundleFile")
         cmdline_args.fromMain = True
     else:
-        cmdline_args_dict = _getArgs(request)
-        cmdline_args = types.SimpleNamespace(**cmdline_args_dict)
-
+        cmdline_args = cmdLineArguments
         log_dir = cmdline_args.resultsDir
         cmdline_args.fromMain = False
         helper.CURRENT_SUITE_NAME = "HermesSetup"
@@ -254,23 +280,22 @@ def set_hermes_info(request, hermes_info):
     log.info("Setting up Hermes run time settings for {0} Test Suite".format(
         short_name))
 
-    if hermes_info["hermesCmdlineArgs"].eventsFile:
+    if cmdLineArguments.eventsFile:
         event_recorder.record_event(
-            short_name, "Start", hermes_info["hermesCmdlineArgs"].eventsFile)
+            short_name, "Start", cmdLineArguments.eventsFile)
     resultsDir = _createResultsDir(
-        short_name, hermes_info["hermesCmdlineArgs"].resultsDir)
+        short_name, cmdLineArguments.resultsDir)
     hermes_info["hermesTestLogDir"] = resultsDir
     hermes_info["hermesModuleLogDir"] = resultsDir
 
-    if (not hermes_info["hermesCmdlineArgs"].fromMain):
+    if (not cmdLineArguments.fromMain):
         # Set some helpers - update for each module
         short_name = _get_suite_short_name(request.module.__name__)
-        helper.map_run_id_to_this_run(hermes_info["hermesCmdlineArgs"].runID,
-                                      hermes_info["hermesCmdlineArgs"].resultsDir,
+        helper.map_run_id_to_this_run(cmdLineArguments.runID,
+                                      cmdLineArguments.resultsDir,
                                       resultsDir)
         # Set Real Name same as Current Name
-        helper.CURRENT_SUITE_NAME = hermes_info["hermesCmdlineArgs"].suitesRealname if hermes_info[
-            "hermesCmdlineArgs"].suitesRealname else short_name
+        helper.CURRENT_SUITE_NAME = cmdLineArguments.suitesRealname if cmdLineArguments.suitesRealname else short_name
 
         helper.CURRENT_SUITE_LOG_FILE = os.path.join(
             resultsDir, helper.CURRENT_SUITE_NAME + ".log")
@@ -290,7 +315,7 @@ def set_hermes_info(request, hermes_info):
             pipeline.markInvocationAsExecuted()
 
         logHandler = hermes_logging.addFileHandler(
-            helper.CURRENT_SUITE_LOG_FILE, hermes_info["hermesCmdlineArgs"].logLevel)
+            helper.CURRENT_SUITE_LOG_FILE, cmdLineArguments.logLevel)
 
         support_bundle_file = os.path.join(
             resultsDir, SUPPORT_BUNDLE)
@@ -299,13 +324,13 @@ def set_hermes_info(request, hermes_info):
     def post_module_processing():
         log.info("Teardown module...")
 
-        if (not hermes_info["hermesCmdlineArgs"].fromMain):
+        if (not cmdLineArguments.fromMain):
             helper.collectSupportBundles(
                 hermes_info["supportBundleFile"], resultsDir)
 
-            if hermes_info["hermesCmdlineArgs"].eventsFile:
+            if cmdLineArguments.eventsFile:
                 event_recorder.record_event(
-                    short_name, "End",  hermes_info["hermesCmdlineArgs"].eventsFile)
+                    short_name, "End",  cmdLineArguments.eventsFile)
 
             log.removeHandler(logHandler)
 
@@ -646,101 +671,6 @@ def pytest_addoption(parser):
         help="Hermes testLogDir. POPULATED BY HERMES.")
 
 
-def _getArgs(request):
-
-    cmdArgs = {}
-    cmdArgs["ethereumMode"] = request.config.getoption("--ethereumMode")
-    cmdArgs["logLevel"] = hermes_logging.logStringToInt(
-        request.config.getoption("--logLevel"))
-    cmdArgs["resultsDir"] = request.config.getoption("--resultsDir")
-    cmdArgs["eventsFile"] = request.config.getoption("--eventsFile")
-    cmdArgs["tests"] = request.config.getoption("--tests")
-    cmdArgs["config"] = request.config.getoption("--config")
-    cmdArgs["zoneConfig"] = request.config.getoption("--zoneConfig")
-    cmdArgs["zoneOverride"] = request.config.getoption("--zoneOverride")
-    cmdArgs["zoneOverrideFolder"] = request.config.getoption(
-        "--zoneOverrideFolder")
-    cmdArgs["dockerComposeFile"] = request.config.getoption(
-        "--dockerComposeFile")
-    cmdArgs["noLaunch"] = request.config.getoption("--noLaunch")
-    cmdArgs["productLaunchAttempts"] = request.config.getoption(
-        "--productLaunchAttempts")
-    cmdArgs["keepconcordDB"] = request.config.getoption("--keepconcordDB")
-    cmdArgs["repeatSuiteRun"] = request.config.getoption("--repeatSuiteRun")
-    cmdArgs["endpoint"] = request.config.getoption("--endpoint")
-    cmdArgs["user"] = request.config.getoption("--user")
-    cmdArgs["password"] = request.config.getoption("--password")
-    cmdArgs["deploymentComponents"] = request.config.getoption(
-        "--deploymentComponents")
-    cmdArgs["helenDeploymentComponentsVersion"] = request.config.getoption(
-        "--helenDeploymentComponentsVersion")
-    cmdArgs["useLocalConfigService"] = request.config.getoption(
-        "--useLocalConfigService")
-    cmdArgs["externalProvisioningServiceEndpoint"] = request.config.getoption(
-        "--externalProvisioningServiceEndpoint")
-    cmdArgs["performanceVotes"] = request.config.getoption(
-        "--performanceVotes")
-    cmdArgs["reverseProxyApiBaseUrl"] = request.config.getoption(
-        "--reverseProxyApiBaseUrl")
-    cmdArgs["inDockerReverseProxyApiBaseUrl"] = request.config.getoption(
-        "--inDockerReverseProxyApiBaseUrl")
-    cmdArgs["ethrpcApiUrl"] = request.config.getoption("--ethrpcApiUrl")
-    cmdArgs["contractCompilerApiBaseUrl"] = request.config.getoption(
-        "--contractCompilerApiBaseUrl")
-    cmdArgs["suitesRealname"] = request.config.getoption("--suitesRealname")
-    cmdArgs["su"] = request.config.getoption("--su")
-    cmdArgs["spiderImageTag"] = request.config.getoption("--spiderImageTag")
-    cmdArgs["marketFlavor"] = request.config.getoption("--marketFlavor")
-    cmdArgs["concurrency"] = request.config.getoption("--concurrency")
-    cmdArgs["noOfRequests"] = request.config.getoption("--noOfRequests")
-    cmdArgs["dockerHubUser"] = request.config.getoption("--dockerHubUser")
-    cmdArgs["runID"] = request.config.getoption(
-        "--runID")
-    cmdArgs["dockerHubPassword"] = request.config.getoption(
-        "--dockerHubPassword")
-    cmdArgs["runConcordConfigurationGeneration"] = request.config.getoption(
-        "--runConcordConfigurationGeneration")
-    cmdArgs["concordConfigurationInput"] = request.config.getoption(
-        "--concordConfigurationInput")
-    cmdArgs["blockchainLocation"] = request.config.getoption(
-        "--blockchainLocation")
-    cmdArgs["blockchainType"] = request.config.getoption("--blockchainType")
-    cmdArgs["numReplicas"] = request.config.getoption("--numReplicas")
-    cmdArgs["keepBlockchains"] = request.config.getoption("--keepBlockchains")
-    cmdArgs["numParticipants"] = request.config.getoption("--numParticipants")
-    cmdArgs["migrationFile"] = request.config.getoption("--migrationFile")
-    cmdArgs["damlParticipantIP"] = request.config.getoption(
-        "--damlParticipantIP")
-    cmdArgs["replicasConfig"] = request.config.getoption("--replicasConfig")
-    cmdArgs["deploymentOrg"] = request.config.getoption("--deploymentOrg")
-    cmdArgs["deploymentService"] = auth.SERVICE_STAGING if request.config.getoption(
-        "--deploymentService") == "staging" else request.config.getoption("--deploymentService")
-    cmdArgs["numGroups"] = request.config.getoption("--numGroups")
-    cmdArgs["supportBundleFile"] = request.config.getoption(
-        "--supportBundleFile")
-    cmdArgs["hermes_dir"] = os.path.dirname(os.path.realpath(__file__))
-    cmdArgs["hermesCmdlineArgs"] = request.config.getoption(
-        "--hermesCmdlineArgs")
-    cmdArgs["hermesUserConfig"] = request.config.getoption(
-        "--hermesUserConfig")
-    cmdArgs["hermesZoneConfig"] = request.config.getoption(
-        "--hermesZoneConfig")
-    cmdArgs["hermesTestLogDir"] = request.config.getoption(
-        "--hermesTestLogDir")
-    cmdArgs["clientSize"] = request.config.getoption("--clientSize")
-    cmdArgs["clientMemory"] = request.config.getoption("--clientMemory")
-    cmdArgs["clientCpu"] = request.config.getoption("--clientCpu")
-    cmdArgs["clientStorage"] = request.config.getoption("--clientStorage")
-    cmdArgs["replicaSize"] = request.config.getoption("--replicaSize")
-    cmdArgs["replicaMemory"] = request.config.getoption("--replicaMemory")
-    cmdArgs["replicaCpu"] = request.config.getoption("--replicaCpu")
-    cmdArgs["replicaStorage"] = request.config.getoption("--replicaStorage")
-    cmdArgs['propertiesString'] = request.config.getoption(
-        "--propertiesString")
-
-    return cmdArgs
-
-
 def _get_suite_short_name(module_name):
     '''
     This function returns short name of the Test Suite from it's module
@@ -811,6 +741,7 @@ def prepare_report(items, results_dir):
     skipped = 0
     success = 0
     xfailed = 0
+    xpassed = 0
     failed = 0
     not_executed = 0
     total = len(items)
@@ -841,7 +772,16 @@ def prepare_report(items, results_dir):
                 complete_success = False
                 failed += 1
             elif item.rep_call.outcome == 'xfailed':
+                # Test is marked as xfail
+                # In this case, fail result is equivalent to passed test
                 xfailed += 1
+            elif item.rep_call.outcome == 'xpassed':
+                # Deliberately not marking complete_success=False
+                # and reporting 'unexpected pass' similar to  'pass'
+                # Should there be need to report xfail marked test as failed
+                # when actual test result is pass, 
+                # Suggest to use strict=True with xfail 
+                xpassed += 1
             else:
                 success += 1
         elif hasattr(item, 'rep_setup') and item.rep_setup.outcome == 'skipped':
@@ -852,9 +792,13 @@ def prepare_report(items, results_dir):
 
     if complete_success:
         msg = "Test Result: Successfully completed test session..."
+        test_status_result = os.path.join(
+            results_dir, TESTSTATUS)
+        open(test_status_result, 'a').close()
 
     result_summary = {'succeeded': success, 'expected-failed': xfailed,
                       'skipped': skipped, 'failed': failed,
+                      'un-expected-pass': xpassed,
                       'not-executed': not_executed, 'total': total}
     session_results = {'report': {'result': result_summary, 'tests': jobj}}
 
@@ -866,9 +810,10 @@ def prepare_report(items, results_dir):
     log.info("Result Summary: {0}{1}{2}".format(cyan, result_summary, reset))
 
     log.info(msg)
-    log.info("Summary: {0}[\u2714]tests succeeded {1}, {2}[\u2717]tests failed {3}, "
-             "{4}tests skipped {5}, tests expected-failed {6}, "
-             "tests not-executed {7}, {8}Total Tests {9}{10}"
+    log.info("Summary: {0}[\u2714] tests succeeded {1}, {2}[\u2717] tests failed {3}, "
+             "{4}tests skipped {5}, {0}[\u2714] tests expected-failed {6}, "
+             "{2}[\u2717] tests un-expected-pass {7}, "
+             "tests not-executed {8}, {9}Total Tests: {10}{11}"
              .format(ok, success, fail, failed, yellow, skipped,
-                     xfailed, not_executed, blue, total, reset))
+                     xfailed, xpassed, not_executed, blue, total, reset))
     return complete_success

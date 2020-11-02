@@ -4,8 +4,9 @@
       {
         "testname": "Sample Suite",
         "test_command": [
-          "./main.py",
-          "SampleSuite"
+          "-m",
+          "pytest",
+          "suites/sample_suite.py"
         ]
       }
     ],
@@ -13,8 +14,9 @@
       {
         "testname": "Daml Test",
         "test_command": [
-          "./main.py",
-          "DamlTests",
+          "-m",
+          "pytest",
+          "suites/daml_tests.py",
           "--logLevel",
           "DEBUG"
         ]
@@ -24,10 +26,11 @@
       {
         "testname": "Participant Node Interruption Tests",
         "test_command": [
-          "./main.py",
-          "NodeInterruptionTests",
-          "--tests",
-          "-m participant_node_interruption_longrun"
+          "-m",
+          "pytest",
+          "suites/node_interruption_tests.py",
+          "-m",
+          "participant_node_interruption_longrun"
         ]
       }
     ],
@@ -35,10 +38,11 @@
       {
         "testname": "Committer Node Interruption Tests",
         "test_command": [
-          "./main.py",
-          "NodeInterruptionTests",
-          "--tests",
-          "-m committer_node_interruption_longrun"
+          "-m",
+          "pytest",
+          "suites/node_interruption_tests.py",
+          "-m",
+          "committer_node_interruption_longrun"
         ]
       }
     ],
@@ -46,8 +50,9 @@
       {
         "testname": "CHESS+",
         "test_command": [
-          "./main.py",
-          "ChessPlusTests",
+          "-m",
+          "pytest",
+          "suites/chess_plus_tests.py",
           "--marketFlavor",
           "nfr",
           "--noOfRequests",

@@ -84,10 +84,12 @@ def upload_hello_contract(blockchainId, request):
                             contractId = contractId,
                             contractVersion = contractVersion,
                             generateDefaults=True)
+   
+   log.info("Upload contract result: {}".format(result))
    if "url" in result:
       return (contractId, contractVersion)
    else:
-      raise Exception("Contract upload failed with error '{}'".format(result["error"]))
+      raise Exception("Contract upload failed with error '{}'".format(result))
 
 
 def upload_contract(blockchainId, request, sourceFile, contractName,
