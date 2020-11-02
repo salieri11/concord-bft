@@ -28,23 +28,11 @@ echo '{
 }' > /config/agent/config.json
 chmod 600 /config/agent/config.json
 
-# Output Container Registry's Self-Signed Certificate
-if false
-then
-   mkdir -p /etc/docker/certs.d/
-   echo '' > /etc/docker/certs.d//ca.crt
-   chmod 600 /etc/docker/certs.d//ca.crt
-fi
+# Handle Container Registry, if it is self-signed
 
-# Output Notary Server's Self-Signed Certificate
-if false
-then
-   mkdir -p ~/.docker/tls/
-   echo '' > ~/.docker/tls//ca.crt
-   chmod 600 ~/.docker/tls//ca.crt
-   # Copying crt to /config/agent such that this crt will be accessible inside Agent container
-   cp ~/.docker/tls//ca.crt /config/agent/notarySelfSignedCert.crt
-fi
+
+# Handle Notary Server, if it is self-signed
+
 
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf

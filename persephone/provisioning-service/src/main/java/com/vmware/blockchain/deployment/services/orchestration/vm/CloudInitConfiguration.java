@@ -190,22 +190,64 @@ public class CloudInitConfiguration {
         }
     }
 
-    // This enables/disables the actual code to write Notary Self-Signed Cert to file accordingly
-    private String enableNotarySelfSignedCert() {
+    private Boolean isNotaryServerSelfSigned() {
+        if (notaryServer != null && !notaryServer.getAddress().equals("")
+            && notaryServer.getTransportSecurity() != null
+            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
+            return true;
+        }
+        return false;
+    }
+
+    // Sets the directory name for Notary Self-Signed Cert as required by Docker
+    // Format required is host:port
+    private String setDirForNotarySelfSignedCert() {
         if (isNotaryServerSelfSigned()) {
-            return "true";
+            try {
+                URL url = new URL(notaryServer.getAddress());
+                String dirName = "";
+                if (StringUtils.hasText(url.getHost())) {
+                    dirName += url.getHost();
+                } else {
+                    throw new BadRequestPersephoneException(new MalformedURLException(),
+                                                  ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED, notaryServer.getAddress());
+                }
+                if (url.getPort() != -1) {
+                    dirName += ":";
+                    dirName += url.getPort();
+                }
+                return dirName;
+            } catch (Exception e) {
+                throw new BadRequestPersephoneException(e, ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED,
+                                                        notaryServer.getAddress());
+            }
         } else {
-            return "false";
+            return "";
         }
     }
 
-    // This enables/disables the actual code to write Container Registry's Self-Signed Cert to file accordingly
-    private String enableContainerRegSelfSignedCert() {
-        if (isContainerRegSelfSigned()) {
-            return "true";
-        } else {
-            return "false";
+    private String handleSelfSignedNotaryServer() {
+        String certCreateCmd = "";
+        if (isNotaryServerSelfSigned()) {
+            certCreateCmd = "mkdir -p ~/.docker/tls/" + setDirForNotarySelfSignedCert()
+                            + "\necho '" + notaryServer.getTransportSecurity().getCertificateData()
+                            + "' > ~/.docker/tls/" + setDirForNotarySelfSignedCert() + "/ca.crt"
+                            + "\nchmod 600 ~/.docker/tls/" + setDirForNotarySelfSignedCert() + "/ca.crt"
+                            + "\ncp ~/.docker/tls/" + setDirForNotarySelfSignedCert()
+                            + "/ca.crt /config/agent/notarySelfSignedCert.crt";
         }
+        return certCreateCmd;
+    }
+
+    private Boolean isContainerRegSelfSigned() {
+        if (containerRegistry != null && !containerRegistry.getAddress().equals("")
+            && containerRegistry.getTransportSecurity() != null
+            && containerRegistry.getTransportSecurity().getType() != TransportSecurity.Type.NONE
+            && StringUtils.hasText(containerRegistry.getTransportSecurity().getCertificateData())) {
+            return true;
+        }
+        return false;
     }
 
     // Sets the directory name for Container Registry's Self-Signed Cert as required by Docker
@@ -236,67 +278,15 @@ public class CloudInitConfiguration {
         }
     }
 
-    // Sets the directory name for Notary Self-Signed Cert as required by Docker
-    // Format required is host:port
-    private String setDirForNotarySelfSignedCert() {
-        if (isNotaryServerSelfSigned()) {
-            try {
-                URL url = new URL(notaryServer.getAddress());
-                String dirName = "";
-                if (StringUtils.hasText(url.getHost())) {
-                    dirName += url.getHost();
-                } else {
-                    throw new BadRequestPersephoneException(new MalformedURLException(),
-                                                  ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED, notaryServer.getAddress());
-                }
-                if (url.getPort() != -1) {
-                    dirName += ":";
-                    dirName += url.getPort();
-                }
-                return dirName;
-            } catch (Exception e) {
-                throw new BadRequestPersephoneException(e, ErrorCode.NOTARY_SERVER_ADDRESS_MALFORMED,
-                                                        notaryServer.getAddress());
-            }
-        } else {
-            return "";
-        }
-    }
-
-    private String setNotarySelfSignedCert() {
-        if (isNotaryServerSelfSigned()) {
-            return notaryServer.getTransportSecurity().getCertificateData();
-        } else {
-            return "";
-        }
-    }
-
-    private Boolean isNotaryServerSelfSigned() {
-        if (notaryServer != null && !notaryServer.getAddress().equals("")
-            && notaryServer.getTransportSecurity() != null
-            && notaryServer.getTransportSecurity().getType() != TransportSecurity.Type.NONE
-            && StringUtils.hasText(notaryServer.getTransportSecurity().getCertificateData())) {
-            return true;
-        }
-        return false;
-    }
-
-    private String setContainerRegSelfSignedCert() {
+    private String handleSelfSignedContainerReg() {
+        String certCreateCmd = "";
         if (isContainerRegSelfSigned()) {
-            return containerRegistry.getTransportSecurity().getCertificateData();
-        } else {
-            return "";
+            certCreateCmd = "mkdir -p /etc/docker/certs.d/" + setDirForContainerRegSelfSignedCert()
+                            + "\necho '" + containerRegistry.getTransportSecurity().getCertificateData()
+                            + "' > /etc/docker/certs.d/" + setDirForContainerRegSelfSignedCert() + "/ca.crt"
+                            + "\nchmod 600 /etc/docker/certs.d/" + setDirForContainerRegSelfSignedCert() + "/ca.crt";
         }
-    }
-
-    private Boolean isContainerRegSelfSigned() {
-        if (containerRegistry != null && !containerRegistry.getAddress().equals("")
-            && containerRegistry.getTransportSecurity() != null
-            && containerRegistry.getTransportSecurity().getType() != TransportSecurity.Type.NONE
-            && StringUtils.hasText(containerRegistry.getTransportSecurity().getCertificateData())) {
-            return true;
-        }
-        return false;
+        return certCreateCmd;
     }
 
     private String enableDockerContentTrustCommand() {
@@ -445,12 +435,8 @@ public class CloudInitConfiguration {
                              toRegistrySecuritySetting(containerRegistry.getAddress()))
                     .replace("{{agentConfig}}",
                              com.google.protobuf.util.JsonFormat.printer().print(getConfiguration()))
-                    .replace("{{enableContainerRegSelfSignedCert}}", enableContainerRegSelfSignedCert())
-                    .replace("{{containerRegSelfSignedCertDir}}", setDirForContainerRegSelfSignedCert())
-                    .replace("{{containerRegSelfSignedCert}}", setContainerRegSelfSignedCert())
-                    .replace("{{enableNotarySelfSignedCert}}", enableNotarySelfSignedCert())
-                    .replace("{{notaryServerSelfSignedCertDir}}", setDirForNotarySelfSignedCert())
-                    .replace("{{notarySelfSignedCert}}", setNotarySelfSignedCert())
+                    .replace("{{handleSelfSignedContainerReg}}", handleSelfSignedContainerReg())
+                    .replace("{{handleSelfSignedNotaryServer}}", handleSelfSignedNotaryServer())
                     .replace("{{networkSetupCommand}}", networkSetupCommand())
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy())
