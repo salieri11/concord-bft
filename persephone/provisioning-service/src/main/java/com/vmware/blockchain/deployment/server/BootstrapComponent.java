@@ -44,7 +44,7 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.password}")
     private String password;
 
-    @Value("${provisioning.notary.server.address}")
+    @Value("${provisioning.notary.server.address:https://notary.vdp.vmware.com}")
     private String notaryServerAddress;
 
     @Value("${ova.template:28b41974-c7a8-41a7-84f8-4438f828e87b}")
