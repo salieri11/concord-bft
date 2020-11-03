@@ -58,17 +58,7 @@ class DamlValidatorClient : public IDamlValidatorClient {
   DamlValidatorClient(
       uint16_t replica_id,
       com::digitalasset::kvbc::ValidationService::StubInterface* stub)
-      : stub_(stub),
-        replica_id_(replica_id),
-        pre_execute_uses_streaming_protocol_(false) {}
-
-  DamlValidatorClient(
-      uint16_t replica_id, bool pre_execute_uses_streaming_protocol,
-      com::digitalasset::kvbc::ValidationService::StubInterface* stub)
-      : stub_(stub),
-        replica_id_(replica_id),
-        pre_execute_uses_streaming_protocol_(
-            pre_execute_uses_streaming_protocol) {}
+      : stub_(stub), replica_id_(replica_id) {}
 
   grpc::Status Validate(
       const std::string& submission,
@@ -86,13 +76,7 @@ class DamlValidatorClient : public IDamlValidatorClient {
 
  private:
   void SetAndLogPreExecutionResult(
-      com::digitalasset::kvbc::PreExecuteResponse& pre_execute_response,
-      com::vmware::concord::PreExecutionResult* pre_execution_result);
-
-  grpc::Status PreExecuteViaStreamingProtocol(
-      const std::string& submission, const std::string& participant_id,
-      const std::string& correlation_id, const opentracing::Span& parent_span,
-      KeyValueWithFingerprintReaderFunc read_from_storage,
+      com::digitalasset::kvbc::PreprocessorFromEngine& from_engine,
       com::vmware::concord::PreExecutionResult* pre_execution_result);
 
   void HandleReadEvent(
@@ -114,7 +98,6 @@ class DamlValidatorClient : public IDamlValidatorClient {
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::StubInterface>
       stub_;
   uint16_t replica_id_;
-  bool pre_execute_uses_streaming_protocol_;
   logging::Logger logger_ = logging::getLogger("concord.daml.validator");
   logging::Logger determinism_logger_ =
       logging::getLogger("concord.daml.determinism");
