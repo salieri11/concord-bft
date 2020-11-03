@@ -2027,6 +2027,15 @@ components:
           description: Sizing info of clients
           additionalProperties:
             $ref: '#/components/schemas/SizingInfo'
+        pem:
+          type: string
+          description: TLS. The pem file to be used as the private key.
+        crt:
+          type: string
+          description: TLS. The crt file to be used as the cert chain.
+        cacrt:
+          type: string
+          description: TLS. The crt file to be used as the the trusted root CA.
 
     ReplicaNode:
       description: Replica Proxy information
