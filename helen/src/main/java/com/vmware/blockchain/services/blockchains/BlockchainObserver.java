@@ -338,9 +338,9 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                     // Setting mTLS credentials
                     // If mTLS credentials are available, set them.
                     // If not, set an empty string.
-                    String pem = attributes.getOrDefault(NodeProperty.Name.TLS_PEM.name(), "");
-                    String crt = attributes.getOrDefault(NodeProperty.Name.TLS_CRT.name(), "");
-                    String cacrt = attributes.getOrDefault(NodeProperty.Name.TLS_CACRT.name(), "");
+                    String pem = attributes.getOrDefault(NodeProperty.Name.TLS_PEM.name(), null);
+                    String crt = attributes.getOrDefault(NodeProperty.Name.TLS_CRT.name(), null);
+                    String cacrt = attributes.getOrDefault(NodeProperty.Name.TLS_CACRT.name(), null);
 
                     clientNode.setPem(pem);
                     clientNode.setCrt(crt);
