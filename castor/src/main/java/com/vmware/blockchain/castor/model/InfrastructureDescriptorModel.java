@@ -115,6 +115,7 @@ public class InfrastructureDescriptorModel {
         private String userName;
         @NotBlank(message = "container.password.not.specified")
         private String password;
+        private String tlsCertificateData;
     }
 
     /**

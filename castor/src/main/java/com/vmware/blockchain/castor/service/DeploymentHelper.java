@@ -327,7 +327,8 @@ public class DeploymentHelper {
                                                                  .setCertificateData(notaryServerDescriptor
                                                                                  .getTlsCertificateData()).build());
             } else {
-                notaryServerBuilder.setTransportSecurity(TransportSecurity.newBuilder().build());
+                notaryServerBuilder.setTransportSecurity(
+                        TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE));
             }
         }
 
@@ -367,10 +368,18 @@ public class DeploymentHelper {
 
             containerBuilder
                 .setAddress(containerDescriptor.getUrl().toString())
-                .setCredential(containerRegistryCredential)
-                .setTransportSecurity(
-                    TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE)
-                );
+                .setCredential(containerRegistryCredential);
+
+            if (StringUtils.hasText(containerDescriptor.getTlsCertificateData())) {
+                containerBuilder.setTransportSecurity(TransportSecurity
+                                                              .newBuilder()
+                                                              .setType(TransportSecurity.Type.TLSv1_2)
+                                                              .setCertificateData(containerDescriptor
+                                                                                  .getTlsCertificateData()));
+            } else {
+                containerBuilder.setTransportSecurity(
+                        TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE));
+            }
         }
 
         // Build vSphere data center info
