@@ -402,8 +402,69 @@ public class ClientControllerTest extends RuntimeException {
     }
 
     @Test
-    protected void testClientGrouping() throws Exception {
+    void testGetClientTlsCredentials() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_DAML.toString(), C2_ID.toString());
 
+        final Client client = new Client("publicIp", "privateIp", "testPassword",
+                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ClientController.ClientGetTlsCredentialsResponse clientTlsCredentials =
+                objectMapper.readValue(body, new TypeReference<ClientController.ClientGetTlsCredentialsResponse>() {});
+        Assertions.assertEquals("pem", clientTlsCredentials.getPem());
+        Assertions.assertEquals("crt", clientTlsCredentials.getCrt());
+        Assertions.assertEquals("cacrt", clientTlsCredentials.getCacrt());
+    }
+
+    @Test
+    void testGetClientTlsCredentialsNullCredentials() throws Exception {
+        // This is for cases where we have not provided any TLS details.
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_DAML.toString(), C2_ID.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword",
+                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, null, null, null);
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ClientController.ClientGetTlsCredentialsResponse clientTlsCredentials =
+                objectMapper.readValue(body, new TypeReference<ClientController.ClientGetTlsCredentialsResponse>() {});
+        Assertions.assertEquals(null, clientTlsCredentials.getPem());
+        Assertions.assertEquals(null, clientTlsCredentials.getCrt());
+        Assertions.assertEquals(null, clientTlsCredentials.getCacrt());
+    }
+
+    @Test
+    void testGetClientTlsCredentialsBlankClient() throws Exception {
+        final Client client = new Client();
+        client.setId(C2_ID);
+        client.setBlockchainId(BC_DAML);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_DAML.toString(), C2_ID.toString());
+
+
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ClientController.ClientGetTlsCredentialsResponse clientTlsCredentials =
+                objectMapper.readValue(body, new TypeReference<ClientController.ClientGetTlsCredentialsResponse>() {});
+        Assertions.assertEquals(null, clientTlsCredentials.getPem());
+        Assertions.assertEquals(null, clientTlsCredentials.getCrt());
+        Assertions.assertEquals(null, clientTlsCredentials.getCacrt());
+    }
+
+    @Test
+    protected void testClientGrouping() throws Exception {
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
                 "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME,
                 "pem", "crt", "cacrt");

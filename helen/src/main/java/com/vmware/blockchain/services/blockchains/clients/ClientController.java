@@ -95,6 +95,19 @@ public class ClientController {
         }
     }
 
+    /**
+     * Class for ClientGetTlsCredentials.
+     */
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ClientGetTlsCredentialsResponse {
+        private String pem;
+        private String crt;
+        private String cacrt;
+    }
+
     @Deprecated
     private ReplicaService replicaService;
 
@@ -150,19 +163,35 @@ public class ClientController {
                                                                             @PathVariable UUID clientId) {
         safeGetBlockchain(bid);
 
-        Optional<Client> clientOpt = clientService.getClientsByParentId(bid).stream()
-                .filter(c -> c.getId().equals(clientId)).findFirst();
-        if (clientOpt.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND, clientId.toString(),
-                    bid.toString());
-        }
-
-        Client client = clientOpt.get();
+        Client client = safeClientGet(bid, clientId);
 
         NodeGetCredentialsResponse nodeGetCredentialsResponse = new NodeGetCredentialsResponse("root",
                 client.getPassword());
 
         return new ResponseEntity<>(nodeGetCredentialsResponse, HttpStatus.OK);
+    }
+
+    /**
+     * Get credentials for a given replica.
+     * @param bid       Blockchain ID
+     * @param clientId  Client ID for which mTLS credentials are requested
+     * @return          200 with ClientGetCredentialsResponse
+     */
+    @RequestMapping(method = RequestMethod.GET, path = {"/{clientId}/daml-certificates"})
+    @PreAuthorize("@authHelper.isConsortiumParticipant()")
+    public ResponseEntity<ClientGetTlsCredentialsResponse> getClientTlsCredentials(@PathVariable UUID bid,
+                                                                           @PathVariable UUID clientId) {
+        safeGetBlockchain(bid);
+
+        Client client = safeClientGet(bid, clientId);
+
+        ClientGetTlsCredentialsResponse clientGetTlsCredentials = new ClientGetTlsCredentialsResponse(
+                client.getPem(),
+                client.getCrt(),
+                client.getCacrt()
+        );
+
+        return new ResponseEntity<>(clientGetTlsCredentials, HttpStatus.OK);
     }
 
     // This could be done better, but maybe later. We need to handle errors first.
@@ -178,5 +207,17 @@ public class ClientController {
         }
 
         return blockchain;
+    }
+
+    // This could be done better, but maybe later. We need to handle errors first.
+    private Client safeClientGet(UUID blockchainId, UUID clientId) {
+        Optional<Client> clientOpt = clientService.getClientsByParentId(blockchainId).stream()
+                .filter(c -> c.getId().equals(clientId)).findFirst();
+        if (clientOpt.isEmpty()) {
+            throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND, clientId.toString(),
+                    blockchainId.toString());
+        }
+
+        return clientOpt.get();
     }
 }
