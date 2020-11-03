@@ -15,6 +15,7 @@ public final class ErrorCode {
     public static final String BAD_REQUEST = "Bad request (e.g. missing request body).";
     public static final String BAD_NUMBER_FORMAT = "Bad number format {0}";
     public static final String BAD_ORG_REMOVE = "Cannot remove the Consortium Owner Org";
+    public static final String BAD_TLS_CREDENTIALS = "Incorrect TLS credentials provided.";
     public static final String BAD_TOKEN = "Bad token";
     public static final String BAD_UUID_FORMAT = "Error converting {0} to UUID";
     public static final String BLOCKCHAIN_UNSPECIFIED = "No blockchain specified";
@@ -88,6 +89,10 @@ public final class ErrorCode {
     public static final String NULL_TENANT_ID = "Null tenantId for column %s";
     public static final String NO_AUTHORIZATION = "No Authorization";
     public static final String NO_REPLICAS_FOUND = "No replicas found for blockchain with ID {0}.";
+    public static final String NOTARY_BAD_CERTIFICATE = "Invalid certificate provided for Notary Server";
+    public static final String NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY = "Notary server details provided but "
+            + "container repo details not provided";
+    public static final String NOTARY_URL_EMPTY_BUT_CERT_PROVIDED = "Notary URL not provided but certificate provided";
     public static final String NOT_ALLOWED = "Not allowed";
     public static final String NOT_FOUND = "Not found";
     public static final String ORG_NOT_FOUND = "Organization with ID {0} not found.";

@@ -13,6 +13,9 @@ import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.Bl
 import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainTaskResponse;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -566,13 +569,33 @@ public class BlockchainController {
 
 
                         if (tlsEnabled) {
-                            // Propagate TLS details if and only if all details are provided
-                            String pem = k.getPem();
-                            String crt = k.getCrt();
-                            String cacrt = k.getCacrt();
-                            propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), pem);
-                            propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), crt);
-                            propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), cacrt);
+                            try {
+                                // Propagate TLS details if and only if all details are provided
+
+                                String pem = k.getPem();
+                                // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                                X509Certificate pemCertificate = (X509Certificate) CertificateFactory
+                                        .getInstance("X.509")
+                                        .generateCertificate(new ByteArrayInputStream(pem.getBytes()));
+                                // Throws exception if certificate has expired or not yet valid
+                                pemCertificate.checkValidity();
+
+                                String crt = k.getCrt();
+                                // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                                X509Certificate crtCertificate = (X509Certificate) CertificateFactory
+                                        .getInstance("X.509")
+                                        .generateCertificate(new ByteArrayInputStream(crt.getBytes()));
+                                crtCertificate.checkValidity();
+
+                                String cacrt = k.getCacrt();
+
+                                propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), pem);
+                                propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), crt);
+                                propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), cacrt);
+                            } catch (Exception ex) {
+                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS);
+                            }
+
                         } else {
                             // If some credentials are present while others are absent, throw BAD REQUEST exception.
                             boolean incompleteDetails = !Strings.isNullOrEmpty(k.getPem())
