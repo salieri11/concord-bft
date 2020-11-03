@@ -29,8 +29,8 @@
             "name": "hermes-castor-zone-1 - B",
             "vCenter": {
                 "url": "https://vcenter.sddc-34-236-221-173.vmwarevmc.com",
-                "userName": "<VMC_SDDC5_VC_CREDENTIALS_USERNAME>",
-                "password": "<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>",
+                "userName": "<VMC_SDDC6_VC_CREDENTIALS_USERNAME>",
+                "password": "<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>",
                 "resourcePool": "Compute-ResourcePool",
                 "storage": "WorkloadDatastore",
                 "folder": "<DEPLOYMENT_FOLDER>"
