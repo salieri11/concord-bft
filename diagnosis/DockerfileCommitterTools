@@ -1,6 +1,9 @@
 FROM photon:3.0
 LABEL Description="Committer Tools"
 
+ARG grpcurl_version=1.7.0
+ARG yq_version=3.2.1
+
 RUN tdnf update -y && tdnf install -y \
   coreutils \
   vim \
@@ -9,8 +12,12 @@ RUN tdnf update -y && tdnf install -y \
   sshpass \
   wget \
   && wget -O /usr/local/bin/yq \
-    "https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64" \
+    "https://github.com/mikefarah/yq/releases/download/${yq_version}/yq_linux_amd64" \
   && chmod +x /usr/local/bin/yq \
+  && wget -O /tmp/grpcurl.tgz \
+     https://github.com/fullstorydev/grpcurl/releases/download/v${grpcurl_version}/grpcurl_${grpcurl_version}_linux_x86_64.tar.gz \
+  && tar -C /usr/local/bin/ -xzf /tmp/grpcurl.tgz grpcurl \
+  && rm /tmp/grpcurl.tgz \
   && rm -rf /var/cache/tdnf/*
 
 COPY ./committer-tools /committer-tools
