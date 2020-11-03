@@ -148,6 +148,7 @@
 - EthJsonRpcTestsEthrpc:
     enabled: true
     baseCommand: '${MAIN_PYTEST} suites/eth_jsonrpc_tests.py --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+    testModule: 'suites/eth_jsonrpc_tests.py'
 - EthRegressionTests:
     enabled: true
     runAlone: true
