@@ -3449,6 +3449,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("key_exchange_on_start", make_shared<BooleanValidator>());
 
   config.declareParameter(
+      "block_accumulation_on_post_execution",
+      "A flag to indicate if block accumulation is required.", "false");
+  config.tagParameter("block_accumulation_on_post_execution",
+                      publicDefaultableTags);
+  config.tagParameter("block_accumulation_on_post_execution", applicationTag);
+  config.addValidator("block_accumulation_on_post_execution",
+                      make_shared<BooleanValidator>());
+
+  config.declareParameter(
       "key_view_path",
       "A flag to indicate if key exchange on start is required.",
       "/concord/config-generated");
