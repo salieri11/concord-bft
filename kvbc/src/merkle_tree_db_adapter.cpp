@@ -329,6 +329,21 @@ std::future<BlockDigest> DBAdapter::computeParentBlockDigest(BlockId blockId) co
 SetOfKeyValuePairs DBAdapter::lastReachableBlockDbUpdates(const SetOfKeyValuePairs &updates,
                                                           const OrderedKeysSet &deletes,
                                                           BlockId blockId) {
+  uint32_t keysCount = 0;
+  uint32_t valuesCount = 0;
+  uint32_t keysSize = 0;
+  uint32_t valuesSize = 0;
+  uint64_t sizeOfUpdatesInBytes = 0;
+  for (auto &kv : updates) {
+    ++keysCount;
+    ++valuesCount;
+    keysSize += kv.first.length();
+    valuesSize += kv.second.length();
+  }
+  LOG_INFO(logger_,
+           "lastReachableBlockUpdates1, keys:size " << keysCount << ":" << keysSize << ", values:size" << valuesCount
+                                                   << ":" << valuesSize);
+
   TimeRecorder scoped_timer(*histograms.dba_last_reachable_block_db_updates);
   // Compute the parent block digest in parallel with the tree update.
   auto parentBlockDigestFuture = computeParentBlockDigest(blockId);
@@ -399,11 +414,11 @@ SetOfKeyValuePairs DBAdapter::lastReachableBlockDbUpdates(const SetOfKeyValuePai
   }
 
   // update metrics
-  uint32_t keysCount = 0;
-  uint32_t valuesCount = 0;
-  uint32_t keysSize = 0;
-  uint32_t valuesSize = 0;
-  uint64_t sizeOfUpdatesInBytes = 0;
+  keysCount = 0;
+  valuesCount = 0;
+  keysSize = 0;
+  valuesSize = 0;
+  sizeOfUpdatesInBytes = 0;
   for (auto &kv : dbUpdates) {
     sizeOfUpdatesInBytes += kv.first.length() + kv.second.length();
     ++keysCount;
@@ -413,9 +428,9 @@ SetOfKeyValuePairs DBAdapter::lastReachableBlockDbUpdates(const SetOfKeyValuePai
   }
   histograms.dba_size_of_updates->record(sizeOfUpdatesInBytes);
   commitSizeSummary_->Observe(sizeOfUpdatesInBytes);
-  LOG_INFO(logger_, "lastReachableBlockUpdates, keys:size " << keysCount << ":" << keysSize
-                                                 << ", values:size"
-                                                 << valuesCount << valuesSize);
+  LOG_INFO(logger_,
+           "lastReachableBlockUpdates2, keys:size " << keysCount << ":" << keysSize << ", values:size" << valuesCount
+                                                    << ":" << valuesSize);
   return dbUpdates;
 }
 
