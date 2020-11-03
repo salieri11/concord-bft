@@ -19,6 +19,7 @@ from pathlib import Path
 import os
 from subprocess import check_output, CalledProcessError
 from itertools import zip_longest
+import queue
 
 log = hermes_logging.getMainLogger()
 
@@ -333,6 +334,67 @@ def start_for_replica_list(replica_list, container_name, count):
         assert intr_helper.start_container(
             concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
     log.info("\nStarted {} replicas".format(count))
+
+
+def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
+    '''
+    Function to verify view change happened successfully
+    Args:
+        fxBlockchain: Local fixture
+        init_primary_rip: Initial primary IP
+        init_primary_index: Initial primary index
+        interrupted_nodes: Nodes which are stopped        
+    Returns:
+        bool: True if view change happened successfully, False otherwise.
+    '''
+    try:
+        log.info("Finding new primary replica ip")
+        committers_mapping = blockchain_ops.map_committers_info(
+            fxBlockchain, interrupted_nodes)
+        new_primary_rip = committers_mapping["primary_ip"]
+        new_primary_index = committers_mapping["primary_index"]
+        assert new_primary_rip or new_primary_index, "Primary replica IP & index not found after view change"
+
+        if init_primary_index != new_primary_index or init_primary_rip != new_primary_rip:
+            log.info("View change successfull")
+            return True
+        else:
+            return False
+    except Exception as excp:
+        assert False, excp
+
+
+def get_block_id(ip):
+    '''
+    Function to get last block_id of a replica
+    Args:
+        ip: IP of replica
+    Returns:
+        int: Last Block ID of replica 
+    '''
+    username, password = helper.getNodeCredentials()
+    
+    # Find concord-core container image
+    cmd_for_container_image = 'docker images | grep -m1 concord-core'
+    container_image = helper.ssh_connect(
+        ip, username, password, cmd_for_container_image)
+    container_image_list = [i for i in container_image.split(" ") if i != ""] 
+    concord_core_param = container_image_list[0] + ':' + container_image_list[1] 
+
+    params = "type=bind,source=/mnt/data/rocksdbdata/,target=/concord/rocksdbdata"
+    tool_path = "/concord/sparse_merkle_db_editor /concord/rocksdbdata"
+
+    cmd = ' '.join([params, concord_core_param, tool_path])
+
+    # Find last block ID
+    cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(cmd)
+    log.info("\nFinding last block ID")
+    result = helper.ssh_connect(
+        ip, username, password, cmd_for_block_id)
+
+    block_id =  (result.split(': \"')[1]).split('\"')[0]
+    log.info("Block ID : {}".format(block_id))
+    return int(block_id)
 
 
 @describe("daml test for single transaction without any interruption")
@@ -1033,6 +1095,109 @@ def test_temporary_lack_of_quorum_after_view_change\
             # Submit daml requests after view change
             assert make_daml_request_in_thread(reraise, client_host), \
                 PARTICIPANT_GENERIC_ERROR_MSG + "after view change"
+
+        except Exception as excp:
+            assert False, excp
+
+
+@describe("fault tolerance - state transfer coinciding with view change (f>=2)")
+def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
+    '''
+    Verify state transfer completes even if it coincides with view change using DAML tool.
+    - Connect to a blockchain network.
+    - Stop one non-primary replica.
+    - Submit client requests until multiple checkpoints are triggered.
+    - Restart stopped replica.
+    - Stop primary replica.
+    - Start new thread to verify State transfer before view change happens.
+    - After State transfer completes, stop f-1 non-primary replicas.
+    - Verify that client requests are are processed correctly.
+    - Restart stopped replicas.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+    '''
+
+    if fxLocalSetup.f_count < 2:
+        log.info("Test is expected to check state transfer for f>=2, but found f={}".format(fxLocalSetup.f_count))
+        pytest.skip("Test is expected to check state transfer for f>=2, but found f={}".format(fxLocalSetup.f_count))
+
+    for client_host in fxLocalSetup.client_hosts:
+        try:
+            no_of_txns_for_checkpoint = 300
+
+            # Step 1 : Deploy DAML &  find primary replica
+            install_sdk_deploy_daml(client_host)
+
+            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            init_primary_rip = replicas_mapping["primary_ip"]
+            init_primary_index = replicas_mapping["primary_index"]
+            assert init_primary_rip, "Primary Replica IP not found"
+
+            log.info("Primary Replica: {}".format(init_primary_rip))
+
+            non_primary_replicas = fxLocalSetup.concord_hosts[:]
+            non_primary_replicas.remove(init_primary_rip)
+            container_name = 'concord'
+
+            # Step 2 : Stop one non-primary replica
+            assert intr_helper.stop_container(
+                non_primary_replicas[0], container_name), "Failed to stop committer node [{}]".format(non_primary_replicas[0])
+
+            # Step 3 : Find block id of stopped replica
+            init_block_id = get_block_id(non_primary_replicas[0])
+
+            # Step 4 : Start the daml transactions
+            thread_daml_txn = Thread(target=continuous_daml_request_submission,
+                                     args=(client_host, get_port(client_host), no_of_txns_for_checkpoint, 0, 300))
+            thread_daml_txn.start()
+            thread_daml_txn.join()
+            
+            # Step 5 : Restart the stopped replica
+            assert intr_helper.start_container(
+                non_primary_replicas[0], container_name), "Failed to start committer node [{}]".format(non_primary_replicas[0])
+
+            # Step 6 : Stopping primary to get block ID
+            assert intr_helper.stop_container(
+                init_primary_rip, container_name, 30), "Failed to stop primary [{}]".format(init_primary_rip)
+            
+            # Step 7 : Find block id of stopped primary replica
+            p_block_id = get_block_id(init_primary_rip)
+
+            # Step 8 : Start new thread for State transfer check
+            que_st_check = queue.Queue()
+            thread_st_check = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6: q.put(intr_helper.sleep_and_check(arg1, arg2, arg3, arg4, arg5, arg6)),
+                                     args=(que_st_check, 0, 30, 420, init_block_id, p_block_id, non_primary_replicas))
+            thread_st_check.start()
+
+            # Step 9 : Verify view change is successfull
+            assert verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, [init_primary_rip]), \
+                "View Change did not happen successfully"
+
+            # Step 10 : Checking whether view change happened before state transfer
+            if not thread_st_check.isAlive():
+                st_check_result = que_st_check.get()
+                if st_check_result != True:
+                    log.info("Exception : ")
+                    log.info(st_check_result)
+                    assert False, "State transfer failed due to Exception"
+                else:
+                    assert False, "View change was expected to complete before state transfer"
+
+            # Step 11 : Block main thread execution until state transfer is completed and verifying it
+            thread_st_check.join()
+            assert que_st_check.get(), "State transfer failed"
+
+            log.info("State transfer check completed")
+
+            # Step 12 :  Stop f-1 non-primary replicas
+            non_primary_replicas.remove(non_primary_replicas[0])
+            stop_for_replica_list(
+                non_primary_replicas, container_name, fxLocalSetup.f_count - 1), "Error while stopping replica"
+
+            # Step 13 :  Submit & verify Daml requests after state transfer
+            url = 'http://{}:{}'.format(client_host, get_port(client_host))
+            assert simple_request(url, 1, 0), PARTICIPANT_GENERIC_ERROR_MSG
 
         except Exception as excp:
             assert False, excp

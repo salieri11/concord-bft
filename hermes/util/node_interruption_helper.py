@@ -728,3 +728,85 @@ def continuous_stop_start_container(ip, container_name, duration=60):
       log.debug("Failed to stop and start primary replica:{}".format(ip))
       assert False, excp
 
+
+def sleep_and_check(init_sleep_time, step, max_sleep_time, start_block, end_block, replica_ips):
+    '''
+    Function to wait and check successfull completion of State transfer 
+    Args:
+      init_sleep_time: Initial wait time for the completion of State trasnfer
+      step: Value which the wait time will be increased in each iteration
+      max_sleep_time: Maximum wait time for the completion of State trasnfer
+      start_block: First block from which block data have to be checked
+      end_block: Last block to which block data have to be checked
+      replica_ips: List of replicas ip to be checked for State trasnfer
+    Returns:
+       bool: True if the State transfer is completed within max_sleep_time, False otherwise
+    '''
+    res = False
+    total_sleep_time = 0
+    try:
+        while not res and total_sleep_time < max_sleep_time:
+            log.info("Waiting for State Transfer to finish, estimated time {0} seconds".format(
+                init_sleep_time))
+            time.sleep(init_sleep_time)
+            res = check_replica_block_data(start_block, end_block, replica_ips)
+            total_sleep_time += init_sleep_time
+            init_sleep_time = step
+        return res
+    except Exception as excp:
+        return excp
+
+
+def check_replica_block_data(start_block, end_block, replica_ips):
+   '''
+   Function to check the data in data blocks of replica_ips are same
+   Args:
+      start_block: First block from which block data have to be checked
+      end_block: Last block to which block data have to be checked
+      replica_ips: List of replicas ip to be checked for data
+   Returns:
+      bool: True if the all the data blocks of replica_ips are having same data, False otherwise
+   '''
+   block_data = []
+   block_data_length = []
+
+   log.info("Checking data from {} to {}".format(
+      start_block, end_block))
+
+   tool_path = "/concord/conc_rocksdb_adp"
+   path_param = "-path=/concord/rocksdbdata"
+   op_param = "-op=getDigest"
+   username, password = helper.getNodeCredentials()
+
+   try:
+      for ip in replica_ips:
+         p_param = "-p={0}:{1}".format(start_block,end_block)
+         cmd = ' '.join([tool_path, path_param, op_param, p_param])
+
+         # Docker command for getting block_data_output
+         container = 'concord'
+         final_cmd = 'docker exec {0} {1}'.format(container, cmd)
+         block_data_output = helper.ssh_connect(
+               ip, username, password, final_cmd)
+
+         # Check block_data_output is valid
+         assert "Total size" in str(block_data_output), str(block_data_output)
+
+         block_data.append(block_data_output)
+         length = int(str(block_data_output).split(":")[
+               1].replace("\\n", "").replace("'", ""))
+
+         if length == 0:
+            log.error("Blocks length 0")
+            return False
+         log.info("Data length from replica {0} is {1} bytes".format(ip, length))
+         block_data_length.append(length)
+
+      if all(i == block_data_length[0] for i in block_data_length):
+         if all(i == block_data[0] for i in block_data):
+            return True                   
+         return False    
+      else:
+         return False
+   except Exception as excp:
+      return excp
