@@ -1010,6 +1010,41 @@ def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, 
     log.info("Test {} completed successfully".format(request.node.name))
 
 
+@describe("Test to run a DAML ONPREM deployment for released version (Default: 7 replicas + 3 clients + 2 groups)")
+@pytest.mark.smoke
+def test_daml_7_node_onprem_released(request, fxHermesRunSettings, ps_helper, file_root, teardown):
+    # TODO: https://jira.eng.vmware.com/browse/BC-4844
+    blockchain_type = helper.TYPE_DAML
+    zone_type = helper.LOCATION_ONPREM
+    num_replicas = 7
+    num_clients = 3
+    num_groups = 2
+    deployment_properties = "IMAGE_TAG=1.0.0.37,DAML_SDK_VERSION=1.6.0"
+
+    # Set the deployment params for this test case
+    # 7 committers, 3 clients, 2 client groups
+    deployment_params = DeploymentParams(blockchain_type, zone_type, num_replicas, num_clients, num_groups, deployment_properties)
+    zone_type = helper.LOCATION_ONPREM
+
+    # Rest of the code below shouldn't change between different combinations of DAML test cases
+    # Update zone_type in fxHermesRunSettings fixture, since it is used downstream in deprovision function
+    fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation = zone_type
+
+    # Call the deploy and post deploy wrapper
+    deployment_session_id, node_info_list = deploy_and_post_deploy_wrapper(fxHermesRunSettings, ps_helper,
+                                                                           deployment_params, file_root)
+    assert node_info_list is not None, "Error in post deployment verifications"
+
+    # Verify DAR upload on all client nodes
+    for node in node_info_list:
+        if node.node_type == helper.NodeType.CLIENT:
+            ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
+            dar_upload_status, error_msg = verify_dar_upload(fxHermesRunSettings, ps_helper, ip, node.username,
+                                                             node.password, deployment_session_id)
+            assert dar_upload_status, error_msg
+
+    log.info("Test {} completed successfully".format(request.node.name))
+
 @describe("Use this test to test Persephone with desired cmdline arguments")
 @pytest.mark.cmdline
 @pytest.mark.on_demand_concord_default  # IMPORTANT. DO NOT DELETE.
