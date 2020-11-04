@@ -36,7 +36,7 @@ import com.vmware.blockchain.services.profiles.UserService;
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {CspSecurityConfig.class, MvcConfig.class})
-@TestPropertySource(locations = "classpath:test.properties", properties = "vmbc.auth.csp=true")
+@TestPropertySource(locations = "classpath:test.properties")
 @WebAppConfiguration
 public class SecurityConfigTest {
 

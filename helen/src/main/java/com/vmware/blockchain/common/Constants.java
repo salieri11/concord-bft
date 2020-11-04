@@ -135,6 +135,4 @@ public class Constants {
 
     public static final String URI_PATH_CHAR = "/";
 
-    public static final String USE_CSP_AUTH = "vmbc.auth.csp";
-
 }

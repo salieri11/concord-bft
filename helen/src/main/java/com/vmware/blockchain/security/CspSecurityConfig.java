@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -25,7 +24,6 @@ import org.springframework.security.web.authentication.switchuser.SwitchUserFilt
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 
-import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.operation.RequestTrackingFilter;
 import com.vmware.blockchain.services.profiles.VmbcRoles;
@@ -36,7 +34,6 @@ import com.vmware.blockchain.services.profiles.VmbcRoles;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@ConditionalOnProperty(value = Constants.USE_CSP_AUTH, havingValue = "true")
 public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     static final Logger logger = LogManager.getLogger(CspSecurityConfig.class);
 
