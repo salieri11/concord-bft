@@ -142,6 +142,11 @@
     enabled: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
     testModule: 'suites/castor_deployment_tests.py'
+- CastorDeploymentSystemTests:
+    enabled: false
+    runWithGenericTests: false
+    dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
+    testModule: 'suites/sys_test_castor_deployment_tests.py'
 - EthJsonRpcTests:
     enabled: true
     testModule: 'suites/eth_jsonrpc_tests.py'

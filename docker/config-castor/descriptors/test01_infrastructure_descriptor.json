@@ -8,20 +8,40 @@
         {
             "name": "hermes-castor-zone-1 - A",
             "vCenter": {
-                "url": "<VCENTER-URL>",
-                "userName": "<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
-                "password": "<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>",
+                "url": "https://vcenter.sddc-3-105-129-8.vmwarevmc.com",
+                "userName": "<VMC_SDDC5_VC_CREDENTIALS_USERNAME>",
+                "password": "<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>",
                 "resourcePool": "Compute-ResourcePool",
                 "storage": "WorkloadDatastore",
                 "folder": "<DEPLOYMENT_FOLDER>"
             },
             "network": {
-                "name": "<NETWORK-NAME>",
-                "gateway": "<NETWORK-GATEWAY>",
-                "subnet": 9999,
+                "name": "sddc5-vmware-vpn-onprem-4",
+                "gateway": "<GATEWAY>",
+                "subnet": 24,
                 "nameServers": [
-                    "<NAMESERVER-1>",
-                    "<NAMESERVER-2"
+                    "10.78.1.132",
+                    "10.78.1.133"
+                ]
+            }
+        },
+        {
+            "name": "hermes-castor-zone-1 - B",
+            "vCenter": {
+                "url": "https://vcenter.sddc-34-236-221-173.vmwarevmc.com",
+                "userName": "<VMC_SDDC6_VC_CREDENTIALS_USERNAME>",
+                "password": "<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>",
+                "resourcePool": "Compute-ResourcePool",
+                "storage": "WorkloadDatastore",
+                "folder": "<DEPLOYMENT_FOLDER>"
+            },
+            "network": {
+                "name": "sddc6-vmware-vpn-onprem-4",
+                "gateway": "<GATEWAY>",
+                "subnet": 24,
+                "nameServers": [
+                    "10.78.1.132",
+                    "10.78.1.133"
                 ]
             }
         }

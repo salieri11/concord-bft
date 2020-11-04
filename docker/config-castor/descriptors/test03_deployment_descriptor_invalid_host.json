@@ -11,23 +11,12 @@
         },
         {
             "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
         }
     ],
     "clients": [
         {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
+            "zoneName": "hermes-castor-zone-1 - A",
+            "clientGroupName": "Group1"
         }
     ],
     "blockchain": {

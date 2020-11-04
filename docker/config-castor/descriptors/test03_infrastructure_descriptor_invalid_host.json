@@ -1,0 +1,29 @@
+{
+    "organization": {
+        "damlSdk": "1.0.1",
+        "enableBftClient": true,
+        "generatePassword": false
+    },
+    "zones": [
+        {
+            "name": "hermes-castor-zone-1 - A",
+            "vCenter": {
+                "url": "https://vcenter.sddc-54-69-50-59-invalid.vmwarevmc.com",
+                "userName": "cloudadmin@vmc.local",
+                "password": "abc123",
+                "resourcePool": "Compute-ResourcePool",
+                "storage": "WorkloadDatastore",
+                "folder": "HermesTesting"
+            },
+            "network": {
+                "name": "vmware-vpn-1b-invalid",
+                "gateway": "10.73.232.1",
+                "subnet": 23,
+                "nameServers": [
+                    "10.78.1.132",
+                    "10.78.1.133"
+                ]
+            }
+        }
+    ]
+}

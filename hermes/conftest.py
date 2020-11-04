@@ -678,6 +678,7 @@ def _get_suite_short_name(module_name):
 
     suite_list = {
         "CastorDeploymentTests": "hermes.suites.castor_deployment_tests",
+        "CastorDeploymentSystemTests": "hermes.suites.sys_test_castor_deployment_tests",
         "ChessPlusTests": "hermes.suites.chess_plus_tests",
         "ClientGroupTests": "hermes.suites.sys_test_client_group_tests",
         "EthCoreVmTests": "hermes.suites.eth_core_vm_tests",
