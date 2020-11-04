@@ -29,10 +29,7 @@ echo '{
 chmod 600 /config/agent/config.json
 
 # Handle Container Registry, if it is self-signed
-
-
-# Handle Notary Server, if it is self-signed
-mkdir -p ~/.docker/tls/127.0.0.1:4443
+mkdir -p /etc/docker/certs.d/127.0.0.1:443
 echo '-----BEGIN CERTIFICATE-----
 MIIDhDCCAmwCCQCqJ2ReGXJGSTANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMC
 VVMxCzAJBgNVBAgMAkNBMRIwEAYDVQQHDAlTdW5ueXZhbGUxDzANBgNVBAoMBlZN
@@ -53,9 +50,11 @@ mJsFnjBIfJkJXDvfp6LYhgubleVj5kiNHCp/Pp9wFnuP7/Q8fgygZrXSiT/tzAQy
 Au90vbEzxvpCvbf0lQYcL5M9jFt9D2RxMLWQCbf+PrluXe+leWOiPlrvXY/sYqxW
 hlkQfaYjauR4qTbqo9VX4q142tbAsGnq8tmXbAlL+NK12HHZvGjOlsyOUjAbD0Vt
 398Vtqg3kiL/IAe1weda08BdTkA/Dj4DKHZQHs2ndKoDVV5icoIXHw==
------END CERTIFICATE-----' > ~/.docker/tls/127.0.0.1:4443/ca.crt
-chmod 600 ~/.docker/tls/127.0.0.1:4443/ca.crt
-cp ~/.docker/tls/127.0.0.1:4443/ca.crt /config/agent/notarySelfSignedCert.crt
+-----END CERTIFICATE-----' > /etc/docker/certs.d/127.0.0.1:443/ca.crt
+chmod 600 /etc/docker/certs.d/127.0.0.1:443/ca.crt
+
+# Handle Notary Server, if it is self-signed
+
 
 # Update guest-info's network information in vSphere.
 touch /etc/vmware-tools/tools.conf
@@ -66,11 +65,11 @@ printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmwar
 retry=0
 until [ $retry -ge 3 ]
 do
-   docker login https://containerRegistry.com -u username -p 'password'
+   docker login https://127.0.0.1:443 -u username -p 'password'
    docker network create -d bridge blockchain-fabric
-   export DOCKER_CONTENT_TRUST_SERVER=https://127.0.0.1:4443
-   export DOCKER_CONTENT_TRUST=1
-   docker run -d --name=agent --restart=always --network=blockchain-fabric -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock containerRegistry.com/agent && break
+   export DOCKER_CONTENT_TRUST_SERVER=""
+   export DOCKER_CONTENT_TRUST=0
+   docker run -d --name=agent --restart=always --network=blockchain-fabric -p 127.0.0.1:8546:8546 -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock 127.0.0.1:443/agent && break
    retry=$[$retry+1]
    sleep 10
 done
