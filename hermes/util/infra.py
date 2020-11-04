@@ -221,8 +221,8 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
       pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
       runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
 
+      replica_json = {helper.TYPE_DAML_COMMITTER: [], helper.TYPE_DAML_PARTICIPANT: []}
       # short list for monitor replicas job
-      shortList = { helper.TYPE_DAML_COMMITTER: [], helper.TYPE_DAML_PARTICIPANT: [] }
       for replicaInfo in blockchainFullDetails["nodes_list"]:
         nodeIP = replicaInfo["private_ip"]
         if "type_name" not in replicaInfo: replicaInfo["type_name"] = None # type_name used by Helen
@@ -231,20 +231,18 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
            replicaInfo["type_name"] == helper.TYPE_DAML_COMMITTER:
           replicaInfo["type_name"] = helper.TYPE_DAML_COMMITTER
           replicaInfo["node_type"] = helper.NodeType.REPLICA
-          shortList[helper.TYPE_DAML_COMMITTER].append(nodeIP)
+          replica_json[helper.TYPE_DAML_COMMITTER].append({"ip": nodeIP})
         elif replicaInfo["node_type"] == helper.NodeType.CLIENT or \
              replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT:
           replicaInfo["type_name"] = helper.TYPE_DAML_PARTICIPANT
           replicaInfo["node_type"] = helper.NodeType.CLIENT
-          shortList[helper.TYPE_DAML_PARTICIPANT].append(nodeIP)
-      shortParam = "{}:{} {}:{}".format(helper.TYPE_DAML_COMMITTER, ",".join(shortList[helper.TYPE_DAML_COMMITTER]),
-                                        helper.TYPE_DAML_PARTICIPANT, ",".join(shortList[helper.TYPE_DAML_PARTICIPANT]))
-      shortType = "{}-{}".format(len(shortList[helper.TYPE_DAML_COMMITTER]), len(shortList[helper.TYPE_DAML_PARTICIPANT]))
-      
+          replica_json[helper.TYPE_DAML_PARTICIPANT].append({"ip": nodeIP})
+
+      shortType = "{}-{}".format(len(replica_json[helper.TYPE_DAML_COMMITTER]),len(replica_json[helper.TYPE_DAML_PARTICIPANT]))
       add_to_tracker_file("deployed_blockchains.json", [blockchainFullDetails])
       add_to_tracker_file("deployed_blockchains_short.json", [{
                           "blockchain_id": blockchainFullDetails["id"],
-                          "setup": shortType, "short_param": shortParam }])
+                          "setup": shortType, "short_param": replica_json }])
       
       prepareConnections(sddcs) # connect to applicable SDDCs if not already connected
       for sddcName in sddcs: VSPHERE[sddcName].checkForNewEntities()
