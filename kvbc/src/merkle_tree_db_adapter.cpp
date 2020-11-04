@@ -342,7 +342,7 @@ SetOfKeyValuePairs DBAdapter::lastReachableBlockDbUpdates(const SetOfKeyValuePai
   }
   LOG_INFO(logger_,
            "lastReachableBlockUpdates1, keys:size " << keysCount << ":" << keysSize << ", values:size" << valuesCount
-                                                   << ":" << valuesSize);
+                                                    << ":" << valuesSize);
 
   TimeRecorder scoped_timer(*histograms.dba_last_reachable_block_db_updates);
   // Compute the parent block digest in parallel with the tree update.

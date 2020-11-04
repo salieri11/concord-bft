@@ -52,38 +52,34 @@ bool check_output = true;
 class Reader {
  private:
   Histogram h;
-  IStorageFactory::DatabaseSet*  dbset_ptr = nullptr;
+  IStorageFactory::DatabaseSet *dbset_ptr = nullptr;
   bool done = false;
   uint32_t read_count = 0;
   uint32_t read_size = 0;
- public:
-  Reader(IStorageFactory::DatabaseSet* dbset) : dbset_ptr{dbset} {
-    h.Clear();
-  }
 
-  void stop() {
-    done = true;
-  }
+ public:
+  Reader(IStorageFactory::DatabaseSet *dbset) : dbset_ptr{dbset} { h.Clear(); }
+
+  void stop() { done = true; }
 
   void operator()() {
     cout << "reader started" << endl;
     std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(0,dataset_size);
+    std::uniform_int_distribution<int> distribution(0, dataset_size);
 
     KeysVector read_keys_batch;
     ValuesVector read_values_batch;
     SetOfKeyValuePairs write_batch;
     vector<uint> indices;
-    while(!done) {
+    while (!done) {
       int ind = distribution(generator);
 
       // do read
       read_keys_batch.clear();
       read_values_batch.clear();
       indices.clear();
-      for(uint i = ind, j = 0; j < read_kv_count; ++j,++i) {
-        if(i == dataset_size)
-          i = 0;
+      for (uint i = ind, j = 0; j < read_kv_count; ++j, ++i) {
+        if (i == dataset_size) i = 0;
         read_keys_batch.push_back(read_keys[i]);
         indices.push_back(i);
       }
@@ -95,23 +91,18 @@ class Reader {
       h.Add(dur);
       assert(s.isOK());
       assert(read_values_batch.size() == indices.size());
-      for(uint i = 0; i < read_keys_batch.size(); ++i) {
+      for (uint i = 0; i < read_keys_batch.size(); ++i) {
         if (check_output) assert(read_values_batch[i] == read_values[indices[i]]);
-         read_size += read_values[indices[i]].length();
+        read_size += read_values[indices[i]].length();
       }
 
-      if (reader_sleep_milli)
-        this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
+      if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
     }
   }
 
-  pair<uint32_t,uint32_t> get_sizes() {
-    return {read_count, read_size};
-  }
+  pair<uint32_t, uint32_t> get_sizes() { return {read_count, read_size}; }
 
-  Histogram& get_histogram() {
-    return h;
-  }
+  Histogram &get_histogram() { return h; }
 };
 
 void generate_data() {
@@ -130,7 +121,6 @@ void generate_data() {
     for (uint j = 0; j < read_value_length / sizeof(int); j++) {
       auto r = distribution(generator);
       memcpy(read_value + j * sizeof(int), &r, sizeof(int));
-
     }
     read_values.emplace_back(read_value, read_value_length);
 
@@ -150,12 +140,12 @@ void generate_data() {
   }
 }
 
-void create_db(const IStorageFactory::DatabaseSet* dbset) {
+void create_db(const IStorageFactory::DatabaseSet *dbset) {
   concord::storage::SetOfKeyValuePairs write_set;
   int done = 0;
   for (uint i = 0; i < dataset_size;) {
     uint count = 0;
-    while(count++ < min(100u, dataset_size - done)) {
+    while (count++ < min(100u, dataset_size - done)) {
       write_set[read_keys[i]] = read_values[i];
       i++;
     }
@@ -165,7 +155,7 @@ void create_db(const IStorageFactory::DatabaseSet* dbset) {
   }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
   IStorageFactory *factory = new RocksDBStorageFactory("rocksdb_benchmark");
@@ -189,17 +179,16 @@ int main(int argc, char** argv) {
   }
 
   std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(0,dataset_size);
+  std::uniform_int_distribution<int> distribution(0, dataset_size);
   SetOfKeyValuePairs write_batch;
   cout << "Started test" << endl;
   auto start = chrono::steady_clock::now();
   uint64_t write_size = 0;
-  while(curr_request < num_of_requests) {
+  while (curr_request < num_of_requests) {
     uint ind = distribution(generator);
     write_batch.clear();
-    for(uint i = ind, j = 0; j < write_kv_count; ++j,++i) {
-      if(i == dataset_size)
-        i = 0;
+    for (uint i = ind, j = 0; j < write_kv_count; ++j, ++i) {
+      if (i == dataset_size) i = 0;
       write_batch[write_keys[i]] = write_values[i];
       write_size += write_values[i].length();
     }
@@ -217,8 +206,8 @@ int main(int argc, char** argv) {
   Histogram readers_hist;
   readers_hist.Clear();
   uint64_t read_count = 0;
-  uint64_t read_size = 0;
-  for(auto &w : workers) {
+  int read_size = 0;
+  for (auto &w : workers) {
     w.stop();
     readers_hist.Merge(w.get_histogram());
     auto sizes = w.get_sizes();
@@ -226,16 +215,17 @@ int main(int argc, char** argv) {
     read_size += sizes.second;
   }
 
-  for(auto &t : threads)
-    t.join();
+  for (auto &t : threads) t.join();
 
   auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
   cout << "Test duration: " << dur << " milliseconds" << endl;
   cout << "Read rate: " << setprecision(15) << floor((double)read_count / dur * 1000) << " reads/sec => ";
-  cout << setprecision(15) << floor((double)read_size / dur * 1000) << " bytes/sec" << ", total bytes read: " << read_size << endl;
+  cout << setprecision(15) << floor((double)read_size / dur * 1000) << " bytes/sec"
+       << ", total bytes read: " << read_size << endl;
   cout << "Readers details (microseconds): " << endl << readers_hist.ToString() << endl;
   cout << "Write rate: " << setprecision(15) << floor((double)num_of_requests / dur * 1000) << " writes/sec => ";
-  cout << setprecision(15) << floor((double)write_size / dur * 1000) << " bytes/sec" << ", total bytes written: " << write_size << endl;
+  cout << setprecision(15) << floor((double)write_size / dur * 1000) << " bytes/sec"
+       << ", total bytes written: " << write_size << endl;
   cout << "Writer details (microseconds):" << endl << writer_hist.ToString() << endl;
   return 0;
 }
