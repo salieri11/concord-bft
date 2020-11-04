@@ -31,6 +31,8 @@ ProductFixture = collections.namedtuple("ProductFixture", "product")
 # the way standard orgs do.
 BUILTIN_ORGS = ["0460bc7f-41a4-4570-acdb-adbade2acb86", "4c722759-fc17-408d-bc41-e6775fc1e111"]
 
+DEPLOYED_BLOCKCHAIN_FILE = "blockchain.json"
+
 def isBuiltInOrg(orgId):
    return orgId in BUILTIN_ORGS
 
@@ -295,9 +297,25 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
       log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                "manually: {}\n".format(json.dumps(blockchainFullDetails, indent=4)))
       log.info("Annotating VMs with deployment context...")
+
+      # Note: giveDeploymentContext writes json files about deployment to <Jenkins workspace>/summary/
+      # - Only written for Jenkins runs.
+      # - All blockchains deployed in a Jenkins run are written to the same file; don't know which was
+      #   for which suite.
       fatal_errors = infra.giveDeploymentContext(blockchainFullDetails)
       if fatal_errors: # e.g. IP conflicts
             infra.save_fatal_errors_to_summary(fatal_errors)
+
+      # This will write the information about the deployed blockchain to the test suite's
+      # resultsDir.
+      # blockchain_summary_path = os.path.join(hermes_data["hermesCmdlineArgs"].resultsDir,
+      #                                        DEPLOYED_BLOCKCHAIN_FILE)
+      suite_log_dir = os.path.dirname(helper.CURRENT_SUITE_LOG_FILE)
+      blockchain_summary_path = os.path.join(suite_log_dir,
+                                             DEPLOYED_BLOCKCHAIN_FILE)
+
+      with open(blockchain_summary_path , "w") as f:
+         json.dump(blockchainFullDetails, f, indent=4, default=str)
 
       ethereum_replicas = []
       daml_committer_replicas = []
@@ -512,7 +530,7 @@ def fxProduct(request, hermes_info):
    An fxProduct provides a launched instance of the product
    to the tests being run.
    '''
-   
+
    hermes_data = hermes_info
    if not hermes_data["hermesCmdlineArgs"].noLaunch:
       logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
