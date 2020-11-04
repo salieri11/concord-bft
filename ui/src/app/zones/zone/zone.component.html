@@ -17,14 +17,17 @@
           [disabled]="saving || !zoneForm.onPremConnectionSuccessful || zoneForm.otherValidationsFailed || !zoneForm.changedFromOriginalValue">
           {{ 'onPrem.updateZone' | translate }}
         </button>
+        <button *ngIf="!isNewZoneState" (click)="downloadZoneConfig()" class="btn btn-primary-outline" id="downloadZone"
+          [disabled]="saving">
+          {{ 'common.download' | translate }}
+        </button>
         <div *ngIf="!isNewZoneState" class="delete-button-container">
 
           <button (click)="openConfirmDelete()"
                   [clrLoading]="deleting"
                   *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]"
                   [disabled]="!canDelete"
-
-                    class="btn btn-outline-danger" id="deleteZone">
+                  class="btn btn-outline-danger" id="deleteZone">
             {{ 'onPrem.deleteZone' | translate }}
           </button>
           <clr-tooltip>

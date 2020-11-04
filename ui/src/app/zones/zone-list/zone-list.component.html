@@ -14,6 +14,10 @@
             class="btn btn-primary-outline" id="newZone">
             {{ 'zones.actions.new' | translate }}
           </a>
+          <button (click)="uploadZone()" [clrLoading]="uploading" class="btn btn-primary-outline" id="newZone">
+            {{ 'zones.actions.upload' | translate }}
+          </button>
+          <input type="file" #fileUpload id="fileUpload" name="fileUpload" accept="application/JSON" style="display:none;" />
         </div>
       </clr-dg-action-bar>
       <clr-dg-column>{{'zones.columns.name' | translate}}</clr-dg-column>
@@ -22,9 +26,6 @@
         <clr-dg-action-overflow>
           <button clrPopoverCloseButton class="action-item" (click)="editZone(zone)" [disabled]="zone.type === 'VMC_AWS'">
             {{'common.edit' | translate}}
-          </button>
-          <button clrPopoverCloseButton class="action-item" (click)="confirmDelete(zone)" [disabled]="zone.type === 'VMC_AWS'">
-            {{'common.delete' | translate}}
           </button>
         </clr-dg-action-overflow>
         <clr-dg-cell>

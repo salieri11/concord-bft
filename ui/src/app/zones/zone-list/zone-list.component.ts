@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 
 import { ZonesService } from '../shared/zones.service';
 import { Personas } from '../../shared/persona.service';
@@ -15,6 +15,21 @@ import { VmwTasksService } from '../../shared/components/task-panel/tasks.servic
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { VmwToastType } from '@vmw/ngx-components';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { map, catchError } from 'rxjs/operators';
+
+
+interface FileReaderEventTarget extends EventTarget {
+  result: string;
+}
+
+interface FileReaderEvent extends Event {
+  target: FileReaderEventTarget;
+  getMessage(): string;
+}
+
+interface HTMLInputEvent extends Event {
+  target: HTMLInputElement & EventTarget;
+}
 
 @Component({
   selector: 'concord-zone-list',
@@ -23,12 +38,14 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 })
 export class ZoneListComponent {
   @ViewChild('confirm', { static: true }) confirm: ConfirmModalComponent;
+  @ViewChild('fileUpload', { static: true }) fileUpload: ElementRef;
   selected: Zone[] = [];
   zones: Zone[];
   targetZone: Zone;
   personas = Personas;
   zoneType = ZoneType;
   loading: boolean;
+  uploading: boolean;
 
   constructor(
     private zonesService: ZonesService,
@@ -66,7 +83,7 @@ export class ZoneListComponent {
         this,
         'deleteZone',
         this.translate.instant('zones.actions.deleteAsk')
-                      .replace('TARGET_ZONE', this.targetZone.name),
+          .replace('TARGET_ZONE', this.targetZone.name),
         this.translate.instant('common.delete'),
       );
     }, 100);
@@ -85,4 +102,49 @@ export class ZoneListComponent {
     });
   }
 
+  uploadZone() {
+    const fileUpload = this.fileUpload.nativeElement;
+    fileUpload.click();
+
+    fileUpload.onchange = (e: HTMLInputEvent) => {
+      const reader = new FileReader();
+      reader.onload = this.onReaderLoad.bind(this);
+      reader.readAsText(e.target.files[0]);
+      this.uploading = true;
+    };
+  }
+
+  private onReaderLoad(event: FileReaderEvent) {
+    const zone = JSON.parse(event.target.result);
+    // Clean out ID
+    delete zone.id;
+
+    this.zonesService.addZone(zone).pipe(
+      map(response => this.handleSave(response)),
+      // @ts-ignore
+      catchError<OnPremZone>(error => this.handleError(error))
+    ).subscribe();
+  }
+
+  private handleSave(response) {
+    this.uploading = false;
+
+    this.taskService.addToast({
+      title: this.translate.instant('zones.actions.added'),
+      description: `${this.translate.instant('zones.titleDetail')} ${response.name}`,
+      type: VmwToastType.SUCCESS,
+    });
+
+    this.blockchainService.getZones().subscribe();
+    this.router.navigate([response.id], { relativeTo: this.route });
+  }
+
+  private handleError(error) {
+    this.uploading = false;
+    this.taskService.addToast({
+      title: this.translate.instant('zones.actions.failedUpload'),
+      description: `${this.translate.instant('zones.actions.failedUploadDesc')} ${error.name}`,
+      type: VmwToastType.FAILURE,
+    });
+  }
 }
