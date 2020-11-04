@@ -221,7 +221,7 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
       pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
       runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
 
-      replica_json = {"daml_committer": [], "daml_participant": []}
+      replica_json = {helper.TYPE_DAML_COMMITTER: [], helper.TYPE_DAML_PARTICIPANT: []}
       # short list for monitor replicas job
       for replicaInfo in blockchainFullDetails["nodes_list"]:
         nodeIP = replicaInfo["private_ip"]
@@ -231,14 +231,14 @@ def giveDeploymentContext(blockchainFullDetails, otherMetadata="", sddcs=None):
            replicaInfo["type_name"] == helper.TYPE_DAML_COMMITTER:
           replicaInfo["type_name"] = helper.TYPE_DAML_COMMITTER
           replicaInfo["node_type"] = helper.NodeType.REPLICA
-          replica_json["daml_committer"].append({"ip": nodeIP})
+          replica_json[helper.TYPE_DAML_COMMITTER].append({"ip": nodeIP})
         elif replicaInfo["node_type"] == helper.NodeType.CLIENT or \
              replicaInfo["type_name"] == helper.TYPE_DAML_PARTICIPANT:
           replicaInfo["type_name"] = helper.TYPE_DAML_PARTICIPANT
           replicaInfo["node_type"] = helper.NodeType.CLIENT
-          replica_json["daml_participant"].append({"ip": nodeIP})
+          replica_json[helper.TYPE_DAML_PARTICIPANT].append({"ip": nodeIP})
 
-      shortType = "{}-{}".format(len(replica_json["daml_committer"]),len(replica_json["daml_participant"]))
+      shortType = "{}-{}".format(len(replica_json[helper.TYPE_DAML_COMMITTER]),len(replica_json[helper.TYPE_DAML_PARTICIPANT]))
       add_to_tracker_file("deployed_blockchains.json", [blockchainFullDetails])
       add_to_tracker_file("deployed_blockchains_short.json", [{
                           "blockchain_id": blockchainFullDetails["id"],
