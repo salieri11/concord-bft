@@ -5,6 +5,7 @@
     "add": "Add",
     "all": "All",
     "back": "Back",
+    "download": "Download",
     "cancel": "Cancel",
     "clone": "Clone",
     "close": "Close",
@@ -491,7 +492,10 @@
       "type": "Type"
     },
     "actions": {
-      "new": "+ New On-premises Zone",
+      "new": "New On-premises Zone",
+      "upload": "Upload Zone",
+      "failedUpload": "Failed to upload",
+      "failedUploadDesc": "Make sure your JSON file has the correct zone config attributes.",
       "delete": "delete",
       "cantDelete": "Zones can only be deleted when there isn't any associated replicas or clients.",
       "deleted": "Zone Deleted Successfully",
@@ -535,6 +539,7 @@
     "help": {
       "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
     },
+    "upload": "Upload Zone",
     "navTitle": "On Premises",
     "pageTitle": "New On Premises Zone",
     "name": "Zone Designation",

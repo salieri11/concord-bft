@@ -60,7 +60,7 @@ export class SystemComponent implements OnInit {
   systemInfo: SystemInfo = new SystemInfo();
 
   get systemInfoJSON(): string {
-    return JSON.stringify(this.systemInfo);
+    return JSON.stringify(this.systemInfo, null, 2);
   }
 
 

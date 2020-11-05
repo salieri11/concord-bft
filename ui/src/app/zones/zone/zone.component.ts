@@ -33,6 +33,7 @@ export class ZoneComponent implements OnInit {
   isNewZoneState: boolean;
   zoneFormVisible: boolean = false;
   themeDark: boolean = false;
+  canDelete: boolean = false;
   zoneData: OnPremZone;
 
   personas = Personas;
@@ -54,6 +55,8 @@ export class ZoneComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.zoneId = params['zoneId'];
+      this.zoneService.canDelete(this.zoneId).subscribe(canDelete => this.canDelete = canDelete);
+
       if (this.zoneId === mainRoutes.new) { // New Zone Form
         this.isNewZoneState = true;
         this.zoneFormVisible = true;
@@ -105,11 +108,13 @@ export class ZoneComponent implements OnInit {
   deleteZone() {
     this.deleting = true;
     this.zoneService.delete(this.zoneId).subscribe(() => {
-      this.router.navigate(['../', { relativeTo: this.route }]);
+      const name = this.zoneData.name;
+
+      this.router.navigate(['../'], { relativeTo: this.route });
       this.deleting = false;
       this.taskService.addToast({
         title: this.translate.instant('zones.actions.deleted'),
-        description: `${this.translate.instant('zones.actions.deleteMsg')} ${this.zoneData.name}`,
+        description: `${this.translate.instant('zones.actions.deleteMsg')} ${name}`,
         type: VmwToastType.SUCCESS,
       });
     });
@@ -128,6 +133,17 @@ export class ZoneComponent implements OnInit {
         type: VmwToastType.SUCCESS,
       });
     });
+  }
+
+  downloadZoneConfig() {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.zoneData, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    const name = this.zoneData.name.split(' ').join('_');
+    downloadAnchorNode.setAttribute('href', dataStr);
+    downloadAnchorNode.setAttribute('download', `vmbc-zone-on-prem--${name}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   }
 
   private setZone(zone) {
