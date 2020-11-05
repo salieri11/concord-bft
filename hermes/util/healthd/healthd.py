@@ -157,8 +157,8 @@ def getMemoryFootprint():
   allMems = parseColumnViewToJson(command, columns)
   memInfo = allMems[0]
   swapInfo = allMems[1]
-  total = float(memInfo["total"])
-  used = float(memInfo["total"]) - float(memInfo["available"])
+  total = float(memInfo["total"].split(' ')[0])
+  used = float(memInfo["total"].split(' ')[0]) - float(memInfo["available"])
   return { # in MB
     "total" : total,
     "used" : used,
