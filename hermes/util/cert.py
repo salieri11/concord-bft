@@ -6,6 +6,7 @@ import certifi
 import ssl
 from OpenSSL import crypto
 import random
+import collections
 
 def getSecureContext():
    ctx = ssl.create_default_context(cafile=certifi.where())
@@ -25,27 +26,8 @@ def getKey():
   '''
    key = crypto.PKey()
    key.generate_key(crypto.TYPE_RSA, 4096)
+   key = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
    return key
-
-def getSelfSignedCACert(csr, key, name):
-   '''
-    Accepts a certificate signing request and self signs it and saves it on the disk
-    Also returns the certificate and key
-  '''
-   cert = crypto.X509()
-   pcsr = crypto.load_certificate_request(crypto.FILETYPE_PEM, csr)
-   cert.set_serial_number(random.getrandbits(64))
-   cert.gmtime_adj_notBefore(0)
-   cert.gmtime_adj_notAfter(31536000)
-   cert.set_issuer(cert.get_subject())
-   cert.set_pubkey(pcsr.get_pubkey())
-   cert.sign(key, 'sha512')
-   open(name + ".crt", "wb").write(
-      crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-   open(name + ".key", "wb").write(
-      crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
-   return (crypto.dump_certificate(crypto.FILETYPE_PEM, cert),
-           crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
 
 def createCsr(key, subject, name):
    '''
@@ -53,6 +35,7 @@ def createCsr(key, subject, name):
     Returns certificate signing request and key
   '''
    csrReq = crypto.X509Req()
+   key = crypto.load_privatekey(crypto.FILETYPE_PEM, key)
    csrReq.get_subject().commonName = subject.commonName
    csrReq.get_subject().countryName = subject.countryName
    csrReq.get_subject().stateOrProvinceName = subject.stateOrProvinceName
@@ -64,8 +47,7 @@ def createCsr(key, subject, name):
    csrReq.sign(key, "sha512")
    open(name + ".csr", "wb").write(
       crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq))
-   return (crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq),
-           crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
+   return crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq)
 
 def getCASignedCert(csr, caCert, caKey, name):
    '''
@@ -91,10 +73,36 @@ def getCASignedCert(csr, caCert, caKey, name):
       crypto.dump_privatekey(crypto.FILETYPE_PEM, pub_key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert)
 
+def getSelfSignedCACert(csr, key, name):
+   '''
+    Accepts a certificate signing request and self signs it and saves it on the disk
+    Also returns the certificate and key
+  '''
+   cert = crypto.X509()
+   key = crypto.load_privatekey(crypto.FILETYPE_PEM, key)
+   pcsr = crypto.load_certificate_request(crypto.FILETYPE_PEM, csr)
+   cert.set_serial_number(random.getrandbits(64))
+   cert.gmtime_adj_notBefore(0)
+   cert.gmtime_adj_notAfter(31536000)
+   cert.set_issuer(pcsr.get_subject())
+   cert.set_pubkey(pcsr.get_pubkey())
+   cert.sign(key, 'sha512')
+   open(name + ".crt", "wb").write(
+      crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
+   open(name + ".key", "wb").write(
+      crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
+   return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+
+
 def generateSelfCertificate(sub, name):
-   csr, csrKey = createCsr(getKey(), sub)
-   return getSelfSignedCACert(csr, getKey(), name)
+   ca_key = getKey()
+   ca_csr = createCsr(ca_key, sub, name)
+   return (getSelfSignedCACert(ca_csr,ca_key, name),
+              ca_key)
 
 def generateCASignedCert(caKey, caCert, sub, name):
-   csr, csrKey = createCsr(getKey(), sub)
-   return getCASignedCert(csr, caCert, caKey, name)
+   priv_key = getKey()
+   csr = createCsr(priv_key, sub, name)
+   return (getCASignedCert(csr, caCert, caKey, name),
+           priv_key)
+
