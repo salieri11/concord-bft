@@ -46,9 +46,11 @@ class Operations {
   Operations(const Config& config, bft::client::Client& client);
   Response WedgeStatus(std::chrono::milliseconds timeout);
   Response initiateWedge(std::chrono::milliseconds timeout);
-  Response initiateSwDownload(std::chrono::milliseconds timeout);
+  Response initiateSwDownload(std::chrono::milliseconds timeout,
+                              std::string version);
   Response initiateHasSwVersion(std::chrono::milliseconds timeout);
-  Response initiateInstallSwVersion(std::chrono::milliseconds timeout);
+  Response initiateInstallSwVersion(std::chrono::milliseconds timeout,
+                                    std::string version);
 
  private:
   /*
