@@ -18,6 +18,25 @@ Msg TestCommand 6 {
   string test
 }
 
+Msg LatestPrunableBlockRequest 7 {
+    uint64 sender
+}
+
+Msg LatestPrunableBlock 8 {
+   uint64 replica
+   uint64 block_id
+   string signature
+}
+
+Msg PruneRequest 9 {
+   uint64 sender
+   list LatestPrunableBlock latest_prunable_block
+}
+
+Msg WedgeResponse 10 {
+    bool stopped
+}
+
 Msg ReconfigurationRequest 1 {
   bytes signature
   oneof {
@@ -26,6 +45,8 @@ Msg ReconfigurationRequest 1 {
     DownloadCommand
     WedgeCommand
     UpgradeCommand
+    LatestPrunableBlockRequest
+    PruneRequest
   } command
   bytes additional_data
 }

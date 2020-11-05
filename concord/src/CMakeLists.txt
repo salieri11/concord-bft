@@ -28,7 +28,6 @@ add_subdirectory("consensus")
 add_subdirectory("ethereum")
 add_subdirectory("external_client")
 add_subdirectory("operator")
-add_subdirectory("pruning")
 add_subdirectory("reconfiguration")
 add_subdirectory("storage")
 add_subdirectory("time")
@@ -58,7 +57,6 @@ target_link_libraries(concord
   concord_config
   concord_consensus
   concord_ethereum
-  concord_pruning
   concord_reconfiguration
   concord_storage
   concord_time

@@ -6,7 +6,7 @@
 #include "config/configuration_manager.hpp"
 #include "src/bftengine/Crypto.hpp"
 
-#include "concord.pb.h"
+#include "concord.cmf.hpp"
 
 #include <cstdint>
 #include <string>
@@ -15,6 +15,7 @@
 #include <vector>
 
 namespace concord {
+namespace reconfiguration {
 namespace pruning {
 
 // This class verifies pruning messages that were signed by serializing message
@@ -26,7 +27,7 @@ namespace pruning {
 class RSAPruningVerifier {
  public:
   // Construct by passing the system configuration.
-  RSAPruningVerifier(const concord::config::ConcordConfiguration& config);
+  RSAPruningVerifier(const concord::config::ConcordConfiguration &config);
 
   // Verify() methods verify that the message comes from the advertised sender.
   // Methods return true on successful verification and false on unsuccessful.
@@ -38,8 +39,8 @@ class RSAPruningVerifier {
   // operator's signature of the pruning command, as the operator's signature is
   // a dedicated application-level signature rather than one of the Concord-BFT
   // Principal's RSA signatures.
-  bool Verify(const com::vmware::concord::LatestPrunableBlock&) const;
-  bool Verify(const com::vmware::concord::PruneRequest&) const;
+  bool Verify(const concord::messages::LatestPrunableBlock &) const;
+  bool Verify(const concord::messages::PruneRequest &) const;
 
  private:
   struct Replica {
@@ -47,13 +48,13 @@ class RSAPruningVerifier {
     bftEngine::impl::RSAVerifier verifier;
   };
 
-  bool Verify(std::uint64_t sender, const std::string& ser,
-              const std::string& signature) const;
+  bool Verify(std::uint64_t sender, const std::string &ser,
+              const std::string &signature) const;
 
   using ReplicaVector = std::vector<Replica>;
 
   // Get a replica from the replicas vector by its index.
-  const Replica& GetReplica(ReplicaVector::size_type idx) const;
+  const Replica &GetReplica(ReplicaVector::size_type idx) const;
 
   // A vector of all the replicas in the system.
   ReplicaVector replicas_;
@@ -69,6 +70,7 @@ class RSAPruningVerifier {
 };
 
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord
 
 #endif  // CONCORD_PRUINING_RSA_PRUNING_VERIFIER_HPP

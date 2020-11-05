@@ -66,10 +66,6 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   void handle_time_request();
 
-  void handle_latest_prunable_block_request();
-
-  void handle_prune_request();
-
   void handle_test_request();
 
   bool send_request(com::vmware::concord::ConcordRequest &req, bool isReadOnly,

@@ -140,8 +140,9 @@ target_link_libraries(PruningSMTest
         concord_consensus
         concord_common
         concord_config
-        concord_pruning
-        logging)
+	cmf_messages
+	concord_reconfiguration
+	logging)
 
 add_executable(ReconfigurationSMTest
                mocks.cpp
@@ -196,7 +197,7 @@ target_link_libraries(KVBFilterTest
         concord_consensus
         concord_common
         concord_config
-        concord_pruning
+		concord_reconfiguration
         logging)
 
 add_executable(ExternalClientTest external_client_test.cpp)

@@ -166,7 +166,6 @@ TEST(reconfiguration_sm_test, test_upgrade_command) {
   ASSERT_EQ(res.mutable_reconfiguration_sm_response()->additionaldata(),
             "Upgrading");
 }
-
 }  // anonymous namespace
 
 int main(int argc, char** argv) {

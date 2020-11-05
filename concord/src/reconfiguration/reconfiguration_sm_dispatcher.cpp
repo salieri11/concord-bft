@@ -12,6 +12,8 @@ using com::vmware::concord::ReconfigurationSmResponse;
 
 using concord::messages::DownloadCommand;
 using concord::messages::GetVersionCommand;
+using concord::messages::LatestPrunableBlockRequest;
+using concord::messages::PruneRequest;
 using concord::messages::ReconfigurationRequest;
 using concord::messages::UpgradeCommand;
 using concord::messages::WedgeCommand;
@@ -52,6 +54,12 @@ ReconfigurationSMDispatcher::ReconfigurationSMDispatcher(
   }
 }
 
+template <class T>
+std::string serializeCmfToString(const T& cmfMessage) {
+  std::vector<uint8_t> serialized_data;
+  concord::messages::serialize(serialized_data, cmfMessage);
+  return std::string(serialized_data.begin(), serialized_data.end());
+}
 bool ReconfigurationSMDispatcher::dispatch(
     const ReconfigurationRequest& request, ConcordResponse& response,
     uint64_t sequence_num, bool read_only,
@@ -68,9 +76,15 @@ bool ReconfigurationSMDispatcher::dispatch(
 
   bool success = false;
   if (holds_alternative<WedgeCommand>(request.command)) {
+    concord::messages::WedgeResponse wedge_response;
     success =
         handler_->handle(std::get<WedgeCommand>(request.command), sequence_num,
-                         read_only, rsi_response, parent_span);
+                         read_only, wedge_response, parent_span);
+    if (read_only) {
+      rsi_response.set_data(
+          serializeCmfToString<concord::messages::WedgeResponse>(
+              wedge_response));
+    }
   } else if (holds_alternative<GetVersionCommand>(request.command)) {
     success = handler_->handle(std::get<GetVersionCommand>(request.command));
     reconf_response->set_additionaldata("Version");
@@ -80,6 +94,23 @@ bool ReconfigurationSMDispatcher::dispatch(
   } else if (holds_alternative<UpgradeCommand>(request.command)) {
     success = handler_->handle(std::get<UpgradeCommand>(request.command));
     reconf_response->set_additionaldata("Upgrading");
+  } else if (holds_alternative<LatestPrunableBlockRequest>(request.command)) {
+    concord::messages::LatestPrunableBlock last_pruneable_block;
+    success =
+        handler_->handle(std::get<LatestPrunableBlockRequest>(request.command),
+                         last_pruneable_block, read_only, parent_span);
+    rsi_response.set_data(
+        serializeCmfToString<concord::messages::LatestPrunableBlock>(
+            last_pruneable_block));
+
+  } else if (holds_alternative<PruneRequest>(request.command)) {
+    std::string ret_data;
+    success = handler_->handle(std::get<PruneRequest>(request.command),
+                               ret_data, read_only, parent_span);
+    if (!ret_data.empty()) {
+      response.mutable_reconfiguration_sm_response()->set_additionaldata(
+          ret_data);
+    }
   }
   reconf_response->set_success(success);
 
@@ -130,5 +161,4 @@ bool ReconfigurationSMDispatcher::validateReconfigurationSmRequest(
   }
   return true;
 }
-
 }  // namespace concord::reconfiguration
