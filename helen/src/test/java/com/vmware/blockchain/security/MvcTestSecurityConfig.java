@@ -48,8 +48,8 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
                 // Session fixation is a problem with the ui due to concurrency
                 .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
-                .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
+                .mvcMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
+                .mvcMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .and().anonymous().and().httpBasic();

@@ -66,13 +66,13 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 // Session fixation is a problem with the ui due to concurrency
                 .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
-                .antMatchers("/api/static/**").permitAll()
-                .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
+                .mvcMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
+                .mvcMatchers("/api/static/**").permitAll()
+                .mvcMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 // anyone can look at the health
-                .antMatchers("/api/management/health").permitAll()
-                .antMatchers("/api/management/prometheus").permitAll()
-                .antMatchers("/api/management/**").hasAnyRole(VmbcRoles.SYSTEM_ADMIN.getName())
+                .mvcMatchers("/api/management/health").permitAll()
+                .mvcMatchers("/api/management/prometheus").permitAll()
+                .mvcMatchers("/api/management/**").hasAnyRole(VmbcRoles.SYSTEM_ADMIN.getName())
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)
@@ -96,7 +96,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         // Allow access to auth, UI routing URLs, and UI assets, without authentication
-        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login",
+        web.ignoring().mvcMatchers("/api/agreements/1").mvcMatchers("/api/auth/token", "/api/auth/login",
                                                                     "/api/static/**");
     }
 
