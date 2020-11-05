@@ -145,9 +145,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
           ? node_config.getValue<bool>("enable_histograms_or_summaries")
           : true;
 
-  pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
-      storage, appender, deleter, state_transfer, config, node_config,
-      time_.get());
   reconfiguration_sm_->setControlHandlers(concord_control_handlers_);
 }
 
@@ -415,10 +412,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       err->set_description("Time service is disabled.");
     }
 
-    if (request.has_prune_request() ||
-        request.has_latest_prunable_block_request()) {
-      pruning_sm_->Handle(request, response, read_only, *execute_span);
-    }
     if (request.has_reconfiguration_sm_request()) {
       // Deserilize protobuf bytes into cmf
       concord::messages::ReconfigurationRequest rreq;

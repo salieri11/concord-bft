@@ -5,9 +5,11 @@
 
 #include <Logger.hpp>
 #include <bftengine/ControlStateManager.hpp>
+#include <reconfiguration/pruning/kvb_pruning_sm.hpp>
 #include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
+#include "pruning/kvb_pruning_sm.hpp"
 #include "reconfiguration/concord_control_handler.hpp"
 #include "reconfiguration/ireconfiguration.hpp"
 
@@ -18,15 +20,19 @@ class ReconfigurationSMOpen : public IReconfigurationHandler {
  public:
   ReconfigurationSMOpen();
 
-  virtual bool handle(
-      const concord::messages::WedgeCommand& cmd, uint64_t sequence_num,
-      bool readOnly,
-      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
-      opentracing::Span& parent_span) override;
+  virtual bool handle(const concord::messages::WedgeCommand& cmd,
+                      uint64_t sequence_num, bool readOnly,
+                      concord::messages::WedgeResponse& response_,
+                      opentracing::Span& parent_span) override;
   virtual bool handle(const concord::messages::GetVersionCommand&) override;
   virtual bool handle(const concord::messages::DownloadCommand&) override;
   virtual bool handle(const concord::messages::UpgradeCommand&) override;
-
+  virtual bool handle(const concord::messages::LatestPrunableBlockRequest&,
+                      concord::messages::LatestPrunableBlock&, bool readOnly,
+                      opentracing::Span& parent_span) override;
+  virtual bool handle(const concord::messages::PruneRequest&,
+                      std::string& ret_data, bool read_only,
+                      opentracing::Span& parent_span) override;
   virtual void setControlStateManager(
       std::shared_ptr<bftEngine::ControlStateManager> control_state_manager)
       override;
@@ -38,6 +44,7 @@ class ReconfigurationSMOpen : public IReconfigurationHandler {
   logging::Logger logger_;
   std::shared_ptr<bftEngine::ControlStateManager> control_state_manager_;
   std::shared_ptr<ConcordControlHandler> control_handlers_;
+  std::unique_ptr<pruning::KVBPruningSM> pruningSM_;
 };
 
 }  // namespace reconfiguration

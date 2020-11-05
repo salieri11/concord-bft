@@ -2,6 +2,8 @@
 
 #include "reconfiguration_sm.hpp"
 
+#include <memory>
+
 #include "Logger.hpp"
 
 using com::vmware::concord::ReconfigurationSmRequest;
@@ -23,6 +25,18 @@ bool ReconfigurationSM::handle(const concord::messages::DownloadCommand& cmd) {
 bool ReconfigurationSM::handle(const concord::messages::UpgradeCommand& cmd) {
   LOG_INFO(logger_, "In UpgradeCommand handler");
   return true;
+}
+ReconfigurationSM::ReconfigurationSM(
+    const kvbc::ILocalKeyValueStorageReadOnly& ro_storage,
+    kvbc::IBlocksAppender& blocks_appender,
+    kvbc::IBlocksDeleter& blocks_deleter,
+    bftEngine::IStateTransfer& state_transfer,
+    const config::ConcordConfiguration& config,
+    const config::ConcordConfiguration& node_config,
+    concord::time::TimeContract* time_contract) {
+  pruningSM_ = std::make_unique<pruning::KVBPruningSM>(
+      ro_storage, blocks_appender, blocks_deleter, state_transfer, config,
+      node_config, time_contract);
 }
 
 }  // namespace reconfiguration

@@ -9,6 +9,7 @@
 #include <string>
 
 namespace concord {
+namespace reconfiguration {
 namespace pruning {
 
 using namespace detail;
@@ -16,26 +17,21 @@ using namespace detail;
 namespace {
 
 std::string PrivateKey(
-    const concord::config::ConcordConfiguration& node_config) {
-  auto& replica_scope = node_config.subscope("replica", 0);
+    const concord::config::ConcordConfiguration &node_config) {
+  auto &replica_scope = node_config.subscope("replica", 0);
   return replica_scope.getValue<std::string>("private_key");
 }
 
 }  // anonymous namespace
 
 RSAPruningSigner::RSAPruningSigner(
-    const concord::config::ConcordConfiguration& node_config)
+    const concord::config::ConcordConfiguration &node_config)
     : signer_{PrivateKey(node_config).c_str()} {}
 
 void RSAPruningSigner::Sign(
-    com::vmware::concord::LatestPrunableBlock& block) const {
-  if (!block.has_replica() || !block.has_block_id()) {
-    throw PruningRuntimeException{
-        "RSAPruningSigner failed to sign a malformed LatestPrunable message"};
-  }
-
+    concord::messages::LatestPrunableBlock &block) const {
   std::string ser;
-  ser << block.replica() << block.block_id();
+  ser << block.replica << block.block_id;
 
   auto signature = GetSignatureBuffer();
   size_t actual_sign_len{0};
@@ -48,7 +44,7 @@ void RSAPruningSigner::Sign(
     signature.resize(actual_sign_len);
   }
 
-  block.set_signature(std::move(signature));
+  block.signature = signature;
 }
 
 std::string RSAPruningSigner::GetSignatureBuffer() const {
@@ -57,4 +53,5 @@ std::string RSAPruningSigner::GetSignatureBuffer() const {
 }
 
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord

@@ -16,7 +16,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mocks.hpp"
-#include "pruning/kvb_pruning_sm.hpp"
+#include "reconfiguration/pruning/kvb_pruning_sm.hpp"
 #include "time/time_contract.hpp"
 
 using namespace std::placeholders;  // For _1, _2, etc.
@@ -58,7 +58,7 @@ using concord::daml::CreateSliver;
 using concord::reconfiguration::ReconfigurationSM;
 using concord::reconfiguration::ReconfigurationSMDispatcher;
 
-using concord::pruning::KVBPruningSM;
+using concord::reconfiguration::pruning::KVBPruningSM;
 using concord::time::TimeContract;
 
 using google::protobuf::RepeatedPtrField;
@@ -136,16 +136,21 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
         .Times(1)
         .WillOnce(Return(Status::NotFound("last_agreed_prunable_block_id")));
     prometheus_registry_ = CreatePrometheusRegistry();
+    concord::time::TimeContract* time_ =
+        new concord::time::TimeContract(*mock_ro_storage_, configuration_);
     // No reconfiguration requests are expected
     auto rsm = std::make_unique<ReconfigurationSMDispatcher>(
-        std::make_unique<ReconfigurationSM>(), configuration_,
-        prometheus_registry_);
+        std::make_unique<ReconfigurationSM>(
+            *mock_ro_storage_, *mock_block_appender_, *mock_block_deleter_,
+            *mock_state_transfer_, configuration_,
+            GetNodeConfig(configuration_, 1), time_),
+        configuration_, prometheus_registry_);
 
     instance_ = std::make_unique<DamlKvbCommandsHandler>(
         configuration_, GetNodeConfig(configuration_, 1), *mock_ro_storage_,
         *mock_block_appender_, *mock_block_deleter_, *mock_state_transfer_,
         subscriber_list_, std::move(rsm), std::move(daml_validator_client),
-        prometheus_registry_);
+        prometheus_registry_, time_);
     return instance_.get();
   }
 

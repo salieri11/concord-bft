@@ -3,12 +3,12 @@
 #ifndef CONCORD_PRUNING_RSA_PRUNING_SIGNER_HPP
 #define CONCORD_PRUNING_RSA_PRUNING_SIGNER_HPP
 
+#include "concord.cmf.hpp"
 #include "config/configuration_manager.hpp"
 #include "src/bftengine/Crypto.hpp"
 
-#include "concord.pb.h"
-
 namespace concord {
+namespace reconfiguration {
 namespace pruning {
 
 // This class signs pruning messages via the replica's private key that it gets
@@ -18,7 +18,7 @@ class RSAPruningSigner {
  public:
   // Construct by passing the configuration for the node the signer is running
   // on.
-  RSAPruningSigner(const concord::config::ConcordConfiguration& node_config);
+  RSAPruningSigner(const concord::config::ConcordConfiguration &node_config);
 
   // Sign() methods sign the passed message and store the signature in the
   // 'signature' field of the message. An exception is thrown on error.
@@ -27,7 +27,7 @@ class RSAPruningSigner {
   // behalf of the operator, as the operator's signature is a dedicated-purpose
   // application-level signature rather than a Concord-BFT Principal's RSA
   // signature.
-  void Sign(com::vmware::concord::LatestPrunableBlock&) const;
+  void Sign(concord::messages::LatestPrunableBlock &) const;
 
  private:
   std::string GetSignatureBuffer() const;
@@ -37,6 +37,7 @@ class RSAPruningSigner {
 };
 
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord
 
 #endif  // CONCORD_PRUNING_RSA_PRUNING_SIGNER_HPP

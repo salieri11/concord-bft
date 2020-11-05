@@ -10,17 +10,17 @@
 
 #include <boost/endian/buffers.hpp>
 
-#include "concord.pb.h"
-
 #include <string>
 #include <type_traits>
+#include "concord.cmf.hpp"
 
 namespace concord {
+namespace reconfiguration {
 namespace pruning {
 namespace detail {
 
 template <typename T>
-std::string& operator<<(std::string& buf, T val) {
+std::string &operator<<(std::string &buf, T val) {
   static_assert(std::is_integral_v<T>);
 
   using buf_t = boost::endian::big_uint64_buf_at;
@@ -30,11 +30,12 @@ std::string& operator<<(std::string& buf, T val) {
   return buf;
 }
 
-std::string& operator<<(std::string&,
-                        const com::vmware::concord::LatestPrunableBlock&);
+std::string &operator<<(std::string &,
+                        const concord::messages::LatestPrunableBlock &);
 
 }  // namespace detail
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord
 
 #endif  //  CONCORD_PRUNING_PRUNING_SERIALIZATION_HPP

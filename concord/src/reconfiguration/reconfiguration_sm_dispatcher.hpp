@@ -15,6 +15,13 @@
 #include "config/configuration_manager.hpp"
 #include "reconfiguration/ireconfiguration.hpp"
 
+#include "IStateTransfer.hpp"
+#include "db_interfaces.h"
+#include "kv_types.hpp"
+#include "sliver.hpp"
+#include "time/time_contract.hpp"
+#include "utils/openssl_crypto_utils.hpp"
+
 namespace concord {
 namespace reconfiguration {
 
@@ -33,13 +40,12 @@ class ReconfigurationSMDispatcher : public IReconfigurationDispatcher {
       std::shared_ptr<ConcordControlHandler> control_handlers) override;
   void setControlStateManager(std::shared_ptr<bftEngine::ControlStateManager>
                                   control_state_manager) override;
-
   // This method is the gate for all reconfiguration actions. It works as
   // follows:
   // 1. Validate the request against the reconfiguration system operator (RSO)
   // public key
   // 2. Direct the request to the relevant handler
-  // 3. Wrap theresponse in the concordResponse message
+  // 3. Wrap the response in the concordResponse message
   //
   // Basically, we would like to write each reconfiguration write command to the
   // blockchain and document it as part of the state. This will be under the

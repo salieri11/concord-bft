@@ -16,6 +16,7 @@
 #include "time/time_contract.hpp"
 #include "utils/openssl_crypto_utils.hpp"
 
+#include "concord.cmf.hpp"
 #include "concord.pb.h"
 
 #include <opentracing/tracer.h>
@@ -24,6 +25,7 @@
 #include <optional>
 
 namespace concord {
+namespace reconfiguration {
 namespace pruning {
 
 // This class implements the KVB pruning state machine. Main functionalities
@@ -78,45 +80,27 @@ class KVBPruningSM {
   // exception if there is an issue with the configuration (for example, if the
   // configuration enables pruning but does not provide a purning operator
   // public key).
-  KVBPruningSM(const kvbc::ILocalKeyValueStorageReadOnly&,
-               kvbc::IBlocksAppender&, kvbc::IBlocksDeleter&,
-               bftEngine::IStateTransfer&,
-               const config::ConcordConfiguration& config,
-               const config::ConcordConfiguration& node_config,
-               concord::time::TimeContract*);
+  KVBPruningSM(const kvbc::ILocalKeyValueStorageReadOnly &,
+               kvbc::IBlocksAppender &, kvbc::IBlocksDeleter &,
+               bftEngine::IStateTransfer &,
+               const config::ConcordConfiguration &config,
+               const config::ConcordConfiguration &node_config,
+               concord::time::TimeContract *);
 
-  // Handles a ConcordRequest that contains a pruning request. If an invalid
-  // request has been passed or no pruning request is contained, the request is
-  // ignored.
-  void Handle(const com::vmware::concord::ConcordRequest&,
-              com::vmware::concord::ConcordResponse&, bool read_only,
-              opentracing::Span& parent_span) const;
+  bool Handle(const concord::messages::LatestPrunableBlockRequest &,
+              concord::messages::LatestPrunableBlock &,
+              opentracing::Span &parent_span) const;
+  bool Handle(const concord::messages::PruneRequest &, bool read_only,
+              opentracing::Span &parent_span) const;
 
   static concordUtils::Sliver LastAgreedPrunableBlockIdKey();
 
-  // Given a PruneRequest Protobuf message, compute the exact byte string of
-  // data that the pruning state machine expects the operator's signature to be
-  // made over in order to prove the legitimacy of that PruneRequest. Note that
-  // the (operator's) signature field itself of the PruneRequest message does
-  // not contribute to this signable data, though (replicas') signature fields
-  // in the individual LatestPrunableBlock messages contained in the
-  // PruneRequest message may.
-  static std::string GetSignablePruneCommandData(
-      const com::vmware::concord::PruneRequest& prune_request);
-
  private:
-  void Handle(const com::vmware::concord::LatestPrunableBlockRequest&,
-              com::vmware::concord::ConcordResponse&,
-              opentracing::Span& parent_span) const;
-  void Handle(const com::vmware::concord::PruneRequest&,
-              com::vmware::concord::ConcordResponse&, bool read_only,
-              opentracing::Span& parent_span) const;
-
   kvbc::BlockId LatestBasedOnNumBlocksConfig() const;
   kvbc::BlockId LatestBasedOnTimeRangeConfig() const;
 
   kvbc::BlockId AgreedPrunableBlockId(
-      const com::vmware::concord::PruneRequest&) const;
+      const concord::messages::PruneRequest &) const;
   // Returns the last agreed prunable block ID from storage, if existing.
   std::optional<kvbc::BlockId> LastAgreedPrunableBlockId() const;
   void PersistLastAgreedPrunableBlockId(kvbc::BlockId block_id) const;
@@ -126,27 +110,24 @@ class KVBPruningSM {
   void PruneThroughLastAgreedBlockId() const;
   void PruneOnStateTransferCompletion(uint64_t checkpoint_number) const
       noexcept;
-  void PruneThroughBlockId(kvbc::BlockId block_id,
-                           com::vmware::concord::PruneResponse&) const noexcept;
 
  private:
   logging::Logger logger_;
   RSAPruningSigner signer_;
   RSAPruningVerifier verifier_;
-  const kvbc::ILocalKeyValueStorageReadOnly& ro_storage_;
-  kvbc::IBlocksAppender& blocks_appender_;
-  kvbc::IBlocksDeleter& blocks_deleter_;
-  concord::time::TimeContract* time_contract_{nullptr};
+  const kvbc::ILocalKeyValueStorageReadOnly &ro_storage_;
+  kvbc::IBlocksAppender &blocks_appender_;
+  kvbc::IBlocksDeleter &blocks_deleter_;
+  concord::time::TimeContract *time_contract_{nullptr};
   bool pruning_enabled_{false};
   std::uint64_t replica_id_{0};
   std::uint64_t num_blocks_to_keep_{0};
   std::uint32_t duration_to_keep_minutes_{0};
-  std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPublicKey>
-      operator_public_key_{nullptr};
   static const concordUtils::Sliver last_agreed_prunable_block_id_key_;
 };
 
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord
 
 #endif  // CONCORD_PRUNING_KVB_PRUNING_SM_HPP

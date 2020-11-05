@@ -814,12 +814,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         initialise_bft_metrics_aggregator(nodeConfig, logger,
                                           prometheus_for_concordbft);
 
-    // Reconfiguration execution engine
-    auto reconf_dispatcher =
-        std::make_unique<concord::reconfiguration::ReconfigurationSMDispatcher>(
-            std::make_unique<concord::reconfiguration::ReconfigurationSM>(),
-            config, prometheus_registry);
-
     ReplicaImp replica(
         icomm, replicaConfig,
         create_storage_factory(nodeConfig, logger, replicaConfig.isReadOnly),
@@ -827,6 +821,15 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
+    concord::time::TimeContract *time_ =
+        new concord::time::TimeContract(replica, config);
+    // Reconfiguration execution engine
+    auto reconf_dispatcher =
+        std::make_unique<concord::reconfiguration::ReconfigurationSMDispatcher>(
+            std::make_unique<concord::reconfiguration::ReconfigurationSM>(
+                replica, replica, replica, replica.getStateTransfer(), config,
+                nodeConfig, time_),
+            config, prometheus_registry);
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
@@ -844,7 +847,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               config, nodeConfig, replica, replica, replica,
               replica.getStateTransfer(), subscriber_list,
               std::move(reconf_dispatcher), std::move(daml_validator),
-              prometheus_registry));
+              prometheus_registry, time_));
       const auto &status =
           create_daml_genesis_block(&replica, nodeConfig, logger);
       if (status.isOK()) {

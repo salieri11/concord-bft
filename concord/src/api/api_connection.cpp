@@ -299,12 +299,6 @@ void ApiConnection::dispatch() {
   if (concordRequest_.has_time_request()) {
     handle_time_request();
   }
-  if (concordRequest_.has_latest_prunable_block_request()) {
-    handle_latest_prunable_block_request();
-  }
-  if (concordRequest_.has_prune_request()) {
-    handle_prune_request();
-  }
   if (concordRequest_.has_test_request()) {
     handle_test_request();
   }
@@ -708,49 +702,6 @@ void ApiConnection::handle_time_request() {
   } else {
     ErrorResponse *error = concordResponse_.add_error_response();
     error->set_description("Internal concord Error");
-  }
-}
-
-/**
- * Handle a request for the latest prunable block.
- */
-void ApiConnection::handle_latest_prunable_block_request() {
-  const auto request = concordRequest_.latest_prunable_block_request();
-
-  ConcordRequest internalConcRequest;
-  auto internalLatestPrunableBlockRequest =
-      internalConcRequest.mutable_latest_prunable_block_request();
-  internalLatestPrunableBlockRequest->CopyFrom(request);
-  ConcordResponse internalConcResponse;
-
-  // TODO: Assumption here is that the KVB client will accumulate different
-  // responses from replicas into LatestPrunableBlockResponse's list.
-  if (clientPool_.send_request_sync(internalConcRequest, true, *span_.get(),
-                                    internalConcResponse)) {
-    concordResponse_.MergeFrom(internalConcResponse);
-  } else {
-    concordResponse_.add_error_response()->set_description(
-        "Internal concord Error");
-  }
-}
-
-/**
- * Handle a prune request.
- */
-void ApiConnection::handle_prune_request() {
-  const auto request = concordRequest_.prune_request();
-
-  ConcordRequest internalConcRequest;
-  auto internalPruneRequest = internalConcRequest.mutable_prune_request();
-  internalPruneRequest->CopyFrom(request);
-  ConcordResponse internalConcResponse;
-
-  if (clientPool_.send_request_sync(internalConcRequest, false, *span_.get(),
-                                    internalConcResponse)) {
-    concordResponse_.MergeFrom(internalConcResponse);
-  } else {
-    concordResponse_.add_error_response()->set_description(
-        "Internal concord Error");
   }
 }
 

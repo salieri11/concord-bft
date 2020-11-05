@@ -19,8 +19,6 @@
 
 namespace concord {
 
-using com::vmware::concord::LatestPrunableBlock;
-using com::vmware::concord::PruneRequest;
 using concord::time::TimeContract;
 using concord::utils::openssl_crypto::DeserializePublicKey;
 using concordUtils::Sliver;
@@ -37,6 +35,7 @@ using std::stringstream;
 
 using namespace std::string_literals;
 
+namespace reconfiguration {
 namespace pruning {
 
 const Sliver KVBPruningSM::last_agreed_prunable_block_id_key_{
@@ -76,20 +75,6 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
             "pruning_duration_to_keep_minutes");
   }
 
-  if (pruning_enabled_) {
-    if (!config.hasValue<string>("pruning_operator_public_key")) {
-      throw invalid_argument(
-          "Cannot initialize pruning state machine: pruning has been enabled, "
-          "but no value has been provided for pruning_operator_public_key; a "
-          "public key for the operator is required if pruning is enabled.");
-    }
-
-    // Note DeserializePublicKey should handle throwing an exception in the
-    // event the operator public key is malformed or otherwise cannot be parsed.
-    operator_public_key_ = DeserializePublicKey(
-        config.getValue<string>("pruning_operator_public_key"));
-  }
-
   // Make sure that blocks from old genesis through the last agreed block are
   // pruned. That might be violated if there was a crash during pruning itself.
   // Therefore, call it every time on startup to ensure no old blocks are
@@ -103,35 +88,6 @@ KVBPruningSM::KVBPruningSM(const ILocalKeyValueStorageReadOnly& ro_storage,
       [this](uint64_t checkpoint_number) {
         PruneOnStateTransferCompletion(checkpoint_number);
       });
-}
-
-void KVBPruningSM::Handle(const com::vmware::concord::ConcordRequest& request,
-                          com::vmware::concord::ConcordResponse& response,
-                          bool read_only,
-                          opentracing::Span& parent_span) const {
-  try {
-    com::vmware::concord::ConcordResponse internal_response;
-
-    if (request.has_latest_prunable_block_request()) {
-      Handle(request.latest_prunable_block_request(), internal_response,
-             parent_span);
-    }
-
-    if (request.has_prune_request()) {
-      Handle(request.prune_request(), internal_response, read_only,
-             parent_span);
-    }
-
-    response.CopyFrom(internal_response);
-  } catch (const std::exception& e) {
-    response.add_error_response()->set_description(e.what());
-    LOG_ERROR(logger_,
-              "KVBPruningSM encountered an exception: [" << e.what() << ']');
-  } catch (...) {
-    response.add_error_response()->set_description(
-        "KVBPruningSM encountered an unknown exception");
-    LOG_ERROR(logger_, "KVBPruningSM encountered an unknown exception");
-  }
 }
 
 Sliver KVBPruningSM::LastAgreedPrunableBlockIdKey() {
@@ -164,95 +120,47 @@ static void UInt64BytesToStreamLittleEndian(const uint64_t* num,
 #endif  // if BOOST_LITTLE_ENDIAN defined/else
 }
 
-string KVBPruningSM::GetSignablePruneCommandData(
-    const PruneRequest& prune_request) {
-  // Note it is structurally possible for there to exist multiple different
-  // PruneRequest message objects that yield identical signable byte strings in
-  // the event one of those prune requests is missing expected fields or has
-  // values of unexpected length for a variable-length field; however, we
-  // currently believe it is not necessary to, say, add boolean "value present"
-  // or integer "value length" fields to the signable data we prepare here, as
-  // we believe PruneRequest messages missing expected fields or having
-  // variable-length fields of unexpected length will fail validation elsewhere.
-
-  stringstream signable_data("");
-
-  uint64_t sender = prune_request.sender();
-  UInt64BytesToStreamLittleEndian(&sender, signable_data);
-
-  for (const LatestPrunableBlock& latest_prunable_block_message :
-       prune_request.latest_prunable_block()) {
-    uint64_t replica = latest_prunable_block_message.replica();
-    UInt64BytesToStreamLittleEndian(&replica, signable_data);
-
-    uint64_t block_id = latest_prunable_block_message.block_id();
-    UInt64BytesToStreamLittleEndian(&block_id, signable_data);
-
-    const string& replica_signature = latest_prunable_block_message.signature();
-    signable_data.write(replica_signature.c_str(), replica_signature.length());
-  }
-
-  return signable_data.str();
-}
-
-void KVBPruningSM::Handle(
-    const com::vmware::concord::LatestPrunableBlockRequest& request,
-    com::vmware::concord::ConcordResponse& concord_response,
+bool KVBPruningSM::Handle(
+    const concord::messages::LatestPrunableBlockRequest& request,
+    concord::messages::LatestPrunableBlock& latest_prunable_block,
     opentracing::Span& parent_span) const {
   auto latest_prunable_block_span = opentracing::Tracer::Global()->StartSpan(
       "latest_prunable_block_request",
       {opentracing::ChildOf(&parent_span.context())});
 
-  auto response = concord_response.mutable_latest_prunable_block_response();
-  auto block_list = response->mutable_block();
-  auto block = block_list->Add();
-  block->set_replica(replica_id_);
-
   // If pruning is disabled, return 0. Otherwise, be conservative and prune the
   // smaller block range.
+
   const auto latest_prunable_block_id =
       pruning_enabled_ ? std::min(LatestBasedOnNumBlocksConfig(),
                                   LatestBasedOnTimeRangeConfig())
                        : 0;
-  block->set_block_id(latest_prunable_block_id);
-  signer_.Sign(*block);
+  latest_prunable_block.replica = replica_id_;
+  latest_prunable_block.block_id = latest_prunable_block_id;
+  signer_.Sign(latest_prunable_block);
+  return true;
 }
 
-void KVBPruningSM::Handle(
-    const com::vmware::concord::PruneRequest& request,
-    com::vmware::concord::ConcordResponse& concord_response, bool read_only,
-    opentracing::Span& parent_span) const {
+bool KVBPruningSM::Handle(const concord::messages::PruneRequest& request,
+                          bool read_only,
+                          opentracing::Span& parent_span) const {
   auto prune_span = opentracing::Tracer::Global()->StartSpan(
       "prune_request", {opentracing::ChildOf(&parent_span.context())});
 
   if (read_only) {
     LOG_WARN(logger_,
              "KVBPruningSM ignoring PruneRequest in a read-only command");
-    return;
+    return false;
   }
 
   if (!pruning_enabled_) {
     const auto msg =
         "KVBPruningSM pruning is disabled, returning an error on PruneRequest";
     LOG_WARN(logger_, msg);
-    concord_response.add_error_response()->set_description(msg);
-    return;
+    return false;
   }
 
-  const auto sender =
-      request.has_sender() ? request.sender() : decltype(request.sender()){0};
-
-  if (!request.has_signature() ||
-      !operator_public_key_->Verify(GetSignablePruneCommandData(request),
-                                    request.signature())) {
-    LOG_WARN(logger_,
-             "KVBPruingSM failed to verify PruneRequest from principal_id "
-                 << sender
-                 << " on the grounds that it did not have a verifiable "
-                    "legitimate signature from an/the operator authorized "
-                    "to issue a pruning command.");
-    return;
-  }
+  const auto sender = request.sender;
 
   if (!verifier_.Verify(request)) {
     LOG_WARN(
@@ -264,7 +172,7 @@ void KVBPruningSM::Handle(
                "on the grounds that some non-empty subset of those "
                "LatestPrunableBlock messages did not bear correct signatures "
                "from the claimed replicas.");
-    return;
+    return false;
   }
 
   const auto latest_prunable_block_id = AgreedPrunableBlockId(request);
@@ -272,8 +180,9 @@ void KVBPruningSM::Handle(
   // Rationale is that we want to be able to pick up in case of a crash.
   PersistLastAgreedPrunableBlockId(latest_prunable_block_id);
   // Execute actual pruning.
-  PruneThroughBlockId(latest_prunable_block_id,
-                      *concord_response.mutable_prune_response());
+
+  PruneThroughBlockId(latest_prunable_block_id);
+  return true;
 }
 
 BlockId KVBPruningSM::LatestBasedOnNumBlocksConfig() const {
@@ -356,16 +265,16 @@ BlockId KVBPruningSM::LatestBasedOnTimeRangeConfig() const {
 }
 
 kvbc::BlockId KVBPruningSM::AgreedPrunableBlockId(
-    const com::vmware::concord::PruneRequest& prune_request) const {
-  const auto latest_prunable_blocks = prune_request.latest_prunable_block();
+    const concord::messages::PruneRequest& prune_request) const {
+  const auto latest_prunable_blocks = prune_request.latest_prunable_block;
   const auto begin = std::cbegin(latest_prunable_blocks);
   const auto end = std::cend(latest_prunable_blocks);
   ConcordAssertNE(begin, end);
   return std::min_element(begin, end,
                           [](const auto& a, const auto& b) {
-                            return (a.block_id() < b.block_id());
+                            return (a.block_id < b.block_id);
                           })
-      ->block_id();
+      ->block_id;
 }
 
 std::optional<BlockId> KVBPruningSM::LastAgreedPrunableBlockId() const {
@@ -434,25 +343,6 @@ void KVBPruningSM::PruneOnStateTransferCompletion(uint64_t) const noexcept {
   }
 }
 
-void KVBPruningSM::PruneThroughBlockId(
-    BlockId block_id, com::vmware::concord::PruneResponse& prune_response) const
-    noexcept {
-  try {
-    PruneThroughBlockId(block_id);
-    prune_response.set_ok(true);
-  } catch (const std::exception& e) {
-    const auto msg =
-        "KVBPruningSM failed to prune with an exception: "s + e.what();
-    LOG_ERROR(logger_, msg);
-    prune_response.set_ok(false);
-    prune_response.set_error_msg(msg);
-  } catch (...) {
-    const auto msg = "KVBPruningSM failed to prune with an exception";
-    LOG_ERROR(logger_, msg);
-    prune_response.set_ok(false);
-    prune_response.set_error_msg(msg);
-  }
-}
-
 }  // namespace pruning
+}  // namespace reconfiguration
 }  // namespace concord

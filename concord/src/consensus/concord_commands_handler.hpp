@@ -15,7 +15,6 @@
 #include "concord.pb.h"
 #include "db_interfaces.h"
 #include "kv_types.hpp"
-#include "pruning/kvb_pruning_sm.hpp"
 #include "reconfiguration/ireconfiguration.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
@@ -90,7 +89,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::shared_ptr<bftEngine::ControlStateManager> controlStateManager_;
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
-  std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
 
  public:
   ConcordCommandsHandler(

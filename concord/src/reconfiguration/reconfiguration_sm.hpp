@@ -12,6 +12,13 @@ namespace reconfiguration {
 
 class ReconfigurationSM : public ReconfigurationSMOpen {
  public:
+  ReconfigurationSM(const kvbc::ILocalKeyValueStorageReadOnly&,
+                    kvbc::IBlocksAppender&, kvbc::IBlocksDeleter&,
+                    bftEngine::IStateTransfer&,
+                    const config::ConcordConfiguration& config,
+                    const config::ConcordConfiguration& node_config,
+                    concord::time::TimeContract*);
+  ReconfigurationSM() = default;
   // Use WedgeCommand handler from parent class but implement the others
   bool handle(const concord::messages::GetVersionCommand&) override;
   bool handle(const concord::messages::DownloadCommand&) override;

@@ -21,9 +21,9 @@
 #include "bftclient/bft_client.h"
 #include "communication/CommDefs.hpp"
 #include "communication/CommFactory.hpp"
-#include "kvstream.h"
-
+#include "concord.cmf.hpp"
 #include "config.h"
+#include "kvstream.h"
 #include "operations.hpp"
 
 using namespace httplib;
@@ -118,17 +118,22 @@ void startServer(concord::op::Operations& ops) {
           ops.WedgeStatus(std::chrono::seconds(timeout));
       json j;
       for (auto& rsi : result.rsis) {
+        concord::messages::WedgeResponse wedge_response;
+        auto& data = std::get<1>(rsi).data();
+        concord::messages::deserialize(
+            std::vector<uint8_t>(data.begin(), data.end()), wedge_response);
         j[std::to_string(std::get<0>(rsi).val)] =
-            std::get<1>(rsi).wedge_response().stopped() ? "true" : "false";
+            wedge_response.stopped ? "true" : "false";
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running wedge status command");
     });
   } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Get: "
-                 "\"/concord/wedge/status\" "
-                 "exception message: "
-              << e.what() << std::endl;
+    LOG_ERROR(logger,
+              "An exception occurred while trying to svr.Get: "
+              "\"/concord/wedge/status\" "
+              "exception message: "
+                  << e.what());
   }
   try {
     svr.Put("/concord/wedge/stop", [&ops, &logger](const Request& req,
@@ -150,10 +155,11 @@ void startServer(concord::op::Operations& ops) {
       LOG_INFO(logger, "done running wedge stop command");
     });
   } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Put: "
-                 "\"/concord/wedge/stop\" "
-                 "exception message: "
-              << e.what() << std::endl;
+    LOG_ERROR(logger,
+              "An exception occurred while trying to svr.Put: "
+              "\"/concord/wedge/stop\" "
+              "exception message: "
+                  << e.what());
   }
 
   // TODO: Make this part of operator config file?

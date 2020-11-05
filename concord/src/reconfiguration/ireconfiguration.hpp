@@ -4,10 +4,16 @@
 #define CONCORD_RECONFIGURATION_IRECONFIGURATION_HPP_
 
 #include <opentracing/tracer.h>
+#include "IStateTransfer.hpp"
 #include "bftengine/ControlStateManager.hpp"
 #include "concord.cmf.hpp"
 #include "concord.pb.h"
 #include "concord_control_handler.hpp"
+#include "db_interfaces.h"
+#include "kv_types.hpp"
+#include "sliver.hpp"
+#include "time/time_contract.hpp"
+#include "utils/openssl_crypto_utils.hpp"
 
 namespace concord {
 namespace reconfiguration {
@@ -20,15 +26,19 @@ class IReconfigurationHandler {
   virtual ~IReconfigurationHandler() {}
 
   // Message handler
-  virtual bool handle(
-      const concord::messages::WedgeCommand& cmd, uint64_t sequence_num,
-      bool readOnly,
-      com::vmware::concord::ConcordReplicaSpecificInfoResponse& rsi_response,
-      opentracing::Span& parent_span) = 0;
+  virtual bool handle(const concord::messages::WedgeCommand& cmd,
+                      uint64_t sequence_num, bool readOnly,
+                      concord::messages::WedgeResponse& response_,
+                      opentracing::Span& parent_span) = 0;
   virtual bool handle(const concord::messages::GetVersionCommand&) = 0;
   virtual bool handle(const concord::messages::DownloadCommand&) = 0;
   virtual bool handle(const concord::messages::UpgradeCommand&) = 0;
-
+  virtual bool handle(const concord::messages::LatestPrunableBlockRequest&,
+                      concord::messages::LatestPrunableBlock&, bool readOnly,
+                      opentracing::Span& parent_span) = 0;
+  virtual bool handle(const concord::messages::PruneRequest&,
+                      std::string& ret_data, bool read_only,
+                      opentracing::Span& parent_span) = 0;
   // The reconfiguration state machine can communicate with the BFT engine via
   // the control state manager. The dipatcher will call this function.
   virtual void setControlStateManager(
