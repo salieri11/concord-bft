@@ -39,7 +39,7 @@ class DeploymentParams:
     num_replicas: int
     num_clients: int
     num_client_groups: int  # By default, the number of client groups is 0
-    deployment_properties: str # String containing key-value pairs for
+    deployment_properties: str  # String containing key-value pairs for
 
 
 @pytest.fixture
@@ -336,6 +336,7 @@ def validate_blockchain_location(location):
         raise Exception("Unsupported location to deploy blockchain: {}".format(blockchain_location))
     return blockchain_location
 
+
 def validate_blockchain_type(bc_type):
     """
     Helper method to get a valid location for Persephone Tests
@@ -627,6 +628,13 @@ def verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_typ
             break  # break out of node in node_info_list for-loop
         else:
             log.info("Docker containers verified on {}".format(ip))
+            log.info("Verifying second disk on {}".format(ip))
+            # 1.0 defaults to adding disk to its own secondary mount point
+            status, error_msg = check_disk_addition(ip, node)
+
+            if not status:
+                break  # break out of node in node_info_list for-loop
+
             if idx == len(node_info_list) - 1:
                 log.info("Docker containers verified on all nodes")
                 status = True
@@ -706,6 +714,52 @@ def parse_agent_logs(ip, node):
             break
 
     return '\n'.join(error_lines)
+
+
+def check_disk_addition(ip, node, is_primary_mount=False):
+    """
+    Checks whether the second disk was added correctly and the bindings are setup correctly
+    :param ip: IP of the node
+    :param node: Node for which disk needs to be checked
+    :param is_primary_mount: Whether the disk is added to a primary mount. False by default in 1.0.
+    :return: True/False and error message
+    """
+    command_lsblk = "lsblk /dev/sdb"
+    must_not_contain = "lsblk: /dev/sdb: not a block device"
+    output_lsblk = helper.ssh_connect(ip, node.username, node.password, command_lsblk)
+    status_lsblk = False
+    status_docker_inspect = False
+    if must_not_contain in output_lsblk:
+        error_msg = "Second disk has not been added, since /dev/sdb does not exist"
+        return status_lsblk, error_msg
+
+    mount_point_primary = "vg0-data"
+    mount_point_secondary = "/mnt/data"
+    rocksdb_binding_primary = "/config/concord/rocksdbdata:/concord/rocksdbdata"
+    rocksdb_binding_secondary = "/mnt/data/rocksdbdata:/concord/rocksdbdata"
+    indexdb_binding_primary = "/config/daml-index-db/db:/var/lib/postgresql/data"
+    indexdb_binding_secondary = "/mnt/data/db:/var/lib/postgresql/data"
+
+    if node.node_type == helper.NodeType.CLIENT:
+        command_docker_inspect = "docker inspect daml_index_db"
+        binding = indexdb_binding_primary if is_primary_mount else indexdb_binding_secondary
+    else:
+        command_docker_inspect = "docker inspect concord"
+        binding = rocksdb_binding_primary if is_primary_mount else rocksdb_binding_secondary
+
+    output_docker_inspect = helper.ssh_connect(ip, node.username, node.password, command_docker_inspect,
+                                               log_response=False)
+    mount_point = mount_point_primary if is_primary_mount else mount_point_secondary
+    error_msg = "Expected mount point '{}' or binding '{}' does not exist".format(mount_point, binding)
+
+    if mount_point in output_lsblk:
+        log.info("Mount point '{}' found in output of '{}'".format(mount_point, command_lsblk))
+        status_lsblk = True
+    if binding in output_docker_inspect:
+        log.info("Binding '{}' found in output of '{}'".format(binding, command_docker_inspect))
+        status_docker_inspect = True
+
+    return status_lsblk and status_docker_inspect, error_msg
 
 
 def verify_ethrpc_block_0(fxHermesRunSettings, ps_helper, ip, username, password, file_root, deployment_session_id):
