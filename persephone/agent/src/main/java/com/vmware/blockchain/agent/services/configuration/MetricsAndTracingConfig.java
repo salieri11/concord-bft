@@ -42,7 +42,10 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
             List.of("REPORTER_TCHANNEL_HOST_PORT=wavefront-proxy:14267",
                     "REPORTER_TYPE=tchannel")),
     TELEGRAF("telegraf",
-            List.of(new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090))),
+            List.of(
+                    new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090)),
+                    new PortBinding(Ports.Binding.bindPort(9273), ExposedPort.tcp(9273))
+            ),
             List.of(Bind.parse("/config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf"),
                     Bind.parse("/var/run/docker.sock:/var/run/docker.sock:ro"),
                     Bind.parse("/mnt:/hostfs/mnt:ro"),

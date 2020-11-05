@@ -191,6 +191,8 @@ message NodeProperty {
         TLS_PEM = 21;
         TLS_CRT = 22;
         TLS_CACRT = 23;
+        TELEGRAF_USERNAME = 24;
+        TELEGRAF_PASSWORD = 25;
     }
 
     Name name = 1;
