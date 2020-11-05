@@ -20,6 +20,7 @@
 #include <atomic>
 #include <random>
 #include <iomanip>
+#include <unordered_map>
 
 using namespace std;
 using namespace concord::kvbc;
@@ -28,7 +29,7 @@ using namespace concord::kvbc::v2MerkleTree;
 using namespace concordUtils;
 
 uint num_of_reader_threads = 4;
-atomic<uint> num_of_requests = 100000;
+atomic<uint> num_of_requests = 10000;
 atomic<uint> curr_request = 0;
 
 uint dataset_size = num_of_requests / 10;
@@ -49,6 +50,7 @@ uint reader_sleep_milli = 0;
 
 bool check_output = true;
 
+template <typename T>
 class Reader {
  private:
   Histogram h;
@@ -56,9 +58,13 @@ class Reader {
   bool done = false;
   uint32_t read_count = 0;
   uint32_t read_size = 0;
+  uint reader_id;
+  T on_read_func = nullptr;
 
  public:
-  Reader(IStorageFactory::DatabaseSet *dbset) : dbset_ptr{dbset} { h.Clear(); }
+  Reader(IStorageFactory::DatabaseSet *dbset, uint &id, T &&on_read) : dbset_ptr{dbset}, reader_id{id}, on_read_func{on_read} {
+    h.Clear();
+  }
 
   void stop() { done = true; }
 
@@ -96,6 +102,9 @@ class Reader {
         read_size += read_values[indices[i]].length();
       }
 
+      if (on_read_func) {
+        on_read_func();
+      }
       if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
     }
   }
@@ -155,6 +164,95 @@ void create_db(const IStorageFactory::DatabaseSet *dbset) {
   }
 }
 
+template <typename T>
+void collect_and_wait(vector<T> &workers, vector<thread> &threads,
+                      Histogram &read_hist, uint64_t &out_read_count, uint64_t &out_read_size) {
+  for (auto &w : workers) {
+    w.stop();
+    read_hist.Merge(w.get_histogram());
+    auto sizes = w.get_sizes();
+    out_read_count += sizes.first;
+    out_read_size += sizes.second;
+  }
+  for (auto &t : threads) t.join();
+}
+
+void do_writes(Histogram &writer_hist, IStorageFactory::DatabaseSet &dbset, uint64_t &out_write_size,
+               function<void()> &&wait_before = nullptr) {
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, dataset_size);
+  SetOfKeyValuePairs write_batch;
+  while (curr_request < num_of_requests) {
+    uint ind = distribution(generator);
+    write_batch.clear();
+    for (uint i = ind, j = 0; j < write_kv_count; ++j, ++i) {
+      if (i == dataset_size) i = 0;
+      write_batch[write_keys[i]] = write_values[i];
+      out_write_size += write_values[i].length();
+    }
+
+    if(wait_before) wait_before();
+
+    auto write_start = chrono::steady_clock::now();
+    Status s = dbset.dataDBClient->multiPut(write_batch);
+    assert(s.isOK());
+    auto write_end = chrono::steady_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(write_end - write_start).count();
+    writer_hist.Add(dur);
+    curr_request++;
+  }
+}
+
+void stress_test(Histogram &write_hist, Histogram &read_hist, IStorageFactory::DatabaseSet &dbset,
+                 uint64_t &out_read_count,uint64_t &out_read_size, uint64_t &out_write_size) {
+  vector<thread> threads;
+  threads.reserve(num_of_reader_threads);
+  vector<Reader<std::function<void()>>> workers;
+  workers.reserve(num_of_reader_threads);
+  for (uint i = 0; i < num_of_reader_threads; ++i) {
+    workers.emplace_back(&dbset, i,nullptr);
+  }
+  for (auto &w : workers) {
+    threads.emplace_back(std::ref(w));
+  }
+
+  do_writes(write_hist, dbset, out_write_size);
+  collect_and_wait(workers, threads, read_hist, out_read_count, out_read_size);
+}
+
+void read_read_write_test(Histogram &write_hist, Histogram &read_hist, IStorageFactory::DatabaseSet &dbset,
+                          uint64_t &out_read_count,uint64_t &out_read_size, uint64_t &out_write_size) {
+  unordered_map<uint, uint64_t> read_count; // reader id -> read done count
+  vector<thread> threads;
+  threads.reserve(num_of_reader_threads);
+  vector<Reader<std::function<void()>>> workers;
+  workers.reserve(num_of_reader_threads);
+  uint signalled = 0;
+  condition_variable cv;
+  mutex m;
+  for (uint i = 0; i < num_of_reader_threads; ++i) {
+    workers.emplace_back(&dbset, i, [&signalled, &m, &cv]() mutable {
+     lock_guard<mutex> lg(m);
+     ++signalled;
+     cv.notify_all();
+    });
+  }
+  for (auto &w : workers) {
+    threads.emplace_back(std::ref(w));
+  }
+
+  do_writes(write_hist, dbset, out_write_size, [&signalled, &cv, &m]() mutable {
+    unique_lock<mutex> ul(m);
+    if(signalled < 1) {
+      cv.wait(ul, [&signalled]() {
+        return signalled > 1;
+      });
+      --signalled;
+    }
+  });
+  collect_and_wait(workers, threads, read_hist, out_read_count, out_read_size);
+}
+
 int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
@@ -166,56 +264,19 @@ int main(int argc, char **argv) {
   create_db(&dbset);
 
   Histogram writer_hist;
-  writer_hist.Clear();
-  vector<thread> threads;
-  threads.reserve(num_of_reader_threads);
-  vector<Reader> workers;
-  workers.reserve(num_of_reader_threads);
-  for (uint i = 0; i < num_of_reader_threads; ++i) {
-    workers.emplace_back(&dbset);
-  }
-  for (auto &w : workers) {
-    threads.emplace_back(std::ref(w));
-  }
-
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(0, dataset_size);
-  SetOfKeyValuePairs write_batch;
-  cout << "Started test" << endl;
-  auto start = chrono::steady_clock::now();
-  uint64_t write_size = 0;
-  while (curr_request < num_of_requests) {
-    uint ind = distribution(generator);
-    write_batch.clear();
-    for (uint i = ind, j = 0; j < write_kv_count; ++j, ++i) {
-      if (i == dataset_size) i = 0;
-      write_batch[write_keys[i]] = write_values[i];
-      write_size += write_values[i].length();
-    }
-    auto write_start = chrono::steady_clock::now();
-    Status s = dbset.dataDBClient->multiPut(write_batch);
-    assert(s.isOK());
-    auto write_end = chrono::steady_clock::now();
-    auto dur = chrono::duration_cast<chrono::microseconds>(write_end - write_start).count();
-    writer_hist.Add(dur);
-    curr_request++;
-  }
-  auto end = chrono::steady_clock::now();
-  cout << "Finished test" << endl;
-
   Histogram readers_hist;
   readers_hist.Clear();
+  writer_hist.Clear();
   uint64_t read_count = 0;
-  int read_size = 0;
-  for (auto &w : workers) {
-    w.stop();
-    readers_hist.Merge(w.get_histogram());
-    auto sizes = w.get_sizes();
-    read_count += sizes.first;
-    read_size += sizes.second;
-  }
+  uint64_t read_size = 0;
+  uint64_t write_size = 0;
 
-  for (auto &t : threads) t.join();
+  cout << "Started test" << endl;
+  auto start = chrono::steady_clock::now();
+  // stress_test(writer_hist, readers_hist, dbset, read_count, read_size, write_size);
+  read_read_write_test(writer_hist, readers_hist, dbset, read_count, read_size, write_size);
+  auto end = chrono::steady_clock::now();
+  cout << "Finished test" << endl;
 
   auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
   cout << "Test duration: " << dur << " milliseconds" << endl;
