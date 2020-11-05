@@ -7,6 +7,8 @@ package com.vmware.blockchain.configuration.generateconfig;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_PWD;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_URL;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_USER;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_PASSWORD;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_USERNAME;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -74,6 +76,21 @@ public class TelegrafConfigUtil {
                 .replace("$BLOCKCHAIN_ID", blockchainId)
                 .replace("$CONSORTIUM_ID", consortiumId)
                 .replace("$URL", "[" + prometheusUrls + "]");
+
+        // Enable/disable telegraf prometheus client output plugin
+        String telegrafUsername = nodeInfo.getProperties().getValuesOrDefault(TELEGRAF_USERNAME.name(), null);
+        String telegrafPassword = nodeInfo.getProperties().getValuesOrDefault(TELEGRAF_PASSWORD.name(), null);
+
+        if (telegrafUsername == null) {
+            log.info("telegraf username/password not available, not enabling telegraf prometheus client");
+            content = content.replace("$ENABLE_TELEGRAF_PULL", "#");
+        } else {
+            log.info("Enabling telegraf prometheus client, setting telegraf user name to: {}", telegrafUsername);
+            content = content
+                    .replace("$ENABLE_TELEGRAF_PULL", "")
+                    .replace("$TELEGRAF_USERNAME", telegrafUsername)
+                    .replace("$TELEGRAF_PASSWORD", telegrafPassword);
+        }
 
         String postgressPluginStr = "#[[inputs.postgresql]]";
         String indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";

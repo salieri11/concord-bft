@@ -161,4 +161,31 @@ public class TelegrafConfigUtilTest {
     public void testPaths() {
         Assertions.assertThat(Constants.TELEGRAF_CONFIG_PATH.equals("/telegraf/telegraf.conf")).isTrue();
     }
+
+    @Test
+    public void testEnablePrometheusOutputPlugin() throws IOException {
+
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(
+                        NodeProperty.Name.TELEGRAF_USERNAME.toString(), "telegraf",
+                        NodeProperty.Name.TELEGRAF_PASSWORD.toString(), "ahoy hoy!!!")
+                )
+                .build();
+
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1").setProperties(properties).build();
+
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_EXECUTION_ENGINE,
+                ServiceType.CONCORD,
+                ServiceType.GENERIC);
+
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                             "unitTest", nodeInfo, servicesList);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafEnablePullPrometheusClient.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+        Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
+    }
 }
