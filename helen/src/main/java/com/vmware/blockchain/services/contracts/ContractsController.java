@@ -6,9 +6,9 @@ package com.vmware.blockchain.services.contracts;
 
 import static com.vmware.blockchain.services.ethereum.ApiHelper.errorJson;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,7 +63,7 @@ public class ContractsController extends ConcordServlet {
     private static final int DEFAULT_RUNS = 200;
     private final String jsonRpc;
     private ContractService contractService;
-    private Random random = new Random();
+    private SecureRandom random = new SecureRandom();
     private EthDispatcher ethDispatcher;
     private AuthHelper authHelper;
     @Value("${compilerService.url}")
