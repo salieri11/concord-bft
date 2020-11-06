@@ -204,7 +204,6 @@ std::unique_ptr<ICommunication> initComm(const concord::op::Config& config) {
 int main(int argc, char** argv) {
   auto logger = logging::getLogger("concord.operator");
   auto config = concord::op::Config::parse(CONFIG_FILE);
-  auto comm = initComm(config);
   bft::client::Client client(initComm(config), config.client_config);
   concord::op::Operations ops(config, client);
   try {
