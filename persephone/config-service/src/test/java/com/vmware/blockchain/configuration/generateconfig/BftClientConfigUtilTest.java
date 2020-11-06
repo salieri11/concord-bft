@@ -6,7 +6,6 @@ package com.vmware.blockchain.configuration.generateconfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +13,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
+import com.vmware.blockchain.configuration.util.BlockchainClient;
+import com.vmware.blockchain.configuration.util.BlockchainNodeList;
+import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 
 /**
  * ConfigYaml Unit test configuration.
@@ -26,19 +29,19 @@ public class BftClientConfigUtilTest {
 
     @Test
     void testConfigUtilPositive() throws IOException {
-        List<String> hostIps = new ArrayList<String>();
-        hostIps.add("10.0.0.1");
-        hostIps.add("10.0.0.2");
-        hostIps.add("10.0.0.3");
-        hostIps.add("10.0.0.4");
+        List<BlockchainReplica> replicas =
+                List.of(new BlockchainReplica("ID1", "10.0.0.1"),
+                        new BlockchainReplica("ID2", "10.0.0.2"),
+                        new BlockchainReplica("ID3", "10.0.0.3"),
+                        new BlockchainReplica("ID4", "10.0.0.4"));
+        List<BlockchainClient> clients =
+                List.of(new BlockchainClient("ID5", "10.0.0.5"),
+                        new BlockchainClient("ID6", "10.0.0.6"));
+        BlockchainNodeList nodeList = BlockchainNodeList.builder().replicas(replicas).clients(clients).build();
 
-        List<String> participantIps = new ArrayList<String>();
-        participantIps.add("10.0.0.5");
-        participantIps.add("10.0.0.6");
-
-        BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml", sessionId);
-
-        var actualDump = util.generateConfigYaml(hostIps, participantIps, filePath, 15);
+        BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml",
+                                                           sessionId);
+        var actualDump = util.generateConfigYaml(nodeList, 15, filePath);
 
         Assertions.assertThat(actualDump).isTrue();
 
@@ -55,6 +58,18 @@ public class BftClientConfigUtilTest {
         Assertions.assertThat(expected.entrySet().stream()
                 .allMatch(e -> e.getValue().equals(actual.get(e.getKey())))).isTrue();
     }
+
+    @Test
+    void testConfigUtilNegative() throws IOException {
+        BlockchainNodeList nodeList = BlockchainNodeList.builder().build();
+        BftClientConfigUtil util = new BftClientConfigUtil("BFTClientConfigTemplate.yaml",
+                                                           sessionId);
+
+        Assertions.assertThatExceptionOfType(ConfigServiceException.class)
+                .isThrownBy(() -> util.generateConfigYaml(nodeList, 15, filePath))
+                .withMessage("No Replicas available to process.");
+    }
+
 
     @Test
     void testPath() {

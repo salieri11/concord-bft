@@ -17,15 +17,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vmware.blockchain.configuration.util.BlockchainNodeList;
+import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.server.exceptions.ConfigServiceException;
+import com.vmware.blockchain.server.exceptions.ErrorCode;
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
@@ -39,9 +42,26 @@ public class BftClientConfigUtil {
 
     public int maxPrincipalId;
 
+    // Do we want to keep temporary files?
+    private boolean keepTempFiles;
+
     public BftClientConfigUtil(String bftClientConfigTemplatePath, ConfigurationSessionIdentifier sessionId) {
         this.bftClientConfigTemplatePath = bftClientConfigTemplatePath;
         this.sessionId = sessionId;
+    }
+
+    /**
+     * Constructor with keepTempFiles directive.
+     *
+     * @param bftClientConfigTemplatePath clients template path
+     * @param sessionId                   session id
+     * @param keepTempFiles               Directive to keep temporary files
+     */
+    public BftClientConfigUtil(String bftClientConfigTemplatePath, ConfigurationSessionIdentifier sessionId,
+                               boolean keepTempFiles) {
+        this.bftClientConfigTemplatePath = bftClientConfigTemplatePath;
+        this.sessionId = sessionId;
+        this.keepTempFiles = keepTempFiles;
     }
 
     /**
@@ -49,65 +69,69 @@ public class BftClientConfigUtil {
      */
     public final Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
 
-    /**
-     * Utility to generate concord config.
-     */
-    public Map<String, String> getbftClientConfig(List<String> nodeIds, List<String> hostIps,
-                                                  List<String> participantIps,
-                                                  int clientProxyPerParticipant)throws IOException {
-        try {
-            var result = new HashMap<String, String>();
 
-            var outputPath = Files.createTempDirectory(null);
+    /**
+     * Generate and get concord configuration for the blockchain.
+     *
+     * @param nodeList                  node list
+     * @param clientProxyPerParticipant number of client proxies per participant
+     * @return a map of node and configration
+     * @throws IOException during any error
+     */
+    public Map<String, String> getBftClientConfig(BlockchainNodeList nodeList, int clientProxyPerParticipant)
+            throws IOException {
+        try {
+            if (!ValidationUtil.isValid(nodeList.getReplicas())) {
+                log.error("Replicas are missing.");
+                throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE,
+                                                 "Replicas are missing.");
+            }
+            // Prefix the directory name with 'clients' so as to differentiate between clients and replicas.
+            var outputPath = Files.createTempDirectory("clients-");
+            log.info("outputPath {}", outputPath.toString());
+
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
             var configGenOutputPath = Paths.get(outputPath.toString(), "configGenOutput.txt").toString();
-
-            generateConfigYaml(hostIps, participantIps, inputYamlPath, clientProxyPerParticipant);
+            var configGenErrorPath = Paths.get(outputPath.toString(), "configGenError.txt").toString();
+            // A call to generate configuration template yaml file.
+            generateConfigYaml(nodeList, clientProxyPerParticipant, inputYamlPath);
 
             // TODO: Dependency on config-gen tool can be avoided here.
             // Config gen tool is only giving the principal ids
-            var configFuture = new ProcessBuilder("/app/conc_genconfig",
-                                                    "--configuration-input",
-                                                    inputYamlPath,
-                                                    "--report-principal-locations",
-                                                    principalsMapFile,
-                                                    "--client-conf",
-                                                    "true")
+            List<String> configCmd = ConfigUtilHelpers.getConcordGenConfigCmd().stream().collect(Collectors.toList());
+            configCmd.addAll(List.of("--configuration-input", inputYamlPath, "--report-principal-locations",
+                                     principalsMapFile, "--client-conf", "true"));
+            var configFuture = new ProcessBuilder(configCmd)
                     .directory(outputPath.toFile())
-                    .redirectError(new File(configGenOutputPath))
+                    .redirectError(new File(configGenErrorPath))
+                    .redirectOutput(new File(configGenOutputPath))
                     .start()
                     .onExit();
 
+            var result = new HashMap<String, String>();
             var work = configFuture.whenCompleteAsync((process, error) -> {
                 if (error == null) {
                     try {
-                        var principalStr = Files.readString(Path.of(principalsMapFile));
-                        if (principalStr.isBlank() || principalStr.isEmpty()) {
-                            throw new IOException("PrincipalIds are not generated by concord config. Session Id "
-                                    + sessionId);
-                        }
-
-                        TypeReference<Map<Integer, List<Integer>>> typeRef
-                                = new TypeReference<>() {};
-
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-                        var principalsMap = objectMapper.readValue(principalStr, typeRef);
+                        // Process principals file and get the maps of ids.
+                        var principalsMap = ConfigUtilHelpers.getPrincipals(principalsMapFile, sessionId);
                         principalsMap.forEach((key, value) -> nodePrincipal.putIfAbsent(key - 1, value));
 
+                        for (int num = 0; num < nodeList.getClientSize(); num++) {
+                            var path = outputPath.resolve("Participant" + num + ".config");
 
-                        for (int num = 0; num < participantIps.size(); num++) {
-                            var path = outputPath.resolve("Participant" + (num) + ".config");
                             var value = Files.readString(path);
                             if (value.isBlank() || value.isEmpty()) {
                                 throw new IOException("No configuration generated in path " + path.toString()
-                                        + " for session id " + sessionId);
+                                                      + " for session id " + sessionId);
                             }
-                            result.put(nodeIds.get(num), value);
+                            result.put(nodeList.getClients().get(num).getId(), value);
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated bft configuration. Session Id {}", sessionId, collectError);
+                    } finally {
+                        // Now that we have collected the files, we can delete the temporary directory.
+                        ConfigUtilHelpers.deleteTemporaryFiles(outputPath, keepTempFiles);
                     }
                 } else {
                     log.error("Cannot run bft config generation process. Session Id {}", sessionId, error);
@@ -125,53 +149,80 @@ public class BftClientConfigUtil {
 
     /**
      * Utility method for generating input config yaml file.
+     *
+     * @param nodeList                  nodelist
+     * @param clientProxyPerParticipant Number of client proxies per Client
+     * @param configYamlPath            Yaml file path
+     * @return True if config generation was a success, false otherwise.
      */
-    boolean generateConfigYaml(List<String> hostIps, List<String> participantIps, String configYamlPath,
-                               int clientProxyPerParticipant) {
-        if (!ConfigUtilHelpers.validateSbft(hostIps.size())) {
-            return false;
+    boolean generateConfigYaml(BlockchainNodeList nodeList, int clientProxyPerParticipant, String configYamlPath)
+            throws ConfigServiceException {
+        if (!ValidationUtil.isValid(nodeList) || !ValidationUtil.isValid(nodeList.getReplicas())) {
+            log.error("Replicas are missing.");
+            throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE,
+                                             "No Replicas available to process.");
         }
-        int clusterSize = hostIps.size();
+        if (!ConfigUtilHelpers.validateSbft(nodeList.getReplicaSize())) {
+            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_INVALID_REPLICA_SIZE_FAILURE,
+                                             "Invalid number of replicas.");
+        }
+        int clusterSize = nodeList.getReplicaSize();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateConfigYaml(hostIps, participantIps, fVal, cVal, configYamlPath, clientProxyPerParticipant);
+        return generateConfigYaml(nodeList, fVal, cVal, clientProxyPerParticipant, configYamlPath);
     }
 
     /**
      * Utility method for generating input config yaml file.
+     *
+     * @param nodeList                  nodelist
+     * @param fVal                      fVal
+     * @param cVal                      cVal
+     * @param clientProxyPerParticipant number of client proxies per client
+     * @param configYamlPath            yaml file path
+     * @return True if configuration was generated successfully, false otherwise.
      */
-    @SuppressWarnings({"unchecked"})
-    boolean generateConfigYaml(List<String> hostIp, List<String> participantIps,
-                               int fVal, int cVal, String configYamlPath,
-                               int clientProxyPerParticipant) {
+    boolean generateConfigYaml(BlockchainNodeList nodeList, int fVal, int cVal, int clientProxyPerParticipant,
+                               String configYamlPath) throws ConfigServiceException {
+        if (!ValidationUtil.isValid(nodeList) || !ValidationUtil.isValid(nodeList.getReplicas()) || !ValidationUtil
+                .isValid(configYamlPath)) {
+            log.error("Essential parameters are missing.");
+            throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE, "Invalid node list.");
+        }
 
-        var maxCommitterPrincipalId = (hostIp.size()
-                + ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER * hostIp.size()) - 1;
-        maxPrincipalId = maxCommitterPrincipalId + ((participantIps.size()
-                + clientProxyPerParticipant * participantIps.size()) - 1);
-
-        if (!ConfigUtilHelpers.validateSbft(hostIp.size(), fVal, cVal)) {
-            return false;
+        if (!ConfigUtilHelpers.validateSbft(nodeList.getReplicaSize(), fVal, cVal)) {
+            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_INVALID_REPLICA_SIZE_FAILURE,
+                                             "Invalid number of replicas.");
         }
 
         Path path = Paths.get(configYamlPath);
 
-        Yaml yaml = new Yaml();
-        Map<String, Object> configInput;
+        DumperOptions options = new DumperOptions();
+        options.setIndent(2);
+        options.setPrettyFlow(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        Yaml yaml = new Yaml(options);
+
+        Map<String, Object> configInput = null;
         try {
             configInput = yaml.load(new FileInputStream(bftClientConfigTemplatePath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
             log.warn("File {} does not exist: {}\n Using localized config yaml input template",
-                    bftClientConfigTemplatePath, e.getLocalizedMessage());
+                     bftClientConfigTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             configInput = yaml.load(classLoader.getResourceAsStream("BFTClientConfigTemplate.yaml"));
+        }
+
+        if (configInput == null) {
+            throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE,
+                                             "Configuration input file is missing.");
         }
 
         // Add generic configs
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
-        configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_PARTICIPANTS.name, participantIps.size());
+        configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_PARTICIPANTS.name, nodeList.getClientSize());
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.NODE.name);
@@ -182,12 +233,12 @@ public class BftClientConfigUtil {
 
         List resultNodes = new ArrayList();
 
-        for (String s : hostIp) {
-            replicaValues.put(ConfigUtilHelpers.ConfigProperty.REPLICA_HOST.name, s);
+        for (BlockchainReplica replica : nodeList.getReplicas()) {
+            replicaValues.put(ConfigUtilHelpers.ConfigProperty.REPLICA_HOST.name, replica.getIp());
             replicaValues.put(ConfigUtilHelpers.ConfigProperty.COMMITTER_PORT.name,
-                    ConfigUtilHelpers.DEFAULT_PORT);
+                              ConfigUtilHelpers.DEFAULT_PORT);
             nodeConfig.put(ConfigUtilHelpers.ConfigProperty.REPLICA.name,
-                    new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(replicaValues))));
+                           new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(replicaValues))));
             resultNodes.add(ConfigUtilHelpers.clone(nodeConfig));
         }
 
@@ -208,7 +259,7 @@ public class BftClientConfigUtil {
         List participantNodeRes = new ArrayList();
         Map<String, Object> participantNodeResMap = new HashMap<>();
         int counter = 1;
-        for (String ignored : participantIps) {
+        for (int i = 0; i < nodeList.getClientSize(); i++) {
             List resultClients = new ArrayList();
             var participantConfigRes = ConfigUtilHelpers.clone(participantConfig);
             participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE_HOST.name, "0.0.0.0");
@@ -217,30 +268,39 @@ public class BftClientConfigUtil {
                 var port = ConfigUtilHelpers.DEFAULT_PORT + counter + j;
                 clientPort.put(ConfigUtilHelpers.ConfigProperty.CLIENT_PORT.name, port);
                 clientValues.put(ConfigUtilHelpers.ConfigProperty.CLIENT.name,
-                        new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(clientPort))));
+                                 new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(clientPort))));
                 resultClients.add(ConfigUtilHelpers.clone(clientValues));
             }
             counter = counter + clientProxyPerParticipant;
 
             participantConfigRes.put(ConfigUtilHelpers.ConfigProperty.EXTERNAL_CLIENTS.name, resultClients);
             participantNodeResMap.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODE.name,
-                    new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(participantConfigRes))));
+                                      new ArrayList(Collections.singletonList(
+                                              ConfigUtilHelpers.clone(participantConfigRes))));
             participantNodeRes.add(ConfigUtilHelpers.clone(participantNodeResMap));
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.PARTICIPANT_NODES.name, participantNodeRes);
-        configInput.put(ConfigUtilHelpers.ConfigProperty.CLIENTS_PER_PARTICIPANT_NODE.name, clientProxyPerParticipant);
+        configInput
+                .put(ConfigUtilHelpers.ConfigProperty.CLIENTS_PER_PARTICIPANT_NODE.name, clientProxyPerParticipant);
 
+        BufferedWriter writer = null;
         try {
-            BufferedWriter writer = Files.newBufferedWriter(path);
+            writer = Files.newBufferedWriter(path);
             yaml.dump(configInput, writer);
             writer.flush();
-            writer.close();
             return true;
         } catch (IOException x) {
-            log.error("IOException: %s%n", x);
+            log.error("IOException while writing to yaml out file.", x);
             return false;
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException ioe) {
+                    log.error("Trouble closing yaml out file.", ioe);
+                }
+            }
         }
     }
-
 }
