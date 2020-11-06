@@ -256,13 +256,14 @@ def wf_api_token():
     return config_obj["dashboard"]["devops"]["wavefront"]["token"]
 
 
-def call_wavefront_chart_api(metric_query, start_epoch, end_epoch):
+def call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="m"):
     '''
     Local function to call <wavefront_url>/api/v2/chart/api
     Args:
         metric_query: Metric name along with filter parameters
         start_epoch: Start time in epoch
         end_epoch: End time in epoch
+        granularity: granularity of result data
     Returns:
         Output of API call.
     '''
@@ -270,8 +271,9 @@ def call_wavefront_chart_api(metric_query, start_epoch, end_epoch):
     wf_url = wf_url + '?q={}'.format(metric_query)
     wf_url = wf_url + '&s={}'.format(start_epoch)
     wf_url = wf_url + '&e={}'.format(end_epoch)
+    wf_url = wf_url + '&g={}'.format(granularity)
     # Below parameters are default set, if not provided.
-    wf_url = wf_url + '&g=m' + '&view=METRIC'
+    wf_url = wf_url + '&view=METRIC'
     wf_url = wf_url + '&includeObsoleteMetrics=false' + '&sorted=false'
     wf_url = wf_url + '&cached=true' + '&useRawQK=false'
     # Strict must be true, otherwise data outside start time and end time range is fetched.

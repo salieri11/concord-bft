@@ -21,6 +21,8 @@ from subprocess import check_output, CalledProcessError
 from itertools import zip_longest
 import queue
 
+from hermes.util import wavefront
+
 log = hermes_logging.getMainLogger()
 
 LocalSetupFixture = namedtuple(
@@ -31,6 +33,7 @@ COMMITTER_POWER_ON_ERROR_MSG = "Failed to power on committer node "
 COMMITTER_POWER_OFF_ERROR_MSG = "Failed to power off committer node "
 PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node "
 PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
+CHECKPOINT_ERROR_MESSAGE = "Failed to trigger new checkpoint"
 DAML_LEDGER_API_PORT = '6865'
 
 
@@ -249,6 +252,10 @@ def get_port(client_host):
     return client_port
 
 
+def get_url(client_host):
+    url = 'http://{}:{}'.format(client_host, get_port(client_host))
+    return url
+
 def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
     '''
     Function to perform sanity check after executing every test.
@@ -363,7 +370,6 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
     except Exception as excp:
         assert False, excp
 
-
 def get_block_id(ip):
     '''
     Function to get last block_id of a replica
@@ -373,17 +379,16 @@ def get_block_id(ip):
         int: Last Block ID of replica 
     '''
     username, password = helper.getNodeCredentials()
-    
+
     # Find concord-core container image
     cmd_for_container_image = 'docker images | grep -m1 concord-core'
     container_image = helper.ssh_connect(
         ip, username, password, cmd_for_container_image)
-    container_image_list = [i for i in container_image.split(" ") if i != ""] 
-    concord_core_param = container_image_list[0] + ':' + container_image_list[1] 
+    container_image_list = [i for i in container_image.split(" ") if i != ""]
+    concord_core_param = container_image_list[0] + ':' + container_image_list[1]
 
     params = "type=bind,source=/mnt/data/rocksdbdata/,target=/concord/rocksdbdata"
     tool_path = "/concord/sparse_merkle_db_editor /concord/rocksdbdata"
-
     cmd = ' '.join([params, concord_core_param, tool_path])
 
     # Find last block ID
@@ -391,10 +396,62 @@ def get_block_id(ip):
     log.info("\nFinding last block ID")
     result = helper.ssh_connect(
         ip, username, password, cmd_for_block_id)
-
-    block_id =  (result.split(': \"')[1]).split('\"')[0]
+    if ("Error" in str(result)):
+        params = "type=bind,source=/config/concord/rocksdbdata/,target=/concord/rocksdbdata"
+        cmd = ' '.join([params, concord_core_param, tool_path])
+        cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(cmd)
+        result = helper.ssh_connect(
+            ip, username, password, cmd_for_block_id)
+    block_id = (result.split(': \"')[1]).split('\"')[0]
     log.info("Block ID : {}".format(block_id))
     return int(block_id)
+
+def trigger_checkpoint(bc_id, client_host):
+    '''
+    Function to trigger multiple checkpoints by sending daml requests
+    Args:
+        bc_id: ID of Blockchain
+        client_host: Client host IP
+    Returns:
+        boolean: True or False if checkpoint was triggered
+    '''
+    no_of_txns_for_checkpoint, wait_time, duration= 170, 0, 200
+    checkpoint_before_txns = get_last_checkpoint(bc_id)
+    log.info("Checkpoint before transactions: {}".format(checkpoint_before_txns))
+    continuous_daml_request_submission(client_host,get_port(client_host), no_of_txns_for_checkpoint, wait_time, duration)
+    checkpoint_after_txns = get_last_checkpoint(bc_id)
+    log.info("Checkpoint after transactions: {}".format(checkpoint_after_txns))
+    if checkpoint_after_txns > checkpoint_before_txns:
+        return True
+    else:
+        return False
+
+
+def get_last_checkpoint(bc_id):
+    '''
+    Function to get last generated checkpoint from wavefront API metrics
+    Args:
+        bc_id: ID of Blockchain
+    Returns:
+        int: Last checkpoint
+    '''
+    start_epoch = (datetime.now()).strftime('%s')
+    end_epoch = (datetime.now() + timedelta(seconds=20)).strftime('%s')
+    metric_name = "vmware.blockchain.concord.concordbft.last.stored.checkpoint.gauge"
+    metric_query = "ts({}".format(metric_name)
+    metric_query = metric_query + ",blockchain={})".format(bc_id)
+    log.info("Metric Query to Wavefront API: {}".format(metric_query))
+    log.info("Start epoch time: {} ; End epoch time: {}".format(start_epoch, end_epoch))
+    time.sleep(30)
+    str_output = wavefront.call_wavefront_chart_api(
+        metric_query, start_epoch, end_epoch, granularity="s")
+    output = json.loads(str_output)
+    checkpoints_info  = output["timeseries"][0]["data"]
+    if checkpoints_info:
+        last_checkpoint = checkpoints_info[-1][1]
+    else:
+        last_checkpoint = -1
+    return last_checkpoint
 
 
 @describe("daml test for single transaction without any interruption")
@@ -611,27 +668,28 @@ def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRu
 
 
 @describe("fault tolerance - recovery after checkpoints (network failure), f nodes powered off/on")
-def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
+def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify below using DAML tool.
     - Connect to a blockchain network.
-    - Submit valid requests enough to trigger multiple checkpoints. ** Will be done later **
+    - Submit valid requests enough to trigger multiple checkpoints.
     - Disable the network interface on all replicas.
     - Enable the network interface on all replicas.
     - Submit a small number of sequential client requests
     - Verify that new requests are processed correctly.
-    - Submit and verify requests for power off/on of f committer nodes as well.    
+    - Submit and verify requests for power off/on of f committer nodes as well.
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: Blockchain fixture
     '''
     for client_host in fxLocalSetup.client_hosts:
         try:
             install_sdk_deploy_daml(client_host)
+            url = get_url(client_host)
 
-            # Create & verify transactions
-            assert make_daml_request_in_thread(
-                reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
+            # Send enough transactions to trigger Checkpoint
+            assert trigger_checkpoint(fxBlockchain.blockchainId, client_host), CHECKPOINT_ERROR_MESSAGE
 
             # Disconnect network of all committer nodes
             custom_params = {
@@ -660,9 +718,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
                         concord_host)
 
             # Create & verify transactions after disconnect/reconnect of all committer nodes
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "after disconnect/reconnect of all committer nodes"
-
+            assert simple_request(url, 1, 0), PARTICIPANT_GENERIC_ERROR_MSG
             log.info(
                 "\nTransaction successful after reconnecting all committer nodes")
 
@@ -678,9 +734,8 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
 
             # Create & verify transactions after powering off f committer nodes
             time.sleep(20)
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "after powering off f committer nodes"
 
+            assert simple_request(url, 1, 0), PARTICIPANT_GENERIC_ERROR_MSG
             log.info(
                 "\nTransaction successful after powering off f committer nodes")
 
@@ -694,9 +749,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings):
                     COMMITTER_POWER_ON_ERROR_MSG + "[{}]".format(
                         concord_host)
 
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "after powering on f committer nodes"
-
+            assert simple_request(url, 1, 0), PARTICIPANT_GENERIC_ERROR_MSG
         except Exception as excp:
             assert False, excp
 
@@ -1099,7 +1152,6 @@ def test_temporary_lack_of_quorum_after_view_change\
         except Exception as excp:
             assert False, excp
 
-
 @describe("fault tolerance - state transfer coinciding with view change (f>=2)")
 def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -1116,6 +1168,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
     Args:
         fxLocalSetup: Local fixture
         fxHermesRunSettings: Hermes command line arguments
+        fxBlockchain: Blockchain fixture
     '''
 
     if fxLocalSetup.f_count < 2:
@@ -1124,8 +1177,6 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
 
     for client_host in fxLocalSetup.client_hosts:
         try:
-            no_of_txns_for_checkpoint = 300
-
             # Step 1 : Deploy DAML &  find primary replica
             install_sdk_deploy_daml(client_host)
 
@@ -1142,31 +1193,31 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
 
             # Step 2 : Stop one non-primary replica
             assert intr_helper.stop_container(
-                non_primary_replicas[0], container_name), "Failed to stop committer node [{}]".format(non_primary_replicas[0])
+                non_primary_replicas[0], container_name), "Failed to stop committer node [{}]".format(
+                non_primary_replicas[0])
 
             # Step 3 : Find block id of stopped replica
             init_block_id = get_block_id(non_primary_replicas[0])
 
-            # Step 4 : Start the daml transactions
-            thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                     args=(client_host, get_port(client_host), no_of_txns_for_checkpoint, 0, 300))
-            thread_daml_txn.start()
-            thread_daml_txn.join()
-            
+            # Step 4 : Start the daml transactions and trigger checkpoint
+            assert trigger_checkpoint(fxBlockchain.blockchainId, client_host), CHECKPOINT_ERROR_MESSAGE
+
             # Step 5 : Restart the stopped replica
             assert intr_helper.start_container(
-                non_primary_replicas[0], container_name), "Failed to start committer node [{}]".format(non_primary_replicas[0])
+                non_primary_replicas[0], container_name), "Failed to start committer node [{}]".format(
+                non_primary_replicas[0])
 
             # Step 6 : Stopping primary to get block ID
             assert intr_helper.stop_container(
                 init_primary_rip, container_name, 30), "Failed to stop primary [{}]".format(init_primary_rip)
-            
+
             # Step 7 : Find block id of stopped primary replica
             p_block_id = get_block_id(init_primary_rip)
 
             # Step 8 : Start new thread for State transfer check
             que_st_check = queue.Queue()
-            thread_st_check = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6: q.put(intr_helper.sleep_and_check(arg1, arg2, arg3, arg4, arg5, arg6)),
+            thread_st_check = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6: q.put(
+                intr_helper.sleep_and_check(arg1, arg2, arg3, arg4, arg5, arg6)),
                                      args=(que_st_check, 0, 30, 420, init_block_id, p_block_id, non_primary_replicas))
             thread_st_check.start()
 
@@ -1196,7 +1247,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
                 non_primary_replicas, container_name, fxLocalSetup.f_count - 1), "Error while stopping replica"
 
             # Step 13 :  Submit & verify Daml requests after state transfer
-            url = 'http://{}:{}'.format(client_host, get_port(client_host))
+            url = get_url(client_host)
             assert simple_request(url, 1, 0), PARTICIPANT_GENERIC_ERROR_MSG
 
         except Exception as excp:

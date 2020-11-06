@@ -769,44 +769,41 @@ def check_replica_block_data(start_block, end_block, replica_ips):
    '''
    block_data = []
    block_data_length = []
-
    log.info("Checking data from {} to {}".format(
       start_block, end_block))
-
    tool_path = "/concord/conc_rocksdb_adp"
    path_param = "-path=/concord/rocksdbdata"
    op_param = "-op=getDigest"
    username, password = helper.getNodeCredentials()
-
    try:
       for ip in replica_ips:
          p_param = "-p={0}:{1}".format(start_block,end_block)
          cmd = ' '.join([tool_path, path_param, op_param, p_param])
-
          # Docker command for getting block_data_output
          container = 'concord'
          final_cmd = 'docker exec {0} {1}'.format(container, cmd)
          block_data_output = helper.ssh_connect(
                ip, username, password, final_cmd)
-
-         # Check block_data_output is valid
-         assert "Total size" in str(block_data_output), str(block_data_output)
-
-         block_data.append(block_data_output)
-         length = int(str(block_data_output).split(":")[
-               1].replace("\\n", "").replace("'", ""))
-
-         if length == 0:
-            log.error("Blocks length 0")
+         if not "Total size" in str(block_data_output):
+            log.info("Block data not found for : {}. Starting it.".format(ip))
+            start_container(ip, container, 60)
             return False
+         else:
+            block_data.append(str(block_data_output).split("-------", 1)[1])
+            length = int(str(block_data_output).split("Total size :")[
+                            1].replace("\\n", "").replace("'", ""))
          log.info("Data length from replica {0} is {1} bytes".format(ip, length))
          block_data_length.append(length)
-
       if all(i == block_data_length[0] for i in block_data_length):
+         log.info("Block length is same")
          if all(i == block_data[0] for i in block_data):
-            return True                   
-         return False    
+            log.info("Block data is same")
+            return True
+         log.info("Block data is not same")
+         return False
       else:
+         log.info("Block length is not same")
          return False
    except Exception as excp:
       return excp
+

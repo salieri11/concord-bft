@@ -264,7 +264,7 @@
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py --blockchainLocation onprem --numReplicas 7 --blockchainType daml'
     testModule: 'suites/daml_regression_tests.py'
 - PreexecutionSystemTests:
     enabled: false
