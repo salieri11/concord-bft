@@ -18,6 +18,6 @@ public class OperationTestConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests().antMatchers("/api/authtest").permitAll();
+        http.authorizeRequests().mvcMatchers("/api/authtest").permitAll();
     }
 }
