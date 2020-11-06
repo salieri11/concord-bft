@@ -18,12 +18,12 @@ bool ReconfigurationSM::handle(
 }
 
 bool ReconfigurationSM::handle(const concord::messages::DownloadCommand& cmd) {
-  LOG_INFO(logger_, "In DownloadCommand handler");
+  LOG_INFO(logger_, "In DownloadCommand handler " << cmd.version);
   return true;
 }
 
 bool ReconfigurationSM::handle(const concord::messages::UpgradeCommand& cmd) {
-  LOG_INFO(logger_, "In UpgradeCommand handler");
+  LOG_INFO(logger_, "In UpgradeCommand handler " << cmd.version);
   return true;
 }
 ReconfigurationSM::ReconfigurationSM(

@@ -3,7 +3,7 @@ Msg GetVersionCommand 2 {
 }
 
 Msg DownloadCommand 3 {
-  bytes place_holder
+  string version
 }
 
 Msg WedgeCommand 4 {
@@ -11,7 +11,7 @@ Msg WedgeCommand 4 {
 }
 
 Msg UpgradeCommand 5 {
-  bytes place_holder
+  string version
 }
 
 Msg TestCommand 6 {

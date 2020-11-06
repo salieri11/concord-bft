@@ -84,12 +84,14 @@ concord::op::Response concord::op::Operations::initiateWedge(
 }
 
 concord::op::Response concord::op::Operations::initiateSwDownload(
-    std::chrono::milliseconds timeout) {
+    std::chrono::milliseconds timeout, std::string version) {
   auto span = opentracing::Tracer::Global()->StartSpan(
       "OperatorDownloadSwVersionCommand");
   // Prepare the reconfiguration request
   concord::messages::ReconfigurationRequest rreq;
-  rreq.command = concord::messages::DownloadCommand{};
+  auto download_cmd = concord::messages::DownloadCommand{};
+  download_cmd.version = version;
+  rreq.command = download_cmd;
   signRequest(rreq);
   std::vector<uint8_t> serialized_req;
   serialize(serialized_req, rreq);
@@ -158,12 +160,14 @@ concord::op::Response concord::op::Operations::initiateHasSwVersion(
 }
 
 concord::op::Response concord::op::Operations::initiateInstallSwVersion(
-    std::chrono::milliseconds timeout) {
+    std::chrono::milliseconds timeout, std::string version) {
   auto span = opentracing::Tracer::Global()->StartSpan(
       "OperatorUpgradeSwVersionCommand");
   // Prepare the reconfiguration request
   concord::messages::ReconfigurationRequest rreq;
-  rreq.command = concord::messages::UpgradeCommand{};
+  auto upgrade_cmd = concord::messages::UpgradeCommand{};
+  upgrade_cmd.version = version;
+  rreq.command = upgrade_cmd;
   signRequest(rreq);
   std::vector<uint8_t> serialized_req;
   serialize(serialized_req, rreq);

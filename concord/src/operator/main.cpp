@@ -71,7 +71,9 @@ void startServer(concord::op::Operations& ops) {
   // Download all images for a given release
   try {
     svr.Put("/concord/releases", [&ops](const Request& req, Response& res) {
-      auto result = ops.initiateSwDownload(1s);
+      std::string version = req.params.find("version")->second;
+      // TODO: The version string should conform to a pattern (TBD)
+      auto result = ops.initiateSwDownload(1s, version);
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
@@ -90,7 +92,9 @@ void startServer(concord::op::Operations& ops) {
   try {
     svr.Put("/concord/releases/install", [&ops](const Request& req,
                                                 Response& res) {
-      auto result = ops.initiateInstallSwVersion(1s);
+      std::string version = req.params.find("version")->second;
+      // TODO: The version string should conform to a pattern (TBD)
+      auto result = ops.initiateInstallSwVersion(1s, version);
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
