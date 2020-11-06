@@ -66,6 +66,11 @@ public class ComputeHelper {
                         bootstrapComponent.template))
                 .setBlockchainType(ConcordModelSpecification.BlockchainType.valueOf(blockchainType.name()));
 
+        // Read replica is not tied to a blockchain type.
+        if (node.getType() == NodeType.READ_REPLICA) {
+            modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.READ_REPLICA);
+        }
+
         if (blockchainType == BlockchainType.DAML) {
             if (node.getType() == NodeType.REPLICA) {
                 modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER);

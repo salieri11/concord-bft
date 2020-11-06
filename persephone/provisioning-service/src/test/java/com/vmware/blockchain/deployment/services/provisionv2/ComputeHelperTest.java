@@ -107,4 +107,52 @@ public class ComputeHelperTest {
         verifyNoMoreInteractions(bootstrapComponent);
         verifyNoMoreInteractions(nodeDetails);
     }
+
+    @Test
+    void testDeployReadReplicaNode() {
+        blockchainType = BlockchainType.DAML;
+        node = NodeAssignment.Entry.newBuilder().setType(NodeType.READ_REPLICA).build();
+
+        when(orchestrator.createDeploymentV2(any())).thenReturn(mock(OrchestratorData.ComputeResourceEventCreatedV2
+                                                                             .class));
+
+        var output = computeHelper.deployNode(nodeId,
+                                              blockchainId,
+                                              blockchainType,
+                                              node,
+                                              nodeDetails,
+                                              orchestrator,
+                                              model,
+                                              configGenId,
+                                              registry,
+                                              notaryServer);
+        Assert.assertNotNull(output);
+
+        verify(orchestrator, times(1)).createDeploymentV2(any());
+        verifyNoMoreInteractions(orchestrator);
+
+        verifyNoMoreInteractions(bootstrapComponent);
+        verifyNoMoreInteractions(nodeDetails);
+    }
+
+    @Test
+    void testDeployInvalidNode() {
+        blockchainType = BlockchainType.UNRECOGNIZED;
+        node = NodeAssignment.Entry.newBuilder().setType(NodeType.CLIENT).build();
+
+        when(orchestrator.createDeploymentV2(any())).thenReturn(mock(OrchestratorData.ComputeResourceEventCreatedV2
+                                                                             .class));
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            var output = computeHelper.deployNode(nodeId,
+                                                  blockchainId,
+                                                  blockchainType,
+                                                  node,
+                                                  nodeDetails,
+                                                  orchestrator,
+                                                  model,
+                                                  configGenId,
+                                                  registry,
+                                                  notaryServer);
+        });
+    }
 }

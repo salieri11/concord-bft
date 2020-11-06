@@ -81,16 +81,28 @@ public class NodeConfiguration {
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
             DAML_EXECUTION_ENGINE);
 
+    private static final List<ConcordComponent.ServiceType> READ_REPLICA_COMPONENTS =
+            List.of(GENERIC, LOGGING, JAEGER_AGENT, WAVEFRONT_PROXY, TELEGRAF, CONCORD);
+
+    /**
+     * Defines components for blockchain types DAML and ETH.
+     * READ_REPLICA applies to both DAML and ETH?
+     * READ_REPLICA will neither have committer nor client components.
+     */
     private static final Map<BlockchainType, Map<NodeType, List<ConcordComponent.ServiceType>>>
             componentListForBlockchainNodeType =
             ImmutableMap.of(BlockchainType.ETHEREUM, ImmutableMap.of(
-                    NodeType.REPLICA,
-                    Stream.concat(GENERIC_COMPONENTS.stream(), ETHEREUM_COMPONENTS.stream())
-                            .collect(Collectors.toList())),
+                            NodeType.REPLICA,
+                            Stream.concat(GENERIC_COMPONENTS.stream(), ETHEREUM_COMPONENTS.stream())
+                            .collect(Collectors.toList()),
+                            NodeType.READ_REPLICA,
+                            READ_REPLICA_COMPONENTS),
                             BlockchainType.DAML, ImmutableMap.of(
                             NodeType.REPLICA,
                             Stream.concat(GENERIC_COMPONENTS.stream(), DAML_COMMITTER_COMPONENTS.stream())
                                     .collect(Collectors.toList()),
+                            NodeType.READ_REPLICA,
+                            READ_REPLICA_COMPONENTS,
                             NodeType.CLIENT,
                             Stream.concat(GENERIC_COMPONENTS.stream(), DAML_CLIENT_COMPONENTS.stream())
                                     .collect(Collectors.toList())));

@@ -137,7 +137,7 @@ public class NodeConfigurationTest {
                 .addEntries(NodeAssignment.Entry.newBuilder()
                         .setNodeId(NODE_ID_1.toString())
                         .setSite(SITE_ID)
-                        .setType(NodeType.READ_REPLICA).build())
+                        .setType(NodeType.CLIENT).build())
                 .build();
         Assertions.assertThrows(BadRequestPersephoneException.class, () -> {
             nodeConfiguration.generateModelSpec(BlockchainType.ETHEREUM, nodeAssignment, siteMap);
@@ -170,6 +170,34 @@ public class NodeConfigurationTest {
             } else {
                 Assert.assertTrue(k.getName().endsWith(dockerImageTag));
             }
+        });
+    }
+
+    @Test
+    void testDamlReadReplica() {
+        List<ConcordComponent> list = nodeConfiguration
+                .getComponentsByNodeType(BlockchainType.DAML, NodeType.READ_REPLICA,
+                                         Properties.newBuilder().build(), true, true);
+
+        Assert.assertNotNull(list);
+        Assert.assertEquals(5, list.size());
+    }
+
+    @Test
+    void testEthReadReplica() {
+        List<ConcordComponent> list = nodeConfiguration
+                .getComponentsByNodeType(BlockchainType.DAML, NodeType.READ_REPLICA,
+                                         Properties.newBuilder().build(), true, true);
+
+        Assert.assertNotNull(list);
+        Assert.assertEquals(5, list.size());
+    }
+
+    @Test
+    void testInvalidNodeType() {
+        Assert.assertThrows(BadRequestPersephoneException.class, () -> {
+            nodeConfiguration.getComponentsByNodeType(BlockchainType.DAML, NodeType.UNRECOGNIZED,
+                                                      Properties.newBuilder().build(), true, true);
         });
     }
 }
