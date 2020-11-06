@@ -176,7 +176,7 @@ message VSphereOrchestrationSiteInfo {
     Wavefront wavefront = 5;
     ElasticSearch elasticsearch = 6;
     Endpoint notary_server = 7;
-    TelegrafPullEndpoint telegraf = 8; // Applies only for on-prem deployments
+    TelegrafPullEndpoint telegrafPullEndpoint = 8; // Applies only for on-prem deployments
 }
 
 /**
@@ -202,8 +202,9 @@ message ElasticSearch {
  * telegraf metrics pull http endpoint
  */
 message TelegrafPullEndpoint {
-    string username = 1;
-    string password = 2;
+    PasswordCredential credential = 1;
+    string tls_cert = 2;
+    string tls_key = 3;
 }
 
 /* [END messages] */

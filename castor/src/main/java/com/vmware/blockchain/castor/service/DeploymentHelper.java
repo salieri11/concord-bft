@@ -41,6 +41,7 @@ import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
 import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.Sites;
+import com.vmware.blockchain.deployment.v1.TelegrafPullEndpoint;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
@@ -382,6 +383,17 @@ public class DeploymentHelper {
             }
         }
 
+        // Build the telegraf metrics-pull (outputs.prometheus_client) endpoint
+        InfrastructureDescriptorModel.PullMetricsEndpoint telegrafDescriptor = zoneDescriptor.getPullMetricsEndpoint();
+        TelegrafPullEndpoint.Builder telegrafPullEndpointBuilder = TelegrafPullEndpoint.newBuilder();
+        if (telegrafDescriptor != null) {
+            PasswordCredential.Builder credentialsBuilder = PasswordCredential.newBuilder()
+                    .setUsername(telegrafDescriptor.getUserName())
+                    .setPassword(telegrafDescriptor.getPassword());
+
+            telegrafPullEndpointBuilder.setCredential(credentialsBuilder.build());
+        }
+
         // Build vSphere data center info
         InfrastructureDescriptorModel.Network networkDescriptor = zoneDescriptor.getNetwork();
 
@@ -463,6 +475,7 @@ public class DeploymentHelper {
                 .setVsphere(vSphereDatacenterInfo)
                 .setWavefront(waveFrontBuilder.build())
                 .setElasticsearch(elasticSearchBuilder.build())
+                .setTelegrafPullEndpoint(telegrafPullEndpointBuilder.build())
                 .addAllLogManagements(logManagements);
 
         Map<String, String> labels = new HashMap<>();

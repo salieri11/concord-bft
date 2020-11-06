@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
@@ -28,7 +29,9 @@ import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+import com.vmware.blockchain.deployment.v1.PasswordCredential;
 import com.vmware.blockchain.deployment.v1.Properties;
+import com.vmware.blockchain.deployment.v1.TelegrafPullEndpoint;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -181,6 +184,15 @@ public class ConfigHelper {
             propertiesBuilder
                     .putValues(NodeProperty.Name.ELASTICSEARCH_PWD.name(),
                                elasticSearch.getPassword());
+        }
+
+        // Add the telegraf metrics-pull endpoint (outputs.prometheus_client)
+        TelegrafPullEndpoint telegrafPullEndpoint =
+                OrchestrationSites.getTelegrafPullEndpoint(context.sitesById.get(entry.getSite()));
+        PasswordCredential credentials = telegrafPullEndpoint.getCredential();
+        if (credentials != null && StringUtils.hasText(credentials.getUsername())) {
+            propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_USERNAME.name(), credentials.getUsername());
+            propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_PASSWORD.name(), credentials.getPassword());
         }
     }
 }
