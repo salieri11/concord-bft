@@ -22,7 +22,7 @@ public class ConfigServiceException extends RuntimeException {
      * CS exception created, when causes are known.
      */
     public ConfigServiceException(ErrorCode errorCode, String details, Throwable exc) {
-        super(exc);
+        super(details, exc);
         this.errorCode = errorCode;
         this.details = details;
     }
@@ -30,6 +30,16 @@ public class ConfigServiceException extends RuntimeException {
     /*
     * Add constructors suited to your needs.
     * */
+
+    /**
+     * Constructor with no throwable.
+     * @param errorCode error code
+     * @param message error message
+     */
+    public ConfigServiceException(ErrorCode errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
 
     /**
      * Gets the ErrorCode of CS Exception.

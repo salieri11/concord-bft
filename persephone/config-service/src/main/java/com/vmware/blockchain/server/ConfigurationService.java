@@ -6,13 +6,13 @@ package com.vmware.blockchain.server;
 
 import java.io.IOException;
 import java.security.Security;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import javax.validation.constraints.NotNull;
 
@@ -26,6 +26,8 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.util.BlockchainFeatures;
+import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -36,7 +38,6 @@ import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
 
@@ -138,36 +139,23 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                       @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var sessionId = ConfigurationServiceUtil.newSessionUId();
-        log.info("Request receieved. Session Id : {}\n Request : {}", sessionId, request.toString());
-        var committerIps = new ArrayList<String>();
-        var participantIps = new ArrayList<String>();
-        var committerIds = new ArrayList<String>();
-        var participantNodeIds = new ArrayList<String>();
-
-        // TODO : scope for refactoring
-        request.getNodesMap().get(NodeType.REPLICA.name()).getEntriesList().forEach(each -> {
-            committerIps.add(each.getNodeIp());
-            committerIds.add(each.getId());
-        });
-
-        if (request.getNodesMap().containsKey(NodeType.CLIENT.name())) {
-            request.getNodesMap().get(NodeType.CLIENT.name()).getEntriesList().forEach(each -> {
-                participantIps.add(each.getNodeIp());
-                participantNodeIds.add(each.getId());
-            });
-        }
-
-        var nodeIdList = new ArrayList<>(committerIds);
+        log.info("Request received. Session Id : {}\n Request : {}", sessionId, request.toString());
+        BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(request.getNodesMap(), sessionId.getId());
 
         // Generate Configuration
-        var configUtil = new ConcordConfigUtil(concordConfigPath, sessionId);
-        var bftClientConfigUtil = new BftClientConfigUtil(bftClientConfigPath, sessionId);
+        var configUtil =
+                new ConcordConfigUtil(concordConfigPath, sessionId, configurationServiceHelper.isKeepTempFiles());
+        var bftClientConfigUtil =
+                new BftClientConfigUtil(bftClientConfigPath, sessionId, configurationServiceHelper.isKeepTempFiles());
 
         boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
-        int clientProxyPerParticipant = Integer.parseInt(request.getGenericProperties().getValuesMap()
-                .getOrDefault(DeploymentAttributes.NUM_BFT_CLIENTS.name(), "15"));
+        String clientProxyPerParticipantStr = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.NUM_BFT_CLIENTS.name(), "15");
+        int clientProxyPerParticipant = Pattern.matches("\\d+", clientProxyPerParticipantStr)
+                                        ? Integer.parseInt(clientProxyPerParticipantStr) : 15;
+
 
         // TODO remove post 1.0
         var isSplitConfigString = request.getGenericProperties().getValuesMap()
@@ -178,64 +166,98 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         if (request.getBlockchainType().equals(BlockchainType.DAML)) {
             isBftEnabled = true;
             try {
-                bftClientConfig.putAll(bftClientConfigUtil
-                        .getbftClientConfig(participantNodeIds, committerIps, participantIps,
-                                clientProxyPerParticipant));
+                bftClientConfig.putAll(bftClientConfigUtil.getBftClientConfig(nodeList, clientProxyPerParticipant));
             } catch (IOException e) {
-                var msg = "BFT client configurations not generated for session Id : " + sessionId;
-                log.error(msg + e.getMessage());
+                var msg = "Failed to generate BFT client configuration for session Id : " + sessionId;
+                log.error(msg, e);
                 throw new ConfigServiceException(ErrorCode.BFT_CONFIGURATION_FAILURE, msg, e);
             }
-            nodeIdList.addAll(participantNodeIds);
-
             log.info("Generated bft client configurations for session Id : {}", sessionId);
 
-            numClients = clientProxyPerParticipant * participantIps.size();
+            numClients = clientProxyPerParticipant * nodeList.getClientSize();
         }
 
         boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")
                 .equalsIgnoreCase("True");
 
+        // Is Object store enabled?
+        boolean isObjStoreEnabled = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "False")
+                .equalsIgnoreCase("True");
+
+        // Set pre-execution, split config and bft enabled states.
+        // Capture features on this blockchain.
+        BlockchainFeatures bcFeatures = BlockchainFeatures.builder()
+                .isPreExecutionDeployment(isPreexecutionDeployment)
+                .isSplitConfig(isSplitConfig).isBftEnabled(isBftEnabled).isObjectStoreEnabled(isObjStoreEnabled)
+                .build();
+
         Map<String, Map<String, String>> concordConfig = null;
         try {
-            concordConfig = configUtil.getConcordConfig(committerIds, committerIps,
-                    convertToLegacy(request.getBlockchainType()), numClients, isSplitConfig,
-                    isPreexecutionDeployment);
+            concordConfig = configUtil.getConcordConfig(nodeList,
+                                                        convertToLegacy(request.getBlockchainType()), numClients,
+                                                        bcFeatures);
         } catch (IOException e) {
-            var msg = "Concord configurations not generated for session Id : " + sessionId;
-            log.error(msg);
+            var msg = "Failed to generate Concord configurations for session Id : " + sessionId;
+            log.error(msg, e);
             throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE, msg, e);
         }
 
         log.info("Generated concord configurations for session Id : {}", sessionId);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
-        request.getNodesMap().values().forEach(nodesByType -> nodesByType
-                .getEntriesList().forEach(eachNode ->
-                        configByNodeId
-                                .put(eachNode.getId(),
-                                        configurationServiceHelper.nodeIndependentConfigs(
-                                                request.getConsortiumId(),
-                                                request.getBlockchainId(),
-                                                eachNode.getServicesList(),
-                                                eachNode))));
+        try {
+            request.getNodesMap().values().forEach(nodesByType -> nodesByType
+                    .getEntriesList().forEach(eachNode -> configByNodeId.put(eachNode.getId(),
+                                                                             configurationServiceHelper
+                                                                                     .nodeIndependentConfigs(
+                                                                                             request.getConsortiumId(),
+                                                                                             request.getBlockchainId(),
+                                                                                             eachNode.getServicesList(),
+                                                                                             eachNode))));
+        } catch (ConfigServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            var msg = "Trouble gathering node independent configuration for session Id : " + sessionId;
+            log.error(msg, e);
+            throw new ConfigServiceException(ErrorCode.GENERATE_NODE_INDEPENDENT_CONFIG_FAILURE, msg, e);
+        }
+        log.info("Generated node independent configurations for session Id : {}", sessionId);
 
         var certGen = new ConcordEcCertificatesGenerator();
         Map<String, List<IdentityComponent>> concordIdentityComponents = new HashMap<>();
 
         log.info("Creating secrets for session Id {}", sessionId);
-        concordIdentityComponents.putAll(ConfigurationServiceUtil
-                .getTlsNodeIdentities(configUtil.maxPrincipalId,
-                        configUtil.nodePrincipal,
-                        bftClientConfigUtil.maxPrincipalId,
-                        bftClientConfigUtil.nodePrincipal,
-                        certGen, nodeIdList, isBftEnabled));
+        try {
+            concordIdentityComponents.putAll(ConfigurationServiceUtil
+                                                     .getTlsNodeIdentities(configUtil.nodePrincipal,
+                                                                           bftClientConfigUtil.nodePrincipal,
+                                                                           certGen, nodeList, bcFeatures,
+                                                                           clientProxyPerParticipant));
+            log.info("concordIdentityComponents {}", concordIdentityComponents);
+        } catch (ConfigServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            var msg = "Trouble generating TLS node identities for session Id : " + sessionId;
+            log.error(msg, e);
+            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_FAILURE, msg, e);
+        }
 
         Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
         if (isBftEnabled) {
-            bftIdentityComponents.putAll(ConfigurationServiceUtil
-                    .convertToBftTlsNodeIdentities(concordIdentityComponents));
+            try {
+                bftIdentityComponents.putAll(ConfigurationServiceUtil
+                                                     .convertToBftTlsNodeIdentities(concordIdentityComponents,
+                                                                                    nodeList));
+                log.info("BFT identity components {}", bftIdentityComponents);
+            } catch (ConfigServiceException e) {
+                throw e;
+            } catch (Exception e) {
+                var msg = "Trouble converting BFT TLS node identities for session Id : " + sessionId;
+                log.error(msg, e);
+                throw new ConfigServiceException(ErrorCode.CONVERT_TO_BFT_TLS_NODE_IDENTITIES_FAILURE, msg, e);
+            }
         }
 
         log.info("Generated tls identity elements for session id: {}", sessionId);
@@ -246,12 +268,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
                 String key = String.join(separator, sessionId.getId(), nodeId);
                 log.info("Persisting configurations for session: {}, node: {} in memory...", sessionId, nodeId);
-                cacheByNodeId.put(key, configurationServiceHelper.buildNodeConifigs(nodeId, componentList, certGen,
-                        finalConcordConfig, bftClientConfig,
-                        concordIdentityComponents,
-                        bftIdentityComponents));
+                cacheByNodeId.put(key, configurationServiceHelper.buildNodeConfigs(nodeId, componentList, certGen,
+                                                                                    finalConcordConfig, bftClientConfig,
+                                                                                    concordIdentityComponents,
+                                                                                    bftIdentityComponents));
             });
+        } catch (ConfigServiceException e) {
+            throw e;
         } catch (Exception e) {
+            log.error("Error organizing the configurations for sessions {}", sessionId, e);
             log.error("Error organizing the configurations for sessions {}", sessionId);
             throw new ConfigServiceException(ErrorCode.CONFIGURATION_GENERATION_FAILURE,
                                              "Error organizing the configurations for sessions {}" + sessionId, e);

@@ -24,6 +24,7 @@ import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ValidationUtil;
 import com.vmware.blockchain.configuration.generateconfig.WavefrontConfigUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -32,6 +33,8 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+import com.vmware.blockchain.server.exceptions.ConfigServiceException;
+import com.vmware.blockchain.server.exceptions.ErrorCode;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,6 +65,11 @@ public class ConfigurationServiceHelper {
      **/
     private String loggingEnvTemplatePath;
 
+    /**
+     * Directive to keep temporary files for debugging purposes.
+     */
+    private boolean keepTempFiles;
+
     @Autowired
     ConfigurationServiceHelper(@Value("${config.template.path:TelegrafConfigTemplate.conf}")
                                        String telegrafConfigTemplatePath,
@@ -70,11 +78,14 @@ public class ConfigurationServiceHelper {
                                @Value("${config.template.path:wavefrontConfigTemplate.conf}")
                                        String wavefrontConfigPath,
                                @Value("${config.template.path:LoggingTemplate.env}")
-                                       String loggingEnvTemplatePath) {
+                                       String loggingEnvTemplatePath,
+                               @Value("${keep.temporary.files:false}")
+                                       boolean keepTempFiles) {
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
         this.wavefrontConfigPath = wavefrontConfigPath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
+        this.keepTempFiles = keepTempFiles;
     }
 
     List<ConfigurationComponent> getEthereumComponent() {
@@ -219,12 +230,20 @@ public class ConfigurationServiceHelper {
      * build node config.
      * TODO : refactor!!
      */
-    List<ConfigurationComponent> buildNodeConifigs(String nodeId, List<ConfigurationComponent> componentList,
+    List<ConfigurationComponent> buildNodeConfigs(String nodeId, List<ConfigurationComponent> componentList,
                                                     ConcordEcCertificatesGenerator certGen,
                                                     Map<String, Map<String, String>> concordConfig,
                                                     Map<String, String> bftClientConfig,
                                                     Map<String, List<IdentityComponent>> concordIdentityComponents,
                                                     Map<String, List<IdentityComponent>> bftIdentityComponents) {
+        if (!ValidationUtil.isValid(nodeId) || !ValidationUtil.isValid(componentList)
+            || !ValidationUtil.isValid(certGen) || !ValidationUtil.isValid(concordConfig)
+            || !ValidationUtil.isValid(bftClientConfig) || !ValidationUtil.isValid(concordIdentityComponents)
+            || !ValidationUtil.isValid(bftIdentityComponents)) {
+            log.error("Invalid input parameters.");
+            throw new ConfigServiceException(ErrorCode.GENERATE_NODE_CONFIG_INVALID_INPUT_FAILURE,
+                                             "Invalid input parameters.");
+        }
         List<ConfigurationComponent> output = new ArrayList<>(componentList);
 
         if (concordConfig.containsKey(nodeId)) {
@@ -287,7 +306,26 @@ public class ConfigurationServiceHelper {
                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                     .build());
         }
-
+        log.debug("built configuration {}", output);
         return output;
     }
+
+    /**
+     * Return the value of keep.temporary.files property.
+     *
+     * @return keep temporary files directive
+     */
+    public boolean isKeepTempFiles() {
+        return keepTempFiles;
+    }
+
+    /**
+     * Set keep.temporary.files property.
+     *
+     * @param keepTempFiles keep temporary files
+     */
+    public void setKeepTempFiles(boolean keepTempFiles) {
+        this.keepTempFiles = keepTempFiles;
+    }
+
 }
