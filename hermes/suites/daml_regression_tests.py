@@ -455,6 +455,7 @@ def get_last_checkpoint(bc_id):
 
 
 @describe("daml test for single transaction without any interruption")
+@pytest.mark.skip()
 def test_daml_single_transaction(reraise, fxLocalSetup):
     '''
     Verify case by submitting sequential client requests using DAML tool.
@@ -477,6 +478,7 @@ def test_daml_single_transaction(reraise, fxLocalSetup):
 
 
 @describe("fault tolerance - f replicas are stopped/started, powered off/on")
+@pytest.mark.skip()
 def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
@@ -551,6 +553,7 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
 
 
 @describe("fault tolerance - participant ledger api restarted, node is powered off/on")
+@pytest.mark.skip()
 def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
                                        fxHermesRunSettings):
     '''
@@ -610,6 +613,7 @@ def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
 
 
 @describe("fault tolerance - participant node powered off/on, ledger api, index db restarted")
+@pytest.mark.skip()
 def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
     Verify below using DAML tool.
@@ -756,6 +760,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
 
 @describe("fault tolerance - requests not to be processed without quorum")
 @pytest.mark.parametrize("step", [0, 1])
+@pytest.mark.skip()
 def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
     '''
     Verify below using DAML tool.
@@ -827,6 +832,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
 
 @describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
+@pytest.mark.skip()
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
     '''
     Verify below using DAML tool.
@@ -890,6 +896,7 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
 # This test has been skipped temporarily for a fix which needs time.
 @pytest.mark.skip
 @describe("fault tolerance - view change")
+@pytest.mark.skip()
 def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance using below steps:
@@ -986,6 +993,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
 # This test has been skipped temporarily for a fix which needs time.
 @pytest.mark.skip
 @describe("fault tolerance - multiple view changes")
+@pytest.mark.skip()
 def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance view changes after multiple using below steps:
@@ -1061,6 +1069,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
 @describe("fault tolerance - temporary lack of quorum after view change")
 @pytest.mark.parametrize("step", [0, 1])
+@pytest.mark.skip()
 def test_temporary_lack_of_quorum_after_view_change\
            (reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
     '''
@@ -1151,6 +1160,7 @@ def test_temporary_lack_of_quorum_after_view_change\
 
         except Exception as excp:
             assert False, excp
+
 
 @describe("fault tolerance - state transfer coinciding with view change (f>=2)")
 def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
