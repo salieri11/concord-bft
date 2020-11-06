@@ -16,6 +16,7 @@ import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
+import com.vmware.blockchain.deployment.v1.TelegrafPullEndpoint;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.Wavefront;
@@ -151,5 +152,26 @@ public class OrchestrationSites {
         }
         return outboundProxyInfo;
     }
+
+    /**
+     * Get Telegraf metrics-pull endpoint (outputs.prometheus_client) details.
+     * @param siteInfo OrchestrationSiteInfo
+     * @return Telegraf
+     */
+    public static TelegrafPullEndpoint getTelegrafPullEndpoint(OrchestrationSiteInfo siteInfo) {
+        TelegrafPullEndpoint telegrafPullEndpoint = TelegrafPullEndpoint.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                // Not applicable for cloud deployments
+                break;
+            case VSPHERE:
+                telegrafPullEndpoint = siteInfo.getVsphere().getTelegrafPullEndpoint();
+                break;
+            default:
+                break;
+        }
+        return telegrafPullEndpoint;
+    }
+
 
 }

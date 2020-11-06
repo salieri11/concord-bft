@@ -337,6 +337,7 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("vcenter.certificate.invalid");
         expectedErrorCodes.add("container.certificate.invalid");
         expectedErrorCodes.add("notary.server.cert.present.but.url.not.present");
+        expectedErrorCodes.add("pullmetrics.password.invalid");
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.PROVISION, readInvalidInfra, validDeployment);
         Set<String> validationErrorCodes = errors.stream()

@@ -229,6 +229,21 @@
         }
       }
     },
+    "telegraf": {
+      "description": "Telegraf metrics pull endpoint properties",
+      "type": "object",
+      "properties": {
+        "userName": {
+          "description": "The user name for the endpoint",
+          "type": "string"
+        },
+        "password": {
+          "description": "The password for the endpoint",
+          "type": "string"
+        }
+      },
+      "required": ["userName", "password"]
+    },
     "zone": {
       "description": "Zone properties",
       "type": "object",
@@ -276,6 +291,10 @@
             "$ref": "#/definitions/logManagement"
           },
           "minItems": 1
+        },
+        "telegraf": {
+          "description": "Telegraf metrics pull endpoint properties",
+          "$ref": "#/definitions/telegraf"
         }
       },
       "required": ["name", "vCenter", "network"]

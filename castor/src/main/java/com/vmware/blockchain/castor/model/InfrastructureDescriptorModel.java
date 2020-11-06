@@ -178,6 +178,20 @@ public class InfrastructureDescriptorModel {
     }
 
     /**
+     * Optional Telegraf *pull* metrics username/password/tls-certs.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @EqualsAndHashCode
+    public static class PullMetricsEndpoint {
+        @NotBlank(message = "pullmetrics.username.invalid")
+        private String userName;
+        @NotBlank(message = "pullmetrics.password.invalid")
+        private String password;
+    }
+
+    /**
      * Required zone.
      */
     @Getter
@@ -216,6 +230,9 @@ public class InfrastructureDescriptorModel {
 
         @Valid
         private List<LogManagement> logManagement;
+
+        @Valid
+        private PullMetricsEndpoint pullMetricsEndpoint;
     }
 
     @Valid
