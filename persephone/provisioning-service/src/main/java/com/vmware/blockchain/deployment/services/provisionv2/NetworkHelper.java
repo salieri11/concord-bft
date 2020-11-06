@@ -39,7 +39,7 @@ public class NetworkHelper {
     Map<UUID, DeploymentExecutionContext.LocalNodeDetails> createPrivateIpMap(
             NodeAssignment nodes,
             Map<OrchestrationSiteIdentifier, Orchestrator> sessionOrchestrators,
-            ConcurrentHashMap.KeySetView<DeployedResource, Boolean> results) {
+            ConcurrentHashMap.KeySetView<DeployedResource, Boolean> results) throws PersephoneException {
         var privateNetworkAddressMap =
                 new ConcurrentHashMap<UUID, DeploymentExecutionContext.LocalNodeDetails>();
         var networkAddressPromises = nodes.getEntriesList().stream()
@@ -78,6 +78,8 @@ public class NetworkHelper {
 
         try {
             CompletableFuture.allOf(networkAddressPromises).get(30L, TimeUnit.SECONDS);
+        } catch (PersephoneException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error waiting for private ip creation", e);
             throw new PersephoneException(e, "Error allocating private ip.");

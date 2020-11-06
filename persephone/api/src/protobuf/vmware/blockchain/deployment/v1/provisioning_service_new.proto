@@ -161,6 +161,7 @@ enum DeploymentAttributes {
     ADD_DISK_PRIMARY = 17;
     NOTARY_VERIFICATION_ENABLED = 18;
     DEPLOY_OPERATOR = 19;
+    OBJECT_STORE_ENABLED = 20;
 }
 
 /* [END messages] */

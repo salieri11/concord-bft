@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.deployment.services.provisionv2;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.assertj.core.util.Strings;
 
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeAssignment;
@@ -134,5 +136,33 @@ public class ProvisioningServiceUtil {
     static OrchestrationSiteInfo.Type deriveDeploymentType(Sites sites) {
         return sites.getInfoListList().size() > 0 ? sites.getInfoListList().get(0).getInfo().getType()
                                                   : OrchestrationSiteInfo.Type.VSPHERE;
+    }
+
+    /**
+     * Filter out nodes that do not apply,this is based on the feature flags.
+     * @param nodeAssignments Node assignment
+     * @param properties Generic properties
+     * @return Node assignment object, filtered based on feature flags.
+     */
+    static NodeAssignment getApplicableNodes(NodeAssignment nodeAssignments, Properties properties) {
+        var filteredEntries = new ArrayList<NodeAssignment.Entry>();
+        // Is object store feature enabled?.
+        var isObjStoreEnabledStr =
+                properties.getValuesMap()
+                        .getOrDefault(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "false");
+        var isObjStoreEnabled = isObjStoreEnabledStr.equalsIgnoreCase("true");
+
+        // Filter out read replicas if object store is disabled.
+        nodeAssignments.getEntriesList().stream().forEach(entry -> {
+            // If the node is not of type Read Replica, then add it to filtered entries map.
+            // If the node is of type Read Replica, and isObjectStoreEnabled is true, then add the node to filtered
+            // entries map.
+            if (entry.getType() != NodeType.READ_REPLICA || (entry.getType() == NodeType.READ_REPLICA
+                                                             && isObjStoreEnabled)) {
+                filteredEntries.add(entry);
+            }
+        });
+
+        return NodeAssignment.newBuilder().addAllEntries(filteredEntries).build();
     }
 }

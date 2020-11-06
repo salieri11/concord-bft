@@ -181,7 +181,9 @@ message ConcordModelSpecification {
         NONE = 0;
         DAML_COMMITTER = 1;
         DAML_PARTICIPANT = 2;
-        READ_REPLICA = 3;
+        DAML_CONCORD = 3;
+        CONCORD = 4;
+        READ_REPLICA = 5;
     }
 
     string version = 1;

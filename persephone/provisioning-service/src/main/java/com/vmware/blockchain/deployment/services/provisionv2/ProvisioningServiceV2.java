@@ -94,9 +94,16 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         final val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         final val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
         final var genericProperties = request.getSpec().getProperties();
-        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
+
+        // Get node assignments that are applicable, filter out node assignments that do not apply.
+        var applicableNodeAssignments =
+                ProvisioningServiceUtil
+                        .getApplicableNodes(request.getSpec().getNodeAssignment(), genericProperties);
+
+        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(applicableNodeAssignments,
                 genericProperties,
                 request.getSpec().getNodePropertiesMap());
+
 
 
         Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators = new HashMap<>();
@@ -221,7 +228,12 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         final val consortiumId = UUID.fromString(request.getSpec().getConsortiumId());
         final val blockchainId = UUID.fromString(request.getSpec().getBlockchainId());
         final var genericProperties = request.getSpec().getProperties();
-        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(request.getSpec().getNodeAssignment(),
+
+        // Get node assignments that are applicable, filter out node assignments that do not apply.
+        var applicableNodeAssignments =
+                ProvisioningServiceUtil
+                        .getApplicableNodes(request.getSpec().getNodeAssignment(), genericProperties);
+        var nodeAssignment = ProvisioningServiceUtil.updateNodeAssignment(applicableNodeAssignments,
                                                                           genericProperties,
                                                                           request.getSpec().getNodePropertiesMap());
 
@@ -292,6 +304,22 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                 each.getValue().join();
                 each.getValue().thenAccept(session.results::add);
             });
+
+            // Is object store feature enabled?.
+            var isObjStoreEnabledStr =
+                    genericProperties.getValuesMap()
+                            .getOrDefault(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "false");
+            var isObjStoreEnabled = isObjStoreEnabledStr.equalsIgnoreCase("true");
+            if (isObjStoreEnabled) {
+                log.info("Create read replica/ro replica nodes (if applicable)");
+                var readReplicaNodes = computeHelper.getComputeNodes(session, configGenerated, NodeType.READ_REPLICA);
+                if (readReplicaNodes != null) {
+                    readReplicaNodes.forEach(each -> {
+                        each.getValue().join();
+                        each.getValue().thenAccept(session.results::add);
+                    });
+                }
+            }
 
             // Add the VM creation for Object Store/Read-Replica client.
 
