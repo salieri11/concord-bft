@@ -311,15 +311,15 @@ public class ConcordConfigUtil {
 
         List resultRoNodes = new ArrayList();
         for (BlockchainReadReplica readReplica : readReplicas) {
-            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_ACCESS_KEY,
+            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_ACCESS_KEY_FOR_CONCORD,
                              (readReplica.getObjStoreAccessKey() != null) ? readReplica.getObjStoreAccessKey() : "");
-            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_BUCKET_NAME_KEY,
+            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_BUCKET_NAME_KEY_FOR_CONCORD,
                              (readReplica.getObjStoreBucketName() != null) ? readReplica.getObjStoreBucketName() : "");
-            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_PROTOCOL_KEY,
+            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_PROTOCOL_KEY_FOR_CONCORD,
                              (readReplica.getObjStoreProtocol() != null) ? readReplica.getObjStoreProtocol() : "");
-            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_SECRET_KEY,
+            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_SECRET_KEY_FOR_CONCORD,
                              (readReplica.getObjStoreSecret() != null) ? readReplica.getObjStoreSecret() : "");
-            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_URL_KEY,
+            roNodeConfig.put(BlockchainReadReplica.OBJ_STORE_URL_KEY_FOR_CONCORD,
                              (readReplica.getObjStoreUrl() != null) ? readReplica.getObjStoreUrl() : "");
 
             // Clone read replica and add it to result nodes list.

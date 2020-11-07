@@ -237,12 +237,14 @@ public class ConfigurationServiceUtil {
                     if (obj.getClass().isAssignableFrom(BlockchainReadReplica.class)) {
                         BlockchainReadReplica readReplica = BlockchainReadReplica.class.cast(obj);
                         Map<String, String> valueMap = each.getProperties().getValuesMap();
+                        readReplica.setObjStoreBucketName(
+                                valueMap.get(BlockchainReadReplica.OBJ_STORE_BUCKET_NAME_KEY_FOR_API));
                         readReplica
-                                .setObjStoreBucketName(valueMap.get(BlockchainReadReplica.OBJ_STORE_BUCKET_NAME_KEY));
-                        readReplica.setObjStoreAccessKey(valueMap.get(BlockchainReadReplica.OBJ_STORE_ACCESS_KEY));
-                        readReplica.setObjStoreProtocol(valueMap.get(BlockchainReadReplica.OBJ_STORE_PROTOCOL_KEY));
-                        readReplica.setObjStoreUrl(valueMap.get(BlockchainReadReplica.OBJ_STORE_URL_KEY));
-                        readReplica.setObjStoreSecret(valueMap.get(BlockchainReadReplica.OBJ_STORE_SECRET_KEY));
+                                .setObjStoreAccessKey(valueMap.get(BlockchainReadReplica.OBJ_STORE_ACCESS_KEY_FOR_API));
+                        readReplica.setObjStoreProtocol(
+                                valueMap.get(BlockchainReadReplica.OBJ_STORE_PROTOCOL_KEY_FOR_API));
+                        readReplica.setObjStoreUrl(valueMap.get(BlockchainReadReplica.OBJ_STORE_URL_KEY_FOR_API));
+                        readReplica.setObjStoreSecret(valueMap.get(BlockchainReadReplica.OBJ_STORE_SECRET_KEY_FOR_API));
                     }
                     list.add(obj);
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException
