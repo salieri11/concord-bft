@@ -59,6 +59,22 @@ public class OnPremZone extends Zone {
     }
 
     /**
+     * Container Repo to pick up images from.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ContainerRepo {
+        @NotBlank(message = "url cannot be null")
+        String url;
+        @NotBlank(message = "username cannot be null")
+        String username;
+        @NotBlank(message = "password cannot be null")
+        String password;
+        String tlsCertificateData;
+    }
+
+    /**
      * Notary Server for Signature Verification of Images.
      */
     @Data
@@ -78,7 +94,7 @@ public class OnPremZone extends Zone {
     String folder;
     Network network;
     Zone.OutboundProxy outboundProxy;
-    EndPoint containerRepo;
+    ContainerRepo containerRepo;
     NotaryServer notaryServer;
     List<LogManagementOnPrem> logManagements;
 }

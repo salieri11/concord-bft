@@ -394,7 +394,7 @@ class ZoneControllerTest {
                                                     + "  }]\n"
                                                     + "}";
 
-    public static final String VALID_CERT_DATA_FOR_NOTARY = "\"-----BEGIN CERTIFICATE-----\\n"
+    public static final String VALID_TLS_CERT_DATA = "-----BEGIN CERTIFICATE-----\\n"
                                               + "MIIFhjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
                                               + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
                                               + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
@@ -425,9 +425,9 @@ class ZoneControllerTest {
                                               + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
                                               + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
                                               + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
-                                              + "-----END CERTIFICATE-----\"\n  },\n";
+                                              + "-----END CERTIFICATE-----";
 
-    public static final String INVALID_CERT_DATA_FOR_NOTARY = "\"-----BEGIN CERTIFICATE-----\\n"
+    public static final String INVALID_TLS_CERT_DATA = "-----BEGIN CERTIFICATE-----\\n"
                                             + "hjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
                                             + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
                                             + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
@@ -458,7 +458,107 @@ class ZoneControllerTest {
                                             + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
                                             + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
                                             + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
-                                            + "-----END CERTIFICATE-----\"\n  },\n";
+                                            + "-----END CERTIFICATE-----";
+
+    private static final String POST_ONPREM_BODY_CR_VALID_CERT = "{\n"
+                                           + "  \"name\": \"OnPrem\",\n"
+                                           + "  \"type\": \"ON_PREM\",\n"
+                                           + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                           + "  \"vcenter\": {\n"
+                                           + "    \"url\": \"www.vcenter.com\",\n"
+                                           + "    \"username\": \"admin\",\n"
+                                           + "    \"password\": \"password\"\n"
+                                           + "  },\n"
+                                           + "  \"resource_pool\": \"pool\",\n"
+                                           + "  \"storage\": \"datastore\",\n"
+                                           + "  \"folder\": \"folder\",\n"
+                                           + "  \"network\": {\n"
+                                           + "    \"name\": \"Network 1\",\n"
+                                           + "    \"ip_pool\": [\n"
+                                           + "      \"10.1.1.16-10.1.1.64\",\n"
+                                           + "      \"10.1.1.100-10.1.1.200\"\n"
+                                           + "    ],\n"
+                                           + "    \"gateway\": \"10.1.1.1\",\n"
+                                           + "    \"subnet\": \"24\",\n"
+                                           + "    \"name_servers\": [\n"
+                                           + "      \"10.1.1.3\"\n"
+                                           + "    ]\n"
+                                           + "  },\n"
+                                           + "  \"outbound_proxy\": {\n"
+                                           + "    \"http_host\": \"localhost\",\n"
+                                           + "    \"http_port\": 8080\n"
+                                           + "  },\n"
+                                           + "  \"container_repo\": {\n"
+                                           + "    \"url\": \"https://docker-repo.com\",\n"
+                                           + "    \"username\": \"user\",\n"
+                                           + "    \"password\": \"docker\",\n"
+                                           + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                           + "  },\n"
+                                           + "  \"wavefront\": {\n"
+                                           + "    \"url\": \"https://wavefront.com\",\n"
+                                           + "    \"token\": \"token\"\n"
+                                           + "  },\n"
+                                           + "  \"notary_server\": {\n"
+                                           + "    \"url\": \"https://notary.test.com\"\n"
+                                           + " },\n"
+                                           + "  \"log_managements\": [{\n"
+                                           + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                           + "    \"address\": \"10.78.20.10\",\n"
+                                           + "    \"port\": 9000,\n"
+                                           + "    \"username\": \"foo\",\n"
+                                           + "    \"password\": \"bar\"\n"
+                                           + "  }]\n"
+                                           + "}";
+
+    private static final String POST_ONPREM_BODY_CR_INVALID_CERT = "{\n"
+                                             + "  \"name\": \"OnPrem\",\n"
+                                             + "  \"type\": \"ON_PREM\",\n"
+                                             + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                             + "  \"vcenter\": {\n"
+                                             + "    \"url\": \"www.vcenter.com\",\n"
+                                             + "    \"username\": \"admin\",\n"
+                                             + "    \"password\": \"password\"\n"
+                                             + "  },\n"
+                                             + "  \"resource_pool\": \"pool\",\n"
+                                             + "  \"storage\": \"datastore\",\n"
+                                             + "  \"folder\": \"folder\",\n"
+                                             + "  \"network\": {\n"
+                                             + "    \"name\": \"Network 1\",\n"
+                                             + "    \"ip_pool\": [\n"
+                                             + "      \"10.1.1.16-10.1.1.64\",\n"
+                                             + "      \"10.1.1.100-10.1.1.200\"\n"
+                                             + "    ],\n"
+                                             + "    \"gateway\": \"10.1.1.1\",\n"
+                                             + "    \"subnet\": \"24\",\n"
+                                             + "    \"name_servers\": [\n"
+                                             + "      \"10.1.1.3\"\n"
+                                             + "    ]\n"
+                                             + "  },\n"
+                                             + "  \"outbound_proxy\": {\n"
+                                             + "    \"http_host\": \"localhost\",\n"
+                                             + "    \"http_port\": 8080\n"
+                                             + "  },\n"
+                                             + "  \"container_repo\": {\n"
+                                             + "    \"url\": \"https://docker-repo.com\",\n"
+                                             + "    \"username\": \"user\",\n"
+                                             + "    \"password\": \"docker\",\n"
+                                             + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                             + "  },\n"
+                                             + "  \"wavefront\": {\n"
+                                             + "    \"url\": \"https://wavefront.com\",\n"
+                                             + "    \"token\": \"token\"\n"
+                                             + "  },\n"
+                                             + "  \"notary_server\": {\n"
+                                             + "    \"url\": \"https://notary.test.com\"\n"
+                                             + " },\n"
+                                             + "  \"log_managements\": [{\n"
+                                             + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                             + "    \"address\": \"10.78.20.10\",\n"
+                                             + "    \"port\": 9000,\n"
+                                             + "    \"username\": \"foo\",\n"
+                                             + "    \"password\": \"bar\"\n"
+                                             + "  }]\n"
+                                             + "}";
 
     private static final String POST_ONPREM_BODY_NOTARY_VALID_CERT = "{\n"
                                                + "  \"name\": \"OnPrem\",\n"
@@ -499,8 +599,8 @@ class ZoneControllerTest {
                                                + "  },\n"
                                                + "  \"notary_server\": {\n"
                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                               + "    \"tls_certificate_data\": "
-                                               + VALID_CERT_DATA_FOR_NOTARY
+                                               + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                               + " },\n"
                                                + "  \"log_managements\": [{\n"
                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                + "    \"address\": \"10.78.20.10\",\n"
@@ -549,8 +649,8 @@ class ZoneControllerTest {
                                                 + "  },\n"
                                                 + "  \"notary_server\": {\n"
                                                 + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": "
-                                                + INVALID_CERT_DATA_FOR_NOTARY
+                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                 + "    \"address\": \"10.78.20.10\",\n"
@@ -598,8 +698,212 @@ class ZoneControllerTest {
                                                 + "    \"token\": \"token\"\n"
                                                 + "  },\n"
                                                 + "  \"notary_server\": {\n"
-                                                + "    \"tls_certificate_data\": "
-                                                + VALID_CERT_DATA_FOR_NOTARY
+                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
+    private static final String POST_ONPREM_BODY_CR_NOTARY_VALID_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\",\n"
+                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"url\": \"https://notary.test.com\",\n"
+                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
+    private static final String POST_ONPREM_BODY_INVALID_CR_VALID_NOTARY_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\",\n"
+                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"url\": \"https://notary.test.com\",\n"
+                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
+    private static final String POST_ONPREM_BODY_VALID_CR_INVALID_NOTARY_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\",\n"
+                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"url\": \"https://notary.test.com\",\n"
+                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
+    private static final String POST_ONPREM_BODY_CR_NOTARY_INVALID_CERT = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"www.vcenter.com\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"localhost\",\n"
+                                                + "    \"http_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\",\n"
+                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
+                                                + "  \"notary_server\": {\n"
+                                                + "    \"url\": \"https://notary.test.com\",\n"
+                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
+                                                + " },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                 + "    \"address\": \"10.78.20.10\",\n"
@@ -1405,6 +1709,46 @@ class ZoneControllerTest {
     }
 
     @Test
+    void testSiteContainerRegWithValidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_CR_VALID_CERT))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
+    void testSiteContainerRegWithInvalidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_CR_INVALID_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
     void testSiteNotaryWithValidCert() throws Exception {
         // grpc call has a valid return.
         ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
@@ -1441,6 +1785,86 @@ class ZoneControllerTest {
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(POST_ONPREM_BODY_NOTARY_INVALID_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
+    void testSiteContainerRegNotaryWithValidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_CR_NOTARY_VALID_CERT))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
+    void testSiteValidContainerRegInvalidNotaryWithCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_VALID_CR_INVALID_NOTARY_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
+    void testSiteInvalidContainerRegValidNotaryWithCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_INVALID_CR_VALID_NOTARY_CERT))
+                .andExpect(status().isBadRequest()).andReturn();
+    }
+
+    @Test
+    void testSiteContainerRegNotaryWithInvalidCert() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_ONPREM_BODY_CR_NOTARY_INVALID_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
