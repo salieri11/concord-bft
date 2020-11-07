@@ -28,7 +28,7 @@ ROLE_ORG_USER = "org_user"
 ROLE_CON_ORG_ADMIN = "consortium_org_admin"
 
 SERVICE_DEFAULT = "https://localhost/blockchains/local"
-SERVICE_STAGING = "https://vmbc.us-west-2.vdp-stg.vmware.com"
+SERVICE_STAGING = "https://vmbc.vdp-stg.vmware.com"
 
 # This is a table of API keys used used for authentication with CSP.
 # Format:
