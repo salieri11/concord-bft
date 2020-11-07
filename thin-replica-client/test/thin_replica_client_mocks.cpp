@@ -7,6 +7,7 @@
 #include "thin_replica_client_mocks.hpp"
 #include "trc_hash.hpp"
 
+using com::vmware::concord::thin_replica::BlockId;
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
 using com::vmware::concord::thin_replica::KVPair;
@@ -14,6 +15,7 @@ using com::vmware::concord::thin_replica::MockThinReplicaStub;
 using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::SubscriptionRequest;
+using google::protobuf::Empty;
 using grpc::ClientContext;
 using grpc::ClientReaderInterface;
 using grpc::Status;
@@ -402,6 +404,164 @@ MockOrderedDataStreamHasher::SubscribeToUpdateHashesRaw(
   return hash_stream;
 }
 
+void ThinReplicaCommunicationRecord::ClearRecords() {
+  lock_guard<mutex> record_lock(record_mutex_);
+  read_state_calls_.clear();
+  read_state_hash_calls_.clear();
+  subscribe_to_updates_calls_.clear();
+  ack_update_calls_.clear();
+  subscribe_to_update_hashes_calls_.clear();
+  unsubscribe_calls_.clear();
+}
+
+void ThinReplicaCommunicationRecord::RecordReadState(
+    size_t server_index, const ReadStateRequest& request) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  read_state_calls_.emplace_back(server_index, request);
+}
+
+void ThinReplicaCommunicationRecord::RecordReadStateHash(
+    size_t server_index, const ReadStateHashRequest& request) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  read_state_hash_calls_.emplace_back(server_index, request);
+}
+
+void ThinReplicaCommunicationRecord::RecordSubscribeToUpdates(
+    size_t server_index, const SubscriptionRequest& request) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  subscribe_to_updates_calls_.emplace_back(server_index, request);
+}
+
+void ThinReplicaCommunicationRecord::RecordAckUpdate(size_t server_index,
+                                                     const BlockId& block_id) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  ack_update_calls_.emplace_back(server_index, block_id);
+}
+
+void ThinReplicaCommunicationRecord::RecordSubscribeToUpdateHashes(
+    size_t server_index, const SubscriptionRequest& request) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  subscribe_to_update_hashes_calls_.emplace_back(server_index, request);
+}
+
+void ThinReplicaCommunicationRecord::RecordUnsubscribe(size_t server_index) {
+  lock_guard<mutex> record_lock(record_mutex_);
+  unsubscribe_calls_.emplace_back(server_index);
+}
+
+const list<pair<size_t, ReadStateRequest>>&
+ThinReplicaCommunicationRecord::GetReadStateCalls() const {
+  return read_state_calls_;
+}
+
+const list<pair<size_t, ReadStateHashRequest>>&
+ThinReplicaCommunicationRecord::GetReadStateHashCalls() const {
+  return read_state_hash_calls_;
+}
+
+const list<pair<size_t, SubscriptionRequest>>&
+ThinReplicaCommunicationRecord::GetSubscribeToUpdatesCalls() const {
+  return subscribe_to_updates_calls_;
+}
+
+const list<pair<size_t, BlockId>>&
+ThinReplicaCommunicationRecord::GetAckUpdateCalls() const {
+  return ack_update_calls_;
+}
+
+const list<pair<size_t, SubscriptionRequest>>&
+ThinReplicaCommunicationRecord::GetSubscribeToUpdateHashesCalls() const {
+  return subscribe_to_update_hashes_calls_;
+}
+
+const list<size_t>& ThinReplicaCommunicationRecord::GetUnsubscribeCalls()
+    const {
+  return unsubscribe_calls_;
+}
+
+size_t ThinReplicaCommunicationRecord::GetTotalCallCount() const {
+  return read_state_calls_.size() + read_state_hash_calls_.size() +
+         subscribe_to_updates_calls_.size() + ack_update_calls_.size() +
+         subscribe_to_update_hashes_calls_.size() + unsubscribe_calls_.size();
+}
+
+MockThinReplicaServerRecorder::MockThinReplicaServerRecorder(
+    shared_ptr<MockDataStreamPreparer> data,
+    shared_ptr<MockOrderedDataStreamHasher> hasher,
+    shared_ptr<ThinReplicaCommunicationRecord> record, size_t server_index)
+    : data_preparer_(data),
+      hasher_(hasher),
+      record_(record),
+      server_index_(server_index) {}
+
+ClientReaderInterface<Data>* MockThinReplicaServerRecorder::ReadStateRaw(
+    ClientContext* context, const ReadStateRequest& request) {
+  assert(data_preparer_);
+  assert(record_);
+
+  record_->RecordReadState(server_index_, request);
+  return data_preparer_->ReadStateRaw(context, request);
+}
+
+Status MockThinReplicaServerRecorder::ReadStateHash(
+    ClientContext* context, const ReadStateHashRequest& request,
+    Hash* response) {
+  assert(hasher_);
+  assert(record_);
+
+  record_->RecordReadStateHash(server_index_, request);
+  return hasher_->ReadStateHash(context, request, response);
+}
+
+ClientReaderInterface<Data>*
+MockThinReplicaServerRecorder::SubscribeToUpdatesRaw(
+    ClientContext* context, const SubscriptionRequest& request) {
+  assert(data_preparer_);
+  assert(record_);
+
+  record_->RecordSubscribeToUpdates(server_index_, request);
+  return data_preparer_->SubscribeToUpdatesRaw(context, request);
+}
+
+Status MockThinReplicaServerRecorder::AckUpdate(ClientContext* context,
+                                                const BlockId& block_id,
+                                                Empty* response) {
+  assert(record_);
+
+  record_->RecordAckUpdate(server_index_, block_id);
+  return Status::OK;
+}
+
+ClientReaderInterface<Hash>*
+MockThinReplicaServerRecorder::SubscribeToUpdateHashesRaw(
+    ClientContext* context, const SubscriptionRequest& request) {
+  assert(hasher_);
+  assert(record_);
+
+  record_->RecordSubscribeToUpdateHashes(server_index_, request);
+  return hasher_->SubscribeToUpdateHashesRaw(context, request);
+}
+
+Status MockThinReplicaServerRecorder::Unsubscribe(ClientContext* context,
+                                                  const Empty& request,
+                                                  Empty* response) {
+  assert(record_);
+
+  record_->RecordUnsubscribe(server_index_);
+  return Status::OK;
+}
+
+vector<MockThinReplicaServerRecorder> CreateMockServerRecorders(
+    size_t num_servers, shared_ptr<MockDataStreamPreparer> data,
+    shared_ptr<MockOrderedDataStreamHasher> hasher,
+    shared_ptr<ThinReplicaCommunicationRecord> record) {
+  vector<MockThinReplicaServerRecorder> recorders;
+  for (size_t i = 0; i < num_servers; ++i) {
+    recorders.emplace_back(data, hasher, record, i);
+  }
+  return recorders;
+}
+
 void SetMockServerBehavior(
     MockTrsConnection* server,
     const shared_ptr<MockDataStreamPreparer>& data_preparer,
@@ -418,6 +578,31 @@ void SetMockServerBehavior(
   ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
       .WillByDefault(Invoke(
           &hasher, &MockOrderedDataStreamHasher::SubscribeToUpdateHashesRaw));
+}
+
+void SetMockServerBehavior(
+    MockTrsConnection* server,
+    MockThinReplicaServerRecorder& mock_server_recorder) {
+  ON_CALL(*(server->GetStub()), ReadStateRaw)
+      .WillByDefault(Invoke(&mock_server_recorder,
+                            &MockThinReplicaServerRecorder::ReadStateRaw));
+  ON_CALL(*(server->GetStub()), ReadStateHash)
+      .WillByDefault(Invoke(&mock_server_recorder,
+                            &MockThinReplicaServerRecorder::ReadStateHash));
+  ON_CALL(*(server->GetStub()), SubscribeToUpdatesRaw)
+      .WillByDefault(
+          Invoke(&mock_server_recorder,
+                 &MockThinReplicaServerRecorder::SubscribeToUpdatesRaw));
+  ON_CALL(*(server->GetStub()), AckUpdate)
+      .WillByDefault(Invoke(&mock_server_recorder,
+                            &MockThinReplicaServerRecorder::AckUpdate));
+  ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
+      .WillByDefault(
+          Invoke(&mock_server_recorder,
+                 &MockThinReplicaServerRecorder::SubscribeToUpdateHashesRaw));
+  ON_CALL(*(server->GetStub()), Unsubscribe)
+      .WillByDefault(Invoke(&mock_server_recorder,
+                            &MockThinReplicaServerRecorder::Unsubscribe));
 }
 
 void SetMockServerUnresponsive(MockTrsConnection* server) {
@@ -464,6 +649,18 @@ vector<unique_ptr<TrsConnection>> CreateTrsConnections(
       SetMockServerUnresponsive(conn);
       num_unresponsive--;
     }
+    auto server = dynamic_cast<TrsConnection*>(conn);
+    mock_servers.push_back(unique_ptr<TrsConnection>(server));
+  }
+  return mock_servers;
+}
+
+vector<unique_ptr<TrsConnection>> CreateTrsConnections(
+    vector<MockThinReplicaServerRecorder>& mock_server_recorders) {
+  vector<unique_ptr<TrsConnection>> mock_servers;
+  for (size_t i = 0; i < mock_server_recorders.size(); ++i) {
+    auto conn = new MockTrsConnection();
+    SetMockServerBehavior(conn, mock_server_recorders[i]);
     auto server = dynamic_cast<TrsConnection*>(conn);
     mock_servers.push_back(unique_ptr<TrsConnection>(server));
   }

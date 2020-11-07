@@ -252,10 +252,127 @@ class MockOrderedDataStreamHasher {
       const;
 };
 
+// Class used for storing records of RPC calls to Thin Replica Servers made by a
+// ThinReplicaClient; this is intended for use in testing that the
+// ThinReplicaClient implementation complies with the intended use(s) of these
+// RPC calls as described in the Thin Replica Mechanism design. Note this class
+// handles synchronization of writes to these records across multiple threads.
+// Call records are structured as lists of pairs of size_ts (representing the
+// server the call was made to) and Protobuf messages (representing the
+// parameter given for the call) or as lists of just size_ts (representing the
+// server the call was made to) for RPC calls that do not use parameters.
+class ThinReplicaCommunicationRecord {
+ private:
+  std::list<
+      std::pair<size_t, com::vmware::concord::thin_replica::ReadStateRequest>>
+      read_state_calls_;
+  std::list<std::pair<size_t,
+                      com::vmware::concord::thin_replica::ReadStateHashRequest>>
+      read_state_hash_calls_;
+  std::list<std::pair<size_t,
+                      com::vmware::concord::thin_replica::SubscriptionRequest>>
+      subscribe_to_updates_calls_;
+  std::list<std::pair<size_t, com::vmware::concord::thin_replica::BlockId>>
+      ack_update_calls_;
+  std::list<std::pair<size_t,
+                      com::vmware::concord::thin_replica::SubscriptionRequest>>
+      subscribe_to_update_hashes_calls_;
+  std::list<size_t> unsubscribe_calls_;
+
+  std::mutex record_mutex_;
+
+ public:
+  void ClearRecords();
+
+  void RecordReadState(
+      size_t server_index,
+      const com::vmware::concord::thin_replica::ReadStateRequest& request);
+  void RecordReadStateHash(
+      size_t server_index,
+      const com::vmware::concord::thin_replica::ReadStateHashRequest& request);
+  void RecordSubscribeToUpdates(
+      size_t server_index,
+      const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+  void RecordAckUpdate(
+      size_t server_index,
+      const com::vmware::concord::thin_replica::BlockId& block_id);
+  void RecordSubscribeToUpdateHashes(
+      size_t server_index,
+      const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+  void RecordUnsubscribe(size_t server_index);
+
+  const std::list<
+      std::pair<size_t, com::vmware::concord::thin_replica::ReadStateRequest>>&
+  GetReadStateCalls() const;
+  const std::list<std::pair<
+      size_t, com::vmware::concord::thin_replica::ReadStateHashRequest>>&
+  GetReadStateHashCalls() const;
+  const std::list<std::pair<
+      size_t, com::vmware::concord::thin_replica::SubscriptionRequest>>&
+  GetSubscribeToUpdatesCalls() const;
+  const std::list<
+      std::pair<size_t, com::vmware::concord::thin_replica::BlockId>>&
+  GetAckUpdateCalls() const;
+  const std::list<std::pair<
+      size_t, com::vmware::concord::thin_replica::SubscriptionRequest>>&
+  GetSubscribeToUpdateHashesCalls() const;
+  const std::list<size_t>& GetUnsubscribeCalls() const;
+  size_t GetTotalCallCount() const;
+};
+
+// Class for recording Thin Replica RPC calls to a given mocked Thin Replica
+// Server, given the data stream preparer and hasher for that server and a
+// ThinReplicaCommunicationRecord to record the calls to.
+class MockThinReplicaServerRecorder {
+ private:
+  std::shared_ptr<MockDataStreamPreparer> data_preparer_;
+  std::shared_ptr<MockOrderedDataStreamHasher> hasher_;
+  std::shared_ptr<ThinReplicaCommunicationRecord> record_;
+  size_t server_index_;
+
+ public:
+  MockThinReplicaServerRecorder(
+      std::shared_ptr<MockDataStreamPreparer> data,
+      std::shared_ptr<MockOrderedDataStreamHasher> hasher,
+      std::shared_ptr<ThinReplicaCommunicationRecord> record,
+      size_t server_index);
+
+  grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+  ReadStateRaw(
+      grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::ReadStateRequest& request);
+  grpc::Status ReadStateHash(
+      grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::ReadStateHashRequest& request,
+      com::vmware::concord::thin_replica::Hash* response);
+  grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+  SubscribeToUpdatesRaw(
+      grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+  grpc::Status AckUpdate(
+      grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::BlockId& block_id,
+      google::protobuf::Empty* response);
+  grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Hash>*
+  SubscribeToUpdateHashesRaw(
+      grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+  grpc::Status Unsubscribe(grpc::ClientContext* context,
+                           const google::protobuf::Empty& request,
+                           google::protobuf::Empty* response);
+};
+
+std::vector<MockThinReplicaServerRecorder> CreateMockServerRecorders(
+    size_t num_servers, std::shared_ptr<MockDataStreamPreparer> data,
+    std::shared_ptr<MockOrderedDataStreamHasher> hasher,
+    std::shared_ptr<ThinReplicaCommunicationRecord> record);
+
 void SetMockServerBehavior(
-    thin_replica_client::TrsConnection* server,
+    MockTrsConnection* server,
     const std::shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher);
+void SetMockServerBehavior(MockTrsConnection* server,
+                           MockThinReplicaServerRecorder& mock_server_recorder);
 
 void SetMockServerUnresponsive(thin_replica_client::TrsConnection* server);
 
@@ -266,6 +383,9 @@ CreateTrsConnections(size_t num_servers,
                      std::shared_ptr<MockDataStreamPreparer> stream_preparer,
                      MockOrderedDataStreamHasher& hasher,
                      size_t num_unresponsive = 0);
+std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+CreateTrsConnections(
+    std::vector<MockThinReplicaServerRecorder>& mock_server_recorders);
 
 template <class DataType>
 grpc::ClientReaderInterface<DataType>* CreateUnresponsiveMockStream() {
