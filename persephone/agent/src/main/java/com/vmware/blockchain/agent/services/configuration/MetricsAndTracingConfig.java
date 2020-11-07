@@ -44,7 +44,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
     TELEGRAF("telegraf",
             List.of(
                     new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090)),
-                    new PortBinding(Ports.Binding.bindPort(9273), ExposedPort.tcp(9273))
+                    // The output prometheus_client listen port needs to be exposed to the outside world
+                    new PortBinding(Ports.Binding.bindIpAndPort("0.0.0.0", 9273), ExposedPort.tcp(9273))
             ),
             List.of(Bind.parse("/config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf"),
                     Bind.parse("/var/run/docker.sock:/var/run/docker.sock:ro"),
