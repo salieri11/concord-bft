@@ -34,6 +34,7 @@ public final class ErrorCode {
             "Concurrent update on {0}, column name {1}. Try operation again";
     public static final String CONNECTION_POOL_UNSUPPORTED = "getConnection, pool not initialized";
     public static final String CONSORTIUM_NOT_FOUND = "Consortium with ID {0} not found.";
+    public static final String CONTAINER_BAD_CERTIFICATE = "Invalid certificate provided for Container Repo";
     public static final String CONTRACT_COMPILE_FAILED = "Compilation failure {0}";
     public static final String CONTRACT_DEPLOY_FAILED = "Could not deploy contract {0}";
     public static final String CONTRACT_NOT_FOUND = "Contract not found: {0}";

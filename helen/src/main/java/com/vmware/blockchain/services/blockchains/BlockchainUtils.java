@@ -150,16 +150,34 @@ public class BlockchainUtils {
                     .setTransportSecurity(TransportSecurity.newBuilder().build())
                     .build();
 
-            Endpoint container = Endpoint.newBuilder().build();
+            Endpoint.Builder containerBuilder = Endpoint.newBuilder();
 
             if (op.getContainerRepo() != null) {
-                container = Endpoint.newBuilder()
+                containerBuilder = Endpoint.newBuilder()
                         .setAddress(op.getContainerRepo().getUrl())
                         .setCredential(toPasswordCredential(op.getContainerRepo().getUsername(),
-                                                    op.getContainerRepo().getPassword()))
-                        .setTransportSecurity(TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE))
-                        .build();
+                                                    op.getContainerRepo().getPassword()));
 
+                if (StringUtils.hasText(op.getContainerRepo().getTlsCertificateData())) {
+                    try {
+                        // Implicitly checks for the Certificate Parsing and Encoding Exceptions
+                        X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+                                .generateCertificate(new ByteArrayInputStream(op.getContainerRepo()
+                                                                                      .getTlsCertificateData()
+                                                                                      .getBytes()));
+                        // Throws exception if certificate has expired or not yet valid
+                        tlsCertificate.checkValidity();
+                    } catch (Exception e) {
+                        logger.error("Container Repo's certificate data is invalid, error: ", e);
+                        throw new BadRequestException(ErrorCode.CONTAINER_BAD_CERTIFICATE);
+                    }
+                    containerBuilder.setTransportSecurity(
+                            TransportSecurity.newBuilder().setType(TransportSecurity.Type.TLSv1_2)
+                                    .setCertificateData(op.getContainerRepo().getTlsCertificateData()).build());
+                } else {
+                    containerBuilder.setTransportSecurity(
+                            TransportSecurity.newBuilder().setType(TransportSecurity.Type.TLSv1_2).build());
+                }
             }
 
             Endpoint.Builder notaryServerBuilder = Endpoint.newBuilder();
@@ -241,7 +259,7 @@ public class BlockchainUtils {
 
             VSphereOrchestrationSiteInfo vSphereInfo = VSphereOrchestrationSiteInfo.newBuilder()
                     .setApi(api)
-                    .setContainerRegistry(container)
+                    .setContainerRegistry(containerBuilder.build())
                     .setNotaryServer(notaryServerBuilder.build())
                     .setVsphere(dcInfo)
                     .setWavefront(wavefront)

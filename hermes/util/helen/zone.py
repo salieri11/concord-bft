@@ -66,7 +66,8 @@ def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
         "container_repo": {
             "url": "https://{}.com".format(uniqueId),
             "username": "user@{}.com".format(uniqueId),
-            "password": "container_repo_pa$$w0rd4{}".format(uniqueId)
+            "password": "container_repo_pa$$w0rd4{}".format(uniqueId),
+            "tls_certificate_data": ""
         },
         "notary_server": {
             "url": "",

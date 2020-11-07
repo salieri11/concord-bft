@@ -140,7 +140,7 @@ public class ZoneController {
         String folder;
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
-        EndPoint containerRepo;
+        OnPremZone.ContainerRepo containerRepo;
         OnPremZone.NotaryServer notaryServer;
         Zone.Wavefront wavefront;
         Zone.Elasticsearch elasticsearch;
@@ -215,7 +215,7 @@ public class ZoneController {
         @Valid
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
-        EndPoint containerRepo;
+        OnPremZone.ContainerRepo containerRepo;
         OnPremZone.NotaryServer notaryServer;
         Zone.Wavefront wavefront;
         Zone.Elasticsearch elasticsearch;
