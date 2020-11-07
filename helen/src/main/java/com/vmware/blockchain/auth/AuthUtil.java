@@ -19,6 +19,8 @@ import com.vmware.blockchain.common.Constants;
  */
 public class AuthUtil {
     public static Logger logger = LogManager.getLogger(AuthUtil.class);
+    // Constant for Bearer token
+    static final String BEARER = "Bearer";
 
     /**
      * Get the token from http request.
@@ -68,9 +70,9 @@ public class AuthUtil {
             }
 
             value = (String) headers.nextElement();
-        } while (!value.toLowerCase().startsWith("Bearer".toLowerCase()));
+        } while (!value.substring(0, BEARER.length()).equalsIgnoreCase(BEARER));
 
-        return value.substring("Bearer".length()).trim();
+        return value.substring(BEARER.length()).trim();
     }
 
 }
