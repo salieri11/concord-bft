@@ -193,6 +193,11 @@ message NodeProperty {
         TLS_CACRT = 23;
         TELEGRAF_USERNAME = 24;
         TELEGRAF_PASSWORD = 25;
+        OBJECT_STORE_ACCESS_KEY = 26;
+        OBJECT_STORE_BUCKET_NAME = 27;
+        OBJECT_STORE_PROTOCOL = 28;
+        OBJECT_STORE_SECRET_KEY = 29;
+        OBJECT_STORE_URL = 30;
     }
 
     Name name = 1;
