@@ -66,6 +66,7 @@ def getCASignedCert(csr, caCert, caKey, name):
    signedCert.set_issuer(caCert.get_subject())
    signedCert.gmtime_adj_notBefore(0)
    signedCert.gmtime_adj_notAfter(31536000)
+   signedCert.add_extensions(get_exts(False))
    signedCert.sign(caPKey, "sha512")
    open(name + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert))
@@ -86,6 +87,7 @@ def getSelfSignedCACert(csr, key, name):
    cert.gmtime_adj_notAfter(31536000)
    cert.set_issuer(pcsr.get_subject())
    cert.set_pubkey(pcsr.get_pubkey())
+   cert.add_extensions(get_exts())
    cert.sign(key, 'sha512')
    open(name + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
@@ -93,6 +95,16 @@ def getSelfSignedCACert(csr, key, name):
       crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
 
+def get_exts(ca=True):
+   ca_sign = 'digitalSignature, keyEncipherment,  Data Encipherment, Certificate Sign'
+   ca_no_sign = 'digitalSignature, keyEncipherment,  Data Encipherment'
+   if ca:
+      exts = [crypto.X509Extension(b"keyUsage", True, bytes(ca_sign, 'utf-8')),
+              crypto.X509Extension(b"basicConstraints", True, b"CA:true")]
+   else:
+      exts = [crypto.X509Extension(b"keyUsage", True, bytes(ca_no_sign, 'utf-8')),
+              crypto.X509Extension(b"basicConstraints", True, b"CA:false")]
+   return exts
 
 def generateSelfCertificate(sub, name):
    ca_key = getKey()
