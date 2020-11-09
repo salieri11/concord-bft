@@ -9,10 +9,28 @@ from util import helper, hermes_logging
 log = hermes_logging.getMainLogger()
 username, password = helper.getNodeCredentials()
 BASE_BACKUP_PATH = '/backup/'
+REMOTE_PATH = '/tmp/'
 START_NODE = 'start'
 STOP_NODE = 'stop'
 REPLICA = 'replica'
 CLIENT = 'client'
+
+
+def get_product_version(node):
+    '''
+        Function to get product version on node.
+        Args:
+            node: Node to check backup.
+        Returns:
+            Version in '0.0.0.0000' format.
+            False when unable to get version.
+       '''
+    cmd = 'docker inspect concord | grep "com.vmware.blockchain.version"'
+    status_post_action = helper.ssh_connect(node, username, password, cmd)
+    if status_post_action is None or status_post_action is '':
+        log.error('Unable get the product version')
+        return False
+    return status_post_action.split(": ")[1].rstrip("\n").rstrip("\r").replace('"', '')
 
 
 def check_backup(node):
@@ -26,8 +44,8 @@ def check_backup(node):
    '''
     backup_path = BASE_BACKUP_PATH
     cmd = "ls -td -- {}/*/*/ | head -n 1".format(backup_path + node)
-    latest_backup_path = helper.ssh_connect(node, username=username, password=password, command=cmd).rstrip("\n").rstrip(
-        "\r")
+    latest_backup_path = helper.ssh_connect(node, username=username, password=password,
+                                            command=cmd).rstrip("\n").rstrip("\r")
     if 'No such file or directory' in latest_backup_path:
         return False
     else:
@@ -39,31 +57,34 @@ def get_block_id(node, skip_start=False, skip_stop=False):
     Function to get last block id on a node.
     Args:
         node: Node to get last block id.
+        skip_start: skips starting the node.
+        skip_stop: skips stopping the node.
     Returns:
-        True when the backup is available.
-        False when there are no backup.
+        LastBlockID when available.
+        False when it fails to get block id.
    '''
     log.info('Getting block id for {}'.format(node))
     if not skip_stop:
-        node_start_stop(node, STOP_NODE)
-    cmd = 'image=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "concord-core");'
+        assert node_start_stop(node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+    version = get_product_version(node)
+    if not version:
+        log.error('Unable to get product version')
+        return False
+    
+    cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
     docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
-                 'target=/concord/rocksdbdata $image /concord/sparse_merkle_db_editor ' \
-                 '/concord/rocksdbdata getLastBlockID'
+                 'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
+                 '/concord/rocksdbdata getLastBlockID'.format(version)
     status_post_action = helper.ssh_connect(node, username=username, password=password,
                                             command=(cmd + docker_cmd))
-    log.info("{} IP with block Id {}".format(node, status_post_action))
-
+    if 'Failed to execute command' in status_post_action:
+        log.error('Unable to get LastBlockID from {}'.format(node))
+        return False
+    log.debug("{} IP with block Id {}".format(node, status_post_action))
     block_id = json.loads(status_post_action)
     if not skip_start:
-        node_start_stop(node, START_NODE)
-    # docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
-    #              'target=/concord/rocksdbdata $image /concord/sparse_merkle_db_editor ' \
-    #              '/concord/rocksdbdata getLastReachableBlockID'
-    # status_post_action = helper.ssh_connect(ip, username=username, password=password,
-    #                                         command=(cmd + docker_cmd))
-    # 'getLastReachableBlockID'
-    # logger.info("{} IP with reachable block Id {}".format(ip, status_post_action))
+        assert node_start_stop(node, START_NODE), 'Failed to Start Node {}'.format(node)
 
     return block_id['lastBlockID']
 
@@ -79,17 +100,23 @@ def get_raw_block(node, block_id):
         False when there are no backup.
    '''
     log.info('Getting raw block for {}'.format(node))
-    node_start_stop(node, STOP_NODE)
-    cmd = 'image=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "concord-core");'
+    assert node_start_stop(node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+    version = get_product_version(node)
+    if not version:
+        log.error('Unable to get product version')
+        return False
+
+    cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
     docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
-                 'target=/concord/rocksdbdata $image /concord/sparse_merkle_db_editor ' \
-                 '/concord/rocksdbdata getRawBlock {}'.format(block_id)
+                 'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
+                 '/concord/rocksdbdata getRawBlock {}'.format(version, block_id)
     status_post_action = helper.ssh_connect(node, username=username, password=password,
                                             command=(cmd + docker_cmd))
-    log.info("{} IP with raw block {}".format(node, status_post_action))
+    log.debug("{} IP with raw block {}".format(node, status_post_action))
     if 'NotFoundException' in status_post_action:
         return False
-    node_start_stop(node, START_NODE)
+    assert node_start_stop(node, START_NODE), 'Failed to Start Node {}'.format(node)
     return status_post_action
 
 
@@ -106,24 +133,23 @@ def node_start_stop(node, action):
     log.debug("{} containers on {}".format(action.upper(), node))
 
     cmd = "curl -X POST 127.0.0.1:8546/api/node/management?action={}".format(action)
-    # cmd = "docker ps -aq | grep -v $(docker ps -aq --filter='name=^/agent') | xargs docker {}".format(action)
     status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
 
-    if status_post_action is None or '"docker {}" requires at least 1 argument'.format(action) in status_post_action:
-        log.info('Unable to {} containers with following error{}'.format(action, status_post_action))
+    if status_post_action is None or 'Failed' in status_post_action or 'Connection refused' in status_post_action:
+        log.error('Unable to {} containers.\nResponse {}'.format(action, status_post_action))
         return False
 
-    log.debug("Log from remote VM \n{}".format(status_post_action))
     log.debug("{} on {} completed".format(action.upper(), node))
     return True
 
 
-def node_backup(node, remote_file_path, skip_start=False, skip_stop=False):
+def node_backup(node, remote_file_path, node_type, skip_start=False, skip_stop=False):
     '''
     Function to backup from node.
     Args:
         node: Node to take backup.
         remote_file_path: Location of DB to take backup.
+        node_type: Type of the node.
         skip_start: skips starting the node.
         skip_stop: skips stopping the node.
     Returns:
@@ -132,8 +158,7 @@ def node_backup(node, remote_file_path, skip_start=False, skip_stop=False):
    '''
     log.info("Starting backup process on {}".format(node))
     if not skip_stop:
-        if not node_start_stop(node, STOP_NODE):
-            return False
+        assert node_start_stop(node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
     backup_path = BASE_BACKUP_PATH
 
     # to avoid over writing of backup, new folder is created with date and current time during execution.
@@ -141,36 +166,33 @@ def node_backup(node, remote_file_path, skip_start=False, skip_stop=False):
     backup_path = backup_path + node + "/" + time_date.replace(" ", "/")[:-7]
     log.info("Remote file path: {}\nBackup file path: {}".format(remote_file_path, backup_path))
 
-    cmd = "mkdir -p {}".format(backup_path)
+    cmd = "mkdir -p {}; tar czf {} {}".format(backup_path, (backup_path + "/db-backup.tar.gz"), remote_file_path)
+    if node_type == CLIENT:
+        config_backup_cmd = "tar cvzf {} /config/daml-ledger-api/environment-vars".\
+            format((backup_path + "/env-backup.tar.gz"))
+        cmd = cmd + ";" + config_backup_cmd
     status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
-    log.debug("MSG from VM {}".format(status_post_action))
-    cmd = "tar czf {} {}".format(backup_path + "/db-backup.tar.gz", remote_file_path)
-
-    # if False:
-    #     config_backup_cmd = "tar cvzf {} /config/daml-ledger-api/environmentvars".\
-    #         format(backup_path + "/")
-    #     cmd = cmd + ";" + config_backup_cmd
-
-    status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
-    log.info("MSG from VM {}".format(status_post_action))
     if 'No such file or directory' in status_post_action or 'errors' in status_post_action:
-        log.info('Failed to take backup due to error {}'.format(status_post_action))
+        log.error('Failed to take backup due to error {}'.format(status_post_action))
         return False
+
     if not skip_start:
-        if not node_start_stop(node, START_NODE):
-            return False
+        time.sleep(300)
+        assert node_start_stop(node, START_NODE), 'Failed to Start Node {}'.format(node)
     log.info("Node backup completed")
     return True
 
 
-def node_restore(node, remote_file_path, node_type, skip_start=False, skip_stop=False):
+def node_restore(node, remote_file_path, node_type, skip_start=False, skip_stop=False, clean_metadata=True):
     '''
     Function to restore a backup of a node.
     Args:
         node: Node to take backup.
         remote_file_path: Location of DB to take backup.
+        node_type: Type of the node.
         skip_start: skips starting the node.
         skip_stop: skips stopping the node.
+        clean_metadata: cleans metadata of node.
     Returns:
         True when the restore is completed.
         False when restore fails.
@@ -178,50 +200,48 @@ def node_restore(node, remote_file_path, node_type, skip_start=False, skip_stop=
     log.info("Starting restore process on {}".format(node))
     backup_path = BASE_BACKUP_PATH
     if not skip_stop:
-        if not node_start_stop(node, STOP_NODE):
-            return False
+        assert node_start_stop(node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
 
     # getting the path of latest backup from the folder for restoration.
     cmd = "ls -td -- {}/*/*/ | head -n 1".format(backup_path + node)
-    latest_backup_path = helper.ssh_connect(node, username=username, password=password, command=cmd).rstrip("\n").rstrip(
-        "\r")
+    latest_backup_path = helper.ssh_connect(node, username=username, password=password,
+                                            command=cmd).rstrip("\n").rstrip("\r")
     if 'No such file or directory' in latest_backup_path:
-        log.debug('Unable to get the backup for restore')
+        log.error('Unable to get the backup path to restore\n{}'.format(latest_backup_path))
         return False
 
-    cmd = "rm -rf {}".format(remote_file_path)
+    cmd = "rm -rf {}; tar xzf {}db-backup.tar.gz --directory /".format(remote_file_path, latest_backup_path)
     status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
-    if status_post_action is None:
-        log.debug('Unable clear the existing DB before restore {}'. format(status_post_action))
+    if 'No such file or directory' in status_post_action:
+        log.error('Unable to extract the backup file on {}\n{}'.format(node, status_post_action))
         return False
-
-    cmd = "tar xzf {}db-backup.tar.gz --directory /".format(latest_backup_path)
-    status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
-    log.info("Restore Process {}".format(status_post_action))
-    if node_type == "replica":
-        image_cmd = 'image=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "concord-core")'
+    if node_type == REPLICA and clean_metadata:
+        version = get_product_version(node)
+        if not version:
+            log.error('Unable to get product version')
+            return False
+        image_cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core")'
 
         docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source={},target=/concord/rocksdbdata ' \
-                     '$image /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
-                     'rm /config/concord/config-generated/genSec_*'.format(remote_file_path)
+                     '$image:{} /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
+                     'rm /config/concord/config-generated/genSec_*'.format(version, remote_file_path)
+        cmd = image_cmd + ';' + docker_cmd
+    else:
+        cmd = 'rm -rf /config/daml-ledger-api/environment-vars; ' \
+              'tar xzf {}env-backup.tar.gz --directory /'.format(latest_backup_path)
 
-        status_post_action = helper.ssh_connect(node, username=username, password=password, command=image_cmd + ';' + docker_cmd)
-        log.info("Sanitizing {}".format(status_post_action))
-
-    #remove
+    status_post_action = helper.ssh_connect(node, username=username, password=password,command=cmd)
     if 'error' in status_post_action or 'failure' in status_post_action:
-        log.debug('Unable to restore {}'.format(status_post_action))
+        log.error('Unable to restore {}'.format(status_post_action))
         return False
-
     if not skip_start:
         time.sleep(300)
-        if not node_start_stop(node, START_NODE):
-            return False
+        assert node_start_stop(node, START_NODE), 'Failed to Stop Node {}'.format(node)
     log.info("Restore completed")
     return True
 
 
-def cross_node_restore(node, restore_node, node_type, db_path, skip_start=False, skip_stop=False):
+def cross_node_restore(node, restore_node, node_type, db_path, skip_start=False, skip_stop=False, clean_metadata=True):
     '''
     Function to restore a backup of one node in another node.
     Args:
@@ -231,16 +251,20 @@ def cross_node_restore(node, restore_node, node_type, db_path, skip_start=False,
         db_path: DB path of the node where restore is performed.
         skip_start: skips starting the node.
         skip_stop: skips stopping the node.
+        clean_metadata: cleans metadata of node.
     Returns:
         True when the restore is completed.
         False when restore fails.
    '''
     log.info("Cross restore started from {} to {}".format(node, restore_node))
     backup_path = BASE_BACKUP_PATH
-    remote_path = "/tmp/"
+    remote_path = REMOTE_PATH
     cmd = "ls -td -- {}/*/*/ | head -n 1".format(backup_path + node)
     latest_backup_path = helper.ssh_connect(node, username=username, password=password, command=cmd).rstrip("\n"). \
         rstrip("\r")
+    if 'cannot access' in latest_backup_path:
+        log.error('Unable get the latest backup path\n{}'.format(latest_backup_path))
+        return False
 
     cmd = "ssh-keyscan {} >> $HOME/.ssh/known_hosts;"\
           "sshpass -p {} rsync -a {}db-backup.tar.gz root@{}:{}".format(restore_node, password,
@@ -248,30 +272,35 @@ def cross_node_restore(node, restore_node, node_type, db_path, skip_start=False,
                                                                         restore_node,
                                                                         remote_path)
     status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
-
+    if 'failed' in status_post_action or 'error' in status_post_action:
+        log.error('Unable to send backup from {} to {}'.format(node, restore_node))
+        return False
     if not skip_stop:
-        if not node_start_stop(restore_node, STOP_NODE):
+        assert node_start_stop(restore_node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+    cmd = "rm -rf {}; tar xzf {}db-backup.tar.gz --directory /".format(db_path, remote_path)
+    status_post_action = helper.ssh_connect(restore_node, username=username, password=password, command=cmd)
+    if 'No such file or directory' in status_post_action:
+        log.error('Unable to extract the backup file on {}\n{}'.format(restore_node, status_post_action))
+        return False
+
+    if node_type == REPLICA and clean_metadata:
+        version = get_product_version(node)
+        if not version:
+            log.error('Unable to get product version')
             return False
-
-    cmd = "rm -rf {}".format(db_path)
-    status_post_action = helper.ssh_connect(restore_node, username=username, password=password, command=cmd)
-
-    cmd = "tar xzf {}db-backup.tar.gz --directory /".format(remote_path)
-    status_post_action = helper.ssh_connect(restore_node, username=username, password=password, command=cmd)
-
-    if node_type == "replica":
-        cmd = 'image=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "concord-core");'
+        cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
 
         docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source={},target=/concord/rocksdbdata ' \
-                     '$image /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
-                     'rm /config/concord/config-generated/genSec_*'.format(db_path)
+                     '$image:{} /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
+                     'rm /config/concord/config-generated/genSec_*'.format(version, db_path)
 
         status_post_action = helper.ssh_connect(restore_node, username=username, password=password,
                                                 command=(cmd + docker_cmd))
-    if not skip_start:
-        if not node_start_stop(restore_node, START_NODE):
+        if 'Failed to execute command' in status_post_action or 'Error' in status_post_action:
+            log.error('Unable to clean metadata on {}\n{}'.format(node, status_post_action))
             return False
+    if not skip_start:
+        assert node_start_stop(restore_node, START_NODE), 'Failed to Start Node {}'.format(node)
     log.info("Cross restore completed")
     return True
-
-
