@@ -1,0 +1,62 @@
+{
+  "replicas": [
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    }
+  ],
+  "replicaNodeSpec": {
+    "cpuCount": 2,
+    "memoryGb": 16,
+    "diskSizeGb": 64
+  },
+  "clients": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group1",
+      "ledgerTls": {
+        "pem" : "pem1",
+        "crt" : "crt1",
+        "cacrt": "cacrt1",
+        "clientAuth" : "NONE"
+      }
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group2",
+      "ledgerTls": {
+        "pem" : "pem1",
+        "crt" : "crt1",
+        "cacrt": "cacrt1",
+        "clientAuth" : "OPTIONAL"
+      }
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group1",
+      "ledgerTls": {
+        "pem" : "pem1",
+        "crt" : "crt1",
+        "cacrt": "cacrt1",
+        "clientAuth" : "REQUIRE"
+      }
+    }
+  ],
+  "clientNodeSpec": {
+    "cpuCount": 4,
+    "memoryGb": 32,
+    "diskSizeGb": 100
+  },
+  "blockchain": {
+    "consortiumName": "consortium-1",
+    "blockchainType": "DAML"
+  }
+}

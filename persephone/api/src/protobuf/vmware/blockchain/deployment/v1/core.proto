@@ -198,6 +198,7 @@ message NodeProperty {
         OBJECT_STORE_PROTOCOL = 28;
         OBJECT_STORE_SECRET_KEY = 29;
         OBJECT_STORE_URL = 30;
+        TLS_CLIENT_AUTH = 31;
     }
 
     Name name = 1;

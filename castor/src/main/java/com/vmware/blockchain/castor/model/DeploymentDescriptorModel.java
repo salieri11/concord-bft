@@ -12,6 +12,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 
 import com.vmware.blockchain.castor.service.BlockchainTypesValid;
+import com.vmware.blockchain.castor.service.LedgerTlsClientAuthValid;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -46,6 +47,30 @@ public interface DeploymentDescriptorModel {
         private String authUrlJwt;
         private String providedIp;
         private String groupName;
+        private LedgerTls ledgerTls;
+    }
+
+    /**
+     * Optional TLS settings for client.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @EqualsAndHashCode
+    class LedgerTls {
+        private String pem;     // The pem file to be used as the private key.
+        private String crt;     // The crt file to be used as the cert chain.
+        private String cacrt;   // The crt file to be used as the the trusted root CA.
+
+        @Builder.Default
+        @LedgerTlsClientAuthValid(allowedTypes = {ClientAuth.NONE, ClientAuth.OPTIONAL, ClientAuth.REQUIRE})
+        private ClientAuth clientAuth = ClientAuth.REQUIRE; // Based on DAML SDK docs.
+
+        public enum ClientAuth {
+            NONE,
+            OPTIONAL,
+            REQUIRE
+        }
     }
 
     /**
