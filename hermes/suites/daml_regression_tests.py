@@ -228,7 +228,7 @@ def make_daml_request_in_thread(reraise, client_host, no_of_txns=1, wait_time=1)
     # But after powering off and on the host, it listens on 6865 only
     # So using 6865 here
     log.info("\nStarting thread for daml transaction")
-    url = 'http://{}:{}'.format(client_host, get_port(client_host))
+    url = get_url(client_host)
 
     def make_daml_request(url, no_of_txns, wait_time):
         set_event_loop(new_event_loop())
@@ -298,7 +298,8 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
 
         log.info("\nPerform daml transaction as final check")
         for client_host in fixture_tuple.client_hosts:
-            assert make_daml_request_in_thread(reraise, client_host), \
+            url = get_url(client_host)
+            assert simple_request(url, 1, 0.3), \
                 PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
 
         log.info("\n*** Sanity check successfully done for given test ***\n")
@@ -317,7 +318,6 @@ def stop_for_replica_list(replica_list, container_name, count):
     Returns:
         None
     '''
-    log.info("Stopping process")
     for i in range(count):
         concord_host = replica_list[i]
         assert intr_helper.stop_container(
@@ -418,7 +418,7 @@ def trigger_checkpoint(bc_id, client_host):
     no_of_txns_for_checkpoint, wait_time, duration= 170, 0, 200
     checkpoint_before_txns = get_last_checkpoint(bc_id)
     log.info("Checkpoint before transactions: {}".format(checkpoint_before_txns))
-    continuous_daml_request_submission(client_host,get_port(client_host), no_of_txns_for_checkpoint, wait_time, duration)
+    continuous_daml_request_submission(client_host, no_of_txns_for_checkpoint, wait_time, duration)
     checkpoint_after_txns = get_last_checkpoint(bc_id)
     log.info("Checkpoint after transactions: {}".format(checkpoint_after_txns))
     if checkpoint_after_txns > checkpoint_before_txns:
@@ -442,7 +442,7 @@ def get_last_checkpoint(bc_id):
     metric_query = metric_query + ",blockchain={})".format(bc_id)
     log.info("Metric Query to Wavefront API: {}".format(metric_query))
     log.info("Start epoch time: {} ; End epoch time: {}".format(start_epoch, end_epoch))
-    time.sleep(30)
+    time.sleep(60)
     str_output = wavefront.call_wavefront_chart_api(
         metric_query, start_epoch, end_epoch, granularity="s")
     output = json.loads(str_output)
@@ -893,10 +893,8 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
             PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
 
 
-# This test has been skipped temporarily for a fix which needs time.
 @pytest.mark.skip
 @describe("fault tolerance - view change")
-@pytest.mark.skip()
 def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance using below steps:
@@ -919,13 +917,13 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             assert make_daml_request_in_thread(
                 reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
 
-            committers_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain)
+            # Find primary replica ip and id
+            init_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            init_primary_rip = init_mapping["primary_ip"]
+            init_primary_index = init_mapping["primary_index"]
 
-            # Find primary replica ip
-            init_primary_rip = committers_mapping["primary_ip"]
-            log.info("Initial Primary Replica IP is : {}".format(
-                init_primary_rip))
+            assert init_primary_rip, "Primary Replica not found"
+            log.info("Primary Replica IP and index: {} and {}".format(init_primary_rip, init_primary_index))
 
             interrupted_nodes = []
             container_name = 'concord'
@@ -933,67 +931,51 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             non_primary_replicas = fxLocalSetup.concord_hosts[:]
             non_primary_replicas.remove(init_primary_rip)
 
-            # # Stop f-1 non-primary replica
+            # Stop f-1 non-primary replica
             for index in range(fxLocalSetup.f_count - 1):
                 concord_host = non_primary_replicas[index]
                 log.info(
-                    "Stop concord in non-primary replica: {}".format(concord_host))
+                    "\nStop concord in non-primary replica: {}".format(concord_host))
                 intr_helper.stop_container(concord_host, container_name)
                 interrupted_nodes.append(concord_host)
 
-            log.info("Stopped f-1 non-primary replica concord containers")
+            log.info("\nStopped f-1 non-primary replica concord containers")
             log.info("\nInterrupted nodes are : {}".format(interrupted_nodes))
 
             # Start new thread for daml request submissions and stop & start current primary replica
             thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                     args=(client_host, get_port(client_host), 1, 0.5, 240))
+                                     args=(client_host, 1, 0.2, 480))
             thread_stop_start_primary = Thread(target=intr_helper.continuous_stop_start_container,
-                                     args=(init_primary_rip, container_name, 240))
+                                               args=(init_primary_rip, container_name, 300))
             interrupted_nodes.append(init_primary_rip)
 
             log.info("\nAfter adding primary replica to interrupted nodes are : {}".format(
                 interrupted_nodes))
-            
+
             log.info("\nStarting daml transaction thread")
             thread_daml_txn.start()
             log.info("\nStarting stop start primary thread")
             thread_stop_start_primary.start()
-            threads_list = []
-            threads_list.append(thread_daml_txn)
-            threads_list.append(thread_stop_start_primary)
-            log.info("\nThreads list is {}".format(threads_list))
-            for count, thread in enumerate(threads_list):
-                log.info("\nJoining thread - {}".format(count+1))
-                thread.join()
-            time.sleep(120)
-            for thread in threads_list:
-                log.info("\nIs thread alive? {}".format(thread.isAlive()))
-                if(thread.isAlive()):
-                    log.info("\nKilling this thread in 10 seconds")
-                    thread.join(10)
-                    assert False, "Failure during multiple view changes & daml request submission"
+            time.sleep(300)
+            if thread_stop_start_primary.isAlive():
+                reraise()
+                thread_stop_start_primary.join()
+                log.info("\nStop & start primary thread completed")
 
-            # Find new primary replica ip
-            committers_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain, interrupted_nodes)
-            new_primary_rip = committers_mapping["primary_ip"]
+            assert verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, [interrupted_nodes]), \
+                "View Change did not happen successfully"
 
-            log.info("New Primary Replica IP is : {}".format(new_primary_rip))
-
-            assert init_primary_rip != new_primary_rip, "View Change did not happen successfully"
-
-            # Submit Daml requests after view change
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "after view change"
+            if thread_daml_txn.isAlive():
+                reraise()
+                thread_daml_txn.join(20)
+                log.info("\nDaml transaction thread completed")
 
         except Exception as excp:
             assert False, excp
 
 
-# This test has been skipped temporarily for a fix which needs time.
-@pytest.mark.skip
+# @pytest.mark.skip
 @describe("fault tolerance - multiple view changes")
-@pytest.mark.skip()
 def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
     Verify fault tolerance view changes after multiple using below steps:
@@ -1016,11 +998,14 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
             assert make_daml_request_in_thread(
                 reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG
 
-            # Find primary replica ip
-            committers_mapping = blockchain_ops.map_committers_info(
+            # Find primary replica ip and id
+            init_mapping = blockchain_ops.map_committers_info(
                 fxBlockchain)
-            init_primary_rip = committers_mapping["primary_ip"]
-            log.info("Primary Replica IP is : {}".format(init_primary_rip))
+            init_primary_rip = init_mapping["primary_ip"]
+            init_primary_index = init_mapping["primary_index"]
+
+            assert init_primary_rip, "Primary Replica not found"
+            log.info("Primary Replica IP and index: {} and {}".format(init_primary_rip, init_primary_index))
 
             interrupted_nodes = []
             container_name = 'concord'
@@ -1040,28 +1025,28 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
             # Start new thread for daml request submissions
             thread_daml_txn = Thread(target=continuous_daml_request_submission,
-                                     args=(client_host, get_port(client_host), 1, 0.2, 900))
+                                     args=(client_host, 1, 0.2, 1200))
+            log.info("\nStarting daml transaction thread")
             thread_daml_txn.start()
 
             # Stop and Restart the current primary replicas multiple times
-            for _ in range(0, 7):
-                committers_mapping = blockchain_ops.map_committers_info(
+            for _ in range(0, len(fxLocalSetup.concord_hosts)):
+                new_mapping = blockchain_ops.map_committers_info(
                     fxBlockchain, interrupted_nodes)
-                primary_rip = committers_mapping["primary_ip"]
-                intr_helper.stop_container(primary_rip, container_name, 30)
-                intr_helper.start_container(primary_rip, container_name, 90)
+                new_primary_rip = new_mapping["primary_ip"]
+                new_primary_index = new_mapping["primary_index"]
 
-            thread_daml_txn.join()
-            time.sleep(60)
-            log.info("\nIs thread alive? {}".format(thread_daml_txn.isAlive()))
-            if(thread_daml_txn.isAlive()):
-                log.info("\nKilling this thread in 10 seconds")
-                thread_daml_txn.join(10)
-                assert False, "during multiple view changes"
+                assert new_primary_rip, "New Primary Replica not found"
+                log.info("Primary Replica IP and index: {} and {}".format(new_primary_rip, new_primary_index))
+                intr_helper.stop_container(new_primary_rip, container_name, 30)
+                intr_helper.start_container(new_primary_rip, container_name, 90)
 
-            # Submit Daml requests after multiple view changes
-            assert make_daml_request_in_thread(reraise, client_host), \
-                PARTICIPANT_GENERIC_ERROR_MSG + "after multiple view changes"
+                time.sleep(60)
+
+            if thread_daml_txn.isAlive():
+                reraise()
+                thread_daml_txn.join(20)
+                log.info("\nDaml transaction thread completed")
 
         except Exception as excp:
             assert False, excp

@@ -9,7 +9,7 @@ from random import randrange
 import sys
 import tempfile
 import time
-import datetime
+from datetime import datetime, timedelta
 import json
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
@@ -711,8 +711,8 @@ def continuous_stop_start_container(ip, container_name, duration=60):
    '''
    try:
       status = True
-      start_time = datetime.datetime.now()
-      end_time = start_time + datetime.timedelta(seconds=duration)
+      start_time = datetime.now()
+      end_time = start_time + timedelta(seconds=duration)
       username, password = helper.getNodeCredentials()
       while status and start_time <= end_time:
          cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
@@ -723,7 +723,7 @@ def continuous_stop_start_container(ip, container_name, duration=60):
          elif "exited" in concord_status:
             status = start_container(ip, container_name)
 
-         start_time = datetime.datetime.now()
+         start_time = datetime.now()
    except Exception as excp:
       log.debug("Failed to stop and start primary replica:{}".format(ip))
       assert False, excp
