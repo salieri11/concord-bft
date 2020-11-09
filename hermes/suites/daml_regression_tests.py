@@ -291,7 +291,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
     for client_host in fxLocalSetup.client_hosts:
         try:
             dr_helper.install_sdk_deploy_daml(client_host)
-
+            url = get_daml_url(client_host)
             #Start the daml transactions and trigger checkpoint
             assert dr_helper.trigger_checkpoint(fxBlockchain.blockchainId,
                                                 client_host), dr_helper.CHECKPOINT_ERROR_MESSAGE
@@ -324,8 +324,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
 
             # Create & verify transactions after disconnect/reconnect of all committer nodes
             time.sleep(30)
-            assert dr_helper.make_daml_request(reraise, client_host), \
-                dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after disconnect/reconnect of all committer nodes"
+            assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after disconnect/reconnect of all committer nodes"
 
             log.info(
                 "\nTransaction successful after reconnecting all committer nodes")
@@ -342,8 +341,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
 
             # Create & verify transactions after powering off f committer nodes
             time.sleep(20)
-            assert dr_helper.make_daml_request(reraise, client_host), \
-                dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after powering off f committer nodes"
+            assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after powering off f committer nodes"
 
             log.info(
                 "\nTransaction successful after powering off f committer nodes")
@@ -358,8 +356,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
                     dr_helper.COMMITTER_POWER_ON_ERROR_MSG + "[{}]".format(
                         concord_host)
 
-            assert dr_helper.make_daml_request(reraise, client_host), \
-                dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after powering on f committer nodes"
+            assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after powering on f committer nodes"
 
         except Exception as excp:
             assert False, excp
@@ -872,8 +869,8 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
                 non_primary_replicas, container_name, fxLocalSetup.f_count - 1), "Error while stopping replica"
 
             # Step 13 :  Submit & verify Daml requests after state transfer
-            assert dr_helper.make_daml_request(
-                reraise, client_host), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG
+            url = get_daml_url(client_host)
+            assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG
 
         except Exception as excp:
             assert False, excp
