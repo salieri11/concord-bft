@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.configuration.generateconfig.Constants;
@@ -33,6 +34,7 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
 
@@ -145,7 +147,46 @@ public class ConfigurationServiceHelper {
                                                           .setComponent(ledgerApiUtil.generateConfig(nodeInfo))
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
+
                     // placeholder to create bft config
+
+                    Properties properties =  nodeInfo.getProperties();
+
+                    String pem = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_PEM.name(), "");
+                    String crt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CRT.name(), "");
+                    String cacrt = properties.getValuesMap().getOrDefault(NodeProperty.Name.TLS_CACRT.name(), "");
+
+                    // Certificate values can either be provided or not.
+                    // If they are provided, make sure they are all present.
+                    // If they are not provided, take no action.
+                    // This is to maintain backward compatibility.
+
+                    boolean tlsEnabled = !Strings.isNullOrEmpty(pem)
+                            && !Strings.isNullOrEmpty(crt)
+                            && !Strings.isNullOrEmpty(cacrt);
+
+                    if (tlsEnabled) {
+                        nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                                .setType(serviceType)
+                                .setComponentUrl(DamlLedgerApiUtil.tlsPemPath)
+                                .setComponent(pem)
+                                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                .build());
+
+                        nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                                .setType(serviceType)
+                                .setComponentUrl(DamlLedgerApiUtil.tlsCrtPath)
+                                .setComponent(crt)
+                                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                .build());
+
+                        nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                                .setType(serviceType)
+                                .setComponentUrl(DamlLedgerApiUtil.tlsCacrtPath)
+                                .setComponent(cacrt)
+                                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                .build());
+                    }
 
                     break;
                 case DAML_INDEX_DB:
