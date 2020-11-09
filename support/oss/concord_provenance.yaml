@@ -159,12 +159,12 @@ other:rapidcheck:258d907da00a0855f92c963d8f76eef115531716:
  license: BSD 2-Clause
  url: https://github.com/emil-e/rapidcheck
 
-other:trio:0.16.0:
+other:trio:0.17.0:
  name: trio
- version: 0.16.0
+ version: 0.17.0
  repository: Other
  license: The MIT License
- url: https://github.com/python-trio/trio
+ url: https://github.com/python-trio/trio/tree/v0.17.0
 
 other:cockroachdb:20.1.1:
  name: cockroachdb
@@ -187,12 +187,12 @@ other:solidity:0.7.8:
  license: GNU General Public License v3.0
  url: https://github.com/ethereum/solidity/tree/v0.7.8
 
-other:numpy:1.19.0:
+other:numpy:1.18.4:
  name: numpy
- version: 1.19.0
+ version: 1.18.4
  repository: Other
  license: BSD 3-Clause
- url: https://github.com/ethereum/solidity/tree/v0.7.8
+ url: https://github.com/numpy/numpy/tree/v1.18.4
 
 other:matplotlib:3.2.1:
  name: matplotlib
