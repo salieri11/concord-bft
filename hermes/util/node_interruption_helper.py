@@ -731,7 +731,7 @@ def continuous_stop_start_container(ip, container_name, duration=60):
 
 def sleep_and_check(init_sleep_time, step, max_sleep_time, start_block, end_block, replica_ips):
     '''
-    Function to wait and check successfull completion of State transfer 
+    Function to wait and check successfull completion of State transfer
     Args:
       init_sleep_time: Initial wait time for the completion of State trasnfer
       step: Value which the wait time will be increased in each iteration
@@ -806,4 +806,3 @@ def check_replica_block_data(start_block, end_block, replica_ips):
          return False
    except Exception as excp:
       return excp
-
