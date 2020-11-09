@@ -35,6 +35,7 @@
     "requiredValidationMessage": "This field is required",
     "search": "Search",
     "skip": "Skip",
+    "submit": "Submit",
     "storage": "Storage",
     "success": "Success",
     "token": "Token",
@@ -1125,6 +1126,7 @@
     },
     "engine": {
       "pageTitle": "Choose Contract Engine",
+      "pageDesc": "Contract compiler engine",
       "navTitle": "Contract Engine",
       "damlTitle": "DAML",
       "damlInfo": "Focus only on the data and business logic of your use case and leave lower-level concerns to the runtime. DAML has language-level constructs to abstract away many boilerplate complexities such as signatures, data schemas or privacy.",
@@ -1138,12 +1140,14 @@
         "numberOfNodes": "Replicas options are optimized for ConcordBFT consensus engine."
       },
       "pageTitle": "Consortium Details",
+      "pageDesc": "Consortium name and description",
       "navTitle": "Details",
       "consortiumPlaceholder": "My Consortium",
       "consortiumDescriptionPlaceholder": "Describe the intent of the consortium"
     },
     "sizing": {
       "title": "Node Sizing",
+      "pageDesc": "CPU, storage and memory sizing for replicas and clients",
       "replicaTitle": "Replica Sizing",
       "clientTitle": "Client Sizing",
       "back": "Back to templates",
@@ -1161,6 +1165,7 @@
         "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
       },
       "pageTitle": "Configure Replica Nodes",
+      "pageDesc": "Choose the amount of replicas and zone location",
       "navTitle": "Replica Nodes",
       "onPremTitle": "On Premises Zone Distribution",
       "cloudTitle": "Cloud Zone Distribution",
@@ -1178,9 +1183,10 @@
       "singular": "Client",
       "plural": "Clients",
       "pageTitle": "Add Client Groups",
+      "pageDesc": "Choose the amount of client groups and clients for each",
       "navTitle": "Client Nodes",
       "clientNode": "Client Node",
-      "clientGrouping": "Client Group",
+      "clientGrouping": "Group Name",
       "deleteClientGroup": "Delete Group",
       "addClient": "Add Client Node",
       "defaultGroup": "Default Group",

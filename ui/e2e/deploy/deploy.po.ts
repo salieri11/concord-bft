@@ -9,7 +9,7 @@ export class DeployWizard {
   progPerceEl = `${this.progressEl} .progress span`;
 
   next() {
-    return element(by.css('.clr-wizard-btn.btn-primary')).click();
+    return element(by.css('.clr-step-button')).click();
   }
 
   selectDaml() {
@@ -53,7 +53,7 @@ export class DeployWizard {
   }
 
   deploy() {
-    return element(by.css('.clr-wizard-btn.btn-success')).click();
+    return element(by.css('.clr-step-button.btn-primary')).click();
   }
 
   getPercentage(): Promise<string> {

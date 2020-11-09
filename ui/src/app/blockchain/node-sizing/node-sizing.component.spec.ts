@@ -54,7 +54,8 @@ describe('NodeSizingComponent', () => {
         no_of_cpus: '4',
         storage_in_gigs: '1024',
         memory_in_gigs: '32'
-      }
+      },
+      size: 'Small'
     });
     expect(comp.isValid.emit).toHaveBeenCalledWith(true);
   });

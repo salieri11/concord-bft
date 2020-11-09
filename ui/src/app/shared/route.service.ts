@@ -255,7 +255,7 @@ function parsePathUrl(url: string, currentQueryParams?) {
       currentQueryParams: currentQueryParams, // Query params from ActivatedRoute
     };
   } catch (e) {
-    console.error(e);
+    // console.error(e);
     return { url: original, base: '', paths: [], fragment: null, params: {}, currentQueryParams: null };
   }
 }

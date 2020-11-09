@@ -9,17 +9,20 @@ import { BlockchainWizardComponent } from './blockchain-wizard/blockchain-wizard
 import { BlockchainService } from './shared/blockchain.service';
 import { BlockchainResolver } from './shared/blockchain.resolver';
 import { NodeSizingComponent } from './node-sizing/node-sizing.component';
+import { DeployStepperComponent } from './deploy-stepper/deploy-stepper.component';
 
 @NgModule({
   declarations: [
     BlockchainWizardComponent,
     NodeSizingComponent,
+    DeployStepperComponent,
   ],
   imports: [
     SharedModule
   ],
   exports: [
-    BlockchainWizardComponent
+    BlockchainWizardComponent,
+    DeployStepperComponent
   ],
   providers: [
     BlockchainService,

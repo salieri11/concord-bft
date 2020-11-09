@@ -1,0 +1,274 @@
+@import "~@clr/ui/src/color/_variables.color.scss";
+
+$formTopMargin: 1.5rem;
+$inputWidth: 2.5rem;
+$client-node-remove-width: 40px;
+$client-node-label-width: 4.25rem;
+
+
+:host ::ng-deep .clr-accordion-inner-content {
+  max-width: 40rem;
+}
+
+:host ::ng-deep .compact-input-container {
+  margin: 0;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  .short-label {
+    opacity: 0.9;
+    font-size: .541667rem;
+    max-width: 120px !important;
+    width:0; height:0;
+    float:left;
+    white-space: nowrap;
+    margin-top:0.2rem;
+    .optional-field-span {
+      opacity: 0.75;
+      font-size: 85%;
+      font-weight: 300;
+    }
+  }
+  .group-name-input {
+    max-width: 8rem;
+    min-width: 8rem !important;
+    transform: translate(0, -0.1rem);
+  }
+  .error-helper {
+    transform: translate(0, -0.2rem);
+  }
+  .auth-input {
+    max-width: 7rem;
+    min-width: 7rem;
+    display: inline-block;
+    transform: translate(0, -0.1rem);
+  }
+  .btn.btn-link {
+    margin: 0;
+  }
+  .zone-selector {
+    margin-top: -0.2rem;
+    max-width: 6.5rem;
+    min-width: 6.5rem !important;
+    display: inline-block;
+    transform: translate(0, -0.085rem);
+  }
+  .columned {
+    margin-left: $client-node-label-width;
+    margin-bottom: 0.25rem;
+    .clr-form-control {
+      margin: 0;
+      margin-right: 0.5rem;
+      min-width:0;
+      display: inline-block;
+    }
+    .member-count {
+      width:1.7rem;
+      text-align: center;
+    }
+    .delete-client-group {
+      display: inline-block;
+      transform: translate(0.5rem,-0.3rem);
+    }
+  }
+}
+.hide {
+  display: none;
+}
+
+.detail-form {
+  margin-top: $formTopMargin;
+  textarea {
+    width: 100%;
+  }
+}
+
+.summary-label, .summary-value {
+  font-size: 13px;
+  margin-bottom: .1rem;
+}
+.review {
+  margin-top: .5rem;
+}
+.sub-title {
+  padding: 0 0 .2rem;
+  margin: 1rem 0 .3rem;
+  border-bottom: 1px solid $clr-light-gray;
+  width: 100%;
+}
+.nodes {
+  select {
+    width: $inputWidth;
+  }
+}
+.regions {
+  margin-top: $formTopMargin;
+  margin-bottom: 1.5rem;
+  input {
+    width: $inputWidth;
+  }
+}
+
+.review {
+  .sub-title {
+    margin-left: .5rem;
+    margin-right: .5rem;
+  }
+}
+
+.compact-input-container .columned.certs {
+  padding-bottom: .5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid $clr-light-midtone-gray;
+  label.normal {
+    font-weight: 400;
+    opacity: .8;
+  }
+}
+
+:host ::ng-deep .grid-min-height .datagrid-table {
+  min-height: 162px;
+}
+
+.add-button-margins {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  .margins {
+    margin-right: 0.5rem;
+  }
+}
+
+.remove-col {
+  width: $client-node-remove-width;
+  min-width: $client-node-remove-width;
+  max-width: $client-node-remove-width;
+}
+
+.client-node {
+  position: relative;
+  margin: 1.5rem 0;
+}
+.remove-col-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: rgba(0,0,0,0);
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: none;
+  font-size: 0.45rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  text-align: center;
+  color: $clr-red;
+  margin-top:0.05rem;
+  cursor: pointer;
+}
+
+.committer-dist-error {
+  color: $clr-red;
+}
+
+.pagination-message {
+  opacity: 0.6;
+}
+
+.group-column {
+  width: 60px;
+  max-width: 60px;
+  min-width: 60px;
+}
+
+.btn-red {
+  color: $clr-red;
+}
+
+.column-label-container {
+  height:0;
+  transform: translate(0,-0.85rem);
+}
+
+.column-label {
+  margin-left: 0.2rem;
+  opacity: 0.8;
+  font-size: 0.5rem;
+  font-weight: 500;
+  .optional-field-span {
+    opacity: 0.6;
+    font-size: 80%;
+    margin-left: 0.1rem;
+  }
+}
+
+.client-form {
+  min-width: 26rem;
+  border-bottom: 1px solid rgba(140,140,140,0.3);
+  margin-top: 0.7rem;
+}
+
+.as-single-client {
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.8rem 0.5rem 0;
+  padding-top: 0.35rem;
+  padding-bottom: 0.7rem;
+}
+
+.as-client-group {
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.8rem 0.5rem 0;
+  padding-top: 0.7rem;
+  padding-bottom: 1.25rem;
+}
+
+.group-name-container {
+  margin-bottom: 1.2rem;
+}
+
+.client-node-index-cont {
+  transform: translate(-0.4rem,-0.1rem);
+  text-align: center;
+  .client-node-index {
+    opacity: 0.9;
+    font-size: 0.541667rem;
+  }
+}
+
+.client-group {
+  margin: .5rem 0 2rem;
+}
+.client-label {
+  float: left;
+  margin-top: -.7rem;
+}
+.client-group-bottom {
+  transform: translate(0.65rem,-0.4rem);
+  .add-client-node-button {
+    margin: .25rem 0 0 -.35rem;
+    padding: 0rem 0.2rem;
+  }
+  .client-grouping-info {
+    opacity: 0.5;
+  }
+  .client-grouping-message {
+    margin-left: 0rem;
+    display: inline-block;
+  }
+}
+
+.max-client-reached-message {
+  margin-left: 0rem;
+  display: inline-block;
+}
+
+.form-error-info-cont {
+  margin-top: 0.5rem;
+  .form-error-info {
+    color: $clr-red;
+    font-size: 0.525rem;
+    font-weight: 400;
+    line-height: 1.42;
+    margin-top: 0.125rem;
+  }
+}
+

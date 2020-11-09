@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { NodeTemplates, NodeTemplate, NodeTemplateFormResponse } from '../../nodes/shared/nodes.model';
 import { NodesService } from '../../nodes/shared/nodes.service';
 import {
@@ -19,10 +19,11 @@ import {
 export class NodeSizingComponent {
   @Output() sizeChange = new EventEmitter<NodeTemplateFormResponse>();
   @Output() isValid = new EventEmitter<boolean>();
+  @Input() selectedSizing: string;
 
   nodeSizing: NodeTemplate;
   sizingOptions: NodeTemplates;
-  selectedSizing: string;
+  // selectedSizing: string;
   showTemplates: boolean = true;
   form: FormGroup;
   range: any;
@@ -50,6 +51,7 @@ export class NodeSizingComponent {
         for (const [key, val] of Object.entries(value.clientSizing)) {
           value.clientSizing[key] = val.toString();
         }
+        value.size = this.selectedSizing;
         this.sizeChange.emit(value);
       }
     });
@@ -61,7 +63,8 @@ export class NodeSizingComponent {
 
     this.sizeChange.emit({
       committerSizing: items[0],
-      clientSizing: items[1]
+      clientSizing: items[1],
+      size: this.selectedSizing
     });
     this.isValid.emit(this.isValidSelection());
   }
