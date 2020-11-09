@@ -323,7 +323,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
                         concord_host)
 
             # Create & verify transactions after disconnect/reconnect of all committer nodes
-            time.sleep(30)
+            time.sleep(120)
             assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after disconnect/reconnect of all committer nodes"
 
             log.info(
@@ -865,7 +865,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
 
             # Step 12 :  Stop f-1 non-primary replicas
             non_primary_replicas.remove(non_primary_replicas[0])
-            intr_helper.stop_for_replica_list(
+            dr_helper.stop_for_replica_list(
                 non_primary_replicas, container_name, fxLocalSetup.f_count - 1), "Error while stopping replica"
 
             # Step 13 :  Submit & verify Daml requests after state transfer

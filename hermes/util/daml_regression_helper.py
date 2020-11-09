@@ -4,14 +4,13 @@ from pathlib import Path
 import os
 import sys
 import random
-from . import helper, hermes_logging, blockchain_ops
+from . import helper, hermes_logging, blockchain_ops, wavefront
 from . import node_interruption_helper as intr_helper
 import multiprocessing
 from asyncio import set_event_loop, new_event_loop, get_event_loop
 from itertools import zip_longest
 from fixtures.common_fixtures import fxBlockchain, fxNodeInterruption, fxProduct
 import time
-from hermes.util import wavefront
 
 # Do not add any import after this
 sys.path.append(os.path.abspath('../daml'))
