@@ -105,17 +105,13 @@ public class DamlLedgerApiUtilTest {
 
     @Test
     public void testHappyPathWithTlsCredentials() throws IOException {
-        String pem = "PEM_VALUE";
-        String crt = "CRT_VALUE";
-        String cacrt = "CACRT_VALUE";
-
         Properties properties = Properties.newBuilder()
                 .putAllValues(
                         ImmutableMap.of(
                                 NodeProperty.Name.COMMITTERS.name(), "10.0.0.1:50051",
-                                NodeProperty.Name.TLS_PEM.name(), pem,
-                                NodeProperty.Name.TLS_CRT.name(), crt,
-                                NodeProperty.Name.TLS_CACRT.name(), cacrt))
+                                NodeProperty.Name.TLS_PEM.name(), "pem",
+                                NodeProperty.Name.TLS_CRT.name(), "crt",
+                                NodeProperty.Name.TLS_CACRT.name(), "cacrt"))
                 .build();
 
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")

@@ -25,6 +25,9 @@ public class DamlLedgerApiUtil {
      * file path.
      */
     public static final String envVarPath = "/daml-ledger-api/environment-vars";
+    public static final String tlsPemPath = "/daml-ledger-api/server.pem";
+    public static final String tlsCrtPath = "/daml-ledger-api/server.crt";
+    public static final String tlsCacrtPath = "/daml-ledger-api/ca.crt";
 
     /**
      * Utility to daml ledger api config.
@@ -128,11 +131,12 @@ public class DamlLedgerApiUtil {
                 && !Strings.isNullOrEmpty(cacrt);
 
         if (tlsEnabled) {
-            builder.append("export PEM=" + pem);
-            builder.append(System.lineSeparator());
-            builder.append("export CRT=" + crt);
-            builder.append(System.lineSeparator());
-            builder.append("export CACRT=" + cacrt);
+            String tlsSettingsValue = "export TLS_SETTINGS="
+                    + "\"--pem " + tlsPemPath
+                    + " --crt " + tlsCrtPath
+                    + " --cacrt " + tlsCacrtPath
+                    + "\"";
+            builder.append(tlsSettingsValue);
             builder.append(System.lineSeparator());
         }
     }
