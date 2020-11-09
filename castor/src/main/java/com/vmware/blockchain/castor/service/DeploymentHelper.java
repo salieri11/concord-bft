@@ -200,6 +200,15 @@ public class DeploymentHelper {
                 }
             }
 
+            if (client.getLedgerTls() != null) {
+                // TODO Add validation
+                propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), client.getLedgerTls().getPem());
+                propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), client.getLedgerTls().getCrt());
+                propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), client.getLedgerTls().getCacrt());
+                propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),
+                                      client.getLedgerTls().getClientAuth().toString());
+            }
+
             // Process client group and add group properties.
             String groupId;
             String groupName = client.getGroupName();

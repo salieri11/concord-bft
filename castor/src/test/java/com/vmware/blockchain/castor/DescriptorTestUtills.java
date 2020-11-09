@@ -282,4 +282,67 @@ public class DescriptorTestUtills {
                 .replicaNodeSpec(replicaNodeSpec)
                 .build();
     }
+
+    /**
+     * Build the deployment descriptor model.
+     * @return the model
+     */
+    public static ProvisionDescriptorDescriptorModel buildDeploymentDescriptorModelWithClientTls() {
+        DeploymentDescriptorModel.NodeSpecification clientNodeSpec =
+                DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(4).memoryGb(32).diskSizeGb(100).build();
+
+        DeploymentDescriptorModel.NodeSpecification replicaNodeSpec =
+                DeploymentDescriptorModel.NodeSpecification.builder().cpuCount(2).memoryGb(16).diskSizeGb(64).build();
+
+        DeploymentDescriptorModel.Blockchain blockchain = DeploymentDescriptorModel.Blockchain.builder()
+                .blockchainType(DeploymentDescriptorModel.BlockchainType.DAML)
+                .consortiumName(CONSORTIUM_NAME)
+                .build();
+
+        DeploymentDescriptorModel.Client client1 = DeploymentDescriptorModel.Client.builder()
+                .zoneName(ZONE_1_NAME)
+                .groupName("Group1")
+                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                                   .cacrt("cacrt1")
+                                   .pem("pem1")
+                                   .crt("crt1")
+                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.NONE).build())
+                .build();
+
+        DeploymentDescriptorModel.Client client2 = DeploymentDescriptorModel.Client.builder()
+                .zoneName(ZONE_1_NAME)
+                .groupName("Group2")
+                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                                   .cacrt("cacrt1")
+                                   .pem("pem1")
+                                   .crt("crt1")
+                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.OPTIONAL).build())
+                .build();
+
+        DeploymentDescriptorModel.Client client3 = DeploymentDescriptorModel.Client.builder()
+                .zoneName(ZONE_1_NAME)
+                .groupName("Group1")
+                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                                   .cacrt("cacrt1")
+                                   .pem("pem1")
+                                   .crt("crt1")
+                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.REQUIRE).build())
+                .build();
+
+        List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
+
+        List<DeploymentDescriptorModel.Replica> replicas =
+                zones.stream()
+                        .map(n -> DeploymentDescriptorModel.Replica.builder().zoneName(n).build())
+                        .collect(Collectors.toList());
+
+        // Add Client and Replicas nodeSpec to deployment model.
+        return ProvisionDescriptorDescriptorModel.builder()
+                .blockchain(blockchain)
+                .clients(List.of(client1, client2, client3))
+                .replicas(replicas)
+                .clientNodeSpec(clientNodeSpec)
+                .replicaNodeSpec(replicaNodeSpec)
+                .build();
+    }
 }

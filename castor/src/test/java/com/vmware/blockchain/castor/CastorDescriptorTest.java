@@ -53,6 +53,8 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test01_infrastructure_descriptor.json";
     private static final String VALID_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test01_deployment_descriptor.json";
+    private static final String VALID_DEPLOYMENT_DESCRIPTOR_WITH_CLIENT_TLS =
+            "classpath:descriptors/test01_deployment_descriptor_with_client_tls.json";
     private static final String VALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR =
             "classpath:descriptors/test01_deployment_descriptor_with_node_spec.json";
     private static final String INVALID_DEPLOYMENT_WITH_NODE_DESCRIPTOR =
@@ -134,17 +136,50 @@ public class CastorDescriptorTest {
                         CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment, readDeployment, "deployment descriptor model mismatch");
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
         assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
 
         // No errors for valid descriptors
         List<ValidationError> constraints = validatorService.validate(
                 CastorDeploymentType.PROVISION, validInfra, validDeployment);
+        assertEquals(0, constraints.size());
+    }
+
+    @Test
+    public void testValidDescriptorSerDeserWithClientTls() throws IOException {
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        assertEquals(validInfra, readInfra, "infra descriptor model mismatch");
+        assertEquals(validInfra.getOrganization(), readInfra.getOrganization(),
+                     "infra descriptors organization mismatch");
+        assertEquals(validInfra.getZones(), readInfra.getZones(), "infra descriptors zones mismatch");
+
+        Resource deploymentResource = resourceLoader.getResource(VALID_DEPLOYMENT_DESCRIPTOR_WITH_CLIENT_TLS);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        ProvisionDescriptorDescriptorModel readDeployment =
+                (ProvisionDescriptorDescriptorModel) descriptorService.readDeploymentDescriptorSpec(
+                        CastorDeploymentType.PROVISION, deploymentLocation);
+        var validDeploymentLocal = DescriptorTestUtills.buildDeploymentDescriptorModelWithClientTls();
+        assertEquals(validDeploymentLocal, readDeployment, "deployment descriptor model mismatch");
+        assertEquals(validDeploymentLocal.getBlockchain(), readDeployment.getBlockchain(),
+                     "deployment descriptor blockchain model mismatch");
+        assertEquals(validDeploymentLocal.getClients(), readDeployment.getClients(),
+                     "deployment descriptor client model mismatch");
+        assertEquals(validDeploymentLocal.getReplicas(), readDeployment.getReplicas(),
+                     "deployment descriptor blockchain model mismatch");
+
+        readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
+
+        // No errors for valid descriptors
+        List<ValidationError> constraints = validatorService.validate(
+                CastorDeploymentType.PROVISION, validInfra, validDeploymentLocal);
         assertEquals(0, constraints.size());
     }
 
@@ -169,11 +204,11 @@ public class CastorDescriptorTest {
                 descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment, readDeployment, "deployment descriptor model mismatch");
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
         assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
 
@@ -190,12 +225,12 @@ public class CastorDescriptorTest {
         DeploymentDescriptorModel readDeployment =
                 descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
 
         assertEquals(validDeployment.getClients(), readDeployment.getClients(),
                      "deployment descriptor client model mismatch");
         assertEquals(validDeployment.getReplicas(), readDeployment.getReplicas(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
 
         // Validate Node Specification for both clients and replicas.
         checkNodeSpecValues(readDeployment);
@@ -215,11 +250,11 @@ public class CastorDescriptorTest {
         DeploymentDescriptorModel readDeployment =
                 descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.PROVISION, deploymentLocation);
         assertEquals(validDeployment.getBlockchain(), readDeployment.getBlockchain(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
         assertEquals(validDeployment.getClients().size(), readDeployment.getClients().size(),
                      "deployment descriptor client model mismatch");
         assertEquals(validDeployment.getReplicas().size(), readDeployment.getReplicas().size(),
-                     "deployment descriptor blochchain model mismatch");
+                     "deployment descriptor blockchain model mismatch");
 
         readDeployment.getClients().forEach(c -> assertNull(c.getAuthUrlJwt(), "client jwt auth url mismatch"));
 
