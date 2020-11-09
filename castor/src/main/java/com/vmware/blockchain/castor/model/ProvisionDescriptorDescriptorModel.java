@@ -32,6 +32,13 @@ public class ProvisionDescriptorDescriptorModel implements DeploymentDescriptorM
     @Valid
     private NodeSpecification replicaNodeSpec;
 
+    // Read Only replicas are optional
+    @Valid
+    private List<ReadonlyReplica> readonlyReplicas;
+
+    @Valid
+    private NodeSpecification readonlyReplicaNodeSpec;
+
     @NotEmpty(message = "deployment.clients.not.specified")
     @Valid
     private List<Client> clients;

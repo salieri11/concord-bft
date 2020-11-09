@@ -1,0 +1,78 @@
+{
+  "replicas": [
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "zoneName": "test-zone-1 - A"
+    }
+  ],
+  "replicaNodeSpec": {
+    "cpuCount": 2,
+    "memoryGb": 16,
+    "diskSizeGb": 64
+  },
+  "readonlyReplicas": [
+    {
+      "accessKey": "ACCESS_KEY_1",
+      "protocol": "s3",
+      "secretKey": "SECRET_KEY_1",
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "accessKey": "ACCESS_KEY_1",
+      "bucketName": "BUCKET_1",
+      "protocol": "s3",
+      "secretKey": "SECRET_KEY_1",
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "bucketName": "BUCKET_1",
+      "protocol": "s3",
+      "secretKey": "SECRET_KEY_1",
+      "url": "blockchain.s3.amazonaws.com",
+      "zoneName": "test-zone-1 - A"
+    },
+    {
+      "accessKey": "ACCESS_KEY_1",
+      "bucketName": "BUCKET_1",
+      "protocol": "s3",
+      "url": "blockchain.s3.amazonaws.com",
+      "zoneName": "test-zone-1 - A"
+    }
+  ],
+  "readonlyReplicaNodeSpec": {
+    "cpuCount": 2,
+    "memoryGb": 16,
+    "diskSizeGb": 64
+  },
+  "clients": [
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group1"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group2"
+    },
+    {
+      "zoneName": "test-zone-1 - A",
+      "groupName": "Group1"
+    }
+  ],
+  "clientNodeSpec": {
+    "cpuCount": 4,
+    "memoryGb": 32,
+    "diskSizeGb": 100
+  },
+  "blockchain": {
+    "consortiumName": "consortium-1",
+    "blockchainType": "DAML"
+  }
+}
