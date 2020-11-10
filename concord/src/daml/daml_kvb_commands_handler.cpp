@@ -308,10 +308,15 @@ bool DamlKvbCommandsHandler::PostExecute(
                                     raw_write_set);
     if (enable_histograms_or_summaries) {
       pre_execution_write_kv_set_size_summary_.Observe(raw_write_set.size());
-      for (auto& kv : raw_write_set) {
+    }
+    for (auto& kv : raw_write_set) {
+      if (enable_histograms_or_summaries) {
         pre_execution_write_keys_size_summary_.Observe(kv.first.length());
         pre_execution_write_values_size_summary_.Observe(kv.second.length());
       }
+      LOG_DEBUG(logger_, "PreExec_KV_metrics Key length: "
+                             << kv.first.length()
+                             << " Value length: " << kv.second.length());
     }
     auto start = std::chrono::steady_clock::now();
     RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
