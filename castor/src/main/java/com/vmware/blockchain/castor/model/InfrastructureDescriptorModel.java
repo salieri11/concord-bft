@@ -43,6 +43,7 @@ public class InfrastructureDescriptorModel {
         private UUID templateId;
 
         private boolean generatePassword;
+        private boolean generateDamlDbPassword;
 
         /**
          * Specific properties we might ask customers to toggle.

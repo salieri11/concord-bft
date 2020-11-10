@@ -349,6 +349,9 @@ public class DeploymentHelper {
         if (generatePassword) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "True");
         }
+        if (infrastructureDescriptorModel.getOrganization().isGenerateDamlDbPassword()) {
+            propertiesBuilder.putValues(DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(), "True");
+        }
         return propertiesBuilder.build();
     }
 

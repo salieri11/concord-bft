@@ -162,6 +162,7 @@ enum DeploymentAttributes {
     NOTARY_VERIFICATION_ENABLED = 18;
     DEPLOY_OPERATOR = 19;
     OBJECT_STORE_ENABLED = 20;
+    GENERATE_DAML_DB_PASSWORD = 21;
 }
 
 /* [END messages] */
