@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.agent.services.configuration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.github.dockerjava.api.model.Bind;
@@ -84,6 +85,7 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
         this.cmds = cmds;
         this.environment = environment;
         this.ordinal = 2;
+        this.exposedPorts = new ArrayList<>();
     }
 
     MetricsAndTracingConfig(String containerName,
