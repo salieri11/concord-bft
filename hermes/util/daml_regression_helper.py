@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import sys
 import random
+
 from . import helper, hermes_logging, blockchain_ops, wavefront
 from . import node_interruption_helper as intr_helper
 import multiprocessing
@@ -371,7 +372,11 @@ def trigger_checkpoint(bc_id, client_host):
     no_of_txns_for_checkpoint, wait_time, duration= 170, 0, 200
     checkpoint_before_txns = get_last_checkpoint(bc_id)
     log.info("Checkpoint before transactions: {}".format(checkpoint_before_txns))
-    continuous_daml_request_submission(client_host, no_of_txns_for_checkpoint, wait_time, duration)
+    p_daml_txn = multiprocessing.Process(target=continuous_daml_request_submission,
+                                         args=(client_host, no_of_txns_for_checkpoint, wait_time, duration))
+    p_daml_txn.start()
+    p_daml_txn.join()
+    p_daml_txn.terminate()
     checkpoint_after_txns = get_last_checkpoint(bc_id)
     log.info("Checkpoint after transactions: {}".format(checkpoint_after_txns))
     if checkpoint_after_txns > checkpoint_before_txns:

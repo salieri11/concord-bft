@@ -323,7 +323,7 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
                         concord_host)
 
             # Create & verify transactions after disconnect/reconnect of all committer nodes
-            time.sleep(120)
+            time.sleep(30)
             assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after disconnect/reconnect of all committer nodes"
 
             log.info(
@@ -577,7 +577,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
                                                 [interrupted_nodes]), \
                 "View Change did not happen successfully"
 
-            p_daml_txn.join()
+            p_daml_txn.join(20)
             if p_daml_txn.is_alive():
                 reraise()
                 p_daml_txn.terminate()
@@ -659,7 +659,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
                 time.sleep(60)
 
-            p_daml_txn.join()
+            p_daml_txn.join(10)
             if p_daml_txn.is_alive():
                 reraise()
                 p_daml_txn.terminate()

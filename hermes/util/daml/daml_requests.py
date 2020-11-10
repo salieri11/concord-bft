@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 from scenario import Scenario
 from dazl import setup_default_logger as dazl_setup_logger
 from dazl_remote import Remote
-from threading import Thread, currentThread
 
 DAML_LEDGER_API_PORT = '6865'
 
