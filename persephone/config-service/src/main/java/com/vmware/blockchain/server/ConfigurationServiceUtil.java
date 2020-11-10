@@ -279,8 +279,8 @@ public class ConfigurationServiceUtil {
         List<BlockchainReadReplica> readReplicaNodes =
                 getNodeListOfType(nodesInfoMap, NodeType.READ_REPLICA, BlockchainReadReplica.class,
                                   sessionId);
-        if (replicaNodes == null || replicaNodes.isEmpty() || clientNodes == null || clientNodes.isEmpty()) {
-            log.error("Required nodes replica or clients are missing.");
+        if (replicaNodes == null || replicaNodes.isEmpty()) {
+            log.error("Required replica nodes are missing.");
             throw new ConfigServiceException(ErrorCode.CONFIGURATION_SERVICE_INPUT_MISSING_NODES,
                                              "Invalid node data in the request : " + sessionId);
         }
