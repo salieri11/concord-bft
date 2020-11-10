@@ -107,10 +107,6 @@ class Product():
          log.info("**** The product is not running, so we will start it. ****")
          Product._numProductStarts += 1
 
-         if not Product._atexitSetup:
-            atexit.register(self.stopProduct)
-            Product._atexitSetup = True
-
          # Workaround for intermittent product launch issues.
          numAttempts = 0
          launched = False
