@@ -3918,6 +3918,35 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("consensus_batching_policy",
                       make_shared<UIntValidator>(0, UINT32_MAX));
 
+  config.declareParameter("consensus_batch_flush_period",
+                          "BFT consensus batching flush period in ms "
+                          "1000 by default).",
+                          "1000");
+  config.tagParameter("consensus_batch_flush_period", publicDefaultableTags);
+  config.tagParameter("consensus_batch_flush_period", applicationTag);
+  config.addValidator("consensus_batch_flush_period",
+                      make_shared<UIntValidator>(1, UINT32_MAX));
+
+  config.declareParameter("max_num_of_requests_in_consensus_batch",
+                          "Maximum number of requests in BFT consensus batch "
+                          "100 by default).",
+                          "100");
+  config.tagParameter("max_num_of_requests_in_consensus_batch",
+                      publicDefaultableTags);
+  config.tagParameter("max_num_of_requests_in_consensus_batch", applicationTag);
+  config.addValidator("max_num_of_requests_in_consensus_batch",
+                      make_shared<UIntValidator>(1, UINT32_MAX));
+
+  config.declareParameter("max_consensus_batch_size_in_bytes",
+                          "Maximum size of all requests in BFT consensus batch "
+                          "33554432 by default).",
+                          "33554432");
+  config.tagParameter("max_consensus_batch_size_in_bytes",
+                      publicDefaultableTags);
+  config.tagParameter("max_consensus_batch_size_in_bytes", applicationTag);
+  config.addValidator("max_consensus_batch_size_in_bytes",
+                      make_shared<UIntValidator>(1, UINT32_MAX));
+
   config.declareParameter("max_initial_batch_size",
                           "Maximum initial number of requests to be batched "
                           "together (350 by default).",

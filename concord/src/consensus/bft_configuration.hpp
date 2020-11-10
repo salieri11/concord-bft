@@ -165,6 +165,15 @@ inline bool InitializeSbftConfiguration(
       repConf->batchingPolicy =
           config.getValue<uint32_t>("consensus_batching_policy");
 
+      repConf->batchFlushPeriod =
+          config.getValue<uint32_t>("consensus_batch_flush_period");
+
+      repConf->maxNumOfRequestsInBatch =
+          config.getValue<uint32_t>("max_num_of_requests_in_consensus_batch");
+
+      repConf->maxBatchSizeInBytes =
+          config.getValue<uint32_t>("max_consensus_batch_size_in_bytes");
+
       repConf->maxInitialBatchSize =
           config.getValue<uint32_t>("max_initial_batch_size");
 
