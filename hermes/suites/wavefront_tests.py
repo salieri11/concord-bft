@@ -95,8 +95,10 @@ def install_sdk_deploy_daml(client_host):
     Returns:
         None
     '''
-    home = str(Path.home())
-    daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
+    # home = str(Path.home())
+    # daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
+    daml_sdk_path = daml_helper.install_daml_sdk()
+    log.info("\nDaml sdk path is {}".format(daml_sdk_path))
     cmd = [daml_sdk_path, "deploy", "--host",
            client_host, "--port", get_port(client_host)]
     party_project_dir = "util/daml/request_tool"
