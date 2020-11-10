@@ -21,7 +21,6 @@ import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.operation.OperationContext;
-import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.security.VmbcTokenValidator;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -49,9 +48,6 @@ public class ControllerTestConfig {
 
     @MockBean
     private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
     private ConcordConnectionPool connectionPool;

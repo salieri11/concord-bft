@@ -31,7 +31,6 @@ import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.dao.TestDaoConfig;
 import com.vmware.blockchain.db.DbConfig;
 import com.vmware.blockchain.db.mapper.TestMapper;
-import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -67,9 +66,6 @@ public class NodeSizeTemplateServiceTest {
 
     @MockBean
     private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
     private DefaultProfiles profiles;

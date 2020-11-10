@@ -36,7 +36,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
@@ -45,7 +44,6 @@ import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.operation.OperationContext;
-import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -90,9 +88,6 @@ public class AgreementControllerTest {
 
     @MockBean
     private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
     private ConcordProperties concordProperties;

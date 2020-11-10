@@ -5,7 +5,6 @@
 package com.vmware.blockchain.services.profiles;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -25,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -38,7 +36,6 @@ import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
-import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.concord.Concord.Peer;
 
 /**
@@ -60,12 +57,6 @@ class DefaultProfilesTest {
     OrganizationService organizationService;
 
     @MockBean
-    UserService userService;
-
-    @MockBean
-    PasswordEncoder passwordEncoder;
-
-    @MockBean
     BlockchainService blockchainService;
 
     @MockBean
@@ -76,9 +67,6 @@ class DefaultProfilesTest {
 
     @MockBean
     ReplicaService replicaService;
-
-    @MockBean
-    ConcordService concordService;
 
     @MockBean
     ConnectionPoolManager connectionPoolManager;
@@ -139,12 +127,11 @@ class DefaultProfilesTest {
         testUser.setPassword("1234");
         testUser.setServiceRoles(Collections.singletonList(VmbcRoles.SYSTEM_ADMIN));
 
-        profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
+        profiles = new DefaultProfiles(organizationService, consortiumService,
                                        blockchainService, agreementService, serviceContext, replicaService,
-                                       concordService, connectionPoolManager,
+                                       connectionPoolManager,
                                        ipList, rpcUrls, rpcCerts, true, null);
 
-        when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
 
     private void initProfilesExist() {
@@ -154,7 +141,6 @@ class DefaultProfilesTest {
 
         when(replicaService.getReplicas(blockchain.getId())).thenReturn(replicas);
 
-        when(userService.list()).thenReturn(Arrays.asList(testUser));
         profiles.initialize();
     }
 
@@ -179,19 +165,12 @@ class DefaultProfilesTest {
             b.setId(uuid);
             return b;
         });
-        when(userService.list()).thenReturn(Collections.emptyList());
-        when(userService.put(any(User.class))).thenAnswer(in -> {
-            User u = in.getArgument(0);
-            u.setId(USER_ID);
-            return u;
-        });
 
         when(replicaService.put(any())).then(in -> in.getArgument(0));
 
         List<Peer> peers = IntStream.range(0, 4)
                 .mapToObj(i -> Peer.newBuilder().setHostname("one").setAddress("1:2").build())
                 .collect(Collectors.toList());
-        when(concordService.getMembers(any(UUID.class))).thenReturn(peers);
         profiles.initialize();
     }
 
@@ -213,15 +192,13 @@ class DefaultProfilesTest {
         Assertions.assertEquals(ipList, getList(profiles.getReplicas(), n -> n.getPrivateIp()));
         Assertions.assertEquals(urlList, getList(profiles.getReplicas(), n -> n.getUrl()));
         Assertions.assertEquals(certList, getList(profiles.getReplicas(), n -> n.getCert()));
-        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
-        Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
 
     @Test
     void testProfileExistingNoBlockhain() {
-        profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
+        profiles = new DefaultProfiles(organizationService, consortiumService,
                                        blockchainService, agreementService, serviceContext, replicaService,
-                                       concordService, connectionPoolManager,
+                                       connectionPoolManager,
                                        ipList, rpcUrls, rpcCerts, false, null);
         initProfilesExist();
         List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
@@ -235,8 +212,6 @@ class DefaultProfilesTest {
         Assertions.assertNull(profiles.getBlockchain().getId());
         Assertions.assertNull(profiles.getBlockchain().getNodeList());
         Assertions.assertNull(profiles.getBlockchain().getConsortium());
-        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
-        Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
 
     @Test
@@ -260,8 +235,5 @@ class DefaultProfilesTest {
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
         Assertions.assertEquals(expectedIps, getList(profiles.getReplicas(), n -> n.getPrivateIp()));
         Assertions.assertEquals(urlList, getList(profiles.getReplicas(), n -> n.getUrl()));
-        // Assertions.assertEquals(certList, getList(profiles.getReplicas(), n -> n.getCert()));
-        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
-        Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
 }

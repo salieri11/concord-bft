@@ -66,7 +66,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 // Session fixation is a problem with the ui due to concurrency
                 .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
-                .mvcMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
+                .mvcMatchers("/assets/**").permitAll()
                 .mvcMatchers("/api/static/**").permitAll()
                 .mvcMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 // anyone can look at the health
@@ -96,8 +96,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         // Allow access to auth, UI routing URLs, and UI assets, without authentication
-        web.ignoring().mvcMatchers("/api/agreements/1").mvcMatchers("/api/auth/token", "/api/auth/login",
-                                                                    "/api/static/**");
+        web.ignoring().mvcMatchers("/api/static/**");
     }
 
     @Override
