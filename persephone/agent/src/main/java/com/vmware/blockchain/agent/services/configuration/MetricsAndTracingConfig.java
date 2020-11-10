@@ -54,7 +54,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
                     Bind.parse("/proc:/hostfs/proc:ro")),
             null, null,
             List.of("HOST_MOUNT_PREFIX=/hostfs",
-                    "HOST_PROC=/hostfs/proc"));
+                    "HOST_PROC=/hostfs/proc"),
+             List.of(ExposedPort.tcp(9273)));
 
     @Setter
     private String imageId;
@@ -70,6 +71,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
     private List<String> environment;
 
     private Long memory;
+
+    private List<ExposedPort> exposedPorts;
 
     MetricsAndTracingConfig(String containerName,
                             List<PortBinding> portBindings, List<Bind> volumeBindings,
@@ -89,6 +92,14 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
                             long memory) {
         this(containerName, portBindings, volumeBindings, links, cmds, environment);
         this.memory = memory;
+    }
+
+    MetricsAndTracingConfig(String containerName,
+                            List<PortBinding> portBindings, List<Bind> volumeBindings,
+                            List<Link> links, List<String> cmds, List<String> environment,
+                            List<ExposedPort> exposedPorts) {
+        this(containerName, portBindings, volumeBindings, links, cmds, environment);
+        this.exposedPorts = exposedPorts;
     }
 
     @Override

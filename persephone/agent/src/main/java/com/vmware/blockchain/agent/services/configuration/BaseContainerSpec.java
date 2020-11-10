@@ -8,6 +8,7 @@ package com.vmware.blockchain.agent.services.configuration;
 import java.util.List;
 
 import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Link;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.RestartPolicy;
@@ -49,5 +50,9 @@ public interface BaseContainerSpec {
 
     default boolean isDownloadImageOnly() {
         return false;
+    }
+
+    default List<ExposedPort> getExposedPorts() {
+        return List.of();
     }
 }
