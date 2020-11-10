@@ -64,6 +64,42 @@
       },
       "required": ["zoneName"]
     },
+    "readonlyReplica": {
+      "description": "Read-only Replica properties",
+      "type": "object",
+      "properties": {
+        "zoneName": {
+          "description": "Zone where read-only replica is to be placed",
+          "type": "string"
+        },
+        "providedIp": {
+          "description": "The user-provided IP address to be assigned to the replica",
+          "type": "string",
+          "format": "ipv4"
+        },
+        "accessKey": {
+          "description": "The access key for the remote storage",
+          "type": "string"
+        },
+        "bucketName": {
+          "description": "The bucket name for the remote storage",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "The protocol for the remote storage",
+          "type": "string"
+        },
+        "secretKey": {
+          "description": "The secret key for the remote storage",
+          "type": "string"
+        },
+        "url": {
+          "description": "The url for the remote storage",
+          "type": "string"
+        }
+      },
+      "required": ["zoneName", "accessKey", "bucketName", "protocol", "secretKey", "url"]
+    },
     "nodeSpec": {
       "description": "Node specification",
       "type": "object",
@@ -94,6 +130,12 @@
       },
       "minItems": 1
     },
+    "readonlyReplicas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/readonlyReplica"
+      }
+    },
     "clients": {
       "type": "array",
       "items": {
@@ -102,6 +144,10 @@
     },
     "replicaNodeSpec": {
       "description": "Replica node specification",
+      "$ref": "#/definitions/nodeSpec"
+    },
+    "readonlyReplicaNodeSpec": {
+      "description": "Read-only Replica node specification",
       "$ref": "#/definitions/nodeSpec"
     },
     "clientNodeSpec": {

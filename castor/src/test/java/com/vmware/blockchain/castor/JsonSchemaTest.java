@@ -38,8 +38,12 @@ public class JsonSchemaTest {
     private static final String INVALID_INFRA_MODEL_02 = "/descriptors/test02_invalid_infrastructure_descriptor.json";
 
     private static final String VALID_DEPLOYMENT_01_MODEL = "/descriptors/test01_deployment_descriptor.json";
+    private static final String VALID_DEPLOYMENT_02_MODEL =
+            "/descriptors/test01_read_replica_valid_deployment_descriptor.json";
     private static final String INVALID_DEPLOYMENT_01_MODEL = "/descriptors/test01_invalid_deployment_descriptor.json";
     private static final String INVALID_DEPLOYMENT_02_MODEL = "/descriptors/test02_invalid_deployment_descriptor.json";
+    private static final String INVALID_DEPLOYMENT_03_MODEL =
+            "/descriptors/test01_read_replica_invalid_deployment_descriptor.json";
 
     private static Schema infraDescriptorSchema;
     private static Schema deploymentDescriptorSchema;
@@ -171,4 +175,42 @@ public class JsonSchemaTest {
         assertEquals(3, actualMessages.size(), "Expected validation count mismatch");
         assertThat(actualMessages, containsInAnyOrder(expectedMessages));
     }
+
+    @Test
+    public void testValidReadReplicaSchema() {
+        InputStream validDeploymentModelResource = getClass().getResourceAsStream(VALID_DEPLOYMENT_02_MODEL);
+        JSONTokener validDeploymentModelTokener = new JSONTokener(validDeploymentModelResource);
+        JSONObject validDeploymentModel = new JSONObject(validDeploymentModelTokener);
+
+        // Invalid deployment model
+        assertDoesNotThrow(() -> {
+            deploymentDescriptorSchema.validate(validDeploymentModel);
+        });
+    }
+
+    @Test
+    public void testInvalidReadReplicaDeploymentSchema() {
+        InputStream invalidDeploymentModelResource = getClass().getResourceAsStream(INVALID_DEPLOYMENT_03_MODEL);
+        JSONTokener invalidDeploymentModelTokener = new JSONTokener(invalidDeploymentModelResource);
+        JSONObject invalidDeploymentModel = new JSONObject(invalidDeploymentModelTokener);
+
+        // Invalid deployment model
+        ValidationException validationException = assertThrows(ValidationException.class, () -> {
+            deploymentDescriptorSchema.validate(invalidDeploymentModel);
+        });
+
+        String[] expectedMessages = new String[]{
+            "#/readonlyReplicas/1: required key [url] not found",
+            "#/readonlyReplicas/2: required key [accessKey] not found",
+            "#/readonlyReplicas/3: required key [secretKey] not found",
+            "#/readonlyReplicas/0: required key [bucketName] not found",
+            "#/readonlyReplicas/0: required key [url] not found"
+        };
+
+        List<String> actualMessages = validationException.getAllMessages();
+        assertEquals(5, actualMessages.size(), "Expected validation count mismatch");
+        assertThat(actualMessages, containsInAnyOrder(expectedMessages));
+    }
+
+
 }
