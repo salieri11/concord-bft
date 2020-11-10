@@ -95,8 +95,6 @@ def install_sdk_deploy_daml(client_host):
     Returns:
         None
     '''
-    # daml_sdk_version = daml_helper.get_ledger_api_version(client_host)
-    # daml_sdk_path = daml_helper.install_daml_sdk(daml_sdk_version)
     home = str(Path.home())
     daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
     cmd = [daml_sdk_path, "deploy", "--host",
@@ -221,7 +219,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Get start and end datetime in epoch
     # Time range is a crucial parameter, do not increase/decrease
     # without analyzing the API calls properly.
-    start_epoch = (datetime.now() - timedelta(seconds=60)).strftime('%s')
+    start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
     end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
     log.info("Start time is {} and end time is {}".format(
         start_epoch, end_epoch))
