@@ -1674,7 +1674,7 @@ def getReplicaContainers(replicaType):
       return None
 
 
-def waitForDockerContainers(host, username, password, replicaType, timeout=600):
+def waitForDockerContainers(host, username, password, replicaType, timeout=2700):
    '''
    Wait for a list of docker containers to come up, given a replica type as defined in
    persephoneTests["modelService"]["defaults"]["deployment_components"].
