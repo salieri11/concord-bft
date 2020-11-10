@@ -123,7 +123,15 @@ public class DescriptorTestUtills {
                                                + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\n"
                                                + "-----END CERTIFICATE-----";
 
+    public static final String ROREPLICA_ACCESS_KEY = "ACCESS_KEY_1";
+    public static final String ROREPLICA_BUCKET = "BUCKET_1";
+    public static final String ROREPLICA_PROTOCOL = "s3";
+    public static final String ROREPLICA_SECRET_KEY = "SECRET_KEY_1";
+    public static final String ROREPLICA_URL = "blockchain.s3.amazonaws.com";
+
     private static Map<String, UUID> consortiumNameToUUIDMap = new HashMap<>();
+
+    private static List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
 
     static {
         consortiumNameToUUIDMap.put(CONSORTIUM_NAME, UUID.randomUUID());
@@ -236,6 +244,38 @@ public class DescriptorTestUtills {
     }
 
     /**
+     * Build the deployment descriptor model for read-only replica specs.
+     */
+    public static ProvisionDescriptorDescriptorModel buildReadOnlyReplicaDeploymentDescriptorModel() {
+        // Build the base model
+        ProvisionDescriptorDescriptorModel baseModel = buildDeploymentDescriptorModel();
+        // Add read-only replica atuff
+        List<DeploymentDescriptorModel.ReadonlyReplica> readonlyReplicas =
+                zones.stream()
+                        .map(n -> DeploymentDescriptorModel.ReadonlyReplica.builder()
+                                .zoneName(n)
+                                .bucketName(ROREPLICA_BUCKET)
+                                .accessKey(ROREPLICA_ACCESS_KEY)
+                                .secretKey(ROREPLICA_SECRET_KEY)
+                                .protocol(ROREPLICA_PROTOCOL)
+                                .url(ROREPLICA_URL)
+                                .build()
+                        )
+                        .collect(Collectors.toList());
+
+        // Update the base model
+        return ProvisionDescriptorDescriptorModel.builder()
+                .blockchain(baseModel.getBlockchain())
+                .clients(baseModel.getClients())
+                .replicas(baseModel.getReplicas())
+                .replicaNodeSpec(baseModel.getReplicaNodeSpec())
+                .readonlyReplicas(readonlyReplicas)
+                .readonlyReplicaNodeSpec(baseModel.getReplicaNodeSpec())
+                .clientNodeSpec(baseModel.getClientNodeSpec())
+                .build();
+    }
+
+    /**
      * Build the deployment descriptor model.
      * @return the model
      */
@@ -266,20 +306,19 @@ public class DescriptorTestUtills {
                 .groupName("Group1")
                 .build();
 
-        List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);
-
         List<DeploymentDescriptorModel.Replica> replicas =
                 zones.stream()
                         .map(n -> DeploymentDescriptorModel.Replica.builder().zoneName(n).build())
                         .collect(Collectors.toList());
+
 
         // Add Client and Replicas nodeSpec to deployment model.
         return ProvisionDescriptorDescriptorModel.builder()
                 .blockchain(blockchain)
                 .clients(List.of(client1, client2, client3))
                 .replicas(replicas)
-                .clientNodeSpec(clientNodeSpec)
                 .replicaNodeSpec(replicaNodeSpec)
+                .clientNodeSpec(clientNodeSpec)
                 .build();
     }
 

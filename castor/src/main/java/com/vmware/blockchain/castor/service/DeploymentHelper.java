@@ -86,6 +86,11 @@ public class DeploymentHelper {
         List<DeploymentDescriptorModel.Replica>
                 replicas = deploymentDescriptorModel.getReplicas();
         buildReplicas(deploymentDescriptorModel, replicas, nodeAssignmentBuilder);
+        // Build read-only Replicas
+        List<DeploymentDescriptorModel.ReadonlyReplica>
+                readonlyReplicas = deploymentDescriptorModel.getReadonlyReplicas();
+        buildReadOnlyReplicas(deploymentDescriptorModel, readonlyReplicas, nodeAssignmentBuilder);
+
         // Build Clients
         List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
         buildClients(deploymentDescriptorModel, clients, nodeAssignmentBuilder);
@@ -105,59 +110,114 @@ public class DeploymentHelper {
         Sites sites = Sites.newBuilder().addAllInfoList(orchestrationSites).build();
         // Build properties
         Properties properties = buildProperties(infrastructureDescriptorModel);
-        DeploymentSpec deploymentSpec = DeploymentSpec.newBuilder()
+
+        // Set the deployment-level read-only replica flag if needed.
+        if (readonlyReplicas != null && readonlyReplicas.size() > 0) {
+            properties = Properties.newBuilder(properties)
+                    .putValues(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "True")
+                    .build();
+        }
+
+        DeploymentSpec.Builder deploymentSpecBuilder = DeploymentSpec.newBuilder()
                 .setConsortiumId(consortiumIdString)
                 .setBlockchainType(blockchainType)
                 .setSites(sites)
                 .setNodeAssignment(nodeAssignmentBuilder.build())
-                .setProperties(properties)
-                .build();
+                .setProperties(properties);
+
 
         // Finally! deployment request
         DeploymentRequest deploymentRequest = DeploymentRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().setId("").build())
-                .setSpec(deploymentSpec)
+                .setSpec(deploymentSpecBuilder.build())
                 .build();
 
         return deploymentRequest;
     }
 
+    private static void buildPropertiesForReplica(
+            DeploymentDescriptorModel.Replica replica,
+            DeploymentDescriptorModel.NodeSpecification replicaNodeSpec,
+            Properties.Builder propBuilder) {
+
+        if (StringUtils.hasText(replica.getProvidedIp())) {
+            propBuilder.putValues(NodeProperty.Name.VM_IP.name(), replica.getProvidedIp());
+            propBuilder.putValues(
+                    DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), replica.getProvidedIp());
+        }
+
+        if (replicaNodeSpec != null) {
+            int diskSize = replicaNodeSpec.getDiskSizeGb();
+            if (diskSize > 0) {
+                String clientDiskSizeString = String.valueOf(diskSize);
+                propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
+            }
+
+            int cpuCount = replicaNodeSpec.getCpuCount();
+            if (cpuCount > 0) {
+                propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
+            }
+
+            int memory = replicaNodeSpec.getMemoryGb();
+            if (memory > 0) {
+                propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
+            }
+        }
+    }
 
     private static void buildReplicas(
             DeploymentDescriptorModel deploymentDescriptorModel,
             List<DeploymentDescriptorModel.Replica> replicas,
             NodeAssignment.Builder nodeAssignmentBuilder) {
+
+        DeploymentDescriptorModel.NodeSpecification replicaNodeSpec = deploymentDescriptorModel.getReplicaNodeSpec();
         replicas.forEach(replica -> {
             Properties.Builder propBuilder = Properties.newBuilder();
-            if (StringUtils.hasText(replica.getProvidedIp())) {
-                propBuilder.putValues(NodeProperty.Name.VM_IP.name(), replica.getProvidedIp());
-                propBuilder.putValues(
-                        DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), replica.getProvidedIp());
-            }
-
-            if (deploymentDescriptorModel.getReplicaNodeSpec() != null) {
-                int diskSize = deploymentDescriptorModel.getReplicaNodeSpec().getDiskSizeGb();
-                if (diskSize > 0) {
-                    String clientDiskSizeString = String.valueOf(diskSize);
-                    propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), clientDiskSizeString);
-                }
-
-                int cpuCount = deploymentDescriptorModel.getReplicaNodeSpec().getCpuCount();
-                if (cpuCount > 0) {
-                    propBuilder.putValues(DeploymentAttributes.VM_CPU_COUNT.name(), String.valueOf(cpuCount));
-                }
-
-                int memory = deploymentDescriptorModel.getReplicaNodeSpec().getMemoryGb();
-                if (memory > 0) {
-                    propBuilder.putValues(DeploymentAttributes.VM_MEMORY.name(), String.valueOf(memory));
-                }
-            }
+            buildPropertiesForReplica(replica, replicaNodeSpec, propBuilder);
 
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder()
                             .setType(NodeType.REPLICA)
                             .setNodeId(UUID.randomUUID().toString())
                             .setSite(OrchestrationSiteIdentifier.newBuilder().setId(replica.getZoneName()).build())
+                            .setProperties(propBuilder)
+            );
+        });
+    }
+
+    private static void buildReadOnlyReplicas(
+            DeploymentDescriptorModel deploymentDescriptorModel,
+            List<DeploymentDescriptorModel.ReadonlyReplica> readonlyReplicas,
+            NodeAssignment.Builder nodeAssignmentBuilder) {
+
+        // RORs are optional
+        if (readonlyReplicas == null || readonlyReplicas.size() == 0) {
+            return;
+        }
+
+        DeploymentDescriptorModel.NodeSpecification readonlyReplicaNodeSpec =
+                deploymentDescriptorModel.getReadonlyReplicaNodeSpec();
+        // First set up regular properties
+        readonlyReplicas.forEach(readonlyReplica -> {
+            Properties.Builder propBuilder = Properties.newBuilder();
+
+            // Build properties common with regular replicas
+            buildPropertiesForReplica(readonlyReplica, readonlyReplicaNodeSpec, propBuilder);
+
+            // Add ROR-specific properties (These are checked to be non-null during validation itself)
+            propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_ACCESS_KEY.name(), readonlyReplica.getAccessKey());
+            propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_BUCKET_NAME.name(), readonlyReplica.getBucketName());
+            propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_PROTOCOL.name(), readonlyReplica.getProtocol());
+            propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_SECRET_KEY.name(), readonlyReplica.getSecretKey());
+            propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_URL.name(), readonlyReplica.getUrl());
+
+            // This node is of type read-replica
+            nodeAssignmentBuilder.addEntries(
+                    NodeAssignment.Entry.newBuilder()
+                            .setType(NodeType.READ_REPLICA)
+                            .setNodeId(UUID.randomUUID().toString())
+                            .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                             .setId(readonlyReplica.getZoneName()).build())
                             .setProperties(propBuilder)
             );
         });

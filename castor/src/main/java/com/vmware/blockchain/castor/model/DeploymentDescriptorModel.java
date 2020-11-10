@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * The interface that defines contracts for the provision, deprovision, and reconfigure models.
@@ -78,13 +79,34 @@ public interface DeploymentDescriptorModel {
      */
     @Getter
     @Setter
-    @Builder
+    @SuperBuilder
     @EqualsAndHashCode
     public static class Replica {
         // This MUST match the zone name in the Infrastructure descriptor.
         @NotBlank(message = "deployment.replica.zone.invalid")
         private String zoneName;
         private String providedIp;
+    }
+
+    /**
+     * Optional read-only replica. Describes a read-only replica that has all the properties of a real replica,
+     * and also additional properties specific to read-only replicas.
+     */
+    @Getter
+    @Setter
+    @SuperBuilder
+    @EqualsAndHashCode
+    public static class ReadonlyReplica extends Replica {
+        @NotBlank(message = "deployment.roreplica.access.key.invalid")
+        private String accessKey;
+        @NotBlank(message = "deployment.roreplica.bucket.name.invalid")
+        private String bucketName;
+        @NotBlank(message = "deployment.roreplica.protocol.invalid")
+        private String protocol;
+        @NotBlank(message = "deployment.roreplica.secret.key.invalid")
+        private String secretKey;
+        @NotBlank(message = "deployment.roreplica.url.invalid")
+        private String url;
     }
 
     /**
@@ -129,12 +151,24 @@ public interface DeploymentDescriptorModel {
      */
     NodeSpecification getReplicaNodeSpec();
 
-
     /**
      * Get replicas from the deployment model.
      * @return a list of replicas
      */
     List<Replica> getReplicas();
+
+    /**
+     * Get read-only replica node specification from deployment model.
+     * @return node spec
+     */
+    NodeSpecification getReadonlyReplicaNodeSpec();
+
+    /**
+     * Get read-only replicas from the deployment model.
+     * @return a list of read-only replicas
+     */
+    List<ReadonlyReplica> getReadonlyReplicas();
+
 
     /**
      * Get clients from the deployment model.
