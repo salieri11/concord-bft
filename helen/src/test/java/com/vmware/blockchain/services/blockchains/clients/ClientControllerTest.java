@@ -287,7 +287,7 @@ public class ClientControllerTest extends RuntimeException {
     void getParticipantNodeListViaClient() throws Exception {
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                "cert", BC_DAML, REPLICA_1_ZONE, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+                "cert", "pass", BC_DAML, REPLICA_1_ZONE, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         client1.setId(REPLICA_1);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
@@ -338,8 +338,8 @@ public class ClientControllerTest extends RuntimeException {
     void testGetClientCredentials() throws Exception {
         String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
 
-        final Client client = new Client("publicIp", "privateIp", "testPassword",
-                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass", BC_DAML,
+                                         REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         client.setId(C2_ID);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
@@ -406,8 +406,8 @@ public class ClientControllerTest extends RuntimeException {
         String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
                 BC_DAML.toString(), C2_ID.toString());
 
-        final Client client = new Client("publicIp", "privateIp", "testPassword",
-                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass",
+                                 BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         client.setId(C2_ID);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
@@ -427,8 +427,8 @@ public class ClientControllerTest extends RuntimeException {
         String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
                 BC_DAML.toString(), C2_ID.toString());
 
-        final Client client = new Client("publicIp", "privateIp", "testPassword",
-                "url", "cert", BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, null, null, null);
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass",
+                                      BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, null, null, null);
         client.setId(C2_ID);
 
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
@@ -466,7 +466,7 @@ public class ClientControllerTest extends RuntimeException {
     @Test
     protected void testClientGrouping() throws Exception {
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME,
+                "cert", "pass", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME,
                 "pem", "crt", "cacrt");
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
@@ -495,7 +495,7 @@ public class ClientControllerTest extends RuntimeException {
     protected void testClientNoGrouping() throws Exception {
         // If client grouping is not in use, BlockchainObserver uses node Id as client group Id.
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                                          "cert", BC_DAML, SITE_1, CLIENT_NODE_ID, null, "pem", "crt", "cacrt");
+                                         "cert", "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null, "pem", "crt", "cacrt");
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
 

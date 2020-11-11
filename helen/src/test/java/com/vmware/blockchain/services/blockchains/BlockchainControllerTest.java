@@ -1504,7 +1504,7 @@ public class BlockchainControllerTest {
         });
 
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                                          "cert", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME,
+                                          "cert", "pass", BC_DAML, SITE_1, CLIENT_GROUP_ID, CLIENT_GROUP_NAME,
                                           "pem", "crt", "cacrt");
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
@@ -1661,7 +1661,7 @@ public class BlockchainControllerTest {
 
         // If client grouping feature is not in use, we use client node Id as client group Id.
         final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
-                                          "cert", BC_DAML, SITE_1, CLIENT_NODE_ID, null,
+                                          "cert",  "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null,
                                           "pem", "crt", "cacrt");
         client1.setId(CLIENT_NODE_ID);
         when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
