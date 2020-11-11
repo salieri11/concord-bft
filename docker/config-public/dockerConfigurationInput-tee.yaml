@@ -10,6 +10,7 @@ f_val: 1
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
+concord-bft_communication_buffer_length: 128000
 FEATURE_time_service: false
 preexecution_enabled: true
 node__TEMPLATE:
