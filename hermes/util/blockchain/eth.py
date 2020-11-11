@@ -85,7 +85,6 @@ def upload_hello_contract(blockchainId, request):
                             contractVersion = contractVersion,
                             generateDefaults=True)
    
-   log.info("Upload contract result: {}".format(result))
    if "url" in result:
       return (contractId, contractVersion)
    else:
