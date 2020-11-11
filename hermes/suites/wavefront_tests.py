@@ -95,15 +95,14 @@ def install_sdk_deploy_daml(client_host):
     Returns:
         None
     '''
-    # home = str(Path.home())
-    # daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
-    daml_sdk_path = daml_helper.install_daml_sdk()
-    log.info("\nDaml sdk path is {}".format(daml_sdk_path))
+    home = str(Path.home())
+    daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
     cmd = [daml_sdk_path, "deploy", "--host",
            client_host, "--port", get_port(client_host)]
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
-        cmd, timeout=180, working_dir=party_project_dir, verbose=True)
+        cmd, timeout=240, working_dir=party_project_dir, verbose=True)
+    log.info("\nOutput of deploy daml is {}".format(output))
     if "Party already exists" in output:
         assert False, "DAML Error: Party already exists."
     assert success, "DAML Error: Unable to deploy DAML app for one/more parties"
@@ -112,13 +111,12 @@ def install_sdk_deploy_daml(client_host):
 def make_client_request(client_hosts):
     '''
     Function to perform daml transaction
-    Wait time is 20 sec to provide some window/range fetching block data from Wavefront
     '''
     for client_host in client_hosts:
         try:
             # Call function to install sdk only first time.
             install_sdk_deploy_daml(client_host)
-            no_of_txns, wait_time = 1, 20
+            no_of_txns, wait_time = 1, 0
             url = 'http://{}:{}'.format(client_host, get_port(client_host))
             # Create & verify transactions of count no_of_txns
             assert simple_request(url, no_of_txns, wait_time), \
@@ -222,7 +220,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Time range is a crucial parameter, do not increase/decrease
     # without analyzing the API calls properly.
     start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
-    end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
+    end_epoch = (datetime.now() + timedelta(seconds=120)).strftime('%s')
     log.info("Start time is {} and end time is {}".format(
         start_epoch, end_epoch))
 
@@ -241,7 +239,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
         assert False, str_output
 
     before_data = output["timeseries"][0]["data"]
-    log.info("\nData for metric [{}] before daml transaction is {} \n\n".format(
+    log.info("\nMetric [{}] data before daml transaction is {} \n\n".format(
         metric_name, before_data))
 
     # Adding 10 seconds sleep so that generated transaction's epoch
@@ -251,6 +249,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Make a client request
     make_client_request(fxLocalSetup.client_hosts)
 
+    time.sleep(30)
     # Check Wavefront after Client request
     str_output = wavefront.call_wavefront_chart_api(
         metric_query, start_epoch, end_epoch)
@@ -265,7 +264,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
 
     after_data = output["timeseries"][0]["data"]
     log.info(
-        "\nMetric {} data after daml transaction is {} \n\n".format(metric_name, after_data))
+        "\nMetric [{}] data after daml transaction is {} \n\n".format(metric_name, after_data))
 
     assert len(after_data) and len(after_data) > len(
         before_data), "Blockchain didn't generate metric for given transaction on Wavefront"
