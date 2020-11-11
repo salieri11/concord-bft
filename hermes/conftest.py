@@ -58,33 +58,19 @@ def getEthCoreVmTests(metafunc):
     testSubDirs = None
     hermes_tests = None
 
-    if metafunc.config.option.hermesCmdlineArgs:
-        hermesCmdlineArgs = json.loads(
-            metafunc.config.option.hermesCmdlineArgs)
-        if "tests" in hermesCmdlineArgs and hermesCmdlineArgs["tests"]:
-            hermes_tests = hermesCmdlineArgs['tests']
-    elif metafunc.config.option.tests:
-        hermes_tests = metafunc.config.option.tests
-    else:
-        hermes_tests = None
+    if metafunc.config.option.tests:
+        hermes_tests = metafunc.config.option.tests 
 
-    # hermesCmdlineArgs = json.loads(metafunc.config.option.hermesCmdlineArgs)
-    # ethereumTestRoot = json.loads(metafunc.config.option.hermesUserConfig)[
-        # "ethereum"]["testRoot"]
-    if metafunc.config.option.hermesUserConfig:
-        ethereumTestRoot = json.loads(metafunc.config.option.hermesUserConfig)[
-            "ethereum"]["testRoot"]
-    else:
-        cmdline_args = metafunc.config.option
-        user_config = helper.getUserConfig(
-        ) if cmdline_args.su else helper.loadConfigFile(cmdline_args)
-        ethereumTestRoot = user_config["ethereum"]["testRoot"]
+    cmdline_args = metafunc.config.option
+    user_config = helper.getUserConfig(
+    ) if cmdline_args.su else helper.loadConfigFile(cmdline_args)
+    ethereumTestRoot = user_config["ethereum"]["testRoot"]
 
     vmTests = os.path.join(ethereumTestRoot, "VMTests")
 
     if hermes_tests:
         # Remove the "-k".
-        log.debug("hermesCmdlineArgs['tests']: {}".format(
+        log.debug("Hermes option --tests: {}".format(
             hermes_tests))
         userRequestedTest = hermes_tests.split(" ")[1]
         fullPath = os.path.join(vmTests, userRequestedTest)
@@ -149,16 +135,12 @@ def pytest_configure(config):
     '''
     global cmdLineArguments
     cmdLineArguments = config.option
-    if config.option.hermesCmdlineArgs:
-        cmdLineArguments.fromMain = True
-    else:
-        cmdLineArguments.fromMain = False
-        cmdLineArguments.hermes_dir = os.path.dirname(
-            os.path.realpath(__file__))
-        cmdLineArguments.logLevel = hermes_logging.logStringToInt(
-            config.option.logLevel)
-        if config.option.deploymentService == "staging":
-            cmdLineArguments.deploymentService = auth.SERVICE_STAGING
+    cmdLineArguments.hermes_dir = os.path.dirname(
+        os.path.realpath(__file__))
+    cmdLineArguments.logLevel = hermes_logging.logStringToInt(
+        config.option.logLevel)
+    if config.option.deploymentService == "staging":
+        cmdLineArguments.deploymentService = auth.SERVICE_STAGING
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
@@ -195,55 +177,42 @@ def hermes_info(request):
     '''
     log.info("Setting up Hermes Commandline Arguments for the session...")
 
-    if (cmdLineArguments.fromMain):
-        cmdline_args_dict = json.loads(
-            request.config.getoption("--hermesCmdlineArgs"))
-        cmdline_args = types.SimpleNamespace(**cmdline_args_dict)
-        user_config = json.loads(
-            request.config.getoption("--hermesUserConfig"))
-        zone_config = json.loads(
-            request.config.getoption("--hermesZoneConfig"))
-        log_dir = request.config.getoption("--hermesTestLogDir")
-        support_bundle_file = request.config.getoption("--supportBundleFile")
-        cmdline_args.fromMain = True
+    cmdline_args = cmdLineArguments
+    log_dir = cmdline_args.resultsDir
+    helper.CURRENT_SUITE_NAME = "HermesSetup"
+    generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
+                                                helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
+
+    if cmdline_args.su:
+        helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
+        user_config = helper.getUserConfig()
+        zone_config = helper.getZoneConfig()
     else:
-        cmdline_args = cmdLineArguments
-        log_dir = cmdline_args.resultsDir
-        cmdline_args.fromMain = False
-        helper.CURRENT_SUITE_NAME = "HermesSetup"
-        generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
-                                                 helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
+        helper.WITH_JENKINS_INJECTED_CREDENTIALS = False
+        user_config = helper.loadConfigFile(cmdline_args)
+        zone_config = helper.loadZoneConfig(cmdline_args)
 
-        if cmdline_args.su:
-            helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
-            user_config = helper.getUserConfig()
-            zone_config = helper.getZoneConfig()
-        else:
-            helper.WITH_JENKINS_INJECTED_CREDENTIALS = False
-            user_config = helper.loadConfigFile(cmdline_args)
-            zone_config = helper.loadZoneConfig(cmdline_args)
+    if cmdline_args.zoneOverride:
+        import util.infra
+        folder = cmdline_args.zoneOverrideFolder if hasattr(
+            cmdline_args, "zoneOverrideFolder") else None
+        util.infra.overrideDefaultZones(cmdline_args.zoneOverride, folder)
 
-        if cmdline_args.zoneOverride:
-            import util.infra
-            folder = cmdline_args.zoneOverrideFolder if hasattr(
-                cmdline_args, "zoneOverrideFolder") else None
-            util.infra.overrideDefaultZones(cmdline_args.zoneOverride, folder)
+    support_bundle_file = os.path.join(
+        log_dir, SUPPORT_BUNDLE)
 
-        support_bundle_file = os.path.join(
-            log_dir, SUPPORT_BUNDLE)
-
-        # Set appropriate  log level
-        hermes_logging.setUpLogging(cmdline_args)
-        helper.CMDLINE_ARGS = vars(cmdline_args)
+    # Set appropriate  log level
+    hermes_logging.setUpLogging(cmdline_args)
+    helper.CMDLINE_ARGS = vars(cmdline_args)
 
     def post_session_processing():
         log.info("Teardown session...")
-        if not cmdline_args.fromMain:
-            complete_success = False
-            complete_success = prepare_report(
-                request.session.items, cmdline_args.resultsDir)
-            log.info("Complete Success? ({})".format(complete_success))
-        if not cmdline_args.fromMain and not complete_success:
+        complete_success = False
+        complete_success = prepare_report(
+            request.session.items, cmdline_args.resultsDir)
+        log.info("Complete Success? ({})".format(complete_success))
+
+        if not complete_success:
             all_replicas_and_type = None
             if cmdline_args.replicasConfig:
                 all_replicas_and_type = helper.parseReplicasConfig(
@@ -288,51 +257,49 @@ def set_hermes_info(request, hermes_info):
     hermes_info["hermesTestLogDir"] = resultsDir
     hermes_info["hermesModuleLogDir"] = resultsDir
 
-    if (not cmdLineArguments.fromMain):
-        # Set some helpers - update for each module
-        short_name = _get_suite_short_name(request.module.__name__)
-        helper.map_run_id_to_this_run(cmdLineArguments.runID,
-                                      cmdLineArguments.resultsDir,
-                                      resultsDir)
-        # Set Real Name same as Current Name
-        helper.CURRENT_SUITE_NAME = cmdLineArguments.suitesRealname if cmdLineArguments.suitesRealname else short_name
+    # Set some helpers - update for each module
+    short_name = _get_suite_short_name(request.module.__name__)
+    helper.map_run_id_to_this_run(cmdLineArguments.runID,
+                                    cmdLineArguments.resultsDir,
+                                    resultsDir)
+    # Set Real Name same as Current Name
+    helper.CURRENT_SUITE_NAME = cmdLineArguments.suitesRealname if cmdLineArguments.suitesRealname else short_name
 
-        helper.CURRENT_SUITE_LOG_FILE = os.path.join(
-            resultsDir, helper.CURRENT_SUITE_NAME + ".log")
+    helper.CURRENT_SUITE_LOG_FILE = os.path.join(
+        resultsDir, helper.CURRENT_SUITE_NAME + ".log")
 
-        if pipeline.isDryRun():
-            # CI dry run might not have to run the suite
-            # if invocation signatures didn't change
-            if pipeline.isQualifiedToSkip():
-                pipeline.dryRunSaveInvocation()
-            else:
-                pipeline.dryRunSaveInvocation(runSuite=True)
-        elif helper.thisHermesIsFromJenkins():
-            pipeline.saveInvocationSignature(runSuite=True)
+    if pipeline.isDryRun():
+        # CI dry run might not have to run the suite
+        # if invocation signatures didn't change
+        if pipeline.isQualifiedToSkip():
+            pipeline.dryRunSaveInvocation()
+        else:
+            pipeline.dryRunSaveInvocation(runSuite=True)
+    elif helper.thisHermesIsFromJenkins():
+        pipeline.saveInvocationSignature(runSuite=True)
 
-        # at this point, the suite is going to run; mark as executed
-        if helper.thisHermesIsFromJenkins():
-            pipeline.markInvocationAsExecuted()
+    # at this point, the suite is going to run; mark as executed
+    if helper.thisHermesIsFromJenkins():
+        pipeline.markInvocationAsExecuted()
 
-        logHandler = hermes_logging.addFileHandler(
-            helper.CURRENT_SUITE_LOG_FILE, cmdLineArguments.logLevel)
+    logHandler = hermes_logging.addFileHandler(
+        helper.CURRENT_SUITE_LOG_FILE, cmdLineArguments.logLevel)
 
-        support_bundle_file = os.path.join(
-            resultsDir, SUPPORT_BUNDLE)
-        hermes_info["supportBundleFile"] = support_bundle_file
+    support_bundle_file = os.path.join(
+        resultsDir, SUPPORT_BUNDLE)
+    hermes_info["supportBundleFile"] = support_bundle_file
 
     def post_module_processing():
         log.info("Teardown module...")
 
-        if (not cmdLineArguments.fromMain):
-            helper.collectSupportBundles(
-                hermes_info["supportBundleFile"], resultsDir)
+        helper.collectSupportBundles(
+            hermes_info["supportBundleFile"], resultsDir)
 
-            if cmdLineArguments.eventsFile:
-                event_recorder.record_event(
-                    short_name, "End",  cmdLineArguments.eventsFile)
+        if cmdLineArguments.eventsFile:
+            event_recorder.record_event(
+                short_name, "End",  cmdLineArguments.eventsFile)
 
-            log.removeHandler(logHandler)
+        log.removeHandler(logHandler)
 
     request.addfinalizer(post_module_processing)
     return hermes_info
@@ -639,41 +606,17 @@ def pytest_addoption(parser):
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")
 
-    #### Required to invoke pytest from main program #######
-    #### This is a stop gap arrangement till main.py is deprecated. ####
-    #### Below mentioned arguments to be deleted  when main.py is deprecated ####
-
     parser.addoption(
         "--supportBundleFile",
         action="store",
         default="support_bundles.json",
         help="Path to a file a test suite should create to have the framework create support "
         "bundles. POPULATED BY HERMES.")
-    parser.addoption(
-        "--hermesCmdlineArgs",
-        action="store",
-        default=None,
-        help="Hermes command line options stored as json. POPULATED BY HERMES.")
-    parser.addoption(
-        "--hermesUserConfig",
-        action="store",
-        default=None,
-        help="Hermes userConfig object stored as json. POPULATED BY HERMES.")
-    parser.addoption(
-        "--hermesZoneConfig",
-        action="store",
-        default=None,
-        help="Hermes zoneConfig object stored as json. POPULATED BY HERMES.")
-    parser.addoption(
-        "--hermesTestLogDir",
-        action="store",
-        default=None,
-        help="Hermes testLogDir. POPULATED BY HERMES.")
 
 
 def _get_suite_short_name(module_name):
     '''
-    This function returns short name of the Test Suite from it's module
+    This function returns short name of the Test Suite from it's module name
     '''
 
     suite_list = {
@@ -739,14 +682,11 @@ def _get_suite_short_name(module_name):
 
 def prepare_report(items, results_dir):
     complete_success = True
-    skipped = 0
-    success = 0
-    xfailed = 0
-    xpassed = 0
-    failed = 0
-    not_executed = 0
-    total = len(items)
-
+    result_summary = {'succeeded': 0, 'expected-failed': 0,
+                      'skipped': 0, 'failed': 0,
+                      'un-expected-pass': 0,
+                      'not-executed': 0, 'total': len(items)}
+    
     fail = "\033[1;91m"
     ok = "\033[1;92m"
     yellow = "\033[1;33m"
@@ -756,6 +696,7 @@ def prepare_report(items, results_dir):
 
     msg = ""
     jobj = {}
+    session_results = {'report': {'result': result_summary, 'tests': jobj}}
     for item in items:
         if hasattr(item, 'result'):
             res = item.result
@@ -771,37 +712,31 @@ def prepare_report(items, results_dir):
             if item.rep_call.outcome == 'failed':
                 msg = "Test Result: Not a Complete Success...."
                 complete_success = False
-                failed += 1
+                result_summary['failed'] += 1
             elif item.rep_call.outcome == 'xfailed':
                 # Test is marked as xfail
                 # In this case, fail result is equivalent to passed test
-                xfailed += 1
+                result_summary['expected-failed'] += 1
             elif item.rep_call.outcome == 'xpassed':
                 # Deliberately not marking complete_success=False
                 # and reporting 'unexpected pass' similar to  'pass'
                 # Should there be need to report xfail marked test as failed
                 # when actual test result is pass, 
                 # Suggest to use strict=True with xfail 
-                xpassed += 1
+                result_summary['un-expected-pass'] += 1
             else:
-                success += 1
+                result_summary['succeeded'] += 1
         elif hasattr(item, 'rep_setup') and item.rep_setup.outcome == 'skipped':
-            skipped += 1
+            result_summary['skipped'] += 1
         else:
             complete_success = False
-            not_executed += 1
+            result_summary['not-executed'] += 1
 
     if complete_success:
         msg = "Test Result: Successfully completed test session..."
         test_status_result = os.path.join(
             results_dir, TESTSTATUS)
         open(test_status_result, 'a').close()
-
-    result_summary = {'succeeded': success, 'expected-failed': xfailed,
-                      'skipped': skipped, 'failed': failed,
-                      'un-expected-pass': xpassed,
-                      'not-executed': not_executed, 'total': total}
-    session_results = {'report': {'result': result_summary, 'tests': jobj}}
 
     result_file = os.path.join(
         results_dir, REPORT)
@@ -815,6 +750,10 @@ def prepare_report(items, results_dir):
              "{4}tests skipped {5}, {0}[\u2714] tests expected-failed {6}, "
              "{2}[\u2717] tests un-expected-pass {7}, "
              "tests not-executed {8}, {9}Total Tests: {10}{11}"
-             .format(ok, success, fail, failed, yellow, skipped,
-                     xfailed, xpassed, not_executed, blue, total, reset))
+             .format(ok, result_summary['succeeded'], fail, result_summary['failed'],
+                     yellow, result_summary['skipped'],
+                     result_summary['expected-failed'], 
+                     result_summary['un-expected-pass'],
+                     result_summary['not-executed'],
+                     blue, result_summary['total'], reset))
     return complete_success
