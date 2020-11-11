@@ -2064,11 +2064,12 @@ components:
         group_name:
           type: string
           description: User supplied group name
+          example:
+            Group1
         sizing_info:
-          type: object
-          description: Sizing info of clients
-          additionalProperties:
-            $ref: '#/components/schemas/SizingInfo'
+          description: Sizing info of replicas
+          $ref: '#/components/schemas/SizingInfo'
+
         pem:
           type: string
           description: TLS. The pem file to be used as the private key.
@@ -2088,22 +2089,21 @@ components:
           format: uuid
           description: ID of owning consortium
         sizing_info:
-          type: object
           description: Sizing info of replicas
-          additionalProperties:
-            $ref: '#/components/schemas/SizingInfo'
-
+          $ref: '#/components/schemas/SizingInfo'
 
     SizingInfo:
       description: Details of sizing info
       type: object
-      additionalProperties:
-        type: string
-        example:
-          type: replica
-          no_of_cpus: 1
-          storage_in_gigs: 1024
-          memory_in_gigs: 64
+      properties:
+        no_of_cpus:
+          type: string
+        storage_in_gigs:
+          type: string
+        memory_in_gigs:
+          type: string
+      example:
+        {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32"}
 
     SizingTemplate:
       description: A template with node sizing params for each type.
@@ -2112,31 +2112,57 @@ components:
         name:
           type: string
           description: Name for this template item.
+          example:
+            Small
         items:
           description: A template item.
           type: array
           items:
-            $ref: '#/components/schemas/SizingTemplateItem'
+            type: object
+            format: '#/components/schemas/SizingTemplateItem'
+            example:
+              [{"type": "replica", "no_of_cpus": "8", "storage_in_gigs": "1024", "memory_in_gigs": "8"},
+              {"type": "client", "no_of_cpus": "12", "storage_in_gigs": "2048", "memory_in_gigs": "16"}]
 
     SizingTemplateItem:
       description: Details of sizing template.
       type: object
-      additionalProperties:
-        type: string
-        example:
-          type: replica
-          no_of_cpus: 1
-          storage_in_gigs: 1024
-          memory_in_gigs: 64
+      properties:
+        type:
+          description: Node type
+          type: string
+        no_of_cpus:
+          type: string
+          description: Number of CPUs
+        storage_in_gigs:
+          type: string
+          description: Amount of storage in GB
+        memory_in_gigs:
+          type: string
+          description: Amount of memory in GB
 
-    ThresholdMap:
-      description: Map of threshold values for parameters.
-      type: string
-      example:
-        min: 1
-        max: 64
-
-
+    RangeItem:
+      description: Details of sizing template.
+      type: object
+      properties:
+        no_of_cpus:
+          description: Parameter
+          type: string
+          example:
+            min: 1
+            max: 64
+        storage_in_gigs:
+          description: Parameter
+          type: string
+          example:
+            min: 1
+            max: 64
+        memory_in_gigs:
+          description: Parameter
+          type: string
+          example:
+            min: 1
+            max: 64
 
   responses:
     ErrorResponse:
@@ -2208,23 +2234,75 @@ components:
           schema:
             type: object
             properties:
-              id:
-                type: string
-                format: uuid
-                description: Template Id
               name:
                 type: string
                 description: Template Name
+                example:
+                  Node size template
               templates:
                 description: List of sizing templates for each type
                 type: array
                 items:
-                  $ref: '#/components/schemas/SizingTemplate'
+                  type: object
+                  format: '#/components/schemas/SizingTemplate'
+                example:
+                  [
+                    {
+                      "name": "Small",
+                      "items": [
+                          {
+                            "type": "replica",
+                            "no_of_cpus": "8",
+                            "storage_in_gigs": "1024",
+                            "memory_in_gigs": "8"
+                          },
+                          {
+                            "type": "client",
+                            "no_of_cpus": "12",
+                            "storage_in_gigs": "2048",
+                            "memory_in_gigs": "16"
+                          }
+                      ]
+                    },
+                    {
+                      "name": "Medium",
+                      "items": [
+                      {
+                        "type": "replica",
+                        "no_of_cpus": "8",
+                        "storage_in_gigs": "1024",
+                        "memory_in_gigs": "8"
+                      },
+                      {
+                        "type": "client",
+                        "no_of_cpus": "12",
+                        "storage_in_gigs": "2048",
+                        "memory_in_gigs": "16"
+                      }
+                      ]
+                    },
+                    {
+                      "name": "Large",
+                      "items": [
+                      {
+                        "type": "replica",
+                        "no_of_cpus": "8",
+                        "storage_in_gigs": "1024",
+                        "memory_in_gigs": "8"
+                      },
+                      {
+                        "type": "client",
+                        "no_of_cpus": "12",
+                        "storage_in_gigs": "2048",
+                        "memory_in_gigs": "16"
+                      }
+                      ]
+                    }
+                  ]
               range:
                 description: A range of values for each node sizing template parameter.
                 type: object
-                additionalProperties:
-                  $ref: '#/components/schemas/ThresholdMap'
+                $ref: '#/components/schemas/RangeItem'
 
     DependentNodesGetResponse:
       description: Object containing the Replica and Client IDs for the given On Prem Zone
