@@ -17,4 +17,5 @@ public class BlockchainFeatures {
     private boolean isSplitConfig;
     private boolean isPreExecutionDeployment;
     private int preExecutionThreshold;
+    private boolean isTrcTlsEnabled;
 }

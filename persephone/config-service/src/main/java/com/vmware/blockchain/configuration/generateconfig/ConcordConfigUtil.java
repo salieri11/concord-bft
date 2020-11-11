@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReadReplica;
@@ -90,7 +91,6 @@ public class ConcordConfigUtil {
             throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_INVALID_INPUT_FAILURE,
                                              "Essential Parameters are missing.");
         }
-
         try {
             // Prefix the directory name with 'replicas' so as to differentiate between clients and replicas.
             var outputPath = Files.createTempDirectory("replicas-");
@@ -240,11 +240,20 @@ public class ConcordConfigUtil {
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
+        configInput.put(ConfigUtilHelpers.ConfigProperty.TLS_CERTIFICATES_FOLDER_PATH.name,
+                CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
         configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_EXTERNAL_CLIENTS.name, bftClients);
 
         if (bcFeatures.isPreExecutionDeployment()) {
             configInput.put(ConfigUtilHelpers.ConfigProperty.PREEXECUTION_ENABLED.name,
                             bcFeatures.isPreExecutionDeployment());
+        }
+
+        // This could also be done without if block. Putting safety net to maintain BW compatibility.
+        if (bcFeatures.isTrcTlsEnabled()) {
+            configInput.put(ConfigUtilHelpers.ConfigProperty.INSECURE_TRC_SERVER.name, !bcFeatures.isTrcTlsEnabled());
+            configInput.put(ConfigUtilHelpers.ConfigProperty.TRS_TLS_CERTIFICATES_FOLDER_PATH.name,
+                    CertificatesGenerator.IDENTITY_PATH_PREFIX + CertificatesGenerator.TRS_TLS_IDENTITY_PATH);
         }
 
         // Process and populate replica nodes.

@@ -37,6 +37,7 @@ import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
+import com.vmware.blockchain.server.util.IdentityComponentsLists;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -310,88 +311,119 @@ public class ConfigurationServiceHelper {
      * @param certGen Certificate generator
      * @param concordConfig Configuration for Replias
      * @param bftClientConfig Configuration for Clients
-     * @param allNodeIdentityComponents TLS identities for all clients
      * @return Configuration for the supplied node.
+     *
+     * TODO: Refactor.
      */
     List<ConfigurationComponent> buildNodeConfigs(String nodeId, List<ConfigurationComponent> componentList,
-                                                    ConcordEcCertificatesGenerator certGen,
-                                                    Map<String, Map<String, String>> concordConfig,
-                                                    Map<String, String> bftClientConfig,
-                                                    Map<String, List<IdentityComponent>> allNodeIdentityComponents) {
-        if (!ValidationUtil.isValidNodeId(nodeId) || !ValidationUtil.isValidList(componentList)
-            || !ValidationUtil.isValid(certGen) || !ValidationUtil.isValidMap(concordConfig)
-            || !ValidationUtil.isValidMap(bftClientConfig) || !ValidationUtil.isValidMap(allNodeIdentityComponents)) {
+                                                  ConcordEcCertificatesGenerator certGen,
+                                                  Map<String, Map<String, String>> concordConfig,
+                                                  Map<String, String> bftClientConfig,
+                                                  IdentityComponentsLists identityComponentsLists) {
+
+        Map<String, List<IdentityComponent>> concordIdentityComponents = identityComponentsLists
+                .getConcordIdentityComponents();
+        Map<String, List<IdentityComponent>> bftIdentityComponents = identityComponentsLists.getBftIdentityComponents();
+
+        if (!ValidationUtil.isValid(nodeId) || !ValidationUtil.isValid(componentList)
+                || !ValidationUtil.isValid(certGen) || !ValidationUtil.isValid(concordConfig)
+                || !ValidationUtil.isValid(bftClientConfig) || !ValidationUtil.isValid(concordIdentityComponents)
+                || !ValidationUtil.isValid(bftIdentityComponents)) {
             log.error("Invalid input parameters.");
             throw new ConfigServiceException(ErrorCode.GENERATE_NODE_CONFIG_INVALID_INPUT_FAILURE,
-                                             "Invalid input parameters.");
+                    "Invalid input parameters.");
         }
-        log.info("nodeId {} componentList size {} concordConfig size {} bftClientConfig size {} "
-                  + " allNodeIdentityComponents size {}.", nodeId, componentList.size(), concordConfig.size(),
-                  bftClientConfig.size(), allNodeIdentityComponents.size());
+        log.debug("nodeId {} componentList size {} concordConfig size {} bftClientConfig size {} "
+                        + " concordIdentityComponent size {} bftIdentityComponents size {}.", nodeId,
+                componentList.size(), concordConfig.size(), bftClientConfig.size(),
+                concordIdentityComponents.size(), bftIdentityComponents.size());
+
         List<ConfigurationComponent> output = new ArrayList<>(componentList);
 
         if (concordConfig.containsKey(nodeId)) {
-            if (concordConfig.get(nodeId) != null) {
-                concordConfig.get(nodeId).forEach((key, value) -> {
-                    if (key.equalsIgnoreCase(ConfigUtilHelpers.DEPLOY)) {
-                        output.add(ConfigurationComponent.newBuilder()
-                                           .setType(ServiceType.CONCORD)
-                                           .setComponentUrl(Constants.CONCORD_DEPLOY_CONFIG_PATH)
-                                           .setComponent(value)
-                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                           .build());
-                    }
-                    if (key.equalsIgnoreCase(ConfigUtilHelpers.SECRET)) {
-                        output.add(ConfigurationComponent.newBuilder()
-                                           .setType(ServiceType.CONCORD)
-                                           .setComponentUrl(Constants.CONCORD_SECRETS_CONFIG_PATH)
-                                           .setComponent(value)
-                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                           .build());
-                    }
-                    if (key.equalsIgnoreCase(ConfigUtilHelpers.CONCORD)) {
-                        output.add(ConfigurationComponent.newBuilder()
-                                           .setType(ServiceType.CONCORD)
-                                           .setComponentUrl(Constants.CONCORD_CONFIG_PATH)
-                                           .setComponent(value)
-                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                           .setFilePermissions(Constants.CONCORD_CONFIG_FILE_PERMISSIONS)
-                                           .build());
-                    }
-                });
-
-                if (allNodeIdentityComponents.get(nodeId) != null) {
-                    allNodeIdentityComponents.get(nodeId).forEach(entry -> output
-                            .add(ConfigurationComponent.newBuilder().setType(ServiceType.CONCORD)
-                                         .setComponentUrl(entry.getUrl()).setComponent(entry.getBase64Value())
-                                         .setIdentityFactors(certGen.getIdentityFactor()).build()));
-                } else {
-                    log.error("allNodeIdentityComponents is missing configuration for nodeId {}.", nodeId);
+            concordConfig.get(nodeId).forEach((key, value) -> {
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.DEPLOY)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(Constants.CONCORD_DEPLOY_CONFIG_PATH)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
                 }
-            } else {
-                log.error("concordConfig is missing configuration for node {}.", nodeId);
-            }
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.SECRET)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(Constants.CONCORD_SECRETS_CONFIG_PATH)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                }
+                if (key.equalsIgnoreCase(ConfigUtilHelpers.CONCORD)) {
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(Constants.CONCORD_CONFIG_PATH)
+                            .setComponent(value)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .setFilePermissions(Constants.CONCORD_CONFIG_FILE_PERMISSIONS)
+                            .build());
+                }
+            });
+        }
+
+        if (concordIdentityComponents.containsKey(nodeId)) {
+            concordIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
+        }
+
+        if (bftIdentityComponents.containsKey(nodeId)) {
+            bftIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.DAML_LEDGER_API)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
+        }
+
+        Map<String, List<IdentityComponent>> trsIdentityComponents = identityComponentsLists.getTrsIdentityComponents();
+        Map<String, List<IdentityComponent>> trcIdentityComponents = identityComponentsLists.getTrcIdentityComponents();
+
+        if (trsIdentityComponents.containsKey(nodeId)) {
+            trsIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.CONCORD)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
+        }
+
+        if (trcIdentityComponents.containsKey(nodeId)) {
+            trcIdentityComponents.get(nodeId).forEach(entry ->
+                    output.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.DAML_LEDGER_API)
+                            .setComponentUrl(entry.getUrl())
+                            .setComponent(entry.getBase64Value())
+                            .setIdentityFactors(
+                                    certGen.getIdentityFactor())
+                            .build()));
         }
 
         if (bftClientConfig.containsKey(nodeId)) {
-            if (bftClientConfig.get(nodeId) != null) {
-                output.add(ConfigurationComponent.newBuilder()
-                                   .setType(ServiceType.DAML_LEDGER_API)
-                                   .setComponentUrl(Constants.DAML_BFT_CLIENT_CONFIG_PATH)
-                                   .setComponent(bftClientConfig.get(nodeId))
-                                   .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                   .build());
-                if (allNodeIdentityComponents.get(nodeId) != null) {
-                    allNodeIdentityComponents.get(nodeId).forEach(entry -> output
-                            .add(ConfigurationComponent.newBuilder().setType(ServiceType.DAML_LEDGER_API)
-                                         .setComponentUrl(entry.getUrl()).setComponent(entry.getBase64Value())
-                                         .setIdentityFactors(certGen.getIdentityFactor()).build()));
-                } else {
-                    log.error("allNodeIdentityComponents is missing configuration for nodeId {}.", nodeId);
-                }
-            } else {
-                log.error("bftClientConfig is missing configuration for node {}.", nodeId);
-            }
+            output.add(ConfigurationComponent.newBuilder()
+                    .setType(ServiceType.DAML_LEDGER_API)
+                    .setComponentUrl(Constants.DAML_BFT_CLIENT_CONFIG_PATH)
+                    .setComponent(bftClientConfig.get(nodeId))
+                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                    .build());
         }
         log.debug("built configuration {}", output);
         return output;

@@ -22,7 +22,7 @@ import com.vmware.blockchain.deployment.v1.IdentityFactors;
  * This class is a bouncycastle implementation of getting ssl certs and keypair.
  */
 public class ConcordEcCertificatesGenerator implements
-                                            com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator {
+        com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator {
 
     private static Logger log = LoggerFactory.getLogger(ConcordEcCertificatesGenerator.class);
 
@@ -33,7 +33,7 @@ public class ConcordEcCertificatesGenerator implements
         List<String> directoryList;
 
         if (type.equals(ServiceType.CONCORD)) {
-            directoryList = getCertDirectories(numCerts, CONCORD_TLS_SECURITY_IDENTITY_PATH);
+            directoryList = getCertDirectories(numCerts, FILE_PREFIX + CONCORD_TLS_SECURITY_IDENTITY_PATH);
 
             certSubjectVars = IntStream.range(0, numCerts).boxed()
                     .map(entry -> Map.entry(entry, "node" + entry + "ser"))
@@ -42,7 +42,8 @@ public class ConcordEcCertificatesGenerator implements
                     .map(entry -> Map.entry(entry, "node" + entry + "cli"))
                     .collect(Collectors.toList()));
         } else if (type.equals(ServiceType.ETHEREUM_API)) {
-            directoryList = new ArrayList<>(getCertDirectories(numCerts, CONCORD_ETHRPC_SECURITY_IDENTITY_PATH));
+            directoryList = new ArrayList<>(getCertDirectories(numCerts,
+                    FILE_PREFIX + CONCORD_ETHRPC_SECURITY_IDENTITY_PATH));
             certSubjectVars = IntStream.range(0, numCerts).boxed()
                     .map(entry -> Map.entry(entry, "node" + entry))
                     .collect(Collectors.toList());
@@ -59,6 +60,11 @@ public class ConcordEcCertificatesGenerator implements
             dirIndex++;
         }
         return getWorkResult(futList);
+    }
+
+    @Override
+    public List<Identity> generateSelfSignedCertificates(int numCerts, ServiceType type, String cn, String ou) {
+        throw new UnsupportedOperationException("Method not implemented for concord certificates");
     }
 
     @Override
@@ -95,7 +101,7 @@ public class ConcordEcCertificatesGenerator implements
                 .map(entry -> String.join("/", rootPath, String.valueOf(entry)))
                 .collect(Collectors.toList());
 
-        if (rootPath.equalsIgnoreCase(CONCORD_ETHRPC_SECURITY_IDENTITY_PATH)) {
+        if (rootPath.equalsIgnoreCase(FILE_PREFIX + CONCORD_ETHRPC_SECURITY_IDENTITY_PATH)) {
             return createDir;
         }
 

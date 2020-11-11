@@ -164,6 +164,7 @@ enum DeploymentAttributes {
     DEPLOY_OPERATOR = 19;
     OBJECT_STORE_ENABLED = 20;
     GENERATE_DAML_DB_PASSWORD = 21;
+    TRC_TRS_TLS_ENABLED = 22;
 }
 
 /* [END messages] */

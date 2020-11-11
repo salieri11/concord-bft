@@ -16,6 +16,8 @@ import lombok.ToString;
 @ToString
 public class BlockchainClient extends BlockchainNode {
 
+    private String clientGroupId;
+
     /**
      * Client constructor.
      * @param id node id

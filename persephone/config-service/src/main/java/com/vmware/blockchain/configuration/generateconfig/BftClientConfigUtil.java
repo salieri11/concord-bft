@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
@@ -223,6 +224,9 @@ public class BftClientConfigUtil {
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_PARTICIPANTS.name, nodeList.getClientSize());
+        configInput.put(ConfigUtilHelpers.ConfigProperty.TLS_CERTIFICATES_FOLDER_PATH.name,
+                CertificatesGenerator.IDENTITY_PATH_PREFIX
+                        + CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigUtilHelpers.ConfigProperty.NODE.name);
