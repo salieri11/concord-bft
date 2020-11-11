@@ -99,6 +99,7 @@ message DeployedResource {
         PUBLIC_IP = 2;
         CLIENT_ENDPOINT = 3;
         NODE_LOGIN = 4;
+        DAML_INDEX_DB_PASSWORD = 5;
     }
 
     Type type = 1;

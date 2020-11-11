@@ -5,7 +5,6 @@
 package com.vmware.blockchain.deployment.services.provisionv2;
 
 import static com.vmware.blockchain.deployment.services.provisionv2.ProvisioningServiceUtil.generateEvent;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -15,7 +14,10 @@ import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.verifyNoMoreInteractions;
 import static org.powermock.api.mockito.PowerMockito.when;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -40,11 +42,14 @@ import com.vmware.blockchain.deployment.services.futureutil.ReactiveStream;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
+import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.DeploymentExecutionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
+import com.vmware.blockchain.deployment.v1.DeploymentSpec;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
 import com.vmware.blockchain.deployment.v1.Endpoint;
@@ -53,6 +58,7 @@ import com.vmware.blockchain.deployment.v1.NodeAssignment;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.StreamDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
@@ -123,6 +129,62 @@ public class ProvisioningServiceTest {
                 .build();
         var promise = new CompletableFuture<DeploymentRequestResponse>();
         when(deploymentLogCache.asMap()).thenReturn(mock(ConcurrentMap.class));
+        provisioningServiceV2.createDeployment(request, ReactiveStream.blockedResultObserver(promise));
+
+        Assert.assertNotNull(promise.get().getId());
+    }
+
+    @Test
+    void testCreateDeploymentWithDAmlDbPassword() throws Exception {
+        doReturn(mock(Orchestrator.class)).when(orchestratorProvider).newOrchestrator(any(), any());
+
+        Properties.Builder propertiesBuilder = Properties.newBuilder();
+        propertiesBuilder.putValues(
+                DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(),
+                "true");
+
+        NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
+        nodeAssignment.addEntries(NodeAssignment.Entry
+                                          .newBuilder()
+                                          .setType(NodeType.REPLICA)
+                                          .setNodeId(UUID.randomUUID().toString())
+                                          .setSite(
+                                                  OrchestrationSiteIdentifier
+                                                          .newBuilder()
+                                                          .setId(UUID.randomUUID().toString())
+                                                          .build())
+        );
+        UUID clientUuid = UUID.randomUUID();
+        nodeAssignment.addEntries(NodeAssignment.Entry
+                                          .newBuilder()
+                                          .setType(NodeType.CLIENT)
+                                          .setNodeId(clientUuid.toString())
+                                          .setSite(
+                                                  OrchestrationSiteIdentifier
+                                                          .newBuilder()
+                                                          .setId(UUID.randomUUID().toString())
+                                                          .build())
+        );
+
+        Map<UUID, List<ConcordComponent>> components = new HashMap<>();
+        ConcordComponent cc = ConcordComponent.newBuilder().setServiceType(ConcordComponent.ServiceType.DAML_INDEX_DB)
+                .build();
+        List<ConcordComponent> comp = Arrays.asList(cc);
+
+        components.put(clientUuid, comp);
+        when(nodeConfiguration.generateModelSpec(any(), any(), any())).thenReturn(components);
+
+        var promise = new CompletableFuture<DeploymentRequestResponse>();
+        when(deploymentLogCache.asMap()).thenReturn(mock(ConcurrentMap.class));
+
+        DeploymentSpec spec = DeploymentSpec.newBuilder().setProperties(propertiesBuilder.build())
+                .setNodeAssignment(nodeAssignment).build();
+
+        DeploymentRequest request = DeploymentRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setSpec(spec)
+                .build();
+
         provisioningServiceV2.createDeployment(request, ReactiveStream.blockedResultObserver(promise));
 
         Assert.assertNotNull(promise.get().getId());

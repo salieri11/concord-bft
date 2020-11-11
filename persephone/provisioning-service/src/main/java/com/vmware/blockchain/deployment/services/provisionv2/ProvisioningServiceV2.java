@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.provisionv2;
 
 import static com.vmware.blockchain.deployment.services.provisionv2.ProvisioningServiceUtil.generateEvent;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_INDEX_DB;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,6 +36,8 @@ import com.vmware.blockchain.deployment.services.orchestration.OrchestratorProvi
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
 import com.vmware.blockchain.deployment.services.orchestration.vmware.OrchestratorFactory;
 import com.vmware.blockchain.deployment.services.orchestrationsite.OrchestrationSites;
+import com.vmware.blockchain.deployment.services.util.password.PasswordGeneratorUtil;
+import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
@@ -44,6 +47,8 @@ import com.vmware.blockchain.deployment.v1.DeploymentRequestResponse;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentRequest;
 import com.vmware.blockchain.deployment.v1.DeprovisionDeploymentResponse;
 import com.vmware.blockchain.deployment.v1.GenerateConfigurationResponse;
+import com.vmware.blockchain.deployment.v1.NodeAssignment;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
@@ -104,16 +109,19 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
                 genericProperties,
                 request.getSpec().getNodePropertiesMap());
 
-
-
         Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators = new HashMap<>();
         Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> siteMap = new HashMap<>();
         createOrchestratorsFromSites(request.getSpec().getSites(), orchestrators, siteMap);
 
-        var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
-
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
                                                                    nodeAssignment, siteMap);
+
+        if (Boolean.parseBoolean(request.getSpec().getProperties().getValuesOrDefault(
+                DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(), "false"))) {
+            nodeAssignment = addDamlDbPassword(componentsByNode, nodeAssignment);
+        }
+
+        var deploymentType = ProvisioningServiceUtil.deriveDeploymentType(request.getSpec().getSites());
 
         // Info fields only
         Properties.Builder responseInfoProperties = Properties.newBuilder();
@@ -161,11 +169,36 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         }
     }
 
+    private NodeAssignment addDamlDbPassword(Map<UUID, List<ConcordComponent>> componentsByNode,
+                                             NodeAssignment nodeAssignment) {
+
+        List<String> nodes = componentsByNode.entrySet().stream().filter(e -> e.getValue().stream()
+                .anyMatch(component -> component.getServiceType() == DAML_INDEX_DB)).map(ee -> ee.getKey().toString())
+                .collect(Collectors.toList());
+
+        List<NodeAssignment.Entry> newEntries = new ArrayList<>();
+        nodeAssignment.getEntriesList().stream().forEach(entry -> {
+            if (nodes.contains(entry.getNodeId())) {
+
+                Properties.Builder propertiesBuilder = Properties.newBuilder();
+                propertiesBuilder.putAllValues(entry.getProperties().getValuesMap());
+                propertiesBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(),
+                                            PasswordGeneratorUtil.generateCommonTextPassword());
+
+                NodeAssignment.Entry withPassword = NodeAssignment.Entry.newBuilder(entry)
+                        .setProperties(propertiesBuilder).build();
+                newEntries.add(withPassword);
+            } else {
+                newEntries.add(entry);
+            }
+        });
+        return NodeAssignment.newBuilder().addAllEntries(newEntries).build();
+    }
+
     @Override
-    public void streamDeploymentSessionEvents(
-            StreamDeploymentSessionEventRequest message,
-            StreamObserver<DeploymentExecutionEvent> observer
-    ) {
+    public void streamDeploymentSessionEvents(StreamDeploymentSessionEventRequest message,
+                                                                    StreamObserver<DeploymentExecutionEvent> observer) {
+
         var request = Objects.requireNonNull(message);
         var response = Objects.requireNonNull(observer);
 
