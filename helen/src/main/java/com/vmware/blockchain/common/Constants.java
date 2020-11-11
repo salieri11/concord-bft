@@ -17,6 +17,7 @@ public class Constants {
     public static final String ORG_MAX_CHAINS = "max_chains";
     public static final String ORG_NOTARY_VERIFICATION_ENABLED = "notary_verification_enabled";
     public static final String ORG_GENERATE_PASSWORD = "secure-password";
+    public static final String ORG_GENERATE_DAML_INDEX_DB_PASSWORD = "daml-db-password";
     public static final String ORG_PREEXECUTION_ENABLED = "preexecution_enabled";
     public static final String ORG_PREEXECUTION_THRESHOLD = "preexecution_threshold";
     public static final String ORG_DECENTRALIZED_KEYS = "decentralized_keys";

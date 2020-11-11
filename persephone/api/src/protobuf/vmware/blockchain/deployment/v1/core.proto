@@ -199,6 +199,7 @@ message NodeProperty {
         OBJECT_STORE_SECRET_KEY = 29;
         OBJECT_STORE_URL = 30;
         TLS_CLIENT_AUTH = 31;
+        DAML_DB_PASSWORD = 32;
     }
 
     Name name = 1;

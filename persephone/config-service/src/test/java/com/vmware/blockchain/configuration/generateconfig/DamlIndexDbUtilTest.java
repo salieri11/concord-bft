@@ -11,7 +11,9 @@ import java.nio.file.Files;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
  * Test for DamlIndexDbUtil.
@@ -26,6 +28,22 @@ public class DamlIndexDbUtilTest {
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleDamlIndexDbConfig.txt").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual.equals(expected)).isTrue();
+    }
+
+    @Test
+    public void testGenerateConfigWithDamlDbPassword() throws IOException {
+
+        Properties.Builder propsBuilder = Properties.newBuilder();
+        propsBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), "testPass");
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE").setProperties(propsBuilder).build();
+
+        String actual = new DamlIndexDbUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlIndexDbConfigWithDbPass.txt").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
 
         Assertions.assertThat(actual.equals(expected)).isTrue();

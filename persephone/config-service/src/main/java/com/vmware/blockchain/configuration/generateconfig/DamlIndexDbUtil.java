@@ -26,14 +26,19 @@ public class DamlIndexDbUtil {
      * @return json string
      */
     public String generateConfig(NodesInfo.Entry nodeInfo) {
-        var clientGroupId =
-                nodeInfo.getProperties().getValuesMap().getOrDefault(NodeProperty.Name.CLIENT_GROUP_ID.name(),
-                                                                     nodeInfo.getId());
-        var nodeName = DamlLedgerApiUtil.convertToParticipantId(clientGroupId);
 
         StringBuilder builder = new StringBuilder();
         builder.append("export POSTGRES_USER=indexdb");
         builder.append(System.lineSeparator());
+        String pwd = nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
+        if (pwd != null) {
+            builder.append("export POSTGRES_PASS=" + pwd);
+            builder.append(System.lineSeparator());
+        }
+        var clientGroupId =
+                nodeInfo.getProperties().getValuesMap().getOrDefault(NodeProperty.Name.CLIENT_GROUP_ID.name(),
+                                                                     nodeInfo.getId());
+        var nodeName = DamlLedgerApiUtil.convertToParticipantId(clientGroupId);
         // Remove this once 0.8 version is deprecated
         builder.append("export POSTGRES_MULTIPLE_DATABASES=" + nodeName);
         builder.append(System.lineSeparator());
