@@ -748,7 +748,7 @@ def test_temporary_lack_of_quorum_after_view_change(reraise, fxLocalSetup, fxHer
                 log.info("\n\nStopped and restarted non primary replica: {}".
                          format(non_primary_replica_to_be_interrupted))
 
-            p_daml_txn.join()
+            p_daml_txn.join(20)
             if p_daml_txn.is_alive():
                 p_daml_txn.terminate()
 
