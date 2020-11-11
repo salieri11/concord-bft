@@ -356,6 +356,11 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                             clientNode.setUrl(attributes.get(DeployedResource
                                                                      .DeployedResourcePropertyKey
                                                                      .CLIENT_ENDPOINT.name()));
+                            if (rawBlockchain.getType() == Blockchain.BlockchainType.DAML
+                                && DeployedResource
+                                           .DeployedResourcePropertyKey.DAML_INDEX_DB_PASSWORD.name() != null) {
+                                clientNode.setDamlDbPassword(attributes.get(NodeProperty.Name.DAML_DB_PASSWORD.name()));
+                            }
                             break;
                         case NETWORK_RESOURCE:
                             if (attributes

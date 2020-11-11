@@ -1362,7 +1362,7 @@ class ZoneControllerTest {
         when(replicaService.getReplicasByParentId(DELETE_EMPTY_ZONE)).thenReturn(ImmutableList.of());
         doNothing().when(zoneService).delete(DELETE_EMPTY_ZONE);
 
-        c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+        c1 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", "pass", BLOCKCHAIN_ID,
                 DELETE_ZONE_WITH_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         c1.setId(CLIENT_ID_1);
 
@@ -1370,7 +1370,7 @@ class ZoneControllerTest {
                 DELETE_ZONE_WITH_REPLICA, Replica.ReplicaType.DAML_PARTICIPANT, BLOCKCHAIN_ID, "password");
         r1.setId(REPLICA_ID_1);
 
-        c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", BLOCKCHAIN_ID,
+        c2 = new Client("publicIp", "privateIp", "password", "url", "authJwtUrl", "pass", BLOCKCHAIN_ID,
                 DELETE_ZONE_WITH_REPLICA_AND_CLIENT, CLIENT_GROUP_ID, CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
         c2.setId(CLIENT_ID_2);
 

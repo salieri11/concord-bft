@@ -29,6 +29,7 @@ public class Client extends AbstractEntity implements NodeInterface {
     String password;
     String url;
     String authJwtUrl;
+    String damlDbPassword;
 
     @LinkedEntityId
     UUID blockchainId;
