@@ -292,10 +292,14 @@ def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
             log.info("Number of zone required {}".format(no_of_zones_req))
             clone_zones = [infraDescriptor['zones'][0]] * abs(no_of_zones_req)
             infraDescriptor['zones'] = [*infraDescriptor['zones'], *clone_zones]
-            time.sleep(5)
+        with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE), "w") as infraFile:
+            json.dump(infraDescriptor, infraFile, indent=4)
+        time.sleep(5)
 
     else:
         len_default_zone_path = 1
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)) as infra_modified_File:
+        infraDescriptor = json.load(infra_modified_File)
 
     for item in range(len_default_zone_path):
         url = default_zone_path[item]['api']['address']
@@ -363,6 +367,7 @@ def _get_all_nodes(castor_output_file):
 
     cof.close()
     return all_nodes, client_node_ips
+
 
 
 def _get_node_info_list(all_nodes, client_nodes):
@@ -514,6 +519,33 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
 
     return status
 
+def validate_castor_output_msg(castorOutputDir, num_of_nodes):
+    
+    files = os.listdir(castorOutputDir)
+
+    filePatternStr = _CONSORTIUM_NAME + "*"
+    outputFileBases = fnmatch.filter(files, filePatternStr)
+    assert len(outputFileBases) == 1, "Zero/Multiple matches found for consortium: %s, %s" % (
+        _CONSORTIUM_NAME, outputFileBases)
+
+    outputFileBase = outputFileBases[0]
+    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
+    log.info("Processing castor output file: {}".format(castorOutputFile))
+
+    # Check that the output file says "SUCCESS"
+    outputSuccessMatchPattern = re.compile(_CASTOR_OUTPUT_SUCCESS_MSG_PATTERN)
+    with open(castorOutputFile) as cof:
+        lines = cof.readlines()
+        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
+        assert matchingLines == 1, "Castor output file does not have success marker: %s" % _CASTOR_OUTPUT_SUCCESS_MSG_PATTERN
+
+        # Match 2 clients and 4 committers
+        nodeLoginMatchPattern = re.compile(_CASTOR_OUTPUT_NODE_LOGIN_PATTERN)
+        matchingNodeLogins = match_pattern(lines, nodeLoginMatchPattern)
+    
+    return matchingNodeLogins, castorOutputFile
+
+
 
 def create_resources(site_id, castor_output_file):
     '''
@@ -542,6 +574,64 @@ def create_resources(site_id, castor_output_file):
                     resources.append(resource)
 
     return resources
+
+
+def get_deployed_node_size(ip):
+    '''
+     Get Node size details
+    '''
+    
+    # get default username and password of the node from user config
+    username, password = helper.getNodeCredentials()
+    
+    deployed_vm_size = {}
+    cmd_vm_memory = "grep MemTotal /proc/meminfo"
+    cmd_vm_cpu = "lscpu|grep 'CPU(s):'"
+    cmd_vm_disk = "fdisk -l | grep Disk | grep /dev/sdb"
+
+    vm_size_command = cmd_vm_memory + "\n" + cmd_vm_cpu + "\n" + cmd_vm_disk
+    ssh_output = helper.ssh_connect(ip, username, password, vm_size_command)
+    assert ssh_output, "Unable to connect to VM :{}".format(ip)
+    ssh_output = ssh_output.split("\n")
+    deployed_vm_size["memoryGb"] = (ssh_output[0].split()[1])
+    deployed_vm_size["cpuCount"] = (ssh_output[1].split()[1])
+
+    # cpu command may result in one or two line output. hence checking the length of the output
+    # when storage is greater than 1024 GB, the output will be in-terms of TB. changing it to equivalent GB value
+    index = 2 if len(ssh_output) == 3 else 3
+    deployed_vm_size["diskSizeGb"] = str(float(ssh_output[index].split()[2])*1024) \
+        if "TiB" in ssh_output[index].split()[3] else ssh_output[index].split()[2]
+
+    return deployed_vm_size
+
+
+def validate_replica_node_size(deployment_descriptor, deployed_vm_size, ip):
+    '''
+    Validate deployed node size with defined node size in descriptor
+    '''
+    deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
+    with open(deployment_descriptor_path) as ds:
+        deployDescriptor = json.load(ds)
+    
+    assert deployDescriptor["replicaNodeSpec"]["cpuCount"] == int(deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with replica node CPU defined {}".format(ip, deployed_vm_size["cpuCount"], deployDescriptor["replicaNodeSpec"]["cpuCount"])
+    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(deployDescriptor["replicaNodeSpec"]["memoryGb"]) \
+               >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), "Memory of replica node IP {} is not matching with replica node memory defined {}".format(ip, deployDescriptor["replicaNodeSpec"]["memoryGb"])
+    #assert deployDescriptor["replicaNodeSpec"]["memoryGb"] == int(deployed_vm_size["memoryGb"]), "Memory of replica node IP {} is {} which is not matching with replica node memory defined {}".format(ip, deployed_vm_size["memoryGb"], deployDescriptor["replicaNodeSpec"]["memoryGb"])
+    assert deployDescriptor["replicaNodeSpec"]["diskSizeGb"] == float(deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with replica node disk size defined {}".format(ip, deployed_vm_size["diskSizeGb"], deployDescriptor["replicaNodeSpec"]["diskSizeGb"])
+
+
+def validate_client_node_size(deployment_descriptor, deployed_vm_size, ip):
+    '''
+    Validate deployed node size with defined node size in descriptor
+    '''
+    deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
+    with open(deployment_descriptor_path) as ds:
+        deployDescriptor = json.load(ds)
+    
+    assert deployDescriptor["clientNodeSpec"]["cpuCount"] == int(deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with client node CPU defined {}".format(ip, deployed_vm_size["cpuCount"], deployDescriptor["clientNodeSpec"]["cpuCount"])
+    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(deployDescriptor["clientNodeSpec"]["memoryGb"]) \
+               >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), "Memory of client node IP {} is not matching with client node memory defined {}".format(ip, deployDescriptor["clientNodeSpec"]["memoryGb"])    
+    assert deployDescriptor["clientNodeSpec"]["diskSizeGb"] == float(deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with client node disk size defined {}".format(ip, deployed_vm_size["diskSizeGb"], deployDescriptor["clientNodeSpec"]["diskSizeGb"])
 
 
 def deprovision_blockchain(fxHermesRunSettings):
@@ -625,16 +715,16 @@ def deprovision_blockchain(fxHermesRunSettings):
 
     return cleaned_up
 
-
 """
 TEST CASES
 """
 
 
+
+
 @describe("Deploy 7 node daml blockchain and verify blockchain health")
 @pytest.mark.parametrize('upCastorDockerCompose',
-                         [(7, 2, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE, False)],
-                         indirect=True)
+                         [(7, 2, _DEPLOY_DESC_FILENAME_VALUE, _INFRA_DESC_FILENAME_VALUE, False)], indirect=True)
 def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
     """
     The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose.
@@ -652,31 +742,13 @@ def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHerm
     num_of_nodes = 9
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    files = os.listdir(castorOutputDir)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
 
-    filePatternStr = _CONSORTIUM_NAME + "*"
-    outputFileBases = fnmatch.filter(files, filePatternStr)
-
-    assert len(outputFileBases) == 1, "Zero/Multiple matches found for consortium: %s, %s" % (
-        _CONSORTIUM_NAME, outputFileBases)
-
-    outputFileBase = outputFileBases[0]
-    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
-    log.info("Processing castor output file: {}".format(castorOutputFile))
-
-    # Check that the output file says "SUCCESS"
-    outputSuccessMatchPattern = re.compile(_CASTOR_OUTPUT_SUCCESS_MSG_PATTERN)
-    with open(castorOutputFile) as cof:
-        lines = cof.readlines()
-        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
-        assert matchingLines == 1, "Castor output file does not have success marker: %s" % _CASTOR_OUTPUT_SUCCESS_MSG_PATTERN
-
-        # Match 2 clients and 7 committers
-        nodeLoginMatchPattern = re.compile(_CASTOR_OUTPUT_NODE_LOGIN_PATTERN)
-        matchingNodeLogins = match_pattern(lines, nodeLoginMatchPattern)
-        assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
+    # validate success message in the output file
+    assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
             _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
+        
     # # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
     all_nodes, client_nodes = _get_all_nodes(castorOutputFile)
@@ -712,37 +784,19 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     1. the output file contains all the information about clients and committers specified in the descriptors files
     2. ssh connectivity on all the nodes
     3. Docker containers in each node
-    4. After the above 3 are verified then the Daml sanity is executed for the participant nodes
+    4. Check VM Sizing
+    5. After the above 3 are verified then the Daml sanity is executed for the participant nodes
     """
     # Check if deployment started
     assert upCastorDockerCompose, "Deployment did not start"
 
     # start the test
     num_of_nodes = 5
-    log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    files = os.listdir(castorOutputDir)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
 
-    filePatternStr = _CONSORTIUM_NAME + "*"
-    outputFileBases = fnmatch.filter(files, filePatternStr)
-    assert len(outputFileBases) == 1, "Zero/Multiple matches found for consortium: %s, %s" % (
-        _CONSORTIUM_NAME, outputFileBases)
-
-    outputFileBase = outputFileBases[0]
-    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
-    log.info("Processing castor output file: {}".format(castorOutputFile))
-
-    # Check that the output file says "SUCCESS"
-    outputSuccessMatchPattern = re.compile(_CASTOR_OUTPUT_SUCCESS_MSG_PATTERN)
-    with open(castorOutputFile) as cof:
-        lines = cof.readlines()
-        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
-        assert matchingLines == 1, "Castor output file does not have success marker: %s" % _CASTOR_OUTPUT_SUCCESS_MSG_PATTERN
-
-        # Match 2 clients and 4 committers
-        nodeLoginMatchPattern = re.compile(_CASTOR_OUTPUT_NODE_LOGIN_PATTERN)
-        matchingNodeLogins = match_pattern(lines, nodeLoginMatchPattern)
-        assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
+    # validate success message in the output file
+    assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
             _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
     # -------------post deployment validations -----------------
@@ -751,6 +805,14 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
 
     # create a dictionary to segregate all the nodes by Replica and Client
     node_info_list = _get_node_info_list(all_nodes, client_nodes)
+
+    # validate node size
+    for node_ip, node_type in node_info_list.items():
+        vm_size = get_deployed_node_size(node_ip)
+        if "committer" in node_type:
+            validate_replica_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip)
+        if "client" in node_type:
+            validate_client_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip)
 
     # verify docker containers on each node
     status, error = _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list)
@@ -773,6 +835,15 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
                                                     _INFRA_DESC_FILENAME_VALUE, True)],
                          indirect=True)
 def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
+    """
+    The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose.
+    Once the provisioning and config service is up then the castor deployment is initiated
+    If that fails, there is no point in continuing onward with this test. The test verifies the following:
+    1. the output file contains all the information about clients and committers specified in the descriptors files
+    2. ssh connectivity on all the nodes
+    3. Docker containers in each node
+    4. After the above 3 are verified then the Daml sanity is executed for the participant nodes
+    """
     # check if deployment started
     assert upCastorDockerCompose, "Deployment did not start"
 
@@ -780,27 +851,10 @@ def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     num_of_nodes = 5
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    files = os.listdir(castorOutputDir)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
 
-    filePatternStr = _CONSORTIUM_NAME + "*"
-    outputFileBases = fnmatch.filter(files, filePatternStr)
-    assert len(outputFileBases) == 1, "Zero/Multiple matches found for consortium: %s, %s" % (
-        _CONSORTIUM_NAME, outputFileBases)
-
-    outputFileBase = outputFileBases[0]
-    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
-    log.info("Processing castor output file: {}".format(castorOutputFile))
-
-    # Check that the output file says "SUCCESS"
-    outputSuccessMatchPattern = re.compile(_CASTOR_OUTPUT_SUCCESS_MSG_PATTERN)
-    with open(castorOutputFile) as cof:
-        lines = cof.readlines()
-        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
-        assert matchingLines == 1, "Castor output file does not have success marker: %s" % _CASTOR_OUTPUT_SUCCESS_MSG_PATTERN
-
-        nodeLoginMatchPattern = re.compile(_CASTOR_OUTPUT_NODE_LOGIN_PATTERN)
-        matchingNodeLogins = match_pattern(lines, nodeLoginMatchPattern)
-        assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
+    # validate success message in the output file
+    assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
             _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
     # -------------post deployment validations -----------------
@@ -833,6 +887,48 @@ def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
 def test_deployment_invalid_host(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
     """
     This is a negative test. We don't need teardown here
+    Objective - Validate if castor startup is failed because of invalid host end point
     """
     assert upCastorDockerCompose == False, "Somehow Castor docker compose started the deployment. " \
                                            "It should have been failed"
+
+
+@describe("Verify Max VM Sizing")
+@pytest.mark.smoke
+@pytest.mark.parametrize('upCastorDockerCompose',
+                         [(4, 1, "test04_deployment_descriptor_vm_sizing.json", _INFRA_DESC_FILENAME_VALUE, False)],
+                         indirect=True)
+def test_castor_deployment_max_vm_sizing(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, castor_teardown):
+    """
+    The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose.
+    Once the provisioning and config service is up then the castor deployment is initiated
+    If that fails, there is no point in continuing onward with this test. The test verifies the following:
+    1. the output file contains all the information about clients and committers specified in the descriptors files
+    2. ssh to all the VMs and check if the node size is configured as per deployment descriptor
+    """
+    # Check if deployment started
+    assert upCastorDockerCompose, "Deployment did not start"
+
+    # start the test
+    num_of_nodes = 5
+    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
+
+    # validate success message in the output file
+    assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
+            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+
+    # -------------post deployment validations -----------------
+    # get all nodes and client node IPs from output file
+    all_nodes, client_nodes = _get_all_nodes(castorOutputFile)
+
+    # create a dictionary to segregate all the nodes by Replica and Client
+    node_info_list = _get_node_info_list(all_nodes, client_nodes)
+
+    # validate node size
+    for node_ip, node_type in node_info_list.items():
+        vm_size = get_deployed_node_size(node_ip)
+        if "committer" in node_type:
+            validate_replica_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip)
+        if "client" in node_type:
+            validate_client_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip)

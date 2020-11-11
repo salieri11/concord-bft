@@ -11,34 +11,22 @@
         },
         {
             "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
         }
     ],
     "replicaNodeSpec": {
-        "cpuCount": 2,
-        "memoryGb": 16,
-        "diskSizeGb": 64
+        "cpuCount": 16,
+        "memoryGb": 32,
+        "diskSizeGb": 4096
     },
     "clients": [
-        {
-            "zoneName": "hermes-castor-zone-1 - A"
-        },
         {
             "zoneName": "hermes-castor-zone-1 - A"
         }
     ],
     "clientNodeSpec": {
-        "cpuCount": 2,
-        "memoryGb": 16,
-        "diskSizeGb": 64
+        "cpuCount": 16,
+        "memoryGb": 32,
+        "diskSizeGb": 4096
     },
     "blockchain": {
         "consortiumName": "hermes-castor-consortium",
