@@ -427,6 +427,9 @@ public class NodeStartupOrchestrator {
         if (containerParam.getEnvironment() != null) {
             createContainerCmd.withEnv(containerParam.getEnvironment());
         }
+        if (!containerParam.getExposedPorts().isEmpty()) {
+            createContainerCmd.withExposedPorts(containerParam.getExposedPorts());
+        }
 
         log.info("Create container: {}", createContainerCmd.toString());
         var container = createContainerCmd.exec();

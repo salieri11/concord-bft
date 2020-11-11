@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.agent.services.configuration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.github.dockerjava.api.model.Bind;
@@ -54,7 +55,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
                     Bind.parse("/proc:/hostfs/proc:ro")),
             null, null,
             List.of("HOST_MOUNT_PREFIX=/hostfs",
-                    "HOST_PROC=/hostfs/proc"));
+                    "HOST_PROC=/hostfs/proc"),
+             List.of(ExposedPort.tcp(9273)));
 
     @Setter
     private String imageId;
@@ -71,6 +73,8 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
 
     private Long memory;
 
+    private List<ExposedPort> exposedPorts;
+
     MetricsAndTracingConfig(String containerName,
                             List<PortBinding> portBindings, List<Bind> volumeBindings,
                             List<Link> links, List<String> cmds, List<String> environment) {
@@ -81,6 +85,7 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
         this.cmds = cmds;
         this.environment = environment;
         this.ordinal = 2;
+        this.exposedPorts = new ArrayList<>();
     }
 
     MetricsAndTracingConfig(String containerName,
@@ -89,6 +94,14 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
                             long memory) {
         this(containerName, portBindings, volumeBindings, links, cmds, environment);
         this.memory = memory;
+    }
+
+    MetricsAndTracingConfig(String containerName,
+                            List<PortBinding> portBindings, List<Bind> volumeBindings,
+                            List<Link> links, List<String> cmds, List<String> environment,
+                            List<ExposedPort> exposedPorts) {
+        this(containerName, portBindings, volumeBindings, links, cmds, environment);
+        this.exposedPorts = exposedPorts;
     }
 
     @Override
