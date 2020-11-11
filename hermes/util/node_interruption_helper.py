@@ -9,7 +9,7 @@ from random import randrange
 import sys
 import tempfile
 import time
-import datetime
+from datetime import datetime, timedelta
 import json
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
@@ -711,8 +711,8 @@ def continuous_stop_start_container(ip, container_name, duration=60):
    '''
    try:
       status = True
-      start_time = datetime.datetime.now()
-      end_time = start_time + datetime.timedelta(seconds=duration)
+      start_time = datetime.now()
+      end_time = start_time + timedelta(seconds=duration)
       username, password = helper.getNodeCredentials()
       while status and start_time <= end_time:
          cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
@@ -723,7 +723,7 @@ def continuous_stop_start_container(ip, container_name, duration=60):
          elif "exited" in concord_status:
             status = start_container(ip, container_name)
 
-         start_time = datetime.datetime.now()
+         start_time = datetime.now()
    except Exception as excp:
       log.debug("Failed to stop and start primary replica:{}".format(ip))
       assert False, excp
@@ -731,7 +731,7 @@ def continuous_stop_start_container(ip, container_name, duration=60):
 
 def sleep_and_check(init_sleep_time, step, max_sleep_time, start_block, end_block, replica_ips):
     '''
-    Function to wait and check successfull completion of State transfer 
+    Function to wait and check successfull completion of State transfer
     Args:
       init_sleep_time: Initial wait time for the completion of State trasnfer
       step: Value which the wait time will be increased in each iteration
@@ -769,44 +769,40 @@ def check_replica_block_data(start_block, end_block, replica_ips):
    '''
    block_data = []
    block_data_length = []
-
    log.info("Checking data from {} to {}".format(
       start_block, end_block))
-
    tool_path = "/concord/conc_rocksdb_adp"
    path_param = "-path=/concord/rocksdbdata"
    op_param = "-op=getDigest"
    username, password = helper.getNodeCredentials()
-
    try:
       for ip in replica_ips:
          p_param = "-p={0}:{1}".format(start_block,end_block)
          cmd = ' '.join([tool_path, path_param, op_param, p_param])
-
          # Docker command for getting block_data_output
          container = 'concord'
          final_cmd = 'docker exec {0} {1}'.format(container, cmd)
          block_data_output = helper.ssh_connect(
                ip, username, password, final_cmd)
-
-         # Check block_data_output is valid
-         assert "Total size" in str(block_data_output), str(block_data_output)
-
-         block_data.append(block_data_output)
-         length = int(str(block_data_output).split(":")[
-               1].replace("\\n", "").replace("'", ""))
-
-         if length == 0:
-            log.error("Blocks length 0")
+         if not "Total size" in str(block_data_output):
+            log.info("Block data not found for : {}. Starting it.".format(ip))
+            start_container(ip, container, 60)
             return False
+         else:
+            block_data.append(str(block_data_output).split("-------", 1)[1])
+            length = int(str(block_data_output).split("Total size :")[
+                            1].replace("\\n", "").replace("'", ""))
          log.info("Data length from replica {0} is {1} bytes".format(ip, length))
          block_data_length.append(length)
-
       if all(i == block_data_length[0] for i in block_data_length):
+         log.info("Block length is same")
          if all(i == block_data[0] for i in block_data):
-            return True                   
-         return False    
+            log.info("Block data is same")
+            return True
+         log.info("Block data is not same")
+         return False
       else:
+         log.info("Block length is not same")
          return False
    except Exception as excp:
       return excp
