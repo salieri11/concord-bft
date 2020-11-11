@@ -592,6 +592,12 @@ def fxProduct(request, hermes_info):
                            waitForStartupParams=waitForStartupParams,
                            checkProductStatusParams=checkProductStatusParams)
          product.launchProduct()
+         
+         def post_product_processing():
+            product.stopProduct()
+
+         request.addfinalizer(post_product_processing)
+         
          # Instance of product, in case someone wants to access it
          return ProductFixture(product=product)
 
