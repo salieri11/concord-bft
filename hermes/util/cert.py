@@ -29,7 +29,7 @@ def getKey():
    key = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
    return key
 
-def createCsr(key, subject, name):
+def createCsr(key, subject):
    '''
     Generates a certificate signing request and saves it on disk
     Returns certificate signing request and key
@@ -45,11 +45,9 @@ def createCsr(key, subject, name):
    csrReq.get_subject().emailAddress = subject.emailAddress
    csrReq.set_pubkey(key)
    csrReq.sign(key, "sha512")
-   open(name + ".csr", "wb").write(
-      crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq))
    return crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq)
 
-def getCASignedCert(csr, caCert, caKey, name):
+def getCASignedCert(csr, caCert, caKey):
    '''
     Accepts certificate signing request and signs it with the private key and saves it on disk
     Returns signed certificate and key.
@@ -68,13 +66,13 @@ def getCASignedCert(csr, caCert, caKey, name):
    signedCert.gmtime_adj_notAfter(31536000)
    signedCert.add_extensions(get_exts(False))
    signedCert.sign(caPKey, "sha512")
-   open(name + ".crt", "wb").write(
+   open('server' + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert))
-   open(name + ".key", "wb").write(
+   open('server' + ".key", "wb").write(
       crypto.dump_privatekey(crypto.FILETYPE_PEM, pub_key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert)
 
-def getSelfSignedCACert(csr, key, name):
+def getSelfSignedCACert(csr, key):
    '''
     Accepts a certificate signing request and self signs it and saves it on the disk
     Also returns the certificate and key
@@ -89,9 +87,9 @@ def getSelfSignedCACert(csr, key, name):
    cert.set_pubkey(pcsr.get_pubkey())
    cert.add_extensions(get_exts())
    cert.sign(key, 'sha512')
-   open(name + ".crt", "wb").write(
+   open('root-ca' + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-   open(name + ".key", "wb").write(
+   open('root-ca' + ".key", "wb").write(
       crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
 
@@ -106,15 +104,15 @@ def get_exts(ca=True):
               crypto.X509Extension(b"basicConstraints", True, b"CA:false")]
    return exts
 
-def generateSelfCertificate(sub, name):
+def generateCACertificate(sub):
    ca_key = getKey()
-   ca_csr = createCsr(ca_key, sub, name)
-   return (getSelfSignedCACert(ca_csr,ca_key, name),
+   ca_csr = createCsr(ca_key, sub)
+   return (getSelfSignedCACert(ca_csr,ca_key),
               ca_key)
 
-def generateCASignedCert(caKey, caCert, sub, name):
+def generateCASignedCert(caKey, caCert, sub):
    priv_key = getKey()
-   csr = createCsr(priv_key, sub, name)
-   return (getCASignedCert(csr, caCert, caKey, name),
+   csr = createCsr(priv_key, sub)
+   return (getCASignedCert(csr, caCert, caKey),
            priv_key)
 

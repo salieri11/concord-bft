@@ -618,6 +618,10 @@ def pytest_addoption(parser):
     nonLocalDeployConfig.addoption("--replicaStorage",
                                    help="Ability to override the replica storage value provided by SaaS.",
                                    default=None)
+    nonLocalDeployConfig.addoption("--tlsEnabledClient",
+                                   help="Ability to enable TLS certification in client.",
+                                   default=False)
+
     nonLocalDeployConfig.addoption("--propertiesString",
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")

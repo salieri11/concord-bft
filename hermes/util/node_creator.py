@@ -10,6 +10,8 @@ import pprint
 
 import util.helper
 import util.hermes_logging
+import util.cert
+from collections import namedtuple
 
 log = util.hermes_logging.getMainLogger()
 
@@ -55,6 +57,7 @@ class NodeCreator():
 
         self.num_groups = int(hermes_data["hermesCmdlineArgs"].numGroups)
         self.num_replicas = int(hermes_data["hermesCmdlineArgs"].numReplicas)
+        self.tls_enabled = hermes_data["hermesCmdlineArgs"].tlsEnabledClient
         if self.blockchain_type.lower() == util.helper.TYPE_DAML:
             self.num_clients = int(hermes_data["hermesCmdlineArgs"].numParticipants)
         else:
@@ -195,6 +198,8 @@ class NodeCreator():
           }
         Returns a list of client node structures per
         https://confluence.eng.vmware.com/display/BLOC/BC-3521%3A+Node+size+template+support
+        https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=BLOC&title=TLS+for+Ledger+API+connection 
+        Adding TLS certificates 
           {
             "zone_id": "84b9a0ed-c162-446a-b8c0-2e45755f3844",
             "auth_url_jwt": "user@server.com",
@@ -203,7 +208,10 @@ class NodeCreator():
               "no_of_cpus": "4",
               "storage_in_gigs": "100",
               "memory_in_gigs": "128"
-            }
+            },
+            pem:"",
+            crt:"",
+            cacrt:"" 
           }
         '''
         nodes = []
@@ -216,13 +224,28 @@ class NodeCreator():
 
         current_group_idx = 0
         current_zone_idx = 0
+        Subject = namedtuple('Subject', ['commonName', 'countryName', 'stateOrProvinceName',
+                                         'localityName', 'organizationName', 'organizationalUnitName', 'emailAddress'])
+        root_crt, server_key, server_crt = None
+        if self.tls_enabled:
+            sub = Subject('Root CA', '', '', '', '', '', '')
+            root_crt, root_key = util.cert.generateCACertificate(sub, 'root-ca')
+            log.debug('Root Key :{} \n Root Certificate:{} '.format(root_key, root_crt))
 
         for _ in range(0, self.num_clients):
+            if self.tls_enabled:
+                sub = Subject('systest.ledgerapi.com', '', '', '', '', '', '')
+                server_crt, server_key = util.cert.generateCASignedCert(root_key, root_crt, sub)
+                log.debug('Server Key:{} \n Server Certificate:{}'.format(server_key, server_crt))
+
             node = {
                 "zone_id": self.zone_ids[current_zone_idx],
                 "auth_url_jwt": None,
                 "group_name": group_names[current_group_idx],
-                "sizing_info": size_obj
+                "sizing_info": size_obj,
+                "pem": server_key,
+                "crt": server_crt,
+                "cacrt": root_crt
             }
 
             if current_zone_idx + 1 < len(self.zone_ids):
