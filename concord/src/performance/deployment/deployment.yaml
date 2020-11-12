@@ -1,0 +1,52 @@
+aws:
+  # US Ohio, please switch to this region in your AWS console to create key
+  # DONT CHANGE REGION HERE, SINCE IT MAY HAVE DIFFERENT ami_id AND NETWORK SETTINGS!!!
+  region_name: "us-east-2"
+  az_name: "us-east-2a"
+  # Ubuntu 18.04 LTS image ID in GIVEN region (this one is for Ohio)
+  ami_id: "ami-0e82959d4ed12de3f"
+  # credentials: for the Cloudgate users please use them from the popup screen after SSO,
+  # for the AMI users please see README file for how to create them
+  credentials:
+    AWS_ACCESS_KEY_ID:
+    AWS_SECRET_ACCESS_KEY:
+    AWS_SESSION_TOKEN:
+  #optional machines section, to be used with -useExistingInstances flag
+  machines:
+    replicas:
+    loaders:
+  # remote machine path for results and deployment info, PLEASE DONT CHANGE
+  perf_test_root: /home/ubuntu/perf_test_results
+  ssh_key_path: {LOCAL PATH TO THE KEY FILE e.g. /home/user/.ssh}
+  # ssh_key_name should be a PEM file
+  ssh_key_name: {KEY FILE NAME e.g. my_key.pem}
+  # ubuntu is a default user name for the machines in AWS
+  ssh_username: ubuntu
+local:
+  concord_root: {LOCAL PATH TO vmwathena_blockchain FOLDER, e.g. /home/user/gitlab/vmwathena_blockchain}
+  perf_test_root: {LOCAL PATH TO RESULTS FOLDER, e.g. /home/user/perf_test_results}
+docker:
+  server: docker.io
+  repo_name: concord-dev
+  repo_tag_replica: performance-replica
+  repo_tag_loader: performance-loader
+  # dockerhub username
+  username: igolikov
+  #dockerhub access token, see README file
+  access_token: 3deb33c7-2de6-4c4b-b107-708d188eeeaf
+  concord_image_name: concord-core:latest
+  loader_image_name: perf_test_tool:latest
+  # -l {0,1,2,3} - debug level for perf_test_tool {OFF, ERROR, INFO, DEBUG}
+  # for the parameters descriptions see README
+  loader_cli: \/perf_loader\/perf_test_tool -f \/perf_loader\/config\/bftclient.config -c 15 -b 5000 -p 0 -k 31 -s 118 -v 2841 -d 15000 -e 0 -i 0 -w 0 -l 2
+general:
+  num_of_replicas: 4
+  # timeout, in seconds, for the loader to complete the run. If not completed, the run will be aborted
+  loader_timeout_sec: 300
+runtime:
+  # relative to the concord perf deployment folder
+  custom_script_path: run_histograms.sh
+  # assumes it is run from the remote path for the current test run - perf_test_root}/{timestamp}s
+  custom_command: run_histograms.sh CONTAINER_ID
+  # interval to perform remote runtime command (recurring)
+  custom_command_run_interval_sec: 5

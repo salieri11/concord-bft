@@ -18,6 +18,7 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
+concord/src/performance/deployment/deployment_local.yaml
 MakefileCustom
 
 # Helen Specific

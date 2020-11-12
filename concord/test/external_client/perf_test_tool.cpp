@@ -16,6 +16,7 @@
 #include <memory>
 #include <mutex>
 #include <random>
+#include <string>
 #include <unordered_map>
 #include "Logger.hpp"
 #include "concord.pb.h"
@@ -56,8 +57,8 @@ bool busyWait = true;
 
 const float kWarmUpPerc = 0.02;
 const string kPerfServiceHost = "127.0.0.1:50051";
-const string poolConfigPath = "external_client_tls.config";
-const log4cplus::LogLevel kLogLevel = log4cplus::ERROR_LOG_LEVEL;
+string poolConfigPath = "external_client_tls.config";
+log4cplus::LogLevel logLevel = log4cplus::ERROR_LOG_LEVEL;
 
 bool done = false;
 chrono::steady_clock::time_point globalStart;
@@ -322,11 +323,14 @@ void show_help(char** argv) {
           << " -c NBR - concurrency level: capacity of the clients pool "
              "(default: 15) \n"
           << " -e NBR - execution time (default: 0) \n"
+          << " -f STRING - path to the client pool configuration file (default "
+             "is external_client_tls_20.config) \n"
           << " -w 1/0 - to use a busy-wait (1) or a regular sleep (0) "
              "simulating "
-             "execution time latency (default: 1)"
+             "execution time latency (default: 1)\n"
           << " -i 1/0 - to print (1) or not (0) request durations (default: "
-             "1)");
+             "1) \n"
+          << " -l (0,1,2,3 - off, error, info, debug) - log level (default: 1");
 }
 
 bool parse_args(int argc, char** argv) {
@@ -342,10 +346,12 @@ bool parse_args(int argc, char** argv) {
         {"execution_time", required_argument, nullptr, 'e'},
         {"print_req_durations", required_argument, nullptr, 'i'},
         {"busy_wait", required_argument, nullptr, 'w'},
+        {"pool_config_path", required_argument, nullptr, 'f'},
+        {"log_level", required_argument, nullptr, 'l'},
         {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:w:",
+    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:w:f:l:",
                                  longOptions, &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
@@ -398,6 +404,35 @@ bool parse_args(int argc, char** argv) {
           busyWait = stoi(string(optarg)) != 0;
           break;
         }
+        case 'f': {
+          poolConfigPath = std::string(optarg);
+          break;
+        }
+        case 'l': {
+          auto ll = stoi(string(optarg));
+          switch (ll) {
+            case 0: {
+              logLevel = log4cplus::OFF_LOG_LEVEL;
+              break;
+            }
+            case 1: {
+              logLevel = log4cplus::ERROR_LOG_LEVEL;
+              break;
+            }
+            case 2: {
+              logLevel = log4cplus::INFO_LOG_LEVEL;
+              break;
+            }
+            case 3: {
+              logLevel = log4cplus::DEBUG_LOG_LEVEL;
+              break;
+            }
+            default:
+              return false;
+          }
+
+          break;
+        }
         default:
           return false;
       }
@@ -432,7 +467,7 @@ int main(int argc, char** argv) {
   log4cplus::BasicConfigurator config;
   config.configure();
   log4cplus::Logger logger = logging::getLogger("test");
-  logger.getRoot().setLogLevel(kLogLevel);
+  logger.getRoot().setLogLevel(logLevel);
   setMaxNumOfOpenFiles();
   auto pool = new ConcordClientPool(poolConfigPath);
   pool->SetDoneCallback(req_callback);

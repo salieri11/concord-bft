@@ -1,0 +1,10 @@
+FROM concord-core:latest
+WORKDIR /
+RUN mkdir -p perf_loader
+RUN cp /concord/perf_test_tool /perf_loader
+RUN sysctl kernel.core_pattern=/perf_loader/cores/core.%e.%h.%s.%t >/dev/null
+RUN ulimit -c unlimited
+RUN cp /perf_loader/perf_test_tool /perf_loader/cores
+VOLUME [ "/perf_loader/config" ]
+ENTRYPOINT []
+CMD ["/perf_loader/perf_test_tool"]

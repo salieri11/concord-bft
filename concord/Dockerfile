@@ -152,6 +152,7 @@ COPY --from=0 /concord/build/src/concord /concord/concord
 COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
 COPY --from=0 /concord/build/submodules/concord-bft/kvbc/tools/sparse_merkle_db/sparse_merkle_db_editor /concord/
+COPY --from=0 /concord/build/test/external_client/perf_test_tool /concord/
 
 COPY ./concord/test/concord.supp /concord/concord.supp
 

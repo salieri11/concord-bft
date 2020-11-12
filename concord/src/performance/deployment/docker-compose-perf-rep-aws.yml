@@ -1,0 +1,98 @@
+# for running local concord with Test Execution Engine
+#
+# ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-tee.yaml
+# docker-compose -f docker-compose-tee.yml up
+#
+version: '3'
+services:
+  concord1:
+    image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
+    privileged: true
+    ports:
+      - "50051:50051"
+      - "4501:4501/udp"
+      - "3501:3501/tcp"
+    expose:
+      - 9891
+      - 5458
+      - 3501/tcp
+    volumes:
+      - /media/concord/rocksdbdata:/concord/rocksdbdata
+      - /media/concord/log:/concord/log
+      - /media/concord/cores:/concord/cores
+      - ./config-generated:/concord/config-generated
+      - ./config-local:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+    labels:
+      custom_name: concord_perf_replica1
+
+  concord2:
+    image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
+    privileged: true
+    ports:
+      - "50052:50051"
+      - "4502:4501/udp"
+      - "3501:3501/tcp"
+    expose:
+      - 5458
+      - 9891
+      - 3501/tcp
+    volumes:
+      - /media/concord/rocksdbdata:/concord/rocksdbdata
+      - /media/concord/log:/concord/log
+      - /media/concord/cores:/concord/cores
+      - ./config-generated:/concord/config-generated
+      - ./config-local:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+    labels:
+      custom_name: concord_perf_replica2
+
+  concord3:
+    image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
+    privileged: true
+    ports:
+      - "50053:50051"
+      - "4503:4501/udp"
+      - "3501:3501/tcp"
+    expose:
+      - 5458
+      - 9891
+      - 3501/tcp
+    volumes:
+      - /media/concord/rocksdbdata:/concord/rocksdbdata
+      - /media/concord/log:/concord/log
+      - /media/concord/cores:/concord/cores
+      - ./config-generated:/concord/config-generated
+      - ./config-local:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+    labels:
+      custom_name: concord_perf_replica3
+
+  concord4:
+    image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
+    privileged: true
+    ports:
+      - "50054:50051"
+      - "4504:4501/udp"
+      - "3501:3501/tcp"
+    expose:
+      - 5458
+      - 9891
+      - 3501/tcp
+    volumes:
+      - /media/concord/rocksdbdata:/concord/rocksdbdata
+      - /media/concord/log:/concord/log
+      - /media/concord/cores:/concord/cores
+      - ./config-generated:/concord/config-generated
+      - ./config-local:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+    labels:
+      custom_name: concord_perf_replica4
