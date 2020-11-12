@@ -235,7 +235,7 @@ def workaround_to_rejoin_node(node):
          ssh_output))
 
 def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, nodes_to_interrupt,
-                                         node, node_interruption_details, mode):
+                                         node, scenario_details, node_interruption_details, mode):
    '''
    Method to perform node interruption and recovery operation
    :param fxHermesRunSettings: hermes run settings (fixture)
@@ -288,7 +288,7 @@ def perform_interrupt_recovery_operation(fxHermesRunSettings, fxBlockchain, node
          if custom_interruption_params[CONTAINERS_TO_CRASH] == ALL_CONTAINERS:
             containers = fxHermesRunSettings["hermesUserConfig"]["persephoneTests"] \
                ["modelService"]["defaults"]["deployment_components"][
-               node_interruption_details[NODE_TYPE_TO_INTERRUPT]].values()
+               scenario_details[NODE_TYPE_TO_INTERRUPT]].values()
          else:
             containers = custom_interruption_params[CONTAINERS_TO_CRASH]
 
@@ -502,6 +502,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                                                  fxBlockchain,
                                                  nodes_to_interrupt,
                                                  node,
+                                                 scenario_details,
                                                  node_interruption_details,
                                                  mode=NODE_INTERRUPT):
             if not node_interruption_details[NODE_INTERRUPTION_TYPE] == NODE_INTERRUPT_CONTAINER_CRASH:
@@ -533,6 +534,7 @@ def crash_and_restore_nodes(fxBlockchain, fxHermesRunSettings,
                                               fxBlockchain,
                                               nodes_to_interrupt,
                                               node,
+                                              scenario_details,
                                               node_interruption_details,
                                               mode=NODE_RECOVER)
       interrupted_nodes.remove(node)
