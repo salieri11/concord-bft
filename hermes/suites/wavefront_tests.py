@@ -146,7 +146,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Time range is a crucial parameter, do not increase/decrease
     # without analyzing the API calls properly.
     start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
-    end_epoch = (datetime.now() + timedelta(seconds=120)).strftime('%s')
+    end_epoch = (datetime.now() + timedelta(seconds=180)).strftime('%s')
     log.info("Start time is {} and end time is {}".format(
         start_epoch, end_epoch))
 
@@ -164,6 +164,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
         log.error("Error in metrics test is : [{}]".format(e))
         assert False, str_output
 
+    log.info("\nCurrent epoch is {}".format((datetime.now()).strftime('%s')))
     before_data = output["timeseries"][0]["data"]
     log.info("\nMetric [{}] data before daml transaction is {} \n\n".format(
         metric_name, before_data))
@@ -175,7 +176,8 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Make a client request
     make_client_request(fxLocalSetup.client_hosts, counter)
 
-    time.sleep(30)
+    time.sleep(10)
+    log.info("\nCurrent epoch again is {}".format((datetime.now()).strftime('%s')))
     # Check Wavefront after Client request
     str_output = wavefront.call_wavefront_chart_api(
         metric_query, start_epoch, end_epoch)
