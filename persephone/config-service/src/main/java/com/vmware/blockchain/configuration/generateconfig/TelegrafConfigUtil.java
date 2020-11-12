@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
+import com.vmware.blockchain.server.exceptions.ConfigServiceException;
+import com.vmware.blockchain.server.exceptions.ErrorCode;
 
 /**
  * Utility class to generate telegraf configurations.
@@ -42,11 +44,19 @@ public class TelegrafConfigUtil {
      * @param consortiumId id
      * @param blockchainId id
      * @param nodeInfo info
-     * @param servicesList components
+     * @param nodeType Node type
      * @return config
      */
     public String getTelegrafConfig(String consortiumId, String blockchainId, NodesInfo.Entry nodeInfo,
-                                                  List<ConcordComponent.ServiceType> servicesList) {
+                                    String nodeType) {
+        if (!ValidationUtil.isValid(consortiumId) || !ValidationUtil.isValid(blockchainId) || !ValidationUtil
+                .isValid(nodeInfo) || !ValidationUtil.isValid(nodeType)) {
+            log.error(
+                    "Essential input parameters are invalid. consortiumId {} blockchainId {} nodeInfo {} nodeType {}.",
+                    consortiumId, blockchainId, nodeInfo, nodeType);
+            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_INVALID_INPUT_FAILURE,
+                                             "Invalid input parameters.");
+        }
 
         String content = "";
         try {
@@ -64,6 +74,12 @@ public class TelegrafConfigUtil {
                 log.warn("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());
                 return null;
             }
+        }
+        List<ConcordComponent.ServiceType> servicesList = nodeInfo.getServicesList();
+        // If no service is available, then log a message..
+        if (servicesList == null || servicesList.isEmpty()) {
+            log.error("No services available for this node with Id {} and IP {}." + nodeInfo.getId(),
+                      nodeInfo.getNodeIp());
         }
 
         var prometheusUrlList = getPrometheusUrls(servicesList);
@@ -95,26 +111,18 @@ public class TelegrafConfigUtil {
         String postgressPluginStr = "#[[inputs.postgresql]]";
         String indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";
 
-        // TODO : remove after concord name unification
-        List<ConcordComponent.ServiceType> committerList = List.of(
-                ConcordComponent.ServiceType.CONCORD,
-                ConcordComponent.ServiceType.DAML_CONCORD,
-                ConcordComponent.ServiceType.HLF_CONCORD);
-
         String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
 
-        if (servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
+        if (servicesList != null && servicesList.contains(ConcordComponent.ServiceType.DAML_INDEX_DB)) {
             String postgressPlugin = postgressPluginStr.replace("#", "");
             hostConfigCopy = hostConfigCopy
                     .replace("#$DBINPUT", indexDbInput)
                     .replace(postgressPluginStr, postgressPlugin);
         }
 
-        if (servicesList.stream().anyMatch(committerList::contains)) {
-            hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
-        } else {
-            hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
-        }
+        // Just use the node type name.
+        hostConfigCopy = hostConfigCopy.replace("$VMTYPE", nodeType.toLowerCase()
+                .replaceAll("_", ""));
 
         var esUrl = nodeInfo.getProperties().getValuesOrDefault(ELASTICSEARCH_URL.name(), "");
         if (!esUrl.isEmpty()) {
@@ -159,6 +167,11 @@ public class TelegrafConfigUtil {
     private List<String> getPrometheusUrls(List<ConcordComponent.ServiceType> servicesList) {
         List<String> prometheusUrls = new ArrayList<>();
         prometheusUrls.add("\"http://agent:9081/actuator/prometheus\"");
+
+        // If no service is available, then return.
+        if (servicesList == null || servicesList.isEmpty()) {
+            return prometheusUrls;
+        }
 
         // TODO change to switch case once concord name is unified.
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_CONCORD)
