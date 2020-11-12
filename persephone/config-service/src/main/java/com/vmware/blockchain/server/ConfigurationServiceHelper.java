@@ -124,11 +124,23 @@ public class ConfigurationServiceHelper {
     }
 
     List<ConfigurationComponent> nodeIndependentConfigs(String consortiumId, String blockchainId,
-                                                        List<ServiceType> serviceTypes,
-                                                        NodesInfo.Entry nodeInfo) {
+                                                        NodesInfo.Entry nodeInfo, String nodeType)
+            throws ConfigServiceException {
+        if (consortiumId == null || blockchainId == null || nodeInfo == null || nodeType == null) {
+            log.error("consortiumId {} blockchainId {} nodeInfo {} nodeType {}", consortiumId, blockchainId, nodeInfo,
+                      nodeType);
+            throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE,
+                                             "Essential input parameters are missing.");
+        }
         List<ConfigurationComponent> nodeIsolatedConfiguration = new ArrayList<>();
+        // Get service types for this node.
+        List<ServiceType> serviceTypes = nodeInfo.getServicesList();
+        // Are there any service types for this node? If not available, return an empty list.
+        if (serviceTypes == null || serviceTypes.isEmpty()) {
+            log.info("Service types are not available for this node type, is this a new node type? ");
+            return nodeIsolatedConfiguration;
+        }
         for (ServiceType serviceType : serviceTypes) {
-
             switch (serviceType) {
                 case DAML_EXECUTION_ENGINE:
                     DamlExecutionEngineUtil executionEngineUtil = new DamlExecutionEngineUtil();
@@ -217,9 +229,8 @@ public class ConfigurationServiceHelper {
                     break;
                 case TELEGRAF:
                     var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath);
-                    var telegrafConfig = telegrafConfigUtil.getTelegrafConfig(consortiumId, blockchainId,
-                                                                              nodeInfo,
-                                                                              serviceTypes);
+                    var telegrafConfig =
+                            telegrafConfigUtil.getTelegrafConfig(consortiumId, blockchainId, nodeInfo, nodeType);
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
                                                           .setType(ServiceType.TELEGRAF)
                                                           .setComponentUrl(Constants.TELEGRAF_CONFIG_PATH)

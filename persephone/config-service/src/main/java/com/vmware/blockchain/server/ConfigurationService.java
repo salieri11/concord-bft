@@ -26,6 +26,7 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ValidationUtil;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
@@ -142,6 +143,13 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         log.info("Request received. Session Id : {}\n Request : {}", sessionId, request.toString());
         BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(request.getNodesMap(), sessionId.getId());
 
+        // Validate the nodes based on the blockchain type.
+        if (!ValidationUtil.isValidNodeCount(nodeList, request.getBlockchainType())) {
+            throw new ConfigServiceException(ErrorCode.CLIENT_CONFIG_INVALID_INPUT_FAILURE,
+                                             "Invalid number of nodes for Blockchain type " + request
+                                                     .getBlockchainType());
+        }
+
         // Generate Configuration
         var configUtil =
                 new ConcordConfigUtil(concordConfigPath, sessionId, configurationServiceHelper.isKeepTempFiles());
@@ -208,14 +216,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         try {
-            request.getNodesMap().values().forEach(nodesByType -> nodesByType
+            request.getNodesMap().forEach((nodeType, nodesInfo) -> nodesInfo
                     .getEntriesList().forEach(eachNode -> configByNodeId.put(eachNode.getId(),
                                                                              configurationServiceHelper
                                                                                      .nodeIndependentConfigs(
                                                                                              request.getConsortiumId(),
                                                                                              request.getBlockchainId(),
-                                                                                             eachNode.getServicesList(),
-                                                                                             eachNode))));
+                                                                                             eachNode,
+                                                                                             nodeType))));
         } catch (ConfigServiceException e) {
             throw e;
         } catch (Exception e) {

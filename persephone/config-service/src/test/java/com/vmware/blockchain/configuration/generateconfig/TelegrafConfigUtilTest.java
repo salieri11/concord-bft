@@ -59,16 +59,15 @@ public class TelegrafConfigUtilTest {
 
     @Test
     public void testTelegrafConfigHappyPathCommitter() throws IOException {
-        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
-                .setNodeIp("10.0.0.1").build();
-
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_EXECUTION_ENGINE,
                 ServiceType.CONCORD,
                 ServiceType.GENERIC);
-
-        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                "unitTest", nodeInfo, servicesList);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1").addAllServices(servicesList).build();
+        String nodeType = "REPLICA";
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium", "unitTest",
+                                                             nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafConfigCommiter.conf").getFile());
@@ -78,19 +77,19 @@ public class TelegrafConfigUtilTest {
 
     @Test
     public void testTelegrafConfigHappyPathParticipant() throws IOException {
-
-        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
-                .setNodeIp("10.0.0.1")
-                .setId("node-0")
-                .build();
-
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_INDEX_DB,
                 ServiceType.DAML_LEDGER_API,
                 ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "CLIENT";
 
         String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                "unitTest", nodeInfo, servicesList);
+                "unitTest", nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafConfigParticipant.conf").getFile());
@@ -100,7 +99,6 @@ public class TelegrafConfigUtilTest {
 
     @Test
     public void testTelegrafConfigElasticSearch() throws IOException {
-
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(
                         NodeProperty.Name.ELASTICSEARCH_URL.toString(), "myurl.com",
@@ -108,19 +106,20 @@ public class TelegrafConfigUtilTest {
                         NodeProperty.Name.ELASTICSEARCH_PWD.toString(), "mypwd"))
                 .build();
 
-        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
-                .setNodeIp("10.0.0.1")
-                .setId("node-0")
-                .setProperties(properties)
-                .build();
-
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_EXECUTION_ENGINE,
                 ServiceType.CONCORD,
                 ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "REPLICA";
 
         String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                "unitTest", nodeInfo, servicesList);
+                "unitTest", nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafConfigES.conf").getFile());
@@ -136,19 +135,20 @@ public class TelegrafConfigUtilTest {
                         NodeProperty.Name.ELASTICSEARCH_URL.toString(), "myurl.com"))
                 .build();
 
-        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
-                .setNodeIp("10.0.0.1")
-                .setId("node-0")
-                .setProperties(properties)
-                .build();
-
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_EXECUTION_ENGINE,
                 ServiceType.CONCORD,
                 ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "REPLICA";
 
         String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                "unitTest", nodeInfo, servicesList);
+                "unitTest", nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafConfigESNoUser.conf").getFile());
@@ -164,24 +164,22 @@ public class TelegrafConfigUtilTest {
 
     @Test
     public void testEnablePrometheusOutputPlugin() throws IOException {
-
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(
                         NodeProperty.Name.TELEGRAF_USERNAME.toString(), "telegraf",
                         NodeProperty.Name.TELEGRAF_PASSWORD.toString(), "ahoy hoy!!!")
                 )
                 .build();
-
-        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
-                .setNodeIp("10.0.0.1").setProperties(properties).build();
-
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_EXECUTION_ENGINE,
                 ServiceType.CONCORD,
                 ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1").setProperties(properties).addAllServices(servicesList).build();
+        String nodeType = "REPLICA";
 
         String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                                                             "unitTest", nodeInfo, servicesList);
+                                                             "unitTest", nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafEnablePullPrometheusClient.conf").getFile());
