@@ -99,12 +99,13 @@ import com.vmware.blockchain.services.tasks.TaskService;
  */
 @RestController
 public class BlockchainController {
+
     private static final Logger logger = LogManager.getLogger(BlockchainController.class);
 
     private static final Map<BlockchainType,
             com.vmware.blockchain.deployment.v1.BlockchainType> enumMapForBlockchainType =
             ImmutableMap.of(BlockchainType.ETHEREUM, ETHEREUM,
-                    BlockchainType.DAML, DAML);
+                            BlockchainType.DAML, DAML);
 
     private BlockchainService blockchainService;
     private OrganizationService organizationService;
@@ -134,9 +135,9 @@ public class BlockchainController {
                                 ZoneService zoneService,
                                 ConnectionPoolManager connectionPoolManager,
                                 @Value("${vmbc.client.number}")
-                                int clientNumber,
+                                            int clientNumber,
                                 @Value("#{${vmbc.replica.number}}")
-                                List<Integer> replicaNumber,
+                                            List<Integer> replicaNumber,
                                 NodeSizeTemplateService nodeSizeTemplateService) {
         this.blockchainService = blockchainService;
         this.organizationService = organizationService;
@@ -206,9 +207,9 @@ public class BlockchainController {
     }
 
     /**
-     * Create a new blockchain in the given consortium, with the specified nodes.
-     * Note that after deployment we must remove the authtoken from the cache, since the user will
-     * now have access to this blockchain
+     * Create a new blockchain in the given consortium, with the specified nodes. Note that after deployment we must
+     * remove the authtoken from the cache, since the user will now have access to this blockchain
+     *
      * @throws Exception any exception
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
@@ -249,12 +250,14 @@ public class BlockchainController {
 
     /**
      * Update the given blockchain.
+     *
      * @throws NotFoundException NotFoundException
      */
     @PatchMapping(path = "/api/blockchains/{bid}")
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID bid,
-                                                           @RequestBody BlockchainPatch body) throws NotFoundException {
+                                                                   @RequestBody BlockchainPatch body)
+            throws NotFoundException {
 
         Blockchain blockchain = safeGetBlockchain(bid);
 
@@ -271,8 +274,7 @@ public class BlockchainController {
     }
 
     /**
-     * Temp API, DO NOT publish.
-     * API which generates a new config.
+     * Temp API, DO NOT publish. API which generates a new config.
      */
     @RequestMapping(path = "/api/blockchains/{bid}/regenerate-configuration", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
@@ -289,21 +291,21 @@ public class BlockchainController {
 
         replicas.stream().forEach(k -> {
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
-                    .setType(NodeType.REPLICA)
-                    .setNodeId(k.getId().toString())
-                    .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                    .setId(k.getZoneId().toString()).build())
-                    .setProperties(Properties.newBuilder()
-                            .putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(),
-                                       k.getPrivateIp())
-                                           .build()));
+                                              .setType(NodeType.REPLICA)
+                                              .setNodeId(k.getId().toString())
+                                              .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                                               .setId(k.getZoneId().toString()).build())
+                                              .setProperties(Properties.newBuilder()
+                                              .putValues(
+                                              DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP
+                                              .name(), k.getPrivateIp()).build()));
 
             zoneIds.add(k.getZoneId());
         });
 
         clients.stream().forEach(k -> {
             var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
-                                                                      k.getGroupId().toString(), k.getDamlDbPassword());
+                                                   k.getGroupId().toString(), k.getDamlDbPassword());
             properties.putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), k.getPrivateIp());
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                               .setType(NodeType.CLIENT)
@@ -316,7 +318,6 @@ public class BlockchainController {
         });
 
         List<OrchestrationSite> sitesInfo = getOrchestrationSites(zoneIds, organization);
-
 
         var deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(blockchain.consortium.toString())
@@ -347,8 +348,7 @@ public class BlockchainController {
     }
 
     /**
-     * Temp API, DO NOT publish.
-     * API which generates a new config.
+     * Temp API, DO NOT publish. API which generates a new config.
      */
     @RequestMapping(path = "/api/blockchains/{bid}/clone", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
@@ -379,7 +379,7 @@ public class BlockchainController {
 
         clients.stream().forEach(k -> {
             var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
-                                                                      k.getGroupId().toString(), k.getDamlDbPassword());
+                                                   k.getGroupId().toString(), k.getDamlDbPassword());
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                               .setType(NodeType.CLIENT)
                                               .setNodeId(UUID.randomUUID().toString())
@@ -429,6 +429,7 @@ public class BlockchainController {
 
     /**
      * Temporary pre IA/GA to handle resources/POC. Should not be published in the API doc or provided to the customer.
+     *
      * @param bid BlockchainId
      */
     @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.DELETE)
@@ -483,12 +484,11 @@ public class BlockchainController {
         // Validate number of replicas and clients.
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
             throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
-                                         "user input replicas %s", body.getReplicaZoneIds().size(),
-                                         "Expected number of clients is <= %s", clientNumber,
-                                         "user input clients is %s", body.getClientNodes().size()));
+                                                        "user input replicas %s", body.getReplicaZoneIds().size(),
+                                                        "Expected number of clients is <= %s", clientNumber,
+                                                        "user input clients is %s", body.getClientNodes().size()));
         }
         NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
-        Properties.Builder basePropBuilder = getPropertySpec(organization);
 
         // Collect a list of zones from replicas and clients.
         List<UUID> zoneIds = new ArrayList<>();
@@ -557,7 +557,7 @@ public class BlockchainController {
                             groupMap.put(k.getGroupName(), groupId);
                         }
                         Properties.Builder propBuilder = clientPropertyBuilder(k.getAuthUrlJwt(), k.getGroupName(),
-                                                                                              groupId.toString(), null);
+                                                                               groupId.toString(), null);
 
                         if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
                             // Validate sizing info, if the input is invalid throw a BadRequestException.
@@ -568,9 +568,8 @@ public class BlockchainController {
 
                         // All credentials have to be provided to enable TLS
                         boolean tlsEnabled = !Strings.isNullOrEmpty(k.getPem())
-                                && !Strings.isNullOrEmpty(k.getCrt())
-                                && !Strings.isNullOrEmpty(k.getCacrt());
-
+                                             && !Strings.isNullOrEmpty(k.getCrt())
+                                             && !Strings.isNullOrEmpty(k.getCacrt());
 
                         if (tlsEnabled) {
                             String pem = k.getPem();
@@ -611,12 +610,12 @@ public class BlockchainController {
                         } else {
                             // If some credentials are present while others are absent, throw BAD REQUEST exception.
                             boolean incompleteDetails = !Strings.isNullOrEmpty(k.getPem())
-                                    || !Strings.isNullOrEmpty(k.getCrt())
-                                    || !Strings.isNullOrEmpty(k.getCacrt());
+                                                        || !Strings.isNullOrEmpty(k.getCrt())
+                                                        || !Strings.isNullOrEmpty(k.getCacrt());
 
                             if (incompleteDetails) {
                                 throw new BadRequestException(ErrorCodeType.BAD_REQUEST,
-                                        "Missing TLS credentials. Please provide all credentials");
+                                          "Missing TLS credentials. Please provide all credentials");
                             }
                         }
 
@@ -636,9 +635,44 @@ public class BlockchainController {
             logger.debug("zoneIds collected so far, from replicas and client nodes {}", zoneIds);
         }
 
+        //Read replica property is optional, no null checks needed
+        boolean isObjStore = !(body.getReadOnlyReplicas() == null || body.getReadOnlyReplicas().size() == 0);
+
+        if (isObjStore) {
+            body.getReadOnlyReplicas().forEach(k -> {
+                zoneIds.add(k.getZoneId());
+
+                Properties.Builder propBuilder = Properties.newBuilder();
+                addObjectStoretoProperties(propBuilder, k);
+
+                boolean incompleteDetails = !Strings.isNullOrEmpty(k.getObjectStoreAccessKey())
+                                                || !Strings.isNullOrEmpty(k.getObjectStoreBucketName())
+                                                || !Strings.isNullOrEmpty(k.getObjectStoreProtocol())
+                                                || !Strings.isNullOrEmpty(k.getObjectStoreSecretKey())
+                                                || !Strings.isNullOrEmpty(k.getObjectStoreUrl());
+
+                if (incompleteDetails) {
+                    throw new BadRequestException(ErrorCode.BAD_REQUEST, "all parameters not enabled");
+                }
+
+                nodeAssignment.addEntries(NodeAssignment.Entry
+                                                  .newBuilder()
+                                                  .setType(NodeType.READ_REPLICA)
+                                                  .setNodeId(UUID.randomUUID().toString())
+                                                  .setSite(
+                                                          OrchestrationSiteIdentifier
+                                                                  .newBuilder()
+                                                                  .setId(k.getZoneId().toString())
+                                                                  .build())
+                                                  .setProperties(propBuilder));
+            });
+        }
+
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
 
         List<OrchestrationSite> sitesInfo = getOrchestrationSites(new HashSet(zoneIds), organization);
+
+        Properties.Builder basePropBuilder = getPropertySpec(organization);
 
         var deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(body.getConsortiumId().toString())
@@ -649,7 +683,8 @@ public class BlockchainController {
                 .build();
 
         logger.debug("deployment spec {}", deploymentSpec);
-        invokeDeploymentRequest(body.getConsortiumId(), body.getBlockchainType(), task, nodeAssignment, deploymentSpec);
+        invokeDeploymentRequest(body.getConsortiumId(), body.getBlockchainType(), task, nodeAssignment,
+                                deploymentSpec);
     }
 
     private void invokeDeploymentRequest(UUID consortiumId, BlockchainType type,
@@ -674,7 +709,8 @@ public class BlockchainController {
         rawBlockchain.setConsortium(consortiumId);
 
         BlockchainObserver bo =
-                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, clientService,
+                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
+                                       clientService,
                                        taskService,
                                        connectionPoolManager,
                                        task.getId(), nodeAssignment.build(),
@@ -850,8 +886,9 @@ public class BlockchainController {
 
     /**
      * Validate SizingInfo for all types of nodes.
+     *
      * @param sizingInfo Sizing info object
-     * @param mode A string representing the node type.
+     * @param mode       A string representing the node type.
      * @return True in case of valid input, an exception otherwise.
      * @throws BadRequestException when SizingInfo parameters are invalid.
      */
@@ -897,7 +934,8 @@ public class BlockchainController {
 
     /**
      * Add node sizing parameters to Deployment properties, if available.
-     * @param sizingInfo Sizing info parameters
+     *
+     * @param sizingInfo  Sizing info parameters
      * @param propBuilder Properties
      */
     private void addSizingInfoToProperties(HashMap<NodeSizeTemplate.Parameter, String> sizingInfo,
@@ -914,5 +952,34 @@ public class BlockchainController {
 
         String vmStorage = sizingInfo.get(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS);
         propBuilder.putValues(DeploymentAttributes.VM_STORAGE.name(), vmStorage);
+    }
+
+    private void addObjectStoretoProperties(Properties.Builder propertyBuilder,
+                                            BlockchainApiObjects.ReadOnlyReplica ror) {
+        if (propertyBuilder == null) {
+            logger.error("Properties is null");
+            return;
+        }
+        propertyBuilder.putValues(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "True");
+        //set all extra properties for object store
+        if (ror.getObjectStoreAccessKey() != null && !ror.getObjectStoreAccessKey().isEmpty()) {
+            propertyBuilder.putValues(NodeProperty.Name.OBJECT_STORE_ACCESS_KEY.name(),
+                                      ror.getObjectStoreAccessKey());
+        }
+        if (ror.getObjectStoreBucketName() != null && !ror.getObjectStoreBucketName().isEmpty()) {
+            propertyBuilder.putValues(NodeProperty.Name.OBJECT_STORE_BUCKET_NAME.name(),
+                                      ror.getObjectStoreBucketName());
+        }
+        if (ror.getObjectStoreProtocol() != null && !ror.getObjectStoreProtocol().isEmpty()) {
+            propertyBuilder.putValues(NodeProperty.Name.OBJECT_STORE_PROTOCOL.name(),
+                                      ror.getObjectStoreProtocol());
+        }
+        if (ror.getObjectStoreSecretKey() != null && !ror.getObjectStoreSecretKey().isEmpty()) {
+            propertyBuilder.putValues(NodeProperty.Name.OBJECT_STORE_SECRET_KEY.name(),
+                                      ror.getObjectStoreSecretKey());
+        }
+        if (ror.getObjectStoreUrl() != null && !ror.getObjectStoreUrl().isEmpty()) {
+            propertyBuilder.putValues(NodeProperty.Name.OBJECT_STORE_URL.name(), ror.getObjectStoreUrl());
+        }
     }
 }

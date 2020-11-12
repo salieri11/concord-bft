@@ -989,4 +989,13 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(ErrorCode.BAD_TLS_CREDENTIALS_CRT, errorMessage);
     }
 
+    @Test
+    void objectStoreEnabledCorrectly() throws Exception {
+        ArgumentCaptor<DeploymentRequest> captor = ArgumentCaptor.forClass(DeploymentRequest.class);
+        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(BlockchainJsonObjects.CORRECT_READ_REPLICA_DETAILS).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+        verify(client).createDeployment(captor.capture(), any(StreamObserver.class));
+    }
 }
