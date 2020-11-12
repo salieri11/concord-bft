@@ -146,13 +146,13 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Time range is a crucial parameter, do not increase/decrease
     # without analyzing the API calls properly.
     start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
-    end_epoch = (datetime.now() + timedelta(seconds=180)).strftime('%s')
+    end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
     log.info("Start time is {} and end time is {}".format(
         start_epoch, end_epoch))
 
     # Check Wavefront before Client request
     str_output = wavefront.call_wavefront_chart_api(
-        metric_query, start_epoch, end_epoch)
+        metric_query, start_epoch, end_epoch, granularity="s")
     output = None
 
     try:
@@ -176,11 +176,11 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     # Make a client request
     make_client_request(fxLocalSetup.client_hosts, counter)
 
-    time.sleep(10)
+    time.sleep(30)
     log.info("\nCurrent epoch again is {}".format((datetime.now()).strftime('%s')))
     # Check Wavefront after Client request
     str_output = wavefront.call_wavefront_chart_api(
-        metric_query, start_epoch, end_epoch)
+        metric_query, start_epoch, end_epoch, granularity="s")
     try:
         output = json.loads(str_output)
         assert "warnings" not in output.keys(), output["warnings"]
